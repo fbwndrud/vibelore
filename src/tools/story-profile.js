@@ -1,6 +1,11 @@
 import { ENGINE_GENRES } from '../../engine/src/continuity/genre-profile.js';
+import { PROMPT_FAMILY_KO } from '../../engine/src/core/language-policy.js';
 
 import { MCP_CONTRACT_VERSION, runtimeVersion } from '../core/runtime-version.js';
+import {
+  STORY_PROFILE_SCHEMA_VERSION, profileLanguageChange, readProfileLength,
+  resolveProposedLength, resolveWorkLanguage,
+} from '../core/work-language.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const READABILITY_QUESTION_ID = 'reading-experience-contract';
@@ -63,10 +68,19 @@ function designReview(value, previous) {
   };
 }
 
-function resolveDialogueBreakMode(format) {
+const DIALOGUE_BREAK_MODES = ['strict', 'relaxed', 'natural'];
+
+/**
+ * 대사 문단 정책. 한국어 웹소설의 기존 계약은 그대로 두고, 비ko 신규 작품은
+ * `natural`(그 언어의 일반적인 대사+발화자 서술)을 기본으로 한다. 명시된
+ * strict/relaxed/natural 는 언어와 무관하게 그대로 존중한다.
+ */
+function resolveDialogueBreakMode(format, promptFamily) {
+  const explicit = DIALOGUE_BREAK_MODES.includes(format?.dialogueBreakMode) ? format.dialogueBreakMode : null;
+  if (promptFamily !== PROMPT_FAMILY_KO) return explicit ?? 'natural';
   const serialization = String(format?.serialization ?? '웹소설 연재');
   if (/웹\s*(?:소설|연재)|web\s*(?:novel|serial)/i.test(serialization)) return 'strict';
-  return format?.dialogueBreakMode === 'relaxed' ? 'relaxed' : 'strict';
+  return explicit ?? 'strict';
 }
 
 function narrativeContract(value) {
@@ -175,9 +189,17 @@ function voiceContract(value) {
   };
 }
 
-export async function runStoryProfile({ store, workId, brief, mode = 'review', feedback = '', providers }) {
+export async function runStoryProfile({ store, workId, brief, mode = 'review', feedback = '', language = null, length = null, providers }) {
   const foundation = await store.loadFoundation(workId);
-  const existing = normalizeStoryProfile(await store.loadStoryProfile(workId));
+  const stored = normalizeStoryProfile(await store.loadStoryProfile(workId));
+  // foundation 이전의 명시적 언어 변경은 새 revision 이다. 이전 언어의 예시·승인·
+  // 대기 질문을 계승하지 않는다. foundation 이 이미 있으면 아래 resolveWorkLanguage
+  // 가 WORK_LANGUAGE_IMMUTABLE 로 거부한다.
+  const languageChange = foundation ? { changed: false } : profileLanguageChange({ profile: stored, requested: language });
+  const existing = languageChange.changed ? null : stored;
+  const workLanguage = await resolveWorkLanguage({
+    store, workId, requested: language, length, foundation, profile: existing,
+  });
   const source = String(brief || foundation?.brief || '').trim();
   if (!source) throw new Error('작품의 장르·톤·이야기 방향을 설명하는 brief가 필요합니다.');
   const response = await providers.complete({
@@ -189,7 +211,7 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
         `기존 프로필: ${existing ? JSON.stringify(existing) : '(없음)'}`,
         `이번 라운드 답변·수정 피드백: ${feedback || '(없음)'}`, `허용 engineGenre: ${ENGINE_GENRES.join(', ')}`, '',
         'JSON 스키마:',
-        '{"genreLabel":"사용자가 이해할 복합 장르명","engineGenre":"허용 목록 중 하나","subgenres":["..."],"tones":["..."],"storyEngines":["성장/생존/복수/탐험/관계/경영 등"],"themes":["..."],"format":{"pov":"...","chapterChars":3000,"serialization":"...","dialogueBreakMode":"strict|relaxed"},"narrativeContract":{"depthMode":"light-webnovel|commercial-dramatic|deep-world-driven","readerPromise":"독자가 이 작품에서 기대할 핵심 경험","openingPressure":"초반에 반드시 체감시킬 세계/관계의 압력","viewpointReason":"첫 시점이 이 인물이어야 하는 이유","expositionPolicy":"설명할 정보와 장면으로만 체감시킬 정보의 원칙","readerLegibility":"전문 지식 없이도 독자가 장면의 목표·대사 표면 뜻·결과를 붙잡게 하는 원칙","registerPolicy":"정밀 시각·수치·전문어와 일상 표현을 상황별로 쓰는 원칙"},"readabilityContract":{"surfaceEase":"easy|standard|dense","conceptPacing":"slow|standard|fast","inferenceLoad":"explicit|balanced|subtext-heavy","complexityRamp":"onboarding-first|steady|dense-start","confirmedByUser":false},"povDesign":{"mode":"1인칭|3인칭제한|전지적|다중시점 등","openingViewpoint":"첫 화 시점 인물 또는 서술 위치","narrativeDistance":"서술자가 인물 내면과 세계를 어느 거리에서 다루는가","readerKnowledgePolicy":"독자가 시점 인물보다 많이/적게 아는 정보 정책","switchPolicy":"시점 전환 허용 조건"},"voiceContract":{"genreVoiceRecipe":{"narration":"이 장르에서 해야 하는 서술 방식","dialogue":"이 장르에서 해야 하는 대사 방식","exposition":"세계/정보를 문장으로 처리하는 방식","rhythm":"문장 길이와 박자"},"narrationExamples":[{"situation":"상황","example":"해야 하는 서술 예시","craftReason":"왜 이 문장이 이 장르에 맞는가"}],"dialogueExamples":[{"situation":"상황","example":"해야 하는 대사 예시","craftReason":"왜 이 말투가 맞는가"}],"emotionalRendering":"감정을 이름 붙이지 않고 드러내는 방식"},"tracking":{"engineBacked":["엔진이 구조적으로 검사 가능한 축"],"semantic":["모델이 의미적으로 확인할 축"]},"promptGuidance":{"worldbuild":["..."],"cast":["..."],"arc":["..."],"draft":["..."],"avoid":["..."]},"designReview":{"settledDecisions":["이번까지 확정된 결정"],"openQuestions":[{"id":"안정적인_id","title":"짧은 제목","question":"지금 답할 결정 질문","recommendation":"권장 답과 이유"}]}}',
+        '{"genreLabel":"사용자가 이해할 복합 장르명","engineGenre":"허용 목록 중 하나","subgenres":["..."],"tones":["..."],"storyEngines":["성장/생존/복수/탐험/관계/경영 등"],"themes":["..."],"format":{"pov":"...","length":{"unit":"legacyCodeUnits|graphemes|words","target":3000},"serialization":"...","dialogueBreakMode":"strict|relaxed|natural"},"narrativeContract":{"depthMode":"light-webnovel|commercial-dramatic|deep-world-driven","readerPromise":"독자가 이 작품에서 기대할 핵심 경험","openingPressure":"초반에 반드시 체감시킬 세계/관계의 압력","viewpointReason":"첫 시점이 이 인물이어야 하는 이유","expositionPolicy":"설명할 정보와 장면으로만 체감시킬 정보의 원칙","readerLegibility":"전문 지식 없이도 독자가 장면의 목표·대사 표면 뜻·결과를 붙잡게 하는 원칙","registerPolicy":"정밀 시각·수치·전문어와 일상 표현을 상황별로 쓰는 원칙"},"readabilityContract":{"surfaceEase":"easy|standard|dense","conceptPacing":"slow|standard|fast","inferenceLoad":"explicit|balanced|subtext-heavy","complexityRamp":"onboarding-first|steady|dense-start","confirmedByUser":false},"povDesign":{"mode":"1인칭|3인칭제한|전지적|다중시점 등","openingViewpoint":"첫 화 시점 인물 또는 서술 위치","narrativeDistance":"서술자가 인물 내면과 세계를 어느 거리에서 다루는가","readerKnowledgePolicy":"독자가 시점 인물보다 많이/적게 아는 정보 정책","switchPolicy":"시점 전환 허용 조건"},"voiceContract":{"genreVoiceRecipe":{"narration":"이 장르에서 해야 하는 서술 방식","dialogue":"이 장르에서 해야 하는 대사 방식","exposition":"세계/정보를 문장으로 처리하는 방식","rhythm":"문장 길이와 박자"},"narrationExamples":[{"situation":"상황","example":"해야 하는 서술 예시","craftReason":"왜 이 문장이 이 장르에 맞는가"}],"dialogueExamples":[{"situation":"상황","example":"해야 하는 대사 예시","craftReason":"왜 이 말투가 맞는가"}],"emotionalRendering":"감정을 이름 붙이지 않고 드러내는 방식"},"tracking":{"engineBacked":["엔진이 구조적으로 검사 가능한 축"],"semantic":["모델이 의미적으로 확인할 축"]},"promptGuidance":{"worldbuild":["..."],"cast":["..."],"arc":["..."],"draft":["..."],"avoid":["..."]},"designReview":{"settledDecisions":["이번까지 확정된 결정"],"openQuestions":[{"id":"안정적인_id","title":"짧은 제목","question":"지금 답할 결정 질문","recommendation":"권장 답과 이유"}]}}',
         '각 guidance는 추상 형용사가 아니라 장면과 판단에 적용 가능한 한 문장 규칙으로 작성한다.',
         'deep-world-driven을 고르면 초반 목표는 사건 해결보다 세계 질서와 인물 결핍의 충돌을 각인하는 것이다.',
       ].join('\n') },
@@ -199,16 +221,24 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
   const obj = parse(response.text);
   if (!obj || typeof obj !== 'object') throw new Error('story-profile JSON을 해석할 수 없습니다.');
   const proposedEngine = String(obj.engineGenre ?? 'other');
+  // v3 은 `format.length` 만 저장한다. 모델 schema/정규화/fallback 어디에서도
+  // chapterChars 를 다시 만들어 넣지 않는다.
+  const resolvedLength = resolveProposedLength({
+    language: workLanguage.language,
+    requestedLength: length,
+    proposedFormat: obj.format,
+  });
   const profile = {
-    workId, profileSchemaVersion: 2, contractVersion: MCP_CONTRACT_VERSION,
+    workId, profileSchemaVersion: STORY_PROFILE_SCHEMA_VERSION, contractVersion: MCP_CONTRACT_VERSION,
+    language: workLanguage.language,
     genreLabel: String(obj.genreLabel ?? source).slice(0, 200),
     engineGenre: ENGINE_SET.has(proposedEngine) ? proposedEngine : 'other',
     subgenres: list(obj.subgenres), tones: list(obj.tones), storyEngines: list(obj.storyEngines), themes: list(obj.themes),
     format: {
       pov: String(obj.format?.pov ?? foundation?.povMode ?? '3인칭제한').slice(0, 100),
-      chapterChars: Math.max(1000, Math.min(Number(obj.format?.chapterChars) || 3000, 10000)),
+      length: { unit: resolvedLength.unit, target: resolvedLength.target },
       serialization: String(obj.format?.serialization ?? '웹소설 연재').slice(0, 200),
-      dialogueBreakMode: resolveDialogueBreakMode(obj.format),
+      dialogueBreakMode: resolveDialogueBreakMode(obj.format, workLanguage.promptFamily),
     },
     narrativeContract: narrativeContract(obj.narrativeContract),
     readabilityContract: normalizeReadabilityContract({
@@ -225,7 +255,12 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
     sourceBrief: source,
     status: mode === 'auto' ? 'active' : 'pending',
     createdAt: new Date().toISOString(),
-    revision: Number(existing?.revision ?? 0) + 1,
+    // revision 은 계속 증가한다. 언어를 바꾼 revision 은 새 번호를 받되 이전 언어의
+    // 예시·승인·대기 질문은 계승하지 않는다.
+    revision: Number(stored?.revision ?? 0) + 1,
+    ...(languageChange.changed
+      ? { languageChangedFrom: languageChange.from, supersedesRevision: stored?.revision ?? null }
+      : {}),
   };
   profile.designReview = ensureReadabilityQuestion(
     designReview(obj.designReview, existing?.designReview),
@@ -235,6 +270,14 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
   await store.saveStoryProfile(workId, profile);
   return {
     profile,
+    language: profile.language,
+    length: profile.format.length,
+    ...(languageChange.changed
+      ? {
+        languageChanged: { from: languageChange.from, to: languageChange.to },
+        languageChangeNote: '작품 언어를 바꾼 새 프로필 revision입니다. 이전 언어의 예시·승인·대기 질문은 계승하지 않았습니다.',
+      }
+      : {}),
     ...(profile.status === 'pending'
       ? { needsApproval: true, instruction: profile.designReview.openQuestions.length
         ? 'StoryProfile과 작품 발견 인터뷰의 열린 질문을 사용자에게 보여주세요. 답변은 lore_profile의 feedback으로 넘겨 다음 review 라운드를 이어가며, 사용자가 현재 결정을 의도적으로 승인하면 바로 승인할 수도 있습니다.'
@@ -272,7 +315,18 @@ export async function runStoryProfileDecide({ store, workId, action }) {
 
 export async function runStoryProfileStatus({ store, workId }) {
   const profile = normalizeStoryProfile(await store.loadStoryProfile(workId));
-  return profile ? { profiled: true, profile, runtime: runtimeVersion() } : { profiled: false, runtime: runtimeVersion() };
+  if (!profile) return { profiled: false, runtime: runtimeVersion() };
+  // 조회는 저장된 문서를 바꾸지 않는다. 구형 프로필의 chapterChars 는 읽기
+  // 경계에서만 legacyCodeUnits 로 해석해 보여 준다.
+  const workLanguage = await resolveWorkLanguage({ store, workId, profile });
+  return {
+    profiled: true,
+    profile,
+    language: workLanguage.language,
+    implicitLanguage: workLanguage.implicitLegacy,
+    length: { unit: workLanguage.length.unit, target: workLanguage.length.target, source: workLanguage.length.source },
+    runtime: runtimeVersion(),
+  };
 }
 
 export function renderStoryProfile(profile) {

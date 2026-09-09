@@ -64,6 +64,7 @@ const TOOLS = [
         povMode: { type: 'string', description: '예: 3인칭제한, 1인칭' },
         targetChapters: { type: 'number', description: '완결 목표 화수. 아크 위치 계산에 쓰인다.' },
         worldFacts: { type: 'array', items: { type: 'string' }, description: '변하지 않는 세계 사실 5~10개.' },
+        language: { type: 'string', description: '작품 언어 BCP 47 태그(예: ko, en-US, ja, zh-Hant). 생략하면 저장된 계약을 따른다.' },
       },
       required: ['workId', 'genre'],
     },
@@ -156,6 +157,7 @@ const TOOLS = [
       type: 'object', properties: {
         ...projectArg, title: { type: 'string' }, brief: { type: 'string' }, genre: { type: 'string' },
         povMode: { type: 'string' }, targetChapters: { type: 'number' }, chapterWordCount: { type: 'number' },
+        language: { type: 'string', description: '작품 언어 BCP 47 태그(예: ko, en-US, ja, zh-Hant). 생략하면 저장된 계약을 따른다.' }, length: { type: 'object', description: '화당 분량 계약. unit 은 legacyCodeUnits|graphemes|words.', properties: { unit: { type: 'string', enum: ['legacyCodeUnits', 'graphemes', 'words'] }, target: { type: 'number' } }, required: ['unit', 'target'] },
       }, required: ['workId', 'title', 'brief'],
     },
   },
@@ -166,6 +168,7 @@ const TOOLS = [
       type: 'object', properties: {
         ...projectArg, brief: { type: 'string' }, mode: { type: 'string', enum: ['review', 'auto'] },
         feedback: { type: 'string' },
+        language: { type: 'string', description: '작품 언어 BCP 47 태그(예: ko, en-US, ja, zh-Hant). 생략하면 저장된 계약을 따른다.' }, length: { type: 'object', description: '화당 분량 계약. unit 은 legacyCodeUnits|graphemes|words.', properties: { unit: { type: 'string', enum: ['legacyCodeUnits', 'graphemes', 'words'] }, target: { type: 'number' } }, required: ['unit', 'target'] },
       }, required: ['workId', 'brief'],
     },
   },
@@ -218,6 +221,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object', properties: {
         ...projectArg, chapter: { type: 'integer', minimum: 1 }, plan: { type: 'string' }, targetChars: { type: 'number' },
+        language: { type: 'string', description: '작품 언어 BCP 47 태그(예: ko, en-US, ja, zh-Hant). 생략하면 저장된 계약을 따른다.' }, length: { type: 'object', description: '화당 분량 계약. unit 은 legacyCodeUnits|graphemes|words.', properties: { unit: { type: 'string', enum: ['legacyCodeUnits', 'graphemes', 'words'] }, target: { type: 'number' } }, required: ['unit', 'target'] },
         tension: { type: 'object', properties: { ticking: { type: 'string' }, stake: { type: 'string' }, escalation: { type: 'string' } } },
       }, required: ['workId', 'chapter'],
     },
@@ -367,6 +371,7 @@ const TOOLS = [
             ],
           }])),
         },
+        language: { type: 'string', description: '저장된 작품 언어와 일치하는지 확인하는 인자. 일회성 출력 언어 변경이 아니다.' },
       }, required: ['workId'],
     },
   },
@@ -536,13 +541,13 @@ function execWithProviders(store, toolName, args, providers) {
         title: args.title, summary: args.summary, castManifestRaw: args.castManifestRaw, checkId: args.checkId,
       });
     case 'lore_create':
-      return runCreate({ ...common, title: args.title, brief: args.brief, genre: args.genre, povMode: args.povMode, targetChapters: args.targetChapters, chapterWordCount: args.chapterWordCount });
+      return runCreate({ ...common, title: args.title, brief: args.brief, genre: args.genre, povMode: args.povMode, targetChapters: args.targetChapters, chapterWordCount: args.chapterWordCount, language: args.language, length: args.length });
     case 'lore_draft':
-      return runDraftTool({ ...common, chapter: args.chapter, plan: args.plan, tension: args.tension, targetChars: args.targetChars });
+      return runDraftTool({ ...common, chapter: args.chapter, plan: args.plan, tension: args.tension, targetChars: args.targetChars, language: args.language, length: args.length });
     case 'lore_revise':
-      return runReviseTool({ ...common, chapter: args.chapter, prose: args.prose, violations: args.violations });
+      return runReviseTool({ ...common, chapter: args.chapter, prose: args.prose, violations: args.violations, language: args.language });
     case 'lore_rewrite':
-      return runRewriteTool({ ...common, chapter: args.chapter, intent: args.intent });
+      return runRewriteTool({ ...common, chapter: args.chapter, intent: args.intent, language: args.language });
     case 'lore_next_arc':
       return runNextArc({ ...common, currentArc: args.currentArc });
     case 'lore_era_research':
@@ -552,7 +557,7 @@ function execWithProviders(store, toolName, args, providers) {
     case 'lore_arc_review':
       return runStoredArcReview({ ...common, throughChapter: args.throughChapter });
     case 'lore_profile':
-      return runStoryProfile({ ...common, brief: args.brief, mode: args.mode, feedback: args.feedback });
+      return runStoryProfile({ ...common, brief: args.brief, mode: args.mode, feedback: args.feedback, language: args.language, length: args.length });
     case 'lore_story_plan':
       return runStorySpine({ ...common, mode: args.mode, direction: args.direction, feedback: args.feedback });
     case 'lore_writer_skill':
@@ -560,7 +565,7 @@ function execWithProviders(store, toolName, args, providers) {
     case 'lore_episode_plan':
       return runEpisodePlan({ ...common, chapter: args.chapter, mode: args.mode, direction: args.direction, feedback: args.feedback });
     case 'lore_write':
-      return runWriteWorkflow({ ...common, instruction: args.instruction, autonomy: args.autonomy, modelProfile: args.modelProfile });
+      return runWriteWorkflow({ ...common, instruction: args.instruction, autonomy: args.autonomy, modelProfile: args.modelProfile, language: args.language });
     case 'lore_sync':
       return runSyncStatus({ ...common, action: args.action, approvalId: args.approvalId });
     default:
@@ -589,7 +594,7 @@ async function dispatchTool(store, name, args) {
     case 'lore_init':
       return runInit({
         store, workId: args.workId, genre: args.genre, povMode: args.povMode,
-        targetChapters: args.targetChapters, worldFacts: args.worldFacts,
+        targetChapters: args.targetChapters, worldFacts: args.worldFacts, language: args.language,
       });
     case 'lore_context':
       return buildContext({ store, workId: args.workId, chapter: args.chapter, scene: args.scene });
