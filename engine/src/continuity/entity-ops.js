@@ -4,6 +4,7 @@
  * The host provides the existing snapshots and candidate operations. Validation
  * returns the proposed state without persisting it.
  */
+import { termOccursInText } from '../core/mention-scan.js';
 /**
  * lifecycle invariant + register conflict 검사 + ops 분류.
  *
@@ -94,11 +95,12 @@ export function foldEntityOps(input) {
     }
     return { toRegister, toUpdate, toRetire, violations };
 }
+
 /**
  * 본문 (sanitize.clean) 안에 destroyed entity 의 canonicalName / alias 가
- * 등장하는지 simple substring scan. SOFT violation list 반환.
+ * 등장하는지 mention-scan 과 같은 매칭으로 검사. SOFT violation list 반환.
  *
- * 정밀한 NER 은 별 PR. 본 helper = first-line 검사.
+ * 정밀한 NER 은 별 PR. 본 helper = first-line 검사. severity 는 기존 soft.
  */
 export function scanDestroyedEntityMentions(args) {
     const violations = [];
@@ -107,14 +109,12 @@ export function scanDestroyedEntityMentions(args) {
             continue;
         const candidates = [e.canonicalName, ...e.aliases];
         for (const name of candidates) {
-            if (name.length < 2)
-                continue;
-            if (args.prose.includes(name)) {
+            if (termOccursInText(args.prose, name)) {
                 violations.push({
                     severity: 'soft',
                     code: 'DESTROYED_ENTITY_MENTION',
                     entityId: e.entityId,
-                    message: `destroyed entity "${e.canonicalName}" (matched "${name}") mentioned in chapter ${args.chapterNumber}`,
+                    message: `destroyed entity "${e.canonicalName}" (matched "${name.trim()}") mentioned in chapter ${args.chapterNumber}`,
                 });
                 break; // one violation per entity
             }

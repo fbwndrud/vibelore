@@ -133,6 +133,20 @@ describe('checkPov', () => {
         });
         expect(r.violations).toEqual([]);
     });
+    it('does not treat contraction apostrophes as dialogue quotes', () => {
+        const f = makeFoundation('limited-third', [
+            makeChar('a', '주인공A', '주인공'),
+            makeChar('b', '라이덴'),
+        ]);
+        const r = checkPov({
+            prose: "Don't look. 라이덴은 슬펐다.",
+            chapterNumber: 1,
+            foundation: f,
+            narratorId: 'a',
+            emotionLexicon,
+        });
+        expect(r.violations.some((v) => v.code === 'POV_VIOLATION')).toBe(true);
+    });
     it('flags interior-tell `<other> 속으로 생각했다` pattern', () => {
         const f = makeFoundation('limited-third', [
             makeChar('a', '주인공A', '주인공'),

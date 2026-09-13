@@ -12,6 +12,7 @@ import { DefaultEmotionVerbLexicon } from '../../engine/src/continuity/emotion-v
 import { DefaultSimileMarkerLexicon } from '../../engine/src/continuity/simile-marker-lexicon.js';
 import { DefaultOnomatopoeiaLexicon } from '../../engine/src/continuity/onomatopoeia-lexicon.js';
 import { DefaultSensitiveLexicon } from '../../engine/src/continuity/sensitive-lexicon.js';
+import { promptFamilyFrom } from '../../engine/src/continuity/checker-registry.js';
 
 let cached = null;
 
@@ -25,4 +26,22 @@ export function lexicons() {
     sensitive: new DefaultSensitiveLexicon(),
   };
   return cached;
+}
+
+/** KO seeds when language is omitted. Explicit '' is an error, not a silent ko default. */
+export function lexiconsForLanguage(language) {
+  if (arguments.length === 0 || language === undefined)
+    return { family: 'ko', applicable: true, ...lexicons() };
+  const family = promptFamilyFrom({ language });
+  if (family !== 'multilingual')
+    return { family: family ?? 'ko', applicable: true, ...lexicons() };
+  return {
+    family,
+    applicable: false,
+    honorific: null,
+    emotion: null,
+    simile: null,
+    onomatopoeia: null,
+    sensitive: null,
+  };
 }

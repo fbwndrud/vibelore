@@ -171,7 +171,11 @@ function scoreNounVerbBalance(prose) {
     const deviation = Math.abs(nounRatio - 0.5);
     return Math.round(Math.max(0, 100 - deviation * 200));
 }
-export function runProsodyScan(prose) {
+import { skipKoLexical } from './checker-registry.js';
+export function runProsodyScan(prose, options = {}) {
+    const skipped = skipKoLexical(options, 'runProsodyScan');
+    if (skipped)
+        return skipped;
     const sentences = splitSentences(prose);
     const breakdown = {
         sentenceLengthVariance: scoreSentenceLengthVariance(sentences),

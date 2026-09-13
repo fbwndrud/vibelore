@@ -68,7 +68,11 @@ function cliffhangerRequired(arcPosition) {
         return true;
     return arcPosition === 'closing';
 }
+import { skipKoLexical } from './checker-registry.js';
 export function detectCliffhanger(input) {
+    const skipped = skipKoLexical(input, 'detectCliffhanger');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber, arcPosition } = input;
     if (!prose || prose.trim().length === 0)
         return { violations: [] };

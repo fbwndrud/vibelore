@@ -1,9 +1,72 @@
+import { promptFamilyFrom } from '../../engine/src/continuity/checker-registry.js';
+
+export const DIALOGUE_BREAK_MODES = Object.freeze(['strict', 'relaxed', 'natural']);
+
+export class WebnovelFormatError extends Error {
+  constructor(code, details = {}) {
+    super(code);
+    this.name = 'WebnovelFormatError';
+    this.code = code;
+    this.details = Object.freeze({ ...details });
+  }
+}
+
+const SUPPORTED_QUOTE_RE = /["“][^"”]+["”]|「[^」]+」|『[^』]+』/s;
+const UNSUPPORTED_DIALOGUE_RE = /[—–―«»]/;
 const sentenceCount = (text) => (text.match(/[.!?。…](?:["'”’」』])?(?=\s|$)/g) ?? []).length;
-const containsDialogue = (paragraph) => /["“][^"”]+["”]|「[^」]+」|『[^』]+』/s.test(paragraph);
+const containsDialogue = (paragraph) => SUPPORTED_QUOTE_RE.test(paragraph);
 const systemNotice = (paragraph) => /^\s*[\[【].*[\]】]\s*$/s.test(paragraph);
 
+function collectDialogueModes(input) {
+  const slots = [];
+  const add = (path, value) => {
+    if (value === undefined || value === null) return;
+    slots.push({ path, value });
+  };
+  add('dialogueBreakMode', input.dialogueBreakMode);
+  add('formatPolicy.dialogueBreakMode', input.formatPolicy?.dialogueBreakMode);
+  add('workContract.formatPolicy.dialogueBreakMode', input.workContract?.formatPolicy?.dialogueBreakMode);
+  return slots;
+}
+
+export function resolveWebnovelFormatPolicy(input = {}) {
+  const family = promptFamilyFrom(input);
+  const slots = collectDialogueModes(input);
+  for (const slot of slots) {
+    if (slot.value === '' || !DIALOGUE_BREAK_MODES.includes(slot.value)) {
+      throw new WebnovelFormatError('INVALID_DIALOGUE_BREAK_MODE', { path: slot.path, received: slot.value });
+    }
+  }
+  const distinct = [...new Set(slots.map((slot) => slot.value))];
+  if (distinct.length > 1)
+    throw new WebnovelFormatError('DIALOGUE_BREAK_MODE_CONFLICT', {
+      received: slots.map((slot) => [slot.path, slot.value]),
+    });
+  const koreanDefault = family !== 'multilingual';
+  const dialogueBreakMode = distinct[0] ?? (koreanDefault ? 'strict' : 'natural');
+  return {
+    family,
+    dialogueBreakMode,
+    applyIsolation: dialogueBreakMode === 'strict',
+    applyRelaxedBuried: dialogueBreakMode === 'relaxed',
+    applyKoreanRhythm: koreanDefault && dialogueBreakMode !== 'natural',
+  };
+}
+
+function formatOptionsFromSecondArg(dialogueBreakMode) {
+  if (dialogueBreakMode !== null && typeof dialogueBreakMode === 'object')
+    return resolveWebnovelFormatPolicy(dialogueBreakMode);
+  return resolveWebnovelFormatPolicy({ dialogueBreakMode: dialogueBreakMode ?? 'strict' });
+}
+
+function unsupportedDialogueOnly(text) {
+  return UNSUPPORTED_DIALOGUE_RE.test(text) && !SUPPORTED_QUOTE_RE.test(text);
+}
+
 /** High-confidence mobile-webnovel paragraph failures; taste stays outside the gate. */
-export function scanWebnovelFormat({ prose, chapterNumber, dialogueBreakMode = 'strict' }) {
+export function scanWebnovelFormat(input = {}) {
+  const { prose, chapterNumber } = input;
+  const policy = resolveWebnovelFormatPolicy(input);
   const text = String(prose ?? '').replace(/\r\n/g, '\n');
   const paragraphs = text.split(/\n\s*\n/).map((item) => item.trim()).filter(Boolean);
   const violations = [];
@@ -14,43 +77,51 @@ export function scanWebnovelFormat({ prose, chapterNumber, dialogueBreakMode = '
     violations.push({ severity: 'soft', code: 'WEBNOVEL_SOFT_LINEBREAKS', chapterNumber,
       message: `빈 줄 없는 일반 줄바꿈 ${softLineBreaks}개가 ${multiLineParagraphs.length}개 문단 안에 남아 있다. 일반 산문 문단 내부는 공백으로 잇고 문단 경계는 빈 줄로 구분하라.` });
   }
-  const dense = paragraphs.flatMap((paragraph, index) => {
+  const dense = policy.applyKoreanRhythm ? paragraphs.flatMap((paragraph, index) => {
     const sentences = sentenceCount(paragraph);
     return paragraph.length > 650 || (paragraph.length > 420 && sentences >= 6)
       ? [{ index: index + 1, chars: paragraph.length, sentences }]
       : [];
-  });
+  }) : [];
   if (dense.length) violations.push({ severity: 'soft', code: 'WEBNOVEL_DENSE_PARAGRAPH', chapterNumber,
     message: `모바일 독서에 과밀한 문단 ${dense.length}개: ${dense.slice(0, 4).map((item) => `${item.index}번 ${item.chars}자/${item.sentences}문장`).join(', ')}` });
 
   let longestDenseRun = 0;
   let currentRun = 0;
-  for (const paragraph of paragraphs) {
-    if (paragraph.length >= 300) { currentRun += 1; longestDenseRun = Math.max(longestDenseRun, currentRun); }
-    else currentRun = 0;
-  }
-  if (longestDenseRun >= 3) violations.push({ severity: 'soft', code: 'WEBNOVEL_LONG_PARAGRAPH_RUN', chapterNumber,
-    message: `300자 이상 문단이 ${longestDenseRun}개 연속되어 모바일 호흡이 막힌다.` });
-
-  const mixedDialogue = paragraphs.filter((paragraph) => {
-    const lines = paragraph.split('\n').filter((line) => line.trim());
-    if (lines.length !== 1) return false;
-    const line = lines[0];
-    const quotes = line.match(/["“][^"”]+["”]|「[^」]+」|『[^』]+』/g) ?? [];
-    if (!quotes.length) return false;
-    if (dialogueBreakMode !== 'relaxed') {
-      return quotes.length !== 1 || paragraph.trim() !== quotes[0].trim();
+  if (policy.applyKoreanRhythm) {
+    for (const paragraph of paragraphs) {
+      if (paragraph.length >= 300) { currentRun += 1; longestDenseRun = Math.max(longestDenseRun, currentRun); }
+      else currentRun = 0;
     }
-    const outside = quotes.reduce((rest, quote) => rest.replace(quote, ''), line).trim();
-    return outside.length > 100;
-  });
-  if (mixedDialogue.length) violations.push({ severity: 'soft',
-    code: dialogueBreakMode === 'relaxed' ? 'WEBNOVEL_DIALOGUE_BURIED' : 'WEBNOVEL_DIALOGUE_NOT_ISOLATED', chapterNumber,
-    message: dialogueBreakMode === 'relaxed'
-      ? `대사와 100자 초과 서술이 한 줄에 붙은 문단 ${mixedDialogue.length}개. 대사를 독립 호흡으로 분리하라.`
-      : `큰따옴표 대사가 독립 문단이 아닌 곳 ${mixedDialogue.length}개. 각 인용 대사의 앞뒤를 빈 줄로 분리하라.` });
+    if (longestDenseRun >= 3) violations.push({ severity: 'soft', code: 'WEBNOVEL_LONG_PARAGRAPH_RUN', chapterNumber,
+      message: `300자 이상 문단이 ${longestDenseRun}개 연속되어 모바일 호흡이 막힌다.` });
+  }
 
-  if (paragraphs.length >= 12) {
+  const dialogueParserSkipped = unsupportedDialogueOnly(text);
+  let mixedDialogue = [];
+  if (dialogueParserSkipped) {
+    // Supported-quote isolation is not a parser for em-dash / guillemet dialogue.
+  } else if (policy.applyIsolation || policy.applyRelaxedBuried) {
+    mixedDialogue = paragraphs.filter((paragraph) => {
+      const lines = paragraph.split('\n').filter((line) => line.trim());
+      if (lines.length !== 1) return false;
+      const line = lines[0];
+      const quotes = line.match(/["“][^"”]+["”]|「[^」]+」|『[^』]+』/g) ?? [];
+      if (!quotes.length) return false;
+      if (!policy.applyRelaxedBuried) {
+        return quotes.length !== 1 || paragraph.trim() !== quotes[0].trim();
+      }
+      const outside = quotes.reduce((rest, quote) => rest.replace(quote, ''), line).trim();
+      return outside.length > 100;
+    });
+    if (mixedDialogue.length) violations.push({ severity: 'soft',
+      code: policy.applyRelaxedBuried ? 'WEBNOVEL_DIALOGUE_BURIED' : 'WEBNOVEL_DIALOGUE_NOT_ISOLATED', chapterNumber,
+      message: policy.applyRelaxedBuried
+        ? `대사와 100자 초과 서술이 한 줄에 붙은 문단 ${mixedDialogue.length}개. 대사를 독립 호흡으로 분리하라.`
+        : `큰따옴표 대사가 독립 문단이 아닌 곳 ${mixedDialogue.length}개. 각 인용 대사의 앞뒤를 빈 줄로 분리하라.` });
+  }
+
+  if (policy.applyKoreanRhythm && paragraphs.length >= 12) {
     const veryShort = paragraphs.filter((paragraph) => paragraph.length <= 18).length;
     if (veryShort / paragraphs.length >= 0.7) violations.push({ severity: 'soft', code: 'WEBNOVEL_CHOPPY_BREAKS', chapterNumber,
       message: `18자 이하 문단이 ${veryShort}/${paragraphs.length}개로 과도해 문장이 카드처럼 잘게 끊긴다.` });
@@ -58,33 +129,55 @@ export function scanWebnovelFormat({ prose, chapterNumber, dialogueBreakMode = '
   const narrativeParagraphs = paragraphs.filter((paragraph) => !containsDialogue(paragraph) && !systemNotice(paragraph));
   let longestFragmentedRun = 0;
   let fragmentedRun = 0;
-  for (const paragraph of paragraphs) {
-    if (containsDialogue(paragraph) || systemNotice(paragraph)) {
-      fragmentedRun = 0;
-      continue;
+  let fragmentedParagraphs = 0;
+  if (policy.applyKoreanRhythm) {
+    for (const paragraph of paragraphs) {
+      if (containsDialogue(paragraph) || systemNotice(paragraph)) {
+        fragmentedRun = 0;
+        continue;
+      }
+      if (paragraph.length <= 40 && sentenceCount(paragraph) <= 1) {
+        fragmentedRun += 1;
+        longestFragmentedRun = Math.max(longestFragmentedRun, fragmentedRun);
+      } else fragmentedRun = 0;
     }
-    if (paragraph.length <= 40 && sentenceCount(paragraph) <= 1) {
-      fragmentedRun += 1;
-      longestFragmentedRun = Math.max(longestFragmentedRun, fragmentedRun);
-    } else fragmentedRun = 0;
+    fragmentedParagraphs = narrativeParagraphs.filter((paragraph) => paragraph.length <= 40 && sentenceCount(paragraph) <= 1).length;
+    if (narrativeParagraphs.length >= 16 && fragmentedParagraphs / narrativeParagraphs.length >= 0.65 && longestFragmentedRun >= 6) {
+      violations.push({ severity: 'soft', code: 'WEBNOVEL_FRAGMENTED_RHYTHM', chapterNumber,
+        message: `짧은 서술 문단이 ${fragmentedParagraphs}/${narrativeParagraphs.length}개이고 ${longestFragmentedRun}개 연속된다. 원인·반응·결과가 한 박자인 곳은 문단을 묶어 호흡을 회복할 수 있다.` });
+    }
   }
-  const fragmentedParagraphs = narrativeParagraphs.filter((paragraph) => paragraph.length <= 40 && sentenceCount(paragraph) <= 1).length;
-  if (narrativeParagraphs.length >= 16 && fragmentedParagraphs / narrativeParagraphs.length >= 0.65 && longestFragmentedRun >= 6) {
-    violations.push({ severity: 'soft', code: 'WEBNOVEL_FRAGMENTED_RHYTHM', chapterNumber,
-      message: `짧은 서술 문단이 ${fragmentedParagraphs}/${narrativeParagraphs.length}개이고 ${longestFragmentedRun}개 연속된다. 원인·반응·결과가 한 박자인 곳은 문단을 묶어 호흡을 회복할 수 있다.` });
-  }
-  return { violations, stats: {
+  const stats = {
     paragraphs: paragraphs.length, denseParagraphs: dense.length, longestDenseRun,
     narrativeParagraphs: narrativeParagraphs.length, fragmentedParagraphs, longestFragmentedRun,
     softLineBreaks, multiLineParagraphs: multiLineParagraphs.length,
-  } };
+  };
+  if (policy.family == null)
+    return { violations, stats };
+  const dialogueCoverage = dialogueParserSkipped
+    ? { status: 'skipped', skipReason: 'unsupported_quote_convention' }
+    : (policy.applyIsolation || policy.applyRelaxedBuried)
+      ? { status: mixedDialogue.length ? 'failed' : 'passed' }
+      : { status: 'skipped', skipReason: 'natural_dialogue_mode' };
+  return {
+    violations,
+    checkerId: 'scanWebnovelFormat',
+    status: violations.length ? 'failed' : (dialogueParserSkipped ? 'skipped' : 'passed'),
+    skipReason: dialogueParserSkipped && violations.length === 0 ? 'unsupported_quote_convention' : null,
+    coverage: { dialogueIsolation: dialogueCoverage, koreanRhythm: policy.applyKoreanRhythm ? { status: 'run' } : { status: 'skipped', skipReason: 'ko_rhythm_not_applied' } },
+    stats: { ...stats, dialogueBreakMode: policy.dialogueBreakMode },
+  };
 }
 
 /** Split only quote boundaries flagged by WEBNOVEL_DIALOGUE_BURIED; words stay byte-identical. */
 export function separateBuriedDialogue(prose, dialogueBreakMode = 'strict') {
-  return String(prose ?? '').split(/\n\s*\n/).map((paragraph) => {
+  const policy = formatOptionsFromSecondArg(dialogueBreakMode);
+  const text = String(prose ?? '');
+  if (unsupportedDialogueOnly(text) || (!policy.applyIsolation && !policy.applyRelaxedBuried))
+    return text.replace(/\r\n/g, '\n').split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean).join('\n\n').trim();
+  return text.split(/\n\s*\n/).map((paragraph) => {
     const trimmed = paragraph.trim();
-    if (dialogueBreakMode !== 'relaxed') {
+    if (!policy.applyRelaxedBuried) {
       const pieces = trimmed.split(/(["“][^"”]+["”]|「[^」]+」|『[^』]+』)/s).map((piece) => piece.trim()).filter(Boolean);
       return pieces.length > 1 ? pieces.join('\n\n') : trimmed;
     }

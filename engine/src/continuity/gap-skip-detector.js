@@ -58,7 +58,11 @@ export const GAP_SKIP_MARKERS = [
     { patternSource: '그\\s?후', kind: 'scene-cut' },
     { patternSource: '훗날', kind: 'scene-cut' },
 ];
+import { skipKoLexical } from './checker-registry.js';
 export function detectGapSkip(input) {
+    const skipped = skipKoLexical(input, 'detectGapSkip');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber } = input;
     if (!prose || prose.trim().length === 0)
         return { violations: [] };

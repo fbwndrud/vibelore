@@ -8,9 +8,13 @@
  *   - density: total fatigue-term count / wordCount > DENSITY_THRESHOLD
  *     → `CLICHE_DENSITY` once per chapter.
  */
+import { skipKoLexical } from './checker-registry.js';
 const TERM_REPEAT_THRESHOLD = 3;
 const DENSITY_THRESHOLD = 0.01;
 export function scanStyle(input) {
+    const skipped = skipKoLexical(input, 'scanStyle');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber, genre, lexicon } = input;
     if (!prose || prose.length === 0)
         return { violations: [] };
