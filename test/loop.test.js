@@ -1,5 +1,6 @@
+import { legacyWorkFixture } from './fixtures/legacy-work.js';
 /**
- * The loop the plugin exists to support: init -> context -> check -> commit ->
+ * Compatibility for preexisting language-absent works: init -> context -> check -> commit ->
  * context, with chapter 1 visibly carried into chapter 2.
  *
  * Runs with no model at all (the relay answers nothing), which is the mode a
@@ -34,7 +35,7 @@ const CH1 = [
 
 async function freshProject() {
   const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-loop-')));
-  await runInit({
+  await legacyWorkFixture({
     store, workId: WORK, genre: 'action', povMode: '3인칭제한', targetChapters: 40,
     worldFacts: ['검은 탑은 백 년째 아무도 오르지 못했다.', '마력은 피를 통해서만 유전된다.'],
   });
@@ -57,7 +58,7 @@ async function freshProject() {
   return store;
 }
 
-describe('the writing loop', () => {
+describe('the legacy writing loop', () => {
   let store;
   before(async () => { store = await freshProject(); });
 
@@ -170,7 +171,7 @@ describe('the writing loop', () => {
 
   it('blocks a bare internal character ID even when its sentinel wrapper is gone', async () => {
     const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-id-leak-')));
-    await runInit({ store, workId: 'id-leak', genre: 'other', povMode: '3인칭제한', targetChapters: 3, worldFacts: ['도윤은 코치다.'] });
+    await legacyWorkFixture({ store, workId: 'id-leak', genre: 'other', povMode: '3인칭제한', targetChapters: 3, worldFacts: ['도윤은 코치다.'] });
     const foundation = await store.loadFoundation('id-leak');
     foundation.characters = [{ id: 'seo_doyun', canonicalName: '서도윤', aliases: [], contradiction: '', registeredAtChapter: 1, intrinsic: {}, mutable: { status: 'alive', knownFacts: [] }, relationships: [] }];
     await store.saveFoundation(foundation);

@@ -1,3 +1,6 @@
+import { legacyWorkFixture } from './fixtures/legacy-work.js';
+import { contractResponse } from './fixtures/contract-response.js';
+import { planningResponse } from './fixtures/planning-response.js';
 import { approvalResponse, approvalFixtureProvider } from './fixtures/approval-response.js';
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
@@ -48,16 +51,17 @@ const revisionPatch = ({ replacements = [], insertions = [] } = {}) => JSON.stri
 
 function provider(outputs) {
   return { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
-      const approved = approvalResponse(req);
-      if (approved) return approved;
+    const proof = contractResponse(req) ?? approvalResponse(req);
+    if (proof) return proof;
     if (req.step === 'arc-quality' && outputs[req.step] === undefined) return { text: JSON.stringify({ score: 90, dimensions: { premisePressure: 90, causalEscalation: 90, expectationRenewal: 90, characterCollision: 90, oppositionAdaptation: 90, payoffSurprise: 90, serialMomentum: 90 }, verdict: 'pass', findings: [] }) };
-    return { text: outputs[req.step] ?? REVIEW_RESPONSES[req.step] ?? '{}' };
+    return outputs[req.step] !== undefined ? { text: outputs[req.step] } : planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
   } };
 }
 
-async function createdStore() {
+async function createdStore({ legacy = false } = {}) {
   const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-generate-')));
-  await runCreate({ store, workId: 'tax-tower', title: '세금탑', brief: '탑이 보상보다 많은 세금을 걷는다.', genre: 'litrpg', providers: provider({ worldbuild: WORLD, 'cast-design': CAST, 'entity-seed': ENTITIES }) });
+  if (legacy) await legacyWorkFixture({ store, workId: 'tax-tower', genre: 'litrpg', title: '세금탑', brief: '탑이 보상보다 많은 세금을 걷는다.', worldFacts: JSON.parse(WORLD).worldFacts.map(f => f.statement), characters: JSON.parse(CAST).characters });
+  else await runCreate({ store, workId: 'tax-tower', title: '세금탑', brief: '탑이 보상보다 많은 세금을 걷는다.', genre: 'litrpg', providers: provider({ worldbuild: WORLD, 'cast-design': CAST, 'entity-seed': ENTITIES }) });
   await store.saveStorySpine('tax-tower', { status: 'active', causalChain: ['고지서를 받는다', '빈틈을 쓴다', '징수관이 적응한다', '동료가 다른 선택을 한다', '윤재가 통제를 포기한다'] });
   await store.saveWriterSkill('tax-tower', { status: 'active', aestheticThesis: '규칙의 비용을 사람의 선택으로 드러낸다.', coreAttention: ['작은 어긋남을 본다', '비용을 먼저 본다'], sceneTransformations: ['설명을 행동으로 바꾼다', '성공을 새 비용으로 바꾼다', '성격을 선택 순서로 보인다'], withholdingInstinct: ['결론을 늦춘다'], payoffInstinct: ['앞 사물을 재사용한다'], antiFixation: ['같은 해결 순서를 반복하지 않는다', '모든 대사를 영리하게 만들지 않는다'], discoverySpaces: ['정확한 행동은 장면에서 발견한다'], authorCraft: { judgments: ['효율이 침해하는 사람을 본다','말보다 포기하지 못한 행동을 믿는다','정답 뒤의 불일치를 본다'], omissions: ['결론은 행동 뒤에 둔다'], dialogueConduct: ['답변 대신 관계를 바꾼다'], selfBetrayal: ['빈틈 찾기가 예상되면 빈틈의 피해를 보인다'] }, storyDramaturgy: { conflictSources: ['규칙의 정상 적용','동료의 독립 거래'], escalationLaws: ['성공할수록 담보가 는다'], protagonistError: '문구를 알면 사람도 움직일 거라 믿는다', oppositionAdaptation: ['적용 순서를 바꾼다'] } });
   await store.saveArcPlan('tax-tower', activePlan());
@@ -271,7 +275,7 @@ describe('Phase 2 generation pipeline', () => {
   });
 
   it('drafts, revises, rewrites, and proposes the next arc through the same provider seam', async () => {
-    const store = await createdStore();
+    const store = await createdStore({ legacy: true });
     const prose = '윤재는 탑 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧';
     const draft = await runDraftTool({ store, workId: 'tax-tower', chapter: 1, providers: provider({ draft: prose }) });
     assert.match(draft.prose, /cast-manifest/);
@@ -293,12 +297,14 @@ describe('Phase 2 generation pipeline', () => {
     const store = await createdStore();
     let draftRequest;
     const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
       if (req.step === 'chapter-plan') return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
       if (req.step === 'draft') {
         draftRequest = req;
         return { text: '윤재가 문 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧' };
       }
-      return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
     } };
     const result = await runDraftTool({
       store, workId: 'tax-tower', chapter: 1, plan: 'SUPPLEMENTAL_DIRECTION_SENTINEL', providers: p,
@@ -315,12 +321,14 @@ describe('Phase 2 generation pipeline', () => {
   it('rejects a draft result when its pinned plan source changes during generation', async () => {
     const store = await createdStore();
     const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
       if (req.step === 'chapter-plan') return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
       if (req.step === 'draft') {
         await store.saveWriterSkill('tax-tower', { ...(await store.loadWriterSkill('tax-tower')), aestheticThesis: '생성 도중 바뀐 기술' });
         return { text: '윤재가 문 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧' };
       }
-      return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
     } };
     await assert.rejects(
       () => runDraftTool({ store, workId: 'tax-tower', chapter: 1, providers: p }),
@@ -362,7 +370,7 @@ describe('Phase 2 generation pipeline', () => {
   });
 
   it('refolds later state and entity lifecycle from stored deltas', async () => {
-    const store = await createdStore();
+    const store = await createdStore({ legacy: true });
     const first = emptyDelta(1);
     first.entityOps = [{ op: 'register', entityId: 'taxman', kind: 'organization', name: '징수국' }];
     await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '징수국이 왔다.', summary: '징수국이 왔다.', providers: createHostRelay({}), delta: first });
@@ -656,7 +664,7 @@ describe('Phase 2 generation pipeline', () => {
     const raw = `${body}\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧`;
     const p = provider({
       draft: raw, revise: revisionPatch(),
-      'continuity-extract': '{}', 'continuity-check': '{}', 'story-profile-check': '{"findings":[]}',
+      'story-profile-check': '{"findings":[]}',
       'coherence-judge': '{"score":88,"reason":"계획대로 자연스럽게 이어진다."}',
       'chapter-summary': '{"summary":"윤재가 탑에 들어갔다.","plotBeat":"opening","sceneTags":["진입"],"povCharacter":"hero"}',
     });
@@ -666,7 +674,7 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal(receipt.proseHash, proseHash(ready.prose));
     await assert.rejects(() => runCommit({
       store, workId: 'tax-tower', chapter: 1, prose: `${ready.prose}\n변조`, summary: '변조', providers: p,
-    }), /검사 영수증/);
+    }), { code: 'MISSING_VALIDATION_RECEIPT' });
     const revisionRequested = await runWorkflowDecide({
       store, workId: 'tax-tower', approvalId: ready.approvalId, action: 'request_revision',
       feedback: '마지막 선택의 대가를 더 선명하게 보여줘.', providers: p,
@@ -682,7 +690,7 @@ describe('Phase 2 generation pipeline', () => {
   });
 
   it('lore_write supplies scene continuity but hides future arc answers and engine plans from drafting', async () => {
-    const store = await createdStore();
+    const store = await createdStore({ legacy: true });
     await store.saveStoryProfile('tax-tower', {
       workId: 'tax-tower', status: 'active', genreLabel: '관료제 성장물', engineGenre: 'litrpg',
       subgenres: [], tones: [], storyEngines: ['성장'], themes: [],
@@ -703,6 +711,8 @@ describe('Phase 2 generation pipeline', () => {
 
     const requests = [];
     const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
       requests.push(req);
       if (req.step === 'chapter-plan') return { text: JSON.stringify({ plan: 'ENGINE_CHAPTER_PLAN_TOKEN을 따라 문을 연다.', scene: { settings: [], characters: ['hero'], items: [], antagonists: [], additionalRefs: [] }, tension: { stake: '퇴로' } }) };
       if (req.step === 'draft') {
@@ -712,7 +722,7 @@ describe('Phase 2 generation pipeline', () => {
       if (req.step === 'coherence-judge') return { text: '{"score":90,"reason":"연결됨"}' };
       if (req.step === 'chapter-summary') return { text: '{"summary":"윤재가 문을 열었다.","plotBeat":"rising","sceneTags":[],"povCharacter":"hero"}' };
       if (req.step === 'story-profile-check') return { text: '{"findings":[]}' };
-      return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
     } };
     await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'guided', providers: p });
     const chapterPlan = requests.find((req) => req.step === 'chapter-plan');
@@ -778,6 +788,8 @@ describe('Phase 2 generation pipeline', () => {
     };
     const longBody = SYNTHETIC_LONG_PROSE;
     const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
       requests.push(req);
       if (req.step === 'episode-plan') return { text: JSON.stringify(episode) };
       if (req.step === 'chapter-plan') return { text: '{"plan":"상처를 장면으로 보인다.","scene":{"settings":[],"characters":["hero"],"items":[],"antagonists":[],"additionalRefs":[]},"tension":{}}' };
@@ -786,10 +798,10 @@ describe('Phase 2 generation pipeline', () => {
       if (req.step === 'coherence-judge') return { text: '{"score":90,"reason":"연결됨"}' };
       if (req.step === 'chapter-summary') return { text: '{"summary":"윤재가 도움을 거절하고 혼자 문을 밀다 다쳤다.","plotBeat":"opening","sceneTags":[],"povCharacter":"hero"}' };
       if (req.step === 'story-profile-check') return { text: '{"findings":[]}' };
-      return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
     } };
     const result = await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'auto', providers: p });
-    assert.equal(result.status, 'completed');
+    assert.equal(result.status, 'completed', JSON.stringify({ degraded: result.degraded, failedReviews: result.quality?.review?.records?.filter(r => r.status === 'failed').map(r => ({ step: r.step, failure: r.failure })) }));
     const draftPrompt = requests.find((req) => req.step === 'draft').messages.map((m) => m.content).join('\n');
     assert.match(draftPrompt, /wound/);
     assert.match(draftPrompt, /동료의 선의를 세금 함정으로 오해/);
@@ -807,6 +819,8 @@ describe('Phase 2 generation pipeline', () => {
     const body = SYNTHETIC_LONG_PROSE;
     const requests = [];
     const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
       requests.push(req);
       if (req.step === 'chapter-plan') return { text: '{"plan":"첫 고지의 위기를 전개한다.","scene":{"settings":[],"characters":["hero"],"items":[],"antagonists":[],"additionalRefs":[]},"tension":{}}' };
       if (req.step === 'draft') return { text: `${body}\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧` };
@@ -815,10 +829,10 @@ describe('Phase 2 generation pipeline', () => {
       if (req.step === 'narrative-boundary') return { text: '{"decision":"iterate_episode","reason":"현재 위기의 선택과 결과가 아직 장면으로 끝나지 않았다.","continuation":{"title":"첫 고지 (계속)","beat":"윤재가 미완의 위기를 끝까지 통과한다.","pressure":"퇴로가 닫힌다.","turn":"혼자 해결할 수 없음을 인정한다.","carry":"다음 아크 비트로 넘어갈 상태가 된다."}}' };
       if (req.step === 'chapter-summary') return { text: '{"summary":"윤재의 첫 위기가 아직 끝나지 않았다.","plotBeat":"rising","sceneTags":[],"povCharacter":"hero"}' };
       if (req.step === 'story-profile-check') return { text: '{"findings":[]}' };
-      return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
     } };
     const result = await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'auto', providers: p });
-    assert.equal(result.status, 'completed');
+    assert.equal(result.status, 'completed', JSON.stringify({ degraded: result.degraded, failedReviews: result.quality?.review?.records?.filter(r => r.status === 'failed').map(r => ({ step: r.step, failure: r.failure })) }));
     assert.ok(requests.some((req) => req.step === 'narrative-boundary'));
     const arc = await store.loadArcPlan('tax-tower');
     assert.equal(arc.status, 'active');
@@ -840,6 +854,8 @@ describe('Phase 2 generation pipeline', () => {
     const revisedBody = fixture.slice(0, 1050);
     const requests = [];
     const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
       requests.push(req);
       if (req.step === 'chapter-plan') return { text: '{"plan":"전진한다.","scene":{"settings":[],"characters":["hero"],"items":[],"antagonists":[],"additionalRefs":[]},"tension":{}}' };
       if (req.step === 'draft') return { text: '윤재는 문을 열었다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧' };
@@ -853,7 +869,7 @@ describe('Phase 2 generation pipeline', () => {
       if (req.step === 'narrative-boundary') return { text: '{"decision":"advance_episode","reason":"현재 비트가 끝났다."}' };
       if (req.step === 'chapter-summary') return { text: '{"summary":"윤재가 전진했다.","plotBeat":"opening","sceneTags":[],"povCharacter":"hero"}' };
       if (req.step === 'story-profile-check') return { text: '{"findings":[]}' };
-      return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
     } };
     const result = await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'guided', providers: p });
     assert.equal(result.status, 'awaiting_approval');
@@ -887,6 +903,8 @@ describe('Phase 2 generation pipeline', () => {
     const longBody = fixture.slice(0, 1600);
     const requests = [];
     const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
       requests.push(req);
       if (req.step === 'chapter-plan') return { text: '{"plan":"전진한다.","scene":{"settings":[],"characters":["hero"],"items":[],"antagonists":[],"additionalRefs":[]},"tension":{}}' };
       if (req.step === 'draft') return { text: `${longBody}\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧` };
@@ -895,7 +913,7 @@ describe('Phase 2 generation pipeline', () => {
       if (req.step === 'narrative-boundary') return { text: '{"decision":"advance_episode","reason":"현재 비트가 끝났다."}' };
       if (req.step === 'chapter-summary') return { text: '{"summary":"윤재가 전진했다.","plotBeat":"opening","sceneTags":[],"povCharacter":"hero"}' };
       if (req.step === 'story-profile-check') return { text: '{"findings":[]}' };
-      return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
     } };
     const result = await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'guided', providers: p });
     assert.equal(result.status, 'awaiting_approval');
@@ -935,6 +953,8 @@ describe('Phase 2 generation pipeline', () => {
     for (let chapter = 1; chapter <= 5; chapter += 1) {
       const requests = [];
       const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
         requests.push(req);
         if (req.step === 'story-identity') return { text: JSON.stringify({ readerPromise: 'IDENTITY_PROMISE_TOKEN', protagonistAppeal: '대가를 계산하지만 사람은 계산하지 못한다.', competenceSignature: ['불완전한 장부를 현장에서 검증한다.'], emotionalDefect: '호의를 부채로 오해한다.', comedyEngines: ['절박한 생존과 행정 절차의 충돌'], solutionPatternsToRotate: ['환경 이용', '협상', '손실 교환'] }) };
         if (req.step === 'pilot-contract') return { text: JSON.stringify({ beforeState: '평범한 체납자', firstFailure: 'PILOT_FAILURE_TOKEN', protagonistSpecificAction: '틀린 장부를 직접 시험한다.', irreversibleChoice: '동료의 채무를 인수한다.', competenceProof: '오차를 발견하고 수정한다.', humanHook: '타인을 믿을 수 있는가', seriesPromise: '계산과 신뢰의 충돌', closingQuestion: '빚진 사람을 구할 수 있는가' }) };
@@ -948,10 +968,10 @@ describe('Phase 2 generation pipeline', () => {
         if (req.step === 'narrative-boundary') return { text: JSON.stringify({ decision: chapter === 5 ? 'complete_arc' : 'advance_episode', reason: chapter === 5 ? '아크 약속이 정산됐다.' : '현재 비트가 끝났다.' }) };
         if (req.step === 'chapter-summary') return { text: JSON.stringify({ summary: `${chapter}화가 이어졌다.`, plotBeat: chapter === 5 ? 'climax' : 'rising', sceneTags: [], povCharacter: 'hero' }) };
         if (req.step === 'story-profile-check') return { text: '{"findings":[]}' };
-        return { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+        return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
       } };
       const result = await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'auto', providers: p });
-      assert.equal(result.status, 'completed');
+      assert.equal(result.status, 'completed', JSON.stringify({ degraded: result.degraded, failedReviews: result.quality?.review?.records?.filter(r => r.status === 'failed').map(r => ({ step: r.step, failure: r.failure })) }));
       assert.ok(result.quality.chars >= 850 && result.quality.chars <= 1150);
       const prompt = requests.find((req) => req.step === 'draft').messages.map((m) => m.content).join('\n');
       if (chapter < 5) assert.doesNotMatch(prompt, /ARC_BEAT_5/, '초고에는 미래 비트의 정답을 숨겨야 한다');

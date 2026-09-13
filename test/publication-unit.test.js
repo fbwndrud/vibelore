@@ -1,3 +1,4 @@
+import { legacyWorkFixture } from './fixtures/legacy-work.js';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -186,7 +187,7 @@ describe('PublicationUnit', () => {
   it('keeps sealed HEAD authoritative when live Markdown materialization fails after publication', async () => {
     const rootDir = await mkdtemp(join(tmpdir(), 'vibelore-integrated-publication-'));
     const store = new MarkdownStateStore(rootDir);
-    await runInit({ store, workId: 'serial', genre: 'other', worldFacts: ['탑은 닫혀 있다.'] });
+    await legacyWorkFixture({ store, workId: 'serial', genre: 'other', worldFacts: ['탑은 닫혀 있다.'] });
     const delta = { chapterNumber: 1, appearedCharacterIds: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], mutableChanges: [], trackedEntityOps: [] };
     await assert.rejects(
       () => runCommit({
