@@ -31,7 +31,7 @@ import {
 } from '../../src/generators/text/chapter-write-with-revise.js';
 import { prepareChapterPublication } from '../../src/generators/text/chapter-validation.js';
 import { performChapterRewriteBounded } from '../../src/generators/text/chapter-rewrite-with-revise.js';
-import { performBookCreate } from '../../src/generators/text/steps/worldbuild.js';
+import { performBookCreate, prepareBookFoundationCandidate } from '../../src/generators/text/steps/worldbuild.js';
 import { reviseFoundation } from '../../src/generators/foundation/revise-foundation.js';
 
 function noopLogger() {
@@ -800,6 +800,17 @@ describe('public engine new-contract gates', () => {
             expect(calls.filter((call) => call.step === 'revise')).toHaveLength(0);
         });
     }
+
+    it('candidate builder generates without approving; public activation still requires trusted identity', async () => {
+        const { providers, calls } = stubProviders();
+        const ctx = await makeCtx({ rootDir, providers, kind: 'book-create' });
+        const input = { title: 'A work', genre: 'regression-hunter', language: 'en', targetChapters: 20 };
+        const candidate = await prepareBookFoundationCandidate(ctx, input);
+        expect(candidate.foundation.workContract.language).toBe('en');
+        expect(candidate.validationReceipt).toBeUndefined();
+        expect(calls.some((req) => req.step === 'output-language-compliance')).toBe(false);
+        await expectCode(performBookCreate(ctx, input), VALIDATION_ERROR_CODES.INCOMPLETE_EXPECTATION);
+    });
 
     it('foundation new-contract activation returns an approval receipt and does not invent chapter fields', async () => {
         const { providers } = stubProviders();

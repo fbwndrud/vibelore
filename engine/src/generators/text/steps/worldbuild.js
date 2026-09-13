@@ -195,11 +195,11 @@ async function llmWorldbuild(ctx, input, promptLanguage) {
     return { premise, worldFacts };
 }
 /**
- * BookCreate composer matching `TextGeneratorSteps.worldbuild(ctx, input)`.
- *
+ * Generate a Foundation candidate for hosts that add seed/human fields before
+ * their own final approval gate. This return value is not an approval or receipt.
  * Order: worldbuild → castDesign → genreProfileBind → foundationInit.
  */
-export async function performBookCreate(ctx, input) {
+export async function prepareBookFoundationCandidate(ctx, input) {
     // 3. genreProfileBind — fail fast before LLM spend on unknown genre.
     const registry = createGenreProfileRegistry();
     if (!registry.has(input.genre)) {
@@ -236,6 +236,15 @@ export async function performBookCreate(ctx, input) {
             ...creationLanguageMetadata(input, promptLanguage),
         },
     };
+    return created;
+}
+
+/** Generate and validate an activation-ready public Foundation. */
+export async function performBookCreate(ctx, input) {
+    const created = await prepareBookFoundationCandidate(ctx, input);
+    const promptLanguage = created.foundation.workContract
+        ? resolvePromptLanguageContext({ workContract: created.foundation.workContract })
+        : bookCreateLanguageContext(input);
     const gateCtx = withGateContext(ctx, input);
     if (!isExplicitFoundationNewContract(gateCtx, input))
         return created;
