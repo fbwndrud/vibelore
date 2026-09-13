@@ -12,9 +12,10 @@
  * 가 자주 변경되면 hash 가 의미 잃음.
  */
 import { createHash } from 'node:crypto';
-import { CONTINUITY_CHECK_SYSTEM, EXTRACT_DELTA_SYSTEM } from '../continuity/continuity-check.js';
-import { CHAPTER_PLAN_STATIC } from '../generators/text/steps/chapter-plan.js';
-import { CAST_DESIGN_SYSTEM, DRAFT_SYSTEM, REVISE_SYSTEM, WORLDBUILD_SYSTEM, } from '../generators/text/prompts/index.js';
+import { CONTINUITY_STATIC_PROMPT_CAPTURES } from '../continuity/continuity-check.js';
+import { captureStaticPromptManifest, capturePublicPromptManifest } from '../generators/text/steps/static-prompt-manifest.js';
+import { PUBLIC_CHAPTER_PROMPT_SYSTEMS } from '../generators/text/chapter-validation.js';
+import { PUBLIC_FOUNDATION_PROMPT_SYSTEMS } from '../generators/text/foundation-validation.js';
 /**
  * 단일 build-time constant. PR 가 engine source 를 변경하면 반드시 bump.
  * 'endless-arc-vN' 패턴. 'v0' = Phase 0 baseline (Stage A merged, ChapterSummary 도입 전).
@@ -26,18 +27,18 @@ export const ENGINE_VERSION = 'endless-arc-v13-multilingual-contract';
  * 사라진다.
  */
 export function collectPromptManifest() {
-    return {
-        version: ENGINE_VERSION,
-        prompts: {
-            worldbuild: WORLDBUILD_SYSTEM,
-            castDesign: CAST_DESIGN_SYSTEM,
-            chapterPlan: CHAPTER_PLAN_STATIC,
-            draft: DRAFT_SYSTEM,
-            revise: REVISE_SYSTEM,
-            continuityExtract: EXTRACT_DELTA_SYSTEM,
-            continuityCheck: CONTINUITY_CHECK_SYSTEM,
-        },
+    const prompts = {};
+    const add = (namespace, captures) => {
+        for (const [step, families] of Object.entries(captures))
+            for (const family of ['ko', 'multilingual'])
+                prompts[`${namespace}/${step}/${family}`] = families[family];
     };
+    add('live', captureStaticPromptManifest());
+    add('public', capturePublicPromptManifest());
+    add('validation', { ...PUBLIC_CHAPTER_PROMPT_SYSTEMS, ...PUBLIC_FOUNDATION_PROMPT_SYSTEMS });
+    for (const [step, capture] of Object.entries(CONTINUITY_STATIC_PROMPT_CAPTURES))
+        for (const family of ['ko', 'multilingual']) prompts[`live/${step}/${family}`] = capture(family);
+    return { version: ENGINE_VERSION, prompts };
 }
 /**
  * SHA-256 of canonical JSON (sorted keys). Same manifest = same hash across

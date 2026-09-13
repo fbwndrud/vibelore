@@ -7,22 +7,17 @@ describe('ENGINE_VERSION', () => {
     });
 });
 describe('collectPromptManifest', () => {
-    it('returns version + all 7 prompts (worldbuild/castDesign/chapterPlan/draft/revise/continuityExtract/continuityCheck)', () => {
+    it('captures both families for every live, public and validation step', () => {
         const m = collectPromptManifest();
         expect(m.version).toBe(ENGINE_VERSION);
-        expect(Object.keys(m.prompts).sort()).toEqual([
-            'castDesign',
-            'chapterPlan',
-            'continuityCheck',
-            'continuityExtract',
-            'draft',
-            'revise',
-            'worldbuild',
-        ]);
-        for (const v of Object.values(m.prompts)) {
-            expect(typeof v).toBe('string');
-            expect(v.length).toBeGreaterThan(0);
+        for (const step of ['worldbuild', 'cast-design', 'chapter-plan', 'draft', 'revise', 'revise-patch', 'rewrite', 'chapter-summary', 'entity-seed', 'next-arc-proposal', 'coherence-judge', 'revise-foundation', 'continuity-extract', 'continuity-check', 'continuity-extract-repair']) {
+            for (const family of ['ko', 'multilingual']) expect(m.prompts[`live/${step}/${family}`].length).toBeGreaterThan(0);
         }
+        for (const step of ['chapter-title-summary', 'output-language-compliance', 'foundation-output-language-compliance'])
+            for (const family of ['ko', 'multilingual']) expect(m.prompts[`validation/${step}/${family}`].length).toBeGreaterThan(0);
+        expect(m.prompts['public/draft/ko'].length).toBeGreaterThan(0);
+        expect(m.prompts['live/draft/ko']).not.toBe(m.prompts['live/draft/multilingual']);
+        for (const value of Object.values(m.prompts)) expect(typeof value).toBe('string');
     });
     it('is deterministic across calls (no module-local state mutation)', () => {
         const a = collectPromptManifest();
@@ -67,4 +62,11 @@ describe('collectPromptManifestWithHash', () => {
         expect(m.version).toBe(ENGINE_VERSION);
         expect(m.hash).toBe(computePromptManifestHash({ version: m.version, prompts: m.prompts }));
     });
+});
+
+it('hash changes for multilingual summary edits, with Korean unchanged', () => {
+ const manifest = collectPromptManifest();
+ const changed = { ...manifest, prompts: { ...manifest.prompts, 'live/chapter-summary/multilingual': 'Changed English instructions' } };
+ expect(computePromptManifestHash(changed)).not.toBe(computePromptManifestHash(manifest));
+ expect(changed.prompts['live/chapter-summary/ko']).toBe(manifest.prompts['live/chapter-summary/ko']);
 });
