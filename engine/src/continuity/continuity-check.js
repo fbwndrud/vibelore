@@ -824,9 +824,11 @@ export async function extractDelta(input) {
     const resolveId = characterIdResolver(input.foundation);
     let parsed = llmText ? tryParseJson(llmText) : null;
     let delta = parseChapterDeltaPayload(parsed, input.chapterNumber, appearedCharacterIds);
+    // Explicit contracts share the caller's persisted attempt budget: each
+    // extraction failure must return after one request. Keep legacy repair only.
     // A relay that is still collecting the first extraction has no real delta
     // yet; a repair built on that placeholder would only waste a host answer.
-    if (input.requireInfluenceObservation === true
+    if (!requireHash && input.requireInfluenceObservation === true
         && (input.providers.pending?.length ?? 0) === 0
         && delta.influenceEvents.length === 0
         && !delta.noInfluenceReason) {

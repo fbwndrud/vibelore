@@ -6,7 +6,7 @@
  *   1. 언어 인자가 없는 구형 호출은 기존 한국어 프롬프트와 byte-identical 이고
  *      결과의 legacy 필드도 그대로다.
  *   2. 비ko 는 영어 정적 지시 + 검증된 목표 locale 지시문이며 system·user 에
- *      한글 집필 지시가 남지 않는다. extract·check·extract repair 경로 모두.
+ *      한글 집필 지시가 남지 않는다. 명시적 계약의 추출 재시도는 호출자가 맡는다.
  *   3. 언어 인자와 저장된 계약이 충돌하면 provider 호출 **전에** 실패한다.
  *   4. ko 전용 결정 검사(scanLexicon / Hangul 고유명사 heuristic)는 비ko 에서
  *      증거로 실행되지 않고, 건너뛴 사실이 결과에 남는다.
@@ -289,18 +289,31 @@ describe('extractDelta prompt families', () => {
         expect(repair.user).toContain('이전 응답에는 influenceEvents와 noInfluenceReason이 모두 비어 있어 커밋할 수 없다.');
         expect(repair.user).toContain('이전 응답:');
     });
-    it('influence repair request in ja is English-based with no Korean instruction', async () => {
-        const input = extractInput({ workContract: JA_CONTRACT, requireInfluenceObservation: true });
-        const cap = capturing('{}', extractReply(computeExtractionContextHash(input), {
-            noInfluenceReason: 'この回に選択も費用も認識の変化もない。',
+    for (const language of ['ko', 'ja']) {
+        for (const response of ['{}', 'not JSON', '']) {
+            it(`explicit ${language} returns invalid ${JSON.stringify(response)} after one influence extraction request`, async () => {
+                const input = extractInput({
+                    workContract: buildLanguageContract({ language }), requireInfluenceObservation: true,
+                });
+                const cap = capturing(response, completeEmptyExtraction(computeExtractionContextHash(input)));
+                const result = await extractDelta({ ...input, providers: cap.providers });
+                expect(result.extractionValidation.status).toBe('invalid');
+                expect(cap.requests).toHaveLength(1);
+                expect(partsOf(cap.requests[0]).step).toBe('continuity-extract');
+                if (language === 'ja') {
+                    expect(partsOf(cap.requests[0]).system.startsWith(EXTRACT_DELTA_SYSTEM_MULTILINGUAL)).toBe(true);
+                    expect(HANGUL.test(partsOf(cap.requests[0]).system)).toBe(false);
+                }
+            });
+        }
+    }
+    it('explicit influence extraction provider failure returns after one request', async () => {
+        const cap = throwingProviders();
+        const result = await extractDelta(extractInput({
+            providers: cap.providers, workContract: EN_CONTRACT, requireInfluenceObservation: true,
         }));
-        await extractDelta({ ...input, providers: cap.providers });
-        const repair = partsOf(cap.requests[1]);
-        expect(repair.step).toBe('continuity-extract-repair');
-        expect(repair.system.startsWith(EXTRACT_DELTA_SYSTEM_MULTILINGUAL)).toBe(true);
-        expect(repair.user).toContain('The previous response left both influenceEvents and noInfluenceReason empty');
-        expect(repair.user).toContain('Previous response:');
-        expect(repair.user).not.toContain('이전 응답:');
+        expect(result.extractionValidation.status).toBe('error');
+        expect(cap.requests).toHaveLength(1);
     });
     it('ko-only proper-noun heuristic does not run as proof on a non-ko work', async () => {
         const prose = '"라이덴" 하고 누군가 불렀다.';
