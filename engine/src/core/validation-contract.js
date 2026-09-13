@@ -1855,3 +1855,27 @@ export function validateApprovalBinding({ approval, receipt } = {}) {
         contractHash: receipt.contractHash,
     });
 }
+
+/** Validate the concrete manifest consumed by extractDelta before its legacy
+ * permissive parser can erase malformed metadata. Empty raw text explicitly
+ * denotes no manifest. The character identity check uses the trusted foundation. */
+export function validatePublicationManifest(raw, { foundation } = {}) {
+    if (raw === '') return Object.freeze({ valid: true });
+    const invalid = (reason) => Object.freeze({ valid: false, code: 'INVALID_CAST_MANIFEST', reason });
+    if (typeof raw !== 'string' || !raw.trim()) return invalid('expected_raw_json_or_explicit_empty');
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { return invalid('invalid_json'); }
+    if (!isPlainObject(parsed) || !Array.isArray(parsed.cast)) return invalid('invalid_cast_shape');
+    if (parsed.schemaVersion !== undefined && parsed.schemaVersion !== 1) return invalid('unsupported_schema_version');
+    const known = new Set((foundation?.characters ?? []).map(character => character.id));
+    const seen = new Set();
+    for (const entry of parsed.cast) {
+        if (!isPlainObject(entry) || typeof entry.characterId !== 'string' || !entry.characterId.trim()
+            || !known.has(entry.characterId) || seen.has(entry.characterId)) return invalid('unregistered_or_invalid_character');
+        seen.add(entry.characterId);
+        for (const field of ['name', 'role']) if (entry[field] !== undefined && typeof entry[field] !== 'string') return invalid('invalid_entry_field');
+        if (entry.addressTermsUsed !== undefined && (!Array.isArray(entry.addressTermsUsed)
+            || entry.addressTermsUsed.some(term => typeof term !== 'string'))) return invalid('invalid_address_terms');
+    }
+    return Object.freeze({ valid: true });
+}
