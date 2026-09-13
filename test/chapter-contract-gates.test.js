@@ -117,3 +117,10 @@ test('a fresh manual check after its own publication opens a new epoch without r
  assert.equal((await store.loadCheckReceipt('w',first.checkId)).consumed,true);
  await assert.rejects(runCommit({...input(store),providers,checkId:first.checkId}));
 });
+
+test('malformed or unregistered cast metadata never supplies mandatory schema proof',async()=>{
+ for(const castManifestRaw of ['not valid JSON','{"cast":[{"characterId":"missing"}]}']){
+  const store=await chapterStore();const result=await runCheck({...input(store),castManifestRaw,providers:chapterProvider()});
+  assert.notEqual(result.validationComplete,true);assert.equal(result.coverage.coverageById.SCHEMA,'failed');assert.equal(result.checkId,undefined);
+ }
+});

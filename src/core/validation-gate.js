@@ -5,6 +5,7 @@
  * consumes receipts. Does not invent coverage, NFC-normalize strings, or
  * treat PendingModelWork as a counted validator attempt.
  */
+import { validatePublicationManifest } from '../../engine/src/core/validation-contract.js';
 import { createHash } from 'node:crypto';
 
 import {
@@ -258,6 +259,7 @@ export function schemaCoverage({ prose, foundation, artifact, extractionValidati
     if (!artifact || extractionValidation?.status !== 'completed' || extractionValidation.contextHash !== extractionContextHash)
       return 'unvalidated';
     canonicalArtifact(artifact);
+    if (!validatePublicationManifest(artifact.castManifestRaw, { foundation }).valid) return 'failed';
     return 'validated';
   }
   catch {

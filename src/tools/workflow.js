@@ -350,8 +350,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   let surfacedAdvisories = [];
   let reviewAudit;
   let styleReport = null;
-  let revisionPreservation = null;
-  const revisionCandidates = [];
+  let revisionPreservation = workflow.revisionPreservation ?? null;
+  const revisionCandidates = await store.loadRevisionCandidates(workId, workflow.workflowId) ?? [];
   const requireInfluenceObservation = storySpine?.status === 'active' && (foundation.characters?.length ?? 0) >= 2;
   let attempt = 1;
   for (; attempt <= MAX_ATTEMPTS; attempt += 1) {
@@ -388,6 +388,11 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
         await transition(store, workflow, 'clean_fail', { operation: 'mandatory_validation', failure: check });
         return { ...check, workflowId: workflow.workflowId, chapter, prose: current.prose };
       }
+      if (!revisionCandidates.some(candidate => candidate.prose === current.prose && candidate.validationEpoch === check.validationEpoch)) {
+        revisionCandidates.push({ ...makeRevisionCandidate({ attempt, prose: current.prose, castManifestRaw: current.castManifestRaw, check,
+          lengthFailed: check.lengthAssessment?.actual < check.lengthAssessment?.min, mustRevise: true }), validationEpoch: check.validationEpoch });
+        await store.saveRevisionCandidates(workId, workflow.workflowId, revisionCandidates);
+      }
       const repairable = (check.violations ?? []).filter(v => v.severity === 'hard');
       if (repairable.length) {
         const revised = await runReviseTool({ store, workId, chapter, prose: current.prose, castManifestRaw: current.castManifestRaw, violations: repairable, providers });
@@ -395,7 +400,10 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
           await transition(store, workflow, 'awaiting_model', { operation: 'mandatory_repair' });
           return { preview: true, workflowId: workflow.workflowId, chapter };
         }
+        const sourceProse = current.prose;
         current = manifestFrom(revised.prose);
+        revisionPreservation = evaluateRevisionPreservation({ sourceProse, candidateProse: current.prose, violations: repairable });
+        workflow.revisionPreservation = revisionPreservation;
         workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
         await store.saveWorkflow(workId, workflow);
       }

@@ -1,3 +1,4 @@
+import { validatePublicationManifest } from '../../engine/src/core/validation-contract.js';
 import { createHash } from 'node:crypto';
 import { createPublicationUnit } from './publication-unit.js';
 import { openCanonRepository } from './canon-repository.js';
@@ -19,6 +20,7 @@ export async function currentValidationContext({ store, workId, chapter, allowWo
   const workingFoundation = await store.loadFoundation(workId);
   const canonicalFoundation = await canonicalStore.loadFoundation(workId);
   const profile = await store.loadStoryProfile(workId);
+  if (profile && profile.status !== 'active') throw Object.assign(new Error('PROFILE_NOT_ACTIVE'), { code: 'PROFILE_NOT_ACTIVE' });
   const resolution = await resolveWorkLanguage({ store, workId, foundation: canonicalFoundation, profile });
   if (sourceHead && !allowWorkingTreeDrift) {
     const drift = await detectWorkingTreeDrift({ store, sourceHead });
@@ -84,6 +86,7 @@ export async function assertCurrentChapterReceipt({ store, workId, chapter, rece
     if (!state || state.stale || state.status !== 'passed' || state.checkId !== receipt?.checkId
         || state.epoch !== receipt.validationEpoch || !sameIdentity(state.identity, context.identity))
       throw Object.assign(new Error('STALE_WORK_CONTRACT'), { code: 'STALE_WORK_CONTRACT' });
+    if (!validatePublicationManifest(artifact?.castManifestRaw, { foundation: context.foundation }).valid) throw Object.assign(new Error('INVALID_CAST_MANIFEST'), { code: 'INVALID_CAST_MANIFEST' });
     consumeChapterReceipt({ receipt: receipt.validationReceipt, artifact, workContract: context.workContract,
       languageCompliance: receipt.languageCompliance, coverage: receipt.coverage,
       expected: { workId, chapter, workflowId: receipt.workflowId, runId: receipt.runId,
