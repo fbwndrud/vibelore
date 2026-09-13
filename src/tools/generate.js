@@ -55,7 +55,7 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
   const compiledBrief = compileBriefWithProfile(brief, storyProfile, ['worldbuild', 'cast'], promptKit({ contract: resolution.contract }));
   const input = {
     title, brief: compiledBrief, genre: engineGenre, povMode: povMode ?? storyProfile?.format?.pov, targetChapters,
-    chapterWordCount: resolution.length.target,
+    length: { unit: resolution.length.unit, target: resolution.length.target },
     language: resolution.language,
     workContract: resolution.contract,
   };

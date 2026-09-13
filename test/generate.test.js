@@ -1025,3 +1025,47 @@ function activeEpisodePlan() {
 function emptyDelta(chapterNumber) {
   return { chapterNumber, appearedCharacterIds: [], mutableChanges: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], trackedEntityOps: [], entityOps: [], lexiconAdditions: [] };
 }
+
+
+describe('approved multilingual profile length reaches foundation creation unchanged', () => {
+  for (const [language, length, text] of [
+    ['en', { unit: 'graphemes', target: 3000 }, 'A concrete choice carries a visible cost.'],
+    ['ja', { unit: 'graphemes', target: 3000 }, '具体的な選択には目に見える代償がある。'],
+    ['zh-Hant', { unit: 'graphemes', target: 3000 }, '具體的選擇帶來看得見的代價。'],
+    ['en', { unit: 'words', target: 900 }, 'A concrete choice carries a visible cost.'],
+  ]) it(`${language} ${length.unit} profile → create preserves the structured length unit`, async () => {
+    const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'profile-create-length-')));
+    const workId = 'structured-length';
+    const localize = value => Array.isArray(value) ? value.map(localize)
+      : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key,item]) => [key, localize(item)]))
+      : typeof value === 'string' && /[가-힣]/.test(value) ? text : value;
+    const cast = localize(JSON.parse(CAST));
+    const requests = [];
+    const providers = { pending: [], async complete(request) {
+      requests.push(request);
+      const approval = approvalResponse(request); if (approval) return approval;
+      const values = {
+        'story-profile': { genreLabel: text, engineGenre: 'other', format: { pov: '3인칭제한' }, narrativeContract: { depthMode: 'commercial-dramatic' }, promptGuidance: {}, designReview: { settledDecisions: [text], openQuestions: [] } },
+        worldbuild: { premise: text, worldFacts: [{ id: 'fact-1', statement: text }] },
+        'cast-design': cast,
+        'entity-seed': { entities: [] },
+      };
+      assert.ok(values[request.step], `unexpected request ${request.step}`);
+      return { text: JSON.stringify(values[request.step]) };
+    } };
+    const profiled = await runStoryProfile({ store, workId, language, length, brief: text, mode: 'auto', providers });
+    assert.equal(profiled.profile.status, 'active', JSON.stringify(profiled));
+    assert.deepEqual(profiled.profile.format.length, length);
+    const created = await runCreate({ store, workId, title: text, brief: text, providers });
+    assert.equal(created.created, true, JSON.stringify(created));
+    assert.deepEqual(created.length, length);
+    const accepted = await store.loadAcceptedCreation(workId);
+    assert.deepEqual(accepted.workContract.length, length);
+    const foundation = await store.loadFoundation(workId);
+    assert.equal(foundation.language, language);
+    assert.deepEqual(foundation.workContract.length, length);
+    const worldRequest = requests.find(request => request.step === 'worldbuild');
+    assert.ok(worldRequest); assert.match(JSON.stringify(worldRequest), new RegExp(length.unit));
+    assert.equal(requests.filter(request => request.step === 'approval-language-contract').length, 2);
+  });
+});
