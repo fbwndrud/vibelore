@@ -25,13 +25,23 @@ import { prepareNarrativeCommit } from '../../engine/src/core/planning-authority
 import { captureWorkingTreeFingerprint } from '../core/working-tree-sync.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { runtimeVersion } from '../core/runtime-version.js';
+import { assertCurrentChapterReceipt, loadValidationSession, saveValidationSession } from '../core/validation-context.js';
+import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-language.js';
+import {
+  VALIDATION_ERROR_CODES,
+  ValidationContractError,
+  chapterArtifactBundle,
+  consumeChapterReceipt,
+  markReceiptConsumed,
+  publishedChapterProse,
+} from '../core/validation-gate.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const sanitizer = new DefaultOutputSanitizer();
 
 export async function runCommit({
   store, workId, chapter, prose, title, summary, castManifestRaw, providers, delta: presetDelta, checkId,
-  commitFault = null,
+  commitFault = null, allowWorkingTreeDrift = false, validationScope,
 }) {
   const manifest = sanitizer.extractBlock(prose, 'cast-manifest');
   const sanitized = sanitizer.sanitize(prose);
@@ -44,8 +54,16 @@ export async function runCommit({
     ...(commitFault && commitFault !== 'afterPublicationBeforeMaterialization' ? { failAt: commitFault } : {}),
   });
   const canonicalStore = await openCanonRepository({ store, publicationUnit });
+  const resolution = await resolveWorkLanguage({ store: canonicalStore, workId });
   const foundation = await canonicalStore.loadFoundation(workId);
   if (!foundation) throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
+  const workflow = await store.loadWorkflow(workId);
+  const contractCommit = Boolean(validationScope) || usesChapterValidationGate({
+    resolution, workflow, chapter,
+  });
+  if (contractCommit && !checkId) {
+    throw new ValidationContractError(VALIDATION_ERROR_CODES.MISSING_VALIDATION_RECEIPT, { reason: 'absent' });
+  }
   const leakedId = foundation.characters.find((character) => character.id.includes('_')
     && new RegExp(`(^|[^A-Za-z0-9_])${character.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z0-9_]|$)`, 'm').test(prose));
   if (leakedId) throw new Error(`본문에 내부 캐릭터 ID "${leakedId.id}"가 남았습니다.`);
@@ -53,31 +71,57 @@ export async function runCommit({
 
   // An active integrated workflow owns this chapter. Low-level callers may
   // still commit legacy/manual chapters, but cannot bypass a workflow's check.
-  const workflow = await store.loadWorkflow(workId);
   let checkReceipt = null;
   const workflowOwnsChapter = workflow && workflow.chapter === chapter && !['completed', 'rejected', 'clean_fail'].includes(workflow.stage);
   if (workflowOwnsChapter) {
     if (!checkId || checkId !== workflow.checkId) throw new Error('활성 집필 워크플로의 검사 영수증이 필요합니다. lore_write/lore_decide 흐름을 완료하세요.');
     const receipt = await store.loadCheckReceipt(workId, checkId);
     const hash = `sha256:${createHash('sha256').update(String(prose)).digest('hex')}`;
-    if (!receipt || receipt.verdict !== 'passed' || receipt.consumedAt || receipt.chapter !== chapter || receipt.proseHash !== hash) {
+    if (!receipt || receipt.verdict !== 'passed' || receipt.consumedAt || receipt.consumed || receipt.chapter !== chapter || (receipt.proseHash && receipt.proseHash !== hash)) {
       throw new Error('검사 영수증이 유효하지 않거나 본문이 검사 이후 변경됐습니다.');
     }
     checkReceipt = receipt;
   } else if (checkId) {
     const receipt = await store.loadCheckReceipt(workId, checkId);
     const hash = `sha256:${createHash('sha256').update(String(prose)).digest('hex')}`;
-    if (!receipt || receipt.verdict !== 'passed' || receipt.consumedAt || receipt.chapter !== chapter || receipt.proseHash !== hash) {
+    if (!receipt || receipt.verdict !== 'passed' || receipt.consumedAt || receipt.consumed || receipt.chapter !== chapter || (receipt.proseHash && receipt.proseHash !== hash)) {
       throw new Error('검사 영수증이 유효하지 않거나 본문이 검사 이후 변경됐습니다.');
     }
     checkReceipt = receipt;
   }
 
+  let contractArtifact = null;
+  let validatedContext = null;
+  if (contractCommit) {
+    if (!checkReceipt?.checkerPlan || !checkReceipt.workContract)
+      throw new ValidationContractError(VALIDATION_ERROR_CODES.MISSING_VALIDATION_RECEIPT, { reason: 'incomplete_envelope' });
+    const published = publishedChapterProse(prose);
+    contractArtifact = chapterArtifactBundle({
+      prose: published,
+      title: title !== undefined && title !== null ? title : checkReceipt.artifact.title,
+      summary: summary !== undefined && summary !== null ? summary : checkReceipt.artifact.summary,
+      semanticDelta: presetDelta !== undefined && presetDelta !== null ? presetDelta : checkReceipt.artifact?.semanticDelta,
+      castManifestRaw: castManifestRaw !== undefined && castManifestRaw !== null
+        ? castManifestRaw
+        : checkReceipt.artifact?.castManifestRaw,
+    });
+    validatedContext = await assertCurrentChapterReceipt({ store, workId, chapter, receipt: checkReceipt,
+      artifact: contractArtifact, allowWorkingTreeDrift, validationScope });
+    prose = contractArtifact.prose;
+    title = contractArtifact.title;
+    summary = typeof contractArtifact.summary === 'string'
+      ? contractArtifact.summary
+      : contractArtifact.summary?.text;
+    castManifestRaw = contractArtifact.castManifestRaw;
+  }
+
   const prev = (await canonicalStore.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
-  const delta = presetDelta ?? checkReceipt?.delta ?? (await extractDelta({
-    prose, chapterNumber: chapter, foundation, providers, model: MODEL, prevState: prev,
-    castManifestRaw: castManifestRaw ?? '',
-  })).delta;
+  const delta = contractCommit
+    ? (contractArtifact.semanticDelta ?? checkReceipt.delta)
+    : (presetDelta ?? checkReceipt?.delta ?? (await extractDelta({
+      prose, chapterNumber: chapter, foundation, providers, model: MODEL, prevState: prev,
+      castManifestRaw: castManifestRaw ?? '',
+    })).delta);
 
   const next = reduceStoryState(prev, delta);
 
@@ -87,7 +131,7 @@ export async function runCommit({
     catch (err) { /* entity ops are advisory; a malformed op must not lose the chapter */ }
   }
 
-  const generatedSummary = summary ? null : await runChapterSummary({
+  const generatedSummary = contractCommit ? (typeof contractArtifact.summary === 'object' ? contractArtifact.summary : null) : summary ? null : await runChapterSummary({
     prose,
     chapterNumber: chapter,
     writerModel: MODEL,
@@ -97,9 +141,13 @@ export async function runCommit({
   const chapterSummary = summary ?? generatedSummary?.summary;
 
   const [storyProfile, storySpine, writerSkill, storyIdentity, pilotContract, arcPlan, loadedEpisodePlan] = await Promise.all([
-    canonicalStore.loadStoryProfile(workId), canonicalStore.loadStorySpine(workId), canonicalStore.loadWriterSkill(workId),
-    canonicalStore.loadStoryIdentity(workId), canonicalStore.loadPilotContract(workId),
-    canonicalStore.loadArcPlan(workId), canonicalStore.loadEpisodePlan(workId, chapter),
+    validatedContext ? validatedContext.plans.profile : canonicalStore.loadStoryProfile(workId),
+    validatedContext ? validatedContext.plans.spine : canonicalStore.loadStorySpine(workId),
+    validatedContext ? validatedContext.plans.writer : canonicalStore.loadWriterSkill(workId),
+    validatedContext ? validatedContext.plans.identity : canonicalStore.loadStoryIdentity(workId),
+    validatedContext ? validatedContext.plans.pilot : canonicalStore.loadPilotContract(workId),
+    validatedContext ? validatedContext.plans.arc : canonicalStore.loadArcPlan(workId),
+    validatedContext ? validatedContext.plans.episode : canonicalStore.loadEpisodePlan(workId, chapter),
   ]);
   const episodePlan = upgradeEpisodePlanningContract(loadedEpisodePlan, foundation);
   const publishedEpisodes = (arcPlan?.episodes ?? []).map((item) => item.chapter === chapter ? { ...item, status: 'completed' } : item);
@@ -184,6 +232,8 @@ export async function runCommit({
       : '';
     throw new Error(`${planning.error.code}: ${planning.error.message}${details}`);
   }
+  if (contractCommit) await assertCurrentChapterReceipt({ store, workId, chapter, receipt: checkReceipt,
+    artifact: contractArtifact, allowWorkingTreeDrift, validationScope });
   const publication = await publicationUnit.publish({
     context: executionContext,
     candidate: {
@@ -236,7 +286,12 @@ export async function runCommit({
   try { snapshot = await createChapterSnapshot({ store, workId, chapter }); }
   catch (error) { snapshot = { created: false, error: error.message }; }
 
-  if (checkReceipt && !workflowOwnsChapter) {
+  if (checkReceipt) {
+    if (contractCommit) {
+      const state = await loadValidationSession(store, workId, checkReceipt.validationScope);
+      await saveValidationSession(store, workId, checkReceipt.validationScope, { ...state, status: 'consumed' });
+      checkReceipt.consumed = true;
+    }
     checkReceipt.consumedAt = new Date().toISOString();
     await store.saveCheckReceipt(workId, checkReceipt);
   }

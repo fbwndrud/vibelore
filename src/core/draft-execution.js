@@ -3,10 +3,11 @@ import { createHash } from 'node:crypto';
 import { runDraft } from '../../engine/src/generators/text/steps/draft.js';
 import { compileDraftInputs } from './draft-input-compiler.js';
 
+/** Object-key order only. String contents stay exact so NFD/NFC drafts do not collide. */
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
-  return typeof value === 'string' ? value.normalize('NFC') : value;
+  return value;
 }
 
 const digest = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;

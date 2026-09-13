@@ -17,7 +17,7 @@ import { chooseBestRevision, makeRevisionCandidate, publicRevisionCandidate } fr
 import { createChapterSnapshot } from './snapshots.js';
 import { characterFidelityAdvisories, characterFidelityViolations, runCharacterFidelity } from './character-fidelity.js';
 import { arcReviewAdvisories, arcReviewViolations, runArcReview } from './arc-review.js';
-import { assessChapterLength, chapterDensityViolations } from './chapter-density.js';
+import { assessContractLength, assessChapterLength, chapterDensityViolations } from './chapter-density.js';
 import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '../core/quality-policy.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
@@ -27,6 +27,9 @@ import { normalizeWebnovelLayout } from './webnovel-format.js';
 import { evaluateChapterStyle, evaluateRevisionPreservation } from '../core/style-continuity.js';
 import { createReviewAudit, reviewFindingAdvisories, reviewTimeoutMs } from '../core/review-audit.js';
 import { compileDraftContract } from '../core/narrative-contract.js';
+import { assertCurrentChapterReceipt, currentValidationContext, sameIdentity, exceptionOnlyRebind, loadValidationSession, invalidateValidationSession } from '../core/validation-context.js';
+import { buildApprovalBinding, validateApprovalBinding } from '../../engine/src/core/validation-contract.js';
+import { resolveWorkLanguage } from '../core/work-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { normalizeModelProfile, withModelProfile } from '../core/model-profile.js';
 
@@ -152,7 +155,7 @@ export function dramaticQualityViolations(editorial, chapter) {
 
 async function ensureWorkflow(store, workId, chapter, autonomy, instruction, modelProfile = null) {
   const current = await store.loadWorkflow(workId);
-  if (current && current.chapter === chapter && !['completed', 'rejected', 'clean_fail'].includes(current.stage)) {
+  if (current && current.chapter === chapter && !['completed', 'rejected'].includes(current.stage)) {
     if (modelProfile && JSON.stringify(current.modelProfile ?? null) !== JSON.stringify(modelProfile)) {
       current.modelProfile = modelProfile;
       await store.saveWorkflow(workId, current);
@@ -186,7 +189,7 @@ function prerequisites({ foundation, profile, storySpine, writerSkill, arcPlan, 
  * Deep chapter-writing module. Callers supply intent and autonomy; ordering,
  * retries, receipts and commit safety stay inside this implementation.
  */
-export async function runWriteWorkflow({ store, workId, instruction = '', autonomy = 'guided', providers: baseProviders, modelProfile: requestedProfile = null }) {
+export async function runWriteWorkflow({ store, workId, instruction = '', autonomy = 'guided', providers: baseProviders, modelProfile: requestedProfile = null, language, retryValidation = false }) {
   const requestedModelProfile = normalizeModelProfile(requestedProfile);
   let providers = baseProviders;
   const publication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
@@ -194,6 +197,13 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   if (publication.value) {
     const drift = await detectWorkingTreeDrift({ store, sourceHead: publication.value.head });
     if (drift.status !== 'clean') {
+      const existing = await store.loadWorkflow(workId);
+      if (existing) {
+        const scope = `workflow-${existing.workflowId}`;
+        const validation = await loadValidationSession(store, workId, scope);
+        if (validation) await invalidateValidationSession(store, workId, scope, validation, 'WORKING_TREE_DRIFT');
+        await transition(store, existing, 'clean_fail', { failure: { code: 'WORKING_TREE_DRIFT' } });
+      }
       return {
         status: 'needs_sync', code: 'WORKING_TREE_DRIFT', changed: drift.changed,
         sourceHead: publication.value.head, nextAction: '손수정 내용을 검사·발행한 뒤 집필을 재개하세요.',
@@ -215,6 +225,28 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
 
   const workflow = await ensureWorkflow(store, workId, chapter, autonomy, instruction, requestedModelProfile);
   providers = withModelProfile(baseProviders, workflow.modelProfile ?? null);
+  const resolution = await resolveWorkLanguage({ store, workId, requested: language });
+  const workContract = resolution.contract;
+  if (workflow.stage === 'clean_fail' && !retryValidation) return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, prose: workflow.draftProse, failure: workflow.failure, nextAction: 'retryValidation=true starts a new validation epoch for this preserved draft.' };
+  if (retryValidation) {
+    delete workflow.userApproval;
+    delete workflow.approvalId;
+    delete workflow.checkId;
+    await transition(store, workflow, 'validating', { operation: 'retry_validation' });
+  }
+  if (workflow.checkId) {
+    const checked = await store.loadCheckReceipt(workId, workflow.checkId);
+    await assertCurrentChapterReceipt({ store, workId, chapter, receipt: checked, artifact: checked?.artifact });
+  }
+  const priorValidation = await loadValidationSession(store, workId, `workflow-${workflow.workflowId}`);
+  if (priorValidation) {
+    const live = await currentValidationContext({ store, workId, chapter });
+    if (!sameIdentity(priorValidation.identity, live.identity) && !(retryValidation && exceptionOnlyRebind(priorValidation, live))) {
+      await invalidateValidationSession(store, workId, `workflow-${workflow.workflowId}`, priorValidation);
+      await transition(store, workflow, 'clean_fail', { failure: { code: 'STALE_WORK_CONTRACT' } });
+      return { status: 'clean_fail', code: 'STALE_WORK_CONTRACT', workflowId: workflow.workflowId, prose: workflow.draftProse };
+    }
+  }
   const runtime = await getRuntimeIdentity();
   if (workflow.runtime?.sourceTreeHash !== runtime.sourceTreeHash) {
     workflow.runtime = runtime;
@@ -281,6 +313,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       await transition(store, workflow, 'awaiting_model', { operation: 'user_revision', attempt: 1 });
       return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'user_revision' };
     }
+  } else if (workflow.draftProse) {
+    raw = workflow.draftProse;
   } else {
     const drafted = await runDraftTool({
       store, workId, chapter, plan: workflow.instruction,
@@ -302,6 +336,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   }
 
   let current = manifestFrom(raw);
+  if (workflow.draftProse === raw) current.castManifestRaw = workflow.castManifestRaw ?? current.castManifestRaw;
+  workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
+  await store.saveWorkflow(workId, workflow);
   let check;
   let coherence;
   let editorial;
@@ -320,7 +357,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   for (; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const normalizedProse = normalizeWebnovelLayout(
       current.prose,
-      profile.format?.dialogueBreakMode ?? 'strict',
+      workContract.formatPolicy.dialogueBreakMode,
     );
     if (normalizedProse !== current.prose) {
       current = { ...current, prose: normalizedProse };
@@ -335,11 +372,39 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     check = await runCheck({
       store, workId, chapter, prose: current.prose,
       castManifestRaw: current.castManifestRaw, providers,
-      dialogueBreakMode: profile.format?.dialogueBreakMode ?? 'strict',
+      dialogueBreakMode: workContract.formatPolicy.dialogueBreakMode,
       includeSemanticContinuity: true,
       includeProfileCheck: true,
-      requireInfluenceObservation,
+      requireInfluenceObservation, forceContract: true, issueReceipt: true, workflowId: workflow.workflowId, retryValidation: retryValidation && attempt === 1,
     });
+
+    // While the mandatory check is still collecting host answers, the reviews
+    // below are queued in the same round trip. Their results are only used
+    // once the check has completed; a failed check discards them.
+    const checkPending = pending(providers) || check.preview === true;
+    if (!checkPending && !check.validationComplete) {
+      workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
+      if (check.status === 'clean_fail') {
+        await transition(store, workflow, 'clean_fail', { operation: 'mandatory_validation', failure: check });
+        return { ...check, workflowId: workflow.workflowId, chapter, prose: current.prose };
+      }
+      const repairable = (check.violations ?? []).filter(v => v.severity === 'hard');
+      if (repairable.length) {
+        const revised = await runReviseTool({ store, workId, chapter, prose: current.prose, castManifestRaw: current.castManifestRaw, violations: repairable, providers });
+        if (pending(providers)) {
+          await transition(store, workflow, 'awaiting_model', { operation: 'mandatory_repair' });
+          return { preview: true, workflowId: workflow.workflowId, chapter };
+        }
+        current = manifestFrom(revised.prose);
+        workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
+        await store.saveWorkflow(workId, workflow);
+      }
+      // One persistent validation budget covers every actual failed judge response.
+      // Pending host requests never consume it; the same prepared draft is resumed.
+      if (attempt < MAX_ATTEMPTS) continue;
+      await transition(store, workflow, 'validating', { operation: 'mandatory_validation', failure: check });
+      return { ...check, workflowId: workflow.workflowId, chapter, prose: current.prose };
+    }
 
     const experienceLedger = await loadCurrentExperienceLedger({ store, workId });
     const patternLedger = experienceLedger.entries;
@@ -348,22 +413,22 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
-      plan: renderEpisodePlan(episodePlan), writerModel: MODEL, providers: reviewProvider,
+      plan: renderEpisodePlan(episodePlan), writerModel: MODEL, providers: reviewProvider, workContract, language: workContract.language, foundation,
     }), { score: null, reason: null });
 
     const { context: characterContext } = await buildContext({ store, workId, chapter });
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     const editorialContext = priorSummaries.map((item) => item.summary).join('\n');
-    editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider }), { score: null, dimensions: {}, findings: [] });
+    editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
 
-    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, context: characterContext, providers: reviewProvider }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
+    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, context: characterContext, providers: reviewProvider, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
 
-    readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider }), { score: null, dimensions: {}, findings: [] });
-    patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider }), { chapter, solutionPattern: '', supportingAgency: {} });
+    readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
+    patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
     // Independent reviews above are collected into one host round trip. The
     // semantic continuity check (needs the extracted delta) and the arc review
     // (needs the pattern entry) wait for the answers they depend on.
-    arcReview = pending(providers) ? null : await reviews.run('arc-review', (reviewProvider) => runArcReview({ store, workId, arcPlan, chapter, prose: current.prose, patternEntry, providers: reviewProvider }), null);
+    arcReview = pending(providers) ? null : await reviews.run('arc-review', (reviewProvider) => runArcReview({ store, workId, arcPlan, chapter, prose: current.prose, patternEntry, providers: reviewProvider, workContract, language: workContract.language }), null);
     if (pending(providers)) {
       await transition(store, workflow, 'awaiting_model', {
         operation: 'check_and_reviews', attempt, requestedSteps: providers.pending.map((request) => request.step),
@@ -377,13 +442,6 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       await store.appendWorkflowEvent(workId, workflow.workflowId, { at: now(), event: 'reviews_completed', chapter, attempt, review: reviewAudit });
       workflow.reviewAuditKeys = [...(workflow.reviewAuditKeys ?? []), reviewKey];
       await store.saveWorkflow(workId, workflow);
-    }
-
-    if ((episodePlan.characterArcBeats?.length ?? 0) > 0) {
-      check.delta = {
-        ...check.delta,
-        arcCursorOps: episodePlan.characterArcBeats.map(({ characterId, beat, note }) => ({ characterId, nextBeat: beat, note })),
-      };
     }
 
     styleReport = evaluateChapterStyle({ prose: current.prose, anchor: styleAnchor, chapterNumber: chapter });
@@ -416,20 +474,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const experienceViolations = patternViolations(patternLedger, patternEntry).map((violation) => ({ ...violation, chapterNumber: chapter }));
     const checkpointViolations = arcReviewViolations(arcReview, chapter);
     violations.push(...experienceViolations, ...checkpointViolations);
-    const targetChars = Number(profile.format?.chapterChars) || 3000;
-    const minChars = Math.floor(targetChars * 0.85);
-    const lengthFailed = current.prose.length < minChars;
-    lengthAssessment = assessChapterLength({ chars: current.prose.length, targetChars, editorial });
-    const densityViolations = chapterDensityViolations(lengthAssessment, chapter);
-    violations.push(...densityViolations);
-    if (lengthFailed) {
-      violations.push({
-        severity: 'hard', code: 'QUALITY_GATE_LENGTH', chapterNumber: chapter,
-        actualChars: current.prose.length, minChars, targetChars,
-        recommendedChars: Math.max(targetChars, minChars + 400),
-        message: `본문 ${current.prose.length}자. 목표 ${targetChars}자 기준 최소 ${minChars}자 미만이므로 장면을 확장하라. 명시적 사용자 요청이 없으면 목표 초과만으로 압축하지 않는다.`,
-      });
-    }
+    const lengthFailed = check.lengthAssessment.actual < check.lengthAssessment.min;
+    lengthAssessment = assessContractLength({ measurement: check.lengthAssessment, editorial });
+    violations.push(...chapterDensityViolations(lengthAssessment, chapter));
     violations = dedupeQualityViolations(violations);
     const policy = qualityDecision({ violations });
     surfacedAdvisories = policy.advisory;
@@ -487,6 +534,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       return { preview: true, workflowId: workflow.workflowId, chapter };
     }
     current = manifestFrom(revised.prose);
+    workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
+    await store.saveWorkflow(workId, workflow);
     revisionPreservation = evaluateRevisionPreservation({
       sourceProse: revisionBase.prose,
       candidateProse: current.prose,
@@ -497,19 +546,17 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   // Boundary and summary only need the final prose: one round trip for both.
   providers.shareContext?.({ id: 'chapter-prose', label: `${chapter}화 본문`, text: current.prose });
   const boundary = await runNarrativeBoundary({
-    arcPlan, episodePlan, chapter, prose: current.prose, providers,
-  });
-  const summaryResult = await runChapterSummary({
-    prose: current.prose, chapterNumber: chapter, writerModel: MODEL, summaryModel: MODEL, providers,
+    arcPlan, episodePlan, chapter, prose: current.prose, providers, workContract, language: workContract.language,
   });
   if (pending(providers)) {
-    await transition(store, workflow, 'awaiting_model', { operation: 'boundary_and_summary', attempt });
+    await transition(store, workflow, 'awaiting_model', { operation: 'narrative_boundary', attempt });
     return { preview: true, workflowId: workflow.workflowId, chapter };
   }
 
+  const checkedReceipt = await store.loadCheckReceipt(workId, check.checkId);
+  await assertCurrentChapterReceipt({ store, workId, chapter, receipt: checkedReceipt, artifact: checkedReceipt.artifact });
   const receipt = {
-    checkId: id('check'), workflowId: workflow.workflowId, workId, chapter,
-    proseHash: proseHash(current.prose), verdict: 'passed', delta: check.delta,
+    ...checkedReceipt,
     hardViolations: check.counts.hard, prosody: check.prosody.score,
     coherence: coherence.score, editorial: editorial.score, readerHook: readerHook.score, chars: current.prose.length,
     characterFidelity: characterFidelity.score, characterFlexibility: characterFidelity.flexibilityScore,
@@ -533,7 +580,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
 
   Object.assign(workflow, {
     attempt, draftProse: current.prose, castManifestRaw: current.castManifestRaw,
-    checkId: receipt.checkId, summary: summaryResult.summary,
+    checkId: receipt.checkId, summary: receipt.artifact.summary, title: receipt.artifact.title,
     boundary,
     patternEntry, arcReview, quality: { prosody: receipt.prosody, coherence: receipt.coherence, editorial: receipt.editorial, characterFidelity: receipt.characterFidelity, characterFlexibility: receipt.characterFlexibility, readerHook: readerHook.score, chars: receipt.chars, lengthBand: lengthAssessment.band, arcReview: arcReview?.score ?? null, advisories: surfacedAdvisories, styleContinuity: receipt.styleContinuity, hard: 0, attempts: attempt },
   });
@@ -567,8 +614,10 @@ async function commitPassedWorkflow({ store, workflow, providers }) {
   if (receipt.chapter !== workflow.chapter || receipt.proseHash !== proseHash(workflow.draftProse)) {
     throw new Error('검사받은 본문과 커밋할 본문이 다릅니다. 다시 검사하세요.');
   }
+  await assertCurrentChapterReceipt({ store, workId: workflow.workId, chapter: workflow.chapter, receipt, artifact: { ...receipt.artifact, prose: workflow.draftProse, title: workflow.title ?? receipt.artifact.title, summary: workflow.summary ?? receipt.artifact.summary, castManifestRaw: workflow.castManifestRaw ?? receipt.artifact.castManifestRaw } });
   const reviewed = receipt.review?.status === 'completed' && receipt.review.proseHash === receipt.proseHash;
-  const approved = workflow.userApproval?.checkId === receipt.checkId && workflow.userApproval?.proseHash === receipt.proseHash;
+  let approved = false;
+  if (workflow.userApproval) { validateApprovalBinding({ approval: workflow.userApproval, receipt: receipt.validationReceipt }); approved = true; }
   if (!reviewed && !approved) {
     workflow.approvalId = id('approval');
     workflow.degraded = { code: 'CRITIC_INCOMPLETE', autoCommitSuppressed: true };
@@ -577,37 +626,15 @@ async function commitPassedWorkflow({ store, workflow, providers }) {
       approvalId: workflow.approvalId, prose: workflow.draftProse, quality: workflow.quality, degraded: workflow.degraded,
       nextAction: '필수 검토가 완료되지 않았습니다. 원고와 검사 결과를 보고 lore_decide로 판단하세요.' };
   }
-  const [foundation, storySpine, episodePlan] = await Promise.all([
-    store.loadFoundation(workflow.workId),
-    store.loadStorySpine(workflow.workId),
-    store.loadEpisodePlan(workflow.workId, workflow.chapter),
-  ]);
-  const strictInfluenceRequired = storySpine?.status === 'active' && (foundation?.characters?.length ?? 0) >= 2;
-  if (strictInfluenceRequired && (receipt.delta?.influenceEvents?.length ?? 0) === 0 && !String(receipt.delta?.noInfluenceReason ?? '').trim()) {
-    receipt.delta = await repairMissingInfluenceObservation({
-      providers, foundation, prose: workflow.draftProse, chapter: workflow.chapter, episodePlan, delta: receipt.delta,
-    });
-    if (pending(providers)) {
-      return { preview: true, workflowId: workflow.workflowId, chapter: workflow.chapter, operation: 'influence_observation_repair' };
-    }
-    await store.saveCheckReceipt(workflow.workId, receipt);
-    await store.appendWorkflowEvent(workflow.workId, workflow.workflowId, {
-      at: now(), event: 'influence_observation_repaired', chapter: workflow.chapter,
-      influenceEvents: receipt.delta.influenceEvents?.length ?? 0,
-      noInfluenceReason: Boolean(String(receipt.delta.noInfluenceReason ?? '').trim()),
-    });
-  }
-  const appliedBoundary = await applyNarrativeBoundary({
-    store, workId: workflow.workId, chapter: workflow.chapter, boundary: workflow.boundary,
-  });
   const priorExperience = workflow.patternEntry
     ? await loadCurrentExperienceLedger({ store, workId: workflow.workId })
     : null;
   const result = await runCommit({
     store, workId: workflow.workId, chapter: workflow.chapter,
-    prose: workflow.draftProse, summary: workflow.summary,
+    prose: workflow.draftProse, title: workflow.title, summary: workflow.summary,
     castManifestRaw: workflow.castManifestRaw, providers, delta: receipt.delta, checkId: receipt.checkId,
   });
+  const appliedBoundary = await applyNarrativeBoundary({ store, workId: workflow.workId, chapter: workflow.chapter, boundary: workflow.boundary });
   if (workflow.patternEntry) {
     await saveExperienceLedgerForHead({
       store, workId: workflow.workId, sourceHead: result.publication.head,
@@ -642,7 +669,9 @@ export async function runWorkflowDecide({ store, workId, approvalId, action, fee
     throw new Error('현재 승인 대기 중인 원고와 approvalId가 일치하지 않습니다.');
   }
   if (action === 'approve') {
-    workflow.userApproval = { checkId: workflow.checkId, proseHash: proseHash(workflow.draftProse), approvalId };
+    const receipt = await store.loadCheckReceipt(workId, workflow.checkId);
+    await assertCurrentChapterReceipt({ store, workId, chapter: workflow.chapter, receipt, artifact: receipt?.artifact });
+    workflow.userApproval = buildApprovalBinding(receipt.validationReceipt, { approvedBy: approvalId });
     await store.saveWorkflow(workId, workflow);
     await store.appendWorkflowEvent(workId, workflow.workflowId, { at: now(), event: 'user_approved', chapter: workflow.chapter, approvalId });
     return commitPassedWorkflow({ store, workflow, providers });

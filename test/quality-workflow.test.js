@@ -1,3 +1,4 @@
+import { contractResponse } from './fixtures/contract-response.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { runWriteWorkflow, runWorkflowDecide, runWorkflowHistory, proseHash } from '../src/tools/workflow.js';
@@ -7,7 +8,7 @@ describe('first-draft quality through the writing workflow', () => {
   it('does not publish a resumed legacy ready draft without a completed review', async () => {
     const store = await qualityStore();
     let calls = 0;
-    const providers = { async complete(req) { calls++; return { text: outputs[req.step] ?? '{}' }; } };
+    const providers = { async complete(req) { const contract = contractResponse(req); if (contract) return contract; calls++; return { text: outputs[req.step] ?? '{}' }; } };
     await runWriteWorkflow({ store, workId, autonomy: 'guided', providers });
     const workflow = await store.loadWorkflow(workId);
     const receipt = await store.loadCheckReceipt(workId, workflow.checkId);
@@ -29,7 +30,7 @@ describe('first-draft quality through the writing workflow', () => {
     const finding = { code: 'OVERLONG_DENSITY', message: '현장 설명이 길다', evidence: '문', confidence: 0.81, scope: 'chapter' };
     const result = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: {
       provenance: { kind: 'test', contextIsolation: 'request-messages-only' },
-      async complete(req) {
+      async complete(req) { const contract = contractResponse(req); if (contract) return contract;
         requests.push(req);
         return { text: req.step === 'editorial-quality' ? JSON.stringify({ score: 87, dimensions: { density: 80 }, findings: [finding] }) : outputs[req.step] ?? '{}' };
       },
@@ -65,7 +66,7 @@ describe('first-draft quality through the writing workflow', () => {
     it(`preserves the auto draft for guided approval after a ${failure} review`, async () => {
       const store = await qualityStore();
       let calls = 0;
-      const providers = { async complete(req) {
+      const providers = { async complete(req) { const contract = contractResponse(req); if (contract) return contract;
         calls++;
         if (req.step === 'editorial-quality') {
           if (failure === 'exception') throw new Error('provider unavailable');

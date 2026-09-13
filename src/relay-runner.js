@@ -28,12 +28,16 @@ export async function runRelayedTool({
   }
 
   let effectiveAnswers = answers ?? {};
+  let existingWorkflow = null;
   if (toolName === 'lore_write') {
     const workflow = await store.loadWorkflow(args.workId);
+    existingWorkflow = workflow;
     effectiveAnswers = { ...(workflow?.relayAnswers ?? {}), ...effectiveAnswers };
   }
 
   const relay = providerForTool(toolName, effectiveAnswers);
+  const invocationId = run?.id ?? (args.retryValidation ? null : existingWorkflow?.pendingRunId) ?? newRunId();
+  relay.validationContext = { runId: invocationId };
   const result = await executeTool(store, toolName, args, relay);
   const pending = relay.pending ?? [];
 
@@ -56,7 +60,7 @@ export async function runRelayedTool({
   }
 
   const saved = await saveRun(store.rootDir, {
-    id: run?.id ?? newRunId(),
+    id: invocationId,
     tool: toolName,
     args,
     answers: effectiveAnswers,

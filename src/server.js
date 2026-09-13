@@ -95,7 +95,10 @@ const TOOLS = [
       type: 'object',
       properties: {
         ...projectArg,
+        retryValidation: { type: 'boolean', description: '보존된 원고의 검증을 새 epoch에서 명시적으로 다시 시작한다.' },
         chapter: { type: 'integer', minimum: 1 },
+        title: { type: 'string' },
+        summary: { type: ['string', 'object'] },
         prose: { type: 'string', description: '검증할 본문 전체.' },
         castManifestRaw: { type: 'string', description: '집필 시 만든 캐스트 매니페스트(선택).' },
         deterministicOnly: { type: 'boolean', description: 'true 면 모델 작업 없이 결정론 검사만 수행.' },
@@ -356,6 +359,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object', properties: {
         ...projectArg,
+        retryValidation: { type: 'boolean', description: '실패 상태의 보존된 원고를 새 검증 epoch에서 다시 검사한다.' },
         instruction: { type: 'string', description: '이번 화에 추가할 작가 지시.' },
         autonomy: { type: 'string', enum: ['guided', 'auto'], description: 'guided=완성 원고 승인 후 커밋, auto=품질 통과 시 자동 커밋.' },
         modelProfile: {
@@ -521,7 +525,7 @@ async function withRelay(store, toolName, args, answers, run) {
   });
 }
 
-const PREFLIGHT_TOOLS = new Set(['lore_create', 'lore_draft', 'lore_revise', 'lore_rewrite', 'lore_next_arc', 'lore_era_research', 'lore_arc_plan', 'lore_arc_review', 'lore_profile', 'lore_story_plan', 'lore_writer_skill', 'lore_episode_plan', 'lore_write', 'lore_commit', 'lore_sync']);
+const PREFLIGHT_TOOLS = new Set(['lore_init', 'lore_check', 'lore_arc_decide', 'lore_profile_decide', 'lore_story_decide', 'lore_writer_decide', 'lore_episode_decide', 'lore_decide', 'lore_create', 'lore_draft', 'lore_revise', 'lore_rewrite', 'lore_next_arc', 'lore_era_research', 'lore_arc_plan', 'lore_arc_review', 'lore_profile', 'lore_story_plan', 'lore_writer_skill', 'lore_episode_plan', 'lore_write', 'lore_commit', 'lore_sync']);
 
 function providerFor(toolName, answers = {}) {
   const baseUrl = process.env.VIBELORE_LOCAL_BASE_URL;
@@ -531,10 +535,18 @@ function providerFor(toolName, answers = {}) {
 }
 
 function execWithProviders(store, toolName, args, providers) {
-  const common = { store, workId: args.workId, providers };
+  const common = { store, workId: args.workId, providers, retryValidation: args.retryValidation };
   switch (toolName) {
+    case 'lore_init':
+      return runInit({ ...common, genre: args.genre, povMode: args.povMode, targetChapters: args.targetChapters, worldFacts: args.worldFacts, language: args.language });
+    case 'lore_arc_decide': return runArcDecide({ ...common, action: args.action });
+    case 'lore_profile_decide': return runStoryProfileDecide({ ...common, action: args.action });
+    case 'lore_story_decide': return runStorySpineDecide({ ...common, action: args.action });
+    case 'lore_writer_decide': return runWriterSkillDecide({ ...common, action: args.action });
+    case 'lore_episode_decide': return runEpisodeDecide({ ...common, chapter: args.chapter, action: args.action });
+    case 'lore_decide': return runWorkflowDecide({ ...common, approvalId: args.approvalId, action: args.action, feedback: args.feedback });
     case 'lore_check':
-      return runCheck({ ...common, chapter: args.chapter, prose: args.prose, castManifestRaw: args.castManifestRaw, issueReceipt: true });
+      return runCheck({ ...common, chapter: args.chapter, prose: args.prose, title: args.title, summary: args.summary, castManifestRaw: args.castManifestRaw, issueReceipt: true });
     case 'lore_commit':
       return runCommit({
         ...common, chapter: args.chapter, prose: args.prose,
@@ -591,11 +603,6 @@ async function dispatchTool(store, name, args) {
     return readWebtoonWorkflow({ store, ...args, detail: args.detail ?? (name === 'lore_workflow_status' ? 'summary' : 'full'), history: name === 'lore_workflow_history' });
   }
   switch (name) {
-    case 'lore_init':
-      return runInit({
-        store, workId: args.workId, genre: args.genre, povMode: args.povMode,
-        targetChapters: args.targetChapters, worldFacts: args.worldFacts, language: args.language,
-      });
     case 'lore_context':
       return buildContext({ store, workId: args.workId, chapter: args.chapter, scene: args.scene });
     case 'lore_status':
@@ -604,6 +611,13 @@ async function dispatchTool(store, name, args) {
       return runConfigureStatus({ store, workId: args.workId });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
+    case 'lore_init':
+    case 'lore_arc_decide':
+    case 'lore_profile_decide':
+    case 'lore_story_decide':
+    case 'lore_writer_decide':
+    case 'lore_episode_decide':
+    case 'lore_decide':
     case 'lore_check':
     case 'lore_commit':
     case 'lore_create':
@@ -633,28 +647,16 @@ async function dispatchTool(store, name, args) {
       return { status: 'ok', snapshots: await listSnapshots({ store }) };
     case 'lore_rollback':
       return { status: 'ok', ...(await rollbackToSnapshot({ store, workId: args.workId, chapter: args.chapter })) };
-    case 'lore_arc_decide':
-      return { status: 'ok', ...(await runArcDecide({ store, workId: args.workId, action: args.action })) };
     case 'lore_arc_status':
       return { status: 'ok', ...(await runArcStatus({ store, workId: args.workId })) };
-    case 'lore_profile_decide':
-      return { status: 'ok', ...(await runStoryProfileDecide({ store, workId: args.workId, action: args.action })) };
     case 'lore_profile_status':
       return { status: 'ok', ...(await runStoryProfileStatus({ store, workId: args.workId })) };
-    case 'lore_story_decide':
-      return { status: 'ok', ...(await runStorySpineDecide({ store, workId: args.workId, action: args.action })) };
     case 'lore_story_status':
       return { status: 'ok', ...(await runStorySpineStatus({ store, workId: args.workId })) };
-    case 'lore_writer_decide':
-      return { status: 'ok', ...(await runWriterSkillDecide({ store, workId: args.workId, action: args.action })) };
     case 'lore_writer_status':
       return { status: 'ok', ...(await runWriterSkillStatus({ store, workId: args.workId })) };
-    case 'lore_episode_decide':
-      return { status: 'ok', ...(await runEpisodeDecide({ store, workId: args.workId, chapter: args.chapter, action: args.action })) };
     case 'lore_episode_status':
       return { status: 'ok', ...(await runEpisodeStatus({ store, workId: args.workId, chapter: args.chapter })) };
-    case 'lore_decide':
-      return { status: 'ok', ...(await runWorkflowDecide({ store, workId: args.workId, approvalId: args.approvalId, action: args.action, feedback: args.feedback, providers: createHostRelay({}) })) };
     case 'lore_workflow_status':
       return { status: 'ok', ...(await runWorkflowStatus({ store, workId: args.workId })) };
     case 'lore_workflow_history':
@@ -668,13 +670,6 @@ async function dispatchTool(store, name, args) {
       if (run.tool === 'lore_webtoon_scene') return runWebtoonSceneTool({ store, args: run.args, run, providers: providerFor(run.tool, merged) });
       if (run.tool.startsWith('lore_webtoon_')) {
         return runWebtoonTool({ store, toolName: run.tool, args: run.args, run, providers: providerFor(run.tool, merged) });
-      }
-      if (Object.keys(args.answers ?? {}).length === 0) {
-        // Explicitly declining to answer is a valid choice, not an error.
-        const relay = providerFor(run.tool, merged);
-        const result = await execWithProviders(store, run.tool, run.args, relay);
-        if (!result?.preview) await dropRun(store.rootDir, run.id);
-        return { status: 'ok', degraded: true, note: '모델 답변 없이 결정론 결과로 마무리했습니다.', ...result };
       }
       return withRelay(store, run.tool, run.args, merged, run);
     }
