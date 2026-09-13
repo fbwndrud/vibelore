@@ -1,3 +1,4 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { CHARACTER_ARC_BEATS } from '../../engine/src/continuity/character-arc.js';
 import { compileBriefWithProfile } from './story-profile.js';
@@ -165,7 +166,7 @@ export function episodeForChapter(plan, chapter) {
   return plan.episodes.find((episode) => episode.chapter === chapter) ?? null;
 }
 
-export async function runArcPlan({ store, workId, mode = 'review', episodes = 8, direction = '', feedback = '', providers }) {
+export async function runArcPlan({ store, workId, mode = 'review', episodes = 8, direction = '', feedback = '', providers, retryValidation = false }) {
   const foundation = await store.loadFoundation(workId);
   if (!foundation) throw new Error('작품이 없습니다.');
   const chapters = await store.listChapters();
@@ -239,6 +240,8 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   if (quality.verdict !== 'passed') throw new Error(`아크 품질 검증 실패: ${quality.findings.map((item) => item.message).join(' ') || `총점 ${quality.score}, 취약 차원 ${quality.weakDimensions.join(', ')}`}`);
   plan.quality = quality;
   plan.createdAt = new Date().toISOString();
+  const approval = await gateApprovalActivation({ store, workId, kind: 'arc', value: plan, providers, resolution: workLanguage, structuralErrors: deterministicArcViolations(plan), retryValidation });
+  if (!approval.ok) return { ...approval, candidate: plan };
   await store.saveArcPlan(workId, plan);
   return {
     plan,
@@ -248,11 +251,13 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   };
 }
 
-export async function runArcDecide({ store, workId, action }) {
+export async function runArcDecide({ store, workId, action, providers, retryValidation = false }) {
   const plan = await store.loadArcPlan(workId);
   if (!plan) throw new Error('검토할 아크 계획이 없습니다.');
   if (action === 'approve') {
     const active = { ...plan, status: 'active', approvedAt: new Date().toISOString() };
+    const approval = await gateApprovalActivation({ store, workId, kind: 'arc', value: active, providers, consumeOnly: true, structuralErrors: deterministicArcViolations(active), retryValidation });
+    if (!approval.ok) return { ...approval, approved: false };
     await store.saveArcPlan(workId, active);
     return { approved: true, plan: active };
   }

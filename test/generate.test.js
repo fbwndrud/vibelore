@@ -1,3 +1,4 @@
+import { approvalResponse, approvalFixtureProvider } from './fixtures/approval-response.js';
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -47,6 +48,8 @@ const revisionPatch = ({ replacements = [], insertions = [] } = {}) => JSON.stri
 
 function provider(outputs) {
   return { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const approved = approvalResponse(req);
+      if (approved) return approved;
     if (req.step === 'arc-quality' && outputs[req.step] === undefined) return { text: JSON.stringify({ score: 90, dimensions: { premisePressure: 90, causalEscalation: 90, expectationRenewal: 90, characterCollision: 90, oppositionAdaptation: 90, payoffSurprise: 90, serialMomentum: 90 }, verdict: 'pass', findings: [] }) };
     return { text: outputs[req.step] ?? REVIEW_RESPONSES[req.step] ?? '{}' };
   } };
@@ -132,6 +135,7 @@ describe('Phase 2 generation pipeline', () => {
       episodes: Array.from({ length: 3 }, (_, i) => ({ title: `${i + 1}화`, beat: [`규칙을 발견한다`, `동료가 계산을 거부한다`, `징수관이 빈틈을 역이용한다`][i], readerExpectation: [`계산이 맞는다`, `동료가 따른다`, `담보를 피한다`][i], payoff: [`첫 빈틈이 통한다`, `동료의 대안이 사람을 살린다`, `증거로 첫 담보를 막는다`][i], costCreatedByResolution: [`담보 후보가 된다`, `동료의 신뢰를 잃는다`, `징수관이 적용 순서를 바꾼다`][i], exitValue: [`동료가 거래를 제안한다`, `징수관이 먼저 움직인다`, `새 규칙 아래 선택해야 한다`][i] })),
     });
     const planned = await runArcPlan({ store, workId: 'tax-tower', mode: 'auto', episodes: 3, providers: provider({ 'arc-plan': arcJson }) });
+    assert.ok(planned.plan, JSON.stringify(planned.validation));
     assert.equal(planned.plan.readerContract.openingQuestion, '누구의 해석이 맞는가?');
     assert.equal(planned.plan.oppositionAgency.actor, '징수관');
     assert.equal(planned.plan.episodes[0].costCreatedByResolution, '담보 후보가 된다');
@@ -195,6 +199,7 @@ describe('Phase 2 generation pipeline', () => {
       return complete(request);
     };
     const result = await runArcPlan({ store, workId: 'tax-tower', mode: 'auto', episodes: 3, providers: p });
+    assert.ok(result.plan, JSON.stringify(result.validation));
     const prompt = arcRequest.messages.map((message) => message.content).join('\n');
     assert.match(prompt, /ARC_REVIEW_CARRY_TOKEN/);
     assert.match(prompt, /hero-choice-3/);
@@ -435,6 +440,7 @@ describe('Phase 2 generation pipeline', () => {
     });
 
     const planned = await runArcPlan({ store, workId: 'tax-tower', mode: 'auto', episodes: 5, providers: provider({ 'arc-plan': arcJson }) });
+    assert.ok(planned.plan, JSON.stringify(planned.validation));
     assert.deepEqual(planned.plan.characterArcs[0].beats.map(({ episodeIndex, beat }) => ({ episodeIndex, beat })), [
       { episodeIndex: 1, beat: 'wound' },
       { episodeIndex: 2, beat: 'wound' },
@@ -491,7 +497,7 @@ describe('Phase 2 generation pipeline', () => {
     let profileRequest;
     const firstProvider = provider({ 'story-profile': profileJson });
     const firstComplete = firstProvider.complete.bind(firstProvider);
-    firstProvider.complete = async (request) => { profileRequest = request; return firstComplete(request); };
+    firstProvider.complete = async (request) => { if (request.step === 'story-profile') profileRequest = request; return firstComplete(request); };
     const proposed = await runStoryProfile({ store, workId: 'space-court', brief: '우주 오페라 정치 성장극', mode: 'review', providers: firstProvider });
     assert.equal(proposed.needsApproval, true);
     // 명시된 relaxed 는 ko 웹소설 연재에서도 그대로 유지된다. 승인된 포맷 선택을
@@ -510,7 +516,7 @@ describe('Phase 2 generation pipeline', () => {
     });
     const revisedProvider = provider({ 'story-profile': revisedJson });
     const revisedComplete = revisedProvider.complete.bind(revisedProvider);
-    revisedProvider.complete = async (request) => { profileRequest = request; return revisedComplete(request); };
+    revisedProvider.complete = async (request) => { if (request.step === 'story-profile') profileRequest = request; return revisedComplete(request); };
     const revised = await runStoryProfile({ store, workId: 'space-court', brief: '우주 오페라 정치 성장극', mode: 'review', feedback: '첫 승리는 배급권 확보. 읽기는 쉽게, 새 개념은 천천히, 표면 뜻은 명확하게, 초반 적응 뒤 복잡하게.', providers: revisedProvider });
     assert.deepEqual(revised.profile.designReview.openQuestions, []);
     assert.deepEqual(revised.profile.designReview.settledDecisions, ['정치 성장극', '첫 보상은 배급권 확보']);
@@ -607,13 +613,6 @@ describe('Phase 2 generation pipeline', () => {
       costCreatedByResolution: { immediate: '설명 수수료', deferred: '채무 증가', beneficiary: '윤재', payer: '윤재' },
       exitValue: { closedQuestion: '고지서를 잡는가', nextQuestion: '수수료를 누가 설계했는가', hookType: 'reinterpretation', specificFutureValue: '도장 문구의 다른 적용을 본다' },
     });
-    const planned = await runEpisodePlan({ store, workId: 'tax-tower', chapter: 1, mode: 'review', providers: provider({ 'episode-plan': response }) });
-    assert.equal(planned.needsApproval, true);
-    assert.equal(planned.plan.arcBeat.goal, activePlan().episodes[0].goal);
-    assert.equal(planned.plan.scenes.length, 2);
-    assert.equal(planned.plan.exitValue.hookType, 'reinterpretation');
-    assert.equal(planned.plan.readerLoad.phase, 'onboarding');
-    assert.deepEqual(planned.plan.readerLoad.newConcepts, ['가산세']);
     const unit = createPublicationUnit({ rootDir: store.rootDir });
     const token = await unit.issueFencingToken();
     const [foundation, storyProfile, storySpine, writerSkill, arcPlan] = await Promise.all([
@@ -629,6 +628,13 @@ describe('Phase 2 generation pipeline', () => {
       store, workId: 'tax-tower', sourceHead: published.value.head,
       entries: [{ chapter: 1, sceneMode: '협상' }], criticVersion: 'test-critic',
     });
+    const planned = await runEpisodePlan({ store, workId: 'tax-tower', chapter: 1, mode: 'review', providers: provider({ 'episode-plan': response }) });
+    assert.equal(planned.needsApproval, true);
+    assert.equal(planned.plan.arcBeat.goal, activePlan().episodes[0].goal);
+    assert.equal(planned.plan.scenes.length, 2);
+    assert.equal(planned.plan.exitValue.hookType, 'reinterpretation');
+    assert.equal(planned.plan.readerLoad.phase, 'onboarding');
+    assert.deepEqual(planned.plan.readerLoad.newConcepts, ['가산세']);
     await runEpisodeDecide({ store, workId: 'tax-tower', chapter: 1, action: 'approve' });
     const current = await unit.readPublished();
     const ledger = await store.loadExperienceLedger('tax-tower');

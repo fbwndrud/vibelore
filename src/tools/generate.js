@@ -1,6 +1,7 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
 /** Phase 2 generation tools: keep host-facing interfaces small and reuse engine steps. */
 import { createHash } from 'node:crypto';
-import { performBookCreate } from '../../engine/src/generators/text/steps/worldbuild.js';
+import { prepareBookFoundationCandidate } from '../../engine/src/generators/text/steps/worldbuild.js';
 import { runEntitySeed } from '../../engine/src/generators/text/steps/entity-seed.js';
 import { runRevise } from '../../engine/src/generators/text/steps/revise.js';
 import { runRewrite } from '../../engine/src/generators/text/steps/rewrite.js';
@@ -38,7 +39,7 @@ const canonicalObject = (value) => {
 };
 const sourceDigest = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonicalObject(value))).digest('hex')}`;
 
-export async function runCreate({ store, workId, title, brief, genre, povMode, targetChapters = 40, chapterWordCount, language = null, length = null, providers }) {
+export async function runCreate({ store, workId, title, brief, genre, povMode, targetChapters = 40, chapterWordCount, language = null, length = null, providers, retryValidation = false }) {
   if (await store.loadFoundation(workId)) throw new Error('이미 작품이 있습니다. 자동 생성으로 덮어쓰지 않습니다.');
   const storyProfile = await store.loadStoryProfile(workId);
   if (storyProfile && storyProfile.status !== 'active') throw new Error('StoryProfile이 승인되지 않았습니다. lore_profile_decide로 승인하거나 다시 생성하세요.');
@@ -58,7 +59,7 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
     language: resolution.language,
     workContract: resolution.contract,
   };
-  const { foundation: base } = await performBookCreate({ workId, providers, model: MODEL }, input);
+  const { foundation: base } = await prepareBookFoundationCandidate({ workId, providers, model: MODEL }, input);
   const foundation = {
     ...base,
     characters: base.characters.map(({ designViolations, ...character }) => character),
@@ -83,6 +84,8 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
   if (designFailures.length) {
     throw new Error(`CHARACTER_DESIGN_INVALID: ${JSON.stringify(designFailures)}`);
   }
+  const approval = await gateApprovalActivation({ store, workId, kind: 'foundation', value: { ...foundation, language: resolution.language, canonicalFormatVersion: resolution.canonicalFormatVersion, seededEntities: entities }, resolution, providers, retryValidation });
+  if (!approval.ok) return { ...approval, created: false };
   await store.saveAcceptedCreation(workId, buildAcceptedCreationRecord({
     workId, resolution, profile: storyProfile,
   }));

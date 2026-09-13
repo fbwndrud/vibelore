@@ -1,3 +1,4 @@
+import { approvalResponse, approvalFixtureProvider } from './fixtures/approval-response.js';
 /**
  * 다국어 Phase 2A — 플러그인 프롬프트 계열과 언어 전달.
  *
@@ -53,6 +54,8 @@ function capturingProvider(outputs = {}) {
     get pending() { return []; },
     async complete(request) {
       requests.push(request);
+      const approved = approvalResponse(request);
+      if (approved) return approved;
       const fallback = request.step === 'arc-quality'
         ? JSON.stringify({ score: 90, verdict: 'pass', findings: [], dimensions: { premisePressure: 90, causalEscalation: 90, expectationRenewal: 90, characterAgency: 90, oppositionAdaptation: 90, payoffSurprise: 90, serialMomentum: 90 } })
         : '{}';
@@ -82,7 +85,7 @@ async function newStore(tag) {
 /** 비ko 신작 하나를 실제 저장소에 만든다. 작품 데이터는 목표 언어로 둔다. */
 async function jaStore() {
   const store = await newStore('ja');
-  await runInit({
+  await runInit({ providers: approvalFixtureProvider(),
     store, workId: 'w', genre: 'other', language: 'ja', povMode: '3인칭제한',
     worldFacts: ['塔は税を集める。'],
   });
@@ -218,6 +221,7 @@ describe('최종 provider 메시지의 언어 계열', () => {
     const store = await jaStore();
     const providers = capturingProvider({ 'arc-plan': JA_ARC, 'episode-plan': JA_EPISODE });
     const planned = await runArcPlan({ store, workId: 'w', mode: 'auto', episodes: 3, direction: '帳簿の話', providers });
+    assert.ok(planned.plan, JSON.stringify(planned.validation));
     assert.equal(planned.plan.episodes.length, 3);
     const arcRequest = providers.last('arc-plan');
     assert.ok(arcRequest.messages[0].content.startsWith(multilingual.steps['arc-plan'].system));
@@ -231,6 +235,7 @@ describe('최종 provider 메시지의 언어 계열', () => {
     assertNoKoreanInstructions(providers.last('arc-quality').messages, 'arc-quality/ja');
 
     const episode = await runEpisodePlan({ store, workId: 'w', chapter: 1, mode: 'review', providers });
+    assert.ok(episode.plan, JSON.stringify(episode.validation));
     assert.equal(episode.plan.chapter, 1);
     const episodeRequest = providers.last('episode-plan');
     assert.ok(episodeRequest.messages[0].content.startsWith(multilingual.steps['episode-plan'].system));
@@ -250,7 +255,8 @@ describe('최종 provider 메시지의 언어 계열', () => {
       }),
       'story-spine-quality': JSON.stringify({ dimensions: { causalNecessity: 90, protagonistError: 90, expectationReframe: 90, characterAgency: 90, finalChoiceCost: 90, endingTransformation: 90 }, findings: [] }),
     });
-    await runStorySpine({ store, workId: 'w', mode: 'auto', providers: spineProviders });
+    const spineResult = await runStorySpine({ store, workId: 'w', mode: 'auto', providers: spineProviders });
+    assert.equal(spineResult.spine?.status, 'active', JSON.stringify(spineResult.validation));
     assertNoKoreanInstructions(spineProviders.last('story-spine').messages, 'story-spine/ja');
     assertNoKoreanInstructions(spineProviders.last('story-spine-quality').messages, 'story-spine-quality/ja');
 
@@ -265,7 +271,8 @@ describe('최종 provider 메시지의 언어 계열', () => {
       'writer-skill': JSON.stringify({ candidates: ['a', 'b', 'c'].map(candidate) }),
       'writer-skill-audition': JSON.stringify({ winnerId: 'a', scores: [] }),
     });
-    await runWriterSkill({ store, workId: 'w', mode: 'auto', providers: writerProviders });
+    const writerResult = await runWriterSkill({ store, workId: 'w', mode: 'auto', providers: writerProviders });
+    assert.equal(writerResult.skill?.status, 'active', JSON.stringify(writerResult.validation));
     assertNoKoreanInstructions(writerProviders.last('writer-skill').messages, 'writer-skill/ja');
     assertNoKoreanInstructions(writerProviders.last('writer-skill-audition').messages, 'writer-skill-audition/ja');
   });

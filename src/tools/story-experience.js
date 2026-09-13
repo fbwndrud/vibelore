@@ -1,4 +1,5 @@
 import { episodePlanReviewView } from '../core/episode-plan-view.js';
+import { gateApprovalActivation, requireApprovalResult } from '../core/approval-language-gate.js';
 import { asKit, resolveWorkKit } from '../prompts/index.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
@@ -41,6 +42,7 @@ export async function ensureStoryIdentity({ store, workId, profile, foundation, 
   if (existing) return existing;
   const kit = await resolveWorkKit({ store, workId, foundation, profile });
   const t = kit.phrases.experience;
+  const hasContract = Object.hasOwn(foundation ?? {}, 'language') || Object.hasOwn(profile ?? {}, 'language');
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'story-identity', messages: kit.messages('story-identity', {
     brief: foundation?.brief ?? profile?.sourceBrief ?? '',
     genre: profile?.genreLabel ?? foundation?.genre,
@@ -51,6 +53,12 @@ export async function ensureStoryIdentity({ store, workId, profile, foundation, 
     protagonistAppeal: text(o.protagonistAppeal || t.identityFallbackAppeal), competenceSignature: list(o.competenceSignature).length ? list(o.competenceSignature) : [...t.identityFallbackCompetence],
     emotionalDefect: text(o.emotionalDefect || t.identityFallbackDefect), comedyEngines: list(o.comedyEngines).length ? list(o.comedyEngines) : [...t.identityFallbackComedy],
     solutionPatternsToRotate: list(o.solutionPatternsToRotate).length ? list(o.solutionPatternsToRotate) : [...t.identityFallbackRotation], createdAt: new Date().toISOString() };
+  if (hasContract) {
+    for (const key of ['readerPromise', 'protagonistAppeal', 'emotionalDefect']) identity[key] = text(o[key]);
+    for (const key of ['competenceSignature', 'comedyEngines', 'solutionPatternsToRotate']) identity[key] = list(o[key]);
+  }
+  const approval = await gateApprovalActivation({ store, workId, kind: 'story', stateKey: 'story-identity', value: identity, providers });
+  if (!requireApprovalResult(approval)) return null;
   await store.saveStoryIdentity(workId, identity); return identity;
 }
 
@@ -64,6 +72,8 @@ export async function ensurePilotContract({ store, workId, identity, foundation,
   }) });
   if ((providers.pending?.length ?? 0) > 0) return null;
   const o = parse(response.text) ?? {}; const contract = { workId, beforeState:text(o.beforeState), firstFailure:text(o.firstFailure), protagonistSpecificAction:text(o.protagonistSpecificAction), irreversibleChoice:text(o.irreversibleChoice), competenceProof:text(o.competenceProof), humanHook:text(o.humanHook), seriesPromise:text(o.seriesPromise || identity?.readerPromise), closingQuestion:text(o.closingQuestion), createdAt:new Date().toISOString() };
+  const approval = await gateApprovalActivation({ store, workId, kind: 'story', stateKey: 'pilot', value: contract, providers });
+  if (!requireApprovalResult(approval)) return null;
   await store.savePilotContract(workId, contract); return contract;
 }
 

@@ -1,3 +1,4 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 
@@ -43,7 +44,7 @@ async function judge({ foundation, spine, providers, kit }) {
   return { score, dimensions, weakDimensions, findings: Array.isArray(obj.findings) ? obj.findings.slice(0, 12) : [], verdict: score >= 75 && weakDimensions.length === 0 ? 'passed' : 'failed' };
 }
 
-export async function runStorySpine({ store, workId, mode = 'review', direction = '', feedback = '', providers }) {
+export async function runStorySpine({ store, workId, mode = 'review', direction = '', feedback = '', providers, retryValidation = false }) {
   const foundation = await store.loadFoundation(workId);
   const profile = await store.loadStoryProfile(workId);
   if (!foundation) throw new Error('세계와 인물을 먼저 생성하세요.');
@@ -66,16 +67,22 @@ export async function runStorySpine({ store, workId, mode = 'review', direction 
   if (quality.verdict !== 'passed') throw new Error(`StorySpine 품질 검증 실패: ${quality.findings.map((f) => f.message).join(' ') || quality.weakDimensions.join(', ')}`);
   spine.quality = quality;
   spine.createdAt = new Date().toISOString();
+  const approval = await gateApprovalActivation({ store, workId, kind: 'story', stateKey: 'spine', value: spine, providers, resolution: workLanguage, structuralErrors: deterministicStorySpineViolations(spine), retryValidation });
+  if (!approval.ok) return { ...approval, candidate: spine };
   await store.saveStorySpine(workId, spine);
   return { spine, needsApproval: spine.status === 'pending' };
 }
 
-export async function runStorySpineDecide({ store, workId, action }) {
+export async function runStorySpineDecide({ store, workId, action, providers, retryValidation = false }) {
   const spine = await store.loadStorySpine(workId);
   if (!spine) throw new Error('검토할 StorySpine이 없습니다.');
   const status = action === 'approve' ? 'active' : action === 'reject' ? 'rejected' : null;
   if (!status) throw new Error('action은 approve 또는 reject여야 합니다.');
   const next = { ...spine, status, [`${status === 'active' ? 'approved' : 'rejected'}At`]: new Date().toISOString() };
+  if (status === 'active') {
+    const approval = await gateApprovalActivation({ store, workId, kind: 'story', stateKey: 'spine', value: next, providers, consumeOnly: true, structuralErrors: deterministicStorySpineViolations(next), retryValidation });
+    if (!approval.ok) return { ...approval, approved: false };
+  }
   await store.saveStorySpine(workId, next);
   return { approved: status === 'active', spine: next };
 }

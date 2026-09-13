@@ -1,3 +1,4 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
 /**
  * lore_init -- lay out a project directory, or adopt one that already exists.
  *
@@ -14,7 +15,7 @@ import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-l
 
 const registry = createGenreProfileRegistry();
 
-export async function runInit({ store, workId, genre, povMode, targetChapters, worldFacts, language = null }) {
+export async function runInit({ store, workId, genre, povMode, targetChapters, worldFacts, language = null, providers, retryValidation = false }) {
   const existing = await store.loadFoundation(workId);
   if (existing) {
     // 인수인계는 조회다. 명시 언어는 저장된 계약과의 일치 확인이며, 다르면
@@ -60,6 +61,8 @@ export async function runInit({ store, workId, genre, povMode, targetChapters, w
     };
   }
 
+  const approval = await gateApprovalActivation({ store, workId, kind: 'foundation', value: { ...foundation, language: resolution.language, canonicalFormatVersion: resolution.canonicalFormatVersion }, resolution, providers, retryValidation });
+  if (!approval.ok) return { ...approval, adopted: false, created: false };
   await store.saveAcceptedCreation(workId, buildAcceptedCreationRecord({
     workId, resolution, profile: resolution.profile,
   }));

@@ -1,3 +1,4 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 
@@ -38,7 +39,7 @@ export function writerSkillViolations(skill) {
   return violations;
 }
 
-export async function runWriterSkill({ store, workId, mode = 'review', feedback = '', providers }) {
+export async function runWriterSkill({ store, workId, mode = 'review', feedback = '', providers, retryValidation = false }) {
   const foundation = await store.loadFoundation(workId); const spine = await store.loadStorySpine(workId); const profile = await store.loadStoryProfile(workId);
   if (!foundation || !spine || spine.status !== 'active') throw new Error('승인된 세계·인물·StorySpine이 필요합니다.');
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
@@ -59,13 +60,20 @@ export async function runWriterSkill({ store, workId, mode = 'review', feedback 
   const verdict = parse(judged.text); const winner = candidates.find((c) => c.id === verdict?.winnerId);
   if (!winner) throw new Error('WriterSkill 오디션이 유효한 우승 후보를 선택하지 못했습니다.');
   const skill = { ...winner, workId, status: mode === 'auto' ? 'active' : 'pending', selectedCandidate: winner.id, auditionScores: verdict.scores ?? [], candidates, revision: 1, createdAt: new Date().toISOString() };
+  const approval = await gateApprovalActivation({ store, workId, kind: 'writer', value: skill, providers, resolution: workLanguage, structuralErrors: writerSkillViolations(skill), retryValidation });
+  if (!approval.ok) return { ...approval, candidate: skill };
   await store.saveWriterSkill(workId, skill); return { skill, candidates, needsApproval: skill.status === 'pending' };
 }
 
-export async function runWriterSkillDecide({ store, workId, action }) {
+export async function runWriterSkillDecide({ store, workId, action, providers, retryValidation = false }) {
   const skill = await store.loadWriterSkill(workId); if (!skill) throw new Error('검토할 WriterSkill이 없습니다.');
   const status = action === 'approve' ? 'active' : action === 'reject' ? 'rejected' : null; if (!status) throw new Error('action은 approve 또는 reject여야 합니다.');
-  const next = { ...skill, status }; await store.saveWriterSkill(workId, next); return { approved: status === 'active', skill: next };
+  const next = { ...skill, status };
+  if (status === 'active') {
+    const approval = await gateApprovalActivation({ store, workId, kind: 'writer', value: next, providers, consumeOnly: true, structuralErrors: writerSkillViolations(next), retryValidation });
+    if (!approval.ok) return { ...approval, approved: false };
+  }
+  await store.saveWriterSkill(workId, next); return { approved: status === 'active', skill: next };
 }
 export async function runWriterSkillStatus({ store, workId }) { const skill = await store.loadWriterSkill(workId); return skill ? { planned:true, skill } : { planned:false }; }
 

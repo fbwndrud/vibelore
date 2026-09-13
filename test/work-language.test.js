@@ -1,3 +1,4 @@
+import { approvalResponse, approvalFixtureProvider } from './fixtures/approval-response.js';
 /**
  * 다국어 Phase 1 — 언어 계약의 생애 주기와 정본 저장.
  *
@@ -52,7 +53,7 @@ async function expectCode(fn, code) {
 function profileProvider(payload) {
   return {
     pending: [],
-    async complete() { return { text: JSON.stringify(payload) }; },
+    async complete(request) { return approvalResponse(request) ?? { text: JSON.stringify(payload) }; },
   };
 }
 
@@ -77,7 +78,7 @@ describe('다국어 정본 저장 왕복', () => {
   for (const { language, version, name, text } of cases) {
     it(`${language} 신작을 저장하고 손실 없이 다시 읽는다`, async () => {
       const store = await newStore(language.toLowerCase());
-      const init = await runInit({ store, workId: WORK, genre: 'other', language, worldFacts: [text] });
+      const init = await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language, worldFacts: [text] });
       assert.equal(init.language, language);
       assert.equal(init.canonicalFormatVersion, version);
 
@@ -112,7 +113,7 @@ describe('다국어 정본 저장 왕복', () => {
 
   it('버전 2 는 내용이 비어도 소유 표제를 생성한다', async () => {
     const store = await newStore('empty-v2');
-    await runInit({ store, workId: WORK, genre: 'other', language: 'ja' });
+    await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'ja' });
     const foundation = await store.loadFoundation(WORK);
     await store.saveFoundation({
       ...foundation,
@@ -126,7 +127,7 @@ describe('다국어 정본 저장 왕복', () => {
 
   it('사용자 섹션과 알 수 없는 frontmatter 는 v2 왕복에서도 보존된다', async () => {
     const store = await newStore('foreign-v2');
-    await runInit({ store, workId: WORK, genre: 'other', language: 'en' });
+    await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'en' });
     const foundation = await store.loadFoundation(WORK);
     await store.saveFoundation({ ...foundation, characters: [character()] });
     const path = characterPath(store, 'lead');
@@ -171,7 +172,7 @@ describe('구작의 키 부재 보존', () => {
     const store = await newStore('legacy-immutable');
     await store.saveFoundation({ workId: WORK, genre: 'other', worldFacts: [], characters: [] });
     await expectCode(() => resolveWorkLanguage({ store, workId: WORK, requested: 'ja' }), 'WORK_LANGUAGE_IMMUTABLE');
-    await expectCode(() => runInit({ store, workId: WORK, genre: 'other', language: 'ja' }), 'WORK_LANGUAGE_IMMUTABLE');
+    await expectCode(() => runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'ja' }), 'WORK_LANGUAGE_IMMUTABLE');
   });
 
   it('조회는 문서를 다시 쓰지 않고 실행 언어와 분량만 보여 준다', async () => {
@@ -258,7 +259,7 @@ describe('정본 형식 충돌', () => {
 describe('수락된 생성 기록', () => {
   it('형식 버전 키를 지워도 레거시로 강등되지 않는다', async () => {
     const store = await newStore('version-drop');
-    await runInit({ store, workId: WORK, genre: 'other', language: 'ja', worldFacts: ['塔は閉じている。'] });
+    await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'ja', worldFacts: ['塔は閉じている。'] });
     const original = await readFile(settingPath(store), 'utf8');
     await writeFile(settingPath(store), original.replace(/^canonicalFormatVersion: 2\n/m, ''), 'utf8');
 
@@ -268,7 +269,7 @@ describe('수락된 생성 기록', () => {
 
   it('생성 언어를 손으로 바꾸면 WORK_LANGUAGE_IMMUTABLE 이다', async () => {
     const store = await newStore('language-drift');
-    await runInit({ store, workId: WORK, genre: 'other', language: 'ja' });
+    await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'ja' });
     const original = await readFile(settingPath(store), 'utf8');
     await writeFile(settingPath(store), original.replace('language: ja', 'language: en'), 'utf8');
 
@@ -314,7 +315,7 @@ describe('수락된 생성 기록', () => {
       });
       // 키가 존재하는 이상 암묵적 ko 구작으로 재분류하지 않는다.
       await expectCode(() => resolveWorkLanguage({ store, workId: WORK }), 'INVALID_LANGUAGE_TAG');
-      await expectCode(() => runInit({ store, workId: WORK, genre: 'other' }), 'INVALID_LANGUAGE_TAG');
+      await expectCode(() => runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other' }), 'INVALID_LANGUAGE_TAG');
       await expectCode(() => runStoryProfileStatus({ store, workId: WORK }), 'INVALID_LANGUAGE_TAG');
     }
     // JSON 저장은 `undefined` 키를 지우므로, 키가 남아 있는 메모리 상의 계약으로
@@ -330,7 +331,7 @@ describe('수락된 생성 기록', () => {
 
   it('생성 뒤 프로필 언어를 손으로 바꿔도 실행 원천이 되지 않는다', async () => {
     const store = await newStore('profile-drift');
-    await runInit({ store, workId: WORK, genre: 'other', language: 'ja' });
+    await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'ja' });
     await store.saveStoryProfile(WORK, {
       workId: WORK, profileSchemaVersion: 3, status: 'active', revision: 1, language: 'en',
       format: { pov: '3인칭제한', length: { unit: 'graphemes', target: 3000 } },
@@ -395,7 +396,8 @@ describe('foundation 전후의 프로필 언어', () => {
     assert.equal(approved.profile.status, 'active');
 
     const stored = await store.loadStoryProfile(WORK);
-    assert.ok(stored.designReview.settledDecisions.some((item) => item.includes('읽기 난도')));
+    assert.equal(stored.readabilityContract.confirmedByUser, true);
+    assert.deepEqual(stored.designReview.settledDecisions, first.profile.designReview.settledDecisions); // approval adds no unchecked prose
 
     const second = await runStoryProfile({
       store, workId: WORK, brief: 'a quiet office drama', language: 'ja',
@@ -423,7 +425,7 @@ describe('foundation 전후의 프로필 언어', () => {
       store, workId: WORK, brief: 'a quiet office drama', language: 'ja',
       providers: profileProvider(BASE_PROFILE),
     });
-    await expectCode(() => runInit({ store, workId: WORK, genre: 'other' }), 'PROFILE_REVISION_NOT_APPROVED');
+    await expectCode(() => runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other' }), 'PROFILE_REVISION_NOT_APPROVED');
     await expectCode(
       () => runCreate({ store, workId: WORK, title: 't', brief: 'b', genre: 'other', providers: profileProvider({}) }),
       'StoryProfile이 승인되지 않았습니다. lore_profile_decide로 승인하거나 다시 생성하세요.',
@@ -437,7 +439,7 @@ describe('foundation 전후의 프로필 언어', () => {
       providers: profileProvider(BASE_PROFILE),
     });
     await expectCode(
-      () => runInit({ store, workId: WORK, genre: 'other', language: 'es' }),
+      () => runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'es' }),
       'LANGUAGE_CONTRACT_CONFLICT',
     );
     await expectCode(
@@ -445,14 +447,14 @@ describe('foundation 전후의 프로필 언어', () => {
       'LANGUAGE_CONTRACT_CONFLICT',
     );
     // 지정하지 않으면 저장된 프로필 언어를 따른다. schema/dispatch 기본값은 없다.
-    const init = await runInit({ store, workId: WORK, genre: 'other' });
+    const init = await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other' });
     assert.equal(init.language, 'ja');
     assert.equal(init.canonicalFormatVersion, 2);
   });
 
   it('foundation 이 생기면 프로필 재실행으로 언어를 바꾸지 못한다', async () => {
     const store = await newStore('profile-after-foundation');
-    await runInit({ store, workId: WORK, genre: 'other', language: 'ja' });
+    await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'ja' });
     await expectCode(
       () => runStoryProfile({ store, workId: WORK, brief: 'x', language: 'en', providers: profileProvider(BASE_PROFILE) }),
       'WORK_LANGUAGE_IMMUTABLE',
@@ -532,7 +534,7 @@ describe('분량 계약의 경계', () => {
 describe('생성 이후 도구의 언어 전달', () => {
   it('rewrite 는 저장된 작품 언어를 엔진 요청까지 전달한다', async () => {
     const store = await newStore('rewrite-lang');
-    await runInit({ store, workId: WORK, genre: 'other', language: 'ja' });
+    await runInit({ providers: approvalFixtureProvider(), store, workId: WORK, genre: 'other', language: 'ja' });
     const foundation = await store.loadFoundation(WORK);
     await store.saveFoundation({ ...foundation, characters: [character({ canonicalName: '灯里' })] });
     await store.saveArtifact({ workId: WORK, chapterNumber: 1, prose: '彼女は帳簿を閉じた。' });

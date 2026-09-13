@@ -1,3 +1,4 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { characterArcBeatsForEpisode, episodeForChapter } from './arc.js';
 import { renderStoryProfile } from './story-profile.js';
 import { renderPatternLedger, renderPilotContract, renderStoryIdentity } from './story-experience.js';
@@ -155,7 +156,7 @@ async function publishApprovedEpisodePlan({ store, workId, chapter, plan }) {
   return result.value;
 }
 
-export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', direction = '', feedback = '', providers }) {
+export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', direction = '', feedback = '', providers, retryValidation = false }) {
   const foundation = await store.loadFoundation(workId);
   if (!foundation) throw new Error('작품이 없습니다.');
   const arcPlan = await store.loadArcPlan(workId);
@@ -328,6 +329,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       throw new Error(`EPISODE_PACKET_OVERFLOW: 계획이 Writer Packet 예산을 초과합니다 (${packet.error.requiredTokens}/${packet.error.maxTokens} 토큰).`);
     }
   }
+  const approval = await gateApprovalActivation({ store, workId, kind: 'episode', stateKey: `episode-${chapter}`, value: plan, providers, structuralErrors: episodePlanningContractViolations(plan, foundation.characters.map(c => c.id)), retryValidation });
+  if (!approval.ok) return { ...approval, candidate: plan };
   await store.saveEpisodePlan(workId, plan);
   if (plan.status === 'active') await publishApprovedEpisodePlan({ store, workId, chapter, plan });
   return {
@@ -338,12 +341,17 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   };
 }
 
-export async function runEpisodeDecide({ store, workId, chapter, action }) {
+export async function runEpisodeDecide({ store, workId, chapter, action, providers, retryValidation = false }) {
   const plan = await store.loadEpisodePlan(workId, chapter);
   if (!plan) throw new Error('검토할 EpisodePlan이 없습니다.');
   const status = action === 'approve' ? 'active' : action === 'reject' ? 'rejected' : null;
   if (!status) throw new Error('action은 approve 또는 reject여야 합니다.');
   const next = { ...plan, status, [`${status}At`]: new Date().toISOString() };
+  if (status === 'active') {
+    const foundation = await store.loadFoundation(workId);
+    const approval = await gateApprovalActivation({ store, workId, kind: 'episode', stateKey: `episode-${chapter}`, value: next, providers, consumeOnly: true, structuralErrors: episodePlanningContractViolations(next, foundation.characters.map(c => c.id)), retryValidation });
+    if (!approval.ok) return { ...approval, approved: false };
+  }
   await store.saveEpisodePlan(workId, next);
   if (status === 'active') await publishApprovedEpisodePlan({ store, workId, chapter, plan: next });
   return { approved: status === 'active', plan: next, ...(status === 'rejected' ? { instruction: '피드백과 함께 lore_episode_plan을 다시 호출하세요.' } : {}) };

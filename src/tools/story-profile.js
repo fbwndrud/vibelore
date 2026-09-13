@@ -1,3 +1,4 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { ENGINE_GENRES } from '../../engine/src/continuity/genre-profile.js';
 import { PROMPT_FAMILY_KO } from '../../engine/src/core/language-policy.js';
 
@@ -278,7 +279,7 @@ function voiceContract(value) {
   };
 }
 
-export async function runStoryProfile({ store, workId, brief, mode = 'review', feedback = '', language = null, length = null, providers }) {
+export async function runStoryProfile({ store, workId, brief, mode = 'review', feedback = '', language = null, length = null, providers, retryValidation = false }) {
   const foundation = await store.loadFoundation(workId);
   const stored = normalizeStoryProfile(await store.loadStoryProfile(workId));
   // foundation 이전의 명시적 언어 변경은 새 revision 이다. 이전 언어의 예시·승인·
@@ -366,6 +367,9 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
     mode,
     kit,
   );
+  const approvalResolution = await resolveWorkLanguage({ store, workId, foundation, profile, requested: profile.language, length: profile.format.length });
+  const approval = await gateApprovalActivation({ store, workId, kind: 'profile', value: profile, providers, resolution: approvalResolution, retryValidation });
+  if (!approval.ok) return { ...approval, candidate: profile };
   await store.saveStoryProfile(workId, profile);
   return {
     profile,
@@ -388,7 +392,7 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
   };
 }
 
-export async function runStoryProfileDecide({ store, workId, action }) {
+export async function runStoryProfileDecide({ store, workId, action, providers, retryValidation = false }) {
   const profile = normalizeStoryProfile(await store.loadStoryProfile(workId));
   if (!profile) throw new Error('검토할 StoryProfile이 없습니다.');
   if (action === 'approve') {
@@ -405,6 +409,11 @@ export async function runStoryProfileDecide({ store, workId, action }) {
       },
       status: 'active', approvedAt: new Date().toISOString(),
     };
+    // New contracts preserve already checked generated decisions/questions. User
+    // confirmation is approval metadata, not newly generated translated prose.
+    if (Object.hasOwn(profile, 'language')) active.designReview = profile.designReview;
+    const approval = await gateApprovalActivation({ store, workId, kind: 'profile', value: active, providers, consumeOnly: true, retryValidation });
+    if (!approval.ok) return { ...approval, approved: false };
     await store.saveStoryProfile(workId, active);
     return { approved: true, profile: active };
   }
