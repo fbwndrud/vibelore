@@ -13,12 +13,16 @@ import {
 import { LanguagePolicyError } from '../../src/core/language-policy.js';
 import { checkPov } from '../../src/continuity/pov-check.js';
 import { scanQuality } from '../../src/continuity/quality-scan.js';
+import { scanInfoRestate } from '../../src/continuity/info-restate-detector.js';
+import { scanSentenceStats } from '../../src/continuity/sentence-stats.js';
+import { runProsodyScan } from '../../src/continuity/prosody-scan.js';
 import { DefaultEmotionVerbLexicon } from '../../src/continuity/emotion-verb-lexicon.js';
 import { DefaultSimileMarkerLexicon } from '../../src/continuity/simile-marker-lexicon.js';
 import { DefaultOnomatopoeiaLexicon } from '../../src/continuity/onomatopoeia-lexicon.js';
 import { KO_SENSITIVE_SEED, scanSensitive, DefaultSensitiveLexicon } from '../../src/continuity/sensitive-lexicon.js';
 import { createFoundation, registerCharacter } from '../../src/continuity/foundation.js';
 import { createGenreProfileRegistry } from '../../src/continuity/genre-profile.js';
+import { scanWebnovelFormat } from '../../../src/tools/webnovel-format.js';
 
 const registry = createGenreProfileRegistry();
 const emotion = new DefaultEmotionVerbLexicon();
@@ -161,10 +165,18 @@ describe('checker registry', () => {
         });
         expect(fail.status).toBe('failed');
         expect(fail.invariantCoverage).toBe('failed');
+        expect(fail.violations.every((v) => v.severity === 'hard' && v.code === 'POV_VIOLATION')).toBe(true);
         const failCoverage = aggregateCheckerCoverage(describeCheckerPlan({ language: 'ko', foundation: f }), [fail]);
         expect(failCoverage.invariants.POV.coverage).toBe('failed');
         expect(failCoverage.failedRequired).toContain('POV');
         expect(failCoverage.blocked).toBe(true);
+        const failWithSemantic = aggregateCheckerCoverage(
+            describeCheckerPlan({ language: 'ko', foundation: f }),
+            [fail],
+            { POV: 'pass' },
+        );
+        expect(failWithSemantic.invariants.POV.coverage).toBe('failed');
+        expect(failWithSemantic.failedRequired).toContain('POV');
 
         const skipped = runDetector('checkPov', checkPov, {
             prose: 'Ben was sad.',
@@ -262,5 +274,144 @@ describe('checker registry', () => {
         expect(coverage.invariants.LENGTH.coverage).toBe('unvalidated');
         expect(coverage.invariants.OUTPUT_LANGUAGE.coverage).toBe('unvalidated');
         expect(coverage.unvalidatedRequired).toEqual(expect.arrayContaining(['SCHEMA', 'LENGTH', 'OUTPUT_LANGUAGE']));
+    });
+
+    it('does not treat soft detector findings or advisory FORMAT rows as required failures', () => {
+        const worldFoundation = { povMode: 'none', characters: [], worldFacts: [{ statement: '세금징수탑이 있다' }] };
+        const restateInput = {
+            language: 'ko',
+            foundation: worldFoundation,
+            prose: '세금징수탑 세금징수탑 세금징수탑 세금징수탑 세금징수탑',
+            chapterNumber: 1,
+        };
+        const restate = runDetector('scanInfoRestate', scanInfoRestate, restateInput);
+        expect(restate.checkerId).toBe('scanInfoRestate');
+        expect(restate.status).toBe('failed');
+        expect(restate.violations.length).toBeGreaterThan(0);
+        expect(restate.violations.every((v) => v.severity === 'soft' && v.code === 'INFO_RESTATED')).toBe(true);
+
+        const legacyRestate = runDetector('scanInfoRestate', scanInfoRestate, {
+            foundation: worldFoundation,
+            prose: restateInput.prose,
+            chapterNumber: 1,
+        });
+        expect(legacyRestate.checkerId).toBeUndefined();
+        expect(legacyRestate.status).toBeUndefined();
+        expect(legacyRestate.violations.every((v) => v.severity === 'soft' && v.code === 'INFO_RESTATED')).toBe(true);
+
+        const worldPlan = describeCheckerPlan({ language: 'ko', foundation: worldFoundation });
+        const worldSoft = aggregateCheckerCoverage(worldPlan, [restate]);
+        expect(worldSoft.invariants.WORLD.coverage).toBe('unvalidated');
+        expect(worldSoft.failedRequired).not.toContain('WORLD');
+        expect(worldSoft.unvalidatedRequired).toContain('WORLD');
+
+        const worldSemanticPass = aggregateCheckerCoverage(worldPlan, [restate], { WORLD: 'pass' });
+        expect(worldSemanticPass.invariants.WORLD.coverage).toBe('validated');
+        expect(worldSemanticPass.failedRequired).not.toContain('WORLD');
+
+        const worldSemanticFail = aggregateCheckerCoverage(worldPlan, [restate], { WORLD: 'fail' });
+        expect(worldSemanticFail.invariants.WORLD.coverage).toBe('failed');
+        expect(worldSemanticFail.failedRequired).toContain('WORLD');
+
+        const worldUncertain = aggregateCheckerCoverage(worldPlan, [restate], { WORLD: 'uncertain' });
+        expect(worldUncertain.invariants.WORLD.coverage).toBe('unvalidated');
+        expect(worldUncertain.failedRequired).not.toContain('WORLD');
+        expect(worldUncertain.unvalidatedRequired).toContain('WORLD');
+
+        const worldError = runDetector('scanInfoRestate', () => {
+            throw new Error('world-scan-error');
+        }, restateInput);
+        expect(worldError.status).toBe('error');
+        const worldErrorCoverage = aggregateCheckerCoverage(worldPlan, [worldError], { WORLD: 'pass' });
+        expect(worldErrorCoverage.invariants.WORLD.coverage).toBe('unvalidated');
+        expect(worldErrorCoverage.failedRequired).not.toContain('WORLD');
+        expect(worldErrorCoverage.unvalidatedRequired).toContain('WORLD');
+
+        const monotone = '오늘은. '.repeat(12);
+        const stats = runDetector('scanSentenceStats', scanSentenceStats, {
+            language: 'ko',
+            prose: monotone,
+            chapterNumber: 1,
+        });
+        expect(stats.status).toBe('failed');
+        expect(stats.violations.some((v) => v.severity === 'soft' && v.code === 'SENTENCE_MONOTONY')).toBe(true);
+
+        const prosody = runDetector('runProsodyScan', (input) => runProsodyScan(input.prose, input), {
+            language: 'ko',
+            prose: monotone,
+            chapterNumber: 1,
+        });
+        expect(prosody.checkerId).toBe('runProsodyScan');
+        expect(typeof prosody.score).toBe('number');
+
+        const formatPlan = describeCheckerPlan({ language: 'ko' });
+        const advisoryFormat = aggregateCheckerCoverage(formatPlan, [stats, prosody]);
+        expect(advisoryFormat.invariants.FORMAT.coverage).toBe('unvalidated');
+        expect(advisoryFormat.failedRequired).not.toContain('FORMAT');
+        expect(advisoryFormat.unvalidatedRequired).toContain('FORMAT');
+
+        const advisoryFormatPass = aggregateCheckerCoverage(formatPlan, [stats, prosody], { FORMAT: 'pass' });
+        expect(advisoryFormatPass.invariants.FORMAT.coverage).toBe('validated');
+        expect(advisoryFormatPass.failedRequired).not.toContain('FORMAT');
+
+        const dense = runDetector('scanWebnovelFormat', scanWebnovelFormat, {
+            language: 'ko',
+            prose: Array.from({ length: 14 }, (_, index) => `이것은 독자가 모바일 화면에서 읽기에는 지나치게 조밀하여 별도 문단으로 나눠야 하는 ${index + 1}번째 문장이다.`).join(' '),
+            chapterNumber: 1,
+        });
+        expect(dense.status).toBe('failed');
+        expect(dense.violations.some((v) => v.severity === 'soft' && v.code === 'WEBNOVEL_DENSE_PARAGRAPH')).toBe(true);
+        expect(dense.violations.every((v) => v.severity !== 'hard')).toBe(true);
+        const denseCoverage = aggregateCheckerCoverage(formatPlan, [stats, dense], { FORMAT: 'pass' });
+        expect(denseCoverage.invariants.FORMAT.coverage).toBe('validated');
+        expect(denseCoverage.failedRequired).not.toContain('FORMAT');
+
+        const isolated = runDetector('scanWebnovelFormat', scanWebnovelFormat, {
+            language: 'ko',
+            prose: '“너, 받침 짐 이리 줘.” 그녀가 짐꾼 하나를 불렀다.',
+            chapterNumber: 1,
+        });
+        expect(isolated.status).toBe('failed');
+        expect(isolated.violations.some((v) => v.severity === 'soft' && v.code === 'WEBNOVEL_DIALOGUE_NOT_ISOLATED')).toBe(true);
+        const layoutCoverage = aggregateCheckerCoverage(formatPlan, [stats, isolated], { FORMAT: 'pass' });
+        expect(layoutCoverage.invariants.FORMAT.coverage).toBe('failed');
+        expect(layoutCoverage.failedRequired).toContain('FORMAT');
+
+        const lex = new DefaultSensitiveLexicon();
+        const suggestive = KO_SENSITIVE_SEED.find((entry) => entry.category === 'sexual-suggestive' && entry.youthSeverity === 'soft');
+        const profane = KO_SENSITIVE_SEED.find((entry) => entry.category === 'profanity' && entry.youthSeverity === 'hard');
+        expect(suggestive).toBeDefined();
+        expect(profane).toBeDefined();
+
+        const youthSoft = runDetector('scanSensitive', scanSensitive, {
+            language: 'ko',
+            prose: `텍스트 ${suggestive.term}`,
+            chapterNumber: 1,
+            lexicon: lex,
+            mode: 'youth',
+            sensitiveMode: 'youth',
+        });
+        expect(youthSoft.status).toBe('failed');
+        expect(youthSoft.violations.length).toBeGreaterThan(0);
+        expect(youthSoft.violations.every((v) => v.severity === 'soft')).toBe(true);
+        const youthPlan = describeCheckerPlan({ language: 'ko', mode: 'youth', sensitiveMode: 'youth' });
+        const youthSoftCoverage = aggregateCheckerCoverage(youthPlan, [youthSoft]);
+        expect(youthSoftCoverage.invariants.SENSITIVE.required).toBe(true);
+        expect(youthSoftCoverage.invariants.SENSITIVE.coverage).toBe('unvalidated');
+        expect(youthSoftCoverage.failedRequired).not.toContain('SENSITIVE');
+
+        const youthHard = runDetector('scanSensitive', scanSensitive, {
+            language: 'ko',
+            prose: `텍스트 ${profane.term}`,
+            chapterNumber: 1,
+            lexicon: lex,
+            mode: 'youth',
+            sensitiveMode: 'youth',
+        });
+        expect(youthHard.status).toBe('failed');
+        expect(youthHard.violations.some((v) => v.severity === 'hard' && v.code === 'SENSITIVE_PROFANITY')).toBe(true);
+        const youthHardCoverage = aggregateCheckerCoverage(youthPlan, [youthHard], { SENSITIVE: 'pass' });
+        expect(youthHardCoverage.invariants.SENSITIVE.coverage).toBe('failed');
+        expect(youthHardCoverage.failedRequired).toContain('SENSITIVE');
     });
 });

@@ -123,6 +123,13 @@ const KO_LEXICAL_ADVISORY = Object.freeze([
     'scanDialogueRatio',
 ]);
 
+/** Soft-coded layout codes that required FORMAT policy still treats as blocking. */
+const FORMAT_LAYOUT_INVARIANTS = new Set([
+    'WEBNOVEL_DIALOGUE_BURIED',
+    'WEBNOVEL_DIALOGUE_NOT_ISOLATED',
+    'WEBNOVEL_SOFT_LINEBREAKS',
+]);
+
 export const CHECKER_IDS = Object.freeze([
     'checkPov',
     'scanLexicon',
@@ -564,38 +571,50 @@ export function runDetector(checkerId, detectorFn, input) {
     }
 }
 
+function isBlockingViolation(violation, row) {
+    if (violation == null || typeof violation !== 'object' || violation.advisoryOnly)
+        return false;
+    if (violation.severity === 'hard')
+        return true;
+    return row.invariant === 'required'
+        && row.invariantId === 'FORMAT'
+        && FORMAT_LAYOUT_INVARIANTS.has(violation.code);
+}
+
+function hasBlockingViolations(result, row) {
+    if (!result || result.status === 'skipped')
+        return false;
+    const violations = result.violations;
+    if (!Array.isArray(violations) || violations.length === 0)
+        return false;
+    return violations.some((item) => isBlockingViolation(item, row));
+}
+
 function coverageForPlanRow(row, result, semanticEvidence) {
     if (row.applicability === 'not_applicable' || row.invariant === 'not_applicable')
         return 'not_applicable';
+    // Advisory findings stay on the detector envelope; they are not invariant evidence.
+    if (row.invariant === 'advisory')
+        return 'not_applicable';
 
     const semantic = semanticEvidence?.[row.invariantId];
-    const failedEvidence = result?.status === 'failed' || ((result?.violations?.length ?? 0) > 0 && result?.status !== 'skipped');
-    if (failedEvidence)
+    if (hasBlockingViolations(result, row))
         return 'failed';
-
     if (semantic === 'fail')
         return 'failed';
-    if (semantic === 'pass') {
-        if (row.requiresSemantic || row.ifSkipped === 'semantic_required' || row.exhaustive === false)
-            return 'validated';
-        return 'validated';
-    }
-
-    if (!result || result.status === 'error' || result.status === 'unrun') {
-        if (row.invariant === 'advisory')
-            return 'not_applicable';
+    if (result?.status === 'error')
         return 'unvalidated';
-    }
+    if (semantic === 'pass')
+        return 'validated';
+
+    if (!result || result.status === 'unrun')
+        return 'unvalidated';
     if (result.status === 'skipped') {
-        if (row.invariant === 'advisory' && row.ifSkipped === 'none')
-            return 'not_applicable';
         if (row.ifSkipped === 'semantic_required' || row.requiresSemantic)
             return 'unvalidated';
-        if (row.invariant === 'advisory')
-            return 'not_applicable';
         return 'unvalidated';
     }
-    // Heuristic or non-gate detector finished without violations.
+    // Heuristic or non-gate detector finished without blocking violations.
     // That is not exhaustive invariant validation.
     return 'unvalidated';
 }
@@ -636,23 +655,29 @@ export function aggregateCheckerCoverage(plan, detectorResults = [], semanticEvi
             const next = {
                 id: row.invariantId,
                 coverage: invariantCoverage,
-                required: isRequiredRow(row) || Boolean(prev?.required),
-                requiresSemantic: Boolean(row.requiresSemantic || prev?.requiresSemantic),
+                required: isRequiredRow(row),
+                requiresSemantic: Boolean(row.requiresSemantic),
             };
             if (!prev) {
                 invariants[row.invariantId] = next;
             }
-            else if (prev.coverage === 'failed' || next.coverage === 'failed') {
-                invariants[row.invariantId] = { ...next, coverage: 'failed' };
-            }
-            else if (prev.coverage === 'unvalidated' || next.coverage === 'unvalidated') {
-                invariants[row.invariantId] = { ...next, coverage: 'unvalidated' };
-            }
-            else if (prev.coverage === 'not_applicable' && next.coverage !== 'not_applicable') {
-                invariants[row.invariantId] = next;
-            }
             else {
-                invariants[row.invariantId] = { ...prev, ...next, coverage: prev.coverage };
+                const required = Boolean(prev.required || next.required);
+                const requiresSemantic = Boolean(prev.requiresSemantic || next.requiresSemantic);
+                let coverage;
+                if (prev.required && !next.required)
+                    coverage = prev.coverage;
+                else if (!prev.required && next.required)
+                    coverage = next.coverage;
+                else if (prev.coverage === 'failed' || next.coverage === 'failed')
+                    coverage = 'failed';
+                else if (prev.coverage === 'unvalidated' || next.coverage === 'unvalidated')
+                    coverage = 'unvalidated';
+                else if (prev.coverage === 'not_applicable' && next.coverage !== 'not_applicable')
+                    coverage = next.coverage;
+                else
+                    coverage = prev.coverage;
+                invariants[row.invariantId] = { id: row.invariantId, coverage, required, requiresSemantic };
             }
         }
     }
