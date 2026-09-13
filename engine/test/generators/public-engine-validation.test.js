@@ -376,6 +376,49 @@ describe('public engine new-contract gates', () => {
         expect(languageSys).toContain('문자 비율이나 문자 체계를 세어 언어를 추측하지 않는다');
     });
 
+    for (const manifest of ['not valid JSON', '{"cast":[{"characterId":"unknown"}]}']) {
+        it(`does not issue a receipt for invalid publication manifest: ${manifest}`, async () => {
+            const { providers } = stubProviders();
+            const foundation = makeFoundation();
+            const ctx = await makeCtx({ rootDir, providers, validationEpoch: 1, workflowId: 'wf-manifest' });
+            await ctx.state.saveFoundation(foundation);
+            const savedJobs = [];
+            const saveJob = ctx.state.saveJob.bind(ctx.state);
+            ctx.state.saveJob = async (job) => { savedJobs.push(job); return saveJob(job); };
+            const error = await expectCode(prepareChapterPublication(ctx, {
+                prose: `${ISOLATED_PROSE}\n\n⟦vle:cast-manifest ${manifest}⟧`,
+                foundation, prevState: emptyStoryState(ctx.workId), chapterNumber: 1, plan: '게이트 앞',
+            }), VALIDATION_ERROR_CODES.COVERAGE_INCOMPLETE);
+            expect(JSON.stringify(error.details.blocked)).toContain('SCHEMA');
+            expect(savedJobs.some(job => job.receipt != null || job.status === 'checked')).toBe(false);
+            expect(await ctx.state.loadArtifact(ctx.workId, 1)).toBeNull();
+        });
+    }
+
+    it('preserves explicit empty manifest and rechecks manifest schema at consume without models', async () => {
+        const { providers, calls } = stubProviders();
+        const foundation = makeFoundation();
+        const ctx = await makeCtx({ rootDir, providers, validationEpoch: 1, workflowId: 'wf-empty-manifest' });
+        await ctx.state.saveFoundation(foundation);
+        const prepared = await prepareChapterPublication(ctx, {
+            prose: ISOLATED_PROSE, foundation, prevState: emptyStoryState(ctx.workId),
+            chapterNumber: 1, plan: '게이트 앞',
+        });
+        expect(prepared.canonical.castManifestRaw).toBe('');
+        const before = calls.length;
+        const invalid = await expectCode(commitPhase(ctx, {
+            chapterNumber: 1, validationReceipt: prepared.receipt,
+            canonical: { ...prepared.canonical, castManifestRaw: 'invalid JSON' },
+        }), VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE);
+        expect(invalid.details.invariantId).toBe('SCHEMA');
+        expect(await ctx.state.loadArtifact(ctx.workId, 1)).toBeNull();
+        const result = await commitPhase(ctx, {
+            chapterNumber: 1, validationReceipt: prepared.receipt, canonical: prepared.canonical,
+        });
+        expect(result.artifact.castManifestRaw).toBe('');
+        expect(calls.length).toBe(before);
+    });
+
     it('valid checked bundle consumes with zero provider calls', async () => {
         const { providers } = stubProviders();
         const foundation = makeFoundation();
@@ -707,7 +750,7 @@ describe('public engine new-contract gates', () => {
         ctx.providers = { complete: () => { throw new Error('Provider called during consume'); } };
         for (const field of ['prose', 'title', 'summary', 'castManifestRaw']) {
             await expectCode(commitPhase(ctx, { ...args, validationReceipt: prepared.receipt,
-                canonical: { ...prepared.canonical, [field]: prepared.canonical[field] + ' changed' } }),
+                canonical: { ...prepared.canonical, [field]: prepared.canonical[field] + (field === 'castManifestRaw' ? ' ' : ' changed') } }),
                 VALIDATION_ERROR_CODES.ARTIFACT_HASH_MISMATCH);
         }
         expect(await ctx.state.loadArtifact(ctx.workId, 1)).toBeNull();

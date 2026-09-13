@@ -66,6 +66,7 @@ import {
     evaluateLanguageCompliance,
     markReceiptConsumed,
     validateValidationReceipt,
+    validatePublicationManifest,
 } from '../../core/validation-contract.js';
 import { runCoherenceJudge } from './steps/coherence-judge.js';
 import { runChapterSummary } from './steps/chapter-summary.js';
@@ -554,7 +555,9 @@ function runChapterDetectors({
     return results;
 }
 
-function schemaValidated({ extractionValidation, delta, chapterNumber, bundle }) {
+function schemaValidated({ extractionValidation, delta, chapterNumber, bundle, foundation }) {
+    if (!validatePublicationManifest(bundle.castManifestRaw, { foundation }).valid)
+        return false;
     if (extractionValidation?.status !== 'completed')
         return false;
     if (delta == null || typeof delta !== 'object' || Array.isArray(delta))
@@ -882,6 +885,7 @@ export async function prepareChapterPublication(ctx, args) {
         delta,
         chapterNumber,
         bundle: canonical,
+        foundation,
     });
     const lengthOk = lengthValidated(prose, workContract);
     const formatResult = detectorResults.find((row) => row?.checkerId === 'scanWebnovelFormat') ?? null;
@@ -1060,6 +1064,12 @@ export async function consumeChapterPublication(ctx, args) {
         semanticDelta: bundle.semanticDelta ?? bundle.delta,
         castManifestRaw: bundle.castManifestRaw,
     });
+
+    const manifestValidation = validatePublicationManifest(canonical.castManifestRaw, { foundation });
+    if (!manifestValidation.valid)
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, {
+            invariantId: 'SCHEMA', reason: manifestValidation.reason,
+        });
 
     validateValidationReceipt({
         receipt,
