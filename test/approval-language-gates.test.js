@@ -129,3 +129,23 @@ test('a canonical source edit during a model round trip invalidates the approval
   assert.equal(result.code, 'STALE_VALIDATION_RECEIPT');
   assert.equal(result.validation.attempt, 0);
 });
+
+test('seeded entity open attrs preserve exact keys and audit every nested string value', async () => {
+  const store = await newStore();
+  const value = { worldFacts: [], characters: [], seededEntities: [{ kind: 'location', canonicalName: '港', aliases: [], attrs: { climate: '温暖な海洋性気候', owner: '港の協同組合', nested: { status: '霧の中で閉鎖されている' }, tier: 2 } }] };
+  const providers = approvalProvider({ language: 'ja' });
+  const args = { store, workId: 'book', kind: 'foundation', value, resolution: resolution('ja'), providers };
+  assert.equal((await gateApprovalActivation(args)).ok, true);
+  const projected = JSON.parse(providers.requests[0].messages[1].content).artifact.value.seededEntities[0].attrs;
+  assert.deepEqual(projected[0], { id: 'climate', value: { description: '温暖な海洋性気候' } });
+  assert.deepEqual(projected[2].value[0], { id: 'status', value: { description: '霧の中で閉鎖されている' } });
+  const wrongStore = await newStore();
+  const wrong = structuredClone(value);
+  wrong.seededEntities[0].attrs.owner = 'The harbor cooperative';
+  const failed = await gateApprovalActivation({ ...args, store: wrongStore, value: wrong, providers: approvalProvider({ language: 'ja', answer: input => JSON.stringify({ language: 'ja', artifactHash: input.artifactHash, verdict: 'fail', evidence: [{ fieldPath: 'value.seededEntities[0].attrs[1].value.description', quote: 'The harbor cooperative', reason: 'English description rather than Japanese' }], allowedExceptions: [] }) }) });
+  assert.equal(failed.ok, false);
+  assert.equal(failed.validation.attempt, 3);
+  const changed = structuredClone(value);
+  changed.seededEntities[0].attrs.owner = '別の組合';
+  assert.equal((await gateApprovalActivation({ ...args, value: changed, consumeOnly: true })).code, 'STALE_VALIDATION_RECEIPT');
+});

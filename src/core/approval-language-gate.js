@@ -39,13 +39,23 @@ function machineLeaf(key, path, value) {
   return ENUMS.has(key);
 }
 
+// Entity attrs are a schema-owned open record. Preserve every key and value in
+// the hash, while classifying string values (including nested ones) as prose.
+function projectEntityAttributes(value) {
+  if (typeof value === 'string') return { description: value };
+  if (Array.isArray(value)) return value.map(projectEntityAttributes);
+  if (value && typeof value === 'object') return Object.entries(value).map(([id, item]) => ({ id, value: projectEntityAttributes(item) }));
+  return value;
+}
+
 export function projectApprovalValue(value, path = []) {
   if (Array.isArray(value)) return value.map(item => projectApprovalValue(item, path));
   if (!value || typeof value !== 'object') return value;
   const out = {};
   for (const [key, item] of Object.entries(value)) {
     if (CONTROL.has(key) || item === undefined) continue;
-    if (PROVENANCE.has(key)) out[key] = typeof item === 'string' ? item : JSON.stringify(item);
+    if (key === 'attrs' && path.length === 1 && path[0] === 'seededEntities') out[key] = projectEntityAttributes(item);
+    else if (PROVENANCE.has(key)) out[key] = typeof item === 'string' ? item : JSON.stringify(item);
     else if (CONFIG.has(key)) out[key] = { id: JSON.stringify(item) };
     else if (machineLeaf(key, path, item) && (typeof item === 'string' || Array.isArray(item) && item.every(v => typeof v === 'string'))) out[key] = { id: item };
     else if (['rationale', 'serialization'].includes(key) && typeof item === 'string') out[key] = { description: item };
