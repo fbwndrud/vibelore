@@ -479,6 +479,7 @@ describe('buildLanguageContract', () => {
         expect(contract.measurementPolicy.resolvedLocale).toBeNull();
         expect(contract.formatPolicy.canonicalFormatVersion).toBe(1);
         expect(contract.formatPolicy.writesFormatKeys).toBe(false);
+        expect(Object.hasOwn(contract.formatPolicy, 'dialogueBreakMode')).toBe(false);
         expect(contract.provenance).toEqual({
             languageSource: 'legacy-implicit', lengthSource: 'default', formatVersionSource: 'legacy-implicit',
         });
@@ -528,6 +529,31 @@ describe('language contract hash', () => {
         for (const other of others) {
             expect(computeLanguageContractHash(other)).not.toBe(baseHash);
         }
+    });
+
+    it('pins only explicitly approved dialogueBreakMode and preserves constructor overrides', () => {
+        expect(buildLanguageContract({ language: 'ko' }).formatPolicy.dialogueBreakMode).toBeUndefined();
+        expect(buildLanguageContract({ language: 'ja' }).formatPolicy.dialogueBreakMode).toBeUndefined();
+        expect(buildLanguageContract({
+            language: 'en',
+            dialogueBreakMode: 'strict',
+        }).formatPolicy.dialogueBreakMode).toBe('strict');
+        expect(buildLanguageContract({
+            language: 'ja',
+            formatPolicy: { dialogueBreakMode: 'relaxed' },
+        }).formatPolicy.dialogueBreakMode).toBe('relaxed');
+        const explicitHash = computeLanguageContractHash(buildLanguageContract({
+            language: 'ja', dialogueBreakMode: 'strict',
+        }));
+        expect(explicitHash).not.toBe(computeLanguageContractHash(buildLanguageContract({ language: 'ja' })));
+        expectCode(
+            () => buildLanguageContract({ language: 'ja', dialogueBreakMode: 'strict', formatPolicy: { dialogueBreakMode: 'natural' } }),
+            LANGUAGE_ERROR_CODES.FORMAT_POLICY_CONFLICT,
+        );
+        expectCode(
+            () => buildLanguageContract({ language: 'ja', dialogueBreakMode: 'freeform' }),
+            LANGUAGE_ERROR_CODES.INVALID_DIALOGUE_BREAK_MODE,
+        );
     });
 });
 

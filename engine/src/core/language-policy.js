@@ -15,9 +15,8 @@
  *   유효성(인물 ID 존재, 인용 출처 확인)과 승인 revision 결합은 phase 3 의
  *   프로필/영수증 경로가 검증해야 한다. 그 전까지 본문 전체가 예외처럼 쓰이지
  *   않도록 명백한 본문/요약/설명 전역 scope 는 지금 구문 단계에서 거부한다.
- * - `formatPolicy` 는 지금 정본 형식 버전만 담는다. phase 3 은 승인된
- *   `dialogueBreakMode` 등 포맷 규칙을 같은 formatPolicy 에 넣어 workContract
- *   hash 에 포함시켜야 한다(계약 필드 추가 → hash 변경).
+ * - `formatPolicy` binds an explicitly supplied approved dialogue mode.
+ *   Accepted-work callers resolve defaults; a plain constructor does not approve them.
  *
  * 실패는 전부 `LanguagePolicyError` 이며 안정적인 `.code` 를 갖는다. 사용자 자유
  * 텍스트는 어떤 경로로도 system 지시문에 삽입되지 않는다.
@@ -70,7 +69,14 @@ export const LANGUAGE_ERROR_CODES = Object.freeze({
     INVALID_FORMAT_VERSION: 'INVALID_FORMAT_VERSION',
     INVALID_TEMPLATE_VERSION: 'INVALID_TEMPLATE_VERSION',
     INVALID_LANGUAGE_EXCEPTION: 'INVALID_LANGUAGE_EXCEPTION',
+    INVALID_DIALOGUE_BREAK_MODE: 'INVALID_DIALOGUE_BREAK_MODE',
+    FORMAT_POLICY_CONFLICT: 'FORMAT_POLICY_CONFLICT',
 });
+
+/** 승인된 대사 문단 규칙. `strict`/`relaxed` 는 기존 검사기 의미, `natural` 은 산문 관습. */
+export const DIALOGUE_BREAK_MODES = Object.freeze(['strict', 'relaxed', 'natural']);
+export const DEFAULT_DIALOGUE_BREAK_MODE_KO = 'strict';
+export const DEFAULT_DIALOGUE_BREAK_MODE_MULTILINGUAL = 'natural';
 
 /**
  * 정적 사용자 안내 문구. 계획의 "정적인 시스템 메시지는 한국어/영어 두 계열과
@@ -125,6 +131,14 @@ const LANGUAGE_ERROR_MESSAGES = Object.freeze({
     INVALID_LANGUAGE_EXCEPTION: {
         ko: '승인된 인용 예외가 올바르지 않다. 종류·언어·적용 범위가 필요하며 wildcard 는 받지 않는다.',
         en: 'The approved language exception is invalid. Kind, language and a bounded scope are required; wildcards are rejected.',
+    },
+    INVALID_DIALOGUE_BREAK_MODE: {
+        ko: '대사 문단 규칙 값이 올바르지 않다. strict, relaxed, natural 만 허용한다.',
+        en: 'The dialogue break mode is invalid. Only strict, relaxed, and natural are allowed.',
+    },
+    FORMAT_POLICY_CONFLICT: {
+        ko: '명시된 포맷 규칙이 저장된 계약과 다르다.',
+        en: 'The explicit format policy conflicts with the stored contract.',
     },
 });
 
@@ -864,12 +878,47 @@ function assertTemplateVersion(templateVersion) {
     return templateVersion;
 }
 
+function resolvePinnedDialogueBreakMode({
+    dialogueBreakMode = null,
+    formatPolicy = null,
+}) {
+    const fromArg = dialogueBreakMode === undefined ? null : dialogueBreakMode;
+    const fromPolicy = formatPolicy && typeof formatPolicy === 'object' && !Array.isArray(formatPolicy)
+        ? (formatPolicy.dialogueBreakMode === undefined ? null : formatPolicy.dialogueBreakMode)
+        : null;
+    if (fromArg !== null && fromPolicy !== null && fromArg !== fromPolicy) {
+        fail(LANGUAGE_ERROR_CODES.FORMAT_POLICY_CONFLICT, {
+            reason: 'dialogue_break_mode',
+            expected: fromPolicy,
+            received: fromArg,
+        });
+    }
+    const pinned = fromArg ?? fromPolicy;
+    if (pinned !== null && pinned !== undefined && pinned !== '') {
+        if (!DIALOGUE_BREAK_MODES.includes(pinned)) {
+            fail(LANGUAGE_ERROR_CODES.INVALID_DIALOGUE_BREAK_MODE, {
+                received: typeof pinned === 'string' ? pinned : null,
+                allowed: DIALOGUE_BREAK_MODES,
+            });
+        }
+        return pinned;
+    }
+    if (pinned === '') {
+        fail(LANGUAGE_ERROR_CODES.INVALID_DIALOGUE_BREAK_MODE, {
+            received: '',
+            allowed: DIALOGUE_BREAK_MODES,
+        });
+    }
+    // Defaults become authority only at an accepted-work boundary.
+    return null;
+}
+
 /**
  * workContract 의 언어 소유 부분을 조립한다. 모든 값은 JSON 직렬화 가능하며
  * `provenance` 를 뺀 나머지가 hash 대상이다.
  *
- * phase 3 은 승인된 포맷 규칙(`dialogueBreakMode` 등)을 `formatPolicy` 에 더해
- * 같은 hash 에 묶어야 한다.
+ * `formatPolicy` / `dialogueBreakMode` 는 선택이다. 둘 다 오면 값이 같아야 한다.
+ * Only an explicitly supplied mode is pinned. Accepted-work callers supply defaults.
  */
 export function buildLanguageContract({
     language,
@@ -884,6 +933,8 @@ export function buildLanguageContract({
     checkerPolicyVersion = CHECKER_POLICY_VERSION,
     measurementLocale = null,
     languageSource = 'requested',
+    formatPolicy = null,
+    dialogueBreakMode = null,
 } = {}) {
     const tag = normalizeLanguageTag(language);
     const resolvedLength = resolveLengthContract({ language: tag, length, legacyLength, storedLength, storedLegacyLength });
@@ -894,6 +945,16 @@ export function buildLanguageContract({
         storedHasKey: storedFormatVersionKeyPresent,
     });
     const exceptions = normalizeLanguageExceptions(allowedLanguageExceptions, { language: tag });
+    const pinnedMode = resolvePinnedDialogueBreakMode({
+        dialogueBreakMode,
+        formatPolicy,
+    });
+    const assembledFormatPolicy = {
+        formatPolicyVersion: FORMAT_POLICY_VERSION,
+        canonicalFormatVersion: format.canonicalFormatVersion,
+        writesFormatKeys: format.writesFormatKeys,
+        ...(pinnedMode ? { dialogueBreakMode: pinnedMode } : {}),
+    };
 
     return Object.freeze({
         schemaVersion: LANGUAGE_POLICY_SCHEMA_VERSION,
@@ -906,11 +967,7 @@ export function buildLanguageContract({
         directiveVersion: LANGUAGE_DIRECTIVE_VERSION,
         length: Object.freeze({ unit: resolvedLength.unit, target: resolvedLength.target }),
         measurementPolicy,
-        formatPolicy: Object.freeze({
-            formatPolicyVersion: FORMAT_POLICY_VERSION,
-            canonicalFormatVersion: format.canonicalFormatVersion,
-            writesFormatKeys: format.writesFormatKeys,
-        }),
+        formatPolicy: Object.freeze(assembledFormatPolicy),
         checkerPolicyVersion,
         allowedLanguageExceptions: exceptions,
         // hash 대상이 아니다 — 같은 의미의 계약이 출처 때문에 다른 hash 가 되지 않게 한다.

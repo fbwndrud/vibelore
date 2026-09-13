@@ -432,6 +432,28 @@ export class MarkdownStateStore {
     return readJsonOrNull(this.sidecar('check-receipts', `${checkId}.json`));
   }
 
+  async loadApprovalValidation(workId, key) {
+    assertSafeId('workId', workId);
+    assertSafeId('approval validation key', key);
+    return readJsonOrNull(this.sidecar('approval-validation', workId, `${key}.json`));
+  }
+
+  async saveApprovalValidation(workId, key, state) {
+    assertSafeId('workId', workId);
+    assertSafeId('approval validation key', key);
+    await writeJson(this.sidecar('approval-validation', workId, `${key}.json`), state);
+  }
+
+  async saveValidationState(workId, state) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('validation-state', `${workId}.json`), state);
+  }
+
+  async loadValidationState(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('validation-state', `${workId}.json`));
+  }
+
   async saveContextTrace(workId, trace) {
     assertSafeId('workId', workId);
     await writeJson(this.sidecar('context-traces', `${trace.chapter}.json`), trace);

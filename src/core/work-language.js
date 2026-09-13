@@ -220,6 +220,11 @@ function finish({
     storedFormatVersionKeyPresent: formatVersionKeyPresent,
     allowedLanguageExceptions: profile?.allowedLanguageExceptions ?? [],
     languageSource: resolved.source,
+    dialogueBreakMode: profile?.format?.dialogueBreakMode
+      ?? foundation?.workContract?.formatPolicy?.dialogueBreakMode
+      ?? creationRecord?.workContract?.formatPolicy?.dialogueBreakMode
+      ?? ((phase === 'pre-foundation' || creationRecord || Object.hasOwn(foundation ?? {}, 'language'))
+        ? (tag.promptFamily === 'ko' ? 'strict' : 'natural') : null),
   });
   const lengthContract = resolveLengthContract({
     language: tag, length, legacyLength, storedLength, storedLegacyLength,
@@ -259,6 +264,7 @@ export function buildAcceptedCreationRecord({ workId, resolution, profile, accep
     length: { unit: resolution.length.unit, target: resolution.length.target },
     languageSource: resolution.languageSource,
     contractHash: resolution.contractHash,
+    workContract: resolution.contract,
     profileRevision: profile?.revision ?? null,
     profileStatus: profile?.status ?? null,
     acceptedAt,
@@ -294,6 +300,76 @@ export function profileLanguageChange({ profile, requested }) {
   const from = stored.hasKey ? normalizeLanguageTag(stored.language).tag : IMPLICIT_LEGACY_LANGUAGE;
   const to = normalizeLanguageTag(requested).tag;
   return { changed: from !== to, from, to };
+}
+
+/**
+ * 수락된 생성 기록이 있거나 문서에 언어 키가 있으면 신작 계약이다. 호출자가
+ * workContract 를 빠뜨렸다고 구작으로 내리지 않는다. 키 없는 구작의 저수준
+ * 수동 check/commit 만 레거시 분기다. 새로 시작한 workflow 는
+ * `usesChapterValidationGate` 가 연다.
+ */
+export function isNewContractWork(resolution, { foundation = null, creationRecord = null } = {}) {
+  if (resolution?.creationRecord || creationRecord)
+    return true;
+  const doc = resolution?.foundation ?? foundation;
+  if (doc && Object.hasOwn(doc, 'language'))
+    return true;
+  if (resolution?.writesFormatKeys)
+    return true;
+  return false;
+}
+
+/**
+ * 활성 집필 워크플로는 키 없는 구작이어도 새 검사 계약을 쓴다. 파일의 언어 키
+ * 부재는 발행 때 그대로 두고, 이미 승인·발행된 산출물을 읽기만 할 때는
+ * 소급 감사하지 않는다.
+ */
+export function usesChapterValidationGate({
+  resolution = null, foundation = null, creationRecord = null, workflow = null, chapter = null,
+} = {}) {
+  if (workflow && Number(workflow.chapter) === Number(chapter)
+    && !['completed', 'rejected'].includes(workflow.stage)) {
+    return true;
+  }
+  return isNewContractWork(resolution, { foundation, creationRecord });
+}
+
+/**
+ * 엔진에 넘기는 foundation 스냅샷은 저장된 정본을 바꾸지 않고, 지금 승인된
+ * 계약과 분량을 붙인다. 생성 당시 3000 과 프로필 3300 이 동시에 보이지 않게 한다.
+ */
+export function executionFoundationSnapshot(foundation, workContract) {
+  if (!foundation || typeof foundation !== 'object')
+    return foundation ?? null;
+  if (!workContract)
+    return foundation;
+  const snapshot = { ...foundation, workContract };
+  if (workContract.length && typeof workContract.length === 'object') {
+    snapshot.length = { unit: workContract.length.unit, target: workContract.length.target };
+  }
+  return snapshot;
+}
+
+/**
+ * 예외만 바뀐 프로필 revision 인가. locale/본문/그 밖 계약 필드는 같아야 한다.
+ * 문법 정규화 뒤에 실제 인물 ID·인용 출처 결합은 호출자가 이어서 검증한다.
+ */
+export function isExceptionOnlyProfileRevision({ previous, next } = {}) {
+  if (!previous || !next || typeof previous !== 'object' || typeof next !== 'object')
+    return false;
+  const skip = new Set([
+    'allowedLanguageExceptions', 'revision', 'status', 'approvedAt', 'approvedBy',
+    'updatedAt', 'createdAt', 'approval', 'approvalId',
+  ]);
+  const keys = new Set([...Object.keys(previous), ...Object.keys(next)]);
+  for (const key of keys) {
+    if (skip.has(key))
+      continue;
+    if (JSON.stringify(previous[key] ?? null) !== JSON.stringify(next[key] ?? null))
+      return false;
+  }
+  return JSON.stringify(previous.allowedLanguageExceptions ?? [])
+    !== JSON.stringify(next.allowedLanguageExceptions ?? []);
 }
 
 export { CANONICAL_FORMAT_VERSION_LEGACY_KO };
