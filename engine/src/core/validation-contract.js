@@ -76,7 +76,7 @@ export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
     'checkerId', 'checksum', 'code', 'commit', 'contractHash', 'createdAt', 'dialogueBreakMode',
     'digest', 'engineGenre', 'entityId', 'epoch', 'eventId', 'from', 'fromBeat', 'genre', 'hash',
     'hookId', 'id', 'ids', 'invariantId', 'key', 'kind', 'language', 'locale', 'mode', 'op',
-    'path', 'planSourceHash', 'pov', 'povMode', 'promptFamily', 'revision', 'role', 'schemaVersion',
+    'path', 'planSourceHash', 'pov', 'povCharacter', 'povMode', 'promptFamily', 'revision', 'role', 'schemaVersion',
     'scope', 'sentinel', 'serialization', 'severity', 'sha', 'slug', 'sourceHead', 'status',
     'storyTime', 'tag', 'target', 'timestamp', 'to', 'toBeat', 'transactionTime', 'type',
     'unit', 'updatedAt', 'uri', 'url', 'validationEpoch', 'version', 'worldline', 'workId',
@@ -104,7 +104,7 @@ export const USER_PROVENANCE_FIELD_NAMES = Object.freeze([
 export const SEMANTIC_DELTA_HUMAN_TEXT_FIELDS = Object.freeze([
     'belief', 'behavioralProof', 'competingHypotheses', 'cost', 'costPaid', 'description',
     'descriptions', 'fact', 'facts', 'hypothesis', 'interpretation', 'interpretations',
-    'knownFactsAdded', 'label', 'location', 'name', 'names', 'nextChoiceBias', 'note', 'notes',
+    'noInfluenceReason', 'plotBeat', 'sceneTags', 'knownFactsAdded', 'label', 'location', 'name', 'names', 'nextChoiceBias', 'note', 'notes',
     'reason', 'resolution', 'summary', 'term', 'terms', 'text', 'title', 'value',
 ]);
 
@@ -120,7 +120,7 @@ export const APPROVAL_VALUE_HUMAN_TEXT_FIELDS = Object.freeze([
     'description', 'detail', 'dialogue', 'discoverySpaces', 'draft', 'emotionalRendering',
     'escalation', 'example', 'exposition', 'expositionPolicy', 'fact', 'fallback',
     'firstIrreversibleChoice', 'genreLabel', 'genreVoiceRecipe', 'goal', 'hook', 'hypothesis',
-    'immediateGoal', 'interpretation', 'knowledge', 'knownFactsAdded', 'label', 'location',
+    'immediateGoal', 'interpretation', 'knowledge', 'noInfluenceReason', 'plotBeat', 'sceneTags', 'knownFactsAdded', 'label', 'location',
     'logline', 'misbelief', 'name', 'names', 'narration',
     'narrativeDistance', 'nextChoiceBias', 'note', 'notes', 'openingPressure', 'openingViewpoint',
     'outcome', 'plan', 'premise', 'pressure', 'promise', 'promisePaid', 'proofOnPage',

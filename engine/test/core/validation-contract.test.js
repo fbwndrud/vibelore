@@ -2057,3 +2057,8 @@ it('classifies fixed measurement and character enums as machine values', () => {
  const result = evaluateLanguageCompliance({ artifact, workContract: WORK_CONTRACT, compliance: compliance(artifact) });
  expect(result.satisfied).toBe(true);
 });
+
+it('classifies the concrete chapter summary and empty-change explanation schema', () => {
+ const artifact = bundle({ summary: { text: '扉が開く。', plotBeat: '一歩進む。', sceneTags: ['庭'], povCharacter: 'c1' }, semanticDelta: { noInfluenceReason: '状態は変わらない。', appearedCharacterIds: ['c1'] } });
+ expect(evaluate(artifact).satisfied).toBe(true);
+});
