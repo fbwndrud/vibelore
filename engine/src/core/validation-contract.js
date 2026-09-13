@@ -70,6 +70,7 @@ export const APPROVAL_MACHINE_EXEMPT_FIELDS = Object.freeze(['approvalKind', 're
  * 여기서 면제된다 — 값이 한국어라는 사실이 작품 언어 위반의 증거가 되지 못한다.
  */
 export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
+    'requestedLocale', 'resolvedLocale', 'segmenterGranularity', 'baseLanguage', 'icu', 'gender', 'register',
     'appearedCharacterIds', 'approvalKind', 'arcId', 'arcNumber', 'artifactHash', 'artifactKind', 'artifactSchemaVersion',
     'at', 'beatId', 'canonicalFormatVersion', 'chapter', 'chapterId', 'characterId', 'checkId',
     'checkerId', 'checksum', 'code', 'commit', 'contractHash', 'createdAt', 'dialogueBreakMode',

@@ -2050,3 +2050,10 @@ it('treats extracted appearedCharacterIds as machine identifiers, not language e
     expect(evaluateLanguageCompliance({ artifact, workContract: WORK_CONTRACT, compliance: raw }).satisfied).toBe(true);
     expectCode(() => evaluateLanguageCompliance({ artifact, workContract: WORK_CONTRACT, compliance: { ...raw, verdict: 'fail', evidence: [{ fieldPath: 'semanticDelta.appearedCharacterIds[0]', quote: 'c1', reason: 'not Japanese' }] } }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
 });
+
+
+it('classifies fixed measurement and character enums as machine values', () => {
+ const artifact = canonicalApprovalArtifact({ kind: 'foundation', revision: 1, value: { description: '扉が開く。', characters: [{ intrinsic: { gender: 'female', role: '旅人' }, addressMap: { register: 'formal' } }], workContract: { measurementPolicy: { requestedLocale: 'en', resolvedLocale: 'en', segmenterGranularity: 'word', baseLanguage: 'en', icu: '77.1' } } } });
+ const result = evaluateLanguageCompliance({ artifact, workContract: WORK_CONTRACT, compliance: compliance(artifact) });
+ expect(result.satisfied).toBe(true);
+});
