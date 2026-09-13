@@ -7,13 +7,17 @@
  * sync apply 가 소비하는 값이 전부 이 모듈을 지난다.
  *
  * 여기서 하지 않는 것: provider 호출, 파일 IO, 영수증 저장, 요약·delta 생성,
- * 문자 비율·문자 체계 추정, 실행하지 않은 검사의 통과 합성. 판정 근거가 없으면
- * 성공을 만들지 않고 안정적인 `.code` 를 가진 오류를 던진다.
+ * 문자 비율·문자 체계 추정, 실행하지 않은 검사의 통과 합성, **입력 문자열의 변형**.
+ * 판정 근거가 없으면 성공을 만들지 않고 안정적인 `.code` 를 가진 오류를 던진다.
  *
  * 언어 태그와 승인된 인용 예외의 구문 계약은 `language-policy.js` 가 유일한 결정
  * 지점이며(두 번째 resolver 를 만들지 않는다), wildcard 예외는 기존
  * `normalizeLanguageExceptions()` 가 그대로 거부한다. 검사 계획과 coverage 값의
  * 의미는 `continuity/checker-registry.js` 가 소유하고 이 모듈은 **판정만** 한다.
+ *
+ * 신뢰 경계: 이 모듈은 호출자가 넘긴 "이미 통과한 평가 결과"를 권한으로 취급하지
+ * 않는다. 영수증 발급·소비는 실제 산출물·작업 계약·신뢰 검사 계획으로 다시 계산한
+ * 결과에만 근거한다. JSON 으로 저장됐다 돌아온 객체는 자기 신고일 뿐이다.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -26,19 +30,120 @@ export const VALIDATION_CONTRACT_SCHEMA_VERSION = 1;
 export const ARTIFACT_SCHEMA_VERSION = 1;
 /** 영수증 재사용 키의 일부. 다른 버전이 발급한 영수증은 소비하지 않는다. */
 export const VALIDATOR_VERSION = 'validation-contract-v1';
+/**
+ * 언어 필드 분류기의 버전. 선언된 스키마 이름표가 바뀌면 올린다.
+ * 호출자 투영과 함께 판정 hash · 영수증 신원에 묶인다.
+ */
+export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 1;
+/** 호출자가 추가 이름을 넘기지 않은 기본 투영. 기본 API 는 이 값으로 동작한다. */
+export const DEFAULT_LANGUAGE_FIELD_PROJECTION = Object.freeze({
+    humanTextFields: Object.freeze([]),
+});
 
 /** 모델이 돌려주는 판정. 영수증의 판정(`passed`)과 다른 축이다. */
 export const VALIDATION_VERDICTS = Object.freeze(['pass', 'fail', 'uncertain']);
 export const RECEIPT_VERDICT_PASSED = 'passed';
 
+/** 발행 산출물의 종류. 화 원고와 승인 묶음은 스키마도 필수 검사도 다르다. */
+export const ARTIFACT_KIND_CHAPTER = 'chapter';
+export const ARTIFACT_KIND_APPROVAL = 'approval';
+export const ARTIFACT_KINDS = Object.freeze([ARTIFACT_KIND_CHAPTER, ARTIFACT_KIND_APPROVAL]);
+
+/** 화 원고 묶음은 정확히 이 다섯 필드다. 승인 묶음이 이를 흉내 내지 않는다. */
 export const ARTIFACT_FIELDS = Object.freeze(['prose', 'title', 'summary', 'semanticDelta', 'castManifestRaw']);
 /** 작품 언어 계약이 적용되는 발행 값. */
 export const LANGUAGE_SCOPED_ARTIFACT_FIELDS = Object.freeze(['prose', 'title', 'summary', 'semanticDelta']);
 /** 기계 계약(키·ID·enum). 언어 판정의 근거가 될 수 없다. */
 export const MACHINE_EXEMPT_ARTIFACT_FIELDS = Object.freeze(['castManifestRaw']);
 
-/** 계획이 이들을 필수에서 빼면 계획 자체가 잘못된 것이다. 가짜 통과를 막는다. */
-export const ALWAYS_MANDATORY_INVARIANTS = Object.freeze(['SCHEMA', 'LENGTH', 'OUTPUT_LANGUAGE']);
+/** 최초 발행 전 승인 게이트(프로필·기반·작품·작가·아크·화 계획)의 묶음. */
+export const APPROVAL_ARTIFACT_KINDS = Object.freeze([
+    'profile', 'foundation', 'story', 'writer', 'arc', 'episode',
+]);
+export const APPROVAL_ARTIFACT_FIELDS = Object.freeze(['approvalKind', 'revision', 'value']);
+export const APPROVAL_LANGUAGE_SCOPED_FIELDS = Object.freeze(['value']);
+export const APPROVAL_MACHINE_EXEMPT_FIELDS = Object.freeze(['approvalKind', 'revision']);
+
+/**
+ * 스키마가 소유한 기계 계약 이름. ID·enum·경로·sentinel 키는 어떤 산출물에서도 언어
+ * 판정의 근거가 아니다. 한국어로 적힌 기계 enum 값(`pov: '3인칭제한'`, `mode` 등)도
+ * 여기서 면제된다 — 값이 한국어라는 사실이 작품 언어 위반의 증거가 되지 못한다.
+ */
+export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
+    'approvalKind', 'arcId', 'arcNumber', 'artifactHash', 'artifactKind', 'artifactSchemaVersion',
+    'at', 'beatId', 'canonicalFormatVersion', 'chapter', 'chapterId', 'characterId', 'checkId',
+    'checkerId', 'checksum', 'code', 'commit', 'contractHash', 'createdAt', 'dialogueBreakMode',
+    'digest', 'engineGenre', 'entityId', 'epoch', 'eventId', 'from', 'fromBeat', 'genre', 'hash',
+    'hookId', 'id', 'ids', 'invariantId', 'key', 'kind', 'language', 'locale', 'mode', 'op',
+    'path', 'planSourceHash', 'pov', 'povMode', 'promptFamily', 'revision', 'role', 'schemaVersion',
+    'scope', 'sentinel', 'serialization', 'severity', 'sha', 'slug', 'sourceHead', 'status',
+    'storyTime', 'tag', 'target', 'timestamp', 'to', 'toBeat', 'transactionTime', 'type',
+    'unit', 'updatedAt', 'uri', 'url', 'validationEpoch', 'version', 'worldline', 'workId',
+]);
+
+/**
+ * 같은 이름이라도 스키마가 다르면 계약이 다르다. `intrinsic.role` 은 기존 한국어
+ * 휴리스틱이 읽는 **자유 서술**이고, workflow 의 `role` 은 enum 이다. 경로로 구분한다.
+ */
+export const HUMAN_TEXT_PATH_OVERRIDES = Object.freeze(['intrinsic.role']);
+
+/**
+ * 사용자 입력의 출처를 보존하는 필드. 사용자가 대화에서 쓴 언어 그대로 남아야 하며
+ * 작품 언어로 옮겨 쓰는 대상이 아니다(영어 소설의 한국어 브리프를 위반으로 잡지 않는다).
+ */
+export const USER_PROVENANCE_FIELD_NAMES = Object.freeze([
+    'direction', 'feedback', 'rationale', 'sourceBrief', 'userAnswerEvidence', 'userQuote', 'userSource',
+]);
+
+/**
+ * `semanticDelta` 안에서 **생성된 자연어**인 필드. 엔진의 entity-ops / hook-ops 와
+ * 의미 영향(influence) 스키마에서 문장을 담는 이름이다. 여기에 없는 중첩 값은 기계
+ * 계약이거나 분류되지 않았으므로 언어 판정의 근거가 되지 못한다.
+ */
+export const SEMANTIC_DELTA_HUMAN_TEXT_FIELDS = Object.freeze([
+    'belief', 'behavioralProof', 'competingHypotheses', 'cost', 'costPaid', 'description',
+    'descriptions', 'fact', 'facts', 'hypothesis', 'interpretation', 'interpretations',
+    'knownFactsAdded', 'label', 'location', 'name', 'names', 'nextChoiceBias', 'note', 'notes',
+    'reason', 'resolution', 'summary', 'term', 'terms', 'text', 'title', 'value',
+]);
+
+/**
+ * 승인 묶음 `value` 안의 **생성된 자연어**. StoryProfile / ArcPlan / EpisodePlan /
+ * WriterSkill / openingContract 이 실제로 쓰는 필드 이름이다
+ * (`src/tools/story-profile.js`, `arc.js`, `episode-plan.js`, `writer-skill.js`,
+ * `engine/src/generators/text/steps/chapter-plan.js`).
+ */
+export const APPROVAL_VALUE_HUMAN_TEXT_FIELDS = Object.freeze([
+    'activeQuestion', 'aestheticThesis', 'antiFixation', 'audition', 'avoid', 'beat', 'belief',
+    'causedByChoice', 'characterWound', 'closingState', 'coreAttention', 'craftReason',
+    'description', 'detail', 'dialogue', 'discoverySpaces', 'draft', 'emotionalRendering',
+    'escalation', 'example', 'exposition', 'expositionPolicy', 'fact', 'fallback',
+    'firstIrreversibleChoice', 'genreLabel', 'genreVoiceRecipe', 'goal', 'hook', 'hypothesis',
+    'immediateGoal', 'interpretation', 'knowledge', 'knownFactsAdded', 'label', 'location',
+    'logline', 'misbelief', 'name', 'names', 'narration',
+    'narrativeDistance', 'nextChoiceBias', 'note', 'notes', 'openingPressure', 'openingViewpoint',
+    'outcome', 'plan', 'premise', 'pressure', 'promise', 'promisePaid', 'proofOnPage',
+    'protagonistImmediateWant', 'question', 'readerBridge', 'readerKnowledgePolicy',
+    'readerLegibility', 'readerPromise', 'reason', 'recommendation', 'redLine', 'registerPolicy',
+    'resolution', 'rhythm', 'rules', 'sceneTransformations', 'situation', 'stake', 'storyEngines',
+    'subgenres', 'summary', 'surfaceEvent', 'switchPolicy', 'term', 'terms', 'text', 'themes',
+    'ticking', 'tickingLoss', 'title', 'tones', 'value', 'viewpointReason', 'voice',
+    'voiceExamples', 'withheldContext', 'worldPressure',
+]);
+
+/** 두 kind 의 교집합. 어떤 계획도 이 둘을 필수에서 뺄 수 없다. */
+export const ALWAYS_MANDATORY_INVARIANTS = Object.freeze(['SCHEMA', 'OUTPUT_LANGUAGE']);
+/** 화 원고는 등록표의 무조건 불변식을 전부 필수로 갖는다. */
+export const CHAPTER_REQUIRED_INVARIANTS = Object.freeze([
+    'SCHEMA', 'INTRINSIC', 'WORLD', 'REGISTRATION', 'LENGTH', 'FORMAT', 'OUTPUT_LANGUAGE',
+]);
+/** 계획이 실제 정본 맥락으로 required/not_applicable/advisory 중 하나로 확정해야 한다. */
+export const CHAPTER_CONDITIONAL_INVARIANTS = Object.freeze(['ADDRESSING', 'POV', 'SENSITIVE']);
+/** 승인 묶음은 원고가 아니다. 구조 검사는 실제 필요한 것만 더한다. */
+export const APPROVAL_REQUIRED_INVARIANTS = Object.freeze(['SCHEMA', 'OUTPUT_LANGUAGE']);
+/** 원고 전용 검사. 승인 묶음에 붙이면 계획 자체가 잘못된 것이다. */
+export const APPROVAL_FORBIDDEN_INVARIANTS = Object.freeze(['ADDRESSING', 'FORMAT', 'LENGTH', 'POV', 'SENSITIVE']);
+
 /** 등록표의 coverage 값 + 실제로 들어올 수 있는 미완료 상태. */
 export const COVERAGE_VALUES = Object.freeze([
     'validated', 'unvalidated', 'not_applicable', 'failed', 'uncertain', 'error',
@@ -48,12 +153,14 @@ export const VALIDATION_ERROR_CODES = Object.freeze({
     INVALID_ARTIFACT_BUNDLE: 'INVALID_ARTIFACT_BUNDLE',
     UNKNOWN_ARTIFACT_FIELD: 'UNKNOWN_ARTIFACT_FIELD',
     NON_SERIALIZABLE_ARTIFACT_VALUE: 'NON_SERIALIZABLE_ARTIFACT_VALUE',
+    ARTIFACT_KIND_MISMATCH: 'ARTIFACT_KIND_MISMATCH',
     INVALID_LANGUAGE_COMPLIANCE: 'INVALID_LANGUAGE_COMPLIANCE',
     ARTIFACT_HASH_MISMATCH: 'ARTIFACT_HASH_MISMATCH',
     INCOMPLETE_LANGUAGE_EVIDENCE: 'INCOMPLETE_LANGUAGE_EVIDENCE',
     UNAPPROVED_LANGUAGE_EXCEPTION: 'UNAPPROVED_LANGUAGE_EXCEPTION',
     LANGUAGE_TARGET_MISMATCH: 'LANGUAGE_TARGET_MISMATCH',
     INVALID_CHECKER_PLAN: 'INVALID_CHECKER_PLAN',
+    CHECKER_PLAN_MISMATCH: 'CHECKER_PLAN_MISMATCH',
     INVALID_COVERAGE_REPORT: 'INVALID_COVERAGE_REPORT',
     COVERAGE_INCOMPLETE: 'COVERAGE_INCOMPLETE',
     OUTPUT_LANGUAGE_MISMATCH: 'OUTPUT_LANGUAGE_MISMATCH',
@@ -88,6 +195,10 @@ const VALIDATION_ERROR_MESSAGES = Object.freeze({
         ko: '결정적으로 직렬화할 수 없는 값이 산출물에 있다.',
         en: 'The bundle contains a value that cannot be serialized deterministically.',
     },
+    ARTIFACT_KIND_MISMATCH: {
+        ko: '산출물의 종류가 기대와 다르다. 승인 묶음과 화 원고는 같은 검사가 아니다.',
+        en: 'The artifact kind differs from the expectation. Approval bundles and chapters are not the same check.',
+    },
     INVALID_LANGUAGE_COMPLIANCE: {
         ko: '출력 언어 판정의 형식이 올바르지 않다. 이는 판정 성공이 아니다.',
         en: 'The output-language judgment is malformed. This is not a successful judgment.',
@@ -97,8 +208,8 @@ const VALIDATION_ERROR_MESSAGES = Object.freeze({
         en: 'The judgment refers to a different artifact than the bound bundle.',
     },
     INCOMPLETE_LANGUAGE_EVIDENCE: {
-        ko: '출력 언어 판정의 근거가 불완전하다. 실패에는 실제 필드의 인용과 사유가 필요하다.',
-        en: 'The output-language evidence is incomplete. A failure needs a real in-field quote and a reason.',
+        ko: '출력 언어 판정의 근거가 불완전하다. 실패에는 실제 자연어 필드의 인용과 사유가 필요하다.',
+        en: 'The output-language evidence is incomplete. A failure needs a real in-field natural-text quote and a reason.',
     },
     UNAPPROVED_LANGUAGE_EXCEPTION: {
         ko: '판정이 승인되지 않은 인용 예외를 주장한다.',
@@ -109,8 +220,12 @@ const VALIDATION_ERROR_MESSAGES = Object.freeze({
         en: 'The judgment targets a different language than the work contract.',
     },
     INVALID_CHECKER_PLAN: {
-        ko: '검사 계획이 올바르지 않다. 필수 불변식 집합은 등록된 계획에서만 나온다.',
-        en: 'The checker plan is invalid. The mandatory invariant set comes only from a registered plan.',
+        ko: '검사 계획이 올바르지 않다. 필수 불변식 집합은 산출물 종류가 정하며 계획이 낮출 수 없다.',
+        en: 'The checker plan is invalid. The mandatory invariant set follows the artifact kind and a plan cannot lower it.',
+    },
+    CHECKER_PLAN_MISMATCH: {
+        ko: '영수증이 다른 검사 계획에 묶여 있다.',
+        en: 'The receipt is bound to a different checker plan.',
     },
     INVALID_COVERAGE_REPORT: {
         ko: '불변식 coverage 보고의 형식이 올바르지 않다.',
@@ -226,12 +341,15 @@ const HEX64 = /^[0-9a-f]{64}$/;
 
 /**
  * 산출물 값의 정규화 겸 검증. 결정적으로 직렬화할 수 없는 값은 조용히 버리지 않고
- * 경로와 함께 거부한다. 문자열은 NFC 로 통일해 같은 원고가 인코딩 차이로 다른
- * hash 가 되지 않게 한다.
+ * 경로와 함께 거부한다.
+ *
+ * 문자열은 **정확히 보존**한다. NFC 통일은 하지 않는다 — NFD 원고와 시각적으로 같은
+ * NFC 원고는 `legacyCodeUnits` 길이가 다르므로, 둘이 같은 `artifactHash` 를 가지면
+ * 검사된 길이를 우회한 치환이 통과한다. 정본화는 **객체 키 순서**만 정한다.
  */
 function canonicalValue(value, path, seen) {
     if (typeof value === 'string')
-        return value.normalize('NFC');
+        return value;
     if (typeof value === 'boolean' || value === null)
         return value;
     if (typeof value === 'number') {
@@ -267,13 +385,16 @@ function canonicalValue(value, path, seen) {
     return null;
 }
 
-function requiredText(value, field) {
+/**
+ * 문자열 필드의 검증. **값은 그대로 돌려준다** — 공백 여부는 비어 있음을 판정할 때만
+ * 보고, 발행된 바이트를 깎지 않는다(인용 근거가 발행 문자열과 정확히 대조돼야 한다).
+ */
+function requiredText(value, field, { allowEmpty = false } = {}) {
     if (typeof value !== 'string')
         fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { field, reason: 'not_a_string', received: typeof value });
-    const text = value.normalize('NFC').trim();
-    if (text === '')
+    if (!allowEmpty && value.trim() === '')
         fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { field, reason: 'empty_required_field' });
-    return text;
+    return value;
 }
 
 function isEmptyContainer(value) {
@@ -281,9 +402,32 @@ function isEmptyContainer(value) {
 }
 
 /**
- * 발행 직전 묶음의 정본화. `prose` 만이 아니라 제목·요약·의미 delta·cast manifest 를
- * 함께 묶는다. 누락은 빈 값이 아니라 오류이며, 계약에 없는 키는 hash 밖의 발행 값을
- * 만들지 않도록 거부한다. 요약을 자동 생성하지 않는다.
+ * 입력이 어느 종류의 산출물인지. 명시적 `artifactKind` 가 우선이며, 승인 묶음은
+ * `kind`(또는 `approvalKind`) + `value` 조합으로 구분한다.
+ */
+export function artifactKindOf(input) {
+    if (!isPlainObject(input))
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, {
+            reason: 'not_an_object',
+            received: input === null || input === undefined ? 'absent' : typeof input,
+        });
+    if (Object.hasOwn(input, 'artifactKind')) {
+        if (!ARTIFACT_KINDS.includes(input.artifactKind))
+            fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, {
+                reason: 'unknown_artifact_kind',
+                received: typeof input.artifactKind === 'string' ? input.artifactKind : null,
+            });
+        return input.artifactKind;
+    }
+    if (Object.hasOwn(input, 'value') && (Object.hasOwn(input, 'kind') || Object.hasOwn(input, 'approvalKind')))
+        return ARTIFACT_KIND_APPROVAL;
+    return ARTIFACT_KIND_CHAPTER;
+}
+
+/**
+ * 발행 직전 화 원고 묶음의 정본화. `prose` 만이 아니라 제목·요약·의미 delta·cast
+ * manifest 를 함께 묶는다. 누락은 빈 값이 아니라 오류이며, 계약에 없는 키는 hash 밖의
+ * 발행 값을 만들지 않도록 거부한다. 요약을 자동 생성하지 않는다.
  *
  * @param {{ prose: string, title: string, summary: string|object|Array,
  *           semanticDelta: object|Array, castManifestRaw: string|object|Array }} bundle
@@ -291,8 +435,13 @@ function isEmptyContainer(value) {
 export function canonicalArtifact(bundle) {
     if (!isPlainObject(bundle))
         fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { reason: 'not_an_object', received: bundle === null ? 'null' : typeof bundle });
+    if (Object.hasOwn(bundle, 'artifactKind') && bundle.artifactKind !== ARTIFACT_KIND_CHAPTER)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_KIND_MISMATCH, {
+            expected: ARTIFACT_KIND_CHAPTER,
+            received: typeof bundle.artifactKind === 'string' ? bundle.artifactKind : null,
+        });
 
-    const allowed = new Set([...ARTIFACT_FIELDS, 'artifactSchemaVersion']);
+    const allowed = new Set([...ARTIFACT_FIELDS, 'artifactSchemaVersion', 'artifactKind']);
     for (const key of Object.keys(bundle)) {
         if (!allowed.has(key))
             fail(VALIDATION_ERROR_CODES.UNKNOWN_ARTIFACT_FIELD, { field: key });
@@ -332,7 +481,8 @@ export function canonicalArtifact(bundle) {
 
     let castManifestRaw;
     if (typeof bundle.castManifestRaw === 'string')
-        castManifestRaw = requiredText(bundle.castManifestRaw, 'castManifestRaw');
+        // 기존 엔진에서 "manifest 없음" 의 정당한 표현은 빈 문자열이다. 발행된 바이트를 그대로 둔다.
+        castManifestRaw = requiredText(bundle.castManifestRaw, 'castManifestRaw', { allowEmpty: true });
     else if (Array.isArray(bundle.castManifestRaw) || isPlainObject(bundle.castManifestRaw))
         castManifestRaw = canonicalValue(bundle.castManifestRaw, 'castManifestRaw', new Set());
     else
@@ -342,6 +492,7 @@ export function canonicalArtifact(bundle) {
 
     return Object.freeze({
         artifactSchemaVersion: ARTIFACT_SCHEMA_VERSION,
+        artifactKind: ARTIFACT_KIND_CHAPTER,
         prose,
         title,
         summary,
@@ -350,14 +501,100 @@ export function canonicalArtifact(bundle) {
     });
 }
 
+/**
+ * 최초 발행 전 승인 게이트(프로필·기반·작품·작가·아크·화 계획)의 정본 산출물.
+ *
+ * 승인 묶음은 화 원고가 아니다. 언어 검증을 재사용하려고 가짜 `prose`/`title`/`summary`
+ * 를 지어내지 않고, 자체 스키마와 자체 kind hash 를 갖는다. `revision` 이 hash 에 들어가
+ * 승인이 특정 개정본에 묶인다.
+ *
+ * @param {{ kind: string, revision: string|number, value: string|object|Array }} input
+ */
+export function canonicalApprovalArtifact(input) {
+    if (!isPlainObject(input))
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, {
+            reason: 'not_an_object',
+            received: input === null || input === undefined ? 'absent' : typeof input,
+        });
+    if (Object.hasOwn(input, 'artifactKind') && input.artifactKind !== ARTIFACT_KIND_APPROVAL)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_KIND_MISMATCH, {
+            expected: ARTIFACT_KIND_APPROVAL,
+            received: typeof input.artifactKind === 'string' ? input.artifactKind : null,
+        });
+
+    const allowed = new Set(['kind', 'approvalKind', 'revision', 'value', 'artifactSchemaVersion', 'artifactKind']);
+    for (const key of Object.keys(input)) {
+        if (!allowed.has(key))
+            fail(VALIDATION_ERROR_CODES.UNKNOWN_ARTIFACT_FIELD, { field: key, artifactKind: ARTIFACT_KIND_APPROVAL });
+    }
+    if (Object.hasOwn(input, 'artifactSchemaVersion') && input.artifactSchemaVersion !== ARTIFACT_SCHEMA_VERSION)
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, {
+            reason: 'unknown_artifact_schema_version',
+            received: input.artifactSchemaVersion ?? null,
+        });
+    if (Object.hasOwn(input, 'kind') && Object.hasOwn(input, 'approvalKind') && input.kind !== input.approvalKind)
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { field: 'kind', reason: 'conflicting_approval_kind' });
+
+    const rawKind = Object.hasOwn(input, 'kind') ? input.kind : input.approvalKind;
+    if (!APPROVAL_ARTIFACT_KINDS.includes(rawKind))
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, {
+            field: 'kind',
+            reason: 'unknown_approval_kind',
+            received: typeof rawKind === 'string' ? rawKind : null,
+        });
+
+    if (!Object.hasOwn(input, 'revision') || input.revision === undefined || input.revision === null)
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { reason: 'missing_required_field', field: 'revision' });
+    let revision;
+    if (typeof input.revision === 'number') {
+        if (!Number.isInteger(input.revision) || input.revision <= 0)
+            fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { field: 'revision', reason: 'invalid_revision' });
+        revision = input.revision;
+    }
+    else {
+        revision = requiredText(input.revision, 'revision');
+    }
+
+    if (!Object.hasOwn(input, 'value') || input.value === undefined || input.value === null)
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { reason: 'missing_required_field', field: 'value' });
+    let value;
+    if (typeof input.value === 'string') {
+        value = requiredText(input.value, 'value');
+    }
+    else if (Array.isArray(input.value) || isPlainObject(input.value)) {
+        if (isEmptyContainer(input.value))
+            fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { field: 'value', reason: 'empty_required_field' });
+        value = canonicalValue(input.value, 'value', new Set());
+    }
+    else {
+        fail(VALIDATION_ERROR_CODES.INVALID_ARTIFACT_BUNDLE, { field: 'value', reason: 'invalid_type', received: typeof input.value });
+    }
+
+    return Object.freeze({
+        artifactSchemaVersion: ARTIFACT_SCHEMA_VERSION,
+        artifactKind: ARTIFACT_KIND_APPROVAL,
+        approvalKind: rawKind,
+        revision,
+        value,
+    });
+}
+
+/** 종류에 맞는 정본화. 화 원고와 승인 묶음은 서로의 hash 공간을 공유하지 않는다. */
+function canonicalizeByKind(input) {
+    return artifactKindOf(input) === ARTIFACT_KIND_APPROVAL
+        ? canonicalApprovalArtifact(input)
+        : canonicalArtifact(input);
+}
+
 /** 묶음이든 정본 산출물이든 같은 canonical JSON 을 만든다(멱등). */
 export function canonicalizeArtifact(input) {
-    return canonicalJson(canonicalArtifact(input));
+    return canonicalJson(canonicalizeByKind(input));
 }
 
 /**
  * 항상 다시 정규화해서 계산한다. 입력에 hash 필드를 넣어 파생 hash 를 위조할 수
  * 없으며(계약 밖 키는 거부), 제목·요약·delta·manifest 중 무엇이 바뀌어도 값이 바뀐다.
+ * 문자열을 NFC 로 접지 않으므로 NFD/NFC 치환도 다른 hash 가 된다.
  */
 export function computeArtifactHash(input) {
     return sha256(canonicalizeArtifact(input));
@@ -368,6 +605,18 @@ export function computeArtifactHash(input) {
 const COMPLIANCE_KEYS = new Set(['verdict', 'artifactHash', 'evidence', 'allowedExceptions', 'language', 'notes']);
 const EVIDENCE_KEYS = new Set(['fieldPath', 'quote', 'reason']);
 const EXCEPTION_KEYS = new Set(['kind', 'language', 'scope', 'rationale']);
+/** 평가 결과가 JSON 으로 저장됐다 돌아온 모양. 이 밖의 키가 있으면 결과가 아니다. */
+const EVALUATED_COMPLIANCE_KEYS = new Set([
+    'schemaVersion', 'verdict', 'satisfied', 'artifactHash', 'artifactKind',
+    'targetLanguage', 'evidence', 'allowedExceptions', 'failureCode',
+    'classifierVersion', 'languageFieldProjection',
+]);
+
+const MACHINE_FIELD_NAME_SET = new Set(MACHINE_CONTRACT_FIELD_NAMES);
+const USER_PROVENANCE_FIELD_NAME_SET = new Set(USER_PROVENANCE_FIELD_NAMES);
+const HUMAN_TEXT_PATH_OVERRIDE_SET = new Set(HUMAN_TEXT_PATH_OVERRIDES);
+/** 기계 계약과 자연어가 섞이는 구역. 선언된 이름만 언어 판정 대상이다. */
+const MIXED_TEXT_ROOTS = new Set(['semanticDelta', 'value']);
 
 function parseCompliance(compliance) {
     let value = compliance;
@@ -388,7 +637,7 @@ function parseCompliance(compliance) {
         if (!COMPLIANCE_KEYS.has(key))
             fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'unknown_field', field: key });
     }
-    for (const key of ['verdict', 'artifactHash', 'evidence', 'allowedExceptions']) {
+    for (const key of ['verdict', 'artifactHash', 'evidence', 'allowedExceptions', 'language']) {
         if (!Object.hasOwn(value, key))
             fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'missing_field', field: key });
     }
@@ -447,10 +696,139 @@ function evidenceFail(reason, index, extra = {}) {
 }
 
 /**
- * 근거 한 건의 검증. 인용이 **지목한 필드에 실제로 있는지**까지 확인한다. 문자
- * 비율이나 문자 체계 추정은 쓰지 않는다.
+ * 호출자가 넘긴 추가 자연어 이름만 정본화한다. 순서·중복은 의미가 아니므로
+ * 코드 포인트 순·유일로 접고, 빈 추가는 기본 투영과 같다.
+ * 필수 자연어 필드를 빼거나 기계·출처 이름을 자연어로 바꿀 수는 없다.
  */
-function validateEvidenceEntry(entry, index, artifact) {
+function canonicalizeLanguageFieldProjection(languageFields) {
+    if (languageFields === null || languageFields === undefined)
+        return DEFAULT_LANGUAGE_FIELD_PROJECTION;
+    if (!isPlainObject(languageFields))
+        fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'invalid_language_field_projection' });
+    for (const key of Object.keys(languageFields)) {
+        if (key !== 'humanTextFields')
+            fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'unknown_language_field_projection', field: key });
+    }
+    const extra = languageFields.humanTextFields ?? [];
+    if (!Array.isArray(extra))
+        fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'invalid_language_field_projection' });
+    const unique = new Set();
+    for (const name of extra) {
+        if (typeof name !== 'string' || name.trim() === '')
+            fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'invalid_language_field_projection' });
+        if (MACHINE_FIELD_NAME_SET.has(name) || USER_PROVENANCE_FIELD_NAME_SET.has(name))
+            fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, {
+                reason: 'machine_field_projection_conflict', field: name,
+            });
+        unique.add(name);
+    }
+    if (unique.size === 0)
+        return DEFAULT_LANGUAGE_FIELD_PROJECTION;
+    return Object.freeze({
+        humanTextFields: Object.freeze([...unique].sort(compareCodePoints)),
+    });
+}
+
+/**
+ * 산출물 종류가 소유한 언어 필드 분류. 호출자는 스키마에 묶인 **추가** 자연어 이름만
+ * 투영할 수 있고, 필수 자연어 필드를 빼거나 기계 계약 이름을 자연어로 바꿀 수 없다.
+ */
+function resolveLanguageFields(artifactKind, languageFields) {
+    const projection = canonicalizeLanguageFieldProjection(languageFields);
+    const base = artifactKind === ARTIFACT_KIND_APPROVAL
+        ? APPROVAL_VALUE_HUMAN_TEXT_FIELDS
+        : SEMANTIC_DELTA_HUMAN_TEXT_FIELDS;
+    const humanTextFields = new Set(base);
+    for (const name of projection.humanTextFields)
+        humanTextFields.add(name);
+    return { humanTextFields, projection };
+}
+
+/**
+ * 분류기 버전과 정본 추가 이름표의 신원. 영수증 `checkId` 와 판정 hash 가 이걸 묶는다.
+ */
+export function computeLanguageFieldProjectionHash(languageFields = null) {
+    const projection = canonicalizeLanguageFieldProjection(languageFields);
+    return sha256(canonicalJson({
+        schemaVersion: VALIDATION_CONTRACT_SCHEMA_VERSION,
+        classifierVersion: LANGUAGE_FIELD_CLASSIFIER_VERSION,
+        humanTextFields: projection.humanTextFields,
+    }));
+}
+
+/**
+ * 근거가 가리키는 경로가 실제 자연어 필드인지. ID·enum·JSON 키·경로·sentinel 은 언어
+ * 판정의 대상이 아니므로 근거가 되지 못한다. 분류되지 않은 중첩 값도 근거가 아니다
+ * (통째로 "모든 문자열은 언어 대상" 으로 두면 기계 ID 불일치가 언어 실패로 둔갑한다).
+ */
+function classifyLeafPath(keys, artifactKind, humanTextFields, isString) {
+    const root = keys[0];
+    const leaf = keys[keys.length - 1];
+    const parent = keys.length >= 2 ? keys[keys.length - 2] : null;
+    // 사용자가 쓴 브리프·피드백·인용은 작품 언어로 옮겨 쓰는 값이 아니다.
+    if (keys.length > 1 && USER_PROVENANCE_FIELD_NAME_SET.has(leaf))
+        return 'user_provenance_field';
+    // 같은 이름이라도 스키마가 다르면 계약이 다르다(`intrinsic.role` 은 자유 서술).
+    const humanByPath = parent !== null && HUMAN_TEXT_PATH_OVERRIDE_SET.has(`${parent}.${leaf}`);
+    // 판정은 **잎**에서 한다. `ops` 같은 구조 컨테이너는 그 아래 생성 문장을 면제하지 않는다.
+    if (!humanByPath && keys.length > 1 && MACHINE_FIELD_NAME_SET.has(leaf))
+        return 'machine_field';
+    if (!MIXED_TEXT_ROOTS.has(root))
+        return null;
+    if (keys.length === 1) {
+        // 승인 값 전체가 하나의 자연어 문장인 경우만 뿌리 자체를 지목할 수 있다.
+        if (artifactKind === ARTIFACT_KIND_APPROVAL && isString)
+            return null;
+        return 'unclassified_field';
+    }
+    return (humanByPath || humanTextFields.has(leaf)) ? null : 'unclassified_field';
+}
+
+function classifyNestedEvidence(segments, root, resolvedValue, artifactKind, humanTextFields) {
+    const keys = segments.filter((segment) => segment.type === 'key').map((segment) => segment.value);
+    return classifyLeafPath(keys, artifactKind, humanTextFields, typeof resolvedValue === 'string');
+}
+
+/**
+ * 산출물의 언어 대상 구역을 실제로 훑어 **분류되지 않은 생성 문자열**을 모은다.
+ * 근거로 지목되지 않았다는 이유로 새 생성 필드가 조용히 검증을 건너뛰지 못하게 한다.
+ * 기계 계약·사용자 출처 값은 대상이 아니며, 빈 문자열은 언어를 담지 않는다.
+ */
+function collectUnclassifiedGeneratedFields(artifact, artifactKind, humanTextFields) {
+    const scoped = artifactKind === ARTIFACT_KIND_APPROVAL
+        ? APPROVAL_LANGUAGE_SCOPED_FIELDS
+        : LANGUAGE_SCOPED_ARTIFACT_FIELDS;
+    const unclassified = [];
+    const visit = (value, keys, path) => {
+        if (typeof value === 'string') {
+            if (value.trim() === '')
+                return;
+            if (classifyLeafPath(keys, artifactKind, humanTextFields, true) === 'unclassified_field')
+                unclassified.push(path);
+            return;
+        }
+        if (Array.isArray(value)) {
+            value.forEach((item, index) => visit(item, keys, `${path}[${index}]`));
+            return;
+        }
+        if (isPlainObject(value)) {
+            for (const key of Object.keys(value))
+                visit(value[key], [...keys, key], `${path}.${key}`);
+        }
+    };
+    for (const field of scoped) {
+        if (Object.hasOwn(artifact, field))
+            visit(artifact[field], [field], field);
+    }
+    return unclassified;
+}
+
+/**
+ * 근거 한 건의 검증. 인용이 **지목한 필드에 실제로 있는지**까지 확인하며, 비교는
+ * 발행된 문자열과 정확히 대조한다(정규화 접기 없음). 문자 비율이나 문자 체계 추정은
+ * 쓰지 않는다.
+ */
+function validateEvidenceEntry(entry, index, artifact, artifactKind, humanTextFields) {
     if (!isPlainObject(entry))
         evidenceFail('entry_not_an_object', index);
     for (const key of Object.keys(entry)) {
@@ -458,30 +836,37 @@ function validateEvidenceEntry(entry, index, artifact) {
             evidenceFail('unknown_field', index, { field: key });
     }
     const fieldPath = typeof entry.fieldPath === 'string' ? entry.fieldPath.trim() : '';
-    const quote = typeof entry.quote === 'string' ? entry.quote.normalize('NFC').trim() : '';
-    const reason = typeof entry.reason === 'string' ? entry.reason.trim() : '';
+    const quote = typeof entry.quote === 'string' ? entry.quote : '';
+    const reason = typeof entry.reason === 'string' ? entry.reason : '';
     if (fieldPath === '')
         evidenceFail('missing_field_path', index);
-    if (quote === '')
+    if (quote.trim() === '')
         evidenceFail('missing_quote', index, { fieldPath });
-    if (reason === '')
+    if (reason.trim() === '')
         evidenceFail('missing_reason', index, { fieldPath });
 
     const segments = parseFieldPath(fieldPath);
     if (!segments)
         evidenceFail('malformed_field_path', index, { fieldPath });
     const root = segments[0].value;
-    if (!ARTIFACT_FIELDS.includes(root))
-        evidenceFail('unknown_field_path', index, { fieldPath });
+    const scoped = artifactKind === ARTIFACT_KIND_APPROVAL ? APPROVAL_LANGUAGE_SCOPED_FIELDS : LANGUAGE_SCOPED_ARTIFACT_FIELDS;
+    const exempt = artifactKind === ARTIFACT_KIND_APPROVAL ? APPROVAL_MACHINE_EXEMPT_FIELDS : MACHINE_EXEMPT_ARTIFACT_FIELDS;
     // 기계 계약(키·ID·enum)은 언어 판정 대상이 아니므로 실패 근거가 될 수 없다.
-    if (MACHINE_EXEMPT_ARTIFACT_FIELDS.includes(root))
+    if (exempt.includes(root))
         evidenceFail('machine_exempt_field', index, { fieldPath });
+    if (!scoped.includes(root))
+        evidenceFail('unknown_field_path', index, { fieldPath });
 
     const resolved = resolveFieldPath(artifact, segments);
     if (!resolved.found)
         evidenceFail('field_path_not_found', index, { fieldPath });
     if (typeof resolved.value !== 'string')
         evidenceFail('field_not_text', index, { fieldPath });
+
+    const classification = classifyNestedEvidence(segments, root, resolved.value, artifactKind, humanTextFields);
+    if (classification !== null)
+        evidenceFail(classification, index, { fieldPath });
+
     if (!resolved.value.includes(quote))
         evidenceFail('quote_not_in_field', index, { fieldPath });
 
@@ -512,13 +897,60 @@ function validateClaimedException(entry, index, approvedKeys) {
 }
 
 /**
+ * 목표 언어의 결정. 명시 인자와 작업 계약이 **둘 다** 있으면 서로 같아야 한다 —
+ * 명시 인자가 계약을 조용히 덮어쓰지 못한다.
+ */
+function resolveTargetLanguage(targetLanguage, workContract) {
+    const contractLanguage = isPlainObject(workContract) && workContract.language !== undefined && workContract.language !== null
+        ? normalizeLanguageTag(workContract.language)
+        : null;
+    const explicit = targetLanguage !== null && targetLanguage !== undefined
+        ? normalizeLanguageTag(targetLanguage)
+        : null;
+    if (explicit === null && contractLanguage === null)
+        fail(VALIDATION_ERROR_CODES.INCOMPLETE_EXPECTATION, { missing: ['targetLanguage'] });
+    if (explicit !== null && contractLanguage !== null && explicit.tag !== contractLanguage.tag)
+        fail(VALIDATION_ERROR_CODES.LANGUAGE_TARGET_MISMATCH, {
+            reason: 'explicit_target_conflicts_with_contract',
+            expected: contractLanguage.tag,
+            received: explicit.tag,
+        });
+    return explicit ?? contractLanguage;
+}
+
+/**
+ * 승인된 예외의 결정. 명시 목록과 계약의 목록이 둘 다 있으면 같은 집합이어야 한다 —
+ * 호출자가 계약보다 넓은 예외를 조용히 끼워 넣지 못한다.
+ */
+function resolveApprovedExceptions(allowedLanguageExceptions, workContract, target) {
+    const fromContract = isPlainObject(workContract) && workContract.allowedLanguageExceptions !== undefined
+        ? normalizeLanguageExceptions(workContract.allowedLanguageExceptions, { language: target })
+        : null;
+    const explicit = allowedLanguageExceptions !== null && allowedLanguageExceptions !== undefined
+        ? normalizeLanguageExceptions(allowedLanguageExceptions, { language: target })
+        : null;
+    if (explicit !== null && fromContract !== null && canonicalJson(explicit) !== canonicalJson(fromContract))
+        fail(VALIDATION_ERROR_CODES.UNAPPROVED_LANGUAGE_EXCEPTION, {
+            reason: 'exception_override_conflict',
+            expected: fromContract.length,
+            received: explicit.length,
+        });
+    return explicit ?? fromContract ?? Object.freeze([]);
+}
+
+/**
  * 구조화된 `languageCompliance` 를 **실제로 결합된 묶음**·목표 언어·승인된 예외와
  * 대조한다. 해석 가능한 판정(`pass`/`fail`/`uncertain`)은 결과로 돌려주고,
- * 해석 불가능한 응답(잘못된 JSON·모양·hash, 근거 없는 실패, 지목한 필드에 없는
- * 인용)은 **판정이 아니므로** 던진다.
+ * 해석 불가능한 응답(잘못된 JSON·모양·hash, 빠진 language 태그, 근거 없는 실패,
+ * 지목한 필드에 없는 인용, 기계 계약 필드를 근거로 든 실패)은 **판정이 아니므로**
+ * 던진다. 원시 응답의 `language` 는 작품 목표 언어와 같은 BCP 47 이어야 한다.
+ *
+ * `artifact` 는 화 원고 묶음이거나 `canonicalApprovalArtifact()` 의 승인 묶음이다.
+ * 호출자 투영과 분류기 버전은 평가 결과와 그 hash 에 그대로 남는다.
  *
  * @param {{ compliance: object|string, artifact: object, workContract?: object|null,
- *           targetLanguage?: string|object|null, allowedLanguageExceptions?: Array|null }} input
+ *           targetLanguage?: string|object|null, allowedLanguageExceptions?: Array|null,
+ *           languageFields?: { humanTextFields?: string[] }|null }} input
  */
 export function evaluateLanguageCompliance({
     compliance,
@@ -526,20 +958,17 @@ export function evaluateLanguageCompliance({
     workContract = null,
     targetLanguage = null,
     allowedLanguageExceptions = null,
+    languageFields = null,
 } = {}) {
-    const canonical = canonicalArtifact(artifact);
-    const artifactHash = computeArtifactHash(canonical);
+    const canonical = canonicalizeByKind(artifact);
+    const artifactKind = canonical.artifactKind;
+    const artifactHash = sha256(canonicalJson(canonical));
 
-    const languageInput = targetLanguage ?? workContract?.language ?? null;
-    if (languageInput === null || languageInput === undefined)
-        fail(VALIDATION_ERROR_CODES.INCOMPLETE_EXPECTATION, { missing: ['targetLanguage'] });
-    const target = normalizeLanguageTag(languageInput);
+    const target = resolveTargetLanguage(targetLanguage, workContract);
     // wildcard 예외 등 승인 목록 자체의 구문 위반은 기존 언어 계약 resolver 가 거부한다.
-    const approved = normalizeLanguageExceptions(
-        allowedLanguageExceptions ?? workContract?.allowedLanguageExceptions ?? [],
-        { language: target },
-    );
+    const approved = resolveApprovedExceptions(allowedLanguageExceptions, workContract, target);
     const approvedKeys = new Set(approved.map((entry) => exceptionKey(entry)));
+    const { humanTextFields, projection } = resolveLanguageFields(artifactKind, languageFields);
 
     const parsed = parseCompliance(compliance);
     if (!VALIDATION_VERDICTS.includes(parsed.verdict))
@@ -551,17 +980,29 @@ export function evaluateLanguageCompliance({
         fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'invalid_artifact_hash' });
     if (parsed.artifactHash !== artifactHash)
         fail(VALIDATION_ERROR_CODES.ARTIFACT_HASH_MISMATCH, { expected: artifactHash, received: parsed.artifactHash });
-    if (Object.hasOwn(parsed, 'language')) {
-        const judged = normalizeLanguageTag(parsed.language);
-        if (judged.tag !== target.tag)
-            fail(VALIDATION_ERROR_CODES.LANGUAGE_TARGET_MISMATCH, { expected: target.tag, received: judged.tag });
-    }
+    // 원시 응답의 language 는 작품 목표 언어와 같아야 한다. 태그가 없으면 판정이 아니고,
+    // 문자 비율로 모델의 참을 증명하지 않는다.
+    const judged = normalizeLanguageTag(parsed.language);
+    if (judged.tag !== target.tag)
+        fail(VALIDATION_ERROR_CODES.LANGUAGE_TARGET_MISMATCH, { expected: target.tag, received: judged.tag });
 
-    const evidence = parsed.evidence.map((entry, index) => validateEvidenceEntry(entry, index, canonical));
+    const evidence = parsed.evidence
+        .map((entry, index) => validateEvidenceEntry(entry, index, canonical, artifactKind, humanTextFields));
     if (parsed.verdict === 'fail' && evidence.length === 0)
         fail(VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE, { reason: 'fail_without_evidence' });
     const claimedExceptions = parsed.allowedExceptions
         .map((entry, index) => validateClaimedException(entry, index, approvedKeys));
+
+    if (parsed.verdict === 'pass') {
+        // 통과를 받아들이기 전에 실제 산출물을 훑는다. 분류되지 않은 새 생성 필드는
+        // 조용히 빠지는 대신 명시적 투영을 요구하며, 그때까지 검증은 불완전하다.
+        const unclassified = collectUnclassifiedGeneratedFields(canonical, artifactKind, humanTextFields);
+        if (unclassified.length > 0)
+            fail(VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE, {
+                reason: 'unclassified_generated_field',
+                fieldPaths: Object.freeze(unclassified.slice(0, 20)),
+            });
+    }
 
     let failureCode = null;
     if (parsed.verdict === 'fail')
@@ -571,10 +1012,13 @@ export function evaluateLanguageCompliance({
 
     return Object.freeze({
         schemaVersion: VALIDATION_CONTRACT_SCHEMA_VERSION,
+        classifierVersion: LANGUAGE_FIELD_CLASSIFIER_VERSION,
         verdict: parsed.verdict,
         satisfied: parsed.verdict === 'pass',
+        artifactKind,
         artifactHash,
         targetLanguage: target.tag,
+        languageFieldProjection: projection,
         evidence: Object.freeze(evidence),
         allowedExceptions: Object.freeze(claimedExceptions),
         failureCode,
@@ -592,12 +1036,70 @@ export function computeLanguageComplianceHash(result) {
         fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'not_an_evaluated_result' });
     return sha256(canonicalJson({
         schemaVersion: result.schemaVersion ?? VALIDATION_CONTRACT_SCHEMA_VERSION,
+        classifierVersion: result.classifierVersion ?? LANGUAGE_FIELD_CLASSIFIER_VERSION,
         verdict: result.verdict,
+        artifactKind: result.artifactKind ?? ARTIFACT_KIND_CHAPTER,
         artifactHash: result.artifactHash,
         targetLanguage: result.targetLanguage,
+        languageFieldProjection: result.languageFieldProjection ?? DEFAULT_LANGUAGE_FIELD_PROJECTION,
         evidence: result.evidence,
         allowedExceptions: result.allowedExceptions,
     }));
+}
+
+/** 저장됐다 돌아온 평가 결과인지. 원시 모델 응답은 `language` 만 있고 `targetLanguage` 가 없다. */
+function looksLikeEvaluatedCompliance(value) {
+    return isPlainObject(value) && Object.hasOwn(value, 'targetLanguage');
+}
+
+/**
+ * 평가 결과를 **다시 판정 입력으로 되돌린다**. 저장된 객체는 신뢰 권한이 아니므로
+ * 실제 산출물·계약으로 다시 평가해야 한다. `targetLanguage` 는 원시 `language` 로
+ * 묶어 재평가·계약 일치 검사에 넘긴다.
+ */
+function complianceInputFrom(value) {
+    if (!looksLikeEvaluatedCompliance(value))
+        return value;
+    for (const key of Object.keys(value)) {
+        if (!EVALUATED_COMPLIANCE_KEYS.has(key))
+            fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'not_an_evaluated_result', field: key });
+    }
+    if (typeof value.targetLanguage !== 'string' || value.targetLanguage.trim() === '')
+        fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'missing_field', field: 'language' });
+    return {
+        verdict: value.verdict,
+        artifactHash: value.artifactHash,
+        evidence: Array.isArray(value.evidence) ? value.evidence.map((entry) => ({ ...entry })) : value.evidence,
+        allowedExceptions: Array.isArray(value.allowedExceptions)
+            ? value.allowedExceptions.map((entry) => ({ ...entry }))
+            : value.allowedExceptions,
+        language: value.targetLanguage,
+    };
+}
+
+/**
+ * 산출물이 없어 재평가할 수 없을 때의 최소 일관성 검사. 목표 언어가 계약과 다르거나
+ * 근거 없는 실패를 담은 결과는 hash 하기 전에 거부한다.
+ */
+function assertEvaluatedComplianceConsistent(result, { artifactKind, artifactHash, targetLanguage }) {
+    if (!isPlainObject(result) || !VALIDATION_VERDICTS.includes(result.verdict))
+        fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'not_an_evaluated_result' });
+    for (const key of Object.keys(result)) {
+        if (!EVALUATED_COMPLIANCE_KEYS.has(key))
+            fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'not_an_evaluated_result', field: key });
+    }
+    if (artifactKind !== null && (result.artifactKind ?? ARTIFACT_KIND_CHAPTER) !== artifactKind)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_KIND_MISMATCH, {
+            expected: artifactKind, received: result.artifactKind ?? null,
+        });
+    if (artifactHash !== null && result.artifactHash !== artifactHash)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_HASH_MISMATCH, { expected: artifactHash, received: result.artifactHash ?? null });
+    if (targetLanguage !== null && result.targetLanguage !== targetLanguage)
+        fail(VALIDATION_ERROR_CODES.LANGUAGE_TARGET_MISMATCH, { expected: targetLanguage, received: result.targetLanguage ?? null });
+    if (result.verdict === 'fail')
+        fail(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH, { evidence: result.evidence ?? [] });
+    if (result.verdict === 'uncertain')
+        fail(VALIDATION_ERROR_CODES.VALIDATION_INCOMPLETE, { reason: 'language_verdict_uncertain' });
 }
 
 // ─── 필수 불변식 coverage ───────────────────────────────────────────────────
@@ -663,6 +1165,69 @@ function resolvePlan(plan) {
     return { ...requiredIdsFromRows(rows), meta };
 }
 
+function assertArtifactKind(artifactKind) {
+    if (!ARTIFACT_KINDS.includes(artifactKind))
+        fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, {
+            reason: 'unknown_artifact_kind',
+            received: typeof artifactKind === 'string' ? artifactKind : null,
+        });
+    return artifactKind;
+}
+
+/**
+ * 필수 집합은 **산출물 종류**가 정한다. 계획이 등록표의 무조건 불변식을 빠뜨리면
+ * 계획 자체가 잘못된 것이며, 보고가 스스로 신고한 `requiredIds` 로 낮출 수 없다.
+ * 조건부 불변식의 적용 여부는 소비자가 정본 맥락으로 만든 계획이 확정해야 한다.
+ */
+function assertPlanForArtifactKind(resolved, artifactKind) {
+    const { required, notApplicable, advisory } = resolved;
+    if (required.size === 0)
+        fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, { reason: 'no_required_invariants', artifactKind });
+    if (artifactKind === ARTIFACT_KIND_CHAPTER) {
+        const missing = CHAPTER_REQUIRED_INVARIANTS.filter((id) => !required.has(id));
+        if (missing.length > 0)
+            fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, {
+                reason: 'missing_mandatory_invariant', artifactKind, missing,
+            });
+        const unresolved = CHAPTER_CONDITIONAL_INVARIANTS
+            .filter((id) => !required.has(id) && !notApplicable.has(id) && !advisory.has(id));
+        if (unresolved.length > 0)
+            fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, {
+                reason: 'unresolved_conditional_invariant', artifactKind, missing: unresolved,
+            });
+        return;
+    }
+    const missing = APPROVAL_REQUIRED_INVARIANTS.filter((id) => !required.has(id));
+    if (missing.length > 0)
+        fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, {
+            reason: 'missing_mandatory_invariant', artifactKind, missing,
+        });
+    // 승인 묶음에는 원고가 없다. 화 원고 전용 검사를 필수로 다는 계획은 통과할 수 없는 가짜다.
+    const forbidden = APPROVAL_FORBIDDEN_INVARIANTS.filter((id) => required.has(id));
+    if (forbidden.length > 0)
+        fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, {
+            reason: 'chapter_only_invariant', artifactKind, forbidden,
+        });
+}
+
+/**
+ * 신뢰 검사 계획의 신원. 발급과 소비가 **같은 계획**을 참조했는지 확인하는 데 쓰며
+ * 영수증 `checkId` 에 묶인다.
+ */
+export function computeCheckerPlanHash({ plan, artifactKind = ARTIFACT_KIND_CHAPTER } = {}) {
+    const kind = assertArtifactKind(artifactKind);
+    const resolved = resolvePlan(plan);
+    assertPlanForArtifactKind(resolved, kind);
+    return sha256(canonicalJson({
+        schemaVersion: VALIDATION_CONTRACT_SCHEMA_VERSION,
+        artifactKind: kind,
+        checkerPolicyVersion: resolved.meta.checkerPolicyVersion ?? null,
+        requiredIds: [...resolved.required].sort(compareCodePoints),
+        notApplicableIds: [...resolved.notApplicable].sort(compareCodePoints),
+        advisoryIds: [...resolved.advisory].sort(compareCodePoints),
+    }));
+}
+
 function coverageValueOf(raw, id) {
     let value = raw;
     if (isPlainObject(value))
@@ -689,8 +1254,14 @@ function resolveCoverage(coverage) {
             reason: 'unknown_report_shape',
             received: coverage === null ? 'null' : typeof coverage,
         });
-    const source = isPlainObject(coverage.invariants) ? coverage.invariants : coverage;
+    // 평가 결과가 저장됐다 돌아온 경우 보고된 값만 다시 읽는다. `complete` 는 신뢰하지 않는다.
+    const source = isPlainObject(coverage.coverageById)
+        ? coverage.coverageById
+        : (isPlainObject(coverage.invariants) ? coverage.invariants : coverage);
     for (const id of Object.keys(source)) {
+        // 보고되지 않은 필수는 `null` 로 남는다. 누락은 통과가 아니라 차단이다.
+        if (source[id] === null)
+            continue;
         map.set(id, coverageValueOf(source[id], id));
     }
     return map;
@@ -706,22 +1277,21 @@ function blockingReason(value) {
 }
 
 /**
- * 언어 판정과 **분리된** 필수 불변식 검증. 필수 집합은 호출자가 넘긴 등록 계획에서만
- * 나오며 이 모듈이 계획을 지어내지 않는다. advisory/soft 는 값이 무엇이든 막지 않고,
- * 계획이 표시한 비적용만 정당한 not_applicable 이다.
+ * 언어 판정과 **분리된** 필수 불변식 검증. 필수 집합은 호출자가 넘긴 신뢰 계획과
+ * 산출물 종류에서만 나오며 이 모듈이 계획을 지어내지 않는다. advisory/soft 는 값이
+ * 무엇이든 막지 않고, 계획이 표시한 비적용만 정당한 not_applicable 이다.
  *
- * @param {{ plan: object|Array, coverage: object|Array }} input
+ * `artifactKind` 의 기본값은 가장 엄격한 `'chapter'` 다 — 종류를 밝히지 않은 호출이
+ * 조용히 약한 필수 집합을 얻지 못한다.
+ *
+ * @param {{ plan: object|Array, coverage: object|Array, artifactKind?: string }} input
  */
-export function evaluateInvariantCoverage({ plan, coverage } = {}) {
-    const { required, notApplicable, advisory, meta } = resolvePlan(plan);
-    if (required.size === 0)
-        fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, { reason: 'no_required_invariants' });
-    const missingMandatory = ALWAYS_MANDATORY_INVARIANTS.filter((id) => !required.has(id));
-    if (missingMandatory.length > 0)
-        fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, {
-            reason: 'missing_mandatory_invariant',
-            missing: missingMandatory,
-        });
+export function evaluateInvariantCoverage({ plan, coverage, artifactKind = ARTIFACT_KIND_CHAPTER } = {}) {
+    const kind = assertArtifactKind(artifactKind);
+    const resolved = resolvePlan(plan);
+    assertPlanForArtifactKind(resolved, kind);
+    const { required, notApplicable, advisory, meta } = resolved;
+    const checkerPlanHash = computeCheckerPlanHash({ plan, artifactKind: kind });
 
     const reported = resolveCoverage(coverage);
     const requiredIds = [...required].sort(compareCodePoints);
@@ -752,7 +1322,9 @@ export function evaluateInvariantCoverage({ plan, coverage } = {}) {
 
     return Object.freeze({
         schemaVersion: VALIDATION_CONTRACT_SCHEMA_VERSION,
+        artifactKind: kind,
         checkerPolicyVersion: meta.checkerPolicyVersion ?? null,
+        checkerPlanHash,
         promptFamily: meta.promptFamily ?? null,
         requiredIds: Object.freeze(requiredIds),
         coverageById: Object.freeze(coverageById),
@@ -773,18 +1345,49 @@ export function computeCoverageHash(result) {
         fail(VALIDATION_ERROR_CODES.INVALID_COVERAGE_REPORT, { reason: 'not_an_evaluated_result' });
     return sha256(canonicalJson({
         schemaVersion: result.schemaVersion ?? VALIDATION_CONTRACT_SCHEMA_VERSION,
+        artifactKind: result.artifactKind ?? ARTIFACT_KIND_CHAPTER,
         checkerPolicyVersion: result.checkerPolicyVersion ?? null,
+        checkerPlanHash: result.checkerPlanHash ?? null,
         requiredIds: result.requiredIds,
         coverageById: result.coverageById,
         complete: result.complete,
     }));
 }
 
+/**
+ * 신뢰 계획 없이 저장된 coverage 결과를 받았을 때의 내부 일관성 검사.
+ * `{complete:true, requiredIds:[], coverageById:{}}` 같은 자기 신고는 통과가 아니다.
+ */
+function assertEvaluatedCoverageConsistent(result, artifactKind) {
+    if (!isPlainObject(result)
+        || !Array.isArray(result.requiredIds)
+        || !isPlainObject(result.coverageById)
+        || typeof result.complete !== 'boolean')
+        fail(VALIDATION_ERROR_CODES.INVALID_COVERAGE_REPORT, { reason: 'not_an_evaluated_result' });
+    if ((result.artifactKind ?? ARTIFACT_KIND_CHAPTER) !== artifactKind)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_KIND_MISMATCH, {
+            expected: artifactKind, received: result.artifactKind ?? null,
+        });
+    const required = new Set(result.requiredIds);
+    const mandatory = artifactKind === ARTIFACT_KIND_CHAPTER ? CHAPTER_REQUIRED_INVARIANTS : APPROVAL_REQUIRED_INVARIANTS;
+    const missing = mandatory.filter((id) => !required.has(id));
+    if (missing.length > 0)
+        fail(VALIDATION_ERROR_CODES.INVALID_CHECKER_PLAN, {
+            reason: 'missing_mandatory_invariant', artifactKind, missing,
+        });
+    const blocked = [...required]
+        .filter((id) => result.coverageById[id] !== 'validated')
+        .map((id) => Object.freeze({ id, coverage: result.coverageById[id] ?? null, reason: blockingReason(result.coverageById[id] ?? null) }));
+    if (blocked.length > 0 || !result.complete)
+        fail(VALIDATION_ERROR_CODES.COVERAGE_INCOMPLETE, { blocked });
+}
+
 // ─── 검사 영수증 ────────────────────────────────────────────────────────────
 
 const RECEIPT_IDENTITY_FIELDS = Object.freeze([
     'schemaVersion', 'validatorVersion', 'workId', 'chapter', 'workflowId', 'runId',
-    'validationEpoch', 'sourceHead', 'planSourceHash',
+    'validationEpoch', 'sourceHead', 'planSourceHash', 'artifactKind', 'checkerPlanHash',
+    'languageFieldProjectionHash',
     'contractHash', 'artifactHash', 'languageComplianceHash', 'coverageHash',
 ]);
 const RECEIPT_FIELDS = Object.freeze([
@@ -825,7 +1428,12 @@ function assertReceiptShape(receipt) {
         fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'missing_workflow_or_run_id' });
     if (!positiveInteger(receipt.validationEpoch))
         fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'invalid_validation_epoch' });
-    for (const key of ['sourceHead', 'planSourceHash', 'contractHash', 'artifactHash', 'languageComplianceHash', 'coverageHash']) {
+    if (!ARTIFACT_KINDS.includes(receipt.artifactKind))
+        fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'invalid_artifact_kind' });
+    // 최초 발행 전에는 원천 HEAD 가 없다. 키는 필수이고 값은 명시적 null 이 정당하다.
+    if (receipt.sourceHead !== null && !nonEmptyString(receipt.sourceHead))
+        fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'invalid_hash_member', field: 'sourceHead' });
+    for (const key of ['planSourceHash', 'checkerPlanHash', 'languageFieldProjectionHash', 'contractHash', 'artifactHash', 'languageComplianceHash', 'coverageHash']) {
         if (!nonEmptyString(receipt[key]))
             fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'invalid_hash_member', field: key });
     }
@@ -835,7 +1443,7 @@ function assertReceiptShape(receipt) {
         fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'invalid_check_id' });
 }
 
-/** 신원 + 네 개의 hash 만으로 계산한다. 소비/stale/발급처는 신원이 아니다. */
+/** 신원 + 계획·계약·산출물·판정·coverage hash 로 계산한다. 소비/stale/발급처는 신원이 아니다. */
 export function computeReceiptCheckId(receipt) {
     if (!isPlainObject(receipt))
         fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'not_an_object' });
@@ -847,45 +1455,72 @@ export function computeReceiptCheckId(receipt) {
 }
 
 /**
- * 통과 영수증 발급. 언어 판정이 `pass` 이고 필수 불변식 coverage 가 완료된 경우에만
- * 발급되며, 그 밖에는 계획의 terminal 원인 코드로 던진다.
+ * 통과 영수증 발급.
+ *
+ * 호출자가 넘긴 `languageCompliance` / `coverage` 의 `verdict:'pass'` 나
+ * `complete:true` 를 **믿지 않는다**. 실제 산출물·작업 계약·승인된 예외와 신뢰
+ * `checkerPlan` 으로 다시 계산한 결과에만 근거해 발급하며, 영수증에 박히는 hash 도
+ * 재계산된 결과의 것이다.
  */
-export function buildValidationReceipt({
-    workId,
-    chapter = null,
-    workflowId = null,
-    runId = null,
-    validationEpoch,
-    sourceHead,
-    planSourceHash,
-    workContract,
-    artifact,
-    languageCompliance,
-    coverage,
-    validatorVersion = VALIDATOR_VERSION,
-    issuedBy = null,
-} = {}) {
+export function buildValidationReceipt(input = {}) {
+    if (!isPlainObject(input))
+        fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'not_an_object' });
+    const {
+        workId,
+        chapter = null,
+        workflowId = null,
+        runId = null,
+        validationEpoch,
+        planSourceHash,
+        workContract,
+        artifact,
+        checkerPlan,
+        languageCompliance,
+        coverage,
+        targetLanguage = null,
+        allowedLanguageExceptions = null,
+        languageFields = null,
+        validatorVersion = VALIDATOR_VERSION,
+        issuedBy = null,
+    } = input;
+
+    // 키 자체가 없으면 "최초 발행 전" 과 "호출자가 잊음" 을 구분할 수 없다.
+    if (!Object.hasOwn(input, 'sourceHead') || input.sourceHead === undefined)
+        fail(VALIDATION_ERROR_CODES.INCOMPLETE_EXPECTATION, { missing: ['sourceHead'] });
+    const sourceHead = input.sourceHead;
+
     if (!isPlainObject(workContract) || !nonEmptyString(workContract.language))
         fail(VALIDATION_ERROR_CODES.INVALID_RECEIPT, { reason: 'invalid_work_contract' });
-    const contractHash = computeLanguageContractHash(workContract);
-    const artifactHash = computeArtifactHash(artifact);
+    if (checkerPlan === null || checkerPlan === undefined)
+        fail(VALIDATION_ERROR_CODES.INCOMPLETE_EXPECTATION, { missing: ['checkerPlan'] });
 
-    if (!isPlainObject(languageCompliance) || !VALIDATION_VERDICTS.includes(languageCompliance.verdict))
-        fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, { reason: 'not_an_evaluated_result' });
-    if (languageCompliance.artifactHash !== artifactHash)
-        fail(VALIDATION_ERROR_CODES.ARTIFACT_HASH_MISMATCH, {
-            expected: artifactHash,
-            received: typeof languageCompliance.artifactHash === 'string' ? languageCompliance.artifactHash : null,
-        });
-    if (languageCompliance.verdict === 'fail')
-        fail(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH, { evidence: languageCompliance.evidence ?? [] });
-    if (languageCompliance.verdict === 'uncertain')
+    const canonical = canonicalizeByKind(artifact);
+    const artifactKind = Object.hasOwn(input, 'artifactKind') ? assertArtifactKind(input.artifactKind) : canonical.artifactKind;
+    if (artifactKind !== canonical.artifactKind)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_KIND_MISMATCH, { expected: artifactKind, received: canonical.artifactKind });
+    const contractHash = computeLanguageContractHash(workContract);
+    const artifactHash = sha256(canonicalJson(canonical));
+
+    // 저장된 평가 결과든 원시 응답이든 실제 묶음·계약으로 **다시** 판정한다.
+    const evaluatedLanguage = evaluateLanguageCompliance({
+        compliance: complianceInputFrom(languageCompliance),
+        artifact: canonical,
+        workContract,
+        targetLanguage,
+        allowedLanguageExceptions,
+        languageFields,
+    });
+    if (evaluatedLanguage.artifactHash !== artifactHash)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_HASH_MISMATCH, { expected: artifactHash, received: evaluatedLanguage.artifactHash });
+    if (evaluatedLanguage.verdict === 'fail')
+        fail(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH, { evidence: evaluatedLanguage.evidence });
+    if (evaluatedLanguage.verdict === 'uncertain')
         fail(VALIDATION_ERROR_CODES.VALIDATION_INCOMPLETE, { reason: 'language_verdict_uncertain' });
 
-    if (!isPlainObject(coverage) || typeof coverage.complete !== 'boolean')
-        fail(VALIDATION_ERROR_CODES.INVALID_COVERAGE_REPORT, { reason: 'not_an_evaluated_result' });
-    if (!coverage.complete)
-        fail(VALIDATION_ERROR_CODES.COVERAGE_INCOMPLETE, { blocked: coverage.blocked ?? [] });
+    // coverage 도 신뢰 계획으로 다시 평가한다. 보고가 신고한 requiredIds 는 필수를 낮추지 못한다.
+    const evaluatedCoverage = evaluateInvariantCoverage({ plan: checkerPlan, coverage, artifactKind });
+    if (!evaluatedCoverage.complete)
+        fail(VALIDATION_ERROR_CODES.COVERAGE_INCOMPLETE, { blocked: evaluatedCoverage.blocked });
 
     const receipt = {
         schemaVersion: VALIDATION_CONTRACT_SCHEMA_VERSION,
@@ -898,10 +1533,13 @@ export function buildValidationReceipt({
         validationEpoch,
         sourceHead,
         planSourceHash,
+        artifactKind,
+        checkerPlanHash: evaluatedCoverage.checkerPlanHash,
+        languageFieldProjectionHash: computeLanguageFieldProjectionHash(languageFields),
         contractHash,
         artifactHash,
-        languageComplianceHash: computeLanguageComplianceHash(languageCompliance),
-        coverageHash: computeCoverageHash(coverage),
+        languageComplianceHash: computeLanguageComplianceHash(evaluatedLanguage),
+        coverageHash: computeCoverageHash(evaluatedCoverage),
         consumed: false,
         stale: false,
         staleReason: null,
@@ -927,20 +1565,34 @@ export function markReceiptConsumed(receipt) {
     return Object.freeze({ ...receipt, consumed: true });
 }
 
-const EXPECTED_REQUIRED_KEYS = Object.freeze(['workId', 'chapter', 'validationEpoch', 'sourceHead', 'planSourceHash']);
+const EXPECTED_REQUIRED_KEYS = Object.freeze([
+    'workId', 'chapter', 'validationEpoch', 'sourceHead', 'planSourceHash', 'artifactKind',
+]);
 
-function assertExpectation(expected, { hasArtifact, hasWorkContract }) {
+function proofPresent(value) {
+    return value !== null && value !== undefined;
+}
+
+function assertExpectation(expected, { artifact, workContract, languageCompliance, coverage }) {
     if (!isPlainObject(expected))
         fail(VALIDATION_ERROR_CODES.INCOMPLETE_EXPECTATION, { reason: 'not_an_object' });
-    const missing = EXPECTED_REQUIRED_KEYS.filter((key) => !Object.hasOwn(expected, key));
+    const missing = EXPECTED_REQUIRED_KEYS.filter((key) => !Object.hasOwn(expected, key) || expected[key] === undefined);
     if (!Object.hasOwn(expected, 'workflowId') && !Object.hasOwn(expected, 'runId'))
         missing.push('workflowId|runId');
-    if (!Object.hasOwn(expected, 'contractHash') && !hasWorkContract)
-        missing.push('contractHash|workContract');
-    if (!Object.hasOwn(expected, 'artifactHash') && !hasArtifact)
-        missing.push('artifactHash|artifact');
+    // 계획 hash 만으로는 조건부 POV/ADDRESSING/SENSITIVE 를 재구성할 수 없다.
+    if (!Object.hasOwn(expected, 'checkerPlan') || expected.checkerPlan === null || expected.checkerPlan === undefined)
+        missing.push('checkerPlan');
+    if (!proofPresent(artifact))
+        missing.push('artifact');
+    if (!proofPresent(workContract))
+        missing.push('workContract');
+    if (!proofPresent(languageCompliance))
+        missing.push('languageCompliance');
+    if (!proofPresent(coverage))
+        missing.push('coverage');
     if (missing.length > 0)
         fail(VALIDATION_ERROR_CODES.INCOMPLETE_EXPECTATION, { missing });
+    assertArtifactKind(expected.artifactKind);
     if (!positiveInteger(expected.validationEpoch))
         fail(VALIDATION_ERROR_CODES.INCOMPLETE_EXPECTATION, { reason: 'invalid_validation_epoch' });
     if (Object.hasOwn(expected, 'minValidationEpoch') && !positiveInteger(expected.minValidationEpoch))
@@ -957,12 +1609,45 @@ function assertIdentity(receipt, expected, field) {
 }
 
 /**
+ * 소비 측 투영. 생략은 기본 투영이다. 명시 인자와 `expected.languageFields` 가
+ * 둘 다 있으면 같은 정본이어야 하며, 발급 때와 다른 투영으로 재평가하지 않는다.
+ */
+function resolveConsumptionLanguageFields(expected, languageFields) {
+    const hasExpected = Object.hasOwn(expected, 'languageFields');
+    const hasCaller = languageFields !== null && languageFields !== undefined;
+    const fromExpected = hasExpected ? canonicalizeLanguageFieldProjection(expected.languageFields) : null;
+    const fromCaller = hasCaller ? canonicalizeLanguageFieldProjection(languageFields) : null;
+    if (fromExpected !== null && fromCaller !== null
+        && canonicalJson(fromExpected) !== canonicalJson(fromCaller)) {
+        fail(VALIDATION_ERROR_CODES.INVALID_LANGUAGE_COMPLIANCE, {
+            reason: 'language_field_projection_conflict',
+        });
+    }
+    const projection = fromCaller ?? fromExpected ?? DEFAULT_LANGUAGE_FIELD_PROJECTION;
+    const hash = computeLanguageFieldProjectionHash(projection);
+    if (Object.hasOwn(expected, 'languageFieldProjectionHash') && expected.languageFieldProjectionHash !== hash) {
+        fail(VALIDATION_ERROR_CODES.RECEIPT_IDENTITY_MISMATCH, {
+            field: 'languageFieldProjectionHash',
+            expected: expected.languageFieldProjectionHash,
+            received: hash,
+        });
+    }
+    return { projection, hash };
+}
+
+/**
  * 소비처(commit / workflow 승인 / sync apply)가 쓰는 단일 게이트.
  *
  * 검사 순서가 계약의 일부다: 존재 → 기대값 완전성 → 모양 → checkId 재계산 →
- * verdict → consumed → stale → validator 버전 → epoch → 신원 → 계약/산출물 hash →
- * 언어·coverage hash. stale/consumed 를 신원 비교보다 먼저 보므로 값이 원상 복구돼도
- * 죽은 영수증이 살아나지 않는다.
+ * verdict → consumed → stale → validator 버전 → epoch → 신원 → 검사 계획 →
+ * 계약/산출물 hash → 언어·coverage 재평가와 hash. stale/consumed 를 신원 비교보다
+ * 먼저 보므로 값이 원상 복구돼도 죽은 영수증이 살아나지 않는다.
+ *
+ * 공급된 `languageCompliance` / `coverage` 는 신뢰 권한이 아니다. 소비는 실제 묶음·
+ * 작업 계약·언어 판정·coverage 와 신뢰 검사 계획 전체가 있어야 하며, 그 입력으로
+ * **다시 평가**한 결과에만 근거한다. 계획 hash 만으로는 조건부 필수를 재구성할 수
+ * 없고, 수동으로 맞춘 신원 hash 와 `checkId` 도 보고서 없이 통과가 아니다.
+ * 언어 필드 투영은 발급 때와 같아야 하며, 생략은 기본 투영이다. 다른 투영으로 재평가하지 않는다.
  */
 export function validateValidationReceipt({
     receipt,
@@ -971,10 +1656,11 @@ export function validateValidationReceipt({
     workContract = null,
     languageCompliance = null,
     coverage = null,
+    languageFields = null,
 } = {}) {
     if (receipt === null || receipt === undefined)
         fail(VALIDATION_ERROR_CODES.MISSING_VALIDATION_RECEIPT, { reason: 'absent' });
-    assertExpectation(expected, { hasArtifact: artifact !== null, hasWorkContract: workContract !== null });
+    assertExpectation(expected, { artifact, workContract, languageCompliance, coverage });
     assertReceiptShape(receipt);
 
     if (computeReceiptCheckId(receipt) !== receipt.checkId)
@@ -1016,52 +1702,86 @@ export function validateValidationReceipt({
     assertIdentity(receipt, expected, 'chapter');
     assertIdentity(receipt, expected, 'sourceHead');
     assertIdentity(receipt, expected, 'planSourceHash');
+    assertIdentity(receipt, expected, 'artifactKind');
     if (Object.hasOwn(expected, 'workflowId'))
         assertIdentity(receipt, expected, 'workflowId');
     if (Object.hasOwn(expected, 'runId'))
         assertIdentity(receipt, expected, 'runId');
 
-    if (workContract !== null) {
-        const contractHash = computeLanguageContractHash(workContract);
-        if (contractHash !== receipt.contractHash)
-            fail(VALIDATION_ERROR_CODES.CONTRACT_HASH_MISMATCH, { expected: contractHash, received: receipt.contractHash });
-    }
+    const expectedPlanHash = computeCheckerPlanHash({
+        plan: expected.checkerPlan, artifactKind: expected.artifactKind,
+    });
+    // 기대에 계획이 있으면 그 hash 가 정본이다. 별도 checkerPlanHash 가 계획을 덮어
+    // 다른 조건부 집합을 통과시키지 못한다.
+    if (Object.hasOwn(expected, 'checkerPlanHash') && expected.checkerPlanHash !== expectedPlanHash)
+        fail(VALIDATION_ERROR_CODES.CHECKER_PLAN_MISMATCH, {
+            expected: expectedPlanHash, received: expected.checkerPlanHash,
+        });
+    if (expectedPlanHash !== receipt.checkerPlanHash)
+        fail(VALIDATION_ERROR_CODES.CHECKER_PLAN_MISMATCH, {
+            expected: expectedPlanHash, received: receipt.checkerPlanHash,
+        });
+
+    const consumptionProjection = resolveConsumptionLanguageFields(expected, languageFields);
+    if (consumptionProjection.hash !== receipt.languageFieldProjectionHash)
+        fail(VALIDATION_ERROR_CODES.RECEIPT_IDENTITY_MISMATCH, {
+            field: 'languageFieldProjectionHash',
+            expected: consumptionProjection.hash,
+            received: receipt.languageFieldProjectionHash,
+        });
+
+    const contractHash = computeLanguageContractHash(workContract);
+    if (contractHash !== receipt.contractHash)
+        fail(VALIDATION_ERROR_CODES.CONTRACT_HASH_MISMATCH, { expected: contractHash, received: receipt.contractHash });
     if (Object.hasOwn(expected, 'contractHash') && expected.contractHash !== receipt.contractHash)
         fail(VALIDATION_ERROR_CODES.CONTRACT_HASH_MISMATCH, { expected: expected.contractHash, received: receipt.contractHash });
 
-    if (artifact !== null) {
-        const artifactHash = computeArtifactHash(artifact);
-        if (artifactHash !== receipt.artifactHash)
-            fail(VALIDATION_ERROR_CODES.ARTIFACT_HASH_MISMATCH, { expected: artifactHash, received: receipt.artifactHash });
-    }
+    const canonical = canonicalizeByKind(artifact);
+    if (canonical.artifactKind !== receipt.artifactKind)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_KIND_MISMATCH, {
+            expected: receipt.artifactKind, received: canonical.artifactKind,
+        });
+    const artifactHash = sha256(canonicalJson(canonical));
+    if (artifactHash !== receipt.artifactHash)
+        fail(VALIDATION_ERROR_CODES.ARTIFACT_HASH_MISMATCH, { expected: artifactHash, received: receipt.artifactHash });
     if (Object.hasOwn(expected, 'artifactHash') && expected.artifactHash !== receipt.artifactHash)
         fail(VALIDATION_ERROR_CODES.ARTIFACT_HASH_MISMATCH, { expected: expected.artifactHash, received: receipt.artifactHash });
 
-    if (languageCompliance !== null) {
-        if (languageCompliance.verdict === 'fail')
-            fail(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH, { evidence: languageCompliance.evidence ?? [] });
-        if (languageCompliance.verdict === 'uncertain')
-            fail(VALIDATION_ERROR_CODES.VALIDATION_INCOMPLETE, { reason: 'language_verdict_uncertain' });
-        const hash = computeLanguageComplianceHash(languageCompliance);
-        if (hash !== receipt.languageComplianceHash)
-            fail(VALIDATION_ERROR_CODES.LANGUAGE_COMPLIANCE_HASH_MISMATCH, {
-                expected: hash, received: receipt.languageComplianceHash,
-            });
-    }
+    const evaluatedLanguage = evaluateLanguageCompliance({
+        compliance: complianceInputFrom(languageCompliance),
+        artifact: canonical,
+        workContract,
+        languageFields: consumptionProjection.projection,
+    });
+    assertEvaluatedComplianceConsistent(evaluatedLanguage, {
+        artifactKind: receipt.artifactKind,
+        artifactHash: receipt.artifactHash,
+        targetLanguage: normalizeLanguageTag(workContract.language).tag,
+    });
+    const languageHash = computeLanguageComplianceHash(evaluatedLanguage);
+    if (languageHash !== receipt.languageComplianceHash)
+        fail(VALIDATION_ERROR_CODES.LANGUAGE_COMPLIANCE_HASH_MISMATCH, {
+            expected: languageHash, received: receipt.languageComplianceHash,
+        });
     if (Object.hasOwn(expected, 'languageComplianceHash') && expected.languageComplianceHash !== receipt.languageComplianceHash)
         fail(VALIDATION_ERROR_CODES.LANGUAGE_COMPLIANCE_HASH_MISMATCH, {
             expected: expected.languageComplianceHash, received: receipt.languageComplianceHash,
         });
 
-    if (coverage !== null) {
-        if (!isPlainObject(coverage) || typeof coverage.complete !== 'boolean')
-            fail(VALIDATION_ERROR_CODES.INVALID_COVERAGE_REPORT, { reason: 'not_an_evaluated_result' });
-        if (!coverage.complete)
-            fail(VALIDATION_ERROR_CODES.COVERAGE_INCOMPLETE, { blocked: coverage.blocked ?? [] });
-        const hash = computeCoverageHash(coverage);
-        if (hash !== receipt.coverageHash)
-            fail(VALIDATION_ERROR_CODES.COVERAGE_HASH_MISMATCH, { expected: hash, received: receipt.coverageHash });
-    }
+    const evaluatedCoverage = evaluateInvariantCoverage({
+        plan: expected.checkerPlan, coverage, artifactKind: receipt.artifactKind,
+    });
+    if (!evaluatedCoverage.complete)
+        fail(VALIDATION_ERROR_CODES.COVERAGE_INCOMPLETE, { blocked: evaluatedCoverage.blocked });
+    if (evaluatedCoverage.checkerPlanHash !== receipt.checkerPlanHash)
+        fail(VALIDATION_ERROR_CODES.CHECKER_PLAN_MISMATCH, {
+            expected: receipt.checkerPlanHash, received: evaluatedCoverage.checkerPlanHash ?? null,
+        });
+    const coverageHash = computeCoverageHash(evaluatedCoverage);
+    if (coverageHash !== receipt.coverageHash)
+        fail(VALIDATION_ERROR_CODES.COVERAGE_HASH_MISMATCH, {
+            expected: coverageHash, received: receipt.coverageHash,
+        });
     if (Object.hasOwn(expected, 'coverageHash') && expected.coverageHash !== receipt.coverageHash)
         fail(VALIDATION_ERROR_CODES.COVERAGE_HASH_MISMATCH, { expected: expected.coverageHash, received: receipt.coverageHash });
 
@@ -1075,6 +1795,9 @@ export function validateValidationReceipt({
         validationEpoch: receipt.validationEpoch,
         sourceHead: receipt.sourceHead,
         planSourceHash: receipt.planSourceHash,
+        artifactKind: receipt.artifactKind,
+        checkerPlanHash: receipt.checkerPlanHash,
+        languageFieldProjectionHash: receipt.languageFieldProjectionHash,
         contractHash: receipt.contractHash,
         artifactHash: receipt.artifactHash,
         languageComplianceHash: receipt.languageComplianceHash,
@@ -1093,6 +1816,7 @@ export function buildApprovalBinding(receipt, { approvedBy = null, decision = 'a
     return Object.freeze({
         checkId: receipt.checkId,
         validationEpoch: receipt.validationEpoch,
+        artifactKind: receipt.artifactKind,
         artifactHash: receipt.artifactHash,
         contractHash: receipt.contractHash,
         approvedBy,
@@ -1115,14 +1839,17 @@ export function validateApprovalBinding({ approval, receipt } = {}) {
                 reason: 'binding_mismatch', field, expected: receipt[field], received: approval[field] ?? null,
             });
     }
-    if (Object.hasOwn(approval, 'contractHash') && approval.contractHash !== receipt.contractHash)
-        fail(VALIDATION_ERROR_CODES.INVALID_APPROVAL_BINDING, {
-            reason: 'binding_mismatch', field: 'contractHash', expected: receipt.contractHash, received: approval.contractHash ?? null,
-        });
+    for (const field of ['artifactKind', 'contractHash']) {
+        if (Object.hasOwn(approval, field) && approval[field] !== receipt[field])
+            fail(VALIDATION_ERROR_CODES.INVALID_APPROVAL_BINDING, {
+                reason: 'binding_mismatch', field, expected: receipt[field], received: approval[field] ?? null,
+            });
+    }
     return Object.freeze({
         ok: true,
         checkId: receipt.checkId,
         validationEpoch: receipt.validationEpoch,
+        artifactKind: receipt.artifactKind,
         artifactHash: receipt.artifactHash,
         contractHash: receipt.contractHash,
     });
