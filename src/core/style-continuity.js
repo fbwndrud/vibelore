@@ -1,3 +1,5 @@
+import { asKit } from '../prompts/index.js';
+
 const sentenceLengths = (text) => [...String(text ?? '').matchAll(/[^.!?。…]+[.!?。…]+/g)]
   .map((match) => match[0].trim().length)
   .filter(Boolean);
@@ -90,15 +92,16 @@ export function buildStyleAnchor({ workId, chapters, reason = '', revision = 1, 
   };
 }
 
-export function renderStyleAnchor(anchor) {
+export function renderStyleAnchor(anchor, kitSource) {
   if (!anchor || anchor.status !== 'active') return '';
+  const t = asKit(kitSource).phrases.writer;
   const baseline = anchor.baseline ?? {};
   return [
-    '## 승인된 작품 문체 기준',
-    `기준 화: ${(anchor.sourceChapters ?? []).join(', ')}화`,
-    ...(anchor.reason ? [`사용자가 이 원고를 선호한 이유: ${anchor.reason}`] : []),
-    `호흡 참고: 1,000자당 문단 약 ${baseline.paragraphsPer1k ?? 0}개, 문단 중앙값 약 ${baseline.medianParagraphChars ?? 0}자, 문장 중앙값 약 ${baseline.medianSentenceChars ?? 0}자. 수치를 맞추기보다 아래 정본 예시의 독서 호흡을 유지한다.`,
-    ...(anchor.excerpts ?? []).map((excerpt) => `### ${excerpt.chapter}화 정본 예시\n${excerpt.text}`),
+    t.styleAnchorHeading,
+    t.styleAnchorSources((anchor.sourceChapters ?? []).join(', ')),
+    ...(anchor.reason ? [t.styleAnchorReason(anchor.reason)] : []),
+    t.styleAnchorBaseline(baseline),
+    ...(anchor.excerpts ?? []).map((excerpt) => t.styleAnchorExcerpt(excerpt.chapter, excerpt.text)),
   ].join('\n\n');
 }
 

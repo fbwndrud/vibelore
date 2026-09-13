@@ -21,6 +21,7 @@ import { compileCharacterArcSeeds, renderCharacterArcSeeds } from '../core/chara
 import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
 import { MCP_CONTRACT_VERSION } from '../core/runtime-version.js';
 import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-language.js';
+import { promptKit } from '../prompts/index.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract, compileDraftContract, renderNarrativeContract } from '../core/narrative-contract.js';
@@ -50,7 +51,7 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
     legacyLength: chapterWordCount != null ? { chapterWordCount } : null,
     requireApprovedProfile: true, foundation: null,
   });
-  const compiledBrief = compileBriefWithProfile(brief, storyProfile, ['worldbuild', 'cast']);
+  const compiledBrief = compileBriefWithProfile(brief, storyProfile, ['worldbuild', 'cast'], promptKit({ contract: resolution.contract }));
   const input = {
     title, brief: compiledBrief, genre: engineGenre, povMode: povMode ?? storyProfile?.format?.pov, targetChapters,
     chapterWordCount: resolution.length.target,
@@ -102,6 +103,34 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
   };
 }
 
+/**
+ * 이번 실행이 따르는 계약을 못 박은 실행용 foundation 스냅샷.
+ * 저장된 정본은 건드리지 않고 현재 승인된 계약을 엔진에 전달한다.
+ */
+function executionFoundation(foundation, workLanguage) {
+  return {
+    ...foundation,
+    language: workLanguage.language,
+    length: { unit: workLanguage.length.unit, target: workLanguage.length.target },
+    workContract: workLanguage.contract,
+  };
+}
+
+/**
+ * 실행 스냅샷과 같은 계약을 엔진 호출 인자로 적는다. 구형 `targetWordCount` 는
+ * 이름과 무관하게 legacyCodeUnits 목표라서, 다른 단위로 세는 작품에는 싣지 않는다
+ * (같은 숫자를 다른 단위로 중복 지정하면 계약 충돌이다).
+ */
+function engineLanguageArgs(workLanguage, { legacyTarget = false } = {}) {
+  return {
+    language: workLanguage.language,
+    workContract: workLanguage.contract,
+    ...(legacyTarget && workLanguage.length.unit === 'legacyCodeUnits'
+      ? { targetWordCount: workLanguage.length.target }
+      : {}),
+  };
+}
+
 export async function runDraftTool({ store, workId, chapter, plan = '', tension, targetChars, language = null, length = null, providers, workflowId = null }) {
   const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
   const draftStore = await openCanonRepository({ store, publicationUnit });
@@ -114,6 +143,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     store: draftStore, workId, requested: language, length,
     legacyLength: targetChars != null ? { targetChars } : null, foundation,
   });
+  // 이 초고를 만드는 모든 엔진 단계가 같은 계약 하나를 본다.
+  const executionSnapshot = executionFoundation(foundation, workLanguage);
   const arcPlan = await store.loadArcPlan(workId);
   const arcEpisode = episodeForChapter(arcPlan, chapter);
   if (!arcEpisode) throw new Error('승인된 아크의 해당 회차 비트가 없습니다. lore_arc_plan으로 계획하고 승인하세요.');
@@ -126,7 +157,9 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const patternLedger = (await loadCurrentExperienceLedger({ store, workId })).entries;
   const writerSkill = await store.loadWriterSkill(workId);
   const styleAnchor = await store.loadStyleAnchor?.(workId);
-  const narrativeContract = compileNarrativeContract({ profile: storyProfile, identity: storyIdentity, writerSkill });
+  // 초고 요청에 들어가는 모든 플러그인 렌더링은 이 계약 하나로 계열을 정한다.
+  const kit = promptKit({ contract: workLanguage.contract });
+  const narrativeContract = compileNarrativeContract({ profile: storyProfile, identity: storyIdentity, writerSkill, kit });
   const arcIntent = compileArcIntent(arcPlan);
   const episodeIntent = compileEpisodeIntent({ episodePlan: detailedPlan, arcEpisode, chapter });
   const pinnedPlanSourceHash = sourceDigest({ arcPlan, detailedPlan, storyProfile, storyIdentity, pilotContract, patternLedger, writerSkill, styleAnchor, narrativeContract, arcIntent, episodeIntent });
@@ -135,7 +168,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     arcNumber: arcPlan.arcNumber, title: arcPlan.title, promise: arcPlan.promise, type: arcPlan.type,
     currentChapterInArc: arcEpisode.index, estimatedEpisodes: arcPlan.estimatedEpisodes,
     currentPosition: arcPositionFromRatio(arcEpisode.index, arcPlan.estimatedEpisodes),
-    summary: renderArcMap(arcPlan, chapter),
+    summary: renderArcMap(arcPlan, chapter, kit),
   };
   // The draft prompt takes its chapter plan from the approved EpisodePlan
   // packet (draft-input-compiler). The engine's own chapter-plan step used to
@@ -152,15 +185,16 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     readabilityContract: storyProfile?.readabilityContract,
     characterNames: Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName])),
     budget: { maxTokens: WRITER_PACKET_MAX_TOKENS },
+    kit,
   });
   if (!episodePacketResult.ok) {
     const details = episodePacketResult.error.missing ? `: ${episodePacketResult.error.missing.join(', ')}` : '';
     throw new Error(`${episodePacketResult.error.code}${details}`);
   }
   const episodePacket = episodePacketResult.value;
-  const authorCraftPacket = compileAuthorCraftPacket({ skill: writerSkill, episodePlan: detailedPlan, chapter, recentPatterns: patternLedger.slice(-3) });
-  const draftContract = compileDraftContract({ profile: storyProfile, identity: storyIdentity, writerSkill, episodePlan: detailedPlan, chapter });
-  const writerPacket = [draftContract.writerText, authorCraftPacket, renderStyleAnchor(styleAnchor)].filter(Boolean).join('\n\n');
+  const authorCraftPacket = compileAuthorCraftPacket({ skill: writerSkill, episodePlan: detailedPlan, chapter, recentPatterns: patternLedger.slice(-3), kit });
+  const draftContract = compileDraftContract({ profile: storyProfile, identity: storyIdentity, writerSkill, episodePlan: detailedPlan, chapter, kit });
+  const writerPacket = [draftContract.writerText, authorCraftPacket, renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
   const compilerInputs = {
     identity: {
       workId, chapter, workflowId, invocation: workflowId ? 'workflow' : 'direct',
@@ -173,8 +207,9 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     },
     episode: episodePacket,
     authorCraft: { writerText: writerPacket },
+    kit,
     continuity: {
-      genreLine: `장르·시점: ${foundation.genre} · ${foundation.povMode || '3인칭제한'}`,
+      genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
       recentSummaries: chapter > 1 && contextMeta.recentSummaries?.length
         ? contextMeta.recentSummaries.slice(0, 2).map((summary) => summary.summary || summary)
         : [],
@@ -203,12 +238,10 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     resolvedInputs: {
       compiler: compilerInputs,
       engine: {
-        foundation, prevState, chapterNumber: chapter,
+        foundation: executionSnapshot, prevState, chapterNumber: chapter,
         activeCastIds: detailedPlan.cast,
         tension: tension ?? detailedPlan.tension, arc: writerArc,
-        targetWordCount: workLanguage.length.target,
-        language: workLanguage.language,
-        workContract: workLanguage.contract,
+        ...engineLanguageArgs(workLanguage, { legacyTarget: true }),
         model: MODEL,
       },
     },
@@ -272,6 +305,7 @@ export async function runReviseTool({ store, workId, chapter, prose, castManifes
   const embeddedManifest = sanitizer.extractBlock(prose, 'cast-manifest');
   const sourceProse = sanitizer.sanitize(prose).clean.trim();
   const sourceCastManifest = castManifestRaw ?? embeddedManifest?.body ?? '{"cast":[]}';
+  const reviseKit = promptKit({ contract: workLanguage.contract });
   const [profile, writerSkill, styleAnchor, previousArtifact] = await Promise.all([
     store.loadStoryProfile?.(workId),
     store.loadWriterSkill?.(workId),
@@ -279,17 +313,17 @@ export async function runReviseTool({ store, workId, chapter, prose, castManifes
     chapter > 1 ? store.loadArtifact(workId, chapter - 1) : null,
   ]);
   const result = await runRevise({
-    foundation, chapterNumber: chapter, prose: sourceProse,
+    foundation: executionFoundation(foundation, workLanguage), chapterNumber: chapter, prose: sourceProse,
     castManifestRaw: sourceCastManifest,
     violations: Array.isArray(violations) ? violations : [],
     patchMode: true,
     styleContext: {
-      approvedAnchor: renderStyleAnchor(styleAnchor),
+      approvedAnchor: renderStyleAnchor(styleAnchor, reviseKit),
       voiceContract: profile?.voiceContract ?? null,
-      writerSkill: writerSkill ? renderNarrativeContract(compileNarrativeContract({ profile, writerSkill })) : '',
+      writerSkill: writerSkill ? renderNarrativeContract(compileNarrativeContract({ profile, writerSkill, kit: reviseKit }), reviseKit) : '',
       previousSceneTail: previousArtifact?.prose?.slice(-1200).trim() ?? '',
     },
-    language: workLanguage.language, workContract: workLanguage.contract, model: MODEL, providers,
+    ...engineLanguageArgs(workLanguage), model: MODEL, providers,
   });
   return { chapter, prose: result.revisedProse, next: '수정본을 lore_check로 다시 검사하세요.' };
 }
@@ -301,9 +335,9 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });
   const prevState = (await store.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
   const result = await runRewrite({
-    foundation, prevState, chapterNumber: chapter,
+    foundation: executionFoundation(foundation, workLanguage), prevState, chapterNumber: chapter,
     previousProse: artifact.prose, intentSummary: intent,
-    language: workLanguage.language, workContract: workLanguage.contract, model: MODEL, providers,
+    ...engineLanguageArgs(workLanguage), model: MODEL, providers,
   });
   return { chapter, prose: result.prose, next: '다시 쓴 본문을 lore_check → lore_commit → lore_refold 순서로 반영하세요.' };
 }
@@ -338,13 +372,18 @@ export async function runNextArc({ store, workId, currentArc, providers }) {
   const characterArcSeeds = compileCharacterArcSeeds({
     foundation, projection: characterDynamics, previousArcPlan: storedArc, previousArcReview,
   });
+  // 엔진 프롬프트는 2A 의 다른 소유자가 소비한다. 여기서는 해결된 언어와 계약을
+  // 넘기고 플러그인이 만드는 문구만 계열에 맞춘다.
+  const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
+  const kit = promptKit({ contract: workLanguage.contract });
   const proposal = await runNextArcProposal({
     currentArc: arc,
     workMeta: { genre: foundation.genre, targetChapters: foundation.targetChapters, totalChaptersSoFar: last },
     characters: foundation.characters.map((c) => ({ id: c.id, canonicalName: c.canonicalName, role: c.intrinsic?.role })),
     entities: await store.loadEntitySnapshots(workId),
     workSummary: summaries.reverse().map((s) => s.summary).join('\n'),
-    characterArcSeeds: renderCharacterArcSeeds(characterArcSeeds),
+    characterArcSeeds: renderCharacterArcSeeds(characterArcSeeds, kit),
+    ...engineLanguageArgs(workLanguage),
     writerModel: MODEL, proposalModel: MODEL, providers,
   });
   return { proposal };

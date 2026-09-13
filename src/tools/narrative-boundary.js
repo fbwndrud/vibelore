@@ -1,5 +1,6 @@
 import { renderArcMap } from './arc.js';
 import { renderEpisodePlan } from './episode-plan.js';
+import { asKit } from '../prompts/index.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const DECISIONS = new Set(['advance_episode', 'iterate_episode', 'extend_arc', 'complete_arc']);
@@ -10,19 +11,21 @@ function parse(raw) {
 }
 
 /** Judge a narrative boundary after prose exists; episode count is not a completion oracle. */
-export async function runNarrativeBoundary({ arcPlan, episodePlan, chapter, prose, providers }) {
+/**
+ * @param {{ kit?: object|null }} input 워크플로가 작품 계약을 넘기기 전까지는
+ *   구작의 암묵적 ko 계열로 해석한다(기존 동작).
+ */
+export async function runNarrativeBoundary({ arcPlan, episodePlan, chapter, prose, providers, kit: kitSource }) {
+  const kit = asKit(kitSource);
   const current = arcPlan.episodes.find((episode) => episode.chapter === chapter);
   const isLast = current === arcPlan.episodes.at(-1);
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'narrative-boundary',
-    messages: [
-      { role: 'system', content: '당신은 한국어 연재소설의 서사 경계 편집자다. 숫자로 정한 분량이 아니라 본문에서 현재 에피소드의 선택·결과와 아크 promise가 실제로 정산됐는지 판단한다. iterate_episode는 현재 에피소드가 덜 끝나 한 화 더 필요할 때, advance_episode는 현재 에피소드는 끝났고 다음 비트로 갈 때, extend_arc는 마지막 예정 비트 뒤에 추가 정산 화가 필요할 때, complete_arc는 마지막 비트와 아크 약속이 모두 끝났을 때만 쓴다. 순수 JSON만 출력한다.' },
-      { role: 'user', content: [
-        renderArcMap(arcPlan, chapter), '', renderEpisodePlan(episodePlan), '',
-        `현재 예정상 마지막 화인가: ${isLast}`, '본문:', prose, '',
-        'JSON: {"decision":"advance_episode|iterate_episode|extend_arc|complete_arc","reason":"본문 근거","continuation":{"title":"필요할 때","beat":"다음 반복/연장 핵심 사건","pressure":"","turn":"","carry":""}}',
-      ].join('\n') },
-    ],
+    messages: kit.messages('narrative-boundary', {
+      arcMap: renderArcMap(arcPlan, chapter, kit),
+      episodePlanRender: renderEpisodePlan(episodePlan, kit),
+      isLast, prose,
+    }),
   });
   const obj = parse(response.text) ?? {};
   let decision = DECISIONS.has(obj.decision) ? obj.decision : (isLast ? 'complete_arc' : 'advance_episode');
@@ -31,7 +34,7 @@ export async function runNarrativeBoundary({ arcPlan, episodePlan, chapter, pros
   return {
     decision, reason: String(obj.reason ?? '').slice(0, 500),
     continuation: {
-      title: String(obj.continuation?.title ?? `${current.title} (계속)`).slice(0, 120),
+      title: String(obj.continuation?.title ?? kit.phrases.arc.continuationTitle(current.title)).slice(0, 120),
       beat: String(obj.continuation?.beat ?? current.beat ?? current.goal ?? '').slice(0, 500),
       pressure: String(obj.continuation?.pressure ?? '').slice(0, 500),
       turn: String(obj.continuation?.turn ?? '').slice(0, 500),

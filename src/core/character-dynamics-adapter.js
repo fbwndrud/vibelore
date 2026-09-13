@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { foldCharacterDynamics } from './character-dynamics.js';
+import { asKit } from '../prompts/index.js';
 
 const asArray = (value) => Array.isArray(value) ? value : [];
 const asObject = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -101,24 +102,25 @@ export function foldLegacyChapterCharacterDynamics(context, input = {}) {
 }
 
 /** Bounded prose-facing projection used by context compilation. */
-export function renderSceneCharacterPacket({ projection, cast = [], pressure = '', maxInfluences = 3 }) {
+export function renderSceneCharacterPacket({ projection, cast = [], pressure = '', maxInfluences = 3, kit: kitSource }) {
   if (!projection || !cast.length) return '';
-  const lines = ['## Scene Character Packet', pressure ? `- 장면 압력: ${pressure}` : ''];
+  const t = asKit(kitSource).phrases.context;
+  const lines = [t.scenePacketHeading, pressure ? t.scenePressure(pressure) : ''];
   for (const characterId of cast) {
     const state = projection.characterStates?.[characterId];
     if (!state) continue;
     const agenda = projection.agendas?.[characterId] ?? {};
-    lines.push(`- ${state.model?.canonicalName ?? characterId} (${characterId})`);
-    if (agenda.goal) lines.push(`  - 독립 목표: ${agenda.goal}`);
-    if (agenda.nextAction) lines.push(`  - 다음 행동: ${agenda.nextAction}${agenda.deadline ? ` / 기한: ${agenda.deadline}` : ''}`);
-    if (agenda.fallback) lines.push(`  - 실패 시 차선책: ${agenda.fallback}`);
-    if (state.nextChoiceBias) lines.push(`  - 현재 선택 편향: ${state.nextChoiceBias}`);
+    lines.push(t.sceneCharacter(state.model?.canonicalName ?? characterId, characterId));
+    if (agenda.goal) lines.push(t.sceneGoal(agenda.goal));
+    if (agenda.nextAction) lines.push(t.sceneNextAction(agenda.nextAction, agenda.deadline));
+    if (agenda.fallback) lines.push(t.sceneFallback(agenda.fallback));
+    if (state.nextChoiceBias) lines.push(t.sceneBias(state.nextChoiceBias));
     const recent = asArray(state.interpretations).slice(-Math.max(0, maxInfluences));
-    if (recent.length) lines.push(`  - 활성 영향: ${recent.join(' / ')}`);
+    if (recent.length) lines.push(t.sceneInfluences(recent.join(' / ')));
     const relationships = Object.values(projection.relationshipStates ?? {}).filter((claim) => claim.from === characterId && cast.includes(claim.to));
     for (const relationship of relationships) {
       const belief = relationship.claims?.at(-1)?.belief;
-      lines.push(`  - ${relationship.to}를 향한 관계 관점: ${belief || JSON.stringify(relationship.dimensions)}`);
+      lines.push(t.sceneRelationship(relationship.to, belief || JSON.stringify(relationship.dimensions)));
     }
   }
   return lines.filter(Boolean).join('\n').slice(0, 4000);

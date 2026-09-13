@@ -1,12 +1,15 @@
 import { createHash } from 'node:crypto';
 
+import { asKit } from '../prompts/index.js';
+
 const clean = (value, limit = 600) => String(value ?? '').trim().slice(0, limit);
 const strings = (value, limit = 6) => Array.isArray(value)
   ? value.map((item) => clean(item, 300)).filter(Boolean).slice(0, limit)
   : [];
 const digest = (value) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
-export function compileNarrativeContract({ profile, identity, writerSkill }) {
+export function compileNarrativeContract({ profile, identity, writerSkill, kit: kitSource }) {
+  const t = asKit(kitSource ?? { profile }).phrases.contract;
   const voiceRecipe = profile?.voiceContract?.genreVoiceRecipe ?? {};
   const contract = {
     schemaVersion: 2,
@@ -26,9 +29,9 @@ export function compileNarrativeContract({ profile, identity, writerSkill }) {
         || [voiceRecipe.rhythm, voiceRecipe.exposition].filter(Boolean)),
     },
     readerLegibility: clean(profile?.narrativeContract?.readerLegibility
-      || '전문 지식 없이도 장면의 즉시 목표, 대사의 표면 뜻, 선택의 결과를 붙잡을 수 있게 쓴다.'),
+      || t.defaultReaderLegibility),
     registerPolicy: clean(profile?.narrativeContract?.registerPolicy
-      || '정밀한 시각·수치·전문어는 문서와 작전 상황에 쓰고, 일상 대화와 서술에서는 인물이 실제로 쓸 자연스러운 표현을 우선한다.'),
+      || t.defaultRegisterPolicy),
     readability: {
       surfaceEase: clean(profile?.readabilityContract?.surfaceEase || 'easy'),
       conceptPacing: clean(profile?.readabilityContract?.conceptPacing || 'slow'),
@@ -86,30 +89,35 @@ export function compileEpisodeIntent({ episodePlan, arcEpisode, chapter }) {
   return { ...intent, compilerVersion: 'episode-intent-2', digest: digest(intent) };
 }
 
-export function renderNarrativeContract(contract) {
+export function renderNarrativeContract(contract, kitSource) {
   if (!contract) return '';
+  const kit = asKit(kitSource);
+  const t = kit.phrases.contract;
+  const undecided = kit.phrases.common.undecided;
   return [
-    '## 작품 계약',
-    `- 독자 약속: ${contract.readerPromise || '미정'}`,
-    `- 반복 쾌감: ${contract.recurringPleasures.join('; ') || '미정'}`,
-    `- 주인공 매력과 결핍: ${contract.protagonistAppeal || '미정'} / ${contract.emotionalDefect || '미정'}`,
-    `- 시점과 거리: ${contract.narration.pov || '미정'} / ${contract.narration.depth || '미정'}`,
-    `- 정서: ${contract.narration.tones.join('; ') || '장면에 따른다'}`,
-    `- 인물 표현: ${contract.characterExpression.principles.join('; ')}`,
-    `- 표현 변주: ${contract.characterExpression.variation.join('; ')}`,
-    `- 독자 접근성: ${contract.readerLegibility}`,
-    `- 표현 레지스터: ${contract.registerPolicy}`,
-    `- 읽기 난도: 표면=${contract.readability.surfaceEase} / 개념=${contract.readability.conceptPacing} / 추론=${contract.readability.inferenceLoad} / 상승=${contract.readability.complexityRamp}`,
-    `- 작가 판단: ${contract.craft.judgments.join('; ') || '장면의 선택과 결과를 우선한다'}`,
-    `- 대사 운용: ${contract.craft.dialogueConduct.join('; ') || '대사는 관계를 움직인다'}`,
-    `- 고착 방지: ${contract.craft.antiFixation.join('; ') || '같은 기능의 해결을 연속 반복하지 않는다'}`,
+    t.heading,
+    t.readerPromise(contract.readerPromise || undecided),
+    t.recurringPleasures(contract.recurringPleasures.join('; ') || undecided),
+    t.protagonist(contract.protagonistAppeal || undecided, contract.emotionalDefect || undecided),
+    t.narration(contract.narration.pov || undecided, contract.narration.depth || undecided),
+    t.tones(contract.narration.tones.join('; ') || t.tonesFallback),
+    t.expressionPrinciples(contract.characterExpression.principles.join('; ')),
+    t.expressionVariation(contract.characterExpression.variation.join('; ')),
+    t.readerLegibility(contract.readerLegibility),
+    t.registerPolicy(contract.registerPolicy),
+    t.readability(contract.readability),
+    t.judgments(contract.craft.judgments.join('; ') || t.judgmentsFallback),
+    t.dialogueConduct(contract.craft.dialogueConduct.join('; ') || t.dialogueConductFallback),
+    t.antiFixation(contract.craft.antiFixation.join('; ') || t.antiFixationFallback),
   ].join('\n');
 }
 
 // Keep the approved contract in the actual writer request, not only its digest.
 // Examples are optional; their selection and omission are observable.
-export function compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter = 1 }) {
-  const contract = compileNarrativeContract({ profile, identity, writerSkill });
+export function compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter = 1, kit: kitSource }) {
+  const kit = asKit(kitSource ?? { profile });
+  const t = kit.phrases.contract;
+  const contract = compileNarrativeContract({ profile, identity, writerSkill, kit });
   const guidance = (profile?.promptGuidance?.draft ?? []).filter((item) => typeof item === 'string' && item.trim());
   const query = JSON.stringify({ premise: episodePlan?.premise, scenes: episodePlan?.scenes });
   const candidates = ['narrationExamples', 'dialogueExamples'].flatMap((field) =>
@@ -123,7 +131,7 @@ export function compileDraftContract({ profile, identity, writerSkill, episodePl
   const excluded = [];
   let chars = 0;
   for (const item of ranked) {
-    const text = `${item.situation ?? '문체 예시'}\n${item.example}\n${item.craftReason ?? ''}`;
+    const text = `${item.situation ?? t.styleExampleFallbackSituation}\n${item.example}\n${item.craftReason ?? ''}`;
     const reason = selected.length >= 2 ? 'example-count' : chars + text.length > 1600 ? 'example-budget' : null;
     if (reason) excluded.push({ source: item.source, reason });
     else { selected.push({ source: item.source, text }); chars += text.length; }
@@ -144,24 +152,27 @@ export function compileDraftContract({ profile, identity, writerSkill, episodePl
       variation: profile?.voiceDesign?.variationRules ?? profile?.voice?.variationRules ?? [profile?.voiceContract?.genreVoiceRecipe?.rhythm, profile?.voiceContract?.genreVoiceRecipe?.exposition].filter(Boolean),
     },
   };
-  const writerText = [renderNarrativeContract(core),
-    ...(identity?.competenceSignature?.length ? [`- 능력을 보여주는 방식: ${identity.competenceSignature.join('; ')}`] : []),
-    ...guidance.map((item) => `- 승인된 집필 방향: ${item}`),
-    ...(selected.length ? ['## 작품의 문체 예시', '예시는 인물의 관찰과 반응 방식을 참고한다. 현재 장면의 정서에 맞게 변주하며 문장을 복사하지 않는다.', ...selected.map((item) => item.text)] : []),
+  const writerText = [renderNarrativeContract(core, kit),
+    ...(identity?.competenceSignature?.length ? [t.competenceSignature(identity.competenceSignature.join('; '))] : []),
+    ...guidance.map((item) => t.approvedDraftRule(item)),
+    ...(selected.length ? [t.styleExamplesHeading, t.styleExamplesRule, ...selected.map((item) => item.text)] : []),
   ].join('\n');
   return { writerText, trace: { digest: digest(writerText), sourceRevisions: contract.sourceRevisions,
     examplesIncluded: selected.map((item) => item.source), examplesExcluded: excluded, coreTruncated: false } };
 }
 
-export function renderEpisodeIntent(intent) {
+export function renderEpisodeIntent(intent, kitSource) {
   if (!intent) return '';
+  const kit = asKit(kitSource);
+  const t = kit.phrases.contract;
+  const none = kit.phrases.common.none;
   return [
-    `## ${intent.chapter}화 의도`,
-    `- 상황: ${intent.premise}`,
-    `- 압력: ${intent.pressure}`,
-    `- 도착 변화: ${intent.expectedChange}`,
-    `- 지급과 대가: ${intent.payoff || '없음'} / ${intent.cost || '없음'}`,
-    `- 독자 연결점: ${intent.readerBridge || '이번 선택과 결과가 장면에서 자명해야 함'}`,
-    ...intent.scenes.map((scene) => `- ${scene.situation} -> ${scene.choice} -> ${scene.change}`),
+    t.intentHeading(intent.chapter),
+    t.intentSituation(intent.premise),
+    t.intentPressure(intent.pressure),
+    t.intentChange(intent.expectedChange),
+    t.intentPayoffCost(intent.payoff || none, intent.cost || none),
+    t.intentReaderBridge(intent.readerBridge || t.intentReaderBridgeFallback),
+    ...intent.scenes.map((scene) => t.intentScene(scene.situation, scene.choice, scene.change)),
   ].join('\n');
 }

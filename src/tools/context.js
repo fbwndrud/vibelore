@@ -24,61 +24,62 @@ import { createHash } from 'node:crypto';
 import { renderSceneCharacterPacket } from '../core/character-dynamics-adapter.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { isHookActive } from '../../engine/src/continuity/story-state.js';
+import { PROMPT_FAMILY_KO, promptKit } from '../prompts/index.js';
+import { resolveWorkLanguage } from '../core/work-language.js';
 
-const INTRINSIC_LABEL = {
-  species: '종족', form: '형태', gender: '성별', genderLabel: '성별 설명', ageBand: '연령대', birthOrder: '출생순서', role: '역할',
-};
 const MAX_CONTEXT_TOKENS = 18000;
 
-function renderCharacter(foundation, character, chapter) {
+function renderCharacter(foundation, character, chapter, kit) {
+  const t = kit.phrases.context;
+  const labels = t.intrinsicLabels;
   const events = foundation.intrinsicChanges.filter((e) => e.characterId === character.id);
   const intrinsic = effectiveIntrinsic(character.intrinsic, events, chapter);
-  const pinned = Object.entries(INTRINSIC_LABEL)
+  const pinned = Object.entries(labels)
     .filter(([k]) => intrinsic[k] !== undefined && intrinsic[k] !== '')
     .map(([k, label]) => `${label}=${intrinsic[k]}`);
-  if (intrinsic.coreAppearance?.length) pinned.push(`외형=${intrinsic.coreAppearance.join('·')}`);
+  if (intrinsic.coreAppearance?.length) pinned.push(t.appearance(intrinsic.coreAppearance.join('·')));
   const lines = [`- **${character.canonicalName}** (\`${character.id}\`) — ${pinned.join(', ')}`];
-  if (character.contradiction) lines.push(`  - 모순: ${character.contradiction}`);
+  if (character.contradiction) lines.push(t.characterContradiction(character.contradiction));
   const model = character.dramaticModel;
-  if (model?.valueOrder?.length) lines.push(`  - 가치 우선순위: ${model.valueOrder.join(' > ')}`);
+  if (model?.valueOrder?.length) lines.push(t.valueOrder(model.valueOrder.join(' > ')));
   for (const trait of (model?.behaviorTraits ?? []).slice(0, 3)) {
-    lines.push(`  - 행동 편향: ${trait.trigger} → ${trait.actionBias} (효용: ${trait.benefit}; 비용: ${trait.cost})`);
+    lines.push(t.behaviorTrait(trait.trigger, trait.actionBias, trait.benefit, trait.cost));
   }
   if (model?.perception?.seesFirst?.length || model?.perception?.missesFirst?.length) {
-    lines.push(`  - 인식: 먼저 ${model.perception.seesFirst?.join('·') || '-'} / 늦게 ${model.perception.missesFirst?.join('·') || '-'}`);
+    lines.push(t.perception(model.perception.seesFirst?.join('·') || '-', model.perception.missesFirst?.join('·') || '-'));
   }
-  if (model?.defense?.underPressure) lines.push(`  - 압박 시 방어: ${model.defense.underPressure}`);
-  if (model?.repair?.firstMove) lines.push(`  - 회복 첫 행동: ${model.repair.firstMove}`);
+  if (model?.defense?.underPressure) lines.push(t.defense(model.defense.underPressure));
+  if (model?.repair?.firstMove) lines.push(t.repair(model.repair.firstMove));
   const speech = character.speechProfile;
   if (speech) {
     const samples = speech.samples ?? {};
-    lines.push(`  - 말투: ${[speech.defaultRegister, speech.sentenceShape, speech.logicHabit, speech.emotionalLeak].filter(Boolean).join(' / ') || '프로필 있음'}`);
+    lines.push(t.speech([speech.defaultRegister, speech.sentenceShape, speech.logicHabit, speech.emotionalLeak].filter(Boolean).join(' / ') || t.speechProfilePresent));
     const sampleLines = [
-      samples.everyday ? `평상시="${samples.everyday}"` : '',
-      samples.underPressure ? `압박="${samples.underPressure}"` : '',
-      samples.lying ? `거짓말="${samples.lying}"` : '',
-      samples.intimate ? `친밀="${samples.intimate}"` : '',
+      samples.everyday ? t.speechSampleEveryday(samples.everyday) : '',
+      samples.underPressure ? t.speechSamplePressure(samples.underPressure) : '',
+      samples.lying ? t.speechSampleLying(samples.lying) : '',
+      samples.intimate ? t.speechSampleIntimate(samples.intimate) : '',
     ].filter(Boolean);
-    if (sampleLines.length) lines.push(`  - 말투 예시: ${sampleLines.join(' / ')}`);
+    if (sampleLines.length) lines.push(t.speechSamples(sampleLines.join(' / ')));
     if (speech.relationVariants?.length) {
-      lines.push(`  - 관계별 말투: ${speech.relationVariants.map((row) => `${row.targetId || '?'}=${row.adjustment || row.sample || ''}`).join('; ')}`);
+      lines.push(t.relationVariants(speech.relationVariants.map((row) => `${row.targetId || '?'}=${row.adjustment || row.sample || ''}`).join('; ')));
     }
   }
   const changed = events.filter((e) => e.atChapter <= chapter);
   if (changed.length > 0) {
-    lines.push(`  - 변경 이력: ${changed.map((e) => `${e.atChapter}화 ${INTRINSIC_LABEL[e.field] ?? e.field} ${JSON.stringify(e.from)}→${JSON.stringify(e.to)}`).join('; ')}`);
+    lines.push(t.intrinsicChanges(changed.map((e) => t.intrinsicChange(e.atChapter, labels[e.field] ?? e.field, JSON.stringify(e.from), JSON.stringify(e.to))).join('; ')));
   }
   return lines.join('\n');
 }
 
-function renderAddressMap(state, foundation) {
+function renderAddressMap(state, foundation, kit) {
   const entries = Object.entries(state?.addressMap?.entries ?? {});
   if (entries.length === 0) return null;
   const name = (id) => foundation.characters.find((c) => c.id === id)?.canonicalName ?? id;
   return entries
     .map(([pair, e]) => {
       const [speaker, target] = pair.split('->');
-      return `- ${name(speaker)} → ${name(target)}: "${e.term}" (${e.register ?? '?'}, ${e.sinceChapter}화부터)`;
+      return kit.phrases.context.address(name(speaker), name(target), e.term, e.register ?? '?', e.sinceChapter);
     })
     .join('\n');
 }
@@ -90,6 +91,11 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   if (!foundation) {
     throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
   }
+
+  // 집필 컨텍스트는 최종 provider 메시지로 들어간다. 라벨과 안내 문장은 작품 언어
+  // 계열을 따르고, 작품 데이터·ID·고유명은 저장된 값 그대로 둔다.
+  const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
+  const kit = promptKit({ contract: workLanguage.contract });
 
   const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store });
   const lastState = window.lastStoryState;
@@ -128,68 +134,71 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   });
   if (!compiledMemory.ok) throw new Error(`${compiledMemory.error.code}: 필수 정사를 컨텍스트에 넣을 수 없어 장면 분할 또는 재계획이 필요합니다.`);
 
+  const t = kit.phrases.context;
   const sections = [
-    `# ${chapter}화 집필 컨텍스트 — ${workId}`,
+    t.heading(chapter, workId),
     '',
-    `장르: ${foundation.genre}${foundation.povMode ? ` · 시점: ${foundation.povMode}` : ''}` +
-      `${arcPosition ? ` · 아크 위치: ${ARC_POSITION_LABEL_KO?.[arcPosition] ?? arcPosition}` : ''}`,
+    t.genreLine(foundation.genre, foundation.povMode, arcPosition
+      ? (kit.family === PROMPT_FAMILY_KO ? ARC_POSITION_LABEL_KO?.[arcPosition] ?? arcPosition : arcPosition)
+      : null),
     '',
-    '## 세계 사실 (변경 불가 — 이 사실과 충돌하면 안 됩니다)',
+    t.worldFactsHeading,
     foundation.worldFacts.length
       ? foundation.worldFacts.map((f) => `- (${f.id}) ${f.statement}`).join('\n')
-      : '- (아직 등록된 세계 사실 없음)',
+      : t.worldFactsEmpty,
     '',
-    '## 등장인물 (intrinsic 은 고정 — 서사적 사건 없이 바꾸지 마세요)',
-    visible.length ? visible.map((c) => renderCharacter(foundation, c, chapter)).join('\n') : '- (아직 등록된 인물 없음)',
+    t.charactersHeading,
+    visible.length ? visible.map((c) => renderCharacter(foundation, c, chapter, kit)).join('\n') : t.charactersEmpty,
   ];
 
   if (arcEpisode) {
-    sections.push('', renderArcEpisode(arcPlan, arcEpisode));
+    sections.push('', renderArcEpisode(arcPlan, arcEpisode, kit));
   } else if (arcPlan?.status === 'pending') {
-    sections.push('', '## 집필 중단 — 아크 승인 대기', '- lore_arc_decide로 승인하거나 거절한 뒤 집필하세요.');
+    sections.push('', t.arcPendingHeading, t.arcPendingRule);
   } else {
-    sections.push('', '## 아크 계획 없음', '- 방향 없는 연속 집필을 막기 위해 lore_arc_plan으로 다음 아크를 먼저 계획하세요.');
+    sections.push('', t.arcMissingHeading, t.arcMissingRule);
   }
 
-  const profileBlock = renderStoryProfile(storyProfile);
+  const profileBlock = renderStoryProfile(storyProfile, kit);
   if (profileBlock) sections.push('', profileBlock);
-  else if (storyProfile?.status === 'pending') sections.push('', '## StoryProfile 승인 대기', '- 장르·톤·이야기 동력 확정 전에는 새 아크를 계획하지 마세요.');
+  else if (storyProfile?.status === 'pending') sections.push('', t.profilePendingHeading, t.profilePendingRule);
 
-  const spineBlock = renderStorySpine(storySpine);
+  const spineBlock = renderStorySpine(storySpine, kit);
   if (spineBlock) sections.push('', spineBlock);
-  else sections.push('', '## StorySpine 없음', '- 작품 전체 인과 설계 없이 회차 사건을 만들지 마세요. lore_story_plan을 먼저 실행하세요.');
+  else sections.push('', t.spineMissingHeading, t.spineMissingRule);
 
-  const episodeBlock = renderEpisodePlan(episodePlan);
+  const episodeBlock = renderEpisodePlan(episodePlan, kit);
   if (episodeBlock) sections.push('', episodeBlock);
-  else if (arcEpisode && episodePlan?.status === 'pending') sections.push('', '## EpisodePlan 승인 대기', '- lore_episode_decide로 승인하거나 거절한 뒤 집필하세요.');
-  else if (arcEpisode) sections.push('', '## 상세 EpisodePlan 없음', '- lore_episode_plan으로 현재 아크 비트를 장면 계획으로 확장한 뒤 집필하세요.');
+  else if (arcEpisode && episodePlan?.status === 'pending') sections.push('', t.episodePendingHeading, t.episodePendingRule);
+  else if (arcEpisode) sections.push('', t.episodeMissingHeading, t.episodeMissingRule);
 
   const characterPacket = renderSceneCharacterPacket({
     projection: published.value?.projections?.characterDynamics,
     cast: episodePlan?.cast ?? [], pressure: episodePlan?.scenePressure?.decisionDeadline ?? '',
+    kit,
   });
   if (characterPacket) sections.push('', characterPacket);
 
-  const address = renderAddressMap(lastState, foundation);
-  if (address) sections.push('', '## 호칭 (누가 누구를 어떻게 부르는지 — 바뀌면 이유가 필요합니다)', address);
+  const address = renderAddressMap(lastState, foundation, kit);
+  if (address) sections.push('', t.addressHeading, address);
 
   if (lastState?.hooks?.length) {
-    sections.push('', '## 미해결 떡밥 (독자가 기억하고 있습니다)',
+    sections.push('', t.hooksHeading,
       lastState.hooks.map((h) => {
         const text = h.text || h.id;
         const started = h.plantedAtChapter;
-        return `- ${text}${started ? ` (${started}화)` : ''}`;
+        return t.hook(text, started);
       }).join('\n'));
   }
 
   if (entity.injected.length > 0) sections.push('', renderEntityContext(entity));
 
   if (compiledMemory.value.discretionary.length) {
-    sections.push('', '## 오래된 관련 기억 (MemoryCompiler 선택)',
-      ...compiledMemory.value.discretionary.map((item) => `- [${item.scope ?? item.kind}:${item.ref ?? item.id}${item.chapter ? ` · ${item.chapter}화` : ''}] ${item.text}`));
+    sections.push('', t.memoryHeading,
+      ...compiledMemory.value.discretionary.map((item) => t.memoryItem(item.scope ?? item.kind, item.ref ?? item.id, item.chapter, item.text)));
   }
   const debts = hookDebt(lastState?.hooks, chapter);
-  if (debts.length) sections.push('', '## 복선 부채 (오래 진전되지 않음)', ...debts.map((debt) => `- ${debt.id}: ${debt.staleFor}화 정체 · 이번 화에서 ${debt.action}`));
+  if (debts.length) sections.push('', t.hookDebtHeading, ...debts.map((debt) => t.hookDebt(debt.id, debt.staleFor, debt.action)));
 
   sections.push('', renderSlidingWindow(window));
 

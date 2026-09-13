@@ -544,7 +544,11 @@ describe('생성 이후 도구의 언어 전달', () => {
     };
     await runRewriteTool({ store, workId: WORK, chapter: 1, intent: 'tighten', providers });
     const userMessage = requests.at(-1).messages.at(-1).content;
-    assert.match(userMessage, /## 언어\nja/);
+    // 검증된 작품 언어가 엔진 요청까지 간다는 뜻은 그대로다. 라벨이 한국어에서
+    // 영어로 바뀐 것은 ja 작품이 다국어 계열 프롬프트로 간다는 뜻이며(계획: 비-ko
+    // 최종 지시문은 영어), 언어 태그 자체는 여전히 저장된 ja 다.
+    assert.match(userMessage, /## Target work language \(BCP 47\)\nja/);
+    assert.doesNotMatch(userMessage, /## 언어\n/);
 
     await expectCode(
       () => runRewriteTool({ store, workId: WORK, chapter: 1, intent: 'tighten', language: 'en', providers }),

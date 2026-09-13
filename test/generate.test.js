@@ -494,7 +494,10 @@ describe('Phase 2 generation pipeline', () => {
     firstProvider.complete = async (request) => { profileRequest = request; return firstComplete(request); };
     const proposed = await runStoryProfile({ store, workId: 'space-court', brief: '우주 오페라 정치 성장극', mode: 'review', providers: firstProvider });
     assert.equal(proposed.needsApproval, true);
-    assert.equal(proposed.profile.format.dialogueBreakMode, 'strict');
+    // 명시된 relaxed 는 ko 웹소설 연재에서도 그대로 유지된다. 승인된 포맷 선택을
+    // serialization 문자열 때문에 strict 로 되돌리지 않는다(다국어 기획의 "승인된
+    // 작품 포맷을 따른다"). ko 기본값은 명시가 없을 때만 strict 다.
+    assert.equal(proposed.profile.format.dialogueBreakMode, 'relaxed');
     assert.deepEqual(proposed.profile.designReview.openQuestions.map((item) => item.id), ['first-payoff', 'reading-experience-contract']);
     assert.deepEqual(proposed.profile.readabilityContract, {
       schemaVersion: 1, surfaceEase: 'easy', conceptPacing: 'slow', inferenceLoad: 'explicit', complexityRamp: 'onboarding-first', confirmedByUser: false,
