@@ -27,6 +27,7 @@ import { scanEntityMentions } from '../../core/mention-scan.js';
 import { emptyStoryState } from '../../continuity/story-state.js';
 import { resolveWorkPromptLanguage } from '../../core/prompt-language.js';
 import { runBoundedCommitLoop, } from './chapter-write-with-revise.js';
+import { withGateContext } from './chapter-validation.js';
 import { runRewrite } from './steps/rewrite.js';
 /**
  * Bounded rewrite: `runRewrite` once, then the shared commit/revise loop.
@@ -40,6 +41,7 @@ import { runRewrite } from './steps/rewrite.js';
  * reports the unsuccessful rewrite). Throws a plain Error if the foundation is missing.
  */
 export async function performChapterRewriteBounded(ctx, input, opts = {}) {
+    ctx = withGateContext(ctx, input);
     const { chapterNumber, previousProse, intentSummary } = input;
     const foundation = await ctx.state.loadFoundation(ctx.workId);
     if (!foundation) {
@@ -124,14 +126,17 @@ export async function performChapterRewriteBounded(ctx, input, opts = {}) {
         dialogueBreakMode: ctx.dialogueBreakMode ?? null,
     });
     // 2. Shared bounded commit/revise loop — identical semantics to chapter-write.
-    return runBoundedCommitLoop(ctx, {
+    return runBoundedCommitLoop(withGateContext(ctx, input), {
         initialProse: prose,
         foundation,
         prevState,
         chapterNumber,
-        // No chapter-plan for rewrite — the quality gate's coherence judge runs
-        // without a plan reference (plan-less path, same as legacy chapter-write).
-        plan: undefined,
+        // Rewrite has no chapter-plan. New-contract planSourceHash is bound to
+        // the actual rewrite intent/source prose, never a fabricated id.
+        plan: intentSummary ?? previousProse,
         logPrefix: 'chapter-rewrite-bounded',
+        title: input.title,
+        summary: input.summary,
+        sensitiveMode: input.sensitiveMode,
     }, opts);
 }

@@ -15,9 +15,14 @@
  */
 import { createGenreProfileRegistry } from '../../../continuity/genre-profile.js';
 import {
-    formatLengthTarget, languageSystemLines, pickByFamily, promptFamilyCaptureContext,
+    formatLengthTarget, languageSystemLines, pickByFamily, promptFamilyCaptureContext, resolveDialogueBreakMode,
     resolvePromptLanguageContext,
 } from '../../../core/prompt-language.js';
+import {
+    checkFoundationApproval,
+    isExplicitFoundationNewContract,
+} from '../foundation-validation.js';
+import { withGateContext } from '../chapter-validation.js';
 import { llmCastDesign } from './cast-design.js';
 import { foundationInit } from './foundation-init.js';
 function asString(v, fallback = '') {
@@ -203,7 +208,14 @@ export async function performBookCreate(ctx, input) {
     const genreProfile = registry.get(input.genre);
     // 다국어 Phase 2A — 두 LLM 단계(worldbuild / castDesign)가 같은 계약을 본다.
     // 불일치(계약 언어 ≠ 요청 언어, 계약 분량 ≠ chapterWordCount)는 오류다.
-    const promptLanguage = bookCreateLanguageContext(input);
+    let promptLanguage = bookCreateLanguageContext(input);
+    if (isExplicitFoundationNewContract(ctx, input)) {
+        const mode = resolveDialogueBreakMode(promptLanguage, input.dialogueBreakMode ?? ctx.dialogueBreakMode ?? null);
+        const contract = { ...promptLanguage.contract,
+            formatPolicy: { ...promptLanguage.contract.formatPolicy, dialogueBreakMode: mode } };
+        input = { ...input, workContract: contract };
+        promptLanguage = bookCreateLanguageContext(input);
+    }
     // 1. worldbuild
     const world = await llmWorldbuild(ctx, input, promptLanguage);
     // 2. castDesign
@@ -217,12 +229,36 @@ export async function performBookCreate(ctx, input) {
         characters: cast.characters,
         ...(input.povMode ? { povMode: input.povMode } : {}),
     });
-    return {
+    const created = {
         foundation: {
             ...foundation,
             narrativeSalienceProfile: cast.salienceProfile,
             ...creationLanguageMetadata(input, promptLanguage),
         },
+    };
+    const gateCtx = withGateContext(ctx, input);
+    if (!isExplicitFoundationNewContract(gateCtx, input))
+        return created;
+    const checked = await checkFoundationApproval(gateCtx, {
+        foundation: created.foundation,
+        revision: 1,
+        promptLanguage,
+        workContract: input.workContract ?? promptLanguage.contract,
+        language: input.language,
+        planSource: {
+            kind: 'foundation',
+            title: input.title,
+            genre: input.genre,
+            brief: input.brief ?? '',
+            revision: 1,
+        },
+        validationReceipt: input.validationReceipt,
+        languageCompliance: input.languageCompliance,
+    });
+    return {
+        foundation: checked.foundation,
+        canonicalApprovalArtifact: checked.canonicalApprovalArtifact,
+        validationReceipt: checked.validationReceipt,
     };
 }
 /**

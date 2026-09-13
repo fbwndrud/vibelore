@@ -28,6 +28,11 @@
 import { registerCharacter, } from '../../continuity/foundation.js';
 import { normalizeDramaticModel, normalizeIdentityIntrinsic } from '../../continuity/character-design.js';
 import { languageSystemLines, resolveStepPromptLanguage } from '../../core/prompt-language.js';
+import {
+    checkFoundationApproval,
+    isExplicitFoundationNewContract,
+} from '../text/foundation-validation.js';
+import { withGateContext } from '../text/chapter-validation.js';
 import { buildReviseFoundationUserPrompt, reviseFoundationSystemFor, } from '../text/prompts/revise-foundation.js';
 function asString(v, fallback = '') {
     return typeof v === 'string' ? v : fallback;
@@ -366,5 +371,34 @@ export async function reviseFoundation(input) {
         existingIds.add(character.id);
         autoNewSeq += 1;
     }
-    return { foundation };
+    const result = { foundation };
+    const gateCtx = withGateContext({
+        workId: current.workId,
+        providers: input.providers,
+        model: input.model,
+        validationEpoch: input.validationEpoch,
+        validationReceipt: input.validationReceipt,
+        workflowId: input.workflowId,
+        runId: input.runId,
+        workContract: input.workContract,
+        language: input.language,
+    }, input);
+    if (!isExplicitFoundationNewContract(gateCtx, { ...input, foundation: current }))
+        return result;
+    const revision = (typeof current.revision === 'number' ? current.revision : 0) + 1;
+    const checked = await checkFoundationApproval(gateCtx, {
+        foundation,
+        revision,
+        promptLanguage,
+        workContract: input.workContract,
+        language: input.language,
+        planSource: { kind: 'foundation-revise', workId: current.workId, revision, feedback },
+        validationReceipt: input.validationReceipt,
+        languageCompliance: input.languageCompliance,
+    });
+    return {
+        foundation: checked.foundation,
+        canonicalApprovalArtifact: checked.canonicalApprovalArtifact,
+        validationReceipt: checked.validationReceipt,
+    };
 }

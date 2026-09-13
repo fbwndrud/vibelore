@@ -157,8 +157,7 @@ describe('engine integration — end-to-end', () => {
             title: '테스트 작품',
             genre: 'noble-clan-regression',
             brief: '회귀 후 가문 재건',
-            language: 'ko',
-            targetChapters: 3,
+                    targetChapters: 3,
             chapterWordCount: 1500,
         });
         expect(foundation.workId).toBe(WORK_ID);

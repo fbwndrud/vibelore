@@ -47,6 +47,17 @@ import { ENGINE_GENRES } from '../../../continuity/genre-profile.js';
 import { resolveNarrator } from '../../../continuity/pov-narrator.js';
 import { checkPov } from '../../../continuity/pov-check.js';
 import { DEFAULT_ERA_RESEARCH_BUDGET, NULL_ERA_RESEARCH_PROVIDER, runEraResearch, } from '../../../core/era-research.js';
+import {
+    VALIDATION_ERROR_CODES,
+    ValidationContractError,
+} from '../../../core/validation-contract.js';
+import {
+    checkChapterPublication,
+    consumeChapterPublication,
+    isExplicitNewContractContext,
+    prepareChapterPublication,
+    withGateContext,
+} from '../chapter-validation.js';
 import { runChapterPlan } from './chapter-plan.js';
 import { runChapterSummary } from './chapter-summary.js';
 import { runCoherenceJudge } from './coherence-judge.js';
@@ -309,7 +320,35 @@ export async function draftPhase(ctx, input) {
  * Persistence (saveStoryState + saveArtifact) only happens on the success
  * path — a thrown error leaves the StateStore untouched.
  */
+export function throwPreparedFailure(prepared, chapterNumber) {
+    if (prepared.failure === 'sanitize-leak')
+        throw new SanitizeLeakError(prepared.message);
+    if (prepared.failure === 'continuity')
+        throw new ContinuityFailure(prepared.violations);
+    if (prepared.failure === 'quality')
+        throw new QualityGateFailure(chapterNumber, prepared.fails, prepared.violations);
+    throw new Error(`ChapterWrite: unpublished validation failure ${prepared.failure ?? 'unknown'}`);
+}
+
+async function commitNewContract(ctx, args) {
+    const receipt = args.validationReceipt ?? args.receipt ?? ctx.validationReceipt ?? null;
+    const canonical = args.canonical ?? args.canonicalArtifact ?? null;
+    if (receipt == null || canonical == null)
+        throw new ValidationContractError(VALIDATION_ERROR_CODES.MISSING_VALIDATION_RECEIPT, {
+            reason: receipt == null ? 'absent' : 'missing_canonical_artifact',
+        });
+    return consumeChapterPublication(ctx, {
+        ...args,
+        validationReceipt: receipt,
+        canonical,
+        receipt,
+    });
+}
+
 export async function commitPhase(ctx, args) {
+    const storedFoundation = await ctx.state.loadFoundation(ctx.workId);
+    if (isExplicitNewContractContext(ctx, { ...args, foundation: storedFoundation }))
+        return commitNewContract(ctx, args);
     const { prose: raw, foundation, prevState, chapterNumber } = args;
     // 다국어 Phase 2A — commit 단계의 LLM 호출(coherence judge / chapter summary)도
     // draft 와 같은 계약을 본다. 원천은 draftPhase 와 동일하게 저장된 Foundation
@@ -540,6 +579,19 @@ export async function commitPhase(ctx, args) {
  * `performChapterWriteBounded` from `chapter-write-with-revise.ts`.
  */
 export async function performChapterWrite(ctx, input) {
-    const drafted = await draftPhase(ctx, input);
+    const gateCtx = withGateContext(ctx, input);
+    const drafted = await draftPhase(gateCtx, input);
+    if (isExplicitNewContractContext(gateCtx, { ...input, foundation: drafted.foundation })) {
+        const prepared = await prepareChapterPublication(gateCtx, { ...drafted, ...input });
+        if (!prepared.ok)
+            throwPreparedFailure(prepared, drafted.chapterNumber);
+        const checked = await checkChapterPublication(gateCtx, prepared);
+        return commitPhase(gateCtx, {
+            ...drafted,
+            ...checked,
+            validationReceipt: checked.receipt,
+            canonical: checked.canonical,
+        });
+    }
     return commitPhase(ctx, drafted);
 }

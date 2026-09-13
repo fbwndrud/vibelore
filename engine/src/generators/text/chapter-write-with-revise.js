@@ -5,8 +5,14 @@
  * maxAttempts. Exhaustion or malformed metadata raises CleanFailError without
  * publishing a partial artifact. Callers opt in through performChapterWriteBounded.
  */
-import { ContinuityFailure, QualityGateFailure, SanitizeLeakError, commitPhase, draftPhase, } from './steps/chapter-write.js';
+import { ContinuityFailure, QualityGateFailure, SanitizeLeakError, commitPhase, draftPhase, throwPreparedFailure, } from './steps/chapter-write.js';
 import { resolveWorkPromptLanguage } from '../../core/prompt-language.js';
+import {
+    checkChapterPublication,
+    isExplicitNewContractContext,
+    prepareChapterPublication,
+    withGateContext,
+} from './chapter-validation.js';
 import { runRevise } from './steps/revise.js';
 /**
  * Bounded-loop exhaustion error. Carries the last set of continuity
@@ -52,8 +58,45 @@ export async function runBoundedCommitLoop(ctx, input, opts = {}) {
     });
     let currentProse = input.initialProse;
     let lastViolations = [];
+    const gateCtx = withGateContext(ctx, input);
+    const newContract = isExplicitNewContractContext(gateCtx, input);
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
+            if (newContract) {
+                const prepared = await prepareChapterPublication(gateCtx, {
+                    prose: currentProse,
+                    foundation,
+                    prevState,
+                    chapterNumber,
+                    plan,
+                    title: input.title,
+                    summary: input.summary,
+                    sensitiveMode: input.sensitiveMode,
+                });
+                if (!prepared.ok)
+                    throwPreparedFailure(prepared, chapterNumber);
+                const checked = await checkChapterPublication(gateCtx, prepared);
+                const result = await commitPhase(gateCtx, {
+                    prose: currentProse,
+                    foundation,
+                    prevState,
+                    chapterNumber,
+                    plan,
+                    validationReceipt: checked.receipt,
+                    canonical: checked.canonical,
+                    languageCompliance: checked.languageCompliance,
+                    coverage: checked.coverage,
+                    checkerPlan: checked.checkerPlan,
+                    identity: checked.identity,
+                });
+                ctx.log.info(`${logPrefix}:passed`, {
+                    jobId: ctx.jobId,
+                    workId: ctx.workId,
+                    chapterNumber,
+                    attempt,
+                });
+                return result;
+            }
             const result = await commitPhase(ctx, {
                 prose: currentProse,
                 foundation,
@@ -174,13 +217,17 @@ export async function runBoundedCommitLoop(ctx, input, opts = {}) {
  */
 export async function performChapterWriteBounded(ctx, input, opts = {}) {
     // 1. draftPhase once — expensive, no point re-running on a continuity fail.
-    const drafted = await draftPhase(ctx, input);
-    return runBoundedCommitLoop(ctx, {
+    const gateCtx = withGateContext(ctx, input);
+    const drafted = await draftPhase(gateCtx, input);
+    return runBoundedCommitLoop(gateCtx, {
         initialProse: drafted.prose,
         foundation: drafted.foundation,
         prevState: drafted.prevState,
         chapterNumber: drafted.chapterNumber,
         plan: drafted.plan,
         logPrefix: 'chapter-write-bounded',
+        title: input.title,
+        summary: input.summary,
+        sensitiveMode: input.sensitiveMode,
     }, opts);
 }

@@ -53,7 +53,6 @@ const BASE_INPUT = {
     title: '강철의 회귀자',
     genre: 'regression-hunter',
     brief: '20년 후 미래에서 회귀한 헌터의 복수극.',
-    language: 'ko',
     targetChapters: 50,
     chapterWordCount: 4000,
 };

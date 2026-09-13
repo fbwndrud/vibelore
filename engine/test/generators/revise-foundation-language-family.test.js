@@ -1,3 +1,4 @@
+import { validationFixtureResponse } from '../_support/validation-responses.mjs';
 /**
  * reviseFoundation — 다국어 Phase 2A 계열 (최종 provider messages 기준).
  *
@@ -53,7 +54,7 @@ function capturingProvider() {
         providers: {
             async complete(req) {
                 requests.push(req);
-                return { text: PATCH, model: req.model };
+                return { text: validationFixtureResponse(req, PATCH), model: req.model };
             },
         },
     };
@@ -66,6 +67,7 @@ async function capture({ current, ...extra } = {}) {
     const { providers, requests } = capturingProvider();
     const result = await reviseFoundation({
         current: stored,
+        ...((stored.language || stored.workContract) ? { workflowId: 'wf-foundation-capture', validationEpoch: 1 } : {}),
         feedback: 'FEEDBACK_TOKEN 주인공을 더 나이 들게 해 주세요.',
         providers,
         model: MODEL,

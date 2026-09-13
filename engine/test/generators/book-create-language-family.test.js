@@ -1,3 +1,4 @@
+import { validationFixtureResponse } from '../_support/validation-responses.mjs';
 /**
  * performBookCreate (worldbuild + cast-design) — 다국어 Phase 2A 계열과 생성
  * 메타데이터 (최종 provider messages 기준).
@@ -63,7 +64,7 @@ function capturingCtx() {
                 has: () => true,
                 async complete(req) {
                     requests.push(req);
-                    const text = responses[Math.min(call, responses.length - 1)];
+                    const text = validationFixtureResponse(req, responses[Math.min(call, responses.length - 1)]);
                     call += 1;
                     return { text, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } };
                 },
@@ -87,6 +88,7 @@ function partsOf(req) {
 }
 async function capture(extra = {}) {
     const { ctx, requests } = capturingCtx();
+    if (extra.language || extra.workContract) Object.assign(ctx, { workflowId: 'wf-capture', validationEpoch: 1 });
     const { foundation } = await performBookCreate(ctx, { ...BASE_INPUT, ...extra });
     return {
         foundation,
@@ -173,10 +175,11 @@ describe('book-create — 생성 언어 메타데이터', () => {
         expect(foundation.canonicalFormatVersion).toBe(CANONICAL_FORMAT_VERSION_LEGACY_KO);
         expect(foundation.workContract.promptFamily).toBe('ko');
     });
-    it('승인된 workContract 는 객체 그대로 보존된다', async () => {
+    it('승인 시 계약의 언어와 분량을 보존하고 대사 모드를 고정한다', async () => {
         const contract = buildLanguageContract({ language: 'en', length: { unit: 'words', target: 900 } });
         const { foundation } = await capture({ workContract: contract, chapterWordCount: null });
-        expect(foundation.workContract).toBe(contract);
+        expect(foundation.workContract.language).toBe(contract.language);
+        expect(foundation.workContract.formatPolicy.dialogueBreakMode).toBe('natural');
         expect(foundation.language).toBe('en');
         expect(foundation.length).toEqual({ unit: 'words', target: 900 });
         expect(foundation.canonicalFormatVersion).toBe(contract.formatPolicy.canonicalFormatVersion);
@@ -288,7 +291,7 @@ describe('book-create → chapter-write 언어 상속', () => {
                         kind = 'continuityCheck';
                     }
                     calls.push({ kind, request: req });
-                    return { text, usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 } };
+                    return { text: validationFixtureResponse(req, text), usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 } };
                 },
             },
         };
@@ -306,6 +309,7 @@ describe('book-create → chapter-write 언어 상속', () => {
             sanitizer: new DefaultOutputSanitizer(),
             log: { info: () => undefined, warn: () => undefined, error: () => undefined, debug: () => undefined },
         };
+        if (foundation.workContract) Object.assign(ctx, { workflowId: 'wf-inherit', validationEpoch: 1 });
         await performChapterWriteBounded(ctx, { chapterNumber: 1 });
     }
     it('저장된 ja 계약을 집필이 물려받는다 — ctx 인자 없이도 ko 로 떨어지지 않는다', async () => {

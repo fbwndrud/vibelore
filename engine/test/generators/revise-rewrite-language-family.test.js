@@ -1,3 +1,4 @@
+import { validationFixtureResponse } from '../_support/validation-responses.mjs';
 /**
  * revise / rewrite — 다국어 Phase 2A 계열 (최종 provider messages 기준).
  *
@@ -185,7 +186,7 @@ describe('revise — 계열', () => {
             formatPolicy: { ...contract.formatPolicy, dialogueBreakMode: 'natural' },
         };
         await expect(captureRevise({ workContract: pinned, dialogueBreakMode: 'strict' }))
-            .rejects.toThrow(PROMPT_FORMAT_ERROR_CODES.FORMAT_POLICY_CONFLICT);
+            .rejects.toThrow(LanguagePolicyError);
     });
     it('구형 코드 단위 분량 계측은 legacyCodeUnits 계약에서만 인정한다', async () => {
         const ko = await captureRevise({
@@ -346,7 +347,7 @@ function boundedStubRegistry(continuitySequence) {
                     text = raw;
                 }
                 calls.push({ kind, request: req });
-                return { text, usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 } };
+                return { text: validationFixtureResponse(req, text), usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 } };
             },
         },
     };
@@ -372,6 +373,8 @@ describe('bounded loop — 작품 계약 배선', () => {
         });
         return {
             jobId: 'job-rr',
+            workflowId: 'wf-rr',
+            validationEpoch: 1,
             workId: 'work-rr',
             kind: 'chapter-write',
             model: MODEL,
