@@ -415,3 +415,27 @@ describe('checker registry', () => {
         expect(youthHardCoverage.failedRequired).toContain('SENSITIVE');
     });
 });
+
+
+describe('multilingual required FORMAT coverage', () => {
+    for (const language of ['en', 'ja', 'ar', 'fr', 'th']) {
+        it(`${language} cannot count a clean or skipped quote parser as format proof`, () => {
+            const plan = describeCheckerPlan({ language });
+            const row = plan.rows.find((item) => item.checkerId === 'scanWebnovelFormat');
+            expect(row.requiresSemantic).toBe(true);
+            expect(row.ifSkipped).toBe('semantic_required');
+            const result = runDetector('scanWebnovelFormat', () => ({ violations: [] }), { language });
+            const missing = aggregateCheckerCoverage(plan, [result], {});
+            expect(missing.invariants.FORMAT.coverage).toBe('unvalidated');
+            const passed = aggregateCheckerCoverage(plan, [result], { FORMAT: 'pass' });
+            expect(passed.invariants.FORMAT.coverage).toBe('validated');
+            const failed = aggregateCheckerCoverage(plan, [result], { FORMAT: 'fail' });
+            expect(failed.invariants.FORMAT.coverage).toBe('failed');
+        });
+    }
+    it('preserves Korean deterministic format behavior', () => {
+        const row = describeCheckerPlan({ language: 'ko' }).rows.find((item) => item.checkerId === 'scanWebnovelFormat');
+        expect(row.requiresSemantic).toBe(false);
+        expect(row.ifSkipped).toBe('none');
+    });
+});

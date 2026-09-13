@@ -414,12 +414,12 @@ export function describeCheckerPlan(input = {}) {
         runDetector: true,
         applicability: 'run',
         invariant: 'required',
-        ifSkipped: 'none',
+        ifSkipped: multilingual ? 'semantic_required' : 'none',
         skipReason: null,
-        requiresSemantic: false,
+        requiresSemantic: multilingual,
         exhaustive: false,
         formatMode,
-        notes: 'Isolation follows approved dialogueBreakMode; non-KO default is natural.',
+        notes: 'Isolation follows the approved mode. Non-Korean format also requires a semantic verdict because quote conventions exceed the deterministic parser.',
     });
 
     push({
