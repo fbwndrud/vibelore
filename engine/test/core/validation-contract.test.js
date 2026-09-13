@@ -2042,3 +2042,11 @@ describe('approval binding', () => {
         );
     });
 });
+
+
+it('treats extracted appearedCharacterIds as machine identifiers, not language evidence', () => {
+    const artifact = canonicalArtifact({ prose: PROSE, title: '扉', summary: '夜明け', semanticDelta: { appearedCharacterIds: ['c1'] }, castManifestRaw: '' });
+    const raw = { language: 'ja', verdict: 'pass', artifactHash: computeArtifactHash(artifact), evidence: [], allowedExceptions: [] };
+    expect(evaluateLanguageCompliance({ artifact, workContract: WORK_CONTRACT, compliance: raw }).satisfied).toBe(true);
+    expectCode(() => evaluateLanguageCompliance({ artifact, workContract: WORK_CONTRACT, compliance: { ...raw, verdict: 'fail', evidence: [{ fieldPath: 'semanticDelta.appearedCharacterIds[0]', quote: 'c1', reason: 'not Japanese' }] } }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
+});
