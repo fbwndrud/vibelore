@@ -2062,3 +2062,10 @@ it('classifies the concrete chapter summary and empty-change explanation schema'
  const artifact = bundle({ summary: { text: '扉が開く。', plotBeat: '一歩進む。', sceneTags: ['庭'], povCharacter: 'c1' }, semanticDelta: { noInfluenceReason: '状態は変わらない。', appearedCharacterIds: ['c1'] } });
  expect(evaluate(artifact).satisfied).toBe(true);
 });
+
+it('audits open entity attribute records while keeping surrounding operation IDs machine-bound',()=>{
+ const artifact=bundle({semanticDelta:{entityOps:[{op:'update',entityId:'loc-1',fields:{climate:'湿った風',type:'古い港'}}],trackedEntityOps:[{kind:'Artifact',data:{id:'item-1',attrs:{condition:'壊れている'},unusualObservation:'潮の香り'}}]}});
+ expect(evaluate(artifact).satisfied).toBe(true);
+ expect(evaluate(artifact,{verdict:'fail',evidence:[{fieldPath:'semanticDelta.entityOps[0].fields.climate',quote:'湿った風',reason:'Wrong target-language text in this test verdict.'}]}).verdict).toBe('fail');
+ expectCode(()=>evaluate(artifact,{verdict:'fail',evidence:[{fieldPath:'semanticDelta.trackedEntityOps[0].data.id',quote:'item-1',reason:'An ID cannot prove language failure.'}]}),VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
+});

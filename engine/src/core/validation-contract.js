@@ -34,7 +34,7 @@ export const VALIDATOR_VERSION = 'validation-contract-v1';
  * 언어 필드 분류기의 버전. 선언된 스키마 이름표가 바뀌면 올린다.
  * 호출자 투영과 함께 판정 hash · 영수증 신원에 묶인다.
  */
-export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 1;
+export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 2;
 /** 호출자가 추가 이름을 넘기지 않은 기본 투영. 기본 API 는 이 값으로 동작한다. */
 export const DEFAULT_LANGUAGE_FIELD_PROJECTION = Object.freeze({
     humanTextFields: Object.freeze([]),
@@ -766,6 +766,12 @@ function classifyLeafPath(keys, artifactKind, humanTextFields, isString) {
     const root = keys[0];
     const leaf = keys[keys.length - 1];
     const parent = keys.length >= 2 ? keys[keys.length - 2] : null;
+    // Actual entity schemas own open natural-language attribute records. A leaf
+    // named "type" inside attrs is descriptive content, unlike the op's enum.
+    const openAttributes = root === 'semanticDelta' && (
+        (keys[1] === 'entityOps' && keys[2] === 'fields' && keys.length > 3)
+        || (keys[1] === 'trackedEntityOps' && keys[2] === 'data' && keys[3] === 'attrs' && keys.length > 4));
+    if (openAttributes) return null;
     // 사용자가 쓴 브리프·피드백·인용은 작품 언어로 옮겨 쓰는 값이 아니다.
     if (keys.length > 1 && USER_PROVENANCE_FIELD_NAME_SET.has(leaf))
         return 'user_provenance_field';
@@ -774,6 +780,8 @@ function classifyLeafPath(keys, artifactKind, humanTextFields, isString) {
     // 판정은 **잎**에서 한다. `ops` 같은 구조 컨테이너는 그 아래 생성 문장을 면제하지 않는다.
     if (!humanByPath && keys.length > 1 && MACHINE_FIELD_NAME_SET.has(leaf))
         return 'machine_field';
+    // trackedEntityOps.data is an open schema record; machine leaves above stay exempt.
+    if (root === 'semanticDelta' && keys[1] === 'trackedEntityOps' && keys[2] === 'data' && keys.length > 3) return null;
     if (!MIXED_TEXT_ROOTS.has(root))
         return null;
     if (keys.length === 1) {
