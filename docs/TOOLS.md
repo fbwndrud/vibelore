@@ -36,6 +36,72 @@ flowchart LR
 | `project` | 아니오 | 작품 디렉터리 절대 경로. 생략 시 서버의 현재 디렉터리 |
 | `workId` | 대부분 | `[A-Za-z0-9_-]` 작품 식별자 |
 
+## 작품 언어와 분량 단위
+
+작품을 어떤 언어로 쓸지는 `language` 선택 인자 하나로 정해집니다. 이 절이 언어·분량 계약의
+단일 기준이며, 실제로 노출되는 인자 목록은 서버가 반환한 `tools/list` schema를 따릅니다.
+
+### `language` 인자
+
+`lore_profile`, `lore_init`, `lore_create`, `lore_write`가 받는 선택 인자입니다. 사용자가
+집필 언어를 자연어로 밝히면 호스트가 BCP 47 태그로 정규화해 넘깁니다 — 일본어 → `ja`,
+브라질 포르투갈어 → `pt-BR`, 번체 중국어 → `zh-Hant`. 식별 가능한 태그면 되고 소수의 허용
+목록으로 제한하지 않으며, 문자(script)와 지역(region) 하위 태그는 그대로 보존합니다.
+
+사용자가 언어를 고르지 않았으면 인자를 **생략합니다**. 생략은 이미 정해진 언어를 그대로
+쓴다는 뜻이며, 호스트나 schema가 기본값으로 `ko`를 채워 넣지 않습니다. 언어 키가 없는 기존
+프로필과 작품은 "미설정"이 아니라 이미 선택된 암묵적 `ko`입니다.
+
+대화 언어와 작품 언어는 별개입니다. 한국어로 대화하면서 `ja` 작품을 쓸 수 있습니다. 한
+호출에 서로 다른 언어가 둘 이상 들어오면 조용히 하나를 고르지 않고
+`LANGUAGE_SELECTION_REQUIRED`로 선택을 요청합니다.
+
+### 언제 정해지고 언제 잠기는가
+
+| 시점 | 규칙 |
+|---|---|
+| foundation 이전 (`lore_profile`, `lore_init`, `lore_create`) | 현재 프로필 revision의 언어가 기준 |
+| 언어 변경 | 새 프로필 revision을 만들어 다시 승인 (`lore_profile` → `lore_profile_decide`) |
+| foundation 생성 | 현재 승인된 revision의 언어로만 `lore_create` |
+| foundation 이후 (`lore_write` 등) | v1에서 작품 언어는 불변 |
+
+저장된 언어와 다른 값을 생성 경로에 넘기면 조용한 override가 아니라
+`LANGUAGE_CONTRACT_CONFLICT`입니다. 이미 만들어진 작품에 다른 언어를 넘기면
+`WORK_LANGUAGE_IMMUTABLE` 단언 실패이며, 본문 언어를 덮어쓰지 않고 새 작품을 안내합니다.
+저장된 값과 같은 값을 넘기는 것은 확인용으로 허용됩니다.
+
+### 프롬프트 계열
+
+base language가 `ko`면 한국어 특화 계열, 그 밖의 언어(영어 포함)는 영어 공통 지시문에 목표
+언어를 결합한 계열을 사용합니다. 목표 언어는 본문, 제목, 요약, 세계·인물 설명, 계획과 검토의
+설명 값에 적용됩니다. JSON 키, 기존 enum 값, ID, 경로, sentinel 태그처럼 기계가 읽는 안정
+값은 번역하지 않습니다.
+
+### 분량 단위
+
+분량은 단위를 명시합니다: `legacyCodeUnits`(JS 문자열 길이), `graphemes`(Unicode 문자군),
+`words`(목표 언어의 단어 단위). 기존 `chapterChars`, `chapterWordCount`, `targetChars`는
+이름과 무관하게 전부 `legacyCodeUnits`로 해석하며 다시 해석하지 않습니다. 기본값은 한국어
+계열이 `legacyCodeUnits`, 그 밖의 언어가 `graphemes`이며 단어 단위를 임의로 가정하지
+않습니다. 목표 언어가 단어 분할을 실제로 지원하지 않으면 `UNSUPPORTED_LENGTH_MEASUREMENT`로
+알리고 `graphemes`를 제시합니다. 한 호출에서 단위나 목표가 어긋나게 중복 지정되면
+`LENGTH_CONTRACT_CONFLICT`입니다.
+
+### 검증과 승인 게이트
+
+새 언어 계약으로 만든 작품은 한국어 작품을 포함해 출력 언어를 검증합니다. 이미 승인·발행된
+구작 정본은 읽기만으로 소급 감사하지 않습니다.
+
+언어와 연속성은 필수 gate입니다. 필수 gate를 통과하지 못한 원고는 `auto`든 사용자의 명시
+승인이든 승인도 발행도 되지 않습니다. 필수 gate를 통과한 뒤 critic만 실패하거나 불완전한
+경우에만 `CRITIC_INCOMPLETE`와 함께 같은 원고를 승인 대기로 보존하는 경로를 사용합니다.
+
+수정은 최대 3회입니다. 소진하면 자동으로 다시 시작하지 않고 원고를 보존한 채 종료하며, 같은
+원고로 검증을 다시 돌리려면 `retryValidation=true`를 명시합니다.
+
+언어 검증은 출력 언어가 계약과 일치하는지를 판정하며, 언어별 표현이 원어민 수준인지는
+판정하지 않습니다.
+
 ## 작품 생성과 설계
 
 ### `lore_configure`
@@ -78,7 +144,7 @@ Published HEAD 이후 사람이 수정한 `world/`, `characters/`, `chapters/` M
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `genre` | `project`, `povMode`, `targetChapters`, `worldFacts[]` |
+| `workId`, `genre` | `project`, `povMode`, `targetChapters`, `worldFacts[]`, `language` |
 
 ### `lore_profile`
 
@@ -106,7 +172,7 @@ StoryProfile의 `readerLegibility`는 전문 지식 없이도 장면의 목표·
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `brief` | `project`, `mode: review\|auto`, `feedback` |
+| `workId`, `brief` | `project`, `mode: review\|auto`, `feedback`, `language` |
 
 ```json
 {
@@ -140,7 +206,7 @@ pending StoryProfile을 승인하거나 거절합니다.
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount` |
+| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `language` |
 
 ### `lore_story_plan`
 
@@ -295,7 +361,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `instruction`, `autonomy: guided\|auto`, `modelProfile` |
+| `workId` | `project`, `instruction`, `autonomy: guided\|auto`, `modelProfile`, `language`, `retryValidation` |
 
 ```json
 {
@@ -331,7 +397,9 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 요청은 없습니다.
 
 승인된 작품 약속·톤·서술 방향과 최대 두 개의 문체 예시가 실제 초고 요청에 들어갑니다.
-검토 실패나 불완전 응답은 `CRITIC_INCOMPLETE`와 함께 같은 원고를 승인 대기로 보존합니다.
+필수 gate(언어·연속성)를 통과한 뒤의 검토 실패나 불완전 응답은 `CRITIC_INCOMPLETE`와 함께
+같은 원고를 승인 대기로 보존합니다. 필수 gate 자체가 실패한 원고는 승인 대상이 아닙니다
+([작품 언어와 분량 단위](#검증과-승인-게이트)).
 `quality.review`에서 검토 완료·실패와 출처를 확인하고, `quality.advisories`에서 근거가 있는
 검토 의견을 읽을 수 있습니다. 높은 총점이 개별 지적을 삭제하지 않습니다.
 
