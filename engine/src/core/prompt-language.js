@@ -282,11 +282,22 @@ function foundationHasLanguageKey(foundation) {
 
 /**
  * 기존 작품의 생애 단계 — 공유 `resolveExistingWorkLanguage` 가 판정한다.
- * 키가 없으면 암묵적 ko, `language:null` / `workContract:null` 은 손상 상태다.
+ * 키가 없으면 암묵적 ko. 키가 있는데 값이 없으면 손상 상태다 — 다른 필드로
+ * 채워 넣지 않는다(`language:null` + 유효한 계약도 `INVALID_LANGUAGE_TAG`).
  */
 function assertExistingWorkLifecycle(foundation, requested) {
     if (foundation === null || foundation === undefined)
         return;
+    if ('language' in foundation && (foundation.language === null || foundation.language === undefined))
+        throw new LanguagePolicyError(LANGUAGE_ERROR_CODES.INVALID_LANGUAGE_TAG, {
+            reason: 'missing_stored_language',
+            scope: 'work',
+        });
+    if ('workContract' in foundation && (foundation.workContract === null || foundation.workContract === undefined))
+        throw new LanguagePolicyError(LANGUAGE_ERROR_CODES.INVALID_LENGTH_CONTRACT, {
+            scope: 'foundation',
+            reason: 'not_a_language_contract',
+        });
     const storedContract = foundation.workContract ?? null;
     const storedLanguage = foundation.language ?? null;
     resolveExistingWorkLanguage({
@@ -301,17 +312,16 @@ function assertExistingWorkLifecycle(foundation, requested) {
  * 같아도 조용히 하나를 고르지 않는다.
  */
 function assertStoredContractLanguage(foundation) {
-    const storedContract = foundation?.workContract ?? null;
-    const storedLanguage = foundation?.language ?? null;
-    if (storedContract === null || storedContract === undefined)
+    if (foundation === null || foundation === undefined || !('workContract' in foundation))
         return;
+    const storedContract = foundation.workContract;
     if (!isLanguageContract(storedContract))
         throw new LanguagePolicyError(LANGUAGE_ERROR_CODES.INVALID_LENGTH_CONTRACT, {
             scope: 'foundation',
             reason: 'not_a_language_contract',
         });
-    if (storedLanguage !== null && storedLanguage !== undefined)
-        resolvePromptLanguageContext({ workContract: storedContract, language: storedLanguage });
+    if ('language' in foundation)
+        resolvePromptLanguageContext({ workContract: storedContract, language: foundation.language });
 }
 
 function assertRequestedFields(contract, { language = null, length = null, legacyLength = null } = {}) {
@@ -364,6 +374,7 @@ function assertFoundationMatchesContext(ctx, foundation) {
     if (storedContract !== null && storedContract !== undefined) {
         assertSameContract(storedContract, ctx.contract);
         assertSameLength(ctx, foundation.length ?? null, 'foundation');
+        assertStoredCanonicalFormat(ctx, foundation);
         return;
     }
     if (storedLanguage !== null && storedLanguage !== undefined)
@@ -423,6 +434,7 @@ export function resolveWorkPromptLanguage(input = {}) {
         if (workContract !== null && workContract !== undefined)
             assertSameContract(ctx.contract, workContract);
         assertSameLength(ctx, storedLength, 'foundation');
+        assertStoredCanonicalFormat(ctx, foundation);
         assertRequestedFields(ctx.contract, { language, length, legacyLength });
         return ctx;
     }
@@ -440,19 +452,25 @@ export function resolveWorkPromptLanguage(input = {}) {
                 resolvePromptLanguageContext({ workContract: ctx.contract, language });
             return ctx;
         }
-        // 계약 없이 `language` 만 저장한 작품은 저장된 분량·정본 포맷으로 계약을
-        // 조립한다. 저장된 분량은 `resolveLengthContract` 의 storedLength(기본값)다.
-        const storedFormatVersion = foundation?.canonicalFormatVersion ?? null;
+        // 계약 없이 `language` 만 저장한 작품. 저장된 분량·포맷 키가 있으면 그
+        // 값이 제약이고, 없는 필드는 기본값을 만들어 강요하지 않는다.
+        const formatKeyPresent = 'canonicalFormatVersion' in foundation;
         const ctx = resolvePromptLanguageContext({
             workContract: buildLanguageContract({
                 language: storedLanguage,
                 length,
                 legacyLength,
                 storedLength,
-                storedCanonicalFormatVersion: storedFormatVersion,
-                ...(storedFormatVersion === null ? {} : { storedFormatVersionKeyPresent: true }),
+                ...(formatKeyPresent
+                    ? {
+                        storedCanonicalFormatVersion: foundation.canonicalFormatVersion,
+                        storedFormatVersionKeyPresent: true,
+                    }
+                    : {}),
             }),
         });
+        assertSameLength(ctx, storedLength, 'foundation');
+        assertStoredCanonicalFormat(ctx, foundation);
         if (language !== null)
             resolvePromptLanguageContext({ workContract: ctx.contract, language });
         return ctx;
