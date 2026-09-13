@@ -25,6 +25,7 @@
 import { EMPTY_SCENE, renderEntityContext, resolveEntityContext } from '../../core/entity-context.js';
 import { scanEntityMentions } from '../../core/mention-scan.js';
 import { emptyStoryState } from '../../continuity/story-state.js';
+import { resolveWorkPromptLanguage } from '../../core/prompt-language.js';
 import { runBoundedCommitLoop, } from './chapter-write-with-revise.js';
 import { runRewrite } from './steps/rewrite.js';
 /**
@@ -44,6 +45,14 @@ export async function performChapterRewriteBounded(ctx, input, opts = {}) {
     if (!foundation) {
         throw new Error(`ChapterRewrite: foundation not found for work ${ctx.workId}`);
     }
+    // 다국어 Phase 2A — 다시쓰기와 이어지는 수정/commit 이 같은 계약을 본다. 원천은
+    // 저장된 Foundation 메타데이터이며 호출 인자는 확인용이다.
+    const promptLanguage = resolveWorkPromptLanguage({
+        foundation,
+        workContract: ctx.workContract ?? null,
+        language: ctx.language ?? null,
+        length: ctx.length ?? null,
+    });
     // prevState = StoryState committed after chapter N-1. This is the continuity
     // anchor — we read it but never mutate it. chapter 1 has no predecessor.
     let prevState;
@@ -81,7 +90,7 @@ export async function performChapterRewriteBounded(ctx, input, opts = {}) {
                         scene: { ...EMPTY_SCENE, additionalRefs: mention.mentionedIds },
                         snapshots,
                     });
-                    entityContextRender = renderEntityContext(ctxRes);
+                    entityContextRender = renderEntityContext(ctxRes, promptLanguage);
                     ctx.log.info('chapter-rewrite:mention-activated', {
                         workId: ctx.workId,
                         chapterNumber,
@@ -111,6 +120,8 @@ export async function performChapterRewriteBounded(ctx, input, opts = {}) {
         entityContextRender,
         providers: ctx.providers,
         model: ctx.model,
+        promptLanguage,
+        dialogueBreakMode: ctx.dialogueBreakMode ?? null,
     });
     // 2. Shared bounded commit/revise loop — identical semantics to chapter-write.
     return runBoundedCommitLoop(ctx, {

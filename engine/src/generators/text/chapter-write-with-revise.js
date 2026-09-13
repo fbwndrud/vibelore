@@ -6,6 +6,7 @@
  * publishing a partial artifact. Callers opt in through performChapterWriteBounded.
  */
 import { ContinuityFailure, QualityGateFailure, SanitizeLeakError, commitPhase, draftPhase, } from './steps/chapter-write.js';
+import { resolveWorkPromptLanguage } from '../../core/prompt-language.js';
 import { runRevise } from './steps/revise.js';
 /**
  * Bounded-loop exhaustion error. Carries the last set of continuity
@@ -40,6 +41,15 @@ const DEFAULT_MAX_ATTEMPTS = 3;
 export async function runBoundedCommitLoop(ctx, input, opts = {}) {
     const maxAttempts = Math.max(1, opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
     const { foundation, prevState, chapterNumber, plan, logPrefix } = input;
+    // 다국어 Phase 2A — 수정 단계도 draft/commit 과 같은 계약을 본다. 원천은 저장된
+    // Foundation 메타데이터이며, 언어 메타데이터가 없는 구형 작품은 revise 프롬프트가
+    // 기존과 동일하다.
+    const promptLanguage = resolveWorkPromptLanguage({
+        foundation,
+        workContract: ctx.workContract ?? null,
+        language: ctx.language ?? null,
+        length: ctx.length ?? null,
+    });
     let currentProse = input.initialProse;
     let lastViolations = [];
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -87,6 +97,8 @@ export async function runBoundedCommitLoop(ctx, input, opts = {}) {
                     chapterNumber,
                     providers: ctx.providers,
                     model: ctx.model,
+                    promptLanguage,
+                    dialogueBreakMode: ctx.dialogueBreakMode ?? null,
                 });
                 currentProse = revisedProse;
                 continue;
@@ -119,6 +131,8 @@ export async function runBoundedCommitLoop(ctx, input, opts = {}) {
                     chapterNumber,
                     providers: ctx.providers,
                     model: ctx.model,
+                    promptLanguage,
+                    dialogueBreakMode: ctx.dialogueBreakMode ?? null,
                 });
                 currentProse = revisedProse;
                 continue;

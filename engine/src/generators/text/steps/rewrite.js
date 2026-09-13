@@ -15,7 +15,8 @@
  *
  */
 import { resolveCharacter } from '../../../continuity/foundation.js';
-import { REWRITE_SYSTEM, buildRewriteUserPrompt, } from '../prompts/rewrite.js';
+import { languageSystemLines, resolveStepPromptLanguage } from '../../../core/prompt-language.js';
+import { buildRewriteUserPrompt, rewriteSystemFor, } from '../prompts/rewrite.js';
 import { isHookActive } from '../../../continuity/story-state.js';
 /**
  * Project the Foundation into the compact context the rewrite prompt needs:
@@ -92,9 +93,12 @@ function buildPrevStateSummary(prevState) {
  * `commitPhase`, retrying with `runRevise` on continuity HARD FAIL.
  */
 export async function runRewrite(input) {
+    // 다국어 Phase 2A — system 과 user 가 같은 계약을 본다. 계약도 언어도 없으면
+    // 구형 ko 해석이라 프롬프트가 기존과 동일하다.
+    const promptLanguage = resolveStepPromptLanguage(input);
     const userPrompt = buildRewriteUserPrompt({
         chapterNumber: input.chapterNumber,
-        language: input.language ?? 'ko',
+        promptLanguage,
         intentSummary: input.intentSummary,
         previousProse: input.previousProse,
         foundationContext: buildFoundationContext(input.foundation, input.chapterNumber),
@@ -107,7 +111,18 @@ export async function runRewrite(input) {
         // No jsonMode — rewrite output is prose + a single trailing sentinel block.
         step: 'rewrite',
         messages: [
-            { role: 'system', content: REWRITE_SYSTEM },
+            {
+                role: 'system',
+                content: [
+                    rewriteSystemFor(promptLanguage, {
+                        // 승인된 대사·문단 모드. 계약 고정값과 어긋나면 오류.
+                        dialogueBreakMode: input.dialogueBreakMode ?? null,
+                    }),
+                    // 다시쓰기 분량은 **원본 대비 ±20%**(규칙 5)라 회차 분량 목표
+                    // 줄은 뺀다 — 한 프롬프트에 서로 다른 분량 기준을 싣지 않는다.
+                    ...languageSystemLines(promptLanguage, { includeChapterLength: false }),
+                ].join(' '),
+            },
             { role: 'user', content: userPrompt },
         ],
     });

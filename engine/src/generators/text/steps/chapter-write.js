@@ -23,6 +23,7 @@
  */
 import { renderEntityContext, resolveEntityContext } from '../../../core/entity-context.js';
 import { scanEntityMentions } from '../../../core/mention-scan.js';
+import { resolveWorkPromptLanguage } from '../../../core/prompt-language.js';
 import { buildSlidingWindow, renderSlidingWindow } from '../../../core/sliding-window.js';
 import { DefaultHonorificLexicon } from '../../../continuity/honorific-lexicon.js';
 import { continuityCheck, extractDelta, } from '../../../continuity/continuity-check.js';
@@ -155,6 +156,17 @@ export async function draftPhase(ctx, input) {
     if (!foundation) {
         throw new Error(`ChapterWrite: foundation not found for work ${ctx.workId}`);
     }
+    // 다국어 Phase 2A — 작품 언어 계약. **저장된 Foundation 메타데이터가 원천**이라
+    // 생성 때 정한 언어가 이후 집필 호출에서 인자를 다시 받지 않아도 유지된다.
+    // `ctx.workContract`/`ctx.language` 는 확인용이며 어긋나면 거부한다. 언어
+    // 메타데이터가 없는 구형 작품은 호출자 인자대로(없으면 암묵적 ko)라 프롬프트가
+    // 기존과 동일하다.
+    const promptLanguage = resolveWorkPromptLanguage({
+        foundation,
+        workContract: ctx.workContract ?? null,
+        language: ctx.language ?? null,
+        length: ctx.length ?? null,
+    });
     let prevState;
     if (chapterNumber === 1) {
         prevState = emptyStoryState(ctx.workId);
@@ -183,6 +195,7 @@ export async function draftPhase(ctx, input) {
         providers: ctx.providers,
         model: ctx.model,
         arc: ctx.arc,
+        promptLanguage,
     });
     const { plan, scene, tension, openingContract } = planOutput;
     // 3. ADR-0001 (#215) — sliding window 묶음 (최근 N 화 ChapterSummary).
@@ -197,7 +210,7 @@ export async function draftPhase(ctx, input) {
                 currentChapter: chapterNumber,
                 state: ctx.state,
             });
-            slidingWindowRender = renderSlidingWindow(window);
+            slidingWindowRender = renderSlidingWindow(window, promptLanguage);
         }
     }
     catch (err) {
@@ -248,7 +261,7 @@ export async function draftPhase(ctx, input) {
                 }
             }
             const ctxRes = resolveEntityContext({ scene: effectiveScene, snapshots });
-            entityContextRender = renderEntityContext(ctxRes);
+            entityContextRender = renderEntityContext(ctxRes, promptLanguage);
         }
     }
     catch (err) {
@@ -278,6 +291,10 @@ export async function draftPhase(ctx, input) {
         // Engine Version Management Phase J (§11.2) — author custom prompt override.
         // NULL 이면 draft.ts 가 override 블록 생략 (legacy 작품 byte-identical).
         customPromptOverride: ctx.customPromptOverride,
+        promptLanguage,
+        // 승인된 포맷 정책(대사 문단 모드). 계약에 고정돼 있으면 계약이 이기고,
+        // 어긋나면 조용히 덮지 않고 오류다. NULL 이면 계열 기본값.
+        dialogueBreakMode: ctx.dialogueBreakMode ?? null,
     });
     return { prose: raw, foundation, prevState, chapterNumber, plan };
 }
@@ -294,6 +311,15 @@ export async function draftPhase(ctx, input) {
  */
 export async function commitPhase(ctx, args) {
     const { prose: raw, foundation, prevState, chapterNumber } = args;
+    // 다국어 Phase 2A — commit 단계의 LLM 호출(coherence judge / chapter summary)도
+    // draft 와 같은 계약을 본다. 원천은 draftPhase 와 동일하게 저장된 Foundation
+    // 메타데이터이며, 언어 메타데이터가 없는 구형 작품은 프롬프트가 기존과 같다.
+    const promptLanguage = resolveWorkPromptLanguage({
+        foundation,
+        workContract: ctx.workContract ?? null,
+        language: ctx.language ?? null,
+        length: ctx.length ?? null,
+    });
     // 4. extractDelta ──────────────────────────────────────────────────────────
     // cast-manifest sentinel parsed BEFORE sanitize (sanitize strips it).
     const manifestBlock = ctx.sanitizer.extractBlock(raw, 'cast-manifest');
@@ -410,6 +436,7 @@ export async function commitPhase(ctx, args) {
                 plan: args.plan,
                 writerModel: ctx.model,
                 providers: ctx.providers,
+                promptLanguage,
             });
         }
         const qualityResult = evaluateChapterQuality({
@@ -457,6 +484,12 @@ export async function commitPhase(ctx, args) {
     // ADR-0001 (#215) — chapter summary 영속. fail-soft: runChapterSummary 의
     // 자체 fallback + 영속 fail swallow → chapter 발행 영향 0. saveChapterSummary
     // 미구현 legacy StateStore 도 skip.
+    //
+    // ⚠ phase 3(영수증/발행 게이트 소유자) 확인 지점: 이 요약 생성은 위의
+    // `saveStoryState` + `saveArtifact` **뒤** 에 일어난다. 즉 회차 산출물이 이미
+    // 저장된 뒤 요약 LLM 이 돈다. 발행/승인 게이트가 요약까지 포함한 영수증을
+    // 요구한다면 이 순서를 게이트 쪽에서 다뤄야 한다 — 이번 범위(2A)는 프롬프트
+    // 언어/분량 배선만 하고 기존 순서를 그대로 보존한다.
     if (typeof ctx.state.saveChapterSummary === 'function') {
         try {
             const summary = await runChapterSummary({
@@ -464,6 +497,10 @@ export async function commitPhase(ctx, args) {
                 chapterNumber,
                 writerModel: ctx.model,
                 providers: ctx.providers,
+                promptLanguage,
+                // 요약 분량은 회차 분량 계약이 아니다. 호스트가 계약 단위로 명시하면
+                // 그것을, 없으면 계약 단위의 기본 요약 목표를 쓴다.
+                summaryLength: ctx.summaryLength ?? null,
             });
             await ctx.state.saveChapterSummary({
                 workId: ctx.workId,

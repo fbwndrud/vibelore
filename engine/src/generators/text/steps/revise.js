@@ -10,7 +10,8 @@
  *
  */
 import { resolveCharacter } from '../../../continuity/foundation.js';
-import { REVISE_PATCH_SYSTEM, REVISE_SYSTEM, buildRevisePatchUserPrompt, buildReviseUserPrompt, } from '../prompts/revise.js';
+import { languageSystemLines, resolveStepPromptLanguage } from '../../../core/prompt-language.js';
+import { buildRevisePatchUserPrompt, buildReviseUserPrompt, reviseSystemFor, } from '../prompts/revise.js';
 /**
  * Map a continuity-check violation into the prompt-facing ReviseViolation
  * shape. Severity is preserved verbatim; the prompt-level `ReviseViolation`
@@ -26,6 +27,10 @@ function toPromptViolation(v) {
         minChars: Number.isFinite(v.minChars) ? v.minChars : undefined,
         targetChars: Number.isFinite(v.targetChars) ? v.targetChars : undefined,
         recommendedChars: Number.isFinite(v.recommendedChars) ? v.recommendedChars : undefined,
+        // 다국어 Phase 2A — 계약 단위로 계측한 분량(`{unit, actual, min, recommended}`).
+        // 검사기가 계약 단위로 재면 이 필드로 오고, 프롬프트는 그 단위로만 말한다.
+        // 구형 `*Chars` 는 이름 그대로 legacyCodeUnits 계측값이다.
+        lengthMeasurement: v.lengthMeasurement,
         span: v.span,
     };
 }
@@ -181,9 +186,12 @@ export async function runRevise(input) {
         // tolerate it by returning the prose unchanged.
         return { revisedProse: input.prose };
     }
+    // 다국어 Phase 2A — system 과 user 가 같은 계약을 보도록 한 번만 해석한다.
+    // 계약도 언어도 없으면 구형 ko 해석이라 프롬프트가 기존과 동일하다.
+    const promptLanguage = resolveStepPromptLanguage(input);
     const promptInput = {
         chapterNumber: input.chapterNumber,
-        language: input.language ?? 'ko',
+        promptLanguage,
         originalProse: input.prose,
         violations: input.violations.map(toPromptViolation),
         foundationContext: buildFoundationContext(input.foundation, input.chapterNumber, input.violations),
@@ -198,7 +206,20 @@ export async function runRevise(input) {
         ...(patchMode ? { jsonMode: true } : {}),
         step: 'revise',
         messages: [
-            { role: 'system', content: patchMode ? REVISE_PATCH_SYSTEM : REVISE_SYSTEM },
+            {
+                role: 'system',
+                content: [
+                    reviseSystemFor(promptLanguage, {
+                        // 승인된 포맷 정책(대사·문단 모드). 계약에 고정돼 있으면 계약이
+                        // 이기고, 어긋난 값을 함께 넘기면 조용히 덮지 않고 오류다.
+                        dialogueBreakMode: input.dialogueBreakMode ?? null,
+                        patchMode,
+                    }),
+                    // 이 단계의 분량 기준은 위반이 지시한 **수정 목표**다. 회차 분량
+                    // 목표 줄은 빼고 user 프롬프트의 분량 수정 계약만 말한다.
+                    ...languageSystemLines(promptLanguage, { includeChapterLength: false }),
+                ].join(' '),
+            },
             { role: 'user', content: userPrompt },
         ],
     });

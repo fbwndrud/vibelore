@@ -11,6 +11,7 @@
  * Stage B+ 에서 driftDetector, next-arc-proposal, exit-echo 가 이 컨텍스트를
  * 확장한다. Stage A 는 골격만 (promise + position + estimated).
  */
+import { pickByFamily } from './prompt-language.js';
 /**
  * 5-구간 자동 산출 — currentChapter/estimatedEpisodes ratio.
  *
@@ -39,7 +40,7 @@ export function arcPositionFromRatio(currentChapterInArc, estimatedEpisodes) {
         return 'falling';
     return 'closing';
 }
-/** Arc 5-구간 한국어 라벨 — prompt 헤더용. */
+/** Arc 5-구간 한국어 라벨 — ko 계열 prompt 헤더용. */
 export const ARC_POSITION_LABEL_KO = {
     opening: '도입 (Opening)',
     rising: '상승 (Rising)',
@@ -47,3 +48,24 @@ export const ARC_POSITION_LABEL_KO = {
     falling: '하강 (Falling)',
     closing: '종결 (Closing)',
 };
+/**
+ * 다국어 계열 라벨. 구간 키(`opening` 등)는 기계 enum 이라 번역하지 않고,
+ * 사람이 읽는 라벨만 계열별로 고른다.
+ */
+export const ARC_POSITION_LABEL_EN = {
+    opening: 'Opening',
+    rising: 'Rising',
+    midpoint: 'Midpoint',
+    falling: 'Falling',
+    closing: 'Closing',
+};
+/**
+ * 계열별 구간 라벨. `context` 는 PromptLanguageContext / 언어 계약 / 생략 모두
+ * 허용하며, 생략 시 기존 ko 라벨을 그대로 돌려준다(구형 호출 호환).
+ */
+export function arcPositionLabel(position, context) {
+    const table = context === undefined || context === null
+        ? ARC_POSITION_LABEL_KO
+        : pickByFamily(context, { ko: ARC_POSITION_LABEL_KO, multilingual: ARC_POSITION_LABEL_EN });
+    return table[position] ?? position;
+}
