@@ -44,7 +44,7 @@ function machineLeaf(key, path, value) {
 function projectEntityAttributes(value) {
   if (typeof value === 'string') return { description: value };
   if (Array.isArray(value)) return value.map(projectEntityAttributes);
-  if (value && typeof value === 'object') return Object.entries(value).map(([id, item]) => ({ id, value: projectEntityAttributes(item) }));
+  if (value && typeof value === 'object') return { entries: Object.entries(value).map(([id, item]) => ({ id, value: projectEntityAttributes(item) })) };
   return value;
 }
 
