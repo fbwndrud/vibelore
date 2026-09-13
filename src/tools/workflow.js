@@ -29,7 +29,8 @@ import { createReviewAudit, reviewFindingAdvisories, reviewTimeoutMs } from '../
 import { compileDraftContract } from '../core/narrative-contract.js';
 import { assertCurrentChapterReceipt, currentValidationContext, sameIdentity, exceptionOnlyRebind, loadValidationSession, invalidateValidationSession } from '../core/validation-context.js';
 import { buildApprovalBinding, validateApprovalBinding } from '../../engine/src/core/validation-contract.js';
-import { resolveWorkLanguage } from '../core/work-language.js';
+import { promptKit } from '../prompts/index.js';
+import { resolveWorkLanguage, executionFoundationSnapshot } from '../core/work-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { normalizeModelProfile, withModelProfile } from '../core/model-profile.js';
 
@@ -212,7 +213,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   }
   const chapters = await store.listChapters();
   const chapter = (chapters.at(-1) ?? 0) + 1;
-  const foundation = await store.loadFoundation(workId);
+  let foundation = await store.loadFoundation(workId);
   const profile = await store.loadStoryProfile(workId);
   const storySpine = await store.loadStorySpine(workId);
   const writerSkill = await store.loadWriterSkill(workId);
@@ -227,6 +228,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   providers = withModelProfile(baseProviders, workflow.modelProfile ?? null);
   const resolution = await resolveWorkLanguage({ store, workId, requested: language });
   const workContract = resolution.contract;
+  const kit = promptKit({ contract: workContract });
+  foundation = executionFoundationSnapshot(foundation, workContract);
   if (workflow.stage === 'clean_fail' && !retryValidation) return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, prose: workflow.draftProse, failure: workflow.failure, nextAction: 'retryValidation=true starts a new validation epoch for this preserved draft.' };
   if (retryValidation) {
     delete workflow.userApproval;
@@ -416,27 +419,27 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
 
     const experienceLedger = await loadCurrentExperienceLedger({ store, workId });
     const patternLedger = experienceLedger.entries;
-    const contract = compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter });
+    const contract = compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter, kit });
     const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(),
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
-      plan: renderEpisodePlan(episodePlan), writerModel: MODEL, providers: reviewProvider, workContract, language: workContract.language, foundation,
+      plan: renderEpisodePlan(episodePlan, kit), writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
     }), { score: null, reason: null });
 
     const { context: characterContext } = await buildContext({ store, workId, chapter });
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     const editorialContext = priorSummaries.map((item) => item.summary).join('\n');
-    editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
+    editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
 
-    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, context: characterContext, providers: reviewProvider, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
+    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, context: characterContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
 
-    readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
-    patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
+    readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
+    patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
     // Independent reviews above are collected into one host round trip. The
     // semantic continuity check (needs the extracted delta) and the arc review
     // (needs the pattern entry) wait for the answers they depend on.
-    arcReview = pending(providers) ? null : await reviews.run('arc-review', (reviewProvider) => runArcReview({ store, workId, arcPlan, chapter, prose: current.prose, patternEntry, providers: reviewProvider, workContract, language: workContract.language }), null);
+    arcReview = pending(providers) ? null : await reviews.run('arc-review', (reviewProvider) => runArcReview({ store, workId, arcPlan, chapter, prose: current.prose, patternEntry, providers: reviewProvider, kit, workContract, language: workContract.language }), null);
     if (pending(providers)) {
       await transition(store, workflow, 'awaiting_model', {
         operation: 'check_and_reviews', attempt, requestedSteps: providers.pending.map((request) => request.step),
@@ -554,7 +557,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   // Boundary and summary only need the final prose: one round trip for both.
   providers.shareContext?.({ id: 'chapter-prose', label: `${chapter}화 본문`, text: current.prose });
   const boundary = await runNarrativeBoundary({
-    arcPlan, episodePlan, chapter, prose: current.prose, providers, workContract, language: workContract.language,
+    arcPlan, episodePlan, chapter, prose: current.prose, providers, kit, workContract, language: workContract.language,
   });
   if (pending(providers)) {
     await transition(store, workflow, 'awaiting_model', { operation: 'narrative_boundary', attempt });

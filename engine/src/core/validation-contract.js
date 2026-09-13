@@ -75,7 +75,7 @@ export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
     'at', 'beatId', 'canonicalFormatVersion', 'chapter', 'chapterId', 'characterId', 'checkId',
     'checkerId', 'checksum', 'code', 'commit', 'contractHash', 'createdAt', 'dialogueBreakMode',
     'digest', 'engineGenre', 'entityId', 'epoch', 'eventId', 'from', 'fromBeat', 'genre', 'hash',
-    'hookId', 'id', 'ids', 'invariantId', 'key', 'kind', 'language', 'locale', 'mode', 'op',
+    'nextBeat', 'hookId', 'id', 'ids', 'invariantId', 'key', 'kind', 'language', 'locale', 'mode', 'op',
     'path', 'planSourceHash', 'pov', 'povCharacter', 'povMode', 'promptFamily', 'revision', 'role', 'schemaVersion',
     'scope', 'sentinel', 'serialization', 'severity', 'sha', 'slug', 'sourceHead', 'status',
     'storyTime', 'tag', 'target', 'timestamp', 'to', 'toBeat', 'transactionTime', 'type',

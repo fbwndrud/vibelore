@@ -101,6 +101,9 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       if (pending(wrapped)) return preview();
       if (extracted.extractionValidation?.status !== 'completed' || extracted.extractionValidation.contextHash !== computeExtractionContextHash(extractionInput))
         return fail('VALIDATION_INCOMPLETE', { extractionValidation: extracted.extractionValidation });
+      if (context.plans.episode?.characterArcBeats?.length) {
+        extracted.delta = { ...extracted.delta, arcCursorOps: context.plans.episode.characterArcBeats.map(({ characterId, beat, note }) => ({ characterId, nextBeat: beat, ...(note !== undefined ? { note } : {}) })) };
+      }
       state.extracted = extracted; await save();
     }
     base.delta = state.extracted.delta;
