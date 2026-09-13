@@ -64,10 +64,23 @@ function capturingProvider() {
         },
     };
 }
+/**
+ * 비ko 작품은 **생성 시점에 언어가 정해진 작품**이다. 저장된 Foundation 메타데이터가
+ * 언어의 원천이므로(작품 언어는 불변) 테스트도 요청 언어를 Foundation 에 함께 둔다.
+ * 메타데이터 없는 기존 작품에 다른 언어를 요구하는 경우는 아래 전용 테스트가 다룬다.
+ */
+function foundationFor(extra) {
+    if (extra.foundation)
+        return extra.foundation;
+    const workLanguage = extra.workContract?.language ?? extra.promptLanguage?.language ?? extra.language ?? null;
+    if (workLanguage === null)
+        return makeFoundation();
+    return { ...makeFoundation(), language: workLanguage };
+}
 async function capture(extra = {}) {
     const { provider, requests } = capturingProvider();
     await runDraft({
-        foundation: makeFoundation(),
+        foundation: foundationFor(extra),
         prevState: prevStateWithKoreanEnum(),
         chapterNumber: 2,
         plan: 'PLAN_TOKEN 주인공이 탑으로 돌아간다.',
@@ -387,21 +400,36 @@ describe('draft — 저장된 Foundation 언어 메타데이터 상속', () => {
             targetWordCount: null,
         })).rejects.toThrow(LanguagePolicyError);
     });
-    it('저장된 분량은 기본값이라 회차별 targetWordCount 요청이 이긴다', async () => {
-        // 회차마다 분량을 지정하는 기존 기능이 생성 시점 값에 막히지 않는다.
-        const contract = buildLanguageContract({ language: 'ko', length: { unit: 'legacyCodeUnits', target: 3000 } });
-        const { system, user } = await capture({
-            foundation: { ...makeFoundation(), language: 'ko', workContract: contract, length: contract.length },
-            targetWordCount: 1000,
-        });
-        expect(user).toContain('## 목표 글자 수\n1000');
-        expect(system).toContain('화당 분량 목표: 1000 legacyCodeUnits');
-        // 측정 단위를 바꾸는 요청은 거부한다.
+    it('상속된 workContract 분량은 회차별 targetWordCount 로 덮지 않는다', async () => {
+        const contract = buildLanguageContract({ language: 'en', length: { unit: 'words', target: 3000 } });
+        await expect(capture({
+            foundation: { ...makeFoundation(), language: 'en', workContract: contract, length: contract.length },
+            length: { unit: 'words', target: 3300 },
+        })).rejects.toThrow(LanguagePolicyError);
         const words = buildLanguageContract({ language: 'en', length: { unit: 'words', target: 900 } });
         await expect(capture({
             foundation: { ...makeFoundation(), language: 'en', workContract: words },
             targetWordCount: 1000,
         })).rejects.toThrow(LanguagePolicyError);
+        const same = await capture({
+            foundation: { ...makeFoundation(), language: 'en', workContract: contract, length: contract.length },
+            length: { unit: 'words', target: 3000 },
+        });
+        expect(same.user).toContain('## Length target\n3000 words');
+    });
+    it('메타데이터 없는 기존 작품은 암묵적 ko 이며 다른 언어 요구를 거부한다', async () => {
+        // 기존 작품은 "언어 미선택" 이 아니라 이미 ko 로 선택된 작품이다.
+        const legacy = makeFoundation();
+        await expect(capture({ foundation: legacy, language: 'ja' })).rejects.toThrow(LanguagePolicyError);
+        await expect(capture({ foundation: legacy, workContract: buildLanguageContract({ language: 'ja' }) }))
+            .rejects.toThrow(LanguagePolicyError);
+        // 같은 ko 를 명시하는 기존 호출자는 그대로 동작한다.
+        const ko = await capture({ foundation: legacy, language: 'ko' });
+        expect(ko.system).toContain('당신은 한국어 웹소설 작가이다.');
+        expect(ko.system).toContain('작품 언어(BCP 47): ko.');
+        // 인자가 없으면 구형 프롬프트와 byte-identical 이다.
+        const legacyCall = await capture({ foundation: legacy });
+        expect(legacyCall.system).toBe(buildDraftSystem());
     });
     it('언어 메타데이터가 없는 구형 Foundation 은 기존 기본값을 지킨다', async () => {
         const { system, user } = await capture();

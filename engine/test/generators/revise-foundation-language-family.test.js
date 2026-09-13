@@ -58,10 +58,14 @@ function capturingProvider() {
         },
     };
 }
-async function capture({ current = currentFoundation(), ...extra } = {}) {
+async function capture({ current, ...extra } = {}) {
+    // 비ko 작품은 생성 시점에 언어가 정해진 작품이다 — 저장된 Foundation 메타데이터가
+    // 언어의 원천이므로(작품 언어 불변) 요청 언어를 `current` 에도 둔다.
+    const stored = current
+        ?? (extra.language ? currentFoundation({ language: extra.language }) : currentFoundation());
     const { providers, requests } = capturingProvider();
     const result = await reviseFoundation({
-        current,
+        current: stored,
         feedback: 'FEEDBACK_TOKEN 주인공을 더 나이 들게 해 주세요.',
         providers,
         model: MODEL,

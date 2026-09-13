@@ -60,7 +60,7 @@ flowchart LR
 
 | 시점 | 규칙 |
 |---|---|
-| foundation 이전 (`lore_profile`, `lore_init`, `lore_create`) | 현재 프로필 revision의 언어가 기준 |
+| foundation 이전 (`lore_profile`, `lore_init`, `lore_create`) | 프로필이 있으면 현재 승인된 revision이 기준. 프로필이 없는 init/create는 요청 언어를 쓰고, 요청이 없으면 암묵적 `ko` |
 | 언어 변경 | 새 프로필 revision을 만들어 다시 승인 (`lore_profile` → `lore_profile_decide`) |
 | foundation 생성 | 현재 승인된 revision의 언어로만 `lore_create` |
 | foundation 이후 (`lore_write` 등) | v1에서 작품 언어는 불변 |

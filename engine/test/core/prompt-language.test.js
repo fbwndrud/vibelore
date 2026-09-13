@@ -262,45 +262,52 @@ describe('resolveWorkPromptLanguage — 저장된 작품 언어가 원천', () =
     });
     it('저장된 언어와 어긋난 호출 인자는 거부한다', () => {
         const contract = buildLanguageContract({ language: 'ja' });
+        // 작품 언어는 불변이다 — 다른 언어 요청은 일회성 override 가 아니다.
         expect(codeOf(() => resolveWorkPromptLanguage({
             foundation: { workContract: contract, language: 'ja' },
             language: 'en',
-        }))).toBe(LANGUAGE_ERROR_CODES.LANGUAGE_CONTRACT_CONFLICT);
+        }))).toBe(LANGUAGE_ERROR_CODES.WORK_LANGUAGE_IMMUTABLE);
         // Foundation 안에서 계약과 length 메타데이터가 서로 다른 손상 상태도 거부한다.
         expect(codeOf(() => resolveWorkPromptLanguage({
             foundation: { workContract: contract, length: { unit: 'graphemes', target: 9999 } },
         }))).toBe(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT);
     });
-    it('저장된 분량은 기본값이라 회차별 분량 요청이 이긴다', () => {
-        // 회차별 분량 지정은 기존에 지원되는 기능이다 — 생성 시점 값이 상한이 아니다.
-        const stored = buildLanguageContract({ language: 'ko', length: { unit: 'legacyCodeUnits', target: 3000 } });
-        const ctx = resolveWorkPromptLanguage({
-            foundation: { workContract: stored, language: 'ko', length: stored.length },
-            legacyLength: { chapterWordCount: 1000 },
+    it('상속된 workContract 분량은 목표만 다른 요청으로 덮지 않는다', () => {
+        const stored = buildLanguageContract({ language: 'en', length: { unit: 'words', target: 3000 } });
+        const foundation = { workContract: stored, language: 'en', length: stored.length };
+        expect(codeOf(() => resolveWorkPromptLanguage({
+            foundation,
+            length: { unit: 'words', target: 3300 },
+        }))).toBe(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT);
+        const promptLanguage = resolvePromptLanguageContext({
+            workContract: buildLanguageContract({ language: 'en', length: { unit: 'words', target: 3300 } }),
         });
-        expect(ctx.language).toBe('ko');
-        expect(ctx.length).toEqual({ unit: 'legacyCodeUnits', target: 1000 });
-        const fromLanguageOnly = resolveWorkPromptLanguage({
-            foundation: { language: 'en', length: { unit: 'words', target: 900 } },
-            length: { unit: 'words', target: 1200 },
+        expect(codeOf(() => resolveStepPromptLanguage({ promptLanguage, foundation })))
+            .toBe(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT);
+        const same = resolveWorkPromptLanguage({
+            foundation,
+            workContract: stored,
+            length: { unit: 'words', target: 3000 },
         });
-        expect(fromLanguageOnly.length).toEqual({ unit: 'words', target: 1200 });
+        expect(same.contract).toBe(stored);
+        expect(resolveStepPromptLanguage({
+            promptLanguage: resolvePromptLanguageContext({ workContract: stored }),
+            foundation,
+        }).contract).toBe(stored);
     });
     it('측정 단위를 바꾸는 분량 요청과 승인된 계약의 분량 불일치는 거부한다', () => {
         const stored = buildLanguageContract({ language: 'en', length: { unit: 'words', target: 900 } });
-        // 작품은 단어로 세는데 이 회차만 코드 단위로 세라는 요청은 다른 것을 세는 것이다.
         expect(codeOf(() => resolveWorkPromptLanguage({
             foundation: { workContract: stored },
             legacyLength: { chapterChars: 3000 },
         }))).toBe(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT);
-        // 이 호출에 승인된 계약이 함께 왔다면 그 계약의 분량이 고정값이다.
         expect(codeOf(() => resolveWorkPromptLanguage({
             foundation: { workContract: stored },
             workContract: stored,
             length: { unit: 'words', target: 1200 },
         }))).toBe(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT);
     });
-    it('회차 분량만 바뀐 계약도 고정된 포맷 정책·예외를 잃지 않는다', () => {
+    it('같은 workContract 를 다시 넘기면 고정된 포맷 정책·예외가 그대로다', () => {
         const base = buildLanguageContract({
             language: 'ja',
             length: { unit: 'graphemes', target: 3000 },
@@ -311,20 +318,133 @@ describe('resolveWorkPromptLanguage — 저장된 작품 언어가 원천', () =
         const stored = { ...base, formatPolicy: { ...base.formatPolicy, dialogueBreakMode: 'relaxed' } };
         const ctx = resolveWorkPromptLanguage({
             foundation: { workContract: stored },
-            length: { unit: 'graphemes', target: 2400 },
+            length: { unit: 'graphemes', target: 3000 },
         });
-        expect(ctx.length).toEqual({ unit: 'graphemes', target: 2400 });
+        expect(ctx.contract).toBe(stored);
         expect(ctx.dialogueBreakMode).toBe('relaxed');
         expect(ctx.contract.allowedLanguageExceptions).toHaveLength(1);
-        expect(ctx.contract.measurementPolicy).toEqual(stored.measurementPolicy);
+        expect(codeOf(() => resolveWorkPromptLanguage({
+            foundation: { workContract: stored },
+            length: { unit: 'graphemes', target: 2400 },
+        }))).toBe(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT);
     });
-    it('언어 메타데이터가 없는 구형 작품은 기존 동작 그대로다', () => {
-        const ctx = resolveWorkPromptLanguage({ foundation: { workId: 'w', genre: 'action' } });
+    it('계약 없이 저장한 분량은 요청 분량의 기본값이다', () => {
+        const fromLanguageOnly = resolveWorkPromptLanguage({
+            foundation: { language: 'en', length: { unit: 'words', target: 900 } },
+            length: { unit: 'words', target: 1200 },
+        });
+        expect(fromLanguageOnly.length).toEqual({ unit: 'words', target: 1200 });
+    });
+    it('언어 메타데이터가 없는 기존 작품은 이미 선택된 암묵적 ko 다', () => {
+        const legacy = { workId: 'w', genre: 'action' };
+        const ctx = resolveWorkPromptLanguage({ foundation: legacy });
         expect(ctx.language).toBe(DEFAULT_PROMPT_LANGUAGE);
         expect(ctx.explicit).toBe(false);
         expect(ctx.systemLines).toEqual([]);
-        // 구형 작품에 호출자가 언어를 주면 그 값이 쓰인다.
-        expect(resolveWorkPromptLanguage({ foundation: { workId: 'w' }, language: 'ja' }).language).toBe('ja');
+        // 같은 ko 를 명시하는 것은 허용된다(기존 호출자 호환).
+        expect(resolveWorkPromptLanguage({ foundation: legacy, language: 'ko' }).language).toBe('ko');
+        // 다른 언어 요청은 미선택 상태의 선택이 아니라 언어 변경이다.
+        expect(codeOf(() => resolveWorkPromptLanguage({ foundation: legacy, language: 'ja' })))
+            .toBe(LANGUAGE_ERROR_CODES.WORK_LANGUAGE_IMMUTABLE);
+        expect(codeOf(() => resolveWorkPromptLanguage({
+            foundation: legacy,
+            workContract: buildLanguageContract({ language: 'ja' }),
+        }))).toBe(LANGUAGE_ERROR_CODES.WORK_LANGUAGE_IMMUTABLE);
+        // Foundation 자체가 없는 호출(생성 전 단계)은 명시 언어를 그대로 쓴다.
+        expect(resolveWorkPromptLanguage({ language: 'ja' }).language).toBe('ja');
+    });
+    it('키가 있는데 값이 없는 언어 메타데이터는 손상 상태다', () => {
+        // `language:null` 은 "구형 작품" 이 아니다 — 조용히 ko 로 떨어뜨리지 않는다.
+        expect(codeOf(() => resolveWorkPromptLanguage({ foundation: { workId: 'w', language: null } })))
+            .toBe(LANGUAGE_ERROR_CODES.INVALID_LANGUAGE_TAG);
+        expect(codeOf(() => resolveWorkPromptLanguage({ foundation: { workId: 'w', workContract: null } })))
+            .toBe(LANGUAGE_ERROR_CODES.INVALID_LANGUAGE_TAG);
+    });
+    it('계약 없이 language 만 저장한 작품도 저장된 포맷·분량 메타데이터를 지킨다', () => {
+        const ctx = resolveWorkPromptLanguage({
+            foundation: {
+                workId: 'w',
+                language: 'ja',
+                length: { unit: 'graphemes', target: 2600 },
+                canonicalFormatVersion: 2,
+            },
+        });
+        expect(ctx.language).toBe('ja');
+        expect(ctx.length).toEqual({ unit: 'graphemes', target: 2600 });
+        expect(ctx.contract.formatPolicy.canonicalFormatVersion).toBe(2);
+    });
+    it('기존 작품 {} / language:null 은 promptLanguage 빠른 경로에서도 같다', () => {
+        const ja = resolvePromptLanguageContext({ language: 'ja' });
+        expect(codeOf(() => resolveWorkPromptLanguage({ foundation: {}, language: 'ja' })))
+            .toBe(LANGUAGE_ERROR_CODES.WORK_LANGUAGE_IMMUTABLE);
+        expect(codeOf(() => resolveStepPromptLanguage({ foundation: {}, promptLanguage: ja })))
+            .toBe(LANGUAGE_ERROR_CODES.WORK_LANGUAGE_IMMUTABLE);
+        expect(codeOf(() => resolveWorkPromptLanguage({ foundation: { language: null }, language: 'ja' })))
+            .toBe(LANGUAGE_ERROR_CODES.INVALID_LANGUAGE_TAG);
+        expect(codeOf(() => resolveStepPromptLanguage({ foundation: { language: null }, promptLanguage: ja })))
+            .toBe(LANGUAGE_ERROR_CODES.INVALID_LANGUAGE_TAG);
+    });
+    it('공급된 계약이 저장된 language-only 분량·포맷과 어긋나면 거부한다', () => {
+        const ja = buildLanguageContract({ language: 'ja', length: { unit: 'graphemes', target: 3000 } });
+        expect(codeOf(() => resolveWorkPromptLanguage({
+            foundation: {
+                language: 'ja',
+                length: { unit: 'graphemes', target: 2600 },
+                canonicalFormatVersion: 2,
+            },
+            workContract: ja,
+        }))).toBe(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT);
+        const otherFormat = {
+            ...ja,
+            formatPolicy: { ...ja.formatPolicy, canonicalFormatVersion: 1 },
+        };
+        expect(codeOf(() => resolveWorkPromptLanguage({
+            foundation: {
+                language: 'ja',
+                length: ja.length,
+                canonicalFormatVersion: 2,
+            },
+            workContract: otherFormat,
+        }))).toBe(LANGUAGE_ERROR_CODES.LANGUAGE_CONTRACT_CONFLICT);
+        const matching = buildLanguageContract({ language: 'ja', length: { unit: 'graphemes', target: 2600 } });
+        const ctx = resolveWorkPromptLanguage({
+            foundation: {
+                language: 'ja',
+                length: matching.length,
+                canonicalFormatVersion: 2,
+            },
+            workContract: matching,
+        });
+        expect(ctx.contract).toBe(matching);
+    });
+    it('Foundation 계약과 최상위 language 가 어긋나면 요청이 한쪽과 같아도 거부한다', () => {
+        const ja = buildLanguageContract({ language: 'ja' });
+        expect(codeOf(() => resolveWorkPromptLanguage({
+            foundation: { workContract: ja, language: 'en' },
+            language: 'ja',
+        }))).toBe(LANGUAGE_ERROR_CODES.LANGUAGE_CONTRACT_CONFLICT);
+        expect(codeOf(() => resolveWorkPromptLanguage({
+            foundation: { workContract: ja, language: 'en' },
+            language: 'en',
+        }))).toBe(LANGUAGE_ERROR_CODES.WORK_LANGUAGE_IMMUTABLE);
+        expect(codeOf(() => resolveStepPromptLanguage({
+            promptLanguage: resolvePromptLanguageContext({ workContract: ja }),
+            foundation: { workContract: ja, language: 'en' },
+        }))).toBe(LANGUAGE_ERROR_CODES.LANGUAGE_CONTRACT_CONFLICT);
+    });
+    it('Foundation 없는 신규 호출은 language+length 로 계약을 조립한다', () => {
+        const ctx = resolveWorkPromptLanguage({
+            language: 'ja',
+            length: { unit: 'graphemes', target: 2400 },
+        });
+        expect(ctx.language).toBe('ja');
+        expect(ctx.length).toEqual({ unit: 'graphemes', target: 2400 });
+        expect(isLanguageContract(ctx.contract)).toBe(true);
+        const legacy = resolveWorkPromptLanguage();
+        expect(legacy.language).toBe(DEFAULT_PROMPT_LANGUAGE);
+        expect(legacy.explicit).toBe(false);
+        expect(legacy.systemLines).toEqual([]);
+        expect(legacy.length).toEqual({ unit: 'legacyCodeUnits', target: 3000 });
     });
 });
 

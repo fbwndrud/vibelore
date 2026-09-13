@@ -18,6 +18,7 @@ import { FileStateStore } from '../../src/core/state-store.js';
 import { DefaultOutputSanitizer } from '../../src/core/output-sanitizer.js';
 import { buildLanguageContract, CANONICAL_FORMAT_VERSION_LEGACY_KO, CANONICAL_FORMAT_VERSION_MULTILINGUAL, LanguagePolicyError, } from '../../src/core/language-policy.js';
 import { performChapterWriteBounded } from '../../src/generators/text/chapter-write-with-revise.js';
+import { llmCastDesign } from '../../src/generators/text/steps/cast-design.js';
 import { performBookCreate } from '../../src/generators/text/steps/worldbuild.js';
 
 const HANGUL = /[가-힣]/;
@@ -188,6 +189,61 @@ describe('book-create — 생성 언어 메타데이터', () => {
         expect(foundation.workContract).toBeUndefined();
         expect('language' in foundation).toBe(false);
         expect('workContract' in foundation).toBe(false);
+    });
+});
+
+// ─── 공개 3-인자 castDesign ─────────────────────────────────────────────────
+/**
+ * `llmCastDesign(ctx, input, world)` 는 공개 3-인자 API 다(`engine/src/index.js` export).
+ * 4번째 인자 없이도 `input.language`/`input.workContract` 로 계열이 정해져야 한다 —
+ * 그러지 않으면 `language:'ja'` 공개 호출이 한국어 system 을 받는다.
+ */
+describe('llmCastDesign — 공개 3-인자 호출', () => {
+    const WORLD = { premise: 'PREMISE_TOKEN', worldFacts: [{ id: 'wf1', statement: 'FACT_TOKEN' }] };
+    function capturingProviders() {
+        const requests = [];
+        return {
+            requests,
+            providers: {
+                register: () => undefined,
+                has: () => true,
+                async complete(req) {
+                    requests.push(req);
+                    return { text: CAST, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } };
+                },
+            },
+        };
+    }
+    async function capture3(input) {
+        const { providers, requests } = capturingProviders();
+        await llmCastDesign({ workId: 'w', model: { provider: 'openai', modelId: 'mock' }, providers, log: noopLogger() }, input, WORLD);
+        return partsOf(requests[0]);
+    }
+    it('input.language 만으로도 다국어 계열을 쓴다', async () => {
+        const { system, user } = await capture3({ ...BASE_INPUT, language: 'ja' });
+        expect(HANGUL.test(system)).toBe(false);
+        expect(system).toContain('Initial cast designer for a novel in the target work language.');
+        expect(system).toContain('Target work language (BCP 47): ja.');
+        expect(user).toContain('You are the initial cast designer');
+        expect(user).toContain('Rules (pin-on-register contract):');
+        expect(user).toContain('PREMISE_TOKEN');
+    });
+    it('input.workContract 도 3-인자 호출에서 계열을 정한다', async () => {
+        const contract = buildLanguageContract({ language: 'fr', length: { unit: 'graphemes', target: 4000 } });
+        const { system, user } = await capture3({ ...BASE_INPUT, chapterWordCount: null, workContract: contract });
+        expect(system).toContain('Target work language (BCP 47): fr.');
+        expect(user).toContain('- Approximate length per chapter: 4000 graphemes');
+    });
+    it('언어도 계약도 없으면 기존 한국어 프롬프트 그대로다', async () => {
+        const { system, user } = await capture3(BASE_INPUT);
+        expect(system).toBe('한국어 소설 초기 캐스트 디자이너. JSON 만 출력. intrinsic 핀고정 계약 준수.');
+        expect(user).toContain('너는 ko 소설의 초기 캐스트 디자이너다.');
+    });
+    it('4번째 인자가 input 의 명시 언어와 어긋나면 거부한다', async () => {
+        const { providers } = capturingProviders();
+        const ctx = { workId: 'w', model: { provider: 'openai', modelId: 'mock' }, providers, log: noopLogger() };
+        await expect(llmCastDesign(ctx, { ...BASE_INPUT, language: 'ja' }, WORLD, { language: 'es' }))
+            .rejects.toThrow(LanguagePolicyError);
     });
 });
 

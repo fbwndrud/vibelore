@@ -88,13 +88,24 @@ function lengthViolation(extra = {}) {
 }
 
 const PATCH_RESPONSE = '{"replacements":[{"paragraph":1,"text":"고친 문단"}],"insertions":[]}';
+/**
+ * 비ko 작품은 생성 시점에 언어가 정해진 작품이다 — 저장된 Foundation 메타데이터가
+ * 언어의 원천이므로(작품 언어 불변) 요청 언어를 Foundation 에도 둔다. 메타데이터
+ * 없는 기존 작품에 다른 언어를 요구하는 경우는 전용 테스트가 다룬다.
+ */
+function foundationFor(extra) {
+    if (extra.foundation)
+        return extra.foundation;
+    const workLanguage = extra.workContract?.language ?? extra.promptLanguage?.language ?? extra.language ?? null;
+    return workLanguage === null ? foundation() : { ...foundation(), language: workLanguage };
+}
 async function captureRevise(extra = {}) {
     // patchMode 는 응답이 JSON 패치여야 하므로 모드에 맞는 응답을 돌려준다.
     const { providers, requests } = capturingProvider(extra.patchMode === true ? PATCH_RESPONSE : undefined);
     await runRevise({
         prose: 'PROSE_TOKEN 첫 문단이다.\n\n두 번째 문단이다.',
         violations: [ADDRESS_VIOLATION],
-        foundation: foundation(),
+        foundation: foundationFor(extra),
         chapterNumber: 7,
         providers,
         model: MODEL,
@@ -107,9 +118,9 @@ async function captureRewrite(extra = {}) {
     await runRewrite({
         previousProse: 'PREVIOUS_TOKEN 원본 본문이다.',
         intentSummary: 'INTENT_TOKEN 갈등을 강화하라',
-        foundation: foundation(),
         prevState: { ...emptyStoryState('work-rr'), chapterNumber: 6 },
         chapterNumber: 7,
+        foundation: foundationFor(extra),
         providers,
         model: MODEL,
         ...extra,
@@ -321,10 +332,10 @@ function boundedStubRegistry(continuitySequence) {
                     kind = 'draft';
                     text = raw;
                 }
-                else if (sys.includes('연속성 분석기')) {
+                else if (sys.includes('연속성 분석기') || sys.includes('continuity analyser')) {
                     kind = 'extractDelta';
                 }
-                else if (sys.includes('연속성 검수기')) {
+                else if (sys.includes('연속성 검수기') || sys.includes('continuity reviewer')) {
                     kind = 'continuityCheck';
                     const i = Math.min(continuityIdx, continuitySequence.length - 1);
                     continuityIdx += 1;
@@ -348,9 +359,17 @@ describe('bounded loop — 작품 계약 배선', () => {
     afterEach(async () => {
         await rm(rootDir, { recursive: true, force: true });
     });
+    const WORK_CONTRACT = buildLanguageContract({ language: 'ja', length: { unit: 'graphemes', target: 2600 } });
     async function ctxFor(providers) {
         const state = new FileStateStore(rootDir);
-        await state.saveFoundation({ ...foundation(), workId: 'work-rr' });
+        // ja 로 생성된 작품 — 저장된 Foundation 메타데이터가 언어의 원천이다.
+        await state.saveFoundation({
+            ...foundation(),
+            workId: 'work-rr',
+            language: 'ja',
+            workContract: WORK_CONTRACT,
+            length: WORK_CONTRACT.length,
+        });
         return {
             jobId: 'job-rr',
             workId: 'work-rr',
@@ -360,7 +379,7 @@ describe('bounded loop — 작품 계약 배선', () => {
             providers,
             sanitizer: new DefaultOutputSanitizer(),
             log: { info: () => undefined, warn: () => undefined, error: () => undefined, debug: () => undefined },
-            workContract: buildLanguageContract({ language: 'ja', length: { unit: 'graphemes', target: 2600 } }),
+            workContract: WORK_CONTRACT,
         };
     }
     it('draft 와 revise 가 같은 계약을 본다', async () => {

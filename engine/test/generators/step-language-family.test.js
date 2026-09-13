@@ -66,10 +66,20 @@ function foundation() {
     };
 }
 
+/**
+ * 비ko 작품은 생성 시점에 언어가 정해진 작품이다 — 저장된 Foundation 메타데이터가
+ * 언어의 원천이므로(작품 언어 불변) 요청 언어를 Foundation 에도 둔다.
+ */
+function foundationFor(extra) {
+    if (extra.foundation)
+        return extra.foundation;
+    const workLanguage = extra.workContract?.language ?? extra.promptLanguage?.language ?? extra.language ?? null;
+    return workLanguage === null ? foundation() : { ...foundation(), language: workLanguage };
+}
 async function capturePlan(extra = {}) {
     const { providers, requests } = capturingProvider('{"plan":"p"}');
     await runChapterPlan({
-        foundation: foundation(),
+        foundation: foundationFor(extra),
         prevState: { ...emptyStoryState('work-step'), chapterNumber: 1 },
         chapterNumber: 2,
         providers,

@@ -26,6 +26,7 @@ import {
     buildLanguageDirective,
     computeLanguageContractHash,
     normalizeLanguageTag,
+    resolveExistingWorkLanguage,
     resolveLengthContract,
 } from './language-policy.js';
 
@@ -262,14 +263,8 @@ export function resolveStepPromptLanguage(input = {}, { allowLanguageField = tru
             assertSameContract(ctx.contract, input.workContract);
         // 언어·분량·구형 분량은 각각 계약과 맞는지 확인한다. 결과는 버리고 이미
         // 해석된 컨텍스트를 그대로 쓴다(여기서 계약을 다시 정하지 않는다).
-        if (language !== null || length !== null || legacyLength !== null)
-            resolvePromptLanguageContext({
-                workContract: ctx.contract,
-                ...(language === null ? {} : { language }),
-                ...(length === null ? {} : { length }),
-                ...(legacyLength === null ? {} : { legacyLength }),
-            });
-        assertFoundationLanguage(ctx, foundation);
+        assertRequestedFields(ctx.contract, { language, length, legacyLength });
+        assertFoundationMatchesContext(ctx, foundation);
         return ctx;
     }
     return resolveWorkPromptLanguage({
@@ -281,32 +276,100 @@ export function resolveStepPromptLanguage(input = {}, { allowLanguageField = tru
     });
 }
 
+function foundationHasLanguageKey(foundation) {
+    return ('language' in foundation) || ('workContract' in foundation);
+}
+
 /**
- * 저장된 작품 언어 메타데이터(Foundation)가 이 컨텍스트와 같은 작품의 것인지
- * 확인한다.
- *
- * 언어·측정 단위·포맷 정책·승인된 예외는 **같아야** 한다(작품 언어는 불변이다).
- * 회차 분량 **목표 수치**는 저장값이 생성 시점 기본값이고 회차별 지정이 기존부터
- * 지원되므로 같은 단위 안에서 다른 값을 허용한다.
+ * 기존 작품의 생애 단계 — 공유 `resolveExistingWorkLanguage` 가 판정한다.
+ * 키가 없으면 암묵적 ko, `language:null` / `workContract:null` 은 손상 상태다.
  */
-function assertFoundationLanguage(ctx, foundation) {
+function assertExistingWorkLifecycle(foundation, requested) {
     if (foundation === null || foundation === undefined)
         return;
     const storedContract = foundation.workContract ?? null;
-    if (storedContract !== null && storedContract !== undefined) {
-        if (!isLanguageContract(storedContract))
-            throw new LanguagePolicyError(LANGUAGE_ERROR_CODES.INVALID_LENGTH_CONTRACT, {
-                scope: 'foundation',
-                reason: 'not_a_language_contract',
-            });
-        resolvePromptLanguageContext({ workContract: ctx.contract, language: storedContract.language });
-        // 회차 목표만 이 컨텍스트의 값으로 맞춘 뒤 나머지를 전부 비교한다.
-        assertSameContract(contextWithRequestedLength(storedContract, { length: ctx.length }).contract, ctx.contract);
-    }
     const storedLanguage = foundation.language ?? null;
+    resolveExistingWorkLanguage({
+        requested,
+        workLanguage: storedContract?.language ?? storedLanguage,
+        workHasLanguageKey: foundationHasLanguageKey(foundation),
+    });
+}
+
+/**
+ * Foundation 안 workContract 와 최상위 language 가 서로 다르면, 요청이 한쪽과
+ * 같아도 조용히 하나를 고르지 않는다.
+ */
+function assertStoredContractLanguage(foundation) {
+    const storedContract = foundation?.workContract ?? null;
+    const storedLanguage = foundation?.language ?? null;
+    if (storedContract === null || storedContract === undefined)
+        return;
+    if (!isLanguageContract(storedContract))
+        throw new LanguagePolicyError(LANGUAGE_ERROR_CODES.INVALID_LENGTH_CONTRACT, {
+            scope: 'foundation',
+            reason: 'not_a_language_contract',
+        });
+    if (storedLanguage !== null && storedLanguage !== undefined)
+        resolvePromptLanguageContext({ workContract: storedContract, language: storedLanguage });
+}
+
+function assertRequestedFields(contract, { language = null, length = null, legacyLength = null } = {}) {
+    if ((language === null || language === undefined)
+        && (length === null || length === undefined)
+        && (legacyLength === null || legacyLength === undefined))
+        return;
+    resolvePromptLanguageContext({
+        workContract: contract,
+        ...(language === null || language === undefined ? {} : { language }),
+        ...(length === null || length === undefined ? {} : { length }),
+        ...(legacyLength === null || legacyLength === undefined ? {} : { legacyLength }),
+    });
+}
+
+function assertStoredCanonicalFormat(ctx, foundation) {
+    if (foundation === null || foundation === undefined || !('canonicalFormatVersion' in foundation))
+        return;
+    const stored = foundation.canonicalFormatVersion;
+    if (stored === null || stored === undefined)
+        throw new LanguagePolicyError(LANGUAGE_ERROR_CODES.INVALID_FORMAT_VERSION, {
+            scope: 'foundation',
+            reason: 'missing_stored_format_version',
+            stored: stored ?? null,
+        });
+    const actual = ctx.contract.formatPolicy?.canonicalFormatVersion ?? null;
+    if (stored !== actual)
+        conflict({
+            scope: 'foundation',
+            reason: 'canonical_format_version_differs',
+            requested: actual,
+            stored,
+        });
+}
+
+/**
+ * 이미 해석된 컨텍스트가 저장된 Foundation 과 같은 작품의 것인지 확인한다.
+ *
+ * `promptLanguage` 빠른 경로도 `resolveWorkPromptLanguage` 와 같은 생애 단계·
+ * null 판정을 쓴다. 저장된 `workContract` 가 있으면 목표 수치만 다른 계약으로
+ * 바꿔 비교하지 않는다 — 현재 실행 스냅샷은 플러그인 권한 경계가 골라 넘긴다.
+ */
+function assertFoundationMatchesContext(ctx, foundation) {
+    if (foundation === null || foundation === undefined)
+        return;
+    assertExistingWorkLifecycle(foundation, [ctx.language]);
+    assertStoredContractLanguage(foundation);
+    const storedContract = foundation.workContract ?? null;
+    const storedLanguage = foundation.language ?? null;
+    if (storedContract !== null && storedContract !== undefined) {
+        assertSameContract(storedContract, ctx.contract);
+        assertSameLength(ctx, foundation.length ?? null, 'foundation');
+        return;
+    }
     if (storedLanguage !== null && storedLanguage !== undefined)
         resolvePromptLanguageContext({ workContract: ctx.contract, language: storedLanguage });
-    assertSameLengthUnit(ctx, foundation.length ?? null, 'foundation');
+    assertSameLength(ctx, foundation.length ?? null, 'foundation');
+    assertStoredCanonicalFormat(ctx, foundation);
 }
 
 function assertSameLength(ctx, length, scope) {
@@ -320,19 +383,6 @@ function assertSameLength(ctx, length, scope) {
         });
 }
 
-/** 측정 단위만 비교한다(목표 수치는 회차별로 달라질 수 있다). */
-function assertSameLengthUnit(ctx, length, scope) {
-    if (length === null || length === undefined)
-        return;
-    if (length.unit !== ctx.length.unit)
-        throw new LanguagePolicyError(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT, {
-            scope,
-            reason: 'measurement_unit_differs_from_work',
-            length: { unit: length.unit ?? null, target: length.target ?? null },
-            contract: { unit: ctx.length.unit, target: ctx.length.target },
-        });
-}
-
 /**
  * 작품 단위 프롬프트 언어 해석 — **저장된 Foundation 메타데이터가 원천**이다.
  *
@@ -340,51 +390,58 @@ function assertSameLengthUnit(ctx, length, scope) {
  * 그때 호출 인자가 비었다는 이유로 구형 ko 로 떨어지면 작품 언어가 조용히 바뀐다.
  * 그래서 순서는 다음과 같다:
  *
- *   1. `foundation.workContract` — 승인된 계약. 그대로 쓴다.
+ *   1. `foundation.workContract` — 승인된 계약. 그대로 쓴다. 함께 온 분량 인자는
+ *      단위와 목표를 모두 확인하며, 목표만 다른 값으로 바꾸지 않는다. 현재 실행
+ *      계약이 다르면 플러그인 권한 경계가 그 스냅샷을 Foundation 으로 넘긴다.
  *   2. `foundation.language`(+`foundation.length`) — 저장된 언어로 계약을 조립한다.
- *   3. 둘 다 없는 구형 작품 — 호출자 인자(없으면 암묵적 ko). 기존 동작 그대로.
+ *      이 호출에 승인된 계약이 함께 왔다면 저장된 분량·정본 포맷과 맞는지 확인한다.
+ *   3. 언어 메타데이터가 **아예 없는** 기존 작품 — 이미 선택된 **암묵적 ko** 다.
+ *      "미선택" 이 아니므로 다른 언어를 요청하면 `WORK_LANGUAGE_IMMUTABLE` 이고,
+ *      인자가 없으면 기존 동작(구형 ko 프롬프트) 그대로다.
  *
- * 호출자가 언어·계약·분량을 함께 넘기면 **확인용**이며, 어긋나면 저장된 값을 조용히
- * 덮지 않고 거부한다(언어 변경은 v1 범위가 아니다).
+ * 작품의 생애 단계 판정은 공유 `resolveExistingWorkLanguage` 가 한다(이 모듈이 별도
+ * 관례를 만들지 않는다). 키 자체가 없는 것과 `language:null` 은 다르다 — 후자는
+ * 손상된 메타데이터이며 구형 fallback 이 아니다.
+ *
+ * Foundation 이 없는 신규 호출만 명시 언어·분량으로 새 계약을 조립한다.
  */
 export function resolveWorkPromptLanguage(input = {}) {
     const {
-        workContract = null, language = null, length = null, legacyLength = null, foundation = null,
+        workContract = null, length = null, legacyLength = null, foundation = null,
     } = input ?? {};
-    const storedContract = foundation?.workContract ?? null;
-    const storedLanguage = foundation?.language ?? null;
-    const storedLength = foundation?.length ?? null;
+    const { language = null } = input ?? {};
+    if (foundation === null || foundation === undefined)
+        return resolvePromptLanguageContext({ workContract, language, length, legacyLength });
+    const storedContract = foundation.workContract ?? null;
+    const storedLanguage = foundation.language ?? null;
+    const storedLength = foundation.length ?? null;
+    assertExistingWorkLifecycle(foundation, [language, workContract?.language ?? null]);
+    assertStoredContractLanguage(foundation);
 
     if (storedContract !== null && storedContract !== undefined) {
         const ctx = resolvePromptLanguageContext({ workContract: storedContract });
         if (workContract !== null && workContract !== undefined)
             assertSameContract(ctx.contract, workContract);
-        if (storedLanguage !== null && storedLanguage !== undefined)
-            resolvePromptLanguageContext({ workContract: ctx.contract, language: storedLanguage });
         assertSameLength(ctx, storedLength, 'foundation');
-        if (language !== null)
-            resolvePromptLanguageContext({ workContract: ctx.contract, language });
-        if (length === null && legacyLength === null)
-            return ctx;
-        // 이 호출에 **승인된 계약이 함께 왔다면** 그 계약의 분량이 고정값이다.
-        // 어긋난 분량 인자는 조용히 덮지 않고 거부한다.
+        assertRequestedFields(ctx.contract, { language, length, legacyLength });
+        return ctx;
+    }
+    if (storedLanguage !== null && storedLanguage !== undefined) {
         if (workContract !== null && workContract !== undefined) {
-            resolvePromptLanguageContext({
+            const ctx = resolvePromptLanguageContext({
                 workContract,
+                language: storedLanguage,
                 ...(length === null ? {} : { length }),
                 ...(legacyLength === null ? {} : { legacyLength }),
             });
+            assertSameLength(ctx, storedLength, 'foundation');
+            assertStoredCanonicalFormat(ctx, foundation);
+            if (language !== null)
+                resolvePromptLanguageContext({ workContract: ctx.contract, language });
             return ctx;
         }
-        // 저장된 계약의 분량은 **생성 시점 기본값**이다(`resolveLengthContract` 의
-        // storedLength 와 같은 뜻). 회차별 분량 요청은 기존에 지원되는 기능이므로
-        // 언어·측정 정책은 그대로 두고 목표 수치만 요청값으로 바꾼다. 측정 단위까지
-        // 바뀌는 요청은 다른 것을 세겠다는 뜻이라 거부한다.
-        return contextWithRequestedLength(ctx.contract, { length, legacyLength });
-    }
-    if (storedLanguage !== null && storedLanguage !== undefined) {
-        // 저장된 언어로 계약을 조립한다. 저장된 분량·정본 포맷 버전은 기본값이고
-        // 호출 인자가 이긴다(`resolveLengthContract` 의 storedLength 의미와 동일).
+        // 계약 없이 `language` 만 저장한 작품은 저장된 분량·정본 포맷으로 계약을
+        // 조립한다. 저장된 분량은 `resolveLengthContract` 의 storedLength(기본값)다.
         const storedFormatVersion = foundation?.canonicalFormatVersion ?? null;
         const ctx = resolvePromptLanguageContext({
             workContract: buildLanguageContract({
@@ -396,52 +453,12 @@ export function resolveWorkPromptLanguage(input = {}) {
                 ...(storedFormatVersion === null ? {} : { storedFormatVersionKeyPresent: true }),
             }),
         });
-        if (workContract !== null && workContract !== undefined)
-            assertSameContract(ctx.contract, workContract);
         if (language !== null)
             resolvePromptLanguageContext({ workContract: ctx.contract, language });
         return ctx;
     }
     // 언어 메타데이터가 없는 구형 작품 — 호출자 인자대로(없으면 암묵적 ko).
     return resolvePromptLanguageContext({ workContract, language, length, legacyLength });
-}
-
-/**
- * 저장된 계약의 언어·측정 정책·승인된 예외를 유지하고 **회차 분량 목표만** 요청값으로
- * 바꾼 컨텍스트. 계약을 새로 해석하는 것이 아니라 phase 1 의 `storedLength`(기본값)
- * / 요청값 우선순위를 그대로 적용한다.
- *
- * 측정 단위가 바뀌는 요청은 거부한다 — 작품은 단어로 세면서 이 회차만 코드 단위로
- * 세는 상태를 만들지 않는다.
- */
-function contextWithRequestedLength(stored, { length = null, legacyLength = null } = {}) {
-    const requestedUnit = length?.unit ?? (legacyLength ? 'legacyCodeUnits' : null);
-    if (requestedUnit !== null && requestedUnit !== stored.length.unit)
-        throw new LanguagePolicyError(LANGUAGE_ERROR_CODES.LENGTH_CONTRACT_CONFLICT, {
-            scope: 'foundation',
-            reason: 'requested_unit_differs_from_work_contract',
-            length: { unit: requestedUnit, target: length?.target ?? null },
-            contract: { unit: stored.length.unit, target: stored.length.target },
-        });
-    const rebuilt = buildLanguageContract({
-        language: stored.language,
-        length,
-        legacyLength,
-        storedLength: stored.length,
-        storedCanonicalFormatVersion: stored.formatPolicy?.canonicalFormatVersion ?? null,
-        storedFormatVersionKeyPresent: stored.formatPolicy?.canonicalFormatVersion !== undefined,
-        allowedLanguageExceptions: stored.allowedLanguageExceptions ?? [],
-        templateVersion: stored.templateVersion,
-        checkerPolicyVersion: stored.checkerPolicyVersion,
-        measurementLocale: stored.measurementPolicy?.requestedLocale ?? null,
-        languageSource: stored.provenance?.languageSource ?? 'requested',
-    });
-    // 계약에 고정된 추가 포맷 정책(phase 3 의 `dialogueBreakMode` 등)은 잃지 않는다.
-    const contract = Object.freeze({
-        ...rebuilt,
-        formatPolicy: Object.freeze({ ...stored.formatPolicy, ...rebuilt.formatPolicy }),
-    });
-    return resolvePromptLanguageContext({ workContract: contract });
 }
 
 /**
