@@ -93,3 +93,27 @@ test('metadata language repair changes only the failing summary before validatin
  assert.equal((await runCheck(args)).code,'OUTPUT_LANGUAGE_MISMATCH');
  const result=await runCheck(args);assert.equal(result.validationComplete,true,JSON.stringify(result));assert.equal(result.artifact.summary,'The door opens.');assert.equal(result.artifact.prose,prose);assert.equal(repairProse,prose);
 });
+
+test('exceptions-only approved profile revision rebinds unchanged failed draft in a new epoch and publishes latest profile',async()=>{
+ const store=await chapterStore();const original=await store.loadStoryProfile('w');const invalid=chapterProvider({badLanguage:true});
+ const args={...input(store),workflowId:'exception-retry'};
+ for(let index=0;index<3;index++)await runCheck({...args,providers:invalid});
+ const revised={...original,revision:2,allowedLanguageExceptions:[{kind:'properNoun',language:'fr',scope:'Jardin',rationale:'Preserve the approved place name.'}]};
+ await store.saveStoryProfile('w',revised);
+ const result=await runCheck({...args,providers:chapterProvider(),retryValidation:true});
+ assert.equal(result.validationComplete,true,JSON.stringify(result));assert.equal(result.validationEpoch,2);assert.equal(result.artifact.prose,prose);
+ await runCommit({...input(store),providers:{complete(){throw Error('consume only');}},checkId:result.checkId});
+ const {createPublicationUnit}=await import('../src/core/publication-unit.js');
+ const published=await createPublicationUnit({rootDir:store.rootDir}).readPublished();
+ assert.equal(published.value.tree.plans.storyProfile.revision,2);
+ assert.deepEqual(published.value.tree.plans.storyProfile.allowedLanguageExceptions,revised.allowedLanguageExceptions);
+});
+
+test('a fresh manual check after its own publication opens a new epoch without reviving the consumed receipt',async()=>{
+ const store=await chapterStore();const providers=chapterProvider();
+ const first=await runCheck({...input(store),providers});await runCommit({...input(store),providers,checkId:first.checkId});
+ const next=await runCheck({...input(store),prose:prose+' A bell rang across the courtyard.',providers});
+ assert.equal(next.validationComplete,true,JSON.stringify(next));assert.equal(next.validationEpoch,2);assert.notEqual(next.checkId,first.checkId);
+ assert.equal((await store.loadCheckReceipt('w',first.checkId)).consumed,true);
+ await assert.rejects(runCommit({...input(store),providers,checkId:first.checkId}));
+});

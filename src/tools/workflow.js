@@ -678,6 +678,7 @@ export async function runWorkflowDecide({ store, workId, approvalId, action, fee
   }
   if (action === 'request_revision') {
     if (!String(feedback).trim()) throw new Error('수정 요청에는 feedback이 필요합니다.');
+    delete workflow.checkId; delete workflow.userApproval; delete workflow.approvalId;
     await transition(store, workflow, 'revision_requested', {
       operation: 'user_revision', revisionFeedback: String(feedback).trim(),
     });

@@ -11,6 +11,7 @@ import { DefaultHonorificLexicon } from '../../engine/src/continuity/honorific-l
 import { DefaultEmotionVerbLexicon } from '../../engine/src/continuity/emotion-verb-lexicon.js';
 import { DefaultSimileMarkerLexicon } from '../../engine/src/continuity/simile-marker-lexicon.js';
 import { DefaultOnomatopoeiaLexicon } from '../../engine/src/continuity/onomatopoeia-lexicon.js';
+import { DefaultStyleLexicon } from '../../engine/src/continuity/style-lexicon.js';
 import { DefaultSensitiveLexicon } from '../../engine/src/continuity/sensitive-lexicon.js';
 import { promptFamilyFrom } from '../../engine/src/continuity/checker-registry.js';
 
@@ -19,6 +20,7 @@ let cached = null;
 export function lexicons() {
   if (cached) return cached;
   cached = {
+    style: new DefaultStyleLexicon(),
     honorific: new DefaultHonorificLexicon(),
     emotion: new DefaultEmotionVerbLexicon(),
     simile: new DefaultSimileMarkerLexicon(),
@@ -38,6 +40,7 @@ export function lexiconsForLanguage(language) {
   return {
     family,
     applicable: false,
+    style: null,
     honorific: null,
     emotion: null,
     simile: null,

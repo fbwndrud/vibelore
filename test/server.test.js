@@ -394,7 +394,7 @@ describe('MCP surface', () => {
     const check = payload(out.get(4));
     assert.equal(check.status, 'ok');
     assert.equal(check.deterministicOnly, true);
-    assert.equal(check.prosody.score, null);
+    assert.equal(typeof check.prosody.score, 'number');
     assert.equal(check.checkId, undefined, 'deterministic preview cannot authorize publication');
     assert.equal(payload(out.get(5)).nextChapter, 1);
     assert.equal(payload(out.get(5)).runtime.contractVersion, 'readability-v1');

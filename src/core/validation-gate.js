@@ -197,7 +197,7 @@ function detectorFns(ctx) {
     scanQuality: () => scanQuality({
       ...languageInput, emotionLexicon: lex.emotion, simileLexicon: lex.simile, onomatopoeiaLexicon: lex.onomatopoeia,
     }),
-    scanStyle: () => scanStyle({ ...languageInput }),
+    scanStyle: () => scanStyle({ ...languageInput, genre: foundation.genre, lexicon: lex.style }),
     scanDialogueRatio: () => scanDialogueRatio({ ...languageInput, genreProfile: foundation?.genreProfile }),
     scanDialogueMarkerVariety: () => scanDialogueMarkerVariety({ ...languageInput }),
     scanInfoRestate: () => scanInfoRestate({ ...languageInput }),

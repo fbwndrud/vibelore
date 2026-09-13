@@ -30,6 +30,9 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   }
   const input = { prose: publishedChapterProse(prose), title, summary, castManifestRaw };
   const inputHash = exactHash(input);
+  if (!workflowId && state?.status === 'consumed') {
+    state = { epoch: state.epoch + 1, failures: 0, invocation, identity: context.identity, plans: context.plans, workContract: context.workContract, inputHash, input };
+  }
   const retryRequested = retryValidation && (!invocation || state?.retryInvocation !== invocation);
   const freshManualInvocation = !workflowId && invocation && state?.invocation !== invocation && state?.status === 'clean_fail';
   if (retryRequested || freshManualInvocation) {
@@ -60,11 +63,12 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   const plan = liveCheckerPlan({ workContract, foundation, profile: context.plans.profile });
   const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, entities: await canonicalStore.loadEntitySnapshots(workId) });
   const length = lengthCoverage({ workContract, prose: input.prose });
+  const prosody = scan.detectorResults.find(row => row.checkerId === 'runProsodyScan' && ['passed','failed'].includes(row.status));
   const base = {
     verdict: 'blocked', counts: { hard: 0, soft: 0, total: 0 }, violations: [...scan.violations],
     detectorResults: scan.detectorResults, workContract, contractHash: context.identity.contractHash,
-    lengthAssessment: length.measurement, prosody: { score: null, breakdown: null },
-    qualityGate: evaluateChapterQuality({ prosodyScore: null, coherenceScore: null }),
+    lengthAssessment: length.measurement, prosody: { score: prosody?.score ?? null, breakdown: prosody?.breakdown ?? null },
+    qualityGate: evaluateChapterQuality({ prosodyScore: prosody?.score ?? null, coherenceScore: null }),
     validationEpoch: state.epoch, validationScope: scope,
   };
   if (length.coverage === 'failed') base.violations.push({ severity: 'hard', code: 'QUALITY_GATE_LENGTH', chapterNumber: chapter, lengthMeasurement: length.measurement, message: `Length ${length.measurement.actual} ${length.measurement.unit}; minimum ${length.measurement.min}.` });
@@ -85,7 +89,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     async complete(request) {
       if (!providers?.complete) throw new Error('MODEL_PROVIDER_REQUIRED');
       return providers.complete({ ...request, messages: [...request.messages,
-        { role: 'system', content: `Validation identity: ${scope}; epoch ${state.epoch}; attempt ${state.failures + 1}. This identifies this evaluation, not fictional content.` }] });
+        { role: 'system', content: `Validation identity: ${scope}; epoch ${state.epoch}; attempt ${state.failures + 1}. This identifies this evaluation, not fictional content.${state.languageEvidence ? ` Previous output-language evidence; correct only the affected generated fields: ${JSON.stringify(state.languageEvidence)}` : ''}` }] });
     },
   };
   const prevState = await canonicalStore.loadStoryState(workId, chapter - 1) ?? emptyStoryState(workId);
@@ -158,10 +162,17 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     if (!languageCompliance.satisfied || !coverage.complete) {
       if (languageCompliance.verdict === 'fail') {
         state.languageEvidence = answer.compliance.evidence;
+        if (answer.compliance.evidence.some(e => String(e.fieldPath).split(/[.\[]/)[0] === 'prose'))
+          base.violations.push({ severity: 'hard', code: 'OUTPUT_LANGUAGE_MISMATCH', chapterNumber: chapter,
+            targetLanguage: workContract.language, evidence: answer.compliance.evidence.filter(e => String(e.fieldPath).split(/[.\[]/)[0] === 'prose'),
+            message: `Repair the evidenced foreign-language prose into ${workContract.language}. Preserve facts, events, names, machine IDs, manifest and unaffected passages.` });
+        if (answer.compliance.evidence.some(e => String(e.fieldPath).split(/[.\[]/)[0] === 'semanticDelta')) {
+          state.extracted = null; state.semantic = null;
+        }
         state.metadataRepair = [...new Set(answer.compliance.evidence.map(e => String(e.fieldPath).split(/[.\[]/)[0]).filter(field => ['title', 'summary'].includes(field)))];
       }
       // A failed semantic judgment must be requested again in the next attempt.
-      if (Object.values(base.semanticValidation.verdicts).some(v => v === 'fail')) state.semantic = null;
+      if (Object.values(base.semanticValidation?.verdicts ?? {}).some(v => v === 'fail')) state.semantic = null;
       return fail(languageCompliance.verdict === 'fail' ? 'OUTPUT_LANGUAGE_MISMATCH' : 'VALIDATION_INCOMPLETE');
     }
     refreshCounts();
