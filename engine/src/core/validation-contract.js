@@ -34,7 +34,7 @@ export const VALIDATOR_VERSION = 'validation-contract-v1';
  * 언어 필드 분류기의 버전. 선언된 스키마 이름표가 바뀌면 올린다.
  * 호출자 투영과 함께 판정 hash · 영수증 신원에 묶인다.
  */
-export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 3;
+export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 4;
 /** 호출자가 추가 이름을 넘기지 않은 기본 투영. 기본 API 는 이 값으로 동작한다. */
 export const DEFAULT_LANGUAGE_FIELD_PROJECTION = Object.freeze({
     humanTextFields: Object.freeze([]),
@@ -76,7 +76,8 @@ export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
     'checkerId', 'checksum', 'code', 'commit', 'contractHash', 'createdAt', 'dialogueBreakMode',
     'digest', 'engineGenre', 'entityId', 'epoch', 'eventId', 'from', 'fromBeat', 'genre', 'hash',
     'nextBeat', 'hookId', 'id', 'ids', 'invariantId', 'key', 'kind', 'language', 'locale', 'mode', 'op',
-    'path', 'planSourceHash', 'pov', 'povCharacter', 'povMode', 'promptFamily', 'revision', 'role', 'schemaVersion',
+    'path', 'payoffTiming', 'planSourceHash', 'pov', 'povCharacter', 'povMode', 'promptFamily', 'revision', 'role', 'schemaVersion',
+    'speakerId',
     'scope', 'sentinel', 'serialization', 'severity', 'sha', 'slug', 'sourceHead', 'status',
     'storyTime', 'tag', 'target', 'targetId', 'timestamp', 'to', 'toBeat', 'transactionTime', 'type',
     'unit', 'updatedAt', 'uri', 'url', 'validationEpoch', 'version', 'worldline', 'workId',
@@ -97,6 +98,9 @@ export const HUMAN_TEXT_PATH_OVERRIDES = Object.freeze([
     // `relationships[].kind` 는 "라이벌"/"師と手伝い" 같은 생성 서술이다.
     'relationships.kind', 'relationships.state', 'mutable.knownFacts',
     'relationVariants.adjustment', 'relationVariants.sample',
+    // ChapterDelta 의 `relationshipOps[].state` 는 관계 변화를 서술한 문장이다(`kind` 는
+    // working_relationship 같은 기계 라벨로 남는다). 2026-09-15 ja 1화 표본.
+    'relationshipOps.state',
 ]);
 
 /**
@@ -113,6 +117,9 @@ export const USER_PROVENANCE_FIELD_NAMES = Object.freeze([
  * 계약이거나 분류되지 않았으므로 언어 판정의 근거가 되지 못한다.
  */
 export const SEMANTIC_DELTA_HUMAN_TEXT_FIELDS = Object.freeze([
+    // influenceEvents: `anchor` 는 본문 근거 인용, behavioralProof 의 `alternativesAvailable`/`chosen` 은
+    // 선택지 서술이다(2026-09-15 ja 1화 표본에서 미분류로 3회 소진).
+    'alternativesAvailable', 'anchor', 'chosen',
     'belief', 'behavioralProof', 'competingHypotheses', 'cost', 'costPaid', 'description',
     'descriptions', 'fact', 'facts', 'hypothesis', 'interpretation', 'interpretations',
     'noInfluenceReason', 'plotBeat', 'sceneTags', 'knownFactsAdded', 'label', 'location', 'name', 'names', 'nextChoiceBias', 'note', 'notes',

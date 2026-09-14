@@ -2075,6 +2075,46 @@ it('audits open entity attribute records while keeping surrounding operation IDs
 // 2026-09-14 실제 8개 언어 표본에서 ko/es 의 foundation 승인이 검토자 pass 를 받고도
 // `unclassified_generated_field` 로 3회 소진된 반례. 프롬프트가 요구하는 모든 생성
 // 필드는 이름 목록이나 경로 규칙으로 분류되어야 한다.
+// 2026-09-15 ja 1화 표본: ChapterDelta 의 influenceEvents/relationshipOps 가 미분류로 언어 계약을 3회 소진했다.
+describe('semantic delta influence fields', () => {
+    const delta = {
+        chapterNumber: 1, appearedCharacterIds: ['c1', 'c2'],
+        newAddressEntries: [{ speakerId: 'c2', targetId: 'c1', term: '千尋', register: 'casual' }],
+        relationshipOps: [{ to: 'c2', kind: 'working_relationship', state: '千尋は律の提案に距離を置き、自分の確認作業を優先する' }],
+        hookOps: [{ hookId: 'hook_repair_shortage', description: '板材の到着が次の便に回された', startChapter: 1, status: 'open', payoffTiming: 'near-term', lastAdvancedChapter: 1 }],
+        mutableChanges: [{ characterId: 'c1', location: '旧港の水路', status: '板の点検作業中', knownFactsAdded: ['赤い紐の印が十本を超えた'] }],
+        influenceEvents: [{
+            characterId: 'c1', anchor: '千尋は「後で見る」と言い、律の提案を保留にした', interpretation: '自分の目で確認することを最優先した',
+            dimensionChanges: { self_reliance: 1 }, nextChoiceBias: '次回も実地確認を優先しやすくなる',
+            behavioralProof: { hypothesis: '自分の判断基準を最も信頼する', voluntary: true, alternativesKnown: true,
+                alternativesAvailable: ['律の測定結果をすぐに確認に組み込む', '自分の確認を続ける'], chosen: '自分の確認を続ける', costPaid: '板材の発注判断が遅れた', competingHypotheses: [] },
+            relationshipClaims: [{ from: 'c1', to: 'c2', dimensions: { trust: -1 }, belief: '確認が済むまで頼るつもりはない' }],
+        }],
+        noInfluenceReason: '',
+        trackedEntityOps: [{ kind: 'Timeline', data: { name: '祭りまでの桟橋修理', events: [{ chapter: 1, description: '板材の到着が次の便に回された' }] } }],
+        arcCursorOps: [{ characterId: 'c1', nextBeat: 'wound', note: '律の申し出を断り続ける' }],
+    };
+    const artifact = canonicalArtifact(bundle({ semanticDelta: delta }));
+    it('accepts a pass over every generated field of a real ChapterDelta', () => {
+        const result = evaluate(artifact);
+        expect(result.verdict).toBe('pass');
+        expect(result.satisfied).toBe(true);
+    });
+    it('reads a fail on anchor, chosen or relationshipOps.state as a real language failure', () => {
+        for (const fieldPath of ['semanticDelta.influenceEvents[0].anchor', 'semanticDelta.influenceEvents[0].behavioralProof.chosen', 'semanticDelta.relationshipOps[0].state']) {
+            const quote = fieldPath.endsWith('anchor') ? '後で見る' : fieldPath.endsWith('chosen') ? '自分の確認を続ける' : '距離を置き';
+            const result = evaluate(artifact, { verdict: 'fail', evidence: [{ fieldPath, quote, reason: 'not the work language' }] });
+            expect(result.failureCode).toBe(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH);
+        }
+    });
+    it('rejects speakerId and payoffTiming as machine fields', () => {
+        for (const [fieldPath, quote] of [['semanticDelta.newAddressEntries[0].speakerId', 'c2'], ['semanticDelta.hookOps[0].payoffTiming', 'near-term']]) {
+            const err = expectCode(() => evaluate(artifact, { verdict: 'fail', evidence: [{ fieldPath, quote, reason: 'English' }] }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
+            expect(err.details.reason).toBe('machine_field');
+        }
+    });
+});
+
 describe('cast-design approval fields', () => {
     const EN = buildLanguageContract({ language: 'en' });
     // 공개 엔진 foundation 경로가 쓰는 같은 이름 목록으로 판정한다.
