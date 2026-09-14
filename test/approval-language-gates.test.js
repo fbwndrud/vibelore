@@ -150,3 +150,34 @@ test('seeded entity open attrs preserve exact keys and audit every nested string
   changed.seededEntities[0].attrs.owner = '別の組合';
   assert.equal((await gateApprovalActivation({ ...args, value: changed, consumeOnly: true })).code, 'STALE_VALIDATION_RECEIPT');
 });
+
+// 2026-09-14 실제 ko/es 표본: 검토자 pass 가 cast-design 생성 필드의 미분류로 거부됐다.
+test('foundation approval classifies every cast-design generated field', async () => {
+  const store = await newStore(); const providers = approvalProvider();
+  const value = {
+    title: 'The Harbor That Opened', language: 'en',
+    worldFacts: [{ id: 'wf1', statement: 'The harbor closed after the storm.' }],
+    characters: [{
+      id: 'c1', canonicalName: 'Mara Vale', contradiction: 'She wants help but calls it surrender.',
+      speechProfile: { defaultRegister: 'clipped', relationVariants: [{ targetId: 'c2', adjustment: 'Shorter sentences around him.', sample: 'Fine. Your way.' }] },
+      dramaticModel: { valueOrder: ['safety'], genreDetails: { 'opening permit': 'She alone signs the reopening notice.', 'inspection zones': 4 }, dimensionBaselines: { delegation_trust: -2 } },
+      mutable: { status: 'alive', knownFacts: ['The timber cannot cover the landing.'] },
+      relationships: [{ to: 'c2', kind: 'reluctant partner', state: 'trust under construction' }],
+    }],
+  };
+  const out = await gateApprovalActivation({ store, workId: 'book', kind: 'foundation', value, resolution: resolution('en'), providers });
+  assert.equal(out.ok, true, JSON.stringify(out.validation?.failureDetails ?? out.code));
+  assert.equal(providers.requests.filter(r => r.step === 'approval-language-contract').length, 1);
+});
+
+// 2026-09-14 실제 아랍어 표본: `format.pov` 를 지목한 fail 이 machine 면제로 거부되어 소진됐다.
+test('a fail that cites the free-text profile pov is a real language failure, not incomplete evidence', async () => {
+  const store = await newStore();
+  const providers = approvalProvider({ language: 'ar', answer: input => JSON.stringify({ language: 'ar', artifactHash: input.artifactHash, verdict: 'fail',
+    evidence: [{ fieldPath: 'value.format.pov', quote: '3인칭제한', reason: 'Not Arabic' }], allowedExceptions: [] }) });
+  const out = await runStoryProfile({ store, workId: 'book', language: 'ar', brief: 'A harbor story', mode: 'auto', providers });
+  assert.equal(out.status, 'clean_fail');
+  assert.notEqual(out.validation?.failureCode, 'INCOMPLETE_LANGUAGE_EVIDENCE');
+  assert.notEqual(out.validation?.failureDetails?.reason, 'machine_field');
+  assert.equal(await store.loadStoryProfile('book'), null);
+});

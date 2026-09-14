@@ -1,4 +1,5 @@
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
+import { FOUNDATION_LANGUAGE_FIELDS } from '../../src/generators/text/foundation-validation.js';
 import {
     LanguagePolicyError,
     buildLanguageContract,
@@ -2068,4 +2069,94 @@ it('audits open entity attribute records while keeping surrounding operation IDs
  expect(evaluate(artifact).satisfied).toBe(true);
  expect(evaluate(artifact,{verdict:'fail',evidence:[{fieldPath:'semanticDelta.entityOps[0].fields.climate',quote:'湿った風',reason:'Wrong target-language text in this test verdict.'}]}).verdict).toBe('fail');
  expectCode(()=>evaluate(artifact,{verdict:'fail',evidence:[{fieldPath:'semanticDelta.trackedEntityOps[0].data.id',quote:'item-1',reason:'An ID cannot prove language failure.'}]}),VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
+});
+
+// ─── cast-design 승인 묶음의 생성 필드 분류 ────────────────────────────────────
+// 2026-09-14 실제 8개 언어 표본에서 ko/es 의 foundation 승인이 검토자 pass 를 받고도
+// `unclassified_generated_field` 로 3회 소진된 반례. 프롬프트가 요구하는 모든 생성
+// 필드는 이름 목록이나 경로 규칙으로 분류되어야 한다.
+describe('cast-design approval fields', () => {
+    const EN = buildLanguageContract({ language: 'en' });
+    // 공개 엔진 foundation 경로가 쓰는 같은 이름 목록으로 판정한다.
+    function castArtifact(extra = {}) {
+        return canonicalApprovalArtifact({ kind: 'foundation', revision: 1, value: {
+            title: 'The Harbor That Opened',
+            format: { pov: 'limited third person alternating by chapter', length: { unit: 'graphemes', target: 1800 } },
+            povDesign: { mode: 'limited third person, alternating viewpoints' },
+            worldFacts: [{ id: 'wf1', statement: 'The old harbor has been closed since the storm.' }],
+            characters: [{
+                id: 'c1', canonicalName: 'Mara Vale', contradiction: 'She wants help but treats it as surrender.',
+                speechProfile: { defaultRegister: 'plain and clipped', samples: { everyday: 'Boards first.' },
+                    relationVariants: [{ targetId: 'c2', adjustment: 'Her sentences get shorter around him.', sample: 'Fine. Your way, then.' }] },
+                dramaticModel: {
+                    valueOrder: ['safety', 'the festival', 'her own pride'],
+                    behaviorTraits: [{ trigger: 'a shortage', actionBias: 'redraws the list alone', benefit: 'keeps control', cost: 'volunteers wait idle' }],
+                    dimensionBaselines: { delegation_trust: -2, scope_realism: -1 },
+                    genreDetails: { 'opening permit': 'She alone can sign the reopening notice.', '점검구역': 'Four zones, one per tide.' },
+                },
+                mutable: { status: 'alive', location: 'the lighthouse', knownFacts: ['The timber order cannot cover the main landing.'] },
+                relationships: [{ to: 'c2', kind: 'reluctant partner', state: 'trust under construction' }],
+            }],
+            ...extra,
+        } });
+    }
+    function evaluateCast(artifact, overrides = {}) {
+        return evaluateLanguageCompliance({
+            compliance: { language: 'en', artifactHash: computeArtifactHash(artifact), verdict: 'pass', evidence: [], allowedExceptions: [], ...overrides },
+            artifact,
+            workContract: EN,
+            languageFields: FOUNDATION_LANGUAGE_FIELDS,
+        });
+    }
+
+    it('accepts a pass over every field the cast-design prompt asks the model to write', () => {
+        expect(evaluateCast(castArtifact()).verdict).toBe('pass');
+    });
+
+    it('lets a fail cite the generated relationship, memory, register and open genre values', () => {
+        const artifact = castArtifact();
+        for (const [fieldPath, quote] of [
+            ['value.characters[0].relationships[0].kind', 'reluctant partner'],
+            ['value.characters[0].relationships[0].state', 'trust under construction'],
+            ['value.characters[0].mutable.knownFacts[0]', 'The timber order'],
+            ['value.characters[0].speechProfile.relationVariants[0].adjustment', 'shorter around him'],
+            ['value.characters[0].speechProfile.relationVariants[0].sample', 'Your way'],
+            ['value.characters[0].dramaticModel.genreDetails["opening permit"]', 'reopening notice'],
+            ['value.characters[0].dramaticModel.genreDetails.점검구역', 'per tide'],
+        ]) {
+            const result = evaluateCast(artifact, { verdict: 'fail', evidence: [{ fieldPath, quote, reason: 'test verdict' }] });
+            expect(result.verdict).toBe('fail');
+            expect(result.evidence[0].fieldPath).toBe(fieldPath);
+        }
+    });
+
+    it('keeps relationVariants.targetId a machine reference', () => {
+        const err = expectCode(
+            () => evaluateCast(castArtifact(), { verdict: 'fail', evidence: [{ fieldPath: 'value.characters[0].speechProfile.relationVariants[0].targetId', quote: 'c2', reason: 'id' }] }),
+            VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE,
+        );
+        expect(err.details.reason).toBe('machine_field');
+    });
+
+    it('treats only dramaticModel.genreDetails as an open record', () => {
+        const stray = castArtifact({ genreDetails: { 'stray key': 'A sentence outside the character model.' } });
+        const err = expectCode(() => evaluateCast(stray), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
+        expect(err.details.reason).toBe('unclassified_generated_field');
+        expect(err.details.fieldPaths).toEqual(['value.genreDetails["stray key"]']);
+    });
+
+    it('reads the profile point-of-view sentences as generated text while a bare pov enum stays exempt', () => {
+        // 실제 아랍어 표본: `format.pov` 에 영어 용어가 섞인 것을 검토자가 지목했으나
+        // machine 면제로 근거가 거부되어 3회가 소진됐다.
+        const artifact = castArtifact();
+        const pov = evaluateCast(artifact, { verdict: 'fail', evidence: [{ fieldPath: 'value.format.pov', quote: 'limited third person', reason: 'borrowed term' }] });
+        expect(pov.verdict).toBe('fail');
+        const mode = evaluateCast(artifact, { verdict: 'fail', evidence: [{ fieldPath: 'value.povDesign.mode', quote: 'alternating', reason: 'borrowed term' }] });
+        expect(mode.verdict).toBe('fail');
+        const bare = expectCode(
+            () => evaluateCast(castArtifact({ pov: '3인칭제한' }), { verdict: 'fail', evidence: [{ fieldPath: 'value.pov', quote: '3인칭제한', reason: 'enum' }] }),
+            VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE,
+        );
+        expect(bare.details.reason).toBe('machine_field');
+    });
 });

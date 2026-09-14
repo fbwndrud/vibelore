@@ -58,6 +58,9 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
     length: { unit: resolution.length.unit, target: resolution.length.target },
     language: resolution.language,
     workContract: resolution.contract,
+    // strict 인물 설계 위반·JSON 파싱 실패는 같은 요청 안에서 한 번만 수정 재요청한다.
+    // 실제 표본에서 조연의 behaviorTraits 1개 같은 경미한 미달이 전체 생성을 즉시 끝냈다.
+    castDesignRepairAttempts: 1,
   };
   const { foundation: base } = await prepareBookFoundationCandidate({ workId, providers, model: MODEL }, input);
   const foundation = {

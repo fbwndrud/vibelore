@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { performBookCreate } from '../../src/generators/text/steps/worldbuild.js';
+import { llmCastDesign } from '../../src/generators/text/steps/cast-design.js';
 function noopLogger() {
     return {
         info: () => undefined,
@@ -287,5 +288,68 @@ describe('performBookCreate', () => {
         const { foundation } = await performBookCreate(ctx, BASE_INPUT);
         expect(foundation.characters).toHaveLength(1);
         expect(foundation.characters[0]?.canonicalName).toBe('쓸만한 인물');
+    });
+});
+
+/**
+ * 2026-09-14 실제 표본: 조연의 behaviorTraits 1개(en/ja/zh-Hant/th)와 쉼표가 빠진
+ * JSON(fr)이 단발 요청으로 전체 생성을 끝냈다. 호스트가 `castDesignRepairAttempts`
+ * 를 넘기면 같은 계열 프롬프트로 한 번 수정 재요청한다. 기본값 0 은 기존과 같다.
+ */
+describe('castDesign repair budget', () => {
+    function recordingRegistry(responses) {
+        const requests = [];
+        return { requests, register: () => undefined, has: () => true, async complete(req) {
+            requests.push(req);
+            if (requests.length > responses.length) throw new Error(`recordingRegistry: out of responses at call ${requests.length}`);
+            return { text: responses[requests.length - 1], usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } };
+        } };
+    }
+    const userPrompt = (req) => req.messages.find((m) => m.role === 'user').content;
+
+    it('re-requests once after malformed JSON and uses the repaired answer', async () => {
+        const providers = recordingRegistry([GOOD_WORLDBUILD, '{"characters": [ {"id": "c1" "canonicalName": "x"} ]}', GOOD_CAST]);
+        const { foundation } = await performBookCreate(makeCtx(providers), { ...BASE_INPUT, castDesignRepairAttempts: 1 });
+        expect(foundation.characters).toHaveLength(3);
+        expect(providers.requests).toHaveLength(3);
+        const repair = userPrompt(providers.requests[2]);
+        expect(repair).toContain('이전 응답 수정 요청:');
+        expect(repair).toContain('유효한 JSON 이 아니었다');
+        expect(repair).toContain('"canonicalName": "x"');
+        expect(userPrompt(providers.requests[1])).not.toContain('이전 응답 수정 요청:');
+    });
+
+    it('re-requests once with per-character violation codes and keeps the second answer', async () => {
+        const providers = recordingRegistry([GOOD_WORLDBUILD, GOOD_CAST, GOOD_CAST]);
+        const { foundation } = await performBookCreate(makeCtx(providers), { ...BASE_INPUT, castDesignRepairAttempts: 1 });
+        expect(providers.requests).toHaveLength(3);
+        const repair = userPrompt(providers.requests[2]);
+        expect(repair).toContain('- c1: ');
+        expect(repair).toContain('DRAMATIC_VALUE_ORDER_THIN');
+        expect(repair).toContain('DRAMATIC_BEHAVIOR_TRAITS_THIN');
+        expect(repair).toContain('- c3: ');
+        // 예산 소진 뒤에도 엔진은 위반을 숨기지 않고 호스트 판정용으로 남긴다.
+        expect(foundation.characters[0]).not.toHaveProperty('designViolations', []);
+    });
+
+    it('still fails closed when the repaired answer is malformed too', async () => {
+        const providers = recordingRegistry([GOOD_WORLDBUILD, 'nope', 'still nope']);
+        await expect(performBookCreate(makeCtx(providers), { ...BASE_INPUT, castDesignRepairAttempts: 1 })).rejects.toThrow(/castDesign parse failed/);
+        expect(providers.requests).toHaveLength(3);
+    });
+
+    it('does not re-request without a budget', async () => {
+        const providers = recordingRegistry([GOOD_WORLDBUILD, GOOD_CAST]);
+        await performBookCreate(makeCtx(providers), BASE_INPUT);
+        expect(providers.requests).toHaveLength(2);
+    });
+
+    it('writes the repair request in the multilingual family for a non-Korean work', async () => {
+        const providers = recordingRegistry(['nope', GOOD_CAST]);
+        const { chapterWordCount, ...input } = BASE_INPUT;
+        await llmCastDesign(makeCtx(providers), { ...input, language: 'en', length: { unit: 'graphemes', target: 1800 }, castDesignRepairAttempts: 1 }, JSON.parse(GOOD_WORLDBUILD));
+        const repair = userPrompt(providers.requests[1]);
+        expect(repair).toContain('Repair request for the previous answer:');
+        expect(repair).not.toContain('이전 응답');
     });
 });

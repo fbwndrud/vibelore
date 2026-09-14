@@ -34,7 +34,7 @@ export const VALIDATOR_VERSION = 'validation-contract-v1';
  * 언어 필드 분류기의 버전. 선언된 스키마 이름표가 바뀌면 올린다.
  * 호출자 투영과 함께 판정 hash · 영수증 신원에 묶인다.
  */
-export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 2;
+export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 3;
 /** 호출자가 추가 이름을 넘기지 않은 기본 투영. 기본 API 는 이 값으로 동작한다. */
 export const DEFAULT_LANGUAGE_FIELD_PROJECTION = Object.freeze({
     humanTextFields: Object.freeze([]),
@@ -78,7 +78,7 @@ export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
     'nextBeat', 'hookId', 'id', 'ids', 'invariantId', 'key', 'kind', 'language', 'locale', 'mode', 'op',
     'path', 'planSourceHash', 'pov', 'povCharacter', 'povMode', 'promptFamily', 'revision', 'role', 'schemaVersion',
     'scope', 'sentinel', 'serialization', 'severity', 'sha', 'slug', 'sourceHead', 'status',
-    'storyTime', 'tag', 'target', 'timestamp', 'to', 'toBeat', 'transactionTime', 'type',
+    'storyTime', 'tag', 'target', 'targetId', 'timestamp', 'to', 'toBeat', 'transactionTime', 'type',
     'unit', 'updatedAt', 'uri', 'url', 'validationEpoch', 'version', 'worldline', 'workId',
 ]);
 
@@ -86,7 +86,18 @@ export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
  * 같은 이름이라도 스키마가 다르면 계약이 다르다. `intrinsic.role` 은 기존 한국어
  * 휴리스틱이 읽는 **자유 서술**이고, workflow 의 `role` 은 enum 이다. 경로로 구분한다.
  */
-export const HUMAN_TEXT_PATH_OVERRIDES = Object.freeze(['intrinsic.role']);
+export const HUMAN_TEXT_PATH_OVERRIDES = Object.freeze([
+    'intrinsic.role',
+    // StoryProfile 의 시점 서술. `format.pov` 와 `povDesign.mode` 는 프로필 프롬프트가
+    // 자유 문장으로 받는 값이라(`3인칭제한`, `三人称限定(千尋視点固定)`) enum 이 아니다.
+    // 실제 아랍어 표본에서 영어 용어가 섞인 이 값을 검토자가 지목했을 때 machine 면제로
+    // 근거를 거부하면 3회 시도가 전부 소진된다.
+    'format.pov', 'povDesign.mode',
+    // cast-design 스키마의 관계·기억·관계별 말투 값. `kind` 는 다른 스키마에서 enum 이지만
+    // `relationships[].kind` 는 "라이벌"/"師と手伝い" 같은 생성 서술이다.
+    'relationships.kind', 'relationships.state', 'mutable.knownFacts',
+    'relationVariants.adjustment', 'relationVariants.sample',
+]);
 
 /**
  * 사용자 입력의 출처를 보존하는 필드. 사용자가 대화에서 쓴 언어 그대로 남아야 하며
@@ -659,10 +670,18 @@ function parseFieldPath(raw) {
     const segments = [{ type: 'key', value: root[0] }];
     let rest = raw.slice(root[0].length);
     while (rest !== '') {
-        const key = /^\.([A-Za-z0-9_]+)/.exec(rest);
+        // 모델이 만드는 개방 기록 키(`genreDetails.개방권한`)는 ASCII 식별자가 아니다.
+        // 유니코드 문자·숫자·밑줄은 점 표기로, 공백·구두점이 든 키는 `["..."]` 로 받는다.
+        const key = /^\.([\p{L}\p{N}_]+)/u.exec(rest);
         if (key) {
             segments.push({ type: 'key', value: key[1] });
             rest = rest.slice(key[0].length);
+            continue;
+        }
+        const quoted = /^\["((?:[^"\\]|\\.)*)"\]/.exec(rest);
+        if (quoted) {
+            segments.push({ type: 'key', value: quoted[1].replace(/\\(.)/g, '$1') });
+            rest = rest.slice(quoted[0].length);
             continue;
         }
         const index = /^\[(\d+)\]/.exec(rest);
@@ -772,6 +791,13 @@ function classifyLeafPath(keys, artifactKind, humanTextFields, isString) {
         (keys[1] === 'entityOps' && keys[2] === 'fields' && keys.length > 3)
         || (keys[1] === 'trackedEntityOps' && keys[2] === 'data' && keys[3] === 'attrs' && keys.length > 4));
     if (openAttributes) return null;
+    // cast-design 의 `dramaticModel.genreDetails` 는 모델이 작품별 키를 만드는 개방
+    // 기록이다(`{"개방권한": "..."}`). 키는 기계 계약이 아니고 값은 생성 서술이므로,
+    // 그 아래 문자열은 이름 목록 없이도 언어 판정 대상이다. `genreDetails` 이름 자체가
+    // 잎인 경우(빈 문자열 등)는 여기 해당하지 않는다.
+    const genreDetailsIndex = keys.indexOf('genreDetails');
+    if (genreDetailsIndex >= 1 && genreDetailsIndex < keys.length - 1
+        && keys[genreDetailsIndex - 1] === 'dramaticModel') return null;
     // 사용자가 쓴 브리프·피드백·인용은 작품 언어로 옮겨 쓰는 값이 아니다.
     if (keys.length > 1 && USER_PROVENANCE_FIELD_NAME_SET.has(leaf))
         return 'user_provenance_field';
@@ -803,6 +829,13 @@ function classifyNestedEvidence(segments, root, resolvedValue, artifactKind, hum
  * 근거로 지목되지 않았다는 이유로 새 생성 필드가 조용히 검증을 건너뛰지 못하게 한다.
  * 기계 계약·사용자 출처 값은 대상이 아니며, 빈 문자열은 언어를 담지 않는다.
  */
+/** `parseFieldPath` 가 다시 읽을 수 있는 키 표기. 점 표기가 안 되는 키는 따옴표로 감싼다. */
+function formatPathKey(key) {
+    return /^[\p{L}\p{N}_]+$/u.test(key)
+        ? `.${key}`
+        : `["${key.replace(/[\\"]/g, (ch) => `\\${ch}`)}"]`;
+}
+
 function collectUnclassifiedGeneratedFields(artifact, artifactKind, humanTextFields) {
     const scoped = artifactKind === ARTIFACT_KIND_APPROVAL
         ? APPROVAL_LANGUAGE_SCOPED_FIELDS
@@ -822,7 +855,7 @@ function collectUnclassifiedGeneratedFields(artifact, artifactKind, humanTextFie
         }
         if (isPlainObject(value)) {
             for (const key of Object.keys(value))
-                visit(value[key], [...keys, key], `${path}.${key}`);
+                visit(value[key], [...keys, key], `${path}${formatPathKey(key)}`);
         }
     };
     for (const field of scoped) {

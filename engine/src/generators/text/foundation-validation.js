@@ -31,6 +31,14 @@ export const FOUNDATION_LANGUAGE_FIELDS = Object.freeze({
         'contradiction', 'coreAppearance', 'designViolations', 'form', 'formatVersionSource',
         'languageSource', 'lengthSource', 'public', 'species', 'statement',
         'trigger', 'underPressure', 'unicode',
+        // cast-design 스키마가 모델에게 쓰게 하는 나머지 생성 필드. 이름이 없으면 실제 인물
+        // 출력이 `unclassified_generated_field` 로 막힌다(2026-09-14 ko/es 표본).
+        'attire', 'build', 'cannotDo', 'defaultRegister', 'description', 'distinguishing',
+        'emotionalLeak', 'everyday', 'eyes', 'firstMove', 'genderLabel', 'hair', 'intimate',
+        'label', 'location', 'logicHabit', 'lying', 'missesFirst', 'narrativeReason',
+        'negativeEvidence', 'nonEvidence', 'positiveEvidence', 'premise', 'privateDelights',
+        'saturationRisk', 'seesFirst', 'sentenceShape', 'title', 'unproductiveWant', 'valueOrder',
+        'vibe',
     ]),
 });
 

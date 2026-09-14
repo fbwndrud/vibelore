@@ -274,6 +274,30 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal(await store.loadFoundation('thin-cast'), null);
   });
 
+  // 2026-09-14 실제 표본: 조연 한 명의 behaviorTraits 1개가 전체 생성을 즉시 끝냈다.
+  it('repairs a thin cast once through a second cast-design request before refusing', async () => {
+    const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-repaired-cast-')));
+    const thin = JSON.stringify({ characters: [{
+      id: 'flat', canonicalName: '평면', contradiction: '원하지만 두렵다',
+      intrinsic: { gender: 'unknown', species: 'human', form: 'humanoid', role: '주인공' },
+      dramaticModel: { valueOrder: ['생존'] },
+    }] });
+    const base = provider({ worldbuild: WORLD, 'entity-seed': ENTITIES });
+    const castQueue = [thin, CAST]; const castRequests = [];
+    const providers = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      if (req.step !== 'cast-design') return base.complete(req);
+      castRequests.push(req);
+      return { text: castQueue.shift() };
+    } };
+    const out = await runCreate({ store, workId: 'repaired-cast', title: '고친 인물', brief: '검사', genre: 'litrpg', providers });
+    assert.equal(out.created, true);
+    assert.equal(castRequests.length, 2);
+    const repair = castRequests[1].messages.find((m) => m.role === 'user').content;
+    assert.match(repair, /이전 응답 수정 요청:/);
+    assert.match(repair, /- flat: .*DRAMATIC_VALUE_ORDER_THIN/);
+    assert.equal((await store.loadFoundation('repaired-cast')).characters[0].canonicalName, '윤재');
+  });
+
   it('drafts, revises, rewrites, and proposes the next arc through the same provider seam', async () => {
     const store = await createdStore({ legacy: true });
     const prose = '윤재는 탑 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧';

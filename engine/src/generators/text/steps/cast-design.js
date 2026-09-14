@@ -143,6 +143,12 @@ const CAST_LABELS_KO = {
     ],
     output: `반드시 JSON 객체로만 응답하라. 마크다운 코드 펜스, 설명, 주석 금지.`,
     schema: `스키마:`,
+    repairHeading: `이전 응답 수정 요청:`,
+    repairParse: `- 이전 응답은 유효한 JSON 이 아니었다. 같은 스키마의 JSON 객체 하나만, 쉼표·괄호를 빠뜨리지 말고 완전하게 다시 출력하라.`,
+    repairViolation: (id, codes) => `- ${id}: ${codes.join(', ')}`,
+    repairCodes: `- 코드 요구: DRAMATIC_VALUE_ORDER_THIN=valueOrder 3개 이상, DRAMATIC_BEHAVIOR_TRAITS_THIN=비용이 있는 behaviorTraits 2개 이상, DRAMATIC_DIMENSIONS_THIN=dimensionBaselines 2개 이상, DRAMATIC_PERCEPTION_SEES_EMPTY/MISSES_EMPTY=seesFirst/missesFirst 각 1개 이상, DRAMATIC_DEFENSE_EMPTY=defense.underPressure, DRAMATIC_REPAIR_EMPTY=repair.firstMove, DRAMATIC_CONTRADICTION_REQUIRED=contradiction, IDENTITY_*=gender enum·genderLabel·species.`,
+    repairInstruction: `지목된 인물만 보완하고 나머지 인물·id·값은 유지한 채 전체 JSON 을 다시 완전하게 출력하라.`,
+    repairPrevious: `이전 응답:`,
 };
 /**
  * 다국어 계열. 인물 값(이름·외형·대사 샘플)은 **목표 작품 언어**로 요구하고,
@@ -183,6 +189,12 @@ const CAST_LABELS_EN = {
     ],
     output: 'Respond with a single JSON object only. No markdown code fence, no explanation, no comments.',
     schema: 'Schema:',
+    repairHeading: 'Repair request for the previous answer:',
+    repairParse: '- The previous answer was not valid JSON. Return exactly one complete JSON object in the same schema, with no missing commas or brackets.',
+    repairViolation: (id, codes) => `- ${id}: ${codes.join(', ')}`,
+    repairCodes: '- Code requirements: DRAMATIC_VALUE_ORDER_THIN = at least 3 valueOrder entries; DRAMATIC_BEHAVIOR_TRAITS_THIN = at least 2 behaviorTraits, each with a cost; DRAMATIC_DIMENSIONS_THIN = at least 2 dimensionBaselines; DRAMATIC_PERCEPTION_SEES_EMPTY / MISSES_EMPTY = at least one seesFirst / missesFirst; DRAMATIC_DEFENSE_EMPTY = defense.underPressure; DRAMATIC_REPAIR_EMPTY = repair.firstMove; DRAMATIC_CONTRADICTION_REQUIRED = contradiction; IDENTITY_* = gender enum, genderLabel, species.',
+    repairInstruction: 'Complete only the characters named above, keep every other character, id and value unchanged, and output the whole JSON object again in full.',
+    repairPrevious: 'Previous answer:',
 };
 /** 스키마 예시의 **값**(자리표시자)만 계열을 따른다. 키는 기계 계약이다. */
 const CAST_SCHEMA_PLACEHOLDERS_KO = {
@@ -352,7 +364,7 @@ function castSchemaLines(p) {
         `}`,
     ];
 }
-function buildCastPrompt(input, world, context) {
+function buildCastPrompt(input, world, context, repair = null) {
     const ctx = resolvePromptLanguageContext(context ?? {});
     const labels = pickByFamily(ctx, { ko: CAST_LABELS_KO, multilingual: CAST_LABELS_EN });
     const placeholders = pickByFamily(ctx, {
@@ -385,9 +397,35 @@ function buildCastPrompt(input, world, context) {
         labels.output,
         labels.schema,
         ...castSchemaLines(placeholders),
+        ...castRepairLines(labels, repair),
     ]
         .filter((line) => line !== '')
         .join('\n');
+}
+/**
+ * 수정 재요청 절. 파싱 실패는 형식만, 설계 위반은 인물별 코드와 코드의 요구를 적는다.
+ * 이전 응답을 그대로 붙여 지목되지 않은 인물·값을 유지하도록 한다.
+ */
+function castRepairLines(labels, repair) {
+    if (!repair)
+        return [];
+    const lines = ['', labels.repairHeading];
+    if (repair.kind === 'parse') {
+        lines.push(labels.repairParse);
+    }
+    else {
+        const byCharacter = new Map();
+        for (const violation of repair.violations) {
+            const list = byCharacter.get(violation.characterId) ?? [];
+            list.push(violation.code);
+            byCharacter.set(violation.characterId, list);
+        }
+        for (const [id, codes] of byCharacter)
+            lines.push(labels.repairViolation(id, codes));
+        lines.push(labels.repairCodes);
+    }
+    lines.push(labels.repairInstruction, '', labels.repairPrevious, repair.previous);
+    return lines;
 }
 /** 계열별 cast-design system. ko 값은 기존 문자열과 동일하다. */
 export const CAST_DESIGN_STEP_SYSTEM = '한국어 소설 초기 캐스트 디자이너. JSON 만 출력. intrinsic 핀고정 계약 준수.';
@@ -421,39 +459,68 @@ export async function llmCastDesign(ctx, input, world, promptLanguage) {
         ...(hasLegacyTarget ? { legacyLength: { chapterWordCount: input.chapterWordCount } } : {}),
         foundation: input.foundation ?? null,
     });
-    const prompt = buildCastPrompt(input, world, language);
-    const res = await ctx.providers.complete({
-        model: ctx.model,
-        step: 'cast-design',
-        messages: [
-            {
-                role: 'system',
-                content: [
-                    pickByFamily(language, {
-                        ko: CAST_DESIGN_STEP_SYSTEM,
-                        multilingual: CAST_DESIGN_STEP_SYSTEM_MULTILINGUAL,
-                    }),
-                    // 인물 설계는 회차 분량 산출물이 아니다 — 분량 목표 줄은 뺀다.
-                    ...languageSystemLines(language, { includeChapterLength: false }),
-                ].join(' '),
-            },
-            { role: 'user', content: prompt },
-        ],
-        jsonMode: true,
-    });
+    // 수정 재요청 예산. 기본 0 = 기존과 동일하게 단발 요청. 호스트(플러그인)가 1 을 넘기면
+    // JSON 파싱 실패 또는 strict 설계 위반을 한 번 더 같은 계열 프롬프트로 고쳐 받는다.
+    const repairBudget = Number.isInteger(input.castDesignRepairAttempts) && input.castDesignRepairAttempts > 0
+        ? input.castDesignRepairAttempts
+        : 0;
+    let repair = null;
+    for (let request = 1;; request++) {
+        const prompt = buildCastPrompt(input, world, language, repair);
+        const res = await ctx.providers.complete({
+            model: ctx.model,
+            step: 'cast-design',
+            messages: [
+                {
+                    role: 'system',
+                    content: [
+                        pickByFamily(language, {
+                            ko: CAST_DESIGN_STEP_SYSTEM,
+                            multilingual: CAST_DESIGN_STEP_SYSTEM_MULTILINGUAL,
+                        }),
+                        // 인물 설계는 회차 분량 산출물이 아니다 — 분량 목표 줄은 뺀다.
+                        ...languageSystemLines(language, { includeChapterLength: false }),
+                    ].join(' '),
+                },
+                { role: 'user', content: prompt },
+            ],
+            jsonMode: true,
+        });
+        const outcome = parseCastDesignResponse(res.text);
+        if (outcome.error) {
+            if (request <= repairBudget) {
+                repair = { kind: 'parse', previous: String(res.text ?? '') };
+                continue;
+            }
+            throw new Error('castDesign parse failed');
+        }
+        const violations = outcome.characters.flatMap((character) => (character.designViolations ?? []).map((code) => ({ characterId: character.id, code })));
+        if (violations.length > 0 && request <= repairBudget) {
+            repair = { kind: 'design', violations, previous: String(res.text) };
+            continue;
+        }
+        return outcome.result;
+    }
+}
+/**
+ * 응답 하나를 파싱·정규화한다. 형식 오류는 `{ error: true }` 로 돌려 호출자가 수정 재요청
+ * 예산 안에서 처리하게 하고, 인물별 strict 설계 위반은 `designViolations` 에 남긴다.
+ */
+function parseCastDesignResponse(text) {
+    const res = { text };
     let parsed;
     try {
         parsed = JSON.parse(res.text);
     }
     catch {
-        throw new Error('castDesign parse failed');
+        return { error: true };
     }
     if (typeof parsed !== 'object' || parsed === null) {
-        throw new Error('castDesign parse failed');
+        return { error: true };
     }
     const rawList = parsed.characters;
     if (rawList !== undefined && !Array.isArray(rawList)) {
-        throw new Error('castDesign parse failed');
+        return { error: true };
     }
     const list = Array.isArray(rawList) ? rawList : [];
     const seenIds = new Set();
@@ -501,5 +568,5 @@ export async function llmCastDesign(ctx, input, world, promptLanguage) {
         character.designViolations = validateCharacterDesign(character, { strict: true });
         characters.push(character);
     }
-    return { characters, salienceProfile: normalizeSalienceProfile(parsed.salienceProfile, characters) };
+    return { error: false, characters, result: { characters, salienceProfile: normalizeSalienceProfile(parsed.salienceProfile, characters) } };
 }
