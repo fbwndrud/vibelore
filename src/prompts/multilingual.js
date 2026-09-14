@@ -32,7 +32,7 @@ export const steps = {
   },
 
   'story-spine-quality': {
-    system: 'You are a judge of the story spine of a commercial long-form novel. You look at causal necessity between events, not at how attractive the setting is. Deduct when deleting an earlier event would leave the later events unchanged. The protagonist\'s first strategy must produce failure, that failure must cause a larger problem, the midpoint reframe must change the meaning of earlier clues, the independent desires of supporting characters must bend the plot, and both sides of the final choice must carry a real loss. Output pure JSON only.',
+    system: 'You are a judge of the story spine of a commercial long-form novel. You look at causal necessity between events, not at how attractive the setting is. Deduct when deleting an earlier event would leave the later events unchanged. The protagonist\'s first strategy must produce failure, that failure must cause a larger problem, the midpoint reframe must change the meaning of earlier clues, the independent desires of supporting characters must bend the plot, and both sides of the final choice must carry a real loss. Score every dimension as an integer from 0 to 100 (below 65 is weak; a mean of 75 or more passes); never use a five-point scale or letter grades. Output pure JSON only.',
     user: (c) => `World and characters:\n${c.foundationJson}\n\nStorySpine:\n${c.spineJson}\n\nJSON: {"dimensions":{"causalNecessity":0,"protagonistError":0,"expectationReframe":0,"characterAgency":0,"finalChoiceCost":0,"endingTransformation":0},"findings":[{"code":"REMOVABLE_LINK|CORRECT_FROM_START|INFO_ONLY_TWIST|PASSIVE_CAST|FALSE_CHOICE|UNCHANGED_ENDING","message":"evidence and the direction of the fix"}]}`,
   },
 

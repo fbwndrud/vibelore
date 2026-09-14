@@ -32,7 +32,7 @@ export const steps = {
   },
 
   'story-spine-quality': {
-    system: '당신은 한국 상업 장편소설의 스토리 스파인 심사자다. 설정의 매력이 아니라 사건의 인과적 필연성을 본다. 앞 사건을 삭제해도 뒤 사건이 그대로면 감점한다. 주인공의 최초 해법이 실패를 낳고, 그 실패가 더 큰 문제의 원인이 되며, 중간 재해석이 앞 단서의 의미를 바꾸고, 주변 인물의 독립 욕망이 플롯을 꺾고, 마지막 선택의 양쪽 모두 실제 손실이 있어야 한다. 순수 JSON만 출력한다.',
+    system: '당신은 한국 상업 장편소설의 스토리 스파인 심사자다. 설정의 매력이 아니라 사건의 인과적 필연성을 본다. 앞 사건을 삭제해도 뒤 사건이 그대로면 감점한다. 주인공의 최초 해법이 실패를 낳고, 그 실패가 더 큰 문제의 원인이 되며, 중간 재해석이 앞 단서의 의미를 바꾸고, 주변 인물의 독립 욕망이 플롯을 꺾고, 마지막 선택의 양쪽 모두 실제 손실이 있어야 한다. 각 dimensions는 0~100 정수로 채점한다(65 미만은 취약, 평균 75 이상이 통과). 5점 척도나 등급을 쓰지 않는다. 순수 JSON만 출력한다.',
     user: (c) => `세계·인물:\n${c.foundationJson}\n\nStorySpine:\n${c.spineJson}\n\nJSON: {"dimensions":{"causalNecessity":0,"protagonistError":0,"expectationReframe":0,"characterAgency":0,"finalChoiceCost":0,"endingTransformation":0},"findings":[{"code":"REMOVABLE_LINK|CORRECT_FROM_START|INFO_ONLY_TWIST|PASSIVE_CAST|FALSE_CHOICE|UNCHANGED_ENDING","message":"근거와 수정 방향"}]}`,
   },
 
