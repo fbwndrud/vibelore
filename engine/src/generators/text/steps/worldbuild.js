@@ -13,6 +13,7 @@
  * book-create path, and the shell uses the first step's name as the function
  * identifier).
  */
+import { parseJsonCompletion } from '../../../core/json-completion.js';
 import { createGenreProfileRegistry } from '../../../continuity/genre-profile.js';
 import {
     formatLengthTarget, languageSystemLines, pickByFamily, promptFamilyCaptureContext, resolveDialogueBreakMode,
@@ -152,11 +153,9 @@ async function llmWorldbuild(ctx, input, promptLanguage) {
         ],
         jsonMode: true,
     });
-    let parsed;
-    try {
-        parsed = JSON.parse(res.text);
-    }
-    catch {
+    // 펜스만 벗긴다. 형식 오류는 수정하지 않는다.
+    const parsed = parseJsonCompletion(res.text);
+    if (parsed === undefined) {
         throw new Error('worldbuild parse failed');
     }
     if (typeof parsed !== 'object' || parsed === null) {

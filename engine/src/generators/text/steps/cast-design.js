@@ -5,6 +5,7 @@
  * visualHints provide descriptive detail; older records may omit them.
  * Parsing supplies defaults for missing optional fields.
  */
+import { parseJsonCompletion } from '../../../core/json-completion.js';
 import {
     normalizeDramaticModel, normalizeIdentityIntrinsic, normalizeSalienceProfile, validateCharacterDesign,
 } from '../../../continuity/character-design.js';
@@ -508,11 +509,9 @@ export async function llmCastDesign(ctx, input, world, promptLanguage) {
  */
 function parseCastDesignResponse(text) {
     const res = { text };
-    let parsed;
-    try {
-        parsed = JSON.parse(res.text);
-    }
-    catch {
+    // 펜스만 벗긴다. 형식 오류는 수정하지 않는다.
+    const parsed = parseJsonCompletion(res.text);
+    if (parsed === undefined) {
         return { error: true };
     }
     if (typeof parsed !== 'object' || parsed === null) {

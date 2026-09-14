@@ -353,3 +353,17 @@ describe('castDesign repair budget', () => {
         expect(repair).not.toContain('이전 응답');
     });
 });
+
+// 2026-09-14 ja 표본: 프롬프트가 금지해도 모델이 ```json 펜스로 감싼 worldbuild 를 돌려줬다.
+describe('fenced JSON completions', () => {
+    it('accepts worldbuild and castDesign answers wrapped in a code fence', async () => {
+        const providers = scriptedRegistry(['```json\n' + GOOD_WORLDBUILD + '\n```', '```\n' + GOOD_CAST + '\n```\n']);
+        const { foundation } = await performBookCreate(makeCtx(providers), BASE_INPUT);
+        expect(foundation.worldFacts).toHaveLength(5);
+        expect(foundation.characters).toHaveLength(3);
+    });
+    it('does not repair anything beyond the fence', async () => {
+        const providers = scriptedRegistry(['```json\n{"premise": "x" "worldFacts": []}\n```']);
+        await expect(performBookCreate(makeCtx(providers), BASE_INPUT)).rejects.toThrow(/worldbuild parse failed/);
+    });
+});
