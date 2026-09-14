@@ -392,7 +392,7 @@ const EXTRACT_LABELS_KO = Object.freeze({
     chosen: '실제 선택',
     costPaid: '지불한 비용',
     belief: 'from이 to를 어떻게 보게 됐는가',
-    noInfluenceReason: '인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성',
+    noInfluenceReason: '인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성. influenceEvents 가 있으면 빈 문자열',
 });
 const EXTRACT_LABELS_EN = Object.freeze({
     chapter: '## Chapter number',
@@ -412,7 +412,7 @@ const EXTRACT_LABELS_EN = Object.freeze({
     chosen: 'the choice actually made',
     costPaid: 'the cost paid',
     belief: 'how "from" now sees "to"',
-    noInfluenceReason: 'fill in specifically only when there truly is no choice, cost, perception or relationship change',
+    noInfluenceReason: 'fill in specifically only when there truly is no choice, cost, perception or relationship change; an empty string when influenceEvents is non-empty',
 });
 function extractDeltaSchemaLines(labels, bindHash) {
     const lines = [
@@ -611,7 +611,13 @@ const NEW_CONTRACT_ENTRY_VALIDATORS = Object.freeze({
 function isNewContractDeltaComplete(parsed, resolveId) {
     if (!isRecord(parsed))
         return false;
-    if (typeof parsed.noInfluenceReason !== 'string')
+    // noInfluenceReason is the substitute for an empty influenceEvents: when the
+    // model recorded events it may leave the key out or null, but when it
+    // recorded none the reason must be present as a string.
+    const reason = parsed.noInfluenceReason;
+    if (reason !== undefined && reason !== null && typeof reason !== 'string')
+        return false;
+    if (typeof reason !== 'string' && !(Array.isArray(parsed.influenceEvents) && parsed.influenceEvents.length > 0))
         return false;
     for (const key of EXTRACT_ARRAY_KEYS) {
         const rows = parsed[key];

@@ -70,6 +70,15 @@ describe('evaluateChapterQuality', () => {
         });
         expect(r.pass).toBe(true);
     });
+    it('prosodyScore=null → prosody axis not applicable (scan did not run), never read as 0', () => {
+        // Non-ko prose has no prosody scanner; MULTILINGUAL_PLAN: a check that did not
+        // run scores null and is never synthesised into 0 or 100.
+        const r = evaluateChapterQuality({ chapterNumber: 5, prosodyScore: null, coherenceScore: null });
+        expect(r.pass).toBe(true);
+        expect(r.fails).toEqual([]);
+        const withCoherence = evaluateChapterQuality({ chapterNumber: 5, prosodyScore: null, coherenceScore: 40 });
+        expect(withCoherence.fails).toEqual([{ axis: 'coherence', score: 40, threshold: 60 }]);
+    });
     it('threshold.coherence=null → coherence axis disabled', () => {
         const r = evaluateChapterQuality({
             chapterNumber: 5,

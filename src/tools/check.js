@@ -96,7 +96,7 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
 
   const prosody = safely('prosody', () => runProsodyScan(prose));
   const quality = safely('quality-gate', () => evaluateChapterQuality({
-    prosodyScore: prosody.score ?? 0,
+    prosodyScore: prosody.score ?? null,
     coherenceScore: null,
   }));
 

@@ -55,7 +55,9 @@ export function evaluateChapterQuality(input) {
             : (input.threshold?.coherence ?? DEFAULT_QUALITY_THRESHOLD.coherence),
     };
     const fails = [];
-    if (input.prosodyScore < threshold.prosody) {
+    // A null score means the scan did not run (non-ko prose has no prosody
+    // scanner). A skipped axis is not applicable; it is never read as 0.
+    if (input.prosodyScore !== null && input.prosodyScore !== undefined && input.prosodyScore < threshold.prosody) {
         fails.push({ axis: 'prosody', score: input.prosodyScore, threshold: threshold.prosody });
     }
     if (threshold.coherence !== null &&

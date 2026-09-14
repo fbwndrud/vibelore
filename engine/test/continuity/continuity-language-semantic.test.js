@@ -239,7 +239,7 @@ describe('extractDelta prompt families', () => {
             '  "hookOps": [{ "hookId": "...", "description": "...", "startChapter": 0, "status": "open|progressing|resolved|deferred", "payoffTiming": "immediate|near-term|mid-arc|slow-burn|endgame", "lastAdvancedChapter": 0 }],',
             '  "mutableChanges": [{ "characterId": "...", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
             '  "influenceEvents": [{ "characterId": "...", "anchor": "본문에서 확인 가능한 짧은 근거", "interpretation": "이 사건을 인물이 어떻게 받아들였는가", "dimensionChanges": { "작품별_dimension_id": -1 }, "nextChoiceBias": "다음 선택에 생긴 편향", "behavioralProof": { "hypothesis": "성격 가설", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["선택A", "선택B"], "chosen": "실제 선택", "costPaid": "지불한 비용", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "from이 to를 어떻게 보게 됐는가" }] }],',
-            '  "noInfluenceReason": "인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성",',
+            '  "noInfluenceReason": "인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성. influenceEvents 가 있으면 빈 문자열",',
             '  "trackedEntityOps": [{ "kind": "Timeline|RelationshipState|PowerSystem|Artifact|Clue|KnowledgeMatrix", "data": {} }]',
             '}',
         ].join('\n');
@@ -439,6 +439,32 @@ describe('extractDelta extractionValidation', () => {
         expect(result.delta.hookOps[0].hookId).toBe('h1');
         expect(result.delta.influenceEvents[0].characterId).toBe('c1');
         expect(result.delta.trackedEntityOps).toEqual([{ kind: 'Timeline', data: { era: 'present' } }]);
+    });
+    it('recorded influenceEvents make noInfluenceReason optional (ja sample, 43be593)', async () => {
+        const input = extractInput({ workContract: EN_CONTRACT });
+        const hash = computeExtractionContextHash(input);
+        const event = { characterId: 'c1', anchor: 'He read the letter twice.', interpretation: 'he accepted the cost' };
+        const omitted = JSON.stringify({
+            newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], trackedEntityOps: [],
+            influenceEvents: [event],
+            extractionValidation: { contextHash: hash },
+        });
+        const omittedResult = await extractDelta({ ...input, providers: capturing(omitted).providers });
+        expect(omittedResult.extractionValidation.status).toBe('completed');
+        expect(omittedResult.delta.influenceEvents).toHaveLength(1);
+        expect(omittedResult.delta.noInfluenceReason).toBe('');
+        const nulled = await extractDelta({ ...input, providers: capturing(completeEmptyExtraction(hash, { influenceEvents: [event], noInfluenceReason: null })).providers });
+        expect(nulled.extractionValidation.status).toBe('completed');
+        // Without any event the reason is still the required substitute.
+        const bare = JSON.stringify({
+            newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], trackedEntityOps: [], influenceEvents: [],
+            extractionValidation: { contextHash: hash },
+        });
+        const bareResult = await extractDelta({ ...input, providers: capturing(bare).providers });
+        expect(bareResult.extractionValidation.status).toBe('invalid');
+        expect(bareResult.extractionValidation.diagnostics.code).toBe('malformed');
+        const numeric = await extractDelta({ ...input, providers: capturing(completeEmptyExtraction(hash, { influenceEvents: [event], noInfluenceReason: 3 })).providers });
+        expect(numeric.extractionValidation.status).toBe('invalid');
     });
     it('incomplete nested records and nonfinite dimensions are invalid', async () => {
         const input = extractInput({ workContract: EN_CONTRACT });

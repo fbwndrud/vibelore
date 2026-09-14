@@ -820,10 +820,6 @@ export async function prepareChapterPublication(ctx, args) {
             coherenceScore: coherence.score,
             threshold: ctx.qualityThreshold,
         });
-        if (prosody.score === null) {
-            qualityResult.fails = qualityResult.fails.filter((item) => item.axis !== 'prosody');
-            qualityResult.pass = qualityResult.fails.length === 0;
-        }
         if (!qualityResult.pass) {
             return {
                 ok: false,
