@@ -27,8 +27,8 @@ export const steps = {
   },
 
   'story-spine': {
-    system: '세계관 설명이나 사건 목록이 아니라 작품 전체의 인과적 StorySpine을 설계한다. 주인공의 잘못된 믿음에서 나온 최초 해법이 실제 실패를 만들고, 그 해결이 다음 문제의 원인이 되게 하라. 주변 인물은 독립 욕망으로 플롯을 바꾸며, 중간 재해석은 앞 단서의 의미를 뒤집는다. 마지막 선택은 양쪽 모두 대가가 있고 결말 변화는 그 선택으로 증명한다. 순수 JSON만 출력한다.',
-    user: (c) => `작품:\n${c.workJson}\n방향: ${c.direction}\n피드백: ${c.feedback}\nJSON: {"dramaticQuestion":"","protagonistWant":"","protagonistNeed":"","falseBelief":"","incitingDisruption":"","initialStrategy":"","causalChain":["최소 5단계"],"midpointReframe":"","finalChoice":"","endingChange":"","endingCost":"","characterForces":[{"characterId":"실제 id","want":"","actionThatChangesPlot":""}]}`,
+    system: '세계관 설명이나 사건 목록이 아니라 작품 전체의 인과적 StorySpine을 설계한다. 주인공의 잘못된 믿음에서 나온 최초 해법이 실제 실패를 만들고, 그 해결이 다음 문제의 원인이 되게 하라. 주변 인물은 독립 욕망으로 플롯을 바꾸며, 중간 재해석은 앞 단서의 의미를 뒤집는다. 마지막 선택은 양쪽 모두 대가가 있고 결말 변화는 그 선택으로 증명한다. causalChain은 최소 5단계, characterForces는 서로 다른 실제 인물 최소 2명이다. 순수 JSON만 출력한다.',
+    user: (c) => `작품:\n${c.workJson}\n방향: ${c.direction}\n피드백: ${c.feedback}\nJSON: {"dramaticQuestion":"","protagonistWant":"","protagonistNeed":"","falseBelief":"","incitingDisruption":"","initialStrategy":"","causalChain":["최소 5단계"],"midpointReframe":"","finalChoice":"","endingChange":"","endingCost":"","characterForces":[{"characterId":"실제 id","want":"","actionThatChangesPlot":""},{"characterId":"두 번째 실제 id (최소 2명)","want":"","actionThatChangesPlot":""}]}`,
   },
 
   'story-spine-quality': {
