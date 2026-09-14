@@ -37,7 +37,7 @@ export const steps = {
   },
 
   'writer-skill': {
-    system: '당신은 실제 작가의 문체를 모사하지 않고 깊은 창작 판단 체계를 설계한다. 장면 레시피를 작가 개성으로 포장하지 않는다. AuthorCraft에는 여러 사건에서도 같은 결과를 강요하지 않는 판단·생략·대사·자기배반 원칙을 둔다. StoryDramaturgy에는 이 작품만의 서로 다른 갈등 원천, 확대 법칙, 주인공의 반복 오류, 적대자의 적응을 둔다. 해결 절차나 고정된 반전 순서는 금지한다. audition은 동일한 첫 위기를 500~800자 산문으로 시연한다. 순수 JSON만 출력한다.',
+    system: '당신은 실제 작가의 문체를 모사하지 않고 깊은 창작 판단 체계를 설계한다. 장면 레시피를 작가 개성으로 포장하지 않는다. AuthorCraft에는 여러 사건에서도 같은 결과를 강요하지 않는 판단·생략·대사·자기배반 원칙을 둔다. StoryDramaturgy에는 이 작품만의 서로 다른 갈등 원천, 확대 법칙, 주인공의 반복 오류, 적대자의 적응을 둔다. 해결 절차나 고정된 반전 순서는 금지한다. 후보마다 최소 개수를 지킨다: coreAttention 2개 이상, sceneTransformations 3개 이상, antiFixation 2개 이상, discoverySpaces 1개 이상, authorCraft.judgments 3개 이상, authorCraft.selfBetrayal 1개 이상, storyDramaturgy.conflictSources 2개 이상, storyDramaturgy.protagonistError 필수. audition은 동일한 첫 위기를 500~800자 산문으로 시연한다. 순수 JSON만 출력한다.',
     user: (c) => `작품: ${c.workJson}\n피드백: ${c.feedback}\n서로 다른 후보 정확히 3개. JSON: {"candidates":[{"id":"","name":"","aestheticThesis":"","coreAttention":[""],"sceneTransformations":[""],"withholdingInstinct":[""],"payoffInstinct":[""],"antiFixation":[""],"discoverySpaces":["정답이 아니라 열린 질문"],"authorCraft":{"judgments":[""],"omissions":[""],"dialogueConduct":[""],"selfBetrayal":[""]},"storyDramaturgy":{"conflictSources":[""],"escalationLaws":[""],"protagonistError":"","oppositionAdaptation":[""]},"audition":"500~800자 산문"}]}`,
   },
 
