@@ -5,7 +5,7 @@
  * visualHints provide descriptive detail; older records may omit them.
  * Parsing supplies defaults for missing optional fields.
  */
-import { parseJsonCompletion } from '../../../core/json-completion.js';
+import { describeJsonError, parseJsonCompletion } from '../../../core/json-completion.js';
 import {
     normalizeDramaticModel, normalizeIdentityIntrinsic, normalizeSalienceProfile, validateCharacterDesign,
 } from '../../../continuity/character-design.js';
@@ -146,6 +146,7 @@ const CAST_LABELS_KO = {
     schema: `스키마:`,
     repairHeading: `이전 응답 수정 요청:`,
     repairParse: `- 이전 응답은 유효한 JSON 이 아니었다. 같은 스키마의 JSON 객체 하나만, 쉼표·괄호를 빠뜨리지 말고 완전하게 다시 출력하라.`,
+    repairParseDetail: (message, snippet) => [`- 파서 오류: ${message}`, `- 오류 위치 주변 원문: «${snippet}»`, `- 이 위치의 괄호·쉼표 불일치를 고치고, 같은 응답을 그대로 되풀이하지 마라.`],
     repairViolation: (id, codes) => `- ${id}: ${codes.join(', ')}`,
     repairCodes: `- 코드 요구: DRAMATIC_VALUE_ORDER_THIN=valueOrder 3개 이상, DRAMATIC_BEHAVIOR_TRAITS_THIN=비용이 있는 behaviorTraits 2개 이상, DRAMATIC_DIMENSIONS_THIN=dimensionBaselines 2개 이상, DRAMATIC_PERCEPTION_SEES_EMPTY/MISSES_EMPTY=seesFirst/missesFirst 각 1개 이상, DRAMATIC_DEFENSE_EMPTY=defense.underPressure, DRAMATIC_REPAIR_EMPTY=repair.firstMove, DRAMATIC_CONTRADICTION_REQUIRED=contradiction, IDENTITY_*=gender enum·genderLabel·species.`,
     repairInstruction: `지목된 인물만 보완하고 나머지 인물·id·값은 유지한 채 전체 JSON 을 다시 완전하게 출력하라.`,
@@ -192,6 +193,7 @@ const CAST_LABELS_EN = {
     schema: 'Schema:',
     repairHeading: 'Repair request for the previous answer:',
     repairParse: '- The previous answer was not valid JSON. Return exactly one complete JSON object in the same schema, with no missing commas or brackets.',
+    repairParseDetail: (message, snippet) => [`- Parser error: ${message}`, `- Text around the error: «${snippet}»`, '- Fix the bracket or comma mismatch at that spot; do not repeat the same answer verbatim.'],
     repairViolation: (id, codes) => `- ${id}: ${codes.join(', ')}`,
     repairCodes: '- Code requirements: DRAMATIC_VALUE_ORDER_THIN = at least 3 valueOrder entries; DRAMATIC_BEHAVIOR_TRAITS_THIN = at least 2 behaviorTraits, each with a cost; DRAMATIC_DIMENSIONS_THIN = at least 2 dimensionBaselines; DRAMATIC_PERCEPTION_SEES_EMPTY / MISSES_EMPTY = at least one seesFirst / missesFirst; DRAMATIC_DEFENSE_EMPTY = defense.underPressure; DRAMATIC_REPAIR_EMPTY = repair.firstMove; DRAMATIC_CONTRADICTION_REQUIRED = contradiction; IDENTITY_* = gender enum, genderLabel, species.',
     repairInstruction: 'Complete only the characters named above, keep every other character, id and value unchanged, and output the whole JSON object again in full.',
@@ -413,6 +415,8 @@ function castRepairLines(labels, repair) {
     const lines = ['', labels.repairHeading];
     if (repair.kind === 'parse') {
         lines.push(labels.repairParse);
+        if (repair.detail)
+            lines.push(...labels.repairParseDetail(repair.detail.message, repair.detail.snippet));
     }
     else {
         const byCharacter = new Map();
@@ -490,7 +494,7 @@ export async function llmCastDesign(ctx, input, world, promptLanguage) {
         const outcome = parseCastDesignResponse(res.text);
         if (outcome.error) {
             if (request <= repairBudget) {
-                repair = { kind: 'parse', previous: String(res.text ?? '') };
+                repair = { kind: 'parse', detail: outcome.detail, previous: String(res.text ?? '') };
                 continue;
             }
             throw new Error('castDesign parse failed');
@@ -509,10 +513,11 @@ export async function llmCastDesign(ctx, input, world, promptLanguage) {
  */
 function parseCastDesignResponse(text) {
     const res = { text };
-    // 펜스만 벗긴다. 형식 오류는 수정하지 않는다.
+    // 펜스만 벗긴다. 형식 오류는 수정하지 않는다. 수정 재요청이 같은 응답을 되풀이하지
+    // 않도록 파서 메시지와 오류 위치 주변 원문을 함께 남긴다(2026-09-14 en 표본).
     const parsed = parseJsonCompletion(res.text);
     if (parsed === undefined) {
-        return { error: true };
+        return { error: true, detail: describeJsonError(res.text) };
     }
     if (typeof parsed !== 'object' || parsed === null) {
         return { error: true };

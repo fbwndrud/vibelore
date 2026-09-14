@@ -20,6 +20,7 @@ import { withProjectLock } from './core/project-lock.js';
 import { MarkdownStateStore } from './store/markdown-store.js';
 import { createHostRelay, createPreflightRelay } from './provider/host-relay.js';
 import { createLocalOpenAIProvider } from './provider/local-openai.js';
+import { withJsonRepair } from './provider/json-repair.js';
 import { runInit } from './tools/init.js';
 import { buildContext } from './tools/context.js';
 import { runCheck } from './tools/check.js';
@@ -530,8 +531,9 @@ const PREFLIGHT_TOOLS = new Set(['lore_init', 'lore_check', 'lore_arc_decide', '
 function providerFor(toolName, answers = {}) {
   const baseUrl = process.env.VIBELORE_LOCAL_BASE_URL;
   const model = process.env.VIBELORE_LOCAL_MODEL;
-  if (baseUrl && model) return createLocalOpenAIProvider({ baseUrl, model });
-  return PREFLIGHT_TOOLS.has(toolName) ? createPreflightRelay(answers) : createHostRelay(answers);
+  // 형식만 깨진 JSON 응답은 도구별 단발 실패 대신 한 번 고쳐 받는다(src/provider/json-repair.js).
+  if (baseUrl && model) return withJsonRepair(createLocalOpenAIProvider({ baseUrl, model }));
+  return withJsonRepair(PREFLIGHT_TOOLS.has(toolName) ? createPreflightRelay(answers) : createHostRelay(answers));
 }
 
 function execWithProviders(store, toolName, args, providers) {

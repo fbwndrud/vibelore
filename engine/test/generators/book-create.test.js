@@ -315,6 +315,8 @@ describe('castDesign repair budget', () => {
         const repair = userPrompt(providers.requests[2]);
         expect(repair).toContain('이전 응답 수정 요청:');
         expect(repair).toContain('유효한 JSON 이 아니었다');
+        expect(repair).toContain('- 파서 오류: ');
+        expect(repair).toMatch(/오류 위치 주변 원문: «[^»]*"c1" "canonicalName"[^»]*»/);
         expect(repair).toContain('"canonicalName": "x"');
         expect(userPrompt(providers.requests[1])).not.toContain('이전 응답 수정 요청:');
     });

@@ -23,3 +23,21 @@ export function parseJsonCompletion(text) {
         return undefined;
     }
 }
+
+/**
+ * 파서 메시지와 오류 위치 주변 원문. 수정 재요청이 같은 응답을 되풀이하지 않게 한다.
+ * 위치를 알 수 없으면 앞부분을 보인다.
+ */
+export function describeJsonError(text) {
+    const source = stripJsonFence(text);
+    try {
+        JSON.parse(source);
+        return { message: 'not a JSON object', snippet: source.slice(0, 120) };
+    }
+    catch (error) {
+        const message = String(error.message);
+        const at = /position (\d+)/.exec(message);
+        const index = at ? Number(at[1]) : 0;
+        return { message, snippet: source.slice(Math.max(0, index - 120), index + 40) };
+    }
+}
