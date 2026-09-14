@@ -59,8 +59,10 @@ export function projectApprovalValue(value, path = []) {
     else if (CONFIG.has(key)) out[key] = { id: JSON.stringify(item) };
     // StorySpine/ArcPlan 이 붙이는 품질 심사 기록(점수·findings). 발행되는 작품 본문이 아니라
     // 심사 증거이므로 정확한 값은 hash 에 묶되 작품 언어 검토 대상은 아니다 — 비평 코멘트의
-    // 언어로 계획 승인을 막지 않는다(2026-09-14 en/ko/ja 표본).
-    else if (key === 'quality' && path.length === 0 && item && typeof item === 'object' && !Array.isArray(item) && typeof item.verdict === 'string' && item.dimensions) out[key] = { id: JSON.stringify(item) };
+    // 언어로 계획 승인을 막지 않는다(2026-09-14 en/ko/ja 표본). 검토자에게는 기록의 sha256 만
+    // 보인다: 직렬화 원문을 id 로 넘기면 검토자가 그 안의 영어 코드(REMOVABLE_LINK)와 코멘트를
+    // 지목해 근거 불완전으로 세 번 다 실패했다(2026-09-15 zh-Hant 표본).
+    else if (key === 'quality' && path.length === 0 && item && typeof item === 'object' && !Array.isArray(item) && typeof item.verdict === 'string' && item.dimensions) out[key] = { id: hash(item) };
     else if (machineLeaf(key, path, item) && (typeof item === 'string' || Array.isArray(item) && item.every(v => typeof v === 'string'))) out[key] = { id: item };
     else if (['rationale', 'serialization'].includes(key) && typeof item === 'string') out[key] = { description: item };
     else out[key] = projectApprovalValue(item, [...path, key]);

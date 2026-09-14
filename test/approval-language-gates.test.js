@@ -191,6 +191,9 @@ test('a quality review record is bound in the hash but not language-reviewed', a
   assert.equal(out.ok, true, JSON.stringify(out.validation?.failureDetails ?? out.code));
   const projected = projectApprovalValue(spine);
   assert.deepEqual(Object.keys(projected.quality), ['id']);
+  // The reviewer sees only a digest: no critic code or comment text can be cited as a language failure.
+  assert.match(projected.quality.id, /^[0-9a-f]{64}$/);
+  assert.equal(JSON.stringify(projected).includes('PASSIVE_CAST'), false);
   assert.notEqual(projectApprovalValue({ ...spine, quality: { ...spine.quality, score: 70 } }).quality.id, projected.quality.id);
   // 같은 이름이라도 심사 기록 모양이 아니면 그대로 생성 필드로 검토된다.
   assert.equal(projectApprovalValue({ quality: 'a sentence' }).quality, 'a sentence');
