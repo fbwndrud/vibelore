@@ -101,6 +101,9 @@ export const HUMAN_TEXT_PATH_OVERRIDES = Object.freeze([
     // ChapterDelta 의 `relationshipOps[].state` 는 관계 변화를 서술한 문장이다(`kind` 는
     // working_relationship 같은 기계 라벨로 남는다). 2026-09-15 ja 1화 표본.
     'relationshipOps.state',
+    // ChapterDelta 의 `mutableChanges[].status` 는 "혼자 남아 빈 배정표를 붙잡고 자책함" 같은 상태
+    // 서술이다(foundation `mutable.status` 의 alive 같은 enum 과 다른 계약). 2026-09-15 ko 1화 표본.
+    'mutableChanges.status',
 ]);
 
 /**
@@ -1008,6 +1011,7 @@ export function evaluateLanguageCompliance({
     targetLanguage = null,
     allowedLanguageExceptions = null,
     languageFields = null,
+    passEvidence = 'strict',
 } = {}) {
     const canonical = canonicalizeByKind(artifact);
     const artifactKind = canonical.artifactKind;
@@ -1035,8 +1039,26 @@ export function evaluateLanguageCompliance({
     if (judged.tag !== target.tag)
         fail(VALIDATION_ERROR_CODES.LANGUAGE_TARGET_MISMATCH, { expected: target.tag, received: judged.tag });
 
-    const evidence = parsed.evidence
-        .map((entry, index) => validateEvidenceEntry(entry, index, canonical, artifactKind, humanTextFields));
+    // A fail stands or falls on its evidence, so every entry must be a real
+    // in-field quote. A pass needs no evidence at all, so a caller reading a raw
+    // model answer may ask (`passEvidence: 'drop-invalid'`) to drop decorative
+    // citations (a machine field, a quote shortened with an ellipsis) instead of
+    // spending one of its attempts (2026-09-15 ko sample: three passes, each
+    // undone by one such citation). Stored records are always re-read strictly:
+    // a persisted pass that carries an invalid citation was not produced here.
+    const evidence = parsed.verdict === 'pass' && passEvidence === 'drop-invalid'
+        ? parsed.evidence.flatMap((entry, index) => {
+            try {
+                return [validateEvidenceEntry(entry, index, canonical, artifactKind, humanTextFields)];
+            }
+            catch (error) {
+                if (error?.code === VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE)
+                    return [];
+                throw error;
+            }
+        })
+        : parsed.evidence
+            .map((entry, index) => validateEvidenceEntry(entry, index, canonical, artifactKind, humanTextFields));
     if (parsed.verdict === 'fail' && evidence.length === 0)
         fail(VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE, { reason: 'fail_without_evidence' });
     const claimedExceptions = parsed.allowedExceptions

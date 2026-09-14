@@ -2100,12 +2100,32 @@ describe('semantic delta influence fields', () => {
         expect(result.verdict).toBe('pass');
         expect(result.satisfied).toBe(true);
     });
-    it('reads a fail on anchor, chosen or relationshipOps.state as a real language failure', () => {
-        for (const fieldPath of ['semanticDelta.influenceEvents[0].anchor', 'semanticDelta.influenceEvents[0].behavioralProof.chosen', 'semanticDelta.relationshipOps[0].state']) {
-            const quote = fieldPath.endsWith('anchor') ? '後で見る' : fieldPath.endsWith('chosen') ? '自分の確認を続ける' : '距離を置き';
+    it('reads a fail on anchor, chosen, relationshipOps.state or mutableChanges.status as a real language failure', () => {
+        for (const fieldPath of ['semanticDelta.influenceEvents[0].anchor', 'semanticDelta.influenceEvents[0].behavioralProof.chosen', 'semanticDelta.relationshipOps[0].state', 'semanticDelta.mutableChanges[0].status']) {
+            const quote = fieldPath.endsWith('anchor') ? '後で見る' : fieldPath.endsWith('chosen') ? '自分の確認を続ける' : fieldPath.endsWith('status') ? '点検作業中' : '距離を置き';
             const result = evaluate(artifact, { verdict: 'fail', evidence: [{ fieldPath, quote, reason: 'not the work language' }] });
             expect(result.failureCode).toBe(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH);
         }
+    });
+    // 2026-09-15 ko 1화 표본: pass 판정에 딸린 인용(기계 필드 지목, "..." 로 줄인 인용)이 세 번의 pass 를 모두 불완전으로 만들었다.
+    it('keeps a pass when its supporting citations are decorative or imperfect', () => {
+        const decorated = [
+            { fieldPath: 'prose', quote: '扉が開いた。Ann は...', reason: 'natural prose' },
+            { fieldPath: 'semanticDelta.newAddressEntries[0].speakerId', quote: 'c2', reason: 'id' },
+            { fieldPath: 'semanticDelta.influenceEvents[0].anchor', quote: '後で見る', reason: 'Japanese' },
+        ];
+        // The default (stored-record) reading stays strict.
+        expectCode(() => evaluate(artifact, { verdict: 'pass', evidence: decorated }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
+        const result = evaluateLanguageCompliance({
+            compliance: compliance(artifact, { verdict: 'pass', evidence: decorated }), artifact, workContract: WORK_CONTRACT, passEvidence: 'drop-invalid',
+        });
+        expect(result.verdict).toBe('pass');
+        expect(result.satisfied).toBe(true);
+        expect(result.evidence.map((entry) => entry.fieldPath)).toEqual(['semanticDelta.influenceEvents[0].anchor']);
+        // The same imperfections still sink a fail.
+        expectCode(() => evaluateLanguageCompliance({
+            compliance: compliance(artifact, { verdict: 'fail', evidence: [{ fieldPath: 'prose', quote: '扉が開いた。Ann は...', reason: 'x' }] }), artifact, workContract: WORK_CONTRACT, passEvidence: 'drop-invalid',
+        }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
     });
     it('rejects speakerId and payoffTiming as machine fields', () => {
         for (const [fieldPath, quote] of [['semanticDelta.newAddressEntries[0].speakerId', 'c2'], ['semanticDelta.hookOps[0].payoffTiming', 'near-term']]) {

@@ -249,6 +249,7 @@ export async function checkFoundationApproval(ctx, input) {
         artifact: canonical,
         workContract: identity.workContract,
         languageFields: FOUNDATION_LANGUAGE_FIELDS,
+        passEvidence: 'drop-invalid',
     });
     if (evaluatedLanguage.verdict === 'fail')
         fail(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH, {

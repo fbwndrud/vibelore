@@ -466,7 +466,7 @@ export function validationBudgetExhausted(state) {
 }
 
 export function evaluateChapterLanguage({ compliance, artifact, workContract }) {
-  return evaluateLanguageCompliance({ compliance, artifact, workContract, targetLanguage: workContract.language });
+  return evaluateLanguageCompliance({ compliance, artifact, workContract, targetLanguage: workContract.language, passEvidence: 'drop-invalid' });
 }
 
 export function evaluateChapterCoverage({ plan, coverage, artifactKind = ARTIFACT_KIND_CHAPTER }) {

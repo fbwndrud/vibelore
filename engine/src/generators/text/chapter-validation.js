@@ -905,6 +905,7 @@ export async function prepareChapterPublication(ctx, args) {
             artifact: canonical,
             workContract,
             languageFields: CHAPTER_LANGUAGE_FIELDS,
+            passEvidence: 'drop-invalid',
         });
     }
     catch (err) {

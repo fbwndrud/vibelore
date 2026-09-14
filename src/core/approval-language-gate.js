@@ -210,7 +210,7 @@ export async function gateApprovalActivation({ store, workId, kind, value, provi
     try {
       const parsed = JSON.parse(String(response?.text).trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''));
       const compliance = parsed.languageCompliance ?? parsed;
-      const languageCompliance = evaluateLanguageCompliance({ artifact, workContract, compliance, languageFields: APPROVAL_LANGUAGE_FIELDS });
+      const languageCompliance = evaluateLanguageCompliance({ artifact, workContract, compliance, languageFields: APPROVAL_LANGUAGE_FIELDS, passEvidence: 'drop-invalid' });
       const coverage = { SCHEMA: 'validated', OUTPUT_LANGUAGE: languageCompliance.verdict === 'pass' ? 'validated' : 'failed' };
       const receipt = buildValidationReceipt({ ...identity, artifact, workContract, languageCompliance, coverage, languageFields: APPROVAL_LANGUAGE_FIELDS, issuedBy: 'approval-language-gate' });
       // Fresh authority is checked again after the asynchronous model round trip.
