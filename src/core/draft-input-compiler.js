@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
+import { tokenUnits } from './token-units.js';
 
 import { asKit } from '../prompts/index.js';
 
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 const asArray = (value) => Array.isArray(value) ? value : [];
-const tokenUnits = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
 const forbiddenControls = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/u;
 const reservedSyntax = /⟦vle:|```|~~~|<\/?(?:system|assistant|developer|memory)\b/iu;
 const metaInstruction = /ignore\s+(?:all\s+)?(?:previous|prior|system|developer)\s+instructions?|(?:시스템|개발자|이전)\s*지시(?:를|사항을)?\s*무시|role\s*:\s*(?:system|assistant|developer)/iu;

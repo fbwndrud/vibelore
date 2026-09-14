@@ -170,6 +170,21 @@ test('foundation approval classifies every cast-design generated field', async (
   assert.equal(providers.requests.filter(r => r.step === 'approval-language-contract').length, 1);
 });
 
+// 2026-09-15 en 표본: revealContracts/episodeVoiceTargets 모듈이 미분류로 episode 승인을 세 번 막았다.
+test('episode approval classifies every optional module field', async () => {
+  const store = await newStore(); const providers = approvalProvider();
+  const value = {
+    title: 'The Stubborn Landing', premise: 'Mara counts boards while Ellis counts trust.', language: 'en', chapter: 1, cast: ['c1', 'c2'], povCharacter: 'c1',
+    scenes: [{ location: 'landing', characters: ['c1'], situation: 'The boards run short.', choice: 'She hides the count.', change: 'Ellis notices.' }],
+    characterAgendas: [{ characterId: 'c1', goal: 'Open the harbor alone.', hiddenPlan: 'Skip the committee.', nextAction: 'Recount.', deadline: 'Festival eve', resources: ['keys'], knowledge: ['the tide table'], misbelief: 'Help is surrender.', redLine: 'Never lie about safety.', fallback: 'Ask Ellis.' }],
+    characterCollisions: [{ agendaIds: ['c1', 'c2'], scarceConstraint: 'One stack of timber.', consequence: 'Someone waits.' }],
+    revealContracts: [{ id: 'r1', inducedHypothesis: 'The timber was stolen.', actualCause: 'Mara moved it.', dualUseClues: ['fresh saw marks'], concealment: 'She talks about weather.', recontextualizesSceneIds: ['s1'], triggeredByChoice: 'Ellis asks who signed.', changes: { actions: ['Ellis recounts.'], relationships: ['trust drops'], costs: ['a day lost'] } }],
+    episodeVoiceTargets: [{ characterId: 'c1', sceneOrder: 1, speakingPressure: 'Caught out.', surfaceIntent: 'Sound certain.', hiddenIntent: 'Buy time.', sampleLine: 'Fine. Your way.', narrationFilter: 'Counts before feeling.' }],
+  };
+  const out = await gateApprovalActivation({ store, workId: 'book', kind: 'episode', stateKey: 'episode-1', value, resolution: resolution('en'), providers });
+  assert.equal(out.ok, true, JSON.stringify(out.validation?.failureDetails ?? out.code));
+});
+
 // 2026-09-14 실제 아랍어 표본: `format.pov` 를 지목한 fail 이 machine 면제로 거부되어 소진됐다.
 test('a fail that cites the free-text profile pov is a real language failure, not incomplete evidence', async () => {
   const store = await newStore();

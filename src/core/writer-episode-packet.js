@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
+import { tokenUnits } from './token-units.js';
 
 import { asKit } from '../prompts/index.js';
 
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 const list = (value) => Array.isArray(value) ? value.map(clean).filter(Boolean) : [];
-const tokenUnits = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
 // Ceiling for the compiled packet, not a prose length. Generous on purpose: the
 // packet only carries this episode's plan, the arc beat and a capped residue, so
 // it does not grow with chapter count; the ceiling exists to compress a verbose

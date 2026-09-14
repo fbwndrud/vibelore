@@ -299,6 +299,13 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       await transition(store, workflow, 'awaiting_model', { operation: 'chapter_plan' });
       return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'chapter_plan' };
     }
+    if (!planned.plan) {
+      // The plan gate refused activation. Drafting on would only fail later with a
+      // misleading "no approved EpisodePlan"; hand the gate result back so the host
+      // can regenerate the plan from its evidence (2026-09-15 en sample).
+      return { status: planned.status ?? 'clean_fail', code: planned.code ?? 'EPISODE_PLAN_NOT_ACTIVE', workflowId: workflow.workflowId, chapter,
+        operation: 'chapter_plan', details: planned.details ?? planned.validation?.failureDetails ?? null, candidate: planned.candidate ?? null };
+    }
     episodePlan = planned.plan;
   }
 

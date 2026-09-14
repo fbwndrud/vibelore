@@ -151,3 +151,38 @@ describe('host round trips are batched by dependency', () => {
     }
   });
 });
+
+// 2026-09-15 en 표본: episode 승인 gate 가 clean_fail 했는데 workflow 가 계획 없이 초안으로 넘어가
+// "승인된 상세 EpisodePlan이 없습니다" 로 끝났다. gate 결과를 그대로 돌려줘야 한다.
+describe('episode plan gate failure', () => {
+  it('returns the gate result instead of drafting without an approved plan', async () => {
+    const store = await qualityStore();
+    const foundation = await store.loadFoundation(workId);
+    await store.saveFoundation({ ...foundation, language: 'ko' });
+    const plan = await store.loadEpisodePlan(workId, 1);
+    await store.saveEpisodePlan(workId, { ...plan, status: 'rejected' });
+    const requests = [];
+    const episodePlan = JSON.stringify({ title: '첫 문', premise: '지도에서 본 길을 찾는다', readerBridge: '문 앞에서 길을 고른다', povCharacter: 'hero', cast: ['hero'], foregroundCharacters: ['hero'],
+      locations: ['탑 입구'], openingState: '문 앞', closingState: '안에 들어감', immediateGoal: '입장', obstacle: '잠긴 문', choice: '문을 민다', outcome: '문이 열린다', nextQuestion: '안에는 무엇이 있나',
+      readerLoad: { phase: 'onboarding', newConcepts: ['탑의 세금'] }, scenes: [{ location: '탑 입구', characters: ['hero'], situation: '닫힌 문 앞에 선다', choice: '문을 민다', change: '문이 열린다' }, { location: '탑 안', characters: ['hero'], situation: '길이 보인다', choice: '앞으로 간다', change: '안에 들어간다' }] });
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: {
+      provenance: { kind: 'test', contextIsolation: 'request-messages-only' },
+      async complete(req) {
+        requests.push(req);
+        if (req.step === 'approval-language-contract') {
+          const payload = JSON.parse(req.messages.find((m) => m.role === 'user').content);
+          const verdict = payload.artifact.approvalKind === 'episode' ? 'uncertain' : 'pass';
+          return { text: JSON.stringify({ language: 'ko', artifactHash: payload.artifactHash, verdict, evidence: [], allowedExceptions: [] }) };
+        }
+        const contract = contractResponse(req); if (contract) return contract;
+        if (req.step === 'episode-plan') return { text: episodePlan };
+        return { text: outputs[req.step] ?? '{}' };
+      },
+    } });
+    assert.equal(result.status, 'clean_fail', JSON.stringify(result));
+    assert.equal(result.operation, 'chapter_plan');
+    assert.equal(result.code, 'VALIDATION_INCOMPLETE');
+    assert.equal(requests.filter((req) => req.step === 'draft').length, 0);
+    assert.equal(requests.filter((req) => req.step === 'episode-plan').length, 1);
+  });
+});
