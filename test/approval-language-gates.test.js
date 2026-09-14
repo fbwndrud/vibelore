@@ -181,3 +181,17 @@ test('a fail that cites the free-text profile pov is a real language failure, no
   assert.notEqual(out.validation?.failureDetails?.reason, 'machine_field');
   assert.equal(await store.loadStoryProfile('book'), null);
 });
+
+// 2026-09-14 spine 표본: 심사 findings 의 message 가 미분류 생성 필드로 승인을 막았다.
+test('a quality review record is bound in the hash but not language-reviewed', async () => {
+  const store = await newStore(); const providers = approvalProvider();
+  const spine = { dramaticQuestion: 'Can she share the harbor?', protagonistWant: 'Reopen alone', protagonistNeed: 'Trust', falseBelief: 'Help is surrender', incitingDisruption: 'Timber shortfall', initialStrategy: 'Do it all', midpointReframe: 'The buoy loss was hers', finalChoice: 'Delegate or recheck', endingChange: 'She delegates', endingCost: 'A flaw remains',
+    quality: { score: 82, dimensions: { causalNecessity: 80 }, weakDimensions: [], verdict: 'passed', findings: [{ code: 'PASSIVE_CAST', message: '비평 코멘트는 작품 언어가 아니어도 된다.' }] } };
+  const out = await gateApprovalActivation({ store, workId: 'book', kind: 'story', stateKey: 'spine', value: spine, resolution: resolution('en'), providers });
+  assert.equal(out.ok, true, JSON.stringify(out.validation?.failureDetails ?? out.code));
+  const projected = projectApprovalValue(spine);
+  assert.deepEqual(Object.keys(projected.quality), ['id']);
+  assert.notEqual(projectApprovalValue({ ...spine, quality: { ...spine.quality, score: 70 } }).quality.id, projected.quality.id);
+  // 같은 이름이라도 심사 기록 모양이 아니면 그대로 생성 필드로 검토된다.
+  assert.equal(projectApprovalValue({ quality: 'a sentence' }).quality, 'a sentence');
+});

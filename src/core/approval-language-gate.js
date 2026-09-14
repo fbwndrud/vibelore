@@ -57,6 +57,10 @@ export function projectApprovalValue(value, path = []) {
     if (key === 'attrs' && path.length === 1 && path[0] === 'seededEntities') out[key] = projectEntityAttributes(item);
     else if (PROVENANCE.has(key)) out[key] = typeof item === 'string' ? item : JSON.stringify(item);
     else if (CONFIG.has(key)) out[key] = { id: JSON.stringify(item) };
+    // StorySpine/ArcPlan 이 붙이는 품질 심사 기록(점수·findings). 발행되는 작품 본문이 아니라
+    // 심사 증거이므로 정확한 값은 hash 에 묶되 작품 언어 검토 대상은 아니다 — 비평 코멘트의
+    // 언어로 계획 승인을 막지 않는다(2026-09-14 en/ko/ja 표본).
+    else if (key === 'quality' && path.length === 0 && item && typeof item === 'object' && !Array.isArray(item) && typeof item.verdict === 'string' && item.dimensions) out[key] = { id: JSON.stringify(item) };
     else if (machineLeaf(key, path, item) && (typeof item === 'string' || Array.isArray(item) && item.every(v => typeof v === 'string'))) out[key] = { id: item };
     else if (['rationale', 'serialization'].includes(key) && typeof item === 'string') out[key] = { description: item };
     else out[key] = projectApprovalValue(item, [...path, key]);
