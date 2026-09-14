@@ -2,7 +2,7 @@ import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { CHARACTER_ARC_BEATS } from '../../engine/src/continuity/character-arc.js';
 import { compileBriefWithProfile } from './story-profile.js';
-import { deterministicArcViolations, runArcQuality } from './arc-quality.js';
+import { characterArcBeatCollisions, deterministicArcViolations, runArcQuality } from './arc-quality.js';
 import { renderStorySpine } from './story-spine.js';
 import { MCP_CONTRACT_VERSION, runtimeVersion } from '../core/runtime-version.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
@@ -233,7 +233,7 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   };
   if (!plan.title || !plan.promise) throw new Error('arc-plan에 title과 promise가 필요합니다.');
   if (!plan.storySpineNodes.length) throw new Error('아크는 전진시킬 StorySpine 노드를 최소 하나 참조해야 합니다.');
-  const structuralViolations = deterministicArcViolations(plan);
+  const structuralViolations = [...characterArcBeatCollisions(obj.characterArcs, count), ...deterministicArcViolations(plan)];
   if (structuralViolations.length) throw new Error(`아크 품질 검증 실패: ${structuralViolations.map((item) => item.message).join(' ')}`);
   const quality = await runArcQuality({ foundation, plan, providers, kit });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'arc-quality' };

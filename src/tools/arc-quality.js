@@ -44,6 +44,28 @@ export function deterministicArcViolations(plan) {
 
 const CHARACTER_ARC_ORDER = ['wound', 'attempt', 'collapse', 'companion', 'self-choice', 'echo'];
 
+/**
+ * 같은 회차에 감정 비트를 둘 이상 둔 원시 응답. 정규화는 회차당 첫 비트만 남기므로
+ * 모델이 wound(1)·attempt(2)·collapse(2)·companion(3) 처럼 쓰면 저장된 비트는
+ * attempt→companion 으로 단계를 건너뛴 것처럼 보인다(2026-09-14 en 표본). 정규화 전에
+ * 원인을 그대로 말해 호스트 feedback 이 실제 문제를 가리키게 한다.
+ */
+export function characterArcBeatCollisions(rawCharacterArcs, count) {
+  const violations = [];
+  for (const raw of Array.isArray(rawCharacterArcs) ? rawCharacterArcs.slice(0, 2) : []) {
+    const seen = new Map();
+    for (const item of Array.isArray(raw?.beats) ? raw.beats : []) {
+      const episodeIndex = Number(item?.episodeIndex);
+      if (!Number.isInteger(episodeIndex) || episodeIndex < 1 || episodeIndex > count) continue;
+      seen.set(episodeIndex, (seen.get(episodeIndex) ?? 0) + 1);
+    }
+    for (const [episodeIndex, n] of seen) {
+      if (n > 1) violations.push({ code: 'CHARACTER_ARC_MULTIPLE_BEATS_PER_EPISODE', message: `${raw?.characterId ?? '?'}의 ${episodeIndex}화에 감정 비트가 ${n}개다. 회차당 비트는 하나만 두고, 한 단계는 여러 회차에 걸쳐도 된다.` });
+    }
+  }
+  return violations;
+}
+
 function targetedFinding(value) {
   const confidence = Number(value?.confidence);
   const code = String(value?.code ?? '');
