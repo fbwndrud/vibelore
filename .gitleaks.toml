@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exact synthetic key used only to test error redaction"
+condition = "AND"
+paths = ['''(^|/)engine/test/adapters/openai-fetch-adapter\.test\.js$''']
+regexTarget = "secret"
+regexes = ['''^sk-verysecret-abc123$''']

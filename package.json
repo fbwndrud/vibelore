@@ -1,0 +1,47 @@
+{
+  "name": "vibelore-plugin",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Local, host-agnostic novel-writing plugin. The engine keeps your world consistent; your agent writes the prose.",
+  "files": [
+    ".codex-plugin/",
+    ".mcp.json",
+    "skills/",
+    "src/",
+    "engine/src/",
+    "README.md",
+    "HOSTS.md",
+    "docs/README.md",
+    "docs/PHILOSOPHY.md",
+    "docs/GETTING_STARTED.md",
+    "docs/MCP.md",
+    "docs/TOOLS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/OPERATIONS.md",
+    "hosts/",
+    "engine/package.json",
+    "LICENSE",
+    "NOTICE",
+    "SECURITY.md",
+    "docs/PROVENANCE.md"
+  ],
+  "bin": {
+    "vibelore-mcp": "./src/server.js"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "test:engine": "cd engine && node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\"",
+    "test:all": "npm run test:engine && npm test",
+    "check:source": "node scripts/check-source.js",
+    "check:release": "node scripts/check-release.js"
+  },
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fbwndrud/vibelore.git"
+  }
+}

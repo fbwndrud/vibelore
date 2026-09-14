@@ -1,0 +1,7 @@
+{
+  "status": "approved",
+  "targetLicense": "Apache-2.0",
+  "reason": "Provenance review completed: imported word lists removed (2026-09-13), hook schema redefined in vibelore terms (2026-09-14), no remaining prompt or prose overlap found against upstream InkOS. Public history restarts from the cleaned tree.",
+  "approvedBy": "JoungKyoung Lyoo",
+  "approvedAt": "2026-09-14"
+}

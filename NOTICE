@@ -1,0 +1,16 @@
+vibelore
+Copyright 2026 JoungKyoungLyoo and vibelore contributors
+
+Licensed under the Apache License, Version 2.0. See LICENSE. This notice
+does not grant rights to third-party material or override its existing terms.
+
+This distribution contains vibelore source, documentation, and regression fixtures.
+Private manuscripts and development archives are excluded from the source tree.
+
+InkOS (https://github.com/Narcooo/inkos) informed earlier compatibility and
+workflow research. The historical genre-frontmatter word lists were replaced
+with vibelore-authored repetition cues and the StoryState hook schema was
+redefined in vibelore terms. Genre identifiers are retained for compatibility. See docs/PROVENANCE.md for the scope of this reference.
+
+Node.js, MCP hosts, and optional model servers are separate products with their
+own terms. This distribution does not include their binaries or libraries.

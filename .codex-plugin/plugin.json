@@ -1,0 +1,39 @@
+{
+  "name": "vibelore-plugin",
+  "version": "0.2.0",
+  "description": "Plan, write, validate, and preserve continuity for long-form fiction through a local MCP server.",
+  "author": {
+    "name": "JoungKyoungLyoo",
+    "url": "https://github.com/fbwndrud"
+  },
+  "homepage": "https://github.com/fbwndrud/vibelore",
+  "repository": "https://github.com/fbwndrud/vibelore",
+  "keywords": [
+    "fiction",
+    "novel-writing",
+    "web-novel",
+    "continuity",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Vibelore",
+    "shortDescription": "Plan and write consistent long-form fiction",
+    "longDescription": "Interview for a story brief, design the story and arcs, write chapters, validate continuity and character logic, and preserve approved prose as editable Markdown.",
+    "developerName": "JoungKyoungLyoo",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/fbwndrud/vibelore",
+    "defaultPrompt": [
+      "새 웹소설의 방향을 인터뷰부터 함께 정해 줘.",
+      "현재 작품의 다음 화를 검토 가능한 방식으로 써 줘.",
+      "작품의 인물과 아크 일관성을 점검해 줘."
+    ],
+    "brandColor": "#9F3A38"
+  }
+}

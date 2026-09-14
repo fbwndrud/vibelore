@@ -1,0 +1,6 @@
+# Codex CLI -- ~/.codex/config.toml (사용자 전역) 또는 .codex/config.toml (프로젝트)
+# 경로를 실제 설치 위치로 바꾸세요.
+
+[mcp_servers.vibelore]
+command = "node"
+args = ["ABSOLUTE/PATH/TO/vibelore/src/server.js"]
