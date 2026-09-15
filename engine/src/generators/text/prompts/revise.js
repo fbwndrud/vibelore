@@ -297,8 +297,8 @@ export function buildRevisePatchUserPrompt(input) {
         labels.schema,
         // JSON 스키마 예시 문자열의 자리표시자만 계열을 따르고 키는 기계 계약이다.
         pickByFamily(ctx, {
-            ko: '{"replacements":[{"paragraph":3,"text":"교체할 문단 전체"}],"insertions":[{"afterParagraph":3,"text":"추가할 한 개 이상의 문단"}],"castManifest":{"cast":[]}}',
-            multilingual: '{"replacements":[{"paragraph":3,"text":"the full replacement paragraph"}],"insertions":[{"afterParagraph":3,"text":"one or more new paragraphs"}],"castManifest":{"cast":[]}}',
+            ko: '{"replacements":[{"paragraph":3,"text":"교체할 문단 전체"}],"insertions":[{"afterParagraph":3,"text":"추가할 한 개 이상의 문단"}],"castManifest":{"cast":[{"characterId":"c1","addressTermsUsed":["도련님"]}]}}',
+            multilingual: '{"replacements":[{"paragraph":3,"text":"the full replacement paragraph"}],"insertions":[{"afterParagraph":3,"text":"one or more new paragraphs"}],"castManifest":{"cast":[{"characterId":"c1","addressTermsUsed":["young master"]}]}}',
         }),
         labels.schemaNote(paragraphs.length),
         labels.outputNote,

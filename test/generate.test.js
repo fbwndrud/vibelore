@@ -686,12 +686,14 @@ describe('Phase 2 generation pipeline', () => {
     });
     const body = SYNTHETIC_LONG_PROSE;
     const raw = `${body}\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧`;
-    const p = provider({
+    const base = provider({
       draft: raw, revise: revisionPatch(),
       'story-profile-check': '{"findings":[]}',
       'coherence-judge': '{"score":88,"reason":"계획대로 자연스럽게 이어진다."}',
       'chapter-summary': '{"summary":"윤재가 탑에 들어갔다.","plotBeat":"opening","sceneTags":["진입"],"povCharacter":"hero"}',
     });
+    const reviseRequests = [];
+    const p = { ...base, get pending() { return []; }, async complete(req) { if (req.step === 'revise') reviseRequests.push(req); return base.complete(req); } };
     const ready = await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'guided', providers: p });
     assert.equal(ready.status, 'awaiting_approval');
     const receipt = await store.loadCheckReceipt('tax-tower', (await store.loadWorkflow('tax-tower')).checkId);
@@ -707,6 +709,9 @@ describe('Phase 2 generation pipeline', () => {
     const revisedReady = await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'guided', providers: p });
     assert.equal(revisedReady.status, 'awaiting_approval');
     assert.equal(revisedReady.workflowId, ready.workflowId);
+    // 2026-09-15 en 표본: 사용자 수정 요청이 초안의 cast-manifest 없이 revise 를 불러 모델이 임의 형태를 만들었다.
+    assert.equal(reviseRequests.length, 1);
+    assert.match(reviseRequests[0].messages.map((m) => m.content).join('\n'), /\{"cast":\[\{"characterId":"hero","addressTermsUsed":\[\]\}\]\}/);
     const committed = await runWorkflowDecide({ store, workId: 'tax-tower', approvalId: revisedReady.approvalId, action: 'approve', providers: p });
     assert.equal(committed.status, 'completed');
     assert.equal((await store.loadArtifact('tax-tower', 1)).prose, body);

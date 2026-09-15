@@ -313,8 +313,10 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     && workflow.operation === 'user_revision' && workflow.draftProse;
   let raw;
   if (userRevision) {
+    // The draft's manifest travels with the prose: without it the copy-editor
+    // sees an empty cast and invents its own entry shape (2026-09-15 en sample).
     const revised = await runReviseTool({
-      store, workId, chapter, prose: workflow.draftProse,
+      store, workId, chapter, prose: workflow.draftProse, castManifestRaw: workflow.castManifestRaw,
       violations: [{ severity: 'advisory', code: 'USER_REVISION_REQUEST', chapterNumber: chapter, message: workflow.revisionFeedback }],
       providers,
     });
