@@ -36,6 +36,17 @@ function normalizeScene(scene, index) {
   };
 }
 
+// 커밋 시점 validateReveals 와 같은 항목. 빈 recontextualizesSceneIds 가 1화 승인 뒤 커밋에서
+// REVEAL_CONTRACT_INVALID 로 터졌다(2026-09-15 ja 표본). 장면 id 는 커밋이 chapter-<n>-scene-<k> 로 붙인다.
+const REVEAL_TEXT_FIELDS = ['id', 'inducedHypothesis', 'actualCause', 'concealment', 'triggeredByChoice'];
+export function revealContractMissingFields(reveal) {
+  const missing = REVEAL_TEXT_FIELDS.filter((key) => typeof reveal?.[key] !== 'string' || !reveal[key].trim());
+  if (!Array.isArray(reveal?.dualUseClues) || reveal.dualUseClues.length === 0) missing.push('dualUseClues');
+  if (!Array.isArray(reveal?.recontextualizesSceneIds) || reveal.recontextualizesSceneIds.length === 0) missing.push('recontextualizesSceneIds');
+  if (!Array.isArray(reveal?.changes?.actions) || reveal.changes.actions.length === 0) missing.push('changes.actions');
+  if ((reveal?.changes?.relationships?.length ?? 0) + (reveal?.changes?.costs?.length ?? 0) === 0) missing.push('changes.relationships|costs');
+  return missing;
+}
 const AGENDA_REQUIRED_FIELDS = ['goal', 'nextAction', 'deadline', 'resources', 'knowledge', 'misbelief', 'redLine', 'fallback'];
 
 function normalizeAgenda(value) {
@@ -95,6 +106,10 @@ export function episodePlanningContractViolations(obj, knownCharacterIds = []) {
     const missing = AGENDA_REQUIRED_FIELDS.filter((key) => Array.isArray(agenda[key]) ? agenda[key].length === 0 : !agenda[key]);
     if (missing.length) violations.push(`characterAgendas[${agenda.characterId}]의 ${missing.join(', ')}이(가) 비어 있습니다. 모든 항목을 채우거나 그 인물의 agenda를 생략하십시오.`);
   }
+  (Array.isArray(obj?.revealContracts) ? obj.revealContracts : []).forEach((reveal, index) => {
+    const missing = revealContractMissingFields(reveal);
+    if (missing.length) violations.push(`revealContracts[${typeof reveal?.id === 'string' && reveal.id.trim() ? reveal.id : index}]의 ${missing.join(', ')}이(가) 비어 있습니다. recontextualizesSceneIds 에는 chapter-<회차>-scene-<순번> 형식의 앞선 장면 id 를 적고, 뒤집을 앞선 장면이 없으면 그 revealContract 를 생략하십시오.`);
+  });
   const invalidCollision = (Array.isArray(obj?.characterCollisions) ? obj.characterCollisions : [])
     .map(normalizeCollision)
     .find((collision) => collision.agendaIds.length < 2
@@ -204,7 +219,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
     const parsed = parse(raw);
     if (!parsed || !Array.isArray(parsed.scenes) || parsed.scenes.length < 2 || parsed.scenes.length > 4) throw new Error('episode-plan은 2~4개 scenes가 필요합니다.');
     const inputViolations = episodePlanningContractViolations(parsed, knownCharacterIds);
-    if (inputViolations.length) throw new Error(`episode-plan 인물 agenda 검증 실패: ${inputViolations.join(' ')}`);
+    if (inputViolations.length) throw new Error(`episode-plan 계획 계약 검증 실패: ${inputViolations.join(' ')}`);
     const contracts = compilePlanningContracts(parsed);
     const failure = validatePlanningContracts({
       agendas: contracts.characterAgendas, collisions: contracts.characterCollisions, reveals: contracts.revealContracts,

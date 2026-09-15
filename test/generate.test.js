@@ -610,6 +610,14 @@ describe('Phase 2 generation pipeline', () => {
     // 2026-09-15 ja 표본: 빈 misbelief 가 계획 승인을 통과하고 커밋에서 CHARACTER_AGENDA_INVALID 로 터졌다.
     const incomplete = { characterAgendas: [{ ...complete('ally', '자기 몫을 받는다'), misbelief: '', knowledge: [] }] };
     assert.match(episodePlanningContractViolations(incomplete, ['hero', 'ally']).join(' '), /characterAgendas\[ally\]의 knowledge, misbelief이\(가\) 비어 있습니다/);
+    // 2026-09-15 ja 표본: 빈 recontextualizesSceneIds 가 계획 승인을 통과하고 커밋에서 REVEAL_CONTRACT_INVALID 로 터졌다.
+    const reveal = { id: 'r1', inducedHypothesis: '숫자가 전부다', actualCause: '판의 속은 소리로만 안다', dualUseClues: ['살짝 꺼진 판'], concealment: '스스로 확인하지 않았다', recontextualizesSceneIds: ['chapter-1-scene-1'], triggeredByChoice: '판을 두드린다', changes: { actions: ['전부 다시 두드린다'], relationships: [], costs: ['시간'] } };
+    assert.deepEqual(episodePlanningContractViolations({ revealContracts: [reveal] }, ['hero']), []);
+    const emptyScenes = episodePlanningContractViolations({ revealContracts: [{ ...reveal, recontextualizesSceneIds: [] }] }, ['hero']).join(' ');
+    assert.match(emptyScenes, /revealContracts\[r1\]의 recontextualizesSceneIds이\(가\) 비어 있습니다/);
+    assert.match(emptyScenes, /chapter-<회차>-scene-<순번>/);
+    const noConsequence = episodePlanningContractViolations({ revealContracts: [{ ...reveal, id: '', changes: { actions: [] } }] }, ['hero']).join(' ');
+    assert.match(noConsequence, /revealContracts\[0\]의 id, changes\.actions, changes\.relationships\|costs이\(가\) 비어 있습니다/);
   });
 
   it('rejects every unregistered character reference before compiling an EpisodePlan', () => {

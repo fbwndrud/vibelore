@@ -337,7 +337,7 @@ const INVARIANT_DESCRIPTIONS_KO = Object.freeze({
     ADDRESSING: '인물 사이의 호칭·경어 사용이 등록된 관계·지위와 맞는가',
     FORMAT: '승인된 대사·문단 형식(dialogueBreakMode)을 본문이 지키는가. 목표 언어의 인용 관습이 고립 검사와 다르면 그 관습을 기준으로 판정한다',
     INTRINSIC: '본문 묘사가 Foundation 의 캐릭터 intrinsic(성별·연령대·역할·핵심 외형)과 맞는가',
-    POV: '선언된 시점·서술자가 회차 내내 유지되는가',
+    POV: 'Foundation 요약의 povMode 로 선언된 시점·서술자가 회차 내내 유지되는가',
     REGISTRATION: '본문에서 행동·발화하는 named 인물이 모두 Foundation 에 올바른 ID 로 등록돼 있는가',
     SENSITIVE: '선언된 민감도 모드가 허용하지 않는 묘사가 본문에 있는가',
     WORLD: '본문이 확정된 세계 사실·집단 규칙과 충돌하지 않는가',
@@ -346,7 +346,7 @@ const INVARIANT_DESCRIPTIONS_EN = Object.freeze({
     ADDRESSING: 'do the address terms and politeness levels between characters match the registered relationships and status',
     FORMAT: 'does the chapter follow the approved dialogue and paragraph format (dialogueBreakMode); when the target language quote conventions are not the isolation checker, judge against those conventions',
     INTRINSIC: 'does the text agree with the Foundation character intrinsics (gender, age band, role, core appearance)',
-    POV: 'is the declared point of view and narrator held throughout the chapter',
+    POV: 'is the point of view and narrator declared by povMode in the Foundation summary held throughout the chapter',
     REGISTRATION: 'is every named character who acts or speaks in the text registered in Foundation under the correct ID',
     SENSITIVE: 'does the text contain material the declared sensitivity mode does not allow',
     WORLD: 'does the text contradict established world facts or group rules',
@@ -378,6 +378,7 @@ const EXTRACT_LABELS_KO = Object.freeze({
     chapter: '## 회차 번호',
     prev: '## 이전 상태 요약 (StoryState N-1)',
     cast: '## 이번 회차 등장 캐스트 (writer manifest)',
+    castNote: '- characterId 는 canonicalName/aliases 로 식별한다. addressTermsUsed 는 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
     prose: '## 본문',
     schema: '## 출력 스키마 (이 JSON 한 개만 출력)',
     bindHeading: '## 추출 검증 (extractionValidation)',
@@ -398,6 +399,7 @@ const EXTRACT_LABELS_EN = Object.freeze({
     chapter: '## Chapter number',
     prev: '## Previous state summary (StoryState N-1)',
     cast: '## Cast appearing in this chapter (writer manifest)',
+    castNote: '- Identify each characterId by its canonicalName/aliases. addressTermsUsed are the terms that character uses toward others, not the terms that character is called.',
     prose: '## Chapter text',
     schema: '## Output schema (output this one JSON object only)',
     bindHeading: '## Extraction validation (extractionValidation)',
@@ -440,10 +442,17 @@ function buildExtractDeltaUserPrompt(input, manifest, ctx, bindHash) {
         addressMapKeys: Object.keys(prevState.addressMap.entries),
         activeHookIds: (prevState.hooks ?? []).filter(isHookActive).map((h) => h.id ?? h.hookId),
     };
-    const castSummary = manifest.map((c) => ({
-        characterId: c.characterId,
-        addressTermsUsed: c.addressTermsUsed,
-    }));
+    // 추출기가 ID 와 본문 인물을 잇는 유일한 단서는 이 명단이다. 이름 없이 ID 와 호칭만
+    // 주면 c1/c2 가 뒤바뀐 Delta 가 나온다(2026-09-15 ko·zh-Hant·es 표본, REGISTRATION fail).
+    const knownCharacters = new Map((input.foundation?.characters ?? []).map((c) => [c.id, c]));
+    const castSummary = manifest.map((c) => {
+        const known = knownCharacters.get(c.characterId);
+        return {
+            characterId: c.characterId,
+            ...(known ? { canonicalName: known.canonicalName, aliases: known.aliases ?? [] } : {}),
+            addressTermsUsed: c.addressTermsUsed,
+        };
+    });
     return [
         labels.chapter,
         String(chapterNumber),
@@ -453,6 +462,7 @@ function buildExtractDeltaUserPrompt(input, manifest, ctx, bindHash) {
         ``,
         labels.cast,
         JSON.stringify(castSummary),
+        labels.castNote,
         ``,
         labels.prose,
         prose,
@@ -984,8 +994,11 @@ function buildContinuityCheckSections(input) {
         addressMapKeys: Object.keys(prevState.addressMap.entries),
         activeHookIds: (prevState.hooks ?? []).filter(isHookActive).map((h) => h.id ?? h.hookId),
     };
+    // 선언 시점이 없으면 검수기는 POV 를 판정할 수 없어 uncertain 만 돌려준다
+    // (2026-09-15 ko·zh-Hant·es 표본). 있을 때만 싣어 시점 없는 legacy 프롬프트는 그대로 둔다.
     const foundationSummary = {
         genre: foundation.genre,
+        ...(typeof foundation.povMode === 'string' && foundation.povMode.trim() ? { povMode: foundation.povMode } : {}),
         characters: foundation.characters.map((c) => ({
             id: c.id,
             canonicalName: c.canonicalName,

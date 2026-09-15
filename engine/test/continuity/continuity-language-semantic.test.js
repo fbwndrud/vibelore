@@ -227,7 +227,8 @@ describe('extractDelta prompt families', () => {
             JSON.stringify({ chapterNumber: 0, addressMapKeys: [], openHookIds: [] }, null, 2),
             ``,
             `## 이번 회차 등장 캐스트 (writer manifest)`,
-            JSON.stringify([{ characterId: 'c1', addressTermsUsed: ['도련님'] }], null, 2),
+            JSON.stringify([{ characterId: 'c1', canonicalName: '이세종', aliases: [], addressTermsUsed: ['도련님'] }], null, 2),
+            '- characterId 는 canonicalName/aliases 로 식별한다. addressTermsUsed 는 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
             ``,
             `## 본문`,
             PROSE,
@@ -258,6 +259,7 @@ describe('extractDelta prompt families', () => {
         expect(HANGUL.test(system)).toBe(false);
         expect(user).toContain('## Chapter number');
         expect(user).toContain('## Cast appearing in this chapter (writer manifest)');
+        expect(user).toContain('- Identify each characterId by its canonicalName/aliases.');
         expect(user).toContain('"trackedEntityOps"');
         expect(user).toContain('## Extraction validation (extractionValidation)');
         expect(user).toContain(`contextHash: ${computeExtractionContextHash(input)}`);
@@ -531,6 +533,43 @@ describe('extractDelta extractionValidation', () => {
         const ch2 = extractInput({ workContract: EN_CONTRACT, chapterNumber: 2 });
         const ch3 = extractInput({ workContract: EN_CONTRACT, chapterNumber: 3 });
         expect(computeExtractionContextHash(ch2)).not.toBe(computeExtractionContextHash(ch3));
+    });
+});
+
+// 2026-09-15 ko·zh-Hant·es 표본: 명단이 ID 와 호칭만 실어 추출기가 c1/c2 를 뒤바꿨고,
+// Foundation 요약에 선언 시점이 없어 검수기가 POV 를 uncertain 으로만 돌려줬다.
+describe('extractDelta / continuityCheck identify cast and declared POV', () => {
+    it('cast summary names each manifest id from Foundation and leaves unknown ids bare', async () => {
+        const cap = capturing('{}');
+        await extractDelta(extractInput({
+            providers: cap.providers,
+            castManifestRaw: JSON.stringify({ cast: [
+                { characterId: 'c1', addressTermsUsed: ['도련님'] },
+                { characterId: 'ghost', addressTermsUsed: [] },
+            ] }),
+        }));
+        const { user } = partsOf(cap.requests[0]);
+        const cast = JSON.parse(user.split('## 이번 회차 등장 캐스트 (writer manifest)\n')[1].split('\n- characterId')[0]);
+        expect(cast).toEqual([
+            { characterId: 'c1', canonicalName: '이세종', aliases: [], addressTermsUsed: ['도련님'] },
+            { characterId: 'ghost', addressTermsUsed: [] },
+        ]);
+    });
+    it('foundation summary carries povMode when the work declares one', async () => {
+        const cap = capturing('{}');
+        await continuityCheck(checkInput({
+            providers: cap.providers,
+            foundation: makeFoundation({ povMode: '3인칭제한' }),
+        }));
+        const { user } = partsOf(cap.requests[0]);
+        const summary = JSON.parse(user.split('## Foundation 요약\n')[1].split('\n\n## 이번 회차 Delta')[0]);
+        expect(summary.povMode).toBe('3인칭제한');
+    });
+    it('foundation summary omits povMode when the work declares none', async () => {
+        const cap = capturing('{}');
+        await continuityCheck(checkInput({ providers: cap.providers }));
+        const { user } = partsOf(cap.requests[0]);
+        expect(user).not.toContain('"povMode"');
     });
 });
 
