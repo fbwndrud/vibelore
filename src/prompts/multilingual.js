@@ -197,7 +197,7 @@ export const phrases = {
     registerPolicy: (v) => `- Register policy: ${v}`,
     readability: (r) => `- Reading difficulty: surface=${r.surfaceEase} / concepts=${r.conceptPacing} / inference=${r.inferenceLoad} / ramp=${r.complexityRamp}`,
     length: (unit, target) => `- Approved chapter length: ${target} ${unit}`,
-    povDesign: (mode, opening) => `- Viewpoint design: ${mode} / opening viewpoint ${opening}`,
+    povDesign: (mode, opening, switchPolicy) => `- Viewpoint design: ${mode} / opening viewpoint ${opening}${switchPolicy ? ` / viewpoint switch rule: ${switchPolicy}` : ''}`,
     draftRules: '- Chapter craft rules:',
     avoidRules: '- Avoid:',
     voiceHeading: '## Work Voice Contract',

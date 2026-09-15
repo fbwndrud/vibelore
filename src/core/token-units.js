@@ -1,19 +1,25 @@
 /**
- * Prompt budget estimate in model tokens, by script.
+ * Prompt budget units, by script — Korean-equivalent content units.
  *
- * The original heuristic was code points / 2, which fits Korean (one Hangul
- * syllable is roughly half a token to one token). Latin, Cyrillic and Greek
- * text runs closer to four characters per token, so the same divisor read a
- * Spanish EpisodePlan as twice its real size and overflowed the writer packet
- * (2026-09-15 es sample). Dense scripts (CJK, Kana, Hangul, Thai, Indic) keep
- * the / 2 estimate; the space-separated abjads (Arabic, Hebrew) sit between
- * the two at / 3 — charging Arabic like CJK read a draft packet the same size
- * as the passing fr/es packets as 4225 units against a 4000 budget
- * (2026-09-15 ar sample, CONTEXT_BUDGET_EXCEEDED); everything else uses / 4.
- * Pure Korean input yields exactly the previous value.
+ * Every prompt budget in the plugin (writer packet 1400, draft plan 4000, …)
+ * was calibrated on Korean text with the original code points / 2 heuristic.
+ * The budgets are content-discipline knobs, so the same plan content in
+ * another language must measure about the same number of units. Measured on
+ * the 2026-09-15 Sonnet 5 acceptance runs, identical-schema responses
+ * (profile, spine, writer skill, arc, episode plan) were this many characters
+ * relative to Korean: ja 0.89, zh-Hant 0.86, th 1.64, ar 1.64, es 1.89,
+ * fr 1.91, en 2.24. Characters per unit is therefore 2 × that factor:
+ *   - Hangul, Han, Kana: / 2 (unchanged; pure Korean yields the old value)
+ *   - Thai and the other abugidas (Lao, Khmer, Myanmar, Indic), Arabic and
+ *     Hebrew: / 3 (measured 3.3; a Thai plan read at / 2 overflowed the writer
+ *     packet as 1930 units — the same content in Korean was ~1200)
+ *   - everything else (Latin, Cyrillic, Greek, …): / 4 (measured 3.8–4.5)
+ * These are not model-token estimates: the same runs put Claude at roughly
+ * 1.3 chars/token for ko/ja/zh/th, 1.6 for ar and 2.4–2.8 for es/fr/en, so the
+ * budgets deliberately admit more real tokens for token-expensive scripts.
  */
-const MID_SCRIPT = /[\p{Script=Arabic}\p{Script=Hebrew}]/u;
-const DENSE_SCRIPT = /[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Script=Devanagari}\p{Script=Bengali}\p{Script=Tamil}\p{Script=Telugu}\p{Script=Kannada}\p{Script=Malayalam}\p{Script=Gujarati}\p{Script=Gurmukhi}\p{Script=Sinhala}\p{Script=Tibetan}]/u;
+const MID_SCRIPT = /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Script=Devanagari}\p{Script=Bengali}\p{Script=Tamil}\p{Script=Telugu}\p{Script=Kannada}\p{Script=Malayalam}\p{Script=Gujarati}\p{Script=Gurmukhi}\p{Script=Sinhala}\p{Script=Tibetan}]/u;
+const DENSE_SCRIPT = /[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Bopomofo}]/u;
 
 export function tokenUnits(value) {
   const text = String(value ?? '');

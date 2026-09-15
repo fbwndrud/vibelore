@@ -470,7 +470,10 @@ export function renderStoryProfile(profile, kitSource) {
     profile.narrativeContract?.registerPolicy ? t.registerPolicy(profile.narrativeContract.registerPolicy) : '',
     t.readability(profile.readabilityContract),
     length ? t.length(length.unit, length.target) : '',
-    profile.povDesign ? t.povDesign(profile.povDesign.mode, profile.povDesign.openingViewpoint || undecided) : '',
+    // The switch rule is the part the writer breaks (2026-09-15 zh-Hant sample:
+    // both viewpoints' interiority in one chapter under "alternate between
+    // chapters"); the reviewer already judges POV against it.
+    profile.povDesign ? t.povDesign(profile.povDesign.mode, profile.povDesign.openingViewpoint || undecided, profile.povDesign.switchPolicy || '') : '',
     renderVoiceContract(profile.voiceContract, kit),
     t.draftRules, ...p.draft.map((item) => `  - ${item}`), t.avoidRules, ...p.avoid.map((item) => `  - ${item}`),
   ].filter(Boolean).join('\n');

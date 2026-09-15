@@ -135,7 +135,11 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     base.extractionValidation = state.extracted.extractionValidation;
     base.unregisteredNamed = state.extracted.unregisteredNamed ?? [];
     if (!includeSemanticContinuity) return fail('VALIDATION_INCOMPLETE');
-    const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan, lexicon: lexiconsForLanguage(workContract.language).honorific };
+    const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan, lexicon: lexiconsForLanguage(workContract.language).honorific,
+      // The reviewer judges POV against the profile's viewpoint design, not only
+      // the one-line povMode (2026-09-15 fr sample: povMode said "alternation
+      // with Malik to be confirmed" and three reviews answered uncertain).
+      ...(context.plans.profile?.povDesign ? { povDesign: context.plans.profile.povDesign } : {}) };
     if (!state.semantic) {
       const semantic = await continuityCheck(semanticInput);
       if (pending(wrapped)) return preview();
@@ -147,6 +151,23 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     }
     base.semanticValidation = state.semantic.semanticValidation;
     base.violations.push(...(state.semantic.violations ?? []));
+    // A failed semantic verdict is a judged defect, but it never became a
+    // violation: the workflow found nothing to repair, asked the same question
+    // again and spent the budget without one revise (2026-09-15 ar sample: POV
+    // and REGISTRATION failed three times in a row, no revise between them).
+    // Evidence that cites the prose becomes a hard violation for the revise
+    // step; evidence that cites only the Delta re-runs extraction instead.
+    const semanticEvidence = base.semanticValidation.evidence ?? [];
+    const rootOf = (fieldPath) => String(fieldPath).split(/[.\[]/)[0];
+    for (const [invariantId, verdict] of Object.entries(base.semanticValidation.verdicts ?? {})) {
+      if (verdict !== 'fail') continue;
+      const evidence = semanticEvidence.filter(e => e.invariantId === invariantId);
+      const proseEvidence = evidence.filter(e => rootOf(e.fieldPath) === 'prose');
+      if (evidence.length && !proseEvidence.length && evidence.every(e => rootOf(e.fieldPath) === 'delta')) { state.extracted = null; continue; }
+      const cited = proseEvidence.length ? proseEvidence : evidence;
+      base.violations.push({ severity: 'hard', code: `SEMANTIC_${invariantId}`, invariantId, chapterNumber: chapter, origin: 'semantic', evidence: cited,
+        message: cited.length ? cited.map(e => `"${e.quote}": ${e.reason}`).join(' / ') : `${invariantId} failed the semantic review.` });
+    }
     if (!state.prepared) {
       let preparedTitle = input.title ?? context.plans.episode?.title;
       if (!preparedTitle) {

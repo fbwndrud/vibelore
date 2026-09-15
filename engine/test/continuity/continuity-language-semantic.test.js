@@ -565,6 +565,16 @@ describe('extractDelta / continuityCheck identify cast and declared POV', () => 
         const summary = JSON.parse(user.split('## Foundation 요약\n')[1].split('\n\n## 이번 회차 Delta')[0]);
         expect(summary.povMode).toBe('3인칭제한');
     });
+    it('foundation summary carries the profile povDesign when the caller passes one', async () => {
+        const cap = capturing('{}');
+        await continuityCheck(checkInput({
+            providers: cap.providers,
+            povDesign: { mode: '3인칭제한', openingViewpoint: '이세종', narrativeDistance: '', switchPolicy: '장 사이에서만 바꾼다', extra: 3 },
+        }));
+        const { user } = partsOf(cap.requests[0]);
+        const summary = JSON.parse(user.split('## Foundation 요약\n')[1].split('\n\n## 이번 회차 Delta')[0]);
+        expect(summary.povDesign).toEqual({ mode: '3인칭제한', openingViewpoint: '이세종', switchPolicy: '장 사이에서만 바꾼다' });
+    });
     it('foundation summary omits povMode when the work declares none', async () => {
         const cap = capturing('{}');
         await continuityCheck(checkInput({ providers: cap.providers }));

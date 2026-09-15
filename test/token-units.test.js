@@ -17,15 +17,23 @@ test('Latin-script text is estimated at four characters per token', () => {
   assert.ok(tokenUnits(ES) < Math.ceil([...ES].length / 2));
 });
 
-test('dense scripts other than Hangul keep the / 2 estimate', () => {
+test('Han and Kana keep the / 2 estimate', () => {
   const ja = '朝の潮はまだ低く、旧港の桟橋には灰色の霧が薄くかかっていた。';
-  const th = 'หญิงผู้ดูแลประภาคารนับแผ่นไม้ก่อนที่ช่างซ่อมจะมาถึง';
+  const zh = '林澄把潮汐表攤在推車上，指尖點著明日清晨的退潮線。';
   assert.equal(tokenUnits(ja), Math.ceil([...ja].length / 2));
-  assert.equal(tokenUnits(th), Math.ceil([...th].length / 2));
+  assert.equal(tokenUnits(zh), Math.ceil([...zh].length / 2));
+});
+
+// 2026-09-15 th 표본: 타이 문자를 / 2 로 세어 같은 내용의 EpisodePlan 이 1930 > 1400 으로 EPISODE_PACKET_OVERFLOW.
+// 같은 스키마의 응답이 한국어의 1.64배 문자라서 단위당 3자로 읽어야 같은 내용이 같은 단위가 된다.
+test('Thai is estimated at three characters per unit like the other abugidas', () => {
+  const th = 'หญิงผู้ดูแลประภาคารนับแผ่นไม้ก่อนที่ช่างซ่อมจะมาถึง';
+  const letters = [...th].filter((char) => /\p{Script=Thai}/u.test(char)).length;
+  assert.equal(tokenUnits(th), Math.ceil(letters / 3 + ([...th].length - letters) / 4));
 });
 
 // 2026-09-15 ar 표본: 아랍 문자를 CJK 급(/ 2)으로 세어 fr/es 와 같은 크기의 초고 packet 이 4225 > 4000 으로 CONTEXT_BUDGET_EXCEEDED.
-test('Arabic and Hebrew are estimated at three characters per token, spaces and punctuation at four', () => {
+test('Arabic and Hebrew are estimated at three characters per unit, spaces and punctuation at four', () => {
   const ar = 'كانت حارسة المنارة تعدّ الألواح قبل أن يصل المرمّم.';
   const letters = [...ar].filter((char) => /\p{Script=Arabic}/u.test(char)).length;
   const rest = [...ar].length - letters;

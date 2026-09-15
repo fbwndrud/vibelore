@@ -237,6 +237,7 @@ function continuityHashPayload(input, contract) {
         delta: canonicalValue(input.delta ?? null),
         prevState: canonicalValue(input.prevState ?? null),
         workContractHash: computeLanguageContractHash(contract),
+        ...(input.povDesign ? { povDesign: canonicalValue(input.povDesign) } : {}),
     };
 }
 function extractionHashPayload(input, contract) {
@@ -337,7 +338,7 @@ const INVARIANT_DESCRIPTIONS_KO = Object.freeze({
     ADDRESSING: '인물 사이의 호칭·경어 사용이 등록된 관계·지위와 맞는가',
     FORMAT: '승인된 대사·문단 형식(dialogueBreakMode)을 본문이 지키는가. 목표 언어의 인용 관습이 고립 검사와 다르면 그 관습을 기준으로 판정한다',
     INTRINSIC: '본문 묘사가 Foundation 의 캐릭터 intrinsic(성별·연령대·역할·핵심 외형)과 맞는가',
-    POV: 'Foundation 요약의 povMode 로 선언된 시점·서술자가 회차 내내 유지되는가',
+    POV: 'Foundation 요약의 povMode·povDesign(mode, openingViewpoint, switchPolicy)으로 선언된 시점·서술자가 회차 내내 유지되는가',
     REGISTRATION: '본문에서 행동·발화하는 named 인물이 모두 Foundation 에 올바른 ID 로 등록돼 있는가',
     SENSITIVE: '선언된 민감도 모드가 허용하지 않는 묘사가 본문에 있는가',
     WORLD: '본문이 확정된 세계 사실·집단 규칙과 충돌하지 않는가',
@@ -346,7 +347,7 @@ const INVARIANT_DESCRIPTIONS_EN = Object.freeze({
     ADDRESSING: 'do the address terms and politeness levels between characters match the registered relationships and status',
     FORMAT: 'does the chapter follow the approved dialogue and paragraph format (dialogueBreakMode); when the target language quote conventions are not the isolation checker, judge against those conventions',
     INTRINSIC: 'does the text agree with the Foundation character intrinsics (gender, age band, role, core appearance)',
-    POV: 'is the point of view and narrator declared by povMode in the Foundation summary held throughout the chapter',
+    POV: 'is the point of view and narrator declared by povMode and povDesign (mode, openingViewpoint, switchPolicy) in the Foundation summary held throughout the chapter',
     REGISTRATION: 'is every named character who acts or speaks in the text registered in Foundation under the correct ID',
     SENSITIVE: 'does the text contain material the declared sensitivity mode does not allow',
     WORLD: 'does the text contradict established world facts or group rules',
@@ -996,9 +997,13 @@ function buildContinuityCheckSections(input) {
     };
     // 선언 시점이 없으면 검수기는 POV 를 판정할 수 없어 uncertain 만 돌려준다
     // (2026-09-15 ko·zh-Hant·es 표본). 있을 때만 싣어 시점 없는 legacy 프롬프트는 그대로 둔다.
+    const povDesign = isRecord(input.povDesign)
+        ? Object.fromEntries(Object.entries(input.povDesign).filter(([, value]) => typeof value === 'string' && value.trim()))
+        : null;
     const foundationSummary = {
         genre: foundation.genre,
         ...(typeof foundation.povMode === 'string' && foundation.povMode.trim() ? { povMode: foundation.povMode } : {}),
+        ...(povDesign && Object.keys(povDesign).length ? { povDesign } : {}),
         characters: foundation.characters.map((c) => ({
             id: c.id,
             canonicalName: c.canonicalName,

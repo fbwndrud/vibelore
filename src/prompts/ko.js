@@ -197,7 +197,7 @@ export const phrases = {
     registerPolicy: (v) => `- 표현 레지스터: ${v}`,
     readability: (r) => `- 읽기 난도: 표면=${r.surfaceEase} / 개념=${r.conceptPacing} / 추론=${r.inferenceLoad} / 상승=${r.complexityRamp}`,
     length: (unit, target) => `- 승인된 회차 분량: ${target} ${unit}`,
-    povDesign: (mode, opening) => `- 시점 설계: ${mode} / 첫 시점 ${opening}`,
+    povDesign: (mode, opening, switchPolicy) => `- 시점 설계: ${mode} / 첫 시점 ${opening}${switchPolicy ? ` / 시점 전환 규칙: ${switchPolicy}` : ''}`,
     draftRules: '- 회차 작법:',
     avoidRules: '- 피할 것:',
     voiceHeading: '## 작품 Voice Contract',

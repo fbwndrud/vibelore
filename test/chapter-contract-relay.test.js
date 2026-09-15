@@ -130,3 +130,26 @@ test('a model provider failure during validation keeps the budget and resumes on
  assert.equal(resumed.status,'completed',JSON.stringify(resumed));
  assert.equal((await loadValidationSession(store,workId,`workflow-${wf.workflowId}`)).failures,0);
 });
+
+// 2026-09-15 ar 표본: 의미 검수의 POV·REGISTRATION fail 이 위반으로 바뀌지 않아 workflow 가 고칠 것을 못 찾고
+// 같은 검수를 세 번 반복해 예산만 소진했다(사이에 revise 없음). fail 근거는 hard 위반이 되어 revise 로 간다.
+test('a failed semantic verdict becomes a hard violation that the workflow revises',async()=>{
+ const store=await qualityStore();
+ let failOnce=true;let reviseCalls=0;let revisePrompt='';
+ const providers={async complete(req){
+  const text=req.messages.map(m=>m.content).join('\n');
+  if(req.step==='continuity-check'&&failOnce){failOnce=false;
+   const hash=text.match(/contextHash: ([a-f0-9]{64})/)[1];const ids=text.match(/판정한다: ([A-Z_, ]+)\./)[1].split(', ');
+   const prose=text.split('## 본문\n')[1].split('\n\n## ')[0];const quote=prose.split('\n')[0].slice(0,12);
+   const verdicts=Object.fromEntries(ids.map(id=>[id,id==='POV'?'fail':'pass']));
+   return{text:JSON.stringify({violations:[],semanticValidation:{contextHash:hash,verdicts,evidence:[{invariantId:'POV',fieldPath:'prose',quote,reason:'서술자가 선언된 시점을 벗어나 다른 인물의 속마음을 직접 서술한다.'}]}})};}
+  if(req.step==='revise'){reviseCalls+=1;revisePrompt=text;return{text:JSON.stringify({replacements:[],insertions:[{afterParagraph:1,text:'조용히 손을 내렸다.'}]})};}
+  return contractResponse(req)??{text:outputs[req.step]??'{}'};
+ }};
+ const result=await runWriteWorkflow({store,workId,autonomy:'auto',providers});
+ assert.equal(result.status,'completed',JSON.stringify(result));
+ assert.equal(reviseCalls,1);
+ assert.match(revisePrompt,/선언된 시점을 벗어나/);
+ const wf=await store.loadWorkflow(workId);
+ assert.equal((await loadValidationSession(store,workId,`workflow-${wf.workflowId}`)).failures,1);
+});
