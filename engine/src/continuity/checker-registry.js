@@ -370,14 +370,18 @@ export function describeCheckerPlan(input = {}) {
         });
     }
 
+    // The restate n-grams are Korean-lexical (particle trimming, ko stop words):
+    // on French prose they flagged 'pour', 'de l', 'encore' as world-fact noun
+    // phrases (2026-09-15 fr sample). Other languages rely on the semantic
+    // WORLD verdict, which this row already requires.
     push({
         checkerId: 'scanInfoRestate',
         invariantId: 'WORLD',
-        runDetector: true,
+        runDetector: !multilingual,
         applicability: 'run',
         invariant: 'required',
         ifSkipped: 'semantic_required',
-        skipReason: null,
+        skipReason: multilingual ? 'ko_lexical_unsupported' : null,
         requiresSemantic: true,
         exhaustive: false,
     });
@@ -508,7 +512,7 @@ export function skipKoLexical(input, checkerId) {
             requiresSemantic: addressing,
         };
     }
-    const required = checkerId === 'checkPov' || checkerId === 'scanWorldGroupConflict';
+    const required = checkerId === 'checkPov' || checkerId === 'scanWorldGroupConflict' || checkerId === 'scanInfoRestate';
     const advisory = KO_LEXICAL_ADVISORY.includes(checkerId);
     return {
         violations: [],

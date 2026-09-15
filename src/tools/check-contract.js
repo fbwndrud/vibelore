@@ -89,14 +89,31 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     state.result = { ...base, ...detail, status: state.status, code, validationIncomplete: true, validationAttempts: state.failures };
     await save(); return state.result;
   };
+  // A failed transport (session limit, timeout, crashed CLI) is not a judged
+  // answer. It used to be counted like one: three provider errors in a row
+  // burned the whole budget in seconds and turned a resumable draft into
+  // clean_fail (2026-09-15 fr sample, revision after approval). The caller
+  // gets a distinct, retryable status and the budget stays where it was.
+  let providerFailure = null;
+  const providerError = async () => {
+    refreshCounts();
+    state.result = null; await save();
+    return { ...base, status: 'provider_error', code: 'MODEL_PROVIDER_ERROR', validationIncomplete: true, retryable: true,
+      providerError: providerFailure?.message ?? String(providerFailure), validationAttempts: state.failures };
+  };
   const wrapped = {
     validationContext: providers?.validationContext,
     provenance: providers?.provenance,
     get pending() { return providers?.pending ?? []; },
     async complete(request) {
       if (!providers?.complete) throw new Error('MODEL_PROVIDER_REQUIRED');
-      return providers.complete({ ...request, messages: [...request.messages,
+      try {
+        return await providers.complete({ ...request, messages: [...request.messages,
         { role: 'system', content: `Validation identity: ${scope}; epoch ${state.epoch}; attempt ${state.failures + 1}. This identifies this evaluation, not fictional content.${state.languageEvidence ? ` Previous output-language evidence; correct only the affected generated fields: ${JSON.stringify(state.languageEvidence)}` : ''}` }] });
+      } catch (error) {
+        if (error?.name !== 'PendingModelWork') providerFailure = error;
+        throw error;
+      }
     },
   };
   const prevState = await canonicalStore.loadStoryState(workId, chapter - 1) ?? emptyStoryState(workId);
@@ -106,6 +123,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     if (!state.extracted) {
       const extracted = await extractDelta(extractionInput);
       if (pending(wrapped)) return preview();
+      if (providerFailure) return providerError();
       if (extracted.extractionValidation?.status !== 'completed' || extracted.extractionValidation.contextHash !== computeExtractionContextHash(extractionInput))
         return fail('VALIDATION_INCOMPLETE', { extractionValidation: extracted.extractionValidation });
       if (context.plans.episode?.characterArcBeats?.length) {
@@ -123,6 +141,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       if (pending(wrapped)) return preview();
       const validation = readSemanticValidation(semantic, null, { expectedContextHash: continuityContextHash(semanticInput) });
       base.semanticValidation = validation;
+      if (providerFailure) return providerError();
       if (validation.status !== 'completed' || Object.values(validation.verdicts).some(v => v === 'uncertain')) return fail('VALIDATION_INCOMPLETE');
       state.semantic = semantic; await save();
     }
@@ -211,6 +230,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     await save(); return state.result;
   } catch (error) {
     if (pending(wrapped)) return preview();
+    if (providerFailure) return providerError();
     if (['WORKING_TREE_DRIFT','STALE_WORK_CONTRACT'].includes(error.code)) {
       await invalidateValidationSession(store, workId, scope, state, error.code);
       return { ...base, status: 'clean_fail', code: error.code, validationIncomplete: true };

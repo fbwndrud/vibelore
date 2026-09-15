@@ -106,3 +106,27 @@ test('a revision after a passed check starts a new validation epoch with a full 
  const after=await loadValidationSession(store,workId,`workflow-${wf.workflowId}`);
  assert.equal(after.epoch,2);assert.equal(after.failures,2);
 });
+
+// 2026-09-15 fr 표본: 승인 뒤 수정본 검증 중 세션 한도로 provider 가 세 번 연속 실패했고, 그 세 번이 검증 예산을 모두 태워 clean_fail.
+// 전송 실패는 판정이 아니다 — 예산을 쓰지 않고 재개 가능한 상태로 돌려준다.
+test('a model provider failure during validation keeps the budget and resumes on the next write',async()=>{
+ const store=await qualityStore();
+ let providerDown=true;let checks=0;
+ const providers={async complete(req){
+  if(req.step==='continuity-check'){checks+=1;if(providerDown)throw Error('Actual claude-sonnet-5 exited 1: session limit');}
+  return contractResponse(req)??{text:outputs[req.step]??'{}'};
+ }};
+ const failed=await runWriteWorkflow({store,workId,autonomy:'auto',providers});
+ assert.equal(failed.status,'provider_error',JSON.stringify(failed));
+ assert.equal(failed.code,'MODEL_PROVIDER_ERROR');
+ assert.match(failed.providerError,/session limit/);
+ assert.equal(checks,1);
+ const wf=await store.loadWorkflow(workId);
+ assert.equal(wf.stage,'validating');
+ const session=await loadValidationSession(store,workId,`workflow-${wf.workflowId}`);
+ assert.equal(session.failures,0);
+ providerDown=false;
+ const resumed=await runWriteWorkflow({store,workId,autonomy:'auto',providers});
+ assert.equal(resumed.status,'completed',JSON.stringify(resumed));
+ assert.equal((await loadValidationSession(store,workId,`workflow-${wf.workflowId}`)).failures,0);
+});

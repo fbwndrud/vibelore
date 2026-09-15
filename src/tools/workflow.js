@@ -400,6 +400,14 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
         await transition(store, workflow, 'clean_fail', { operation: 'mandatory_validation', failure: check });
         return { ...check, workflowId: workflow.workflowId, chapter, prose: current.prose };
       }
+      if (check.status === 'provider_error') {
+        // The model transport failed; nothing was judged and no budget was spent.
+        // Keep the draft and the validation session so the next lore_write resumes them.
+        await store.saveWorkflow(workId, workflow);
+        await transition(store, workflow, 'validating', { operation: 'mandatory_validation', failure: { code: check.code, providerError: check.providerError } });
+        return { ...check, workflowId: workflow.workflowId, chapter, prose: current.prose,
+          nextAction: 'The model provider failed during validation. Run lore_write again to resume this draft; the validation budget was not spent.' };
+      }
       if (!revisionCandidates.some(candidate => candidate.prose === current.prose && candidate.validationEpoch === check.validationEpoch)) {
         revisionCandidates.push({ ...makeRevisionCandidate({ attempt, prose: current.prose, castManifestRaw: current.castManifestRaw, check,
           lengthFailed: check.lengthAssessment?.actual < check.lengthAssessment?.min, mustRevise: true }), validationEpoch: check.validationEpoch });

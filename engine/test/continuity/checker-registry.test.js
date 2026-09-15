@@ -9,6 +9,7 @@ import {
     hardSensitiveCategories,
     promptFamilyFrom,
     runDetector,
+    skipKoLexical,
 } from '../../src/continuity/checker-registry.js';
 import { LanguagePolicyError } from '../../src/core/language-policy.js';
 import { checkPov } from '../../src/continuity/pov-check.js';
@@ -416,6 +417,30 @@ describe('checker registry', () => {
     });
 });
 
+
+// 2026-09-15 fr 표본: 한국어 n-gram 기반 INFO_RESTATED 가 프랑스어 불용어('pour', 'de l', 'encore')를 세계 사실 명사구로 잡았다.
+describe('multilingual WORLD restate detector', () => {
+    it('skips the Korean-lexical restate scan and leaves WORLD to the semantic verdict', () => {
+        const plan = describeCheckerPlan({ language: 'fr', foundation: { characters: [], worldFacts: [{ statement: 'Le quai est encore fermé pour la fête' }] } });
+        const row = plan.rows.find((item) => item.checkerId === 'scanInfoRestate');
+        expect(row.runDetector).toBe(false);
+        expect(row.skipReason).toBe('ko_lexical_unsupported');
+        expect(row.requiresSemantic).toBe(true);
+        const skipped = skipKoLexical({ language: 'fr' }, 'scanInfoRestate');
+        expect(skipped.status).toBe('skipped');
+        expect(skipped.invariantCoverage).toBe('unvalidated');
+        expect(skipped.requiresSemantic).toBe(true);
+        const unvalidated = aggregateCheckerCoverage(plan, [skipped], {});
+        expect(unvalidated.invariants.WORLD.coverage).toBe('unvalidated');
+        const validated = aggregateCheckerCoverage(plan, [skipped], { WORLD: 'pass' });
+        expect(validated.invariants.WORLD.coverage).toBe('validated');
+    });
+    it('keeps running the restate scan for Korean works', () => {
+        const row = describeCheckerPlan({ language: 'ko' }).rows.find((item) => item.checkerId === 'scanInfoRestate');
+        expect(row.runDetector).toBe(true);
+        expect(row.skipReason).toBe(null);
+    });
+});
 
 describe('multilingual required FORMAT coverage', () => {
     for (const language of ['en', 'ja', 'ar', 'fr', 'th']) {
