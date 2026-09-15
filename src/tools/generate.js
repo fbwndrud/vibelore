@@ -253,7 +253,10 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     },
     memoryClaims: [],
   }, { provider: providers });
-  if (!execution.ok) throw new Error(`${execution.error.code}: ${execution.error.reason ?? 'draft-execution'}`);
+  if (!execution.ok) {
+    const { code, reason, ...detail } = execution.error;
+    throw new Error(`${code}: ${reason ?? (Object.keys(detail).length ? JSON.stringify(detail) : 'draft-execution')}`);
+  }
   const result = execution.value;
   const publicationAfterDraft = await publicationUnit.readPublished();
   if (!publicationAfterDraft.ok) throw new Error(`CORRUPT_PUBLICATION: ${publicationAfterDraft.error.code}`);

@@ -19,9 +19,20 @@ test('Latin-script text is estimated at four characters per token', () => {
 
 test('dense scripts other than Hangul keep the / 2 estimate', () => {
   const ja = '朝の潮はまだ低く、旧港の桟橋には灰色の霧が薄くかかっていた。';
-  const ar = 'كانت حارسة المنارة تعدّ الألواح قبل أن يصل المرمّم.';
+  const th = 'หญิงผู้ดูแลประภาคารนับแผ่นไม้ก่อนที่ช่างซ่อมจะมาถึง';
   assert.equal(tokenUnits(ja), Math.ceil([...ja].length / 2));
-  assert.equal(tokenUnits(ar), Math.ceil([...ar].length / 2));
+  assert.equal(tokenUnits(th), Math.ceil([...th].length / 2));
+});
+
+// 2026-09-15 ar 표본: 아랍 문자를 CJK 급(/ 2)으로 세어 fr/es 와 같은 크기의 초고 packet 이 4225 > 4000 으로 CONTEXT_BUDGET_EXCEEDED.
+test('Arabic and Hebrew are estimated at three characters per token, spaces and punctuation at four', () => {
+  const ar = 'كانت حارسة المنارة تعدّ الألواح قبل أن يصل المرمّم.';
+  const letters = [...ar].filter((char) => /\p{Script=Arabic}/u.test(char)).length;
+  const rest = [...ar].length - letters;
+  assert.equal(tokenUnits(ar), Math.ceil(letters / 3 + rest / 4));
+  assert.ok(tokenUnits(ar) < Math.ceil([...ar].length / 2));
+  const he = 'שומרת המגדלור ספרה את הקרשים לפני שהגיע המשקם.';
+  assert.ok(tokenUnits(he) < Math.ceil([...he].length / 2));
 });
 
 // 2026-09-15 es 표본: 7.4k 자 스페인어 EpisodePlan 이 / 2 추정으로 1400 예산을 넘겨 EPISODE_PACKET_OVERFLOW.
