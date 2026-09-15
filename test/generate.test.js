@@ -601,14 +601,15 @@ describe('Phase 2 generation pipeline', () => {
       characterCollisions: [{ agendaIds: ['hero', 'ally'], scarceConstraint: '한 자리' }],
     };
     assert.match(episodePlanningContractViolations(collisionWithoutAgendas, ['hero', 'ally']).join(' '), /characterAgenda/);
+    const complete = (characterId, goal) => ({ characterId, goal, nextAction: '문을 연다', deadline: '오늘 밤', resources: ['열쇠'], knowledge: ['방의 위치'], misbelief: '혼자 해도 된다', redLine: '소유권을 넘긴다', fallback: '동료에게 맡긴다' });
     const independent = {
-      characterAgendas: [
-        { characterId: 'hero', goal: '보상을 선점한다', nextAction: '숨은 방을 연다', redLine: '소유권을 넘긴다' },
-        { characterId: 'ally', goal: '자기 몫을 받는다', nextAction: '출구를 지킨다', redLine: '무상으로 싸운다' },
-      ],
+      characterAgendas: [complete('hero', '보상을 선점한다'), complete('ally', '자기 몫을 받는다')],
       characterCollisions: [{ agendaIds: ['hero', 'ally'], scarceConstraint: '하나뿐인 보상 소유권' }],
     };
     assert.deepEqual(episodePlanningContractViolations(independent, ['hero', 'ally']), []);
+    // 2026-09-15 ja 표본: 빈 misbelief 가 계획 승인을 통과하고 커밋에서 CHARACTER_AGENDA_INVALID 로 터졌다.
+    const incomplete = { characterAgendas: [{ ...complete('ally', '자기 몫을 받는다'), misbelief: '', knowledge: [] }] };
+    assert.match(episodePlanningContractViolations(incomplete, ['hero', 'ally']).join(' '), /characterAgendas\[ally\]의 knowledge, misbelief이\(가\) 비어 있습니다/);
   });
 
   it('rejects every unregistered character reference before compiling an EpisodePlan', () => {

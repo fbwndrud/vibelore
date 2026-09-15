@@ -54,7 +54,14 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       const old = await store.loadCheckReceipt(workId, state.checkId);
       if (old) await store.saveCheckReceipt(workId, { ...old, stale: true, staleReason: 'artifact_changed' });
     }
-    state = { ...state, input, inputHash, prepared: null, extracted: null, semantic: null, result: null, checkId: null, status: null };
+    // A new artifact after a passed check (a user-requested revision) opens a
+    // new epoch with a full budget. Only artifacts revised inside a failing
+    // epoch keep sharing its three attempts (2026-09-15 zh-Hant sample: one
+    // legitimate fail on the revision became clean_fail because the two
+    // failures of the already-passed draft were still counted).
+    const passedBefore = state.status === 'passed';
+    state = { ...state, input, inputHash, prepared: null, extracted: null, semantic: null, result: null, checkId: null, status: null,
+      ...(passedBefore ? { epoch: state.epoch + 1, failures: 0 } : {}) };
   }
   const save = () => saveValidationSession(store, workId, scope, state);
   await save();
@@ -189,8 +196,12 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     }
     const receipt = issueChapterReceipt({ workId, chapter, workflowId, runId: workflowId ? undefined : scope,
       validationEpoch: state.epoch, sourceHead: context.identity.sourceHead, planSourceHash: context.identity.planSourceHash,
-      workContract, artifact, checkerPlan: plan, languageCompliance: answer.compliance, coverage: { invariants: overlaid.invariants }, issuedBy: 'check' });
-    const envelope = { ...receipt, validationReceipt: receipt, artifact, workContract, languageCompliance: answer.compliance, coverage,
+      // The receipt carries the evaluated record: a pass keeps only its valid
+      // citations, and the strict re-reading at receipt time must see exactly
+      // that record, not the raw answer (2026-09-15 es sample: three passes,
+      // each thrown out again by a decorative citation on an array path).
+      workContract, artifact, checkerPlan: plan, languageCompliance, coverage: { invariants: overlaid.invariants }, issuedBy: 'check' });
+    const envelope = { ...receipt, validationReceipt: receipt, artifact, workContract, languageCompliance, coverage,
       checkerPlan: plan, validationScope: scope, identity: context.identity,
       proseHash: `sha256:${createHash('sha256').update(artifact.prose).digest('hex')}`, delta: artifact.semanticDelta,
       checkedAt: new Date().toISOString(), consumedAt: null };

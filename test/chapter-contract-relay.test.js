@@ -65,3 +65,44 @@ test('guided user revision clears the old approval receipt and resumes its new v
  assert.equal(result.status,'awaiting_approval',JSON.stringify(result));
  const after=await store.loadWorkflow(workId);assert.equal(after.workflowId,before.workflowId);assert.notEqual(after.checkId,before.checkId);assert.equal(after.userApproval,undefined);
 });
+
+// 2026-09-15 es 표본: pass 판정에 딸린 배열 경로 인용(semanticDelta.hookOps)이 receipt 발급의 strict 재판정에서
+// field_not_text 로 다시 튕겨 세 번의 pass 가 전부 소진됐다. receipt 는 유효 인용만 남긴 평가 결과를 담아야 한다.
+test('a pass with a decorative array-path citation still issues the chapter receipt',async()=>{
+ const store=await qualityStore();
+ const providers={async complete(req){
+  if(req.step==='language-contract'){const text=req.messages.map(m=>m.content).join('\n');return{text:JSON.stringify({language:'ko',artifactHash:text.match(/artifactHash: ([a-f0-9]{64})/)[1],verdict:'pass',evidence:[{fieldPath:'semanticDelta.hookOps',quote:'x',reason:'array path'},{fieldPath:'title',quote:'첫 문',reason:'Korean'}],allowedExceptions:[]})};}
+  return contractResponse(req)??{text:outputs[req.step]??'{}'};
+ }};
+ const result=await runWriteWorkflow({store,workId,autonomy:'auto',providers});
+ assert.equal(result.status,'completed',JSON.stringify(result));
+ const receipt=await store.loadCheckReceipt(workId,(await store.loadWorkflow(workId)).checkId);
+ assert.deepEqual(receipt.languageCompliance.evidence.map(e=>e.fieldPath),['title']);
+});
+
+// 2026-09-15 zh-Hant 표본: 초안 검증이 두 번 실패 뒤 통과했는데, 사용자 수정본의 정당한 fail 한 번이 남은 예산(1)을 소진해 clean_fail.
+// 통과한 뒤의 새 원고는 새 epoch 와 온전한 예산으로 시작한다.
+test('a revision after a passed check starts a new validation epoch with a full budget',async()=>{
+ const { runWorkflowDecide }=await import('../src/tools/workflow.js');
+ const store=await qualityStore();
+ let uncertainLeft=1;let reviseCalls=0;
+ const providers={async complete(req){
+  if(req.step==='language-contract'){const text=req.messages.map(m=>m.content).join('\n');const hash=text.match(/artifactHash: ([a-f0-9]{64})/)[1];
+   if(uncertainLeft>0){uncertainLeft-=1;return{text:JSON.stringify({language:'ko',artifactHash:hash,verdict:'uncertain',evidence:[],allowedExceptions:[]})};}
+   return{text:JSON.stringify({language:'ko',artifactHash:hash,verdict:'pass',evidence:[],allowedExceptions:[]})};}
+  if(req.step==='revise'){reviseCalls+=1;return{text:JSON.stringify({replacements:[],insertions:[{afterParagraph:1,text:'조용히 손을 내렸다.'}]})};}
+  return contractResponse(req)??{text:outputs[req.step]??'{}'};
+ }};
+ const first=await runWriteWorkflow({store,workId,autonomy:'guided',providers});
+ assert.equal(first.status,'awaiting_approval',JSON.stringify(first));
+ const wf=await store.loadWorkflow(workId);
+ const passed=await loadValidationSession(store,workId,`workflow-${wf.workflowId}`);
+ assert.equal(passed.failures,1);assert.equal(passed.epoch,1);
+ await runWorkflowDecide({store,workId,approvalId:first.approvalId,action:'request_revision',feedback:'Add a quiet final gesture.',providers});
+ uncertainLeft=2;
+ const revised=await runWriteWorkflow({store,workId,autonomy:'guided',providers});
+ assert.equal(revised.status,'awaiting_approval',JSON.stringify(revised));
+ assert.equal(reviseCalls,1);
+ const after=await loadValidationSession(store,workId,`workflow-${wf.workflowId}`);
+ assert.equal(after.epoch,2);assert.equal(after.failures,2);
+});

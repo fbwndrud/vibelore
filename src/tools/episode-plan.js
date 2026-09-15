@@ -36,6 +36,8 @@ function normalizeScene(scene, index) {
   };
 }
 
+const AGENDA_REQUIRED_FIELDS = ['goal', 'nextAction', 'deadline', 'resources', 'knowledge', 'misbelief', 'redLine', 'fallback'];
+
 function normalizeAgenda(value) {
   return {
     characterId: text(value?.characterId, 120), goal: text(value?.goal), hiddenPlan: text(value?.hiddenPlan),
@@ -86,6 +88,13 @@ export function episodePlanningContractViolations(obj, knownCharacterIds = []) {
     .filter((agenda) => known.has(agenda.characterId));
   const ids = new Set(agendas.map((agenda) => agenda.characterId));
   if (ids.size !== agendas.length) violations.push('characterAgendas의 characterId는 중복될 수 없습니다.');
+  // 커밋 시점의 narrative-planning 계약(validateAgendaCollisions)과 같은 필수 항목을 계획 시점에
+  // 요구한다. 빈 misbelief 하나가 1화 집필·승인 뒤 커밋에서야 CHARACTER_AGENDA_INVALID 로 터졌다
+  // (2026-09-15 ja 표본). 호스트는 이 메시지를 feedback 으로 계획을 다시 만든다.
+  for (const agenda of agendas) {
+    const missing = AGENDA_REQUIRED_FIELDS.filter((key) => Array.isArray(agenda[key]) ? agenda[key].length === 0 : !agenda[key]);
+    if (missing.length) violations.push(`characterAgendas[${agenda.characterId}]의 ${missing.join(', ')}이(가) 비어 있습니다. 모든 항목을 채우거나 그 인물의 agenda를 생략하십시오.`);
+  }
   const invalidCollision = (Array.isArray(obj?.characterCollisions) ? obj.characterCollisions : [])
     .map(normalizeCollision)
     .find((collision) => collision.agendaIds.length < 2
