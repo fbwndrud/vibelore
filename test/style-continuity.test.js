@@ -54,6 +54,28 @@ describe('work-level style continuity', () => {
     assert.ok(audit.metrics.unchangedParagraphRatio >= 0.9);
   });
 
+  // 2026-09-15 ar 표본: 5문단 원고에서 SEMANTIC_POV 근거가 가리킨 두 문단만 고쳤는데 전체 대비 60% 로 REVISION_SCOPE_DRIFT.
+  it('excludes the paragraphs the violation evidence points at from the preservation floor', () => {
+    const source = paragraphs(5);
+    const lines = source.split('\n\n');
+    const revised = lines.map((line, index) => index === 2 || index === 3 ? `루아가 ${index + 1}번째 충격을 스스로 확인했다.` : line).join('\n\n');
+    const cited = [{ severity: 'hard', code: 'SEMANTIC_POV', evidence: [
+      { invariantId: 'POV', fieldPath: 'prose', quote: '3번째 충격을 확인하고', reason: '시점 이탈' },
+      { invariantId: 'POV', fieldPath: 'prose', quote: lines[3], reason: '시점 이탈' },
+    ] }];
+    const targeted = evaluateRevisionPreservation({ sourceProse: source, candidateProse: revised, violations: cited });
+    assert.equal(targeted.passed, true, JSON.stringify(targeted.violations));
+    assert.equal(targeted.metrics.targetedParagraphs, 2);
+    assert.equal(targeted.metrics.untargetedUnchangedRatio, 1);
+    const blind = evaluateRevisionPreservation({ sourceProse: source, candidateProse: revised, violations: [{ code: 'INTRINSIC_VIOLATION' }] });
+    assert.equal(blind.passed, false);
+    assert.ok(blind.violations.some((item) => item.code === 'REVISION_SCOPE_DRIFT'));
+    const overreach = lines.map((line, index) => index === 0 || index === 2 || index === 3 ? `루아가 ${index + 1}번째 충격을 스스로 확인했다.` : line).join('\n\n');
+    const drifted = evaluateRevisionPreservation({ sourceProse: source, candidateProse: overreach, violations: cited });
+    assert.equal(drifted.passed, false);
+    assert.match(drifted.violations[0].message, /2개 문단 제외/);
+  });
+
   it('reports a fresh chapter that strongly departs from an approved anchor without auto-rewrite instructions', () => {
     const anchor = buildStyleAnchor({
       workId: 'novel',
