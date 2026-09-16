@@ -4,6 +4,7 @@
 |---|---|
 | vibelore가 지키는 원칙 이해하기 | [PHILOSOPHY.md](PHILOSOPHY.md) |
 | 설치하고 첫 작품 만들기 | [GETTING_STARTED.md](GETTING_STARTED.md) |
+| 모델·생각 수준·로컬 모델 설정하기 | [MODELS.md](MODELS.md) |
 | 도구 인자 확인하기 | [TOOLS.md](TOOLS.md) |
 | MCP 응답과 `needs_model` 이해하기 | [MCP.md](MCP.md) |
 | 정본·상태·커밋 구조 이해하기 | [ARCHITECTURE.md](ARCHITECTURE.md) |

@@ -5,7 +5,7 @@ import test from 'node:test';
 
 const documents = [
   'README.md', 'HOSTS.md', 'docs/README.md', 'docs/PHILOSOPHY.md', 'docs/GETTING_STARTED.md',
-  'docs/MCP.md', 'docs/TOOLS.md', 'docs/ARCHITECTURE.md', 'docs/OPERATIONS.md',
+  'docs/MODELS.md', 'docs/MCP.md', 'docs/TOOLS.md', 'docs/ARCHITECTURE.md', 'docs/OPERATIONS.md',
 ];
 
 test('documentation links and fenced blocks stay valid', async () => {
