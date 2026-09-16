@@ -778,6 +778,27 @@ describe('continuityCheck semanticValidation', () => {
         expect(result.passed).toBe(true);
         expect(result.violations).toEqual([]);
     });
+    // 2026-09-16 th 표본: 검수자가 Foundation 요약에 실린 povDesign.mode 를 인용했는데 엔진 Foundation 레코드에는
+    // 그 필드가 없어 응답 전체가 폐기됐고, 2화의 시점 인물이 계획(povCharacter)에서 정해졌다는 사실도 검수자에게 없었다.
+    it('the summary names the planned viewpoint character and evidence may cite the viewpoint fields it shows', async () => {
+        const povDesign = { mode: 'limited third person, alternating by chapter', openingViewpoint: '이세종', switchPolicy: 'only at a chapter break' };
+        const input = checkInput({ workContract: EN_CONTRACT, checkerPlan: planFor(['POV']), povDesign, povCharacterId: 'c1' });
+        const hash = computeContinuityContextHash(input);
+        const cap = capturing(semanticReply(hash, { POV: 'fail' }, [
+            { invariantId: 'POV', fieldPath: 'foundation.povDesign.mode', quote: 'alternating by chapter', reason: 'The chapter keeps the previous viewpoint although the design alternates.' },
+            { invariantId: 'POV', fieldPath: 'foundation.povCharacterId', quote: 'c1', reason: 'The plan holds the viewpoint on c1 for this chapter.' },
+        ]));
+        const result = await continuityCheck({ ...input, providers: cap.providers });
+        const { user } = partsOf(cap.requests[0]);
+        const summary = JSON.parse(user.split('## Foundation summary\n')[1].split('\n\n## Delta for this chapter')[0]);
+        expect(summary.povCharacterId).toBe('c1');
+        expect(summary.povCharacterName).toBe('이세종');
+        expect(summary.povDesign.mode).toBe(povDesign.mode);
+        expect(user).toContain('when povCharacterId is given, that character is this chapter\'s viewpoint');
+        expect(result.semanticValidation.status).toBe('completed');
+        expect(result.semanticValidation.evidence.map((item) => item.fieldPath)).toEqual(['foundation.povDesign.mode', 'foundation.povCharacterId']);
+        expect(computeContinuityContextHash({ ...input, povCharacterId: 'c2' })).not.toBe(hash);
+    });
     it('evidence must quote the named field, not a sibling serialization', async () => {
         const delta = emptyDelta(2, ['c1']);
         delta.mutableChanges.push({ characterId: 'c1', status: 'wounded' });

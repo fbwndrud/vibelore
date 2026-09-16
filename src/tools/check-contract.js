@@ -139,7 +139,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       // The reviewer judges POV against the profile's viewpoint design, not only
       // the one-line povMode (2026-09-15 fr sample: povMode said "alternation
       // with Malik to be confirmed" and three reviews answered uncertain).
-      ...(context.plans.profile?.povDesign ? { povDesign: context.plans.profile.povDesign } : {}) };
+      ...(context.plans.profile?.povDesign ? { povDesign: context.plans.profile.povDesign } : {}),
+      ...(typeof context.plans.episode?.povCharacter === 'string' && context.plans.episode.povCharacter ? { povCharacterId: context.plans.episode.povCharacter } : {}) };
     if (!state.semantic) {
       const semantic = await continuityCheck(semanticInput);
       if (pending(wrapped)) return preview();
