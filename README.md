@@ -1,5 +1,7 @@
 # vibelore
 
+한국어 | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
+
 **AI로 웹소설을 쓰고, 그 소설을 웹툰으로 만드는 로컬 도구. 수백 화가 지나도 설정은 무너지지 않게.**
 
 *Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into a vertical webtoon. Local, Markdown, no extra API keys for writing.*
@@ -44,6 +46,7 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 - 세계·인물·본문은 Markdown 정본으로 남고, 매 화 초고를 그 정본과 대조해 **hard 위반은 고치고 soft 위반은 물어봅니다.**
 - 작품 전체 → 아크 → 화 순서로 계획하고, 승인한 것만 다음 화의 제약이 됩니다.
 - 끊긴 작업은 같은 자리에서 재개되고, 검사를 통과한 원고만 커밋되며, 화 단위로 되돌릴 수 있습니다.
+- 작품 언어는 `language` 인자 하나로 정하며, 한국어 외의 언어로도 같은 흐름을 씁니다.
 - 원작의 인물·상태를 그대로 가져와 각색하고, 러프 승인 뒤에만 본 작화로 넘어가는 웹툰 제작 흐름이 따라옵니다.
 
 ## 30초 데모
@@ -211,6 +214,32 @@ Claude Code용 스킬은 `hosts/claude/skills/`에 있고, 이 저장소는 Code
 
 목록에 없는 장르나 복합 장르도 됩니다. 인터뷰가 장르를 톤·서브장르·이야기 동력으로 분해해
 작품 프로필로 만들고, 설정 검사는 가장 가까운 프리셋을 씁니다.
+
+## 작품 언어
+
+작품을 어떤 언어로 쓸지는 `lore_profile`, `lore_init`, `lore_create`, `lore_write`가 받는
+`language` 선택 인자로 정합니다. 사용자가 집필 언어를 자연어로 밝히면 호스트가 BCP 47
+태그(`ja`, `pt-BR`, `zh-Hant` 등)로 정규화해 넘기고, 언어를 고르지 않으면 인자를 생략합니다.
+언어 키가 없는 기존 작품은 암묵적 `ko`입니다. 대화 언어와 작품 언어는 별개라서 한국어로
+대화하면서 일본어 작품을 쓸 수 있습니다.
+
+> `/absolute/path/to/my-novel`에 `harbor_summer`라는 작품을 만들고 싶어. 본문은 스페인어로 써 줘.
+
+- 프롬프트는 두 계열입니다. `ko`는 한국어 특화 지시문을, 그 밖의 언어(영어 포함)는 영어 공통
+  지시문에 목표 언어를 결합한 계열을 씁니다. 본문, 제목, 요약, 세계·인물 설명, 계획과 검토의
+  설명 값이 목표 언어를 따르고, JSON 키·enum·ID 같은 기계가 읽는 값은 번역하지 않습니다.
+- 분량은 언어에 맞는 단위로 잽니다. 한국어는 기존 글자 수, 그 밖의 언어는 문자소(grapheme)
+  또는 단어 수이며, 아랍어·히브리어처럼 결합 문자가 많은 문자 체계와 띄어쓰기가 없는 태국어도
+  같은 계약 안에서 다룹니다.
+- 언어는 foundation 을 만든 뒤 바꿀 수 없습니다. 저장된 언어와 다른 값을 넘기면 조용히
+  덮어쓰지 않고 `LANGUAGE_CONTRACT_CONFLICT`로 거부합니다.
+- 회차마다 본문·요약·계획이 작품 언어로 쓰였는지 검사하고, 시점·인물 등록·세계 설정 같은
+  의미 불변식은 언어와 무관하게 같은 검수자가 봅니다.
+
+실제 Claude Sonnet 5로 프로필부터 2화 승인과 최종 언어 감사까지 전체 흐름을 확인한 언어는
+영어, 스페인어, 일본어, 프랑스어, 한국어, 아랍어, 번체 중국어, 태국어입니다. 인자 계약의
+세부는 [작품 언어와 분량 단위](docs/TOOLS.md#작품-언어와-분량-단위)를, 검증 기록은
+[다국어 구현 기록](docs/research/MULTILINGUAL_IMPLEMENTATION.md)을 참고하세요.
 
 ## 파일은 어디에
 
