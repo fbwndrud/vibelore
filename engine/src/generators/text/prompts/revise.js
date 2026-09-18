@@ -83,7 +83,8 @@ export const REVISE_SYSTEM_MULTILINGUAL = reviseSystemLinesMultilingual(REVISE_P
 const REVISE_PATCH_SYSTEM_KO_TAIL = [
     '전체 원고를 다시 쓰지 말고, 번호가 붙은 원문 문단에 적용할 JSON 패치만 만든다.',
     '위반을 고치는 데 필요한 최소 문단만 replacement로 바꾸고, 새 장면이 꼭 필요할 때만 insertion을 사용한다.',
-    '문단 번호, 사건 결과, 인물의 말투, 시점, 빈 문단으로 형성된 호흡을 보존한다.',
+    '문단 번호, 사건 결과, 인물의 말투, 선언된 시점, 빈 문단으로 형성된 호흡을 보존한다.',
+    '시점 위반은 지적된 문단(첫 문단 포함)을 선언된 시점 인물의 지각으로 옮겨 고치며, 잘못된 시점을 유지한 채 고치지 않는다.',
     '출력은 순수 JSON 하나뿐이며 설명이나 마크다운을 붙이지 않는다.',
 ];
 export const REVISE_PATCH_SYSTEM = [
@@ -94,7 +95,8 @@ export const REVISE_PATCH_SYSTEM_MULTILINGUAL = [
     'You are a local copy-editor for serial fiction written in the target work language.',
     'Do not rewrite the whole chapter. Produce only a JSON patch applied to the numbered source paragraphs.',
     'Replace the fewest paragraphs needed to fix the violations, and use an insertion only when a new scene is genuinely required.',
-    'Preserve paragraph numbering, settled outcomes, each character\'s voice, the viewpoint, and the rhythm the blank lines create.',
+    'Preserve paragraph numbering, settled outcomes, each character\'s voice, the declared viewpoint, and the rhythm the blank lines create.',
+    'A viewpoint violation is fixed by moving the cited passages into the declared viewpoint character\'s perception (including the opening), never by keeping the wrong viewpoint.',
     'Output exactly one pure JSON object, with no explanation and no markdown.',
 ].join(' ');
 

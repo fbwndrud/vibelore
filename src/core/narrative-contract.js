@@ -114,7 +114,7 @@ export function renderNarrativeContract(contract, kitSource) {
 
 // Keep the approved contract in the actual writer request, not only its digest.
 // Examples are optional; their selection and omission are observable.
-export function compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter = 1, kit: kitSource }) {
+export function compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter = 1, characterNames = {}, kit: kitSource }) {
   const kit = asKit(kitSource ?? { profile });
   const t = kit.phrases.contract;
   const contract = compileNarrativeContract({ profile, identity, writerSkill, kit });
@@ -152,7 +152,13 @@ export function compileDraftContract({ profile, identity, writerSkill, episodePl
       variation: profile?.voiceDesign?.variationRules ?? profile?.voice?.variationRules ?? [profile?.voiceContract?.genreVoiceRecipe?.rhythm, profile?.voiceContract?.genreVoiceRecipe?.exposition].filter(Boolean),
     },
   };
+  // The chapter's viewpoint character comes from the approved plan; the draft
+  // and the local revise both read this contract, so both hear it here
+  // (2026-09-18 es sample: a chapter planned on Clara was revised three times
+  // without leaving Inés's viewpoint).
+  const viewpointId = typeof episodePlan?.povCharacter === 'string' ? episodePlan.povCharacter.trim() : '';
   const writerText = [renderNarrativeContract(core, kit),
+    ...(viewpointId ? [t.chapterViewpoint(characterNames[viewpointId] ?? viewpointId)] : []),
     ...(identity?.competenceSignature?.length ? [t.competenceSignature(identity.competenceSignature.join('; '))] : []),
     ...guidance.map((item) => t.approvedDraftRule(item)),
     ...(selected.length ? [t.styleExamplesHeading, t.styleExamplesRule, ...selected.map((item) => item.text)] : []),

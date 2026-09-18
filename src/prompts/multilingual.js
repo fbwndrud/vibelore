@@ -405,6 +405,7 @@ export const phrases = {
     noNewConcepts: '- This chapter is not obliged to add a new core concept.',
     dialogueRule: '- Dialogue starts on top of the concrete situation and desire the reader has already seen. Leave subtext only after the surface meaning is clear.',
     episodeCoreHeading: '## Episode Core',
+    viewpointCharacter: (name) => `- Viewpoint character for this chapter: ${name} — narrate only what this character perceives, knows, or decides, from the first sentence on; do not switch viewpoint inside the chapter`,
     immediateGoal: (owner, goal) => `- Immediate goal: ${owner} — ${goal}`,
     obstacle: (v) => `- Obstacle in front of them: ${v}`,
     choicePressure: (a, b) => `- Actual pressure to choose: ${a} / ${b}`,
@@ -443,6 +444,7 @@ export const phrases = {
 
   contract: {
     heading: '## Work contract',
+    chapterViewpoint: (name) => `- Viewpoint character of this chapter: ${name} — every passage, including the opening, stays inside what this character perceives, knows, or decides`,
     readerPromise: (v) => `- Reader promise: ${v}`,
     recurringPleasures: (v) => `- Recurring pleasures: ${v}`,
     protagonist: (appeal, defect) => `- Protagonist appeal and lack: ${appeal} / ${defect}`,

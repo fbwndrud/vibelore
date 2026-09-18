@@ -405,6 +405,7 @@ export const phrases = {
     noNewConcepts: '- 이번 화는 새 핵심 개념을 의무적으로 추가하지 않는다.',
     dialogueRule: '- 대사는 독자가 먼저 본 구체적 상황과 욕구 위에서 시작한다. 표면 뜻을 이해한 뒤에만 서브텍스트를 남긴다.',
     episodeCoreHeading: '## Episode Core',
+    viewpointCharacter: (name) => `- 이번 화 시점 인물: ${name} — 첫 문장부터 이 인물이 지각·인지·결정하는 것만 서술하고, 회차 안에서 시점을 바꾸지 않는다`,
     immediateGoal: (owner, goal) => `- 즉시 목표: ${owner} — ${goal}`,
     obstacle: (v) => `- 눈앞의 장애물: ${v}`,
     choicePressure: (a, b) => `- 실제 선택 압박: ${a} / ${b}`,
@@ -443,6 +444,7 @@ export const phrases = {
 
   contract: {
     heading: '## 작품 계약',
+    chapterViewpoint: (name) => `- 이번 화 시점 인물: ${name} — 첫 문단을 포함한 모든 문단이 이 인물이 지각·인지·결정하는 범위 안에 머문다`,
     readerPromise: (v) => `- 독자 약속: ${v}`,
     recurringPleasures: (v) => `- 반복 쾌감: ${v}`,
     protagonist: (appeal, defect) => `- 주인공 매력과 결핍: ${appeal} / ${defect}`,

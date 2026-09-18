@@ -199,7 +199,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   }
   const episodePacket = episodePacketResult.value;
   const authorCraftPacket = compileAuthorCraftPacket({ skill: writerSkill, episodePlan: detailedPlan, chapter, recentPatterns: patternLedger.slice(-3), kit });
-  const draftContract = compileDraftContract({ profile: storyProfile, identity: storyIdentity, writerSkill, episodePlan: detailedPlan, chapter, kit });
+  const draftContract = compileDraftContract({ profile: storyProfile, identity: storyIdentity, writerSkill, episodePlan: detailedPlan, chapter, kit,
+    characterNames: Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName])) });
   const writerPacket = [draftContract.writerText, authorCraftPacket, renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
   const compilerInputs = {
     identity: {

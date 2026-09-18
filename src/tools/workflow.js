@@ -436,7 +436,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
 
     const experienceLedger = await loadCurrentExperienceLedger({ store, workId });
     const patternLedger = experienceLedger.entries;
-    const contract = compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter, kit });
+    const contract = compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter, kit,
+      characterNames: Object.fromEntries((foundation?.characters ?? []).map((character) => [character.id, character.canonicalName])) });
     const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(),
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({

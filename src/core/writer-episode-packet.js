@@ -52,6 +52,11 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
   const lastScene = episodePlan.scenes?.at(-1) ?? {};
   const ownerId = derived('scenePressure.choiceOwner', episodePlan.scenePressure?.choiceOwner, episodePlan.povCharacter || episodePlan.cast?.[0], episodePlan.povCharacter ? 'povCharacter' : 'cast.0');
   const owner = (characterNames[ownerId] ?? ownerId) || t.ownerFallback;
+  // The plan's povCharacter is the one viewpoint this chapter narrates from. The
+  // reviewer already judges POV against it; the writer has to hear it too
+  // (2026-09-18 es sample: chapter 2 planned on Clara opened inside Inés three times).
+  const viewpointId = clean(episodePlan.povCharacter);
+  const viewpointName = viewpointId ? (characterNames[viewpointId] ?? viewpointId) : '';
   let goods = list(episodePlan.scenePressure?.incompatibleGoods);
   if (goods.length < 2) {
     goods = [...new Set((episodePlan.scenes ?? []).map((scene) => clean(scene.obstacle || scene.choice)).filter(Boolean))].slice(0, 2);
@@ -78,6 +83,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
   const includedFields = [
     'premise', 'openingState', 'closingState', 'entryState.activeQuestion', 'entryState.protagonistImmediateWant', 'entryState.tickingLoss',
     'scenePressure.choiceOwner',
+    ...(viewpointId ? ['povCharacter'] : []),
     ...scenes.flatMap((_, index) => [`scenes.${index}.situation`, `scenes.${index}.choice`, `scenes.${index}.change`]),
     'payoff.promisePaid', 'payoff.proofOnPage', 'costCreatedByResolution.immediate', 'costCreatedByResolution.deferred',
     'exitValue.closedQuestion', 'exitValue.nextQuestion', 'exitValue.specificFutureValue', 'readerBridge', 'reveals', 'withheld',
@@ -89,6 +95,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
     arcCurrent: arcEpisode ? { goal: clean(arcEpisode.goal || arcEpisode.beat), pressure: clean(arcEpisode.conflict || arcEpisode.pressure), cost: clean(arcEpisode.cost), hook: clean(arcEpisode.hook || arcEpisode.carry) } : null,
     entry: { premise: clean(episodePlan.premise), openingState: clean(episodePlan.openingState), activeQuestion, want: immediateWant, tickingLoss },
     pressure: { choiceOwner: ownerId, incompatibleGoods: goods, deadline: clean(episodePlan.scenePressure?.decisionDeadline) },
+    viewpoint: { characterId: viewpointId },
     causalTurns: scenes,
     payoff: { promise: payoffPromise, proof: payoffProof },
     cost: { immediate: immediateCost, deferred: clean(episodePlan.costCreatedByResolution?.deferred), payer: clean(episodePlan.costCreatedByResolution?.payer) },
@@ -171,6 +178,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
     obligations.readerLoad.newConcepts.length ? t.newConcepts(obligations.readerLoad.newConcepts.join(', ')) : t.noNewConcepts,
     t.dialogueRule,
     '', t.episodeCoreHeading,
+    viewpointId ? t.viewpointCharacter(viewpointName) : '',
     t.immediateGoal(owner, obligations.entry.want || obligations.entry.activeQuestion),
     t.obstacle(obligations.entry.tickingLoss || obligations.arcCurrent?.pressure || scenes[0]?.situation),
     goods.length >= 2 ? t.choicePressure(goods[0], goods[1]) : '',
