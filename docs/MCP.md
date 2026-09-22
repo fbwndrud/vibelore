@@ -129,8 +129,11 @@ sequenceDiagram
 }
 ```
 
-각 request는 `id`, `step`, `jsonMode`, `system`, `user`를 담습니다. `lore_write`에
-`modelProfile`을 넘긴 경우 `stage`(identity·planning·draft·quality·final), `model`
+각 request는 `id`, `step`, `jsonMode`, `system`, `user`를 담습니다. `system` 끝에는 파일
+읽기·도구 실행 없이 제공된 내용만으로 단일 응답을 만들라는 실행 조건이 붙습니다. 한 응답의
+`requests`는 서로 독립이므로 병렬로 답하고 모든 답을 한 번의 `lore_resume`에 넘깁니다.
+`lore_write`는 의존 관계별로 요청을 묶어 화당 왕복 수를 줄입니다. `lore_write`에
+`modelProfile`을 넘긴 경우 `stage`(identity·planning·draft·review·quality·final), `model`
 (`{ provider, modelId }`), `reasoningEffort`가 추가됩니다. 이 값은 호스트가 요청을 어느
 모델과 생각 수준으로 처리할지 정하는 힌트이며, vibelore가 직접 모델을 호출하지는 않습니다.
 

@@ -11,12 +11,16 @@
  *   identity  -- story identity, pilot contract, world/cast foundation
  *   planning  -- profile, spine, arc and episode planning
  *   draft     -- prose generation and revision
- *   quality   -- continuity, coherence, editorial and reader reviews
+ *   review    -- advisory reviews (coherence, editorial, character, reader,
+ *                arc, profile drift); their findings never enter story state
+ *   quality   -- steps whose answers become story state or future draft
+ *                constraints (delta extraction, semantic continuity check,
+ *                pattern ledger); a weaker model here corrupts later chapters
  *   final     -- boundary decision, summary and commit-time extraction
  *
  * Resolution order for a step:
  *   1. the stage's explicit entry
- *   2. `light` for planning / draft / quality, when given
+ *   2. `light` for planning / draft / review, when given
  *   3. `default`
  *   4. nothing -- the request is left exactly as the tool built it
  *
@@ -24,21 +28,21 @@
  * request fingerprints are unchanged.
  */
 
-export const MODEL_STAGES = ['identity', 'planning', 'draft', 'quality', 'final'];
-export const LIGHT_STAGES = new Set(['planning', 'draft', 'quality']);
+export const MODEL_STAGES = ['identity', 'planning', 'draft', 'review', 'quality', 'final'];
+export const LIGHT_STAGES = new Set(['planning', 'draft', 'review']);
 export const REASONING_EFFORTS = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
 
 const STEP_STAGE = {
   'story-identity': 'identity', 'pilot-contract': 'identity', worldbuild: 'identity',
   'cast-design': 'identity', 'entity-seed': 'identity', 'revise-foundation': 'identity',
-  'story-profile': 'planning', 'story-profile-check': 'planning', 'story-spine': 'planning',
+  'story-profile': 'planning', 'story-profile-check': 'review', 'story-spine': 'planning',
   'story-spine-quality': 'planning', 'writer-skill': 'planning', 'writer-skill-audition': 'planning',
   'arc-plan': 'planning', 'arc-quality': 'planning', 'next-arc-proposal': 'planning',
   'era-research': 'planning', 'episode-plan': 'planning', 'chapter-plan': 'planning',
   draft: 'draft', revise: 'draft', rewrite: 'draft', 'sentinel-repair': 'draft',
   'continuity-check': 'quality', 'continuity-extract': 'quality', 'continuity-extract-repair': 'quality',
-  'coherence-judge': 'quality', 'editorial-quality': 'quality', 'character-fidelity': 'quality',
-  'reader-hook': 'quality', 'pattern-ledger': 'quality', 'arc-review': 'quality',
+  'coherence-judge': 'review', 'editorial-quality': 'review', 'character-fidelity': 'review',
+  'reader-hook': 'review', 'arc-review': 'review', 'pattern-ledger': 'quality',
   'narrative-boundary': 'final', 'chapter-summary': 'final',
   'influence-observation-repair': 'final', 'influence-observation-repair-retry': 'final',
 };

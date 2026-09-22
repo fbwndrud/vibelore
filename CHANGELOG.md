@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.4 — 2026-09-22
+
+- Split the model-profile `quality` stage: `review` now covers the advisory
+  reviews (coherence, editorial, character, reader, arc, profile drift) and
+  `light` applies to it, while `quality` keeps delta extraction, the semantic
+  continuity check and the pattern ledger on the default model because their
+  answers become story state and future draft constraints.
+- Document batched round trips, the plan repair request, the host execution
+  note and the new stage in README, MODELS, TOOLS, MCP and ARCHITECTURE.
+
 ## 0.3.3 — 2026-09-22
 
 - Drop the engine chapter-plan host round trip from `lore_write`: the draft

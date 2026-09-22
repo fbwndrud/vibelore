@@ -312,8 +312,10 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 ```
 
 `modelProfile`은 선택 항목입니다. 키는 `default`, `light`, `identity`, `planning`, `draft`,
-`quality`, `final`이고 값은 모델 ID 문자열 또는 `{ provider, modelId, reasoningEffort }`입니다.
-단계별 명시값 > `light`(planning·draft·quality만) > `default` 순으로 결정하며, `reasoningEffort`만
+`review`, `quality`, `final`이고 값은 모델 ID 문자열 또는 `{ provider, modelId, reasoningEffort }`입니다.
+`review`는 advisory 검토(coherence·editorial·character·reader·arc·profile drift), `quality`는
+상태를 쓰는 추출·연속성 검사·pattern ledger입니다.
+단계별 명시값 > `light`(planning·draft·review만) > `default` 순으로 결정하며, `reasoningEffort`만
 있는 항목은 상속한 모델의 생각 수준만 바꿉니다. 결과는 `needs_model` 요청의 `stage`,
 `model`, `reasoningEffort` 힌트로 나타나고, 프로필은 workflow에 저장되어 `lore_resume`과
 `lore_decide`까지 유지됩니다. 비우면 이전과 동일하게 호스트 모델 하나로 진행합니다.
@@ -321,6 +323,12 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 선행조건은 승인된 StoryProfile, StorySpine, WriterSkill과 활성 ArcPlan입니다. `guided`는
 승인 대기, `auto`는 불변식 통과와 critic 정상 완료 뒤 자동 커밋입니다. semantic advisory만으로
 자동 재작성하지 않습니다.
+
+모델 요청은 의존 관계별로 묶입니다. 화별 계획(선택 모듈이 불완전하면 `episode-plan-repair`
+한 번) → 초고 → [상태 추출·프로필 검사·검토 5종] → [의미 연속성 검사·아크 검토] →
+[경계 판정·요약] 순서로, 한 `needs_model` 응답의 `requests`는 서로 독립이라 병렬로 답해도
+됩니다. 초고 프롬프트의 회차 기획은 승인된 EpisodePlan에서 오며 별도 engine chapter-plan
+요청은 없습니다.
 
 승인된 작품 약속·톤·서술 방향과 최대 두 개의 문체 예시가 실제 초고 요청에 들어갑니다.
 검토 실패나 불완전 응답은 `CRITIC_INCOMPLETE`와 함께 같은 원고를 승인 대기로 보존합니다.
@@ -519,8 +527,10 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 |---|---|
 | `runId` | `project`, `workId`, `answers` |
 
-`answers`는 `{ requestId: "모델 답변" }` 객체입니다. 저수준 소설 검사는 빈 객체로
-결정론 결과만 반환할 수 있지만, 웹툰의 미응답 요청은 빈 답변으로 완료되지 않고 대기합니다.
+`answers`는 `{ requestId: "모델 답변" }` 객체입니다. 한 응답에 담긴 여러 `requests`는 서로
+독립이므로 병렬로 만들어 한 번에 넘깁니다. 각 request의 `system` 끝에는 파일 읽기·도구
+없이 제공된 내용만으로 단일 응답을 만들라는 실행 조건이 붙어 있습니다. 저수준 소설 검사는
+빈 객체로 결정론 결과만 반환할 수 있지만, 웹툰의 미응답 요청은 빈 답변으로 완료되지 않고 대기합니다.
 
 ## 상태와 복구
 

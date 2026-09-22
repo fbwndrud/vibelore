@@ -356,8 +356,8 @@ const TOOLS = [
         autonomy: { type: 'string', enum: ['guided', 'auto'], description: 'guided=완성 원고 승인 후 커밋, auto=품질 통과 시 자동 커밋.' },
         modelProfile: {
           type: 'object', additionalProperties: false,
-          description: '단계별 모델 힌트. 비우면 호스트 기본 모델 하나로 진행한다. 값은 모델 ID 문자열 또는 { provider, modelId, reasoningEffort }. default=기준 모델, light=planning·draft·quality에 쓸 가벼운 모델, identity·planning·draft·quality·final=단계별 명시. 호스트 릴레이에서는 요청마다 힌트로 전달되고, 로컬 모델은 provider "local"일 때만 실제로 바뀐다.',
-          properties: Object.fromEntries(['default', 'light', 'identity', 'planning', 'draft', 'quality', 'final'].map((key) => [key, {
+          description: '단계별 모델 힌트. 비우면 호스트 기본 모델 하나로 진행한다. 값은 모델 ID 문자열 또는 { provider, modelId, reasoningEffort }. default=기준 모델, light=planning·draft·review에 쓸 가벼운 모델, identity·planning·draft·review·quality·final=단계별 명시. review=advisory 검토(coherence·editorial·character·reader·arc·profile drift), quality=상태를 쓰는 추출·연속성 검사·pattern ledger. 호스트 릴레이에서는 요청마다 힌트로 전달되고, 로컬 모델은 provider "local"일 때만 실제로 바뀐다.',
+          properties: Object.fromEntries(['default', 'light', 'identity', 'planning', 'draft', 'review', 'quality', 'final'].map((key) => [key, {
             anyOf: [
               { type: 'string', minLength: 1, maxLength: 120 },
               { type: 'object', additionalProperties: false, properties: {

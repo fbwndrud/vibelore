@@ -11,9 +11,24 @@ describe('model profile', () => {
     assert.equal(stageForStep('story-identity'), 'identity');
     assert.equal(stageForStep('episode-plan'), 'planning');
     assert.equal(stageForStep('draft'), 'draft');
-    assert.equal(stageForStep('reader-hook'), 'quality');
+    assert.equal(stageForStep('reader-hook'), 'review');
+    assert.equal(stageForStep('story-profile-check'), 'review');
+    assert.equal(stageForStep('continuity-extract'), 'quality');
+    assert.equal(stageForStep('pattern-ledger'), 'quality');
     assert.equal(stageForStep('chapter-summary'), 'final');
     assert.equal(stageForStep('something-new'), null);
+  });
+
+  it('light routes advisory reviews but never the steps that write story state', () => {
+    const profile = normalizeModelProfile({ default: 'strong', light: 'fast' });
+    assert.equal(resolveModel(profile, 'editorial-quality').modelId, 'fast');
+    assert.equal(resolveModel(profile, 'coherence-judge').stage, 'review');
+    assert.equal(resolveModel(profile, 'continuity-extract').modelId, 'strong');
+    assert.equal(resolveModel(profile, 'continuity-check').modelId, 'strong');
+    assert.equal(resolveModel(profile, 'pattern-ledger').modelId, 'strong');
+    const explicit = normalizeModelProfile({ default: 'strong', review: 'cheap', quality: 'careful' });
+    assert.equal(resolveModel(explicit, 'reader-hook').modelId, 'cheap');
+    assert.equal(resolveModel(explicit, 'continuity-extract').modelId, 'careful');
   });
 
   it('explicit stage > light > default, and reasoning effort layers on the inherited model', () => {
@@ -25,7 +40,8 @@ describe('model profile', () => {
     });
     assert.deepEqual(resolveModel(profile, 'story-identity'), { provider: 'host', modelId: 'strong', reasoningEffort: 'high', stage: 'identity' });
     assert.deepEqual(resolveModel(profile, 'draft'), { provider: 'host', modelId: 'fast', reasoningEffort: 'high', stage: 'draft' });
-    assert.deepEqual(resolveModel(profile, 'editorial-quality'), { provider: 'host', modelId: 'fast', reasoningEffort: 'low', stage: 'quality' });
+    assert.deepEqual(resolveModel(profile, 'editorial-quality'), { provider: 'host', modelId: 'fast', reasoningEffort: 'high', stage: 'review' });
+    assert.deepEqual(resolveModel(profile, 'continuity-check'), { provider: 'host', modelId: 'strong', reasoningEffort: 'low', stage: 'quality' });
     assert.deepEqual(resolveModel(profile, 'chapter-summary'), { provider: 'local', modelId: 'careful', reasoningEffort: 'high', stage: 'final' });
     assert.deepEqual(resolveModel(profile, 'unknown-step'), { provider: 'host', modelId: 'strong', reasoningEffort: 'high', stage: 'default' });
   });

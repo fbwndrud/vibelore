@@ -56,8 +56,14 @@ node /absolute/path/to/vibelore/src/server.js
 단계별 요청 모델을 기록할 수 있습니다. 값은 모델 ID 또는 `{ provider, modelId, reasoningEffort }`입니다.
 
 - `default`: 기준 모델
-- `light`: 계획·초고·검토 단계에 적용할 모델
-- `identity`, `planning`, `draft`, `quality`, `final`: 개별 단계 지정
+- `light`: 계획(`planning`)·초고(`draft`)·advisory 검토(`review`)에 적용할 가벼운 모델
+- `identity`, `planning`, `draft`, `review`, `quality`, `final`: 개별 단계 지정
+
+`review`는 coherence·편집·인물·독자 견인·아크·프로필 이탈 검토처럼 결과가 advisory로만
+남는 단계이고, `quality`는 상태 추출·의미 연속성 검사·pattern ledger처럼 답이 정본 상태나
+다음 화 제약으로 들어가는 단계입니다. `light`는 `review`에는 적용되지만 `quality`에는
+적용되지 않으므로, 가벼운 모델을 지정해도 확정 사실 추출은 기준 모델이 맡습니다.
+`quality`를 바꾸려면 명시적으로 지정하세요.
 
 명시한 단계 값 → 해당 단계의 `light` → `default` 순으로 모델을 선택합니다.
 이 값은 호스트에 전달되는 **힌트**이며 세션 모델을 강제로 전환하는 기능은 아닙니다.

@@ -130,7 +130,8 @@ describe('MCP surface', () => {
     }
     assert.equal(result.status, 'awaiting_approval', JSON.stringify(result));
     assert.deepEqual(seen.draft, { stage: 'draft', model: { provider: 'host', modelId: 'fast' }, reasoningEffort: 'high' });
-    assert.deepEqual(seen['editorial-quality'], { stage: 'quality', model: { provider: 'host', modelId: 'fast' }, reasoningEffort: 'low' });
+    assert.deepEqual(seen['editorial-quality'], { stage: 'review', model: { provider: 'host', modelId: 'fast' }, reasoningEffort: 'high' });
+    assert.deepEqual(seen['continuity-extract'], { stage: 'quality', model: { provider: 'host', modelId: 'strong' }, reasoningEffort: 'low' });
     const status = await invoke('lore_workflow_status');
     assert.deepEqual(status.modelProfile ?? (await store.loadWorkflow(qualityWorkId)).modelProfile, {
       default: { provider: 'host', modelId: 'strong', reasoningEffort: 'high' }, light: { provider: 'host', modelId: 'fast' }, quality: { reasoningEffort: 'low' },
@@ -539,4 +540,12 @@ it('bounds input frames and accepts the next request after an oversized frame', 
   const messages = stdout.trim().split('\n').map(JSON.parse);
   assert.equal(messages[0].error.code, -32600);
   assert.deepEqual(messages.at(-1), { jsonrpc: '2.0', id: 9, result: {} });
+});
+
+describe('lore_write model profile schema', () => {
+  it('accepts a review stage hint separately from the state-writing quality stage', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vibelore-mcp-profile-'));
+    const out = await session([init, call(2, 'lore_write', { project: dir, workId: 'tower', modelProfile: { review: 'fast', quality: 'careful' } })]);
+    assert.notEqual(out.get(2).result.isError, true, JSON.stringify(out.get(2).result).slice(0, 300));
+  });
 });
