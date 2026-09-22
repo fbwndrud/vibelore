@@ -1,0 +1,41 @@
+{
+  "name": "vibelore-plugin",
+  "version": "0.3.1",
+  "description": "Write consistent fiction and adapt existing novels into vertical webtoons with storyboards, lettering, and approvals through a local MCP server.",
+  "author": {
+    "name": "JoungKyoungLyoo",
+    "url": "https://github.com/fbwndrud"
+  },
+  "homepage": "https://github.com/fbwndrud/vibelore",
+  "repository": "https://github.com/fbwndrud/vibelore",
+  "keywords": [
+    "fiction",
+    "novel-writing",
+    "web-novel",
+    "webtoon",
+    "continuity",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Vibelore",
+    "shortDescription": "Write fiction and adapt novels into webtoons",
+    "longDescription": "Plan and write consistent fiction, then adapt existing novels into vertical webtoons through visual-direction interviews, editorial selection, user-approved rough storyboards, image requests, lettering, and separately approved SVG/HTML masters. Image generation requires a capable host.",
+    "developerName": "JoungKyoungLyoo",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/fbwndrud/vibelore",
+    "defaultPrompt": [
+      "새 웹소설의 방향을 인터뷰부터 함께 정해 줘.",
+      "현재 작품의 다음 화를 검토 가능한 방식으로 써 줘.",
+      "작품의 인물과 아크 일관성을 점검해 줘.",
+      "기존 소설을 세로형 웹툰으로 각색하고 싶어. 작화·문자·판면 선택부터 물어봐 줘."
+    ],
+    "brandColor": "#9F3A38"
+  }
+}

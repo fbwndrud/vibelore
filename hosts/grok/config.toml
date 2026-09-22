@@ -1,0 +1,9 @@
+# Grok CLI -- ~/.grok/config.toml (사용자 전역) 또는 .grok/config.toml (프로젝트)
+# 경로를 실제 설치 위치로 바꾸세요.
+#
+# CLI 로 추가해도 됩니다:
+#   grok mcp add vibelore -- node ABSOLUTE/PATH/TO/vibelore/src/server.js
+
+[mcp_servers.vibelore]
+command = "node"
+args = ["ABSOLUTE/PATH/TO/vibelore/src/server.js"]

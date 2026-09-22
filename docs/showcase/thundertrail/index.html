@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>길 위의 번개 · 세 모델 웹툰</title>
+<meta name="description" content="같은 설계 아래 Codex·Claude·Grok이 회차별로 이어 만든 소설과 장면 웹툰. 첫 결과와 검토 판정을 가감 없이 공개합니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./">길 위의 번개</a>
+  <span class="tag">VIBELORE · 세 모델 제작 예시</span>
+  <div class="grow eptabs" id="eptabs"></div>
+  <div class="seg" role="group" aria-label="보기 방식">
+    <button data-mode="webtoon">웹툰</button>
+    <button data-mode="both">나란히</button>
+    <button data-mode="novel">소설</button>
+  </div>
+  <a class="btn-gold" href="compare.html">모델 비교</a>
+</header>
+
+<section class="ephead">
+  <div class="lead">
+    <div class="kicker" id="kicker">EPISODE</div>
+    <h1 id="eptitle">…</h1>
+    <p id="eplead"></p>
+  </div>
+  <div class="chips">
+    <div class="chip"><span>소설</span><span id="chip-novel"></span></div>
+    <div class="chip"><span>웹툰 각색·연출</span><span id="chip-adapt"></span></div>
+    <div class="chip"><span>이미지</span><span id="chip-image"></span></div>
+    <div class="chip"><span>그림 검토</span><span id="chip-review"></span></div>
+  </div>
+</section>
+
+<main class="reader mode-both" id="reader">
+  <nav class="rail" id="rail" aria-label="장면"></nav>
+  <div class="toon-col" id="toon"></div>
+  <aside class="prose-col">
+    <div class="prose-tools">
+      <span id="prose-label">소설 원문</span>
+      <span class="sizes">글자 크기 <button data-size="s">가</button><button data-size="m">가</button><button data-size="l">가</button></span>
+    </div>
+    <div class="prose" id="prose"></div>
+  </aside>
+</main>
+
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="sh"><span id="sheet-label">원문 보기</span><button id="sheet-toggle">위로 펼치기</button></div>
+  <div class="body" id="sheet-body"></div>
+  <div class="mtools"><button data-mode="webtoon">웹툰</button><button data-mode="novel">소설</button><a class="btn-gold" href="compare.html" style="flex:1;height:30px;justify-content:center;font-size:12px">모델 비교</a></div>
+</div>
+
+<dialog class="modal" id="modal">
+  <div class="modal-head"><b id="modal-title"></b><button id="modal-close">닫기</button></div>
+  <div class="modal-body" id="modal-body"></div>
+</dialog>
+
+<footer class="site">
+  소설·각색·연출은 회차마다 다른 호스트가, 이미지는 세 회차 모두 같은 OpenAI 이미지 모델이 만들었습니다. 동일 입력 성능 실험이 아니라 같은 설계 아래 이어 쓴 제작 예시입니다.<br>
+  이미지 검토는 오케스트레이션 호스트의 자기검토이며 독립 평가가 아닙니다. 판정이 “수정 필요”여도 재생성 없이 첫 결과를 그대로 실었습니다.<br>
+  빌드 <span id="built"></span> · 데이터 <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
+</footer>
+<script src="app.js?v=3"></script>
+</body>
+</html>

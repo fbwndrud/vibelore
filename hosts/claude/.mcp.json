@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "vibelore": {
+      "command": "node",
+      "args": ["ABSOLUTE/PATH/TO/vibelore/src/server.js"]
+    }
+  }
+}

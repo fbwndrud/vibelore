@@ -1,0 +1,18 @@
+vibelore
+Copyright 2026 JoungKyoungLyoo and vibelore contributors
+
+Licensed under the Apache License, Version 2.0. See LICENSE. This notice
+does not grant rights to third-party material or override its existing terms.
+
+This distribution contains vibelore source, documentation, and regression fixtures.
+Private manuscripts and development archives are excluded from the source tree.
+
+Node.js, MCP hosts, and optional model servers are separate products with their
+own terms. This distribution does not include their binaries or libraries.
+
+The bundled src/assets/fonts/GowunDodum-Regular.ttf is an unmodified font:
+Copyright 2021 The Gowun Dodum Project Authors
+(https://github.com/yangheeryu/Gowun-Dodum).
+It is licensed under the SIL Open Font License, Version 1.1, not Apache-2.0.
+See src/assets/fonts/OFL.txt and src/assets/fonts/README.md for the license,
+source and integrity record. Retain these files when redistributing the font.

@@ -1,0 +1,7 @@
+interface:
+  display_name: "웹툰 발견 인터뷰"
+  short_description: "원작의 각색 범위와 그림·연출 취향을 정하고 웹툰 콘티로 이어갑니다"
+  default_prompt: "$webtoon-discovery-interview로 이 소설의 웹툰 방향을 정하고 각색 계획을 만들어 줘."
+
+policy:
+  allow_implicit_invocation: true

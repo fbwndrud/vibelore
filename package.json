@@ -1,0 +1,55 @@
+{
+  "name": "vibelore-plugin",
+  "version": "0.3.1",
+  "private": true,
+  "type": "module",
+  "description": "Local novel-writing and webtoon-adaptation plugin with continuity checks, storyboards, lettering, and approval workflows.",
+  "files": [
+    ".codex-plugin/",
+    ".mcp.json",
+    "skills/",
+    "src/",
+    "engine/src/",
+    "README.md",
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "examples/work.gitignore",
+    "HOSTS.md",
+    "docs/README.md",
+    "docs/PHILOSOPHY.md",
+    "docs/GETTING_STARTED.md",
+    "docs/MODELS.md",
+    "docs/MCP.md",
+    "docs/TOOLS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/OPERATIONS.md",
+    "docs/WEBTOON.md",
+    "docs/TROUBLESHOOTING.md",
+    "docs/reference/WEBTOON_WORKFLOW.md",
+    "hosts/",
+    "engine/package.json",
+    "LICENSE",
+    "NOTICE",
+    "SECURITY.md",
+    "docs/release-review.json"
+  ],
+  "bin": {
+    "vibelore-mcp": "./src/server.js"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "test:engine": "cd engine && node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\"",
+    "test:all": "npm run test:engine && npm test",
+    "check:source": "node scripts/check-source.js",
+    "check:release": "node scripts/check-release.js"
+  },
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fbwndrud/vibelore.git"
+  }
+}

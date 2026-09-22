@@ -1,0 +1,7 @@
+interface:
+  display_name: "작품 발견 인터뷰"
+  short_description: "새 작품의 취향과 독서 계약을 대화로 구체화합니다"
+  default_prompt: "$story-discovery-interview로 새 작품의 방향을 먼저 구체화해 줘."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,12 @@
+# Keep this as .gitignore in a manuscript repo. Canonical Markdown stays tracked.
+.vibelore/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.claude/
+.codex/
+.grok/
+.DS_Store
+node_modules/
