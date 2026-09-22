@@ -1,7 +1,7 @@
 {
 "work": "길 위의 번개",
 "run": "scene-20260921",
-"builtAt": "2026-09-22T17:20:06+00:00",
+"builtAt": "2026-09-22T17:36:16+00:00",
 "imageModel": "gpt-image-2.5-sunburst",
 "reviewer": {
 "host": "claude-code",
@@ -20,7 +20,7 @@
 "new": "Locations follow only the selected source units: a rock passage blocked by rusted chains, and a side ledge or a mountain outpost only when the excerpt itself reaches them; never advance time of day or place beyond the excerpt; keep light and terrain coherent within the scene.",
 "appliesFrom": "s4"
 },
-"costsNote": "각색 CLI(plan/preflight) 비용 + 이미지 API 비용(OpenAI usage API 조회, openai-usage-20260921.json). Codex 각색은 대시보드 확인 결과 청구 $0, 정가 환산 병기. 4화(scene-20260922) 각색은 Grok CLI 보고값, 이미지는 usage API 미조회로 참조 이미지 수 기준 정가 환산(장당 참조 1536 토큰·출력 1372 토큰·텍스트 약 800 토큰).",
+"costsNote": "각색 CLI(plan/preflight) 비용 + 이미지 API 비용(OpenAI usage API 조회, openai-usage-20260921.json). Codex 각색은 대시보드 확인 결과 청구 $0, 정가 환산 병기. 4화(scene-20260922) 각색은 Grok CLI 보고값, 이미지는 OpenAI usage API 집계(openai-usage-20260922.json).",
 "pricingSource": "https://developers.openai.com/api/docs/pricing (2026-09-22 열람) gpt-6-astra short context: input $10/M, cached $1/M, cache write $12.5/M, output $50/M; gpt-image-2.5-sunburst: image input $8/M, text input $5/M, image output $30/M",
 "episodes": [
 {
@@ -12128,8 +12128,8 @@
 "webtoonUsd": 2.23,
 "webtoonUsdLow": 2.23,
 "estimated": false,
-"imageUsd": 0.93,
-"imageEstimated": true,
+"imageUsd": 0.92,
+"imageEstimated": false,
 "costsApiUsd": null
 },
 "note": "소설·아크 2 설계·각색 모두 grok-4.7. 각색은 s1 계획·검증만 reasoning high(계획 ~7분·검증 ~8분), s2부터 medium으로 전환. s1 direction의 일정 문구가 사전 검증을 차단해 발췌 중립 문구로 교체 후 새 워크플로로 시작. 배경 참조 2장 중 1장(ref-outpost)은 3화 참조 재사용, 1장(ref-rear-bend)은 이 run에서 새로 생성(generate, medium).",
@@ -12758,7 +12758,7 @@
 "imageCalls": 1,
 "preflightRevisions": 1
 },
-"imageUsd": 0.1312,
+"imageUsd": 0.1311,
 "plan": {
 "intent": "At the damp mountain outpost, Doyun will not touch the sack knot. He checks the empty ring at his waist, then limits the pull to a single loop. The sack corner recovers while the cord stays taut and the cloth holds. Nothing is thrown. He then turns the leather piece's forked arrow toward the entrance stone.",
 "staging": "The knot is on the cord around the sack. The empty ring is on Doyun's waist. The entrance stone is the entrance stone named in ch-4-p-15. Distances among Ria, Doyun, Maren, the sack, and the stone stay free, and he aims from where he already stands. Daylight stays as it is. panelCount 10. beat-to-ring is the first instant and beat-return the second, so the glance finishes before any speech. beat-notice is the next instant and the only carrier of text-habit. beat-stop is the next instant, with no lettering. beat-swell and beat-hold share the next instant, with no lettering and with Doyun's hand off the knot. beat-limit is the next instant and the only carrier of text-oneloop. beat-throw is the next instant and the only carrier of text-throw. beat-press, beat-release, and beat-aim are the last three instants in that order, each with no lettering. The ring stays empty. No rope, throw, spill, or tally appears. The artist chooses framing, panel shapes, and vertical reading order.",
@@ -13209,7 +13209,7 @@
 "imageCalls": 1,
 "preflightRevisions": 1
 },
-"imageUsd": 0.1312,
+"imageUsd": 0.1308,
 "plan": {
 "intent": "In the damp outpost yard, Ria sees a fresh horn gouge on the first supply cart and keeps the count unspoken. More carts close the yard while the drivers watch only the ledger table. Bori comes out of the bag, aims along the road on the side where a chain had been, and cries a second time with the tail curled to the neck. Ria does not carry that cry to the table; she holds Bori to a dry spot, and both ears stay out toward that road.",
 "staging": "Daylight in the damp outpost yard. The chain-side road is the road the first cart came up; no chain is present, and that road was left open only at the bottom. The first cart's side board can face the sun while the cart fills the yard entrance. The second cart is behind it, and the third reaches the eaves shade. Overlapping cargo-cover shadows hide the empty yard stone without moving it. The ledger table is where the drivers look, and one rein hand aims toward it. The bag is with Ria. From there, Bori's nose only needs the direction of that road, and one short forepaw can meet her sleeve. The tail tip can curl to Bori's own neck. The dry spot is wherever the back of Ria's hand presses Bori; both ears can stay outside the cover. The led animal stamping and shaking a feed pouch belongs to the same jammed yard, not another picture. Sweat, wet-sack smell, and the stopped rear wind are conditions of that jam, not further pictures. The bag shake is already finished before Bori is ears first. Distances among Ria, the bag, the table, the stone, and the carts stay open. These are ordered events, not frames: the artist chooses shapes, framing, and vertical reading, and may share a frame only when the later event is still visibly after the earlier one.",
@@ -13649,7 +13649,7 @@
 "imageCalls": 1,
 "preflightRevisions": 0
 },
-"imageUsd": 0.1312,
+"imageUsd": 0.1309,
 "plan": {
 "intent": "In the crowded outpost yard the blank east cell is the passage line a waiting cart needs. Over the open ledger, that line lets the cart load and leave on the next road; written as empty, the waiting cargo loads too; written as traces, the cart stays held in the yard. The third cart's wheel creaks where it is caught on a stone, the sun has passed the eaves onto the covers, and the line blocked since dawn stands overlapped, watching only that cell, while another low rolling comes on the chain-side road behind and a cart still without the line already has no place to spend the night. Outside the table, Doyun kneels in the one patch of outside light and tests the short line of a leather scrap against the worn crack; the arrow's bent angle is similar, the short line still fails to overlap, and he traces the groove and lifts the scrap. At the table Ria takes the pen in her right hand, the wrist folds, the shaft rolls, the pen passes to her left hand, and the right hand goes into the sleeve. The side board's damp inner wood is four branches against the white cell. Four reaches her tongue and withdraws before the height of the waiting pile; the place that turned back, Bori's cry, the wrist that will not straighten, and the name of the hand that carved the mark come apart there, and the name is swallowed. Maren, a sack fixed with her knee, looks at the table and tells Ria the carts are watching only that cell.",
 "staging": "Daylight in the damp outpost yard. The ledger is on the table, turned by the person behind it so the empty east cell shows below the entered medicine line, with a fingernail at that cell's corner. Letter the passage rule as that person's speech and keep that person distinct from Ria, Doyun, Bori, and Maren. Ria is at the table with the pen, right hand then left hand, right hand inside the sleeve, and the side-board flaw is visible again from there; its damp inner wood reads as four branches, matching the gouge already on the supply cart in the yard. The ledger cell stays white. The waiting pile has a height before her. The third cart is in the same yard with a wheel caught on a stone. The overlapped procession looks toward that cell. Sun is past the eaves on the cover. Doyun is outside the table, kneeling at the rear entrance stone with the leather scrap against the crack, and only that kneeling place has the outside light. Maren is by the table with a sack fixed under her knee, looking at the table. A low rolling sound is on the chain-side road behind. Distances among table, carts, rear stone, side board, and pile stay open. These are ordered events: a later event can share a frame when it remains visibly later. The artist chooses shapes, framing, and vertical reading.",
@@ -14038,7 +14038,7 @@
 "imageCalls": 1,
 "preflightRevisions": 0
 },
-"imageUsd": 0.1312,
+"imageUsd": 0.1309,
 "plan": {
 "intent": "Ria takes the blank cell in front of Maren while the waiting sacks still sit beside the first cart. A heavy line would leave that pile in the yard, and a light line would send it up to the bend before confirmation, and in one glance she holds the pile, a piece that still fails to match, and an ear outside a cover. Before the pen tip touches, Bori cries again toward the chain side. Ria enters a single slanted left-hand line that calls the rear bend old in its traces and empty today, and she leaves both the count and that cry out of it. The person behind the table reads the line back, copies it onto a slip for her, chalks the pile, and sends the extra cargo to the receiving place in front of the sword that signed in the morning.",
 "staging": "Daylight in the damp outpost yard, at the same table where the ledger cell is written. Ria is at the table, pen in the left hand, right hand remaining in the sleeve. Maren is near enough to be addressed. The waiting sacks are piled beside the first cart and remain outside every cargo compartment. From Ria's glance the pile, a still-misaligned piece, and an ear outside a cover can be seen together; distances among table, pile, piece, and cover stay open. Bori's cry is aimed toward the chain side before the pen tip meets the page. The person behind the table is distinct from Ria, Doyun, Bori, and Maren, and stays behind the table while reading the finished slanted line, copying that same sentence onto a slip, offering the slip to Ria, and chalking the waiting pile. The extra-cargo receiving place is the spot in front of the sword that signed in the morning; where that sword stands relative to the table is unspecified. The pile remains in the yard through these actions. The artist chooses framing and the vertical reading order. A later event may share a frame when it stays visibly later.",
@@ -14424,7 +14424,7 @@
 "imageCalls": 1,
 "preflightRevisions": 0
 },
-"imageUsd": 0.1312,
+"imageUsd": 0.1309,
 "plan": {
 "intent": "Ria follows a light slip behind one sack as it crosses the yard. Maren takes a single step after it and stops, folding a gloved hand, with one flour and a borrowed cord left at her feet, and lets the cart take the cargo. The sack is set in the dust at Doyun's feet beside the entrance stone, the piece still held to the stone and the short line still misaligned, and he tells the cart side that it is not yet. The person of the front cart looks only toward the ledger and declares that this line leaves now, a cell waited for since dawn. The extra sack goes up into that cart, the two people who had been sitting on the cargo are pushed down to the footboard and left in the yard, and the cart rolls on toward the rear entrance.",
 "staging": "Daylight in the damp outpost yard. Ria walks behind the sack with the light slip in her hand while the sack crosses the yard ahead of her. Maren is on the yard ground, one step forward and then her gloved hand folded, with one flour and a borrowed cord at her feet. An unnamed bearer, distinct from Ria, Maren, and Doyun, carries the sack past the speech and sets it down at Doyun's feet beside the entrance stone. Dust lands on the boots at that spot. The piece remains on the entrance stone where Doyun has failed to detach it. Doyun's look then goes toward the cart. The front cart's person looks only toward the ledger. After that declaration, the extra sack is up in that front cart's cargo compartment and the compartment is higher. Two unnamed people who had been sitting on the cargo are on the footboard, then one is beside the wheel and walking down, the other is outside the reins, and the sack occupies the place they left. Those who stepped down stay in the yard as the cart rolls toward the rear entrance. Distances among the ledger, the entrance stone, and the cart stay open. The artist chooses framing and the vertical reading order. A later event may share a frame when it stays visibly later.",
@@ -14888,7 +14888,7 @@
 "imageCalls": 1,
 "preflightRevisions": 1
 },
-"imageUsd": 0.1312,
+"imageUsd": 0.1324,
 "plan": {
 "intent": "Doyun's hand finds an empty ring, then closes on the slip Ria offers and crumples it once her line shows beside the name he wrote that morning. The cart crosses the marker stone, hides the gap he is checking, and passes into the entrance shade with one fading brush. He speaks her name and leaves the carved hand's name unasked, while her empty hand, folded wrist, Bori's soft cry, and drying ink stay in the yard, and he watches only the cart that entered first.",
 "staging": "Damp daylight in the outpost yard, with sunlight on the cart side panel before that panel enters the shade beyond the entrance. Doyun and Ria are in the yard: his waist carries an empty ring, she offers the slip, then her left hand is empty while the slip is crumpled in his fist. The marker stone and the entrance stay separate. A wheel meets the marker stone while he holds the lifted piece and the side panel stands between the viewer and the interval from the stone's mark to the short line on the leather. The horn mark is on that side panel. The bend is inside the entrance after one turn, and the single wall-brush belongs there, masked by the cargo bed and outside the yard view that can see the misaligned piece and the passing side panel. The cart that entered first is already pushing that shade with its front wheel across an unnamed threshold. The extra sack stays in the cargo bed with its corner contact unresolved. Bori faces the chain side. Ria's right wrist remains folded in the sleeve. A table holds a light sentence whose ink is drying. The chain, the table, the ledger, and the carved hand have no fixed positions. The artist chooses framing and the vertical reading order. A later event may share a frame when it stays visibly later.",
