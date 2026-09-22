@@ -58,6 +58,31 @@ describe('episode plan contracts are validated before drafting', () => {
     assert.equal(await store.loadEpisodePlan(workId, 2), null);
   });
 
+  it('requests a repair when the accepted plan overflows the writer packet budget', async () => {
+    const store = await qualityStore();
+    const requests = [];
+    const long = (label) => `${label} `.repeat(120).trim();
+    const bloated = { ...basePlan, readerBridge: long('다리'), closingState: long('결말'), scenes: basePlan.scenes.map((scene) => ({ ...scene, situation: long('상황'), choice: long('선택'), change: long('변화') })) };
+    const providers = sequenceProvider({ 'episode-plan': [JSON.stringify(bloated)], 'episode-plan-repair': [JSON.stringify(basePlan)] }, requests);
+    const result = await runEpisodePlan({ store, workId, chapter: 2, mode: 'auto', providers });
+    const repair = requests.find((req) => req.step === 'episode-plan-repair');
+    assert.ok(repair, 'repair request issued');
+    const repairText = repair.messages.map((m) => m.content).join('\n');
+    assert.match(repairText, /EPISODE_PACKET_OVERFLOW/);
+    assert.match(repairText, /requiredTokens/);
+    assert.equal(result.plan.status, 'active');
+    assert.equal(result.plan.closingState, '문이 열린다');
+  });
+
+  it('fails at planning time when the repaired plan still overflows the packet budget', async () => {
+    const store = await qualityStore();
+    const long = (label) => `${label} `.repeat(120).trim();
+    const bloated = { ...basePlan, readerBridge: long('다리'), closingState: long('결말'), scenes: basePlan.scenes.map((scene) => ({ ...scene, situation: long('상황'), choice: long('선택'), change: long('변화') })) };
+    const providers = sequenceProvider({ 'episode-plan': [JSON.stringify(bloated)], 'episode-plan-repair': [JSON.stringify(bloated)] });
+    await assert.rejects(runEpisodePlan({ store, workId, chapter: 2, mode: 'auto', providers }), /EPISODE_PACKET_OVERFLOW/);
+    assert.equal(await store.loadEpisodePlan(workId, 2), null);
+  });
+
   it('does not request a repair when optional modules are complete or absent', async () => {
     const store = await qualityStore();
     const requests = [];

@@ -121,6 +121,14 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
     mergedFields.push({ field: 'exitValue.specificFutureValue', mergedInto: 'payoff.promisePaid' });
     renderedExitState = '위 지급 결과가 종료 상태로 확정됨';
   }
+  // A plan that answers "what state do we exit in" with the next question
+  // verbatim would print the same sentence twice and spend packet budget on it.
+  const exitLine = renderedExitState && renderedExitState === obligations.exit.nextQuestion
+    ? (mergedFields.push({ field: 'exitValue.specificFutureValue', mergedInto: 'exitValue.nextQuestion' }), renderedExitState)
+    : `${renderedExitState} / ${obligations.exit.nextQuestion}`;
+  // Residue from the previous chapter that names the same beat this episode
+  // carries is already covered by the "이번 화 변화" line.
+  const carriedResidue = arcResidue.filter((item) => !obligations.characterChanges.some((change) => change.characterId === item.characterId && change.beat === item.beat));
   const protectedTruths = [
     ...(obligations.knowledgeGuards.withhold.length
       ? obligations.knowledgeGuards.withhold.map((item) => `아직 숨김: ${item}`)
@@ -132,7 +140,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
       .filter((item) => foreground.has(item.characterId))
       .map((item) => `${characterNames[item.characterId] ?? item.characterId}: 이번 화 변화=${item.beat}${item.note ? ` — ${item.note}` : ''}`),
     ...relationshipResidue.map((item) => `${characterNames[item.to] ?? item.to}: ${item.kind} — ${item.state}`),
-    ...arcResidue.map((item) => `${characterNames[item.characterId] ?? item.characterId}: ${item.beat}${item.note ? ` — ${item.note}` : ''}`),
+    ...carriedResidue.map((item) => `${characterNames[item.characterId] ?? item.characterId}: ${item.beat}${item.note ? ` — ${item.note}` : ''}`),
   ];
   const discoverySpace = [
     '장면 순서와 해결 장소',
@@ -161,7 +169,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
     goods.length >= 2 ? `- 실제 선택 압박: ${goods[0]} / ${goods[1]}` : '',
     `- 지급할 결과: ${obligations.payoff.promise}`,
     obligations.cost.immediate || obligations.cost.deferred ? `- 남는 비용: ${obligations.cost.immediate || obligations.cost.deferred}` : '',
-    `- 마지막 상태와 다음 질문: ${renderedExitState} / ${obligations.exit.nextQuestion}`,
+    `- 마지막 상태와 다음 질문: ${exitLine}`,
     ...(characterCarry.length ? ['', '## Character Carry', ...characterCarry.map((item) => `- ${item}`), '- 이전 관계를 설명하지 말고 현재 말투·거리·망설임 중 필요한 한 곳에만 반영한다.'] : []),
     ...(protectedTruths.length ? ['', '## Protected Truths', ...protectedTruths.map((item) => `- ${item}`)] : []),
     ...(obligations.voiceTargets.length ? [

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.6 — 2026-09-22
+
+- Check the writer packet budget when an episode plan is accepted: a plan
+  that would overflow the 1400-token packet gets one `episode-plan-repair`
+  request asking for shorter sentences, and a repaired plan that still
+  overflows fails at planning time instead of after the plan is saved.
+- Stop spending packet budget on duplicates: an exit state that repeats the
+  next question is rendered once, and a previous-chapter arc residue that
+  names the beat this episode already carries is dropped from Character Carry.
+
 ## 0.3.5 — 2026-09-22
 
 - Rewrite README around what a writer sees: hero with showcase panels,

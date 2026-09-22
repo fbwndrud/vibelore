@@ -6,12 +6,14 @@ import { advanceWorkingTreeFingerprint } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { MCP_CONTRACT_VERSION, runtimeVersion } from '../core/runtime-version.js';
 import { validatePlanningContracts } from '../../engine/src/core/narrative-planning.js';
+import { compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
   ? value.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim()).slice(0, max)
   : [];
 const text = (value, max = 1000) => String(value ?? '').trim().slice(0, max);
+const WRITER_PACKET_MAX_TOKENS = 1400;
 const scalarText = (value) => typeof value === 'string' || typeof value === 'number' ? value : '';
 
 function parse(raw) {
@@ -220,73 +222,110 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       throw new Error(`EPISODE_PLAN_CONTRACT_INVALID: ${accepted.failure.error.code} ${accepted.failure.error.message} ${JSON.stringify(accepted.failure.error.details ?? {})}`);
     }
   }
-  const obj = accepted.parsed;
-  const planningContracts = accepted.contracts;
-  const onboardingCutoff = Math.max(2, Math.ceil(Number(arcPlan.estimatedEpisodes ?? arcPlan.episodes?.length ?? 3) / 3));
-  const requiresOnboarding = (storyProfile?.readabilityContract?.complexityRamp ?? 'onboarding-first') === 'onboarding-first'
-    && Number(arcPlan.arcNumber) === 1
-    && Number(arcBeat.index) <= onboardingCutoff;
-  const readerLoadPhase = requiresOnboarding || arcBeat.readerLoad?.phase === 'onboarding'
-    ? 'onboarding'
-    : ['onboarding', 'expansion', 'focus'].includes(obj.readerLoad?.phase)
-      ? obj.readerLoad.phase
-      : arcBeat.readerLoad?.phase ?? 'expansion';
-  const limits = readabilityLimits(storyProfile, readerLoadPhase);
-  const requestedForeground = strings(obj.foregroundCharacters, limits.foregroundLimit);
-  const cast = strings(obj.cast);
-  const foregroundCharacters = requestedForeground.length
-    ? requestedForeground
-    : [...new Set([obj.povCharacter, ...cast].filter(Boolean))].slice(0, limits.foregroundLimit);
-  const immediateGoal = text(obj.immediateGoal || obj.entryState?.protagonistImmediateWant || obj.premise);
-  const obstacle = text(obj.obstacle || obj.scenePressure?.withheldByOther || obj.scenes[0]?.situation);
-  const choice = text(obj.choice || obj.turn?.causedByChoice || obj.scenes.find((scene) => scene.choice)?.choice);
-  const outcome = text(obj.outcome || obj.closingState || obj.payoff?.promisePaid || scalarText(obj.payoff));
-  const nextQuestion = text(obj.nextQuestion || obj.exitValue?.nextQuestion || arcBeat.exitValue || arcBeat.hook || outcome);
-  const requestedConcepts = Array.isArray(obj.readerLoad?.newConcepts)
-    ? obj.readerLoad.newConcepts
-    : [arcBeat.readerLoad?.newConcept].filter(Boolean);
-  const plan = {
-    workId, episodePlanSchemaVersion: 2, contractVersion: MCP_CONTRACT_VERSION,
-    chapter, arcNumber: arcPlan.arcNumber, arcEpisodeIndex: arcBeat.index,
-    arcBeat: {
-      title: arcBeat.title, goal: arcBeat.goal, conflict: arcBeat.conflict,
-      growth: arcBeat.growth, cost: arcBeat.cost,
-      hook: arcBeat.hook || arcBeat.exitValue,
-      exitValue: arcBeat.exitValue, readerLoad: arcBeat.readerLoad,
-    },
-    title: text(obj.title || arcBeat.title, 200), premise: text(obj.premise), readerBridge: text(obj.readerBridge, 500),
-    povCharacter: typeof obj.povCharacter === 'string' ? obj.povCharacter : null,
-    cast, foregroundCharacters, locations: strings(obj.locations), openingState: text(obj.openingState), closingState: text(obj.closingState || outcome),
-    readerLoad: {
-      phase: readerLoadPhase,
-      newConcepts: strings(requestedConcepts, limits.conceptLimit),
-      complexityReason: text(obj.readerLoad?.complexityReason || arcBeat.readerLoad?.complexityReason, 300),
-    },
-    entryState: { activeQuestion: text(obj.entryState?.activeQuestion || obj.premise), protagonistImmediateWant: immediateGoal, tickingLoss: text(obj.entryState?.tickingLoss) },
-    readerExpectation: { likelyOutcome: text(obj.readerExpectation?.likelyOutcome), evidenceOnPage: strings(obj.readerExpectation?.evidenceOnPage, 8), confidenceTarget: text(obj.readerExpectation?.confidenceTarget, 20) },
-    scenePressure: { choiceOwner: text(obj.scenePressure?.choiceOwner || obj.povCharacter, 120), incompatibleGoods: strings(obj.scenePressure?.incompatibleGoods, 4), withheldByOther: obstacle, decisionDeadline: text(obj.scenePressure?.decisionDeadline) },
-    payoff: { promisePaid: text(obj.payoff?.promisePaid || scalarText(obj.payoff) || outcome), proofOnPage: text(obj.payoff?.proofOnPage || outcome), notJustReported: obj.payoff?.notJustReported !== false },
-    turn: { brokenBelief: text(obj.turn?.brokenBelief), causedByChoice: choice, priorClueReinterpreted: text(obj.turn?.priorClueReinterpreted) },
-    costCreatedByResolution: { immediate: text(obj.costCreatedByResolution?.immediate), deferred: text(obj.costCreatedByResolution?.deferred), beneficiary: text(obj.costCreatedByResolution?.beneficiary), payer: text(obj.costCreatedByResolution?.payer) },
-    exitValue: {
-      closedQuestion: text(obj.exitValue?.closedQuestion),
-      nextQuestion,
-      hookType: text(obj.exitValue?.hookType || 'result', 40),
-      specificFutureValue: text(obj.exitValue?.specificFutureValue || nextQuestion),
-    },
-    metricDramaturgy: Object.fromEntries(Object.entries(obj.metricDramaturgy && typeof obj.metricDramaturgy === 'object' ? obj.metricDramaturgy : {}).map(([key, value]) => [key, text(value, 500)])),
-    scenes: obj.scenes.map(normalizeScene), reveals: strings(obj.reveals), withheld: strings(obj.withheld),
-    episodeVoiceTargets: (Array.isArray(obj.episodeVoiceTargets) ? obj.episodeVoiceTargets : []).map(normalizeVoiceTarget)
-      .filter((item) => foregroundCharacters.includes(item.characterId) && (item.sampleLine || item.speakingPressure)).slice(0, limits.foregroundLimit),
-    ...planningContracts, planningContractVersion: 2,
-    tension: { ticking: text(obj.tension?.ticking, 500), stake: text(obj.tension?.stake, 500), escalation: text(obj.tension?.escalation, 500) },
-    powerChanges: strings(obj.powerChanges), artifacts: strings(obj.artifacts), absurdity: text(obj.absurdity),
-    characterArcBeats: characterArcBeatsForEpisode(arcPlan, arcBeat.index),
-    ...(pilotContract ? { pilotContract } : {}),
-    hooksTouched: strings(obj.hooksTouched), carryForward: strings(obj.carryForward),
-    status: mode === 'review' ? 'pending' : 'active', revision: Number(prior?.revision ?? 0) + 1,
-    createdAt: new Date().toISOString(),
+  const buildPlan = (acceptedPlan) => {
+    const obj = acceptedPlan.parsed;
+    const planningContracts = acceptedPlan.contracts;
+    const onboardingCutoff = Math.max(2, Math.ceil(Number(arcPlan.estimatedEpisodes ?? arcPlan.episodes?.length ?? 3) / 3));
+    const requiresOnboarding = (storyProfile?.readabilityContract?.complexityRamp ?? 'onboarding-first') === 'onboarding-first'
+      && Number(arcPlan.arcNumber) === 1
+      && Number(arcBeat.index) <= onboardingCutoff;
+    const readerLoadPhase = requiresOnboarding || arcBeat.readerLoad?.phase === 'onboarding'
+      ? 'onboarding'
+      : ['onboarding', 'expansion', 'focus'].includes(obj.readerLoad?.phase)
+        ? obj.readerLoad.phase
+        : arcBeat.readerLoad?.phase ?? 'expansion';
+    const limits = readabilityLimits(storyProfile, readerLoadPhase);
+    const requestedForeground = strings(obj.foregroundCharacters, limits.foregroundLimit);
+    const cast = strings(obj.cast);
+    const foregroundCharacters = requestedForeground.length
+      ? requestedForeground
+      : [...new Set([obj.povCharacter, ...cast].filter(Boolean))].slice(0, limits.foregroundLimit);
+    const immediateGoal = text(obj.immediateGoal || obj.entryState?.protagonistImmediateWant || obj.premise);
+    const obstacle = text(obj.obstacle || obj.scenePressure?.withheldByOther || obj.scenes[0]?.situation);
+    const choice = text(obj.choice || obj.turn?.causedByChoice || obj.scenes.find((scene) => scene.choice)?.choice);
+    const outcome = text(obj.outcome || obj.closingState || obj.payoff?.promisePaid || scalarText(obj.payoff));
+    const nextQuestion = text(obj.nextQuestion || obj.exitValue?.nextQuestion || arcBeat.exitValue || arcBeat.hook || outcome);
+    const requestedConcepts = Array.isArray(obj.readerLoad?.newConcepts)
+      ? obj.readerLoad.newConcepts
+      : [arcBeat.readerLoad?.newConcept].filter(Boolean);
+    const plan = {
+      workId, episodePlanSchemaVersion: 2, contractVersion: MCP_CONTRACT_VERSION,
+      chapter, arcNumber: arcPlan.arcNumber, arcEpisodeIndex: arcBeat.index,
+      arcBeat: {
+        title: arcBeat.title, goal: arcBeat.goal, conflict: arcBeat.conflict,
+        growth: arcBeat.growth, cost: arcBeat.cost,
+        hook: arcBeat.hook || arcBeat.exitValue,
+        exitValue: arcBeat.exitValue, readerLoad: arcBeat.readerLoad,
+      },
+      title: text(obj.title || arcBeat.title, 200), premise: text(obj.premise), readerBridge: text(obj.readerBridge, 500),
+      povCharacter: typeof obj.povCharacter === 'string' ? obj.povCharacter : null,
+      cast, foregroundCharacters, locations: strings(obj.locations), openingState: text(obj.openingState), closingState: text(obj.closingState || outcome),
+      readerLoad: {
+        phase: readerLoadPhase,
+        newConcepts: strings(requestedConcepts, limits.conceptLimit),
+        complexityReason: text(obj.readerLoad?.complexityReason || arcBeat.readerLoad?.complexityReason, 300),
+      },
+      entryState: { activeQuestion: text(obj.entryState?.activeQuestion || obj.premise), protagonistImmediateWant: immediateGoal, tickingLoss: text(obj.entryState?.tickingLoss) },
+      readerExpectation: { likelyOutcome: text(obj.readerExpectation?.likelyOutcome), evidenceOnPage: strings(obj.readerExpectation?.evidenceOnPage, 8), confidenceTarget: text(obj.readerExpectation?.confidenceTarget, 20) },
+      scenePressure: { choiceOwner: text(obj.scenePressure?.choiceOwner || obj.povCharacter, 120), incompatibleGoods: strings(obj.scenePressure?.incompatibleGoods, 4), withheldByOther: obstacle, decisionDeadline: text(obj.scenePressure?.decisionDeadline) },
+      payoff: { promisePaid: text(obj.payoff?.promisePaid || scalarText(obj.payoff) || outcome), proofOnPage: text(obj.payoff?.proofOnPage || outcome), notJustReported: obj.payoff?.notJustReported !== false },
+      turn: { brokenBelief: text(obj.turn?.brokenBelief), causedByChoice: choice, priorClueReinterpreted: text(obj.turn?.priorClueReinterpreted) },
+      costCreatedByResolution: { immediate: text(obj.costCreatedByResolution?.immediate), deferred: text(obj.costCreatedByResolution?.deferred), beneficiary: text(obj.costCreatedByResolution?.beneficiary), payer: text(obj.costCreatedByResolution?.payer) },
+      exitValue: {
+        closedQuestion: text(obj.exitValue?.closedQuestion),
+        nextQuestion,
+        hookType: text(obj.exitValue?.hookType || 'result', 40),
+        specificFutureValue: text(obj.exitValue?.specificFutureValue || nextQuestion),
+      },
+      metricDramaturgy: Object.fromEntries(Object.entries(obj.metricDramaturgy && typeof obj.metricDramaturgy === 'object' ? obj.metricDramaturgy : {}).map(([key, value]) => [key, text(value, 500)])),
+      scenes: obj.scenes.map(normalizeScene), reveals: strings(obj.reveals), withheld: strings(obj.withheld),
+      episodeVoiceTargets: (Array.isArray(obj.episodeVoiceTargets) ? obj.episodeVoiceTargets : []).map(normalizeVoiceTarget)
+        .filter((item) => foregroundCharacters.includes(item.characterId) && (item.sampleLine || item.speakingPressure)).slice(0, limits.foregroundLimit),
+      ...planningContracts, planningContractVersion: 2,
+      tension: { ticking: text(obj.tension?.ticking, 500), stake: text(obj.tension?.stake, 500), escalation: text(obj.tension?.escalation, 500) },
+      powerChanges: strings(obj.powerChanges), artifacts: strings(obj.artifacts), absurdity: text(obj.absurdity),
+      characterArcBeats: characterArcBeatsForEpisode(arcPlan, arcBeat.index),
+      ...(pilotContract ? { pilotContract } : {}),
+      hooksTouched: strings(obj.hooksTouched), carryForward: strings(obj.carryForward),
+      status: mode === 'review' ? 'pending' : 'active', revision: Number(prior?.revision ?? 0) + 1,
+      createdAt: new Date().toISOString(),
+    };
+    return plan;
   };
+  let plan = buildPlan(accepted);
+  const characterNames = Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName]));
+  const packetBudget = (candidate) => compileWriterEpisodePacket({
+    episodePlan: { ...candidate, status: 'active' }, arcEpisode: arcBeat, prevState: state,
+    readabilityContract: storyProfile?.readabilityContract, characterNames, budget: { maxTokens: WRITER_PACKET_MAX_TOKENS },
+  });
+  // The draft step compiles this plan into a fixed-budget writer packet. An
+  // overflow there used to surface only after the plan was saved, so it is
+  // checked here and repaired with one more planning answer instead.
+  let packet = packetBudget(plan);
+  if (!packet.ok && packet.error.code === 'EPISODE_PACKET_OVERFLOW') {
+    const repair = await providers.complete({
+      model: MODEL, jsonMode: true, step: 'episode-plan-repair',
+      messages: [
+        planMessages[0],
+        { role: 'user', content: [
+          planMessages[1].content, '',
+          '이전 응답:', JSON.stringify(accepted.parsed), '',
+          `검증 오류: ${JSON.stringify(packet.error)}`,
+          '이 계획은 집필 단계의 Writer Packet 예산을 초과한다. 사건·선택·결과·선택 모듈의 내용은 유지하되 readerBridge, closingState, scenes[].situation·choice·change, payoff, costCreatedByResolution, exitValue, episodeVoiceTargets의 문장을 짧고 구체적으로 줄여 전체 계획 JSON을 다시 출력한다. 같은 문장을 두 필드에 반복하지 않는다.',
+        ].join('\n') },
+      ],
+    });
+    if ((providers.pending?.length ?? 0) > 0) return { preview: true };
+    accepted = acceptPlan(repair.text);
+    if (accepted.failure) {
+      throw new Error(`EPISODE_PLAN_CONTRACT_INVALID: ${accepted.failure.error.code} ${accepted.failure.error.message} ${JSON.stringify(accepted.failure.error.details ?? {})}`);
+    }
+    plan = buildPlan(accepted);
+    packet = packetBudget(plan);
+    if (!packet.ok && packet.error.code === 'EPISODE_PACKET_OVERFLOW') {
+      throw new Error(`EPISODE_PACKET_OVERFLOW: 계획이 Writer Packet 예산을 초과합니다 (${packet.error.requiredTokens}/${packet.error.maxTokens} 토큰).`);
+    }
+  }
   await store.saveEpisodePlan(workId, plan);
   if (plan.status === 'active') await publishApprovedEpisodePlan({ store, workId, chapter, plan });
   return {

@@ -50,6 +50,28 @@ describe('Writer Episode Packet Compiler', () => {
     assert.ok(first.value.usage.usedTokens <= first.value.usage.maxTokens);
   });
 
+  it('renders an exit state that equals the next question only once', () => {
+    const plan = activePlan();
+    plan.exitValue.specificFutureValue = plan.exitValue.nextQuestion;
+    const result = compileWriterEpisodePacket({ episodePlan: plan, arcEpisode: { chapter: 6 } });
+    assert.equal(result.ok, true);
+    const line = result.value.writerText.split('\n').find((item) => item.startsWith('- 마지막 상태와 다음 질문:'));
+    assert.equal(line, `- 마지막 상태와 다음 질문: ${plan.exitValue.nextQuestion}`);
+    assert.deepEqual(result.value.trace.mergedFields, [{ field: 'exitValue.specificFutureValue', mergedInto: 'exitValue.nextQuestion' }]);
+  });
+
+  it('does not repeat a character arc residue that this episode\'s arc beat already carries', () => {
+    const plan = activePlan();
+    plan.characterArcBeats = [{ characterId: 'han-gyeom', beat: 'collapse', note: '판단을 넘긴다.' }];
+    const prevState = { arcCursor: { 'han-gyeom': { beat: 'collapse', note: '이전 화의 같은 단계 기록' } } };
+    const result = compileWriterEpisodePacket({ episodePlan: plan, arcEpisode: { chapter: 6 }, prevState, characterNames: { 'han-gyeom': '한겸' } });
+    assert.equal(result.ok, true);
+    const carry = result.value.writerText.split('\n').filter((item) => item.startsWith('- 한겸:'));
+    assert.deepEqual(carry, ['- 한겸: 이번 화 변화=collapse — 판단을 넘긴다.']);
+    const other = compileWriterEpisodePacket({ episodePlan: plan, arcEpisode: { chapter: 6 }, prevState: { arcCursor: { 'han-gyeom': { beat: 'attempt', note: '이전 단계' } } }, characterNames: { 'han-gyeom': '한겸' } });
+    assert.ok(other.value.writerText.includes('- 한겸: attempt — 이전 단계'));
+  });
+
   it('fails closed instead of trimming mandatory obligations when the packet budget is too small', () => {
     const result = compileWriterEpisodePacket({ episodePlan: activePlan(), arcEpisode: { chapter: 6 }, budget: { maxTokens: 20 } });
     assert.equal(result.ok, false);
