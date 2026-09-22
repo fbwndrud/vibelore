@@ -1,7 +1,7 @@
 {
 "work": "길 위의 번개",
 "run": "scene-20260921",
-"builtAt": "2026-09-21T23:19:04+00:00",
+"builtAt": "2026-09-22T17:20:06+00:00",
 "imageModel": "gpt-image-2.5-sunburst",
 "reviewer": {
 "host": "claude-code",
@@ -20,7 +20,7 @@
 "new": "Locations follow only the selected source units: a rock passage blocked by rusted chains, and a side ledge or a mountain outpost only when the excerpt itself reaches them; never advance time of day or place beyond the excerpt; keep light and terrain coherent within the scene.",
 "appliesFrom": "s4"
 },
-"costsNote": "각색 CLI(plan/preflight) 비용 + 이미지 API 비용(OpenAI usage API 조회, openai-usage-20260921.json). Codex 각색은 대시보드 확인 결과 청구 $0, 정가 환산 병기.",
+"costsNote": "각색 CLI(plan/preflight) 비용 + 이미지 API 비용(OpenAI usage API 조회, openai-usage-20260921.json). Codex 각색은 대시보드 확인 결과 청구 $0, 정가 환산 병기. 4화(scene-20260922) 각색은 Grok CLI 보고값, 이미지는 usage API 미조회로 참조 이미지 수 기준 정가 환산(장당 참조 1536 토큰·출력 1372 토큰·텍스트 약 800 토큰).",
 "pricingSource": "https://developers.openai.com/api/docs/pricing (2026-09-22 열람) gpt-6-astra short context: input $10/M, cached $1/M, cache write $12.5/M, output $50/M; gpt-image-2.5-sunburst: image input $8/M, text input $5/M, image output $30/M",
 "episodes": [
 {
@@ -12103,6 +12103,3383 @@
 }
 }
 ]
+},
+{
+"chapter": 4,
+"title": "잉크가 장부 위에서 아직 젖어 있었다",
+"host": "Grok",
+"model": "grok-4.7",
+"effort": "high→medium",
+"novelHost": "Grok",
+"novelModel": "grok-4.7",
+"sceneCount": 7,
+"panelTotal": 52,
+"passCount": 0,
+"blockingTotal": 14,
+"advisoryTotal": 24,
+"blockingByLayer": {
+"render": 14
+},
+"imageCalls": 7,
+"imageOk": 7,
+"cliCalls": 31,
+"cost": {
+"novelUsd": 0.82,
+"webtoonUsd": 2.23,
+"webtoonUsdLow": 2.23,
+"estimated": false,
+"imageUsd": 0.93,
+"imageEstimated": true,
+"costsApiUsd": null
+},
+"note": "소설·아크 2 설계·각색 모두 grok-4.7. 각색은 s1 계획·검증만 reasoning high(계획 ~7분·검증 ~8분), s2부터 medium으로 전환. s1 direction의 일정 문구가 사전 검증을 차단해 발췌 중립 문구로 교체 후 새 워크플로로 시작. 배경 참조 2장 중 1장(ref-outpost)은 3화 참조 재사용, 1장(ref-rear-bend)은 이 run에서 새로 생성(generate, medium).",
+"scenes": [
+{
+"id": "s1",
+"n": 1,
+"title": "짧은 끈",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-4-p-1",
+"n": 1,
+"text": "잉크가 장부 위에서 아직 젖어 있었다. 약 상자는 빈 약장 안으로 들어가 봉인째 놓였고, 마렌의 손에는 가죽 조각이 그대로였다. 리아가 방금 한 말, 다음이 어디로 붙는지만 먼저 보자는 그 문장이 마당 공기에 남아 있었다. 거점 뒤편 입구 돌에는 같은 표식이 희미했다."
+},
+{
+"id": "ch-4-p-2",
+"n": 2,
+"text": "리아가 그쪽으로 한 발을 옮기다 오른손을 펼쳤다. 손가락이 끝까지 열리지 않았다. 방패 끈을 잡으려다 놓쳤고, 저린 손목이 소매 안에서 맥없이 접혔다. 리아는 반대손으로 소매를 끌어내려 그 자리를 가렸다. 턱 아래의 밤색 머리가 귀 뒤로 흘렀다."
+},
+{
+"id": "ch-4-p-3",
+"n": 3,
+"text": "손목은 세지 않았다."
+},
+{
+"id": "ch-4-p-4",
+"n": 4,
+"text": "밀가루 자루는 하나, 입구를 접어 마렌의 발치에 서 있었다. 기름통 자리는 젖은 돌 자국뿐이었다. 도윤의 허리춤은 비어 있었다. 줄을 걸던 고리만 남았고, 쇠테가 닿던 가죽은 색이 옅었다. 리아의 가방은 가볍고, 덮개 안 마른 천 위에 보리가 몸을 둥글리고 있었다. 크림색 등만 보였고, 보리는 제 앞발로 덮개 끝을 끌어다 빛 위에 덮었다. 마른 자리를 혼자 지키려는 몸짓이었다."
+},
+{
+"id": "ch-4-p-5",
+"n": 5,
+"text": "마렌이 조각을 도윤 쪽에 건넸다."
+},
+{
+"id": "ch-4-p-6",
+"n": 6,
+"text": "“도윤 씨. 돌부터 보세요. 자루는 제가 묶어요.”"
+},
+{
+"id": "ch-4-p-7",
+"n": 7,
+"text": "장갑을 다시 끼고, 처마 아래 못에 걸린 예비 끈을 빌려 밀가루 자루에 둘렀다. 끈이 짧았다. 당기자 천 모서리가 안으로 패였고, 하얀 먼지가 끈 위로 배어 나왔다."
+},
+{
+"id": "ch-4-p-8",
+"n": 8,
+"text": "“느슨하면 또 미끄러져요.”"
+},
+{
+"id": "ch-4-p-9",
+"n": 9,
+"text": "말이 끝나기 전에 한 번 더 당겼다."
 }
+],
+"pFrom": 1,
+"pTo": 9,
+"panelCount": 10,
+"image": "img/ep04-s1.webp",
+"blocking": 2,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "7칸: 도윤 허리에 둘둘 말린 줄. 원문 p4는 허리춤이 비고 고리만 남음. 3화에서 잃은 줄이 되살아남.",
+"en": "Panel 7 shows a full coiled rope hanging from Doyun's belt. ch-4-p-4 states his waist is empty with only the ring that used to hold the rope left, and beat-waist / moment 6 require the empty waist; the lost rope from the previous chapter is drawn back in."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 리아가 표식 돌에 오른손을 활짝 펴 짚음. 원문 p2는 손가락이 끝까지 안 펴지고 방패 끈을 놓치는 장면. 창작 동작.",
+"en": "Panel 3 shows Ria crouched with her right hand pressed flat on the marked stone, fingers fully spread. ch-4-p-2 and beat-step have her only moving one foot toward the stone while her right fingers fail to open fully and miss the shield strap; the stone touch is an invented action that contradicts the failed grip the scene is about."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2·3칸: 표식이 선명하게 새겨짐. 원문 p1은 '희미했다'.",
+"en": "Panels 2 and 3 carve the forked arrow and short line boldly and clearly on the stone; ch-4-p-1 says the same mark is only faint on the rear-entrance stone."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "8칸: 보리 얼굴이 정면. 원문 p4는 크림색 등만 보이고 앞발로 덮개를 끌어당김.",
+"en": "Panel 8 shows Bori's whole face turned to the viewer with the paw on the cover; ch-4-p-4 and moment 7 have only the cream back visible while the paw draws the cover edge over the light."
+},
+{
+"severity": "advisory",
+"layer": "adapt",
+"layerLabel": "각색 호스트",
+"ko": "1·9칸: 가죽 조각이 구멍 뚫린 벨트 끈으로 그려짐. 브리프가 '가죽 조각'만 적고 표식이 있는 지도 조각임을 안 알림.",
+"en": "Panels 1 and 9 draw the leather piece as a plain belt strap with punched holes; the source piece is the worn map fragment carrying the same forked mark, so it does not read as the piece Maren hands over."
+}
+],
+"textsTotal": 6,
+"textsOk": 6,
+"timings": {
+"planS": [
+325,
+413,
+556,
+351,
+677,
+381
+],
+"preflightS": [
+493,
+655,
+424,
+424
+],
+"imageS": 47,
+"imageCalls": 1,
+"preflightRevisions": 2
+},
+"imageUsd": 0.1189,
+"plan": {
+"intent": "A finished full-color fantasy comic with expressive ink lines, an adult cast, and a small cream marten, in damp daylight at the mountain outpost. The reader stays in the quiet hold after the rescue: wet ink, a faint rear mark, Ria's hand missing the shield strap, one flour sack and a wet trace, Bori keeping a dry cloth, and Maren sending Doyun to the stone while she cinches that sack with a strap that is short.",
+"staging": "Shared instant: beat-ground and beat-waist, the co-present sack, wet trace, and empty waist in ch-4-p-4, one still whose beats list empty textIds. panelCount 10 places that pair in a single instant and keeps beat-ink, beat-linger, beat-step, beat-fail, beat-hide, beat-bori, beat-pass, beat-wrap, and beat-yank as nine further instants. beat-ink carries only text-ink and already holds the sealed box and the leather in Maren's hand. beat-linger carries only text-linger. beat-step, then beat-fail, then beat-hide stay in that order. beat-bori stays on its own with text-bori. beat-pass carries only the three-clause line text-assign. beat-wrap is the gloved hold after the first pull, and beat-yank is the later pull during text-slip. The leather stays in Maren's hand from beat-ink until beat-pass. Gloves begin at beat-wrap. The spare strap comes from a nail under the eave. Ledger, cabinet, courtyard, and rear-entrance stone are all present, and their distances stay free. The artist chooses framing, panel shapes, and a natural vertical reading order.",
+"uncertainties": [
+"ch-4-p-1 leaves the distances among the ledger, the medicine cabinet, the courtyard, and the rear-entrance stone unstated. The mark's shape and any design on the leather piece stay unstated.",
+"The verb in ch-4-p-3 stays unresolved among strength, severity, and counting. text-wrist is lettered verbatim on beat-hide with that reading left open.",
+"ch-4-p-2 establishes the shield strap only through the missed grasp, so its mount stays unstated. The movement is one foot toward the stone. Arrival stays outside the excerpt.",
+"ch-4-p-4 leaves unstated whether Ria's bag is worn or set down. The light on the dry cloth is ordinary falling daylight.",
+"ch-4-p-5 leaves Doyun's grip unstated. His look toward the stone stays outside the excerpt. beat-pass is the extension together with the spoken assignment.",
+"ch-4-p-6 and ch-4-p-8 leave the speaker unnamed. The speaker is c4 because ch-4-p-5 names Maren as she extends the leather, and the tying in ch-4-p-7 through ch-4-p-9 continues that actor.",
+"ch-4-p-7 leaves its grammatical subject unnamed. The gloves, the borrowed eave strap, and both pulls continue c4's offer to tie the sack."
+],
+"texts": [
+{
+"id": "text-ink",
+"sourceId": "ch-4-p-1",
+"kind": "caption",
+"speaker": "narrator",
+"text": "잉크가 장부 위에서 아직 젖어 있었다."
+},
+{
+"id": "text-linger",
+"sourceId": "ch-4-p-1",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아가 방금 한 말, 다음이 어디로 붙는지만 먼저 보자는 그 문장이 마당 공기에 남아 있었다."
+},
+{
+"id": "text-wrist",
+"sourceId": "ch-4-p-3",
+"kind": "caption",
+"speaker": "narrator",
+"text": "손목은 세지 않았다."
+},
+{
+"id": "text-bori",
+"sourceId": "ch-4-p-4",
+"kind": "caption",
+"speaker": "narrator",
+"text": "마른 자리를 혼자 지키려는 몸짓이었다."
+},
+{
+"id": "text-assign",
+"sourceId": "ch-4-p-6",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "도윤 씨. 돌부터 보세요. 자루는 제가 묶어요."
+},
+{
+"id": "text-slip",
+"sourceId": "ch-4-p-8",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "느슨하면 또 미끄러져요."
+}
+],
+"beats": [
+{
+"id": "beat-ink",
+"sourceIds": [
+"ch-4-p-1"
+],
+"action": "Wet ink still lies on the ledger while the sealed medicine box rests in the cabinet and the leather piece remains in Maren's hand.",
+"textIds": [
+"text-ink"
+]
+},
+{
+"id": "beat-linger",
+"sourceIds": [
+"ch-4-p-1"
+],
+"action": "Ria's just-finished sentence hangs in the courtyard air, and the same mark is faint on the rear-entrance stone.",
+"textIds": [
+"text-linger"
+]
+},
+{
+"id": "beat-step",
+"sourceIds": [
+"ch-4-p-2"
+],
+"action": "Ria moves one foot toward the rear-entrance stone while her right fingers stop short of opening fully.",
+"textIds": []
+},
+{
+"id": "beat-fail",
+"sourceIds": [
+"ch-4-p-2"
+],
+"action": "Her right hand misses the shield strap, and her numb wrist folds limply inside the sleeve.",
+"textIds": []
+},
+{
+"id": "beat-hide",
+"sourceIds": [
+"ch-4-p-2",
+"ch-4-p-3"
+],
+"action": "Her opposite hand draws the sleeve down over the wrist as the dark brown hair under her chin slips behind her ear.",
+"textIds": [
+"text-wrist"
+]
+},
+{
+"id": "beat-ground",
+"sourceIds": [
+"ch-4-p-4"
+],
+"action": "One folded-mouth flour sack stands at Maren's feet, and only a wet stone trace remains where the oil container stood.",
+"textIds": []
+},
+{
+"id": "beat-waist",
+"sourceIds": [
+"ch-4-p-4"
+],
+"action": "Doyun's waist is empty, with the rope ring still there and the leather pale where a metal rim rested.",
+"textIds": []
+},
+{
+"id": "beat-bori",
+"sourceIds": [
+"ch-4-p-4"
+],
+"action": "Inside Ria's light bag, Bori's cream back stays curled on dry cloth while one front paw draws the cover edge over the falling light.",
+"textIds": [
+"text-bori"
+]
+},
+{
+"id": "beat-pass",
+"sourceIds": [
+"ch-4-p-5",
+"ch-4-p-6"
+],
+"action": "Maren extends the leather piece toward Doyun as she speaks.",
+"textIds": [
+"text-assign"
+]
+},
+{
+"id": "beat-wrap",
+"sourceIds": [
+"ch-4-p-7"
+],
+"action": "Maren's gloved hands hold a short strap around the flour sack, a cloth corner dented inward and white dust on the strap.",
+"textIds": []
+},
+{
+"id": "beat-yank",
+"sourceIds": [
+"ch-4-p-8",
+"ch-4-p-9"
+],
+"action": "Maren pulls that short strap once more while the warning is still unfinished.",
+"textIds": [
+"text-slip"
+]
+}
+],
+"facts": [
+{
+"id": "fact-ink",
+"sourceIds": [
+"ch-4-p-1"
+],
+"statement": "Ink is still wet on the ledger."
+},
+{
+"id": "fact-box",
+"sourceIds": [
+"ch-4-p-1"
+],
+"statement": "The medicine box has been set, still sealed, inside the medicine cabinet."
+},
+{
+"id": "fact-leather",
+"sourceIds": [
+"ch-4-p-1"
+],
+"statement": "The leather piece remains in Maren's hand until she extends it."
+},
+{
+"id": "fact-linger",
+"sourceIds": [
+"ch-4-p-1"
+],
+"statement": "A sentence Ria has just finished still hangs in the courtyard air."
+},
+{
+"id": "fact-mark",
+"sourceIds": [
+"ch-4-p-1"
+],
+"statement": "The same mark is faint on the stone at the outpost's rear entrance."
+},
+{
+"id": "fact-step",
+"sourceIds": [
+"ch-4-p-2"
+],
+"statement": "Ria moves one foot toward that stone while her right fingers stop short of opening fully."
+},
+{
+"id": "fact-miss",
+"sourceIds": [
+"ch-4-p-2"
+],
+"statement": "Her right hand misses the shield strap, and the numb wrist folds limply inside the sleeve."
+},
+{
+"id": "fact-hide",
+"sourceIds": [
+"ch-4-p-2"
+],
+"statement": "Her opposite hand draws the sleeve down over that place, and the dark brown hair under her chin slips behind her ear."
+},
+{
+"id": "fact-sack",
+"sourceIds": [
+"ch-4-p-4"
+],
+"statement": "One flour sack stands at Maren's feet with its mouth folded."
+},
+{
+"id": "fact-oil",
+"sourceIds": [
+"ch-4-p-4"
+],
+"statement": "Where the oil container stood, only a wet trace remains on the stone."
+},
+{
+"id": "fact-waist",
+"sourceIds": [
+"ch-4-p-4"
+],
+"statement": "Doyun's waist is empty. The ring that held the rope remains, and the leather where a metal rim rested is pale."
+},
+{
+"id": "fact-bori",
+"sourceIds": [
+"ch-4-p-4"
+],
+"statement": "Ria's bag is light. Bori is curled on dry cloth under the cover, cream back visible, and one front paw draws the cover edge over the falling light."
+},
+{
+"id": "fact-pass",
+"sourceIds": [
+"ch-4-p-5"
+],
+"statement": "Maren extends the leather piece toward Doyun."
+},
+{
+"id": "fact-strap",
+"sourceIds": [
+"ch-4-p-7"
+],
+"statement": "Gloves go back on. A spare strap is borrowed from a nail under the eave and looped around the flour sack. The strap is short. The pull dents a cloth corner inward, and white dust comes through onto the strap."
+},
+{
+"id": "fact-yank",
+"sourceIds": [
+"ch-4-p-9"
+],
+"statement": "The strap is pulled once more before that warning finishes."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic, expressive ink lines, adult cast, small cream marten, damp daylight at a mountain outpost.",
+"moments": [
+{
+"sourceIds": [
+"ch-4-p-1"
+],
+"action": "Wet ink remains on the ledger, a sealed medicine box rests alone in the cabinet, and Maren's bare hand holds a leather piece.",
+"textIds": [
+"text-ink"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-1"
+],
+"action": "A faint mark shows on the stone at the outpost rear entrance.",
+"textIds": [
+"text-linger"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-2"
+],
+"action": "Ria moves one foot toward the rear-entrance stone, her right fingers short of opening fully.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-2"
+],
+"action": "Ria's right hand is short of the shield strap, her numb wrist folded limply inside the sleeve.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-2",
+"ch-4-p-3"
+],
+"action": "Ria's other hand draws the sleeve down over that wrist as dark brown hair under her chin slips behind her ear.",
+"textIds": [
+"text-wrist"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-4"
+],
+"action": "One folded-mouth flour sack stands at Maren's feet, the oil place is only a wet stone trace, and Doyun's empty waist keeps a rope ring, the leather pale where a metal rim rested.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-4"
+],
+"action": "In Ria's light bag, Bori's cream back curls on dry cloth while one front paw draws the cover edge over the daylight.",
+"textIds": [
+"text-bori"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-5",
+"ch-4-p-6"
+],
+"action": "Ungloved Maren extends the leather piece toward Doyun.",
+"textIds": [
+"text-assign"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-7"
+],
+"action": "Maren's gloved hands hold a short spare strap around the flour sack, a cloth corner dented inward, white dust on the strap.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-8",
+"ch-4-p-9"
+],
+"action": "Maren's gloved hands pull that same short strap once more around the flour sack.",
+"textIds": [
+"text-slip"
+]
+}
+]
+},
+"review": {
+"continuity": null,
+"textObservations": [
+{
+"id": "text-ink",
+"observedText": "잉크가 장부 위에서 아직 젖어 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 top-left caption box over the open ledger; exact text."
+},
+{
+"id": "text-linger",
+"observedText": "리아가 방금 한 말, 다음이 어디로 붙는지만 먼저 보자는 그 문장이 마당 공기에 남아 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 caption box above the rear-entrance stone; exact text."
+},
+{
+"id": "text-wrist",
+"observedText": "손목은 세지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 caption box beside Ria's face; exact text."
+},
+{
+"id": "text-bori",
+"observedText": "마른 자리를 혼자 지키려는 몸짓이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 8 caption box above the bag; exact text."
+},
+{
+"id": "text-assign",
+"observedText": "도윤 씨. 돌부터 보세요. 자루는 제가 묶어요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 9 balloon with its tail at Maren (red curly hair, brick vest, mouth open) while she holds out the leather piece toward Doyun."
+},
+{
+"id": "text-slip",
+"observedText": "느슨하면 또 미끄러져요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 10 balloon over Maren's gloved hands and brick vest pulling the strap; no other character in the panel."
+}
+],
+"evidence": "Ten panels in four rows read left to right, top to bottom. Row 1: wet ledger with Maren's bare hand holding a leather strip and a sealed box in the cabinet; the rear-entrance stone with a carved forked mark beside the rutted path. Row 2: Ria crouched with her right hand spread flat on the marked stone; Ria's right hand curled at the chest strap; Ria drawing her sleeve down with the left hand, chestnut hair behind her ear. Row 3: one folded flour sack beside Doyun's boots on wet stone; Doyun's waist with a coiled rope hanging from the belt; Bori's face and paw at the bag cover. Row 4: Maren extends the leather strip to Doyun; two close-ups of gloved hands cinching a strap around the sack with a dented corner and white dust. Setting, light and costumes stay consistent across panels; Lia (chestnut bob, amber eyes, sand jacket), Doyun (black hair, grey eyes, green coat) and Maren (red-brown curls, brick vest) match the references.",
+"observedPanelCount": 10
+}
+},
+{
+"id": "s2",
+"n": 2,
+"title": "한 고리",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-4-p-10",
+"n": 10,
+"text": "도윤은 매듭에 손을 대지 않았다. 가죽 조각을 쥔 채, 시선만 자기 허리의 빈 고리에 갔다가 돌아왔다. 왼쪽 눈썹의 끊긴 자리가 잠깐 모였다. 리아는 그 손이 매듭으로 가지 않는 것과, 말이 짧은 것을 먼저 보았다."
+},
+{
+"id": "ch-4-p-11",
+"n": 11,
+"text": "“마렌 씨. 손힘이 버릇이 되셨습니다. 모서리 보세요. 한 고리만 빼요.”"
+},
+{
+"id": "ch-4-p-12",
+"n": 12,
+"text": "마렌의 당기던 손이 멈췄다. 빈 고리를 보던 눈이 잃은 줄을 세다 멈췄고, 입은 다음 수를 내지 않았다. 매듭을 한 고리 풀자 자루 모서리가 다시 부풀었다. 끈은 그대로 팽팽했다. 천은 버티고 있었다."
+},
+{
+"id": "ch-4-p-13",
+"n": 13,
+"text": "“한 고리요. 이 끈이 지금 전부라서요.”"
+},
+{
+"id": "ch-4-p-14",
+"n": 14,
+"text": "“던질 건 없습니다.”"
+},
+{
+"id": "ch-4-p-15",
+"n": 15,
+"text": "도윤이 빈 고리를 엄지로 누르고 손을 뗐다. 조각의 두 갈래 화살표를 입구 돌 쪽으로 돌렸다."
+}
+],
+"pFrom": 10,
+"pTo": 15,
+"panelCount": 10,
+"image": "img/ep04-s2.webp",
+"blocking": 2,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 마렌 대사 “한 고리요…”가 보리만 있는 칸에 붙음. 원문 p10~15에 보리 없음. 화자 오귀속 + 창작 등장.",
+"en": "Panel 6 puts Maren's line text-oneloop over a panel that shows only Bori in the bag; moment 6 has Maren speaking once the loop is loose, and Bori does not appear anywhere in ch-4-p-10..15. The speaker cannot be read and the marten is an invented subject for this scene."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·8·9칸: 도윤 허리에 줄 뭉치. 원문은 빈 고리를 엄지로 누르는 장면(p10, p15). s1과 같은 결함.",
+"en": "Panels 1, 8 and 9 show a coiled rope hanging from Doyun's belt, and the close-ups of his thumb at the belt (panels 8-9) show buckle and rope rather than an empty ring. ch-4-p-10 and p15, beat-to-ring, beat-press and beat-release all depend on the ring being empty; the lost rope is drawn back in, as in s1."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4·5칸: 자루를 꼰 밧줄로 묶음. s1은 납작한 가죽 끈. 장면 간 소품 불일치.",
+"en": "Panels 4-5 tie the sack with a twisted rope cord while s1 showed the borrowed strap as a flat leather strap; ch-4-p-7 and p12 describe one short strap (끈) that is loosened by a loop."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "7칸: “던질 건 없습니다” 하는 도윤이 활짝 웃음. 원문 톤(짧은 말, 모인 눈썹)과 안 맞음.",
+"en": "Panel 7 gives Doyun a broad smile while saying text-throw; ch-4-p-14 and the surrounding lines (short speech, gathered eyebrow) do not support a smiling delivery."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "10칸: 돌과 조각의 표식이 선명. 원문은 희미(p1)·닳은 조각(3화).",
+"en": "Panel 10 carves the forked mark boldly on the entrance stone and on the leather piece; ch-4-p-1 describes the stone mark as faint and ch-3 the piece as worn."
+}
+],
+"textsTotal": 3,
+"textsOk": 2,
+"timings": {
+"planS": [
+539,
+399
+],
+"preflightS": [
+455,
+375,
+249
+],
+"imageS": 47,
+"imageCalls": 1,
+"preflightRevisions": 1
+},
+"imageUsd": 0.1312,
+"plan": {
+"intent": "At the damp mountain outpost, Doyun will not touch the sack knot. He checks the empty ring at his waist, then limits the pull to a single loop. The sack corner recovers while the cord stays taut and the cloth holds. Nothing is thrown. He then turns the leather piece's forked arrow toward the entrance stone.",
+"staging": "The knot is on the cord around the sack. The empty ring is on Doyun's waist. The entrance stone is the entrance stone named in ch-4-p-15. Distances among Ria, Doyun, Maren, the sack, and the stone stay free, and he aims from where he already stands. Daylight stays as it is. panelCount 10. beat-to-ring is the first instant and beat-return the second, so the glance finishes before any speech. beat-notice is the next instant and the only carrier of text-habit. beat-stop is the next instant, with no lettering. beat-swell and beat-hold share the next instant, with no lettering and with Doyun's hand off the knot. beat-limit is the next instant and the only carrier of text-oneloop. beat-throw is the next instant and the only carrier of text-throw. beat-press, beat-release, and beat-aim are the last three instants in that order, each with no lettering. The ring stays empty. No rope, throw, spill, or tally appears. The artist chooses framing, panel shapes, and vertical reading order.",
+"uncertainties": [
+"ch-4-p-11, ch-4-p-13, and ch-4-p-14 do not name a speaker. text-habit is carried as c2 because Ria registers a short speech after his withheld hand and the line addresses Maren; a c1 reading stays possible. text-oneloop is carried as c4 as the cord reply after the stopped pull. text-throw is carried as c2 because it immediately precedes his named thumb in ch-4-p-15.",
+"ch-4-p-12 does not name whose eyes were on the empty ring or whose mouth withheld the next count. The stopped hand is Maren's. Doyun also looked at that ring in ch-4-p-10, so the halted eyes may be his. No numeral is lettered, and the lost line is not on the ring.",
+"ch-4-p-12 does not name who loosens the one loop. The shared swell instant shows the loose loop and the swollen corner only.",
+"ch-4-p-15 does not name which thumb presses the ring or which hand holds the piece. Either a one-hand or a two-hand pose fits. It does not state that the entrance stone is the rear-entrance stone, that any trace is on it, or that anyone approaches it."
+],
+"texts": [
+{
+"id": "text-habit",
+"sourceId": "ch-4-p-11",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "마렌 씨. 손힘이 버릇이 되셨습니다. 모서리 보세요. 한 고리만 빼요."
+},
+{
+"id": "text-oneloop",
+"sourceId": "ch-4-p-13",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "한 고리요. 이 끈이 지금 전부라서요."
+},
+{
+"id": "text-throw",
+"sourceId": "ch-4-p-14",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "던질 건 없습니다."
+}
+],
+"beats": [
+{
+"id": "beat-to-ring",
+"sourceIds": [
+"ch-4-p-10"
+],
+"action": "Doyun keeps his hand off the knot, holds the leather piece, and looks to the empty ring at his waist.",
+"textIds": []
+},
+{
+"id": "beat-return",
+"sourceIds": [
+"ch-4-p-10"
+],
+"action": "His gaze returns from the empty ring, and the break in his left eyebrow gathers briefly. His hand stays off the knot and the piece stays in his grip.",
+"textIds": []
+},
+{
+"id": "beat-notice",
+"sourceIds": [
+"ch-4-p-10",
+"ch-4-p-11"
+],
+"action": "After that glance has finished, Ria registers the hand staying off the knot and the short speech. c2 speaks text-habit to Maren.",
+"textIds": [
+"text-habit"
+]
+},
+{
+"id": "beat-stop",
+"sourceIds": [
+"ch-4-p-12"
+],
+"action": "Maren's pulling hand stops. The eyes that were on the empty ring halt while counting the lost line, and the mouth withholds the next count.",
+"textIds": []
+},
+{
+"id": "beat-swell",
+"sourceIds": [
+"ch-4-p-12"
+],
+"action": "One loop of the knot is loose and the sack corner swells again.",
+"textIds": []
+},
+{
+"id": "beat-hold",
+"sourceIds": [
+"ch-4-p-12"
+],
+"action": "With that corner already swollen, the cord stays taut and the cloth holds.",
+"textIds": []
+},
+{
+"id": "beat-limit",
+"sourceIds": [
+"ch-4-p-13"
+],
+"action": "c4 speaks text-oneloop once the single loop is already loose.",
+"textIds": [
+"text-oneloop"
+]
+},
+{
+"id": "beat-throw",
+"sourceIds": [
+"ch-4-p-14"
+],
+"action": "c2 speaks text-throw before a thumb meets the ring.",
+"textIds": [
+"text-throw"
+]
+},
+{
+"id": "beat-press",
+"sourceIds": [
+"ch-4-p-15"
+],
+"action": "Doyun presses the empty ring with a thumb while the leather piece is still held and not yet turned.",
+"textIds": []
+},
+{
+"id": "beat-release",
+"sourceIds": [
+"ch-4-p-15"
+],
+"action": "He takes that hand off the ring. The piece is still not turned toward the entrance stone.",
+"textIds": []
+},
+{
+"id": "beat-aim",
+"sourceIds": [
+"ch-4-p-15"
+],
+"action": "He turns the piece's two-forked arrow toward the entrance stone, with the hand already off the ring.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-off",
+"sourceIds": [
+"ch-4-p-10"
+],
+"statement": "Doyun does not put his hand on the knot."
+},
+{
+"id": "fact-piece",
+"sourceIds": [
+"ch-4-p-10"
+],
+"statement": "He holds the leather piece while that hand stays off the knot."
+},
+{
+"id": "fact-glance",
+"sourceIds": [
+"ch-4-p-10"
+],
+"statement": "His gaze goes to the empty ring at his own waist and returns."
+},
+{
+"id": "fact-brow",
+"sourceIds": [
+"ch-4-p-10"
+],
+"statement": "The break in his left eyebrow gathers briefly."
+},
+{
+"id": "fact-ria",
+"sourceIds": [
+"ch-4-p-10"
+],
+"statement": "Ria first registers that his hand does not go to the knot and that the speech is short."
+},
+{
+"id": "fact-stop",
+"sourceIds": [
+"ch-4-p-12"
+],
+"statement": "Maren's pulling hand stops."
+},
+{
+"id": "fact-halt",
+"sourceIds": [
+"ch-4-p-12"
+],
+"statement": "Eyes that were on the empty ring stop while counting the lost line, and the mouth withholds the next count."
+},
+{
+"id": "fact-loose",
+"sourceIds": [
+"ch-4-p-12"
+],
+"statement": "Once one loop of the knot is loosened, the sack corner swells again."
+},
+{
+"id": "fact-taut",
+"sourceIds": [
+"ch-4-p-12"
+],
+"statement": "The cord stays taut."
+},
+{
+"id": "fact-cloth",
+"sourceIds": [
+"ch-4-p-12"
+],
+"statement": "The cloth holds."
+},
+{
+"id": "fact-thumb",
+"sourceIds": [
+"ch-4-p-15"
+],
+"statement": "Doyun presses the empty ring with a thumb and then takes the hand off."
+},
+{
+"id": "fact-aim",
+"sourceIds": [
+"ch-4-p-15"
+],
+"statement": "He turns the leather piece's two-forked arrow toward the entrance stone."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic with expressive ink lines, adult cast, damp daylight at a mountain outpost after rain.",
+"moments": [
+{
+"sourceIds": [
+"ch-4-p-10"
+],
+"action": "Doyun holds the leather piece, hand kept off the sack knot, and looks at the empty ring on his waist.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-10"
+],
+"action": "His gaze returns from the empty waist ring as the break in his left eyebrow gathers, and he still grips the piece with that hand off the knot.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-10",
+"ch-4-p-11"
+],
+"action": "Ria watches Doyun's hand stay off the knot as c2 speaks text-habit to Maren.",
+"textIds": [
+"text-habit"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-12"
+],
+"action": "Maren's gloved pulling hand stops, the gaze on the empty ring halts, and the mouth stays closed.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-12"
+],
+"action": "The sack has one knot loop loose and its corner swollen again, the cord taut and the cloth holding, while Doyun holds the leather piece.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-13"
+],
+"action": "c4 speaks text-oneloop after that single loop is already loose.",
+"textIds": [
+"text-oneloop"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-14"
+],
+"action": "c2 speaks text-throw over the empty waist ring, clear of Doyun's thumb.",
+"textIds": [
+"text-throw"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-15"
+],
+"action": "Doyun's thumb presses the empty waist ring while the leather piece remains held and unturned.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-15"
+],
+"action": "His hand comes off the empty ring, the leather piece still held short of a turn toward the entrance stone.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-15"
+],
+"action": "With his hand off the ring, he turns the piece's two-forked arrow toward the entrance stone.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Compared with the s1 image: Lia keeps the chestnut bob, amber eyes and sand jacket; Doyun the black hair, grey eyes, green hooded coat and sword; Maren the red-brown curls, brick vest and work gloves."
+},
+"setting": {
+"passed": true,
+"evidence": "Same outpost yard with stone walls, timber eaves, wet ground and the marked stone at the rear entrance (panel 10) as in s1 panels 2-3 and 6-7; daylight after rain continues."
+},
+"actionTransition": {
+"passed": false,
+"evidence": "s1 ended with Maren's gloved hands cinching a leather strap around the flour sack; s2 panels 4-5 show the sack tied with a twisted rope cord instead, so the borrowed strap changed material between scenes. The opening (Doyun holding the piece, hand off the knot) otherwise follows p10."
+}
+},
+"textObservations": [
+{
+"id": "text-habit",
+"observedText": "마렌 씨. 손힘이 버릇이 되셨습니다. 모서리 보세요. 한 고리만 빼요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail toward Doyun at the right edge (black hair, green coat) while Lia and Maren listen; exact text."
+},
+{
+"id": "text-oneloop",
+"observedText": "한 고리요. 이 끈이 지금 전부라서요.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 6 balloon sits over Bori peeking from the bag; Maren is not in the panel, so her line reads as the marten's."
+},
+{
+"id": "text-throw",
+"observedText": "던질 건 없습니다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 balloon with its tail toward Doyun (holding the leather piece) beside Lia; exact text."
+}
+],
+"evidence": "Ten panels in four rows, left to right. Row 1: Doyun holding the leather piece and glancing down at his belt; Doyun's face with the piece raised; Lia and Maren with Doyun speaking from the right edge. Row 2: Maren's gloved hand resting on the sack cord; the sack tied with rope beside the gloved hand holding the leather piece; Bori in the bag under Maren's balloon. Row 3: Doyun speaking to Lia with the piece in hand; two close-ups of his gloved hand at the belt. Row 4: the leather piece with the carved forked arrow held up toward the marked entrance stone and the rutted path. Costumes, light and the yard stay consistent.",
+"observedPanelCount": 10
+}
+},
+{
+"id": "s3",
+"n": 3,
+"title": "막힌 마당",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-4-p-16",
+"n": 16,
+"text": "거점 앞길에서 바퀴 소리가 겹쳐 왔다. 사슬이 있던 쪽이었다. 아래만 열어 둔 그 길로 보급 수레가 올라오고 있었다. 첫 수레가 마당 입구를 채우자 옆판의 흠이 해에 떴다. 뿔이 긁은 자리였다. 창백한 속살이 드러나 있고, 가장자리는 아직 축축했다. 긴 자국 하나, 그 아래 짧은 자국 둘, 끝에서 방향을 바꾸다 겹친 자국 하나. 되돌아선 자리가 나무에 그대로였다. 리아는 그 수를 입 안에서만 굴렸다. 넷."
+},
+{
+"id": "ch-4-p-17",
+"n": 17,
+"text": "둘째 수레가 뒤를 막았고, 셋째가 처마 그늘까지 밀고 들어왔다. 짐 덮개가 서로의 그림자를 덮자 마당의 빈 돌이 사라졌다. 끌리던 짐승이 제자리에서 발을 구르며 먹이 주머니를 흔들었고, 짐승 땀과 젖은 포대 냄새가 코끝에 섞였다. 마당이 수레로 막히자 뒤편으로 나가던 바람이 끊겼다. 수레를 몬 사람들은 일행 대신 장부 탁자만 보았다. 고삐를 잡은 손이 탁자 쪽을 향한 채, 마당은 말없이 그 칸만 기다렸다."
+},
+{
+"id": "ch-4-p-18",
+"n": 18,
+"text": "가방이 흔들렸다."
+},
+{
+"id": "ch-4-p-19",
+"n": 19,
+"text": "보리가 덮개를 밀어 올리고 귀부터 내밀었다. 코가 수레가 올라온 길, 사슬이 있던 쪽을 가리켰다. 짧은 앞발이 리아의 소매를 밀쳤다."
+},
+{
+"id": "ch-4-p-20",
+"n": 20,
+"text": "“키익.”"
+},
+{
+"id": "ch-4-p-21",
+"n": 21,
+"text": "한 번으로 끝나지 않았다. 꼬리 끝이 제 목으로 말려 올라갔고, 같은 방향을 향해 다시 울었다."
+},
+{
+"id": "ch-4-p-22",
+"n": 22,
+"text": "“꾸. 키익.”"
+},
+{
+"id": "ch-4-p-23",
+"n": 23,
+"text": "목덜미의 크림색 털이 곤두서며, 손등을 따끔하게 스치는 잔빛이 한 점 튀었다. 리아는 그 울음을 탁자 쪽으로 가져가지 않았다. 손등으로 보리를 마른 자리에 붙이며 낮게 불렀다."
+},
+{
+"id": "ch-4-p-24",
+"n": 24,
+"text": "“보리. 있어.”"
+},
+{
+"id": "ch-4-p-25",
+"n": 25,
+"text": "보리는 들어가지 않았다. 귀 두 개가 덮개 밖에 남았고, 사슬 쪽을 향한 채였다."
+}
+],
+"pFrom": 16,
+"pTo": 25,
+"panelCount": 7,
+"image": "img/ep04-s3.webp",
+"blocking": 1,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "옆판의 뿔 자국(긴 자국 하나, 짧은 둘, 겹친 하나)이 어느 칸에도 없음. 2칸은 리아 뒤 바위에 긁힘. ‘넷’의 근거가 화면에서 빠짐(p16).",
+"en": "No panel shows the horn gouge on the first cart's side board: one long mark, two short marks below and one overlapping mark where it turned (p16, beat-gouge, moments 1-2). Panel 1 shows intact cart sides and panel 2 puts Lia against a scratched rock face instead, so the evidence behind the count of four is missing from the page."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 보리 앞발이 소매가 아니라 가방 테두리(p19).",
+"en": "Panel 4 has Bori's forepaw on the bag rim rather than pushing Lia's sleeve (p19, moment 4)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 리아가 손바닥으로 누름. 원문은 손등(p23).",
+"en": "Panel 6 shows Lia's palm and fingers over Bori; p23 and moment 6 have her pressing with the back of her hand while keeping the cry away from the table."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2·6칸: 리아가 손가락 없는 장갑 착용. s1·s2에서는 맨손.",
+"en": "Lia wears dark fingerless gloves in panels 2 and 6 although her hands were bare in the s1 and s2 images."
+}
+],
+"textsTotal": 4,
+"textsOk": 4,
+"timings": {
+"planS": [
+267,
+572
+],
+"preflightS": [
+297,
+263
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 1
+},
+"imageUsd": 0.1312,
+"plan": {
+"intent": "In the damp outpost yard, Ria sees a fresh horn gouge on the first supply cart and keeps the count unspoken. More carts close the yard while the drivers watch only the ledger table. Bori comes out of the bag, aims along the road on the side where a chain had been, and cries a second time with the tail curled to the neck. Ria does not carry that cry to the table; she holds Bori to a dry spot, and both ears stay out toward that road.",
+"staging": "Daylight in the damp outpost yard. The chain-side road is the road the first cart came up; no chain is present, and that road was left open only at the bottom. The first cart's side board can face the sun while the cart fills the yard entrance. The second cart is behind it, and the third reaches the eaves shade. Overlapping cargo-cover shadows hide the empty yard stone without moving it. The ledger table is where the drivers look, and one rein hand aims toward it. The bag is with Ria. From there, Bori's nose only needs the direction of that road, and one short forepaw can meet her sleeve. The tail tip can curl to Bori's own neck. The dry spot is wherever the back of Ria's hand presses Bori; both ears can stay outside the cover. The led animal stamping and shaking a feed pouch belongs to the same jammed yard, not another picture. Sweat, wet-sack smell, and the stopped rear wind are conditions of that jam, not further pictures. The bag shake is already finished before Bori is ears first. Distances among Ria, the bag, the table, the stone, and the carts stay open. These are ordered events, not frames: the artist chooses shapes, framing, and vertical reading, and may share a frame only when the later event is still visibly after the earlier one.",
+"uncertainties": [
+"ch-4-p-20 and ch-4-p-22 have no speaker tags. text-kiik and text-kku are carried by c3 because ch-4-p-21 continues the cry of the marten who has just come out; another speaker is not named.",
+"ch-4-p-23 does not name whose hand the single light speck touches, and it states no wound and no sustained discharge. The speck is not given a source. The prose places the standing fur and the speck before the press; the press event shows them in one contact.",
+"The dry spot is not located. ch-4-p-25 keeps both ears outside the cover and does not say Bori has left the bag.",
+"ch-4-p-16 does not show a chain or a gate as present, does not show the animal that made the gouge, and does not tie the gouge to the led animal.",
+"ch-4-p-17 does not name the led animal's species, which cart it belongs to, what the second cart blocks, or whose nose meets the smell. The empty yard stone is not identified with any earlier entrance stone.",
+"Doyun and Maren are not named in these units, and the drivers are not identified as the party."
+],
+"texts": [
+{
+"id": "text-four",
+"sourceId": "ch-4-p-16",
+"kind": "thought",
+"speaker": "c1",
+"text": "넷."
+},
+{
+"id": "text-kiik",
+"sourceId": "ch-4-p-20",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "키익."
+},
+{
+"id": "text-kku",
+"sourceId": "ch-4-p-22",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "꾸. 키익."
+},
+{
+"id": "text-stay",
+"sourceId": "ch-4-p-24",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "보리. 있어."
+}
+],
+"beats": [
+{
+"id": "beat-gouge",
+"sourceIds": [
+"ch-4-p-16"
+],
+"action": "The first supply cart fills the yard entrance, sunlight on a damp pale horn gouge in the side board: one long mark, two short marks below, and one overlapping mark at the end where the direction changed.",
+"textIds": []
+},
+{
+"id": "beat-four",
+"sourceIds": [
+"ch-4-p-16"
+],
+"action": "With those marks already visible, Ria keeps the count unspoken inside her mouth.",
+"textIds": [
+"text-four"
+]
+},
+{
+"id": "beat-jam",
+"sourceIds": [
+"ch-4-p-17"
+],
+"action": "The second cart is already behind the first and the third is already under the eaves shade, overlapping cargo-cover shadows hide the empty yard stone, and the drivers look only at the ledger table with one rein hand aimed toward it.",
+"textIds": []
+},
+{
+"id": "beat-out",
+"sourceIds": [
+"ch-4-p-19",
+"ch-4-p-20"
+],
+"action": "Bori is out of the bag ears first, cover pushed up, nose along the chain-side road, one short forepaw on Ria's sleeve, giving the first cry.",
+"textIds": [
+"text-kiik"
+]
+},
+{
+"id": "beat-repeat",
+"sourceIds": [
+"ch-4-p-21",
+"ch-4-p-22"
+],
+"action": "Bori's tail tip curls up to Bori's own neck as Bori cries again toward that same road.",
+"textIds": [
+"text-kku"
+]
+},
+{
+"id": "beat-press",
+"sourceIds": [
+"ch-4-p-23",
+"ch-4-p-24"
+],
+"action": "Ria keeps the cry off the ledger table and presses Bori to a dry spot with the back of her hand while cream fur stands on the nape and one light speck touches the back of a hand.",
+"textIds": [
+"text-stay"
+]
+},
+{
+"id": "beat-ears",
+"sourceIds": [
+"ch-4-p-25"
+],
+"action": "Bori does not go in, and both ears remain outside the cover, aimed at the chain side.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-approach",
+"sourceIds": [
+"ch-4-p-16"
+],
+"statement": "Before the first cart fills the yard entrance, overlapping wheel sounds come along the road in front of the outpost on the side where a chain had been, and a supply cart comes up the road that was left open only at the bottom."
+},
+{
+"id": "fact-gouge",
+"sourceIds": [
+"ch-4-p-16"
+],
+"statement": "The first supply cart fills the yard entrance. Sunlight catches a horn scrape on the side board: pale inner wood shows, the edges are still damp, the marks are one long mark, two short marks below it, and one overlapping mark at the end where the direction changed, and the place it turned back remains in the wood."
+},
+{
+"id": "fact-count",
+"sourceIds": [
+"ch-4-p-16"
+],
+"statement": "Ria turns that count over only inside her mouth."
+},
+{
+"id": "fact-carts",
+"sourceIds": [
+"ch-4-p-17"
+],
+"statement": "A second cart is behind and closes the way behind it, and a third pushes in as far as the eaves shade."
+},
+{
+"id": "fact-stone",
+"sourceIds": [
+"ch-4-p-17"
+],
+"statement": "When the cargo covers lay their shadows over one another, the empty stone in the yard is no longer visible."
+},
+{
+"id": "fact-animal",
+"sourceIds": [
+"ch-4-p-17"
+],
+"statement": "The animal being led stamps in place and shakes a feed pouch."
+},
+{
+"id": "fact-air",
+"sourceIds": [
+"ch-4-p-17"
+],
+"statement": "Animal sweat and the smell of wet sacks mix at the tip of a nose. Once the carts block the yard, the wind that was leaving toward the rear stops."
+},
+{
+"id": "fact-drivers",
+"sourceIds": [
+"ch-4-p-17"
+],
+"statement": "The people driving the carts look only at the ledger table rather than at the party. A hand holding the reins stays aimed toward the table, and the yard waits in silence for that place alone."
+},
+{
+"id": "fact-shake",
+"sourceIds": [
+"ch-4-p-18"
+],
+"statement": "The bag shakes before Bori pushes the cover up."
+},
+{
+"id": "fact-bori",
+"sourceIds": [
+"ch-4-p-19"
+],
+"statement": "Bori pushes the cover up and comes out ears first. The nose points along the road the cart came up, the side where a chain had been. One short forepaw pushes Ria's sleeve."
+},
+{
+"id": "fact-again",
+"sourceIds": [
+"ch-4-p-21"
+],
+"statement": "The cry does not finish as one sound. The tail tip curls up to Bori's own neck, and Bori cries again toward the same direction."
+},
+{
+"id": "fact-speck",
+"sourceIds": [
+"ch-4-p-23"
+],
+"statement": "Cream fur on the nape stands, and one speck of light flicks across the back of a hand with a sting."
+},
+{
+"id": "fact-press",
+"sourceIds": [
+"ch-4-p-23"
+],
+"statement": "Ria does not take that cry toward the table. With the back of her hand she presses Bori to a dry spot and calls low."
+},
+{
+"id": "fact-ears",
+"sourceIds": [
+"ch-4-p-25"
+],
+"statement": "Bori does not go in. Both ears remain outside the cover, aimed toward the chain side."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic with expressive ink, adult Ria and a small cute marten, damp daylight in a mountain outpost yard after rain.",
+"moments": [
+{
+"sourceIds": [
+"ch-4-p-16"
+],
+"action": "The first supply cart fills the yard entrance as sunlight catches a damp pale horn scrape: one long mark, two short marks below, and one overlapping mark where it turned.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-16"
+],
+"action": "Ria keeps that count unspoken inside her mouth, the same scraped board still in sight.",
+"textIds": [
+"text-four"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-17"
+],
+"action": "The second cart sits behind the first and the third rests under the eaves shade; overlapping cover shadows conceal the empty yard stone while drivers watch only the ledger table, one rein hand aimed there.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-19",
+"ch-4-p-20"
+],
+"action": "Bori comes out ears first under the raised cover, nose toward the chain-side road, one short forepaw on Ria's sleeve, and gives the first cry.",
+"textIds": [
+"text-kiik"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-21",
+"ch-4-p-22"
+],
+"action": "Bori's tail tip curls up to Bori's own neck as Bori cries again toward that same road.",
+"textIds": [
+"text-kku"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-23",
+"ch-4-p-24"
+],
+"action": "Ria presses Bori to a dry spot with the back of her hand and calls low, cream fur standing on the nape, one light speck on a hand's back.",
+"textIds": [
+"text-stay"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-25"
+],
+"action": "Both of Bori's ears stay outside the cover, aimed toward the chain side.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": false,
+"evidence": "Lia keeps the chestnut bob, amber eyes and sand jacket from s1-s2, but in panels 2 and 6 she wears dark fingerless gloves on both hands; in the s2 image (panels 3 and 7) and s1 her hands were bare."
+},
+"setting": {
+"passed": true,
+"evidence": "Same stone outpost with timber eaves, wet yard and rocky slopes as s1-s2; the carts arrive on the road beside the building and crowd the yard in panel 3, matching p16-p17."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s2 ended with Doyun turning the piece toward the entrance stone; s3 opens with the carts coming up the chain-side road and the yard filling, which is the next event in p16 without contradicting the s2 ending (Doyun and Maren are simply out of frame)."
+}
+},
+"textObservations": [
+{
+"id": "text-four",
+"observedText": "넷.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 thought bubble beside Lia with her knuckle at her lips; exact text."
+},
+{
+"id": "text-kiik",
+"observedText": "키익.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon over Bori's head as it comes out of the bag; exact text."
+},
+{
+"id": "text-kku",
+"observedText": "꾸. 키익.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon beside Bori with its mouth open; exact text."
+},
+{
+"id": "text-stay",
+"observedText": "보리. 있어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail toward Lia leaning over the bag; exact text."
+}
+],
+"evidence": "Seven panels in four rows. Row 1: a wide shot of covered supply carts drawn by horses arriving at the outpost road under the cliff. Row 2: Lia in profile with her knuckle at her lips and the thought bubble; the yard filled with three covered carts while drivers stand at the ledger counter under the eaves. Row 3: Bori's head out of the bag under Lia's sleeve with the first cry; Bori crying again with the dark-tipped tail curled up behind its neck. Row 4: Lia pressing her gloved hand over Bori in the bag while speaking; Bori's back with both ears up, facing the wet rutted road. Light, yard and cast stay consistent within the scene.",
+"observedPanelCount": 7
+}
+},
+{
+"id": "s4",
+"n": 4,
+"title": "삼킨 수",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-4-p-26",
+"n": 26,
+"text": "탁자 뒤의 사람이 장부를 돌려 빈칸을 보여 주었다. 약이 들어간 줄 아래, 동쪽 칸은 비어 있었다. 손톱이 그 칸의 모서리를 두드렸다."
+},
+{
+"id": "ch-4-p-27",
+"n": 27,
+"text": "“여기 통행 한 줄이 있어야 대기 수레가 다음 길에 짐을 싣고 나갑니다. 비었다고 적히면 대기 짐까지 실려요. 자국이 있다고 적히면 수레는 이 마당에 붙들어 둡니다.”"
+},
+{
+"id": "ch-4-p-28",
+"n": 28,
+"text": "셋째 수레의 바퀴가 돌에 걸린 채 삐걱였다. 해는 처마를 넘어 덮개 위로 기울어 있었다. 새벽부터 막혀 있던 행렬이 마당에 겹쳐 선 채 그 칸만 보고 있었다. 뒤에서 또 하나의 굴림이 사슬 쪽 길에 낮게 깔렸다. 줄을 받지 못한 수레가 밤을 세울 자리는 이미 없었다."
+},
+{
+"id": "ch-4-p-29",
+"n": 29,
+"text": "도윤은 탁자 밖에 있었다. 뒤편 입구 돌 앞에 무릎을 굽히고, 가죽 조각의 짧은 선을 돌의 금에 겹쳐 보고 있었다. 화살표의 꺾인 각은 비슷했다. 짧은 선은 아직 포개지지 않았다. 돌의 금은 닳아 희미해서, 그는 손톱으로 홈을 더듬었다가 조각을 다시 들었다. 무릎 꿇은 그 자리만 바깥빛을 받고 있었다."
+},
+{
+"id": "ch-4-p-30",
+"n": 30,
+"text": "리아가 펜을 오른손에 쥐었다. 손목이 접히며 펜대가 탁자를 굴렀다. 펜은 왼손으로 옮겨졌고, 오른손은 소매 안으로 들어갔다. 옆판의 흠이 다시 눈에 걸렸다. 축축한 속살은 네 갈래였고, 장부의 칸은 하얗다. 넷이라는 수가 혀 끝에 있다가, 대기 더미의 높이 앞에서 도로 들어갔다. 되돌아선 자리, 보리의 울음, 펴지지 않는 손목, 표식을 새긴 손의 이름도 그 더미 앞에서 갈라졌다. 이름은 입안에 걸렸다가 삼켜졌다."
+},
+{
+"id": "ch-4-p-31",
+"n": 31,
+"text": "마렌이 자루를 무릎으로 고정한 채 탁자를 보았다."
+},
+{
+"id": "ch-4-p-32",
+"n": 32,
+"text": "“리아. 수레가 그 칸만 봐요.”"
+}
+],
+"pFrom": 26,
+"pTo": 32,
+"panelCount": 5,
+"image": "img/ep04-s4.webp",
+"blocking": 3,
+"advisory": 4,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 장부에 없는 표(순번/출발지/통행/비고)와 이름 ‘리우스’, ‘카렌’ 창작. 계획된 텍스트 3개 외 글자 렌더.",
+"en": "Panel 1 letters an invented ledger table (headings 순번/출발지/통행/비고 and the names 리우스, 카렌) that appears nowhere in the source or the plan; the plan limits lettering to the three selected texts and the yard's carts have no named origins."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 펜이 리아 오른손. 원문 p30은 손목이 접혀 왼손으로 옮기고 오른손은 소매 안.",
+"en": "Panel 4 shows the pen in Lia's right hand with her left hand at her chin; p30 and moment 4 have the pen passed to her left hand and the right hand hidden in her sleeve after the wrist folds."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 바퀴 옆 계획에 없는 효과음 글자.",
+"en": "Panel 2 adds a small sound-effect scrawl beside the front cart wheel; the plan has no sfx text and forbids inventing lettering."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 도윤이 말 옆에 서 있음. 원문 p29는 탁자 밖 입구 돌 앞에 무릎(3칸에만 표현).",
+"en": "Panel 2 places Doyun standing beside the horse at the front cart; p29 has him outside the table kneeling at the rear-entrance stone, which only panel 3 shows."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 리아 눈에 걸리는 옆판 네 갈래 자국 없음(p30).",
+"en": "Panel 4 does not show the cart side board's four damp branches that catch Lia's eye (p30, moment 4); only the sack pile and the white cell are visible."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸: 마렌이 자루를 무릎이 아니라 팔뚝으로 누름(p31).",
+"en": "Panel 5 has Maren leaning on the sack with her forearms rather than fixing it with her knee (p31)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸: ‘리아’ → ‘리야’. 한 글자 변형.",
+"en": "Panel 5 balloon reads 리야 instead of 리아; one character altered by the image model."
+}
+],
+"textsTotal": 3,
+"textsOk": 3,
+"timings": {
+"planS": [
+328
+],
+"preflightS": [
+282
+],
+"imageS": 59,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1312,
+"plan": {
+"intent": "In the crowded outpost yard the blank east cell is the passage line a waiting cart needs. Over the open ledger, that line lets the cart load and leave on the next road; written as empty, the waiting cargo loads too; written as traces, the cart stays held in the yard. The third cart's wheel creaks where it is caught on a stone, the sun has passed the eaves onto the covers, and the line blocked since dawn stands overlapped, watching only that cell, while another low rolling comes on the chain-side road behind and a cart still without the line already has no place to spend the night. Outside the table, Doyun kneels in the one patch of outside light and tests the short line of a leather scrap against the worn crack; the arrow's bent angle is similar, the short line still fails to overlap, and he traces the groove and lifts the scrap. At the table Ria takes the pen in her right hand, the wrist folds, the shaft rolls, the pen passes to her left hand, and the right hand goes into the sleeve. The side board's damp inner wood is four branches against the white cell. Four reaches her tongue and withdraws before the height of the waiting pile; the place that turned back, Bori's cry, the wrist that will not straighten, and the name of the hand that carved the mark come apart there, and the name is swallowed. Maren, a sack fixed with her knee, looks at the table and tells Ria the carts are watching only that cell.",
+"staging": "Daylight in the damp outpost yard. The ledger is on the table, turned by the person behind it so the empty east cell shows below the entered medicine line, with a fingernail at that cell's corner. Letter the passage rule as that person's speech and keep that person distinct from Ria, Doyun, Bori, and Maren. Ria is at the table with the pen, right hand then left hand, right hand inside the sleeve, and the side-board flaw is visible again from there; its damp inner wood reads as four branches, matching the gouge already on the supply cart in the yard. The ledger cell stays white. The waiting pile has a height before her. The third cart is in the same yard with a wheel caught on a stone. The overlapped procession looks toward that cell. Sun is past the eaves on the cover. Doyun is outside the table, kneeling at the rear entrance stone with the leather scrap against the crack, and only that kneeling place has the outside light. Maren is by the table with a sack fixed under her knee, looking at the table. A low rolling sound is on the chain-side road behind. Distances among table, carts, rear stone, side board, and pile stay open. These are ordered events: a later event can share a frame when it remains visibly later. The artist chooses shapes, framing, and vertical reading.",
+"uncertainties": [
+"ch-4-p-27 leaves the speaker unnamed. The words follow the person behind the table, who has no foundation id. text-rule uses narrator so the line is not placed in c1, c2, c3, or c4.",
+"ch-4-p-26 brings in a fingernail on the cell corner after that person turns the ledger, and names no separate owner. The person being shown the ledger is also unnamed.",
+"ch-4-p-29 gives the leather scrap a short line and says the arrow's bent angle is similar. Which surface carries the arrow stays open.",
+"The rear entrance stone, any earlier yard stone, and the stone under the third wheel are separate mentions in the available units.",
+"ch-4-p-28 names the chain-side road. A chain as an object is outside this excerpt. The new rolling is sound from behind and is not an arrival into the yard.",
+"The swallowed name has no letters in ch-4-p-30. The number four is narrated at the tongue and then withdrawn, so text-four is the unsaid count. Bori's cry is one of the things that come apart before the pile; these units give Bori no new action.",
+"Where the waiting pile stands, and whether Ria is physically in front of it, stays open. The entered medicine line has no quoted wording. Which cart cover receives the sun stays open among the covers.",
+"ch-4-p-32 has no speaker tag. Attribution to c4 follows the preceding sentence, the vocative to c1, and the polite ending. During this passage c2 is at the rear entrance stone."
+],
+"texts": [
+{
+"id": "text-rule",
+"sourceId": "ch-4-p-27",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "여기 통행 한 줄이 있어야 대기 수레가 다음 길에 짐을 싣고 나갑니다. 비었다고 적히면 대기 짐까지 실려요. 자국이 있다고 적히면 수레는 이 마당에 붙들어 둡니다."
+},
+{
+"id": "text-four",
+"sourceId": "ch-4-p-30",
+"kind": "thought",
+"speaker": "c1",
+"text": "넷"
+},
+{
+"id": "text-maren",
+"sourceId": "ch-4-p-32",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "리아. 수레가 그 칸만 봐요."
+}
+],
+"beats": [
+{
+"id": "beat-show",
+"sourceIds": [
+"ch-4-p-26"
+],
+"action": "The person behind the table turns the ledger to the empty east cell below the entered medicine line, and a fingernail taps that cell's corner.",
+"textIds": []
+},
+{
+"id": "beat-rule",
+"sourceIds": [
+"ch-4-p-27"
+],
+"action": "With the blank cell shown, the passage rule is spoken: the waiting cart needs that line to load and leave, an empty entry loads the waiting cargo too, and an entry of traces holds the cart in the yard.",
+"textIds": [
+"text-rule"
+]
+},
+{
+"id": "beat-jam",
+"sourceIds": [
+"ch-4-p-28"
+],
+"action": "The third cart's wheel creaks while caught on a stone, the sun lies past the eaves on the cover, and the procession blocked since dawn stands overlapped in the yard looking only at that cell.",
+"textIds": []
+},
+{
+"id": "beat-roll",
+"sourceIds": [
+"ch-4-p-28"
+],
+"action": "Another rolling sound lies low on the chain-side road behind them, and a cart that has not received the line already has no place to spend the night.",
+"textIds": []
+},
+{
+"id": "beat-kneel",
+"sourceIds": [
+"ch-4-p-29"
+],
+"action": "Outside the table, Doyun kneels at the rear entrance stone in the only outside light, tests the short leather line against the faint crack, finds the arrow's bent angle similar while the short line still fails to overlap, traces the groove with a fingernail, and lifts the scrap again.",
+"textIds": []
+},
+{
+"id": "beat-pen",
+"sourceIds": [
+"ch-4-p-30"
+],
+"action": "Ria grips the pen in her right hand, the wrist folds, the shaft rolls on the table, the pen passes to her left hand, and the right hand goes into the sleeve.",
+"textIds": []
+},
+{
+"id": "beat-swallow",
+"sourceIds": [
+"ch-4-p-30"
+],
+"action": "The side board's flaw catches her eye again, its damp inner wood four-branched against the white cell. Four reaches her tongue and withdraws before the height of the waiting pile, and the turned-back place, Bori's cry, the wrist that will not straighten, and the mark-carver's name come apart there as the name is swallowed.",
+"textIds": [
+"text-four"
+]
+},
+{
+"id": "beat-maren",
+"sourceIds": [
+"ch-4-p-31",
+"ch-4-p-32"
+],
+"action": "Maren, sack fixed with her knee, looks at the table and tells Ria that the carts are looking only at that cell.",
+"textIds": [
+"text-maren"
+]
+}
+],
+"facts": [
+{
+"id": "fact-blank",
+"sourceIds": [
+"ch-4-p-26"
+],
+"statement": "The person behind the table turns the ledger and shows an empty space. Below the line where medicine was entered, the east cell is empty. A fingernail taps the corner of that cell."
+},
+{
+"id": "fact-rule",
+"sourceIds": [
+"ch-4-p-27"
+],
+"statement": "The spoken rule says one passage line must be there for the waiting cart to load cargo and leave on the next road. If the cell is written as empty, the waiting cargo is loaded as well. If it is written that there are traces, the cart is held in this yard."
+},
+{
+"id": "fact-wheel",
+"sourceIds": [
+"ch-4-p-28"
+],
+"statement": "The third cart's wheel creaks while caught on a stone."
+},
+{
+"id": "fact-sun",
+"sourceIds": [
+"ch-4-p-28"
+],
+"statement": "The sun has tilted past the eaves onto the cover."
+},
+{
+"id": "fact-stare",
+"sourceIds": [
+"ch-4-p-28"
+],
+"statement": "The procession blocked since dawn stands overlapped in the yard, looking only at that cell."
+},
+{
+"id": "fact-roll",
+"sourceIds": [
+"ch-4-p-28"
+],
+"statement": "From behind, another rolling sound lies low on the chain-side road."
+},
+{
+"id": "fact-night",
+"sourceIds": [
+"ch-4-p-28"
+],
+"statement": "A cart that has not received the passage line already has no place to spend the night."
+},
+{
+"id": "fact-kneel",
+"sourceIds": [
+"ch-4-p-29"
+],
+"statement": "Doyun is outside the table. He kneels in front of the rear entrance stone and holds the short line of a leather scrap against the crack in the stone. The bent angle of the arrow is similar. The short line has not overlapped yet. The crack is worn and faint, so he traces the groove with a fingernail and then lifts the scrap again. Only the place where he kneels receives the outside light."
+},
+{
+"id": "fact-pen",
+"sourceIds": [
+"ch-4-p-30"
+],
+"statement": "Ria grips the pen in her right hand. The wrist folds and the pen shaft rolls on the table. The pen is transferred to the left hand, and the right hand goes inside the sleeve."
+},
+{
+"id": "fact-wood",
+"sourceIds": [
+"ch-4-p-30"
+],
+"statement": "The flaw on the side board catches her eye again. The damp inner wood is four-branched, and the ledger cell is white."
+},
+{
+"id": "fact-swallow",
+"sourceIds": [
+"ch-4-p-30"
+],
+"statement": "The number four sits at the tip of her tongue and then goes back in before the height of the waiting pile. In front of that pile, the place that turned back, Bori's cry, the wrist that will not straighten, and the name of the hand that carved the mark come apart. The name catches in her mouth and is swallowed."
+},
+{
+"id": "fact-sack",
+"sourceIds": [
+"ch-4-p-31"
+],
+"statement": "Maren looks at the table while holding a sack fixed with her knee."
+},
+{
+"id": "fact-address",
+"sourceIds": [
+"ch-4-p-32"
+],
+"statement": "The line that follows addresses Ria and says the carts are looking only at that cell."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic, expressive ink, adult cast, cute small marten, damp mountain-outpost daylight after rain.",
+"moments": [
+{
+"sourceIds": [
+"ch-4-p-26",
+"ch-4-p-27"
+],
+"action": "The person behind the table shows the ledger's empty east cell beneath a filled line, fingernail on that cell's corner, speaking the passage rule.",
+"textIds": [
+"text-rule"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-28"
+],
+"action": "The third cart's wheel creaks caught on a stone, sun past the eaves on a cover, and the overlapped procession stares only at the empty cell, the yard packed tight.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-29"
+],
+"action": "Doyun kneels at the rear entrance stone in the one lit patch, lifting the leather scrap whose short line still misses the worn crack despite a similar bend.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-30"
+],
+"action": "Ria holds the pen in her left hand, right hand in her sleeve, seeing the cart board's four damp branches and the still-white cell, the count unsaid before the tall pile.",
+"textIds": [
+"text-four"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-31",
+"ch-4-p-32"
+],
+"action": "Maren, a sack fixed under her knee, looks at the table and tells Ria the carts are watching only that cell.",
+"textIds": [
+"text-maren"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia keeps the chestnut bob, amber eyes, sand jacket and the fingerless gloves seen in s3; Doyun the black hair, green hooded coat and sword; Maren the red curls, brick vest and gloves; the clerk is a new bearded man in a cap, consistent within the scene."
+},
+"setting": {
+"passed": true,
+"evidence": "The crowded yard with covered carts, wet ground, stone outpost and counter under the eaves continues from s3 panel 3; the rear-entrance stone with the forked mark matches s1-s2."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s3 ended with Bori's ears aimed at the road; s4 opens at the ledger with the clerk showing the empty cell (p26-27), the next event, and the carts remain jammed as in s3."
+}
+},
+"textObservations": [
+{
+"id": "text-rule",
+"observedText": "여기 통행 한 줄이 있어야 대기 수레가 다음 길에 짐을 싣고 나갑니다. 비었다고 적히면 대기 짐까지 실려요. 자국이 있다고 적히면 수레는 이 마당에 붙들어 둡니다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail at the bearded clerk behind the ledger; exact text."
+},
+{
+"id": "text-four",
+"observedText": "넷",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 thought bubble beside Lia at the ledger; exact text."
+},
+{
+"id": "text-maren",
+"observedText": "리야. 수레가 그 칸만 봐요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail at Maren leaning over the sack; one syllable differs from the source (리아 → 리야)."
+}
+],
+"evidence": "Five panels in four rows. Row 1: the clerk's finger on an open ledger drawn with a four-column table and entries. Row 2: the jammed yard, Doyun beside a horse at left, a queue of drivers at the counter at right, a small sound-effect scrawl at the front wheel. Row 3: Doyun kneeling at the marked stone holding the scrap; Lia at the ledger with a pen, hand at her chin, beside a tall stack of sacks. Row 4: Maren leaning on a sack speaking to Lia, who holds the pen. Light and setting stay coherent.",
+"observedPanelCount": 5
+}
+},
+{
+"id": "s5",
+"n": 5,
+"title": "오늘은 비어 있습니다",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-4-p-33",
+"n": 33,
+"text": "“마렌 씨. 칸은 제가 적을게요.”"
+},
+{
+"id": "ch-4-p-34",
+"n": 34,
+"text": "대기 더미가 첫 수레 옆에 쌓여 있었다. 아직 어느 짐칸에도 오르지 않은 자루들이었다. 줄이 무거우면 더미는 마당에 남고, 줄이 가벼우면 확인 전의 굽이로 올라간다. 리아는 더미와, 아직 어긋난 조각과, 덮개 밖의 귀를 한 번에 보았다."
+},
+{
+"id": "ch-4-p-35",
+"n": 35,
+"text": "펜 끝이 닿기 직전, 보리가 사슬 쪽으로 또 울었다. 리아는 그 소리를 칸에 넣지 않았다."
+},
+{
+"id": "ch-4-p-36",
+"n": 36,
+"text": "“다음 통행은 뒤편 좁은 굽이입니다. 자국은 낡은 것이고, 오늘은 비어 있습니다.”"
+},
+{
+"id": "ch-4-p-37",
+"n": 37,
+"text": "왼쪽 손으로 쓴 글씨가 기울어 한 줄을 채웠다. 수는 빠졌고, 울음도 빠졌다. 탁자 뒤의 사람이 그 줄을 소리 내어 읽더니, 같은 문장을 쪽지에 베어 리아에게 내밀고, 대기 더미에 분필 표시를 했다."
+},
+{
+"id": "ch-4-p-38",
+"n": 38,
+"text": "“통행, 비어 있음. 추가 짐은 아침에 서명한 검 앞에 내리세요. 받는 자리가 거기입니다.”"
+}
+],
+"pFrom": 33,
+"pTo": 38,
+"panelCount": 4,
+"image": "img/ep04-s5.webp",
+"blocking": 2,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 보리가 마당 바닥에 내려와 울음. 원문 p25·p35는 가방 안에서 귀만 내놓고 욺. 창작 동작.",
+"en": "Panel 2 puts Bori on the ground in the yard between the cart wheels, crying; p25 and p35 keep Bori inside the bag with only its ears outside the cover, and beat-cry / moment 2 have it cry from the bag beside Ria's pen. The marten leaving the bag is an invented action."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·3칸: 펜이 리아 오른손, 오른손 맨손. 원문 p37은 왼손 글씨, 오른손은 소매 안. s4와 같은 결함.",
+"en": "Panels 1 and 3 show the pen in Lia's right hand with the right hand bare on the page; p37 and moments 1-3 require the left hand writing and the right hand kept in the sleeve."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 표식 깃발이 마당에 걸리고 쪽지에도 표식. 원문의 표식은 입구 돌과 가죽 조각뿐, 쪽지는 문장 베낀 것.",
+"en": "Panel 4 hangs a banner with the forked mark over the yard and draws the same mark on the slip the clerk holds; the source has the mark only on the entrance stone and the leather piece, and the slip carries the copied sentence."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 수레 옆에 사슬. ‘사슬 쪽’은 사슬이 있던 길 방향(p35).",
+"en": "Panel 2 drapes a chain on the cart's side; ch-4-p-35 says Bori cries toward the chain side (the road where the chains were), not that any cart carries a chain."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 대기 더미의 분필 표시 없음(p37).",
+"en": "Panel 4 does not show the chalk mark on the waiting pile (p37, moment 4); the sacks at left are unmarked."
+}
+],
+"textsTotal": 5,
+"textsOk": 5,
+"timings": {
+"planS": [
+216
+],
+"preflightS": [
+316
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1312,
+"plan": {
+"intent": "Ria takes the blank cell in front of Maren while the waiting sacks still sit beside the first cart. A heavy line would leave that pile in the yard, and a light line would send it up to the bend before confirmation, and in one glance she holds the pile, a piece that still fails to match, and an ear outside a cover. Before the pen tip touches, Bori cries again toward the chain side. Ria enters a single slanted left-hand line that calls the rear bend old in its traces and empty today, and she leaves both the count and that cry out of it. The person behind the table reads the line back, copies it onto a slip for her, chalks the pile, and sends the extra cargo to the receiving place in front of the sword that signed in the morning.",
+"staging": "Daylight in the damp outpost yard, at the same table where the ledger cell is written. Ria is at the table, pen in the left hand, right hand remaining in the sleeve. Maren is near enough to be addressed. The waiting sacks are piled beside the first cart and remain outside every cargo compartment. From Ria's glance the pile, a still-misaligned piece, and an ear outside a cover can be seen together; distances among table, pile, piece, and cover stay open. Bori's cry is aimed toward the chain side before the pen tip meets the page. The person behind the table is distinct from Ria, Doyun, Bori, and Maren, and stays behind the table while reading the finished slanted line, copying that same sentence onto a slip, offering the slip to Ria, and chalking the waiting pile. The extra-cargo receiving place is the spot in front of the sword that signed in the morning; where that sword stands relative to the table is unspecified. The pile remains in the yard through these actions. The artist chooses framing and the vertical reading order. A later event may share a frame when it stays visibly later.",
+"uncertainties": [
+"ch-4-p-33 has no speaker tag. text-offer is assigned to c1 from the vocative to Maren, the offer to write the cell, the pen already in Ria's hand, and polite speech toward an older adult.",
+"ch-4-p-36 has no speaker tag. It is the sentence the person behind the table afterward reads aloud and copies, so text-line is lettered once as the line Ria enters. The later reading repeats that sentence and is not a second wording.",
+"ch-4-p-34 does not name the still-misaligned piece, so it is unresolved whether the piece is the leather scrap, a map fragment, or an object in a particular hand.",
+"The cover that leaves an ear outside is not identified as a bag or a cart cover. Bori is the one who cries in ch-4-p-35; these units give no further body position.",
+"ch-4-p-35 names the chain side as the direction of the cry. A chain as a visible object is not described, and no arrival comes in from that side.",
+"The bend before confirmation in ch-4-p-34 and the narrow rear bend in ch-4-p-36 are not stated to be the same place.",
+"ch-4-p-38 does not identify the sword that signed in the morning as Doyun or as a weapon, and it does not locate that sword.",
+"The chalk mark's shape and any words inside the mark are unspecified. The omitted count in ch-4-p-37 has no digits in these units.",
+"These units give Doyun no new action and give Maren no reply. The heavy-line and light-line outcomes are a standing rule; the pile is not shown traveling."
+],
+"texts": [
+{
+"id": "text-offer",
+"sourceId": "ch-4-p-33",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“마렌 씨. 칸은 제가 적을게요.”"
+},
+{
+"id": "text-weight",
+"sourceId": "ch-4-p-34",
+"kind": "caption",
+"speaker": "narrator",
+"text": "줄이 무거우면 더미는 마당에 남고, 줄이 가벼우면 확인 전의 굽이로 올라간다."
+},
+{
+"id": "text-line",
+"sourceId": "ch-4-p-36",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“다음 통행은 뒤편 좁은 굽이입니다. 자국은 낡은 것이고, 오늘은 비어 있습니다.”"
+},
+{
+"id": "text-omit",
+"sourceId": "ch-4-p-37",
+"kind": "caption",
+"speaker": "narrator",
+"text": "수는 빠졌고, 울음도 빠졌다."
+},
+{
+"id": "text-receive",
+"sourceId": "ch-4-p-38",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "“통행, 비어 있음. 추가 짐은 아침에 서명한 검 앞에 내리세요. 받는 자리가 거기입니다.”"
+}
+],
+"beats": [
+{
+"id": "beat-offer",
+"sourceIds": [
+"ch-4-p-33"
+],
+"action": "Ria tells Maren that she herself will write the cell.",
+"textIds": [
+"text-offer"
+]
+},
+{
+"id": "beat-glance",
+"sourceIds": [
+"ch-4-p-34"
+],
+"action": "Ria takes in at one glance the unloaded sacks piled beside the first cart, the piece that is still out of alignment, and the ear outside the cover, with the yard rule that a heavy line keeps the pile there and a light line sends it up to the bend before confirmation.",
+"textIds": [
+"text-weight"
+]
+},
+{
+"id": "beat-cry",
+"sourceIds": [
+"ch-4-p-35"
+],
+"action": "Just before the pen tip touches, Bori cries again toward the chain side, and Ria keeps that sound out of the cell.",
+"textIds": []
+},
+{
+"id": "beat-line",
+"sourceIds": [
+"ch-4-p-36"
+],
+"action": "She gives the passage line that the next passage is the narrow bend at the rear, the traces are old, and today it is empty.",
+"textIds": [
+"text-line"
+]
+},
+{
+"id": "beat-omit",
+"sourceIds": [
+"ch-4-p-37"
+],
+"action": "Her left hand fills one slanted line, and both the count and the cry stay out of that line.",
+"textIds": [
+"text-omit"
+]
+},
+{
+"id": "beat-clerk",
+"sourceIds": [
+"ch-4-p-37",
+"ch-4-p-38"
+],
+"action": "The person behind the table reads that line aloud, copies the same sentence onto a slip, holds the slip out to Ria, chalks the waiting pile, and directs the extra cargo to the receiving place in front of the sword that signed in the morning.",
+"textIds": [
+"text-receive"
+]
+}
+],
+"facts": [
+{
+"id": "fact-offer",
+"sourceIds": [
+"ch-4-p-33"
+],
+"statement": "Maren is addressed by name and told that the speaker will write the cell."
+},
+{
+"id": "fact-pile",
+"sourceIds": [
+"ch-4-p-34"
+],
+"statement": "The waiting pile is stacked beside the first cart. Its sacks have not yet gone up into any cargo compartment."
+},
+{
+"id": "fact-weight",
+"sourceIds": [
+"ch-4-p-34"
+],
+"statement": "If the line is heavy, the pile stays in the yard. If the line is light, the pile goes up to the bend that precedes confirmation."
+},
+{
+"id": "fact-glance",
+"sourceIds": [
+"ch-4-p-34"
+],
+"statement": "Ria sees, in one glance, the pile, a piece that is still out of alignment, and an ear outside a cover."
+},
+{
+"id": "fact-cry",
+"sourceIds": [
+"ch-4-p-35"
+],
+"statement": "Just before the pen tip touches, Bori cries again toward the chain side. Ria does not enter that sound in the cell."
+},
+{
+"id": "fact-passage",
+"sourceIds": [
+"ch-4-p-36"
+],
+"statement": "The passage line given here says the next passage is the narrow bend at the rear, the traces are old, and today it is empty."
+},
+{
+"id": "fact-hand",
+"sourceIds": [
+"ch-4-p-37"
+],
+"statement": "The line written with the left hand slants and fills one line. The count is absent from it, and the cry is absent from it."
+},
+{
+"id": "fact-clerk",
+"sourceIds": [
+"ch-4-p-37"
+],
+"statement": "The person behind the table reads that line aloud, copies the same sentence onto a slip, holds the slip out to Ria, and puts a chalk mark on the waiting pile."
+},
+{
+"id": "fact-receive",
+"sourceIds": [
+"ch-4-p-38"
+],
+"statement": "The speech that follows calls the passage empty, directs the extra cargo to be set down in front of the sword that signed in the morning, and calls that spot the receiving place."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic with expressive ink lines, adult cast, and a small marten, in wet daylight at a mountain outpost yard.",
+"moments": [
+{
+"sourceIds": [
+"ch-4-p-33",
+"ch-4-p-34"
+],
+"action": "Ria, left hand on the pen and right hand sleeved, tells Maren she will write the cell as sacks beside the first cart, a misaligned piece, and an ear outside a cover share one glance.",
+"textIds": [
+"text-offer",
+"text-weight"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-35"
+],
+"action": "Bori cries toward the chain side while Ria's left-hand pen hovers short of the page and her right hand stays sleeved.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-4-p-36",
+"ch-4-p-37"
+],
+"action": "The finished slanted line in Ria's left-hand writing fills the ledger cell, her right hand sleeved.",
+"textIds": [
+"text-line",
+"text-omit"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-37",
+"ch-4-p-38"
+],
+"action": "The clerk behind the table holds a slip out to Ria and speaks, the waiting pile already chalked beside the first cart.",
+"textIds": [
+"text-receive"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia (chestnut bob, amber eyes, sand jacket, fingerless gloves), Maren (red curls, brick vest, work gloves) and the bearded clerk in a cap match the s4 image."
+},
+"setting": {
+"passed": true,
+"evidence": "The ledger counter under the eaves, the jammed covered carts, wet ground and the rear-entrance stone with the forked mark continue from s4."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s4 ended with Maren telling Lia the carts watch only that cell; s5 opens with Lia answering her across the ledger (p33), the next line."
+}
+},
+"textObservations": [
+{
+"id": "text-offer",
+"observedText": "“마렌 씨. 칸은 제가 적을게요.”",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail toward Lia facing Maren across the ledger; exact text with quotation marks."
+},
+{
+"id": "text-weight",
+"observedText": "줄이 무거우면 더미는 마당에 남고, 줄이 가벼우면 확인 전의 굽이로 올라간다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 top-left caption box; exact text."
+},
+{
+"id": "text-line",
+"observedText": "“다음 통행은 뒤편 좁은 굽이입니다. 자국은 낡은 것이고, 오늘은 비어 있습니다.”",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail toward Lia writing; exact text."
+},
+{
+"id": "text-omit",
+"observedText": "수는 빠졌고, 울음도 빠졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 top-left caption box; exact text."
+},
+{
+"id": "text-receive",
+"observedText": "통행, 비어 있음. 추가 짐은 아침에 서명한 검 앞에 내리세요. 받는 자리가 거기입니다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail at the clerk holding out the slip; exact text without the quotation marks."
+}
+],
+"evidence": "Four full-width panels. 1: Lia and Maren at the ledger, Bori's head out of the bag at left, carts and drivers behind. 2: Bori standing on the wet yard ground crying toward a cart with a chain on its side, Lia's back at left. 3: Lia writing at the ledger with the marked stone and rutted gully behind the counter. 4: the clerk holding out a slip toward Lia, a banner with the forked mark hanging above the yard, rope and sacks at left. Light and setting stay coherent.",
+"observedPanelCount": 4
+}
+},
+{
+"id": "s6",
+"n": 6,
+"title": "지금 이 줄로",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-4-p-39",
+"n": 39,
+"text": "쪽지가 가벼웠다. 리아가 그것을 쥐고 자루 뒤를 따라 걸었다. 자루가 마당을 가로지르는 동안 마렌이 한 발 나섰다가 장갑 낀 손을 접었다. 자기 발치에는 밀가루 하나와 빌린 끈만 남았다."
+},
+{
+"id": "ch-4-p-40",
+"n": 40,
+"text": "“그건 제가 맞추는 짐이 아니에요. 수레가 가져갈 거예요.”"
+},
+{
+"id": "ch-4-p-41",
+"n": 41,
+"text": "자루를 든 사람은 그 말을 지나 뒤편으로 갔다. 도윤의 발치, 입구 돌 옆에 자루가 내려졌고 먼지가 부츠 위로 튀었다. 그는 조각을 돌에서 떼지 못한 채 먼지를 보았다. 짧은 선은 여전히 어긋나 있었다. 수레 쪽을 보고 도윤이 말했다."
+},
+{
+"id": "ch-4-p-42",
+"n": 42,
+"text": "“아직입니다. 선이 안 맞아요.”"
+},
+{
+"id": "ch-4-p-43",
+"n": 43,
+"text": "앞 수레의 사람은 장부 쪽만 보았다."
+},
+{
+"id": "ch-4-p-44",
+"n": 44,
+"text": "“지금 이 줄로 나갑니다. 새벽부터 기다린 칸이에요.”"
+},
+{
+"id": "ch-4-p-45",
+"n": 45,
+"text": "추가 자루가 그 수레의 짐칸으로 올라갔다. 칸이 높아지자, 짐 위에 앉아 있던 두 사람이 발판으로 밀려 내렸다. 한 사람은 모자를 바로잡고 바퀴 옆으로 걸어 내려갔고, 다른 사람은 고삐 밖으로 물러났다. 빈 자리에 자루가 들어찼다. 수레는 내려선 사람들을 마당에 두고 뒤편 입구로 굴러갔다."
+}
+],
+"pFrom": 39,
+"pTo": 45,
+"panelCount": 4,
+"image": "img/ep04-s6.webp",
+"blocking": 2,
+"advisory": 4,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: “지금 이 줄로 나갑니다”가 장부 담당(s4·s5의 같은 인물)에게 붙음. 원문 p43~44는 앞 수레 사람의 말.",
+"en": "Panel 3 gives text-leave to the ledger clerk (bearded man in a cap over the open book, the same figure as s4-s5) instead of the front cart's driver; p43-44 have the driver looking only toward the ledger and speaking, so the reader hears the push to leave from the wrong person."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 도윤이 왼손에 줄 뭉치. 허리춤은 비어 있음(p4). s1·s2와 같은 결함.",
+"en": "Panel 2 shows Doyun holding a coiled rope in his left hand; ch-4-p-4 fixed his waist as empty after the rope was lost, and no line in p39-45 gives him a rope. Same defect as s1-s2."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 돌에 댄 가죽 조각과 부츠에 튀는 먼지 없음(p41).",
+"en": "Panel 2 does not show the leather piece held against the stone or the dust jumping onto Doyun's boots (p41, moment 2); his hand rests on the sack instead."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 모자 바로잡는 사람이 도윤 옷(초록 코트·검)으로 그려져 도윤으로 읽힘(p45).",
+"en": "Panel 4 draws the rider who straightens his hat in Doyun's green hooded coat with a sword on his back, so he reads as Doyun rather than one of the two people pushed off the cargo (p45)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 빌린 끈이 큰 밧줄 뭉치. s1은 짧은 가죽 끈.",
+"en": "Panel 1 shows the borrowed cord at Maren's feet as a large rope coil; s1 drew it as a short flat leather strap and p39 calls it the borrowed 끈."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 표식 깃발 재등장. 원문엔 없음.",
+"en": "Panel 3 hangs the forked-mark banner over the yard again; the source has the mark only on the stone and the leather piece."
+}
+],
+"textsTotal": 7,
+"textsOk": 6,
+"timings": {
+"planS": [
+286
+],
+"preflightS": [
+439
+],
+"imageS": 47,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1312,
+"plan": {
+"intent": "Ria follows a light slip behind one sack as it crosses the yard. Maren takes a single step after it and stops, folding a gloved hand, with one flour and a borrowed cord left at her feet, and lets the cart take the cargo. The sack is set in the dust at Doyun's feet beside the entrance stone, the piece still held to the stone and the short line still misaligned, and he tells the cart side that it is not yet. The person of the front cart looks only toward the ledger and declares that this line leaves now, a cell waited for since dawn. The extra sack goes up into that cart, the two people who had been sitting on the cargo are pushed down to the footboard and left in the yard, and the cart rolls on toward the rear entrance.",
+"staging": "Daylight in the damp outpost yard. Ria walks behind the sack with the light slip in her hand while the sack crosses the yard ahead of her. Maren is on the yard ground, one step forward and then her gloved hand folded, with one flour and a borrowed cord at her feet. An unnamed bearer, distinct from Ria, Maren, and Doyun, carries the sack past the speech and sets it down at Doyun's feet beside the entrance stone. Dust lands on the boots at that spot. The piece remains on the entrance stone where Doyun has failed to detach it. Doyun's look then goes toward the cart. The front cart's person looks only toward the ledger. After that declaration, the extra sack is up in that front cart's cargo compartment and the compartment is higher. Two unnamed people who had been sitting on the cargo are on the footboard, then one is beside the wheel and walking down, the other is outside the reins, and the sack occupies the place they left. Those who stepped down stay in the yard as the cart rolls toward the rear entrance. Distances among the ledger, the entrance stone, and the cart stay open. The artist chooses framing and the vertical reading order. A later event may share a frame when it stays visibly later.",
+"uncertainties": [
+"ch-4-p-40 has no speaker tag. The line is assigned to Maren from her step-and-stop just before it, the cargo wording, and the polite register. Ria is also present behind the sack and also speaks politely to an older adult, so the speaker stays uncertain. The bearer is out of the assignment because ch-4-p-41 sends that person past the speech.",
+"The thing refused in ch-4-p-40 is unspecified. It may be the slip, the sack being carried, or the flour left at Maren's feet.",
+"ch-4-p-39 names one flour and gives no container, so a sack, a loose measure, or another unit all remain open.",
+"ch-4-p-41 puts dust on boots where the sack is set at Doyun's feet. The owner of the boots is unnamed.",
+"The piece remains attached to the entrance stone, and the short line is still misaligned. These units do not say the short line is on that piece.",
+"ch-4-p-45 calls the loaded object the extra sack and names no lifter. It does not state that this is the same sack just set at Doyun's feet.",
+"ch-4-p-44 has no speaker tag. It is lettered as dialogue of the front-cart person because that person has just looked only toward the ledger. That person is unnamed and is distinct from Ria, Doyun, Maren, and the bearer, so the speaker field has no character id.",
+"The cell named in ch-4-p-44 may be a ledger cell or the cargo compartment that becomes higher in ch-4-p-45. The line they leave on may be a written passage line, a queue, or a rope. These units do not define it.",
+"The two people who sat on the cargo are unnamed. These units give Ria, Doyun, and Maren no place on the cart.",
+"These units give Bori no position and no action.",
+"The rear entrance is not identified with any bend named before this excerpt. Where the ledger sits relative to the cart and the entrance stone is unspecified.",
+"ch-4-p-39 shows a gloved hand being folded. Whether the glove is on one hand or both, and the exact shape of the fold, are unspecified.",
+"The compartment becomes higher as the extra sack goes up, and the two sitters are pushed down onto the footboard. No further lifting mechanism is stated."
+],
+"texts": [
+{
+"id": "text-light",
+"sourceId": "ch-4-p-39",
+"kind": "caption",
+"speaker": "narrator",
+"text": "쪽지가 가벼웠다."
+},
+{
+"id": "text-remains",
+"sourceId": "ch-4-p-39",
+"kind": "caption",
+"speaker": "narrator",
+"text": "자기 발치에는 밀가루 하나와 빌린 끈만 남았다."
+},
+{
+"id": "text-not-mine",
+"sourceId": "ch-4-p-40",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“그건 제가 맞추는 짐이 아니에요. 수레가 가져갈 거예요.”"
+},
+{
+"id": "text-misalign",
+"sourceId": "ch-4-p-41",
+"kind": "caption",
+"speaker": "narrator",
+"text": "짧은 선은 여전히 어긋나 있었다."
+},
+{
+"id": "text-not-yet",
+"sourceId": "ch-4-p-42",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“아직입니다. 선이 안 맞아요.”"
+},
+{
+"id": "text-leave",
+"sourceId": "ch-4-p-44",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "“지금 이 줄로 나갑니다. 새벽부터 기다린 칸이에요.”"
+},
+{
+"id": "text-depart",
+"sourceId": "ch-4-p-45",
+"kind": "caption",
+"speaker": "narrator",
+"text": "수레는 내려선 사람들을 마당에 두고 뒤편 입구로 굴러갔다."
+}
+],
+"beats": [
+{
+"id": "beat-follow",
+"sourceIds": [
+"ch-4-p-39"
+],
+"action": "Ria holds the light slip and follows behind the sack as it crosses the yard.",
+"textIds": [
+"text-light"
+]
+},
+{
+"id": "beat-yield",
+"sourceIds": [
+"ch-4-p-39",
+"ch-4-p-40"
+],
+"action": "Maren takes one step, folds her gloved hand, and stands with one flour and a borrowed cord at her feet while saying that this is not cargo she matches and that the cart will take it.",
+"textIds": [
+"text-remains",
+"text-not-mine"
+]
+},
+{
+"id": "beat-stone",
+"sourceIds": [
+"ch-4-p-41"
+],
+"action": "The sack-bearer passes that speech, goes toward the rear, and sets the sack at Doyun's feet beside the entrance stone, where dust jumps onto the boots. Still unable to detach the piece from the stone, he looks at the dust, and the short line remains misaligned.",
+"textIds": [
+"text-misalign"
+]
+},
+{
+"id": "beat-refuse",
+"sourceIds": [
+"ch-4-p-41",
+"ch-4-p-42"
+],
+"action": "Doyun looks toward the cart and says that it is not yet and that the line does not match.",
+"textIds": [
+"text-not-yet"
+]
+},
+{
+"id": "beat-ledger",
+"sourceIds": [
+"ch-4-p-43",
+"ch-4-p-44"
+],
+"action": "The person of the front cart looks only toward the ledger and says they are leaving on this line now, a cell waited for since dawn.",
+"textIds": [
+"text-leave"
+]
+},
+{
+"id": "beat-roll",
+"sourceIds": [
+"ch-4-p-45"
+],
+"action": "The extra sack goes up into that cart's cargo compartment. As the compartment becomes higher, the two people who were sitting on the cargo are pushed down onto the footboard. One straightens a hat and walks down beside the wheel, the other draws back outside the reins, and the sack fills the emptied place. The cart leaves those who stepped down in the yard and rolls toward the rear entrance.",
+"textIds": [
+"text-depart"
+]
+}
+],
+"facts": [
+{
+"id": "fact-slip",
+"sourceIds": [
+"ch-4-p-39"
+],
+"statement": "The slip was light. Ria held it and walked along behind the sack."
+},
+{
+"id": "fact-step",
+"sourceIds": [
+"ch-4-p-39"
+],
+"statement": "While the sack crossed the yard, Maren took one step forward and then folded her gloved hand."
+},
+{
+"id": "fact-feet",
+"sourceIds": [
+"ch-4-p-39"
+],
+"statement": "At Maren's own feet only one flour and a borrowed cord remained."
+},
+{
+"id": "fact-yield",
+"sourceIds": [
+"ch-4-p-40"
+],
+"statement": "The spoken line says that the thing in question is not cargo the speaker matches, and that the cart will take it."
+},
+{
+"id": "fact-pass",
+"sourceIds": [
+"ch-4-p-41"
+],
+"statement": "The person holding the sack went past that speech and on toward the rear."
+},
+{
+"id": "fact-down",
+"sourceIds": [
+"ch-4-p-41"
+],
+"statement": "The sack was set down at Doyun's feet, beside the entrance stone, and dust jumped onto the boots."
+},
+{
+"id": "fact-piece",
+"sourceIds": [
+"ch-4-p-41"
+],
+"statement": "Doyun looked at the dust while still unable to detach the piece from the stone. The short line was still misaligned."
+},
+{
+"id": "fact-turn",
+"sourceIds": [
+"ch-4-p-41"
+],
+"statement": "Doyun looked toward the cart and spoke."
+},
+{
+"id": "fact-not-yet",
+"sourceIds": [
+"ch-4-p-42"
+],
+"statement": "Doyun's spoken line says that it is not yet and that the line does not match."
+},
+{
+"id": "fact-ledger",
+"sourceIds": [
+"ch-4-p-43"
+],
+"statement": "The person of the front cart looked only toward the ledger."
+},
+{
+"id": "fact-dawn",
+"sourceIds": [
+"ch-4-p-44"
+],
+"statement": "The spoken line says they are going out on this line now, and that it is a cell waited for since dawn."
+},
+{
+"id": "fact-rise",
+"sourceIds": [
+"ch-4-p-43",
+"ch-4-p-45"
+],
+"statement": "The extra sack went up into that front cart's cargo compartment. When the compartment became higher, two people who had been sitting on the cargo were pushed down onto the footboard."
+},
+{
+"id": "fact-pair",
+"sourceIds": [
+"ch-4-p-45"
+],
+"statement": "One of the two straightened a hat and walked down beside the wheel. The other drew back outside the reins. The sack filled the place they had emptied."
+},
+{
+"id": "fact-roll",
+"sourceIds": [
+"ch-4-p-45"
+],
+"statement": "The cart left the people who had stepped down in the yard and rolled toward the rear entrance."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic, expressive ink lines, adult cast, daylight in a damp mountain-outpost yard after rain.",
+"moments": [
+{
+"sourceIds": [
+"ch-4-p-39",
+"ch-4-p-40"
+],
+"action": "A bearer carries a sack across the yard; Ria follows with the slip. Maren speaks, gloved hand folded, one flour and a borrowed cord at her feet.",
+"textIds": [
+"text-light",
+"text-remains",
+"text-not-mine"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-41",
+"ch-4-p-42"
+],
+"action": "The sack rests at Doyun's feet beside the entrance stone, dust on the boots. Piece still on the stone, he faces the cart and speaks.",
+"textIds": [
+"text-misalign",
+"text-not-yet"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-43",
+"ch-4-p-44"
+],
+"action": "The front cart's person looks only toward the ledger and speaks.",
+"textIds": [
+"text-leave"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-45"
+],
+"action": "The cart rolls toward the rear entrance with the extra sack in its higher cargo, leaving in the yard one person with a straightened hat and one clear of the reins.",
+"textIds": [
+"text-depart"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia (chestnut bob, amber eyes, sand jacket, fingerless gloves, brown bag with Bori), Maren (red curls, brick vest, gloves), Doyun (black hair, green hooded coat, sword) and the bearded capped clerk match the s5 image."
+},
+"setting": {
+"passed": true,
+"evidence": "Outpost yard with covered carts, wet ground, the ledger counter and the rear-entrance stone with the forked mark continue from s5; the forked-mark banner from s5 panel 4 reappears in panel 3."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s5 ended with the clerk handing Lia the slip; s6 opens with Lia holding the slip and following the sack-bearer across the yard (p39)."
+}
+},
+"textObservations": [
+{
+"id": "text-light",
+"observedText": "쪽지가 가벼웠다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 first caption box; exact text."
+},
+{
+"id": "text-remains",
+"observedText": "자기 발치에는 밀가루 하나와 빌린 끈만 남았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 second caption box; exact text."
+},
+{
+"id": "text-not-mine",
+"observedText": "그건 제가 맞추는 짐이 아니에요. 수레가 가져갈 거예요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail toward Maren, hands folded; exact words, quotation marks dropped."
+},
+{
+"id": "text-misalign",
+"observedText": "짧은 선은 여전히 어긋나 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 caption box; exact text."
+},
+{
+"id": "text-not-yet",
+"observedText": "아직입니다. 선이 안 맞아요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail toward Doyun facing the cart; exact words, quotation marks dropped."
+},
+{
+"id": "text-leave",
+"observedText": "지금 이 줄로 나갑니다. 새벽부터 기다린 칸이에요.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 3 balloon is attached to the bearded capped clerk bent over the open ledger, the same figure who kept the ledger in s4-s5; p43-44 give the line to the front cart's driver looking toward the ledger."
+},
+{
+"id": "text-depart",
+"observedText": "수레는 내려선 사람들을 마당에 두고 뒤편 입구로 굴러갔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 caption box; exact text."
+}
+],
+"evidence": "Four full-width panels. 1: a bearer shoulders a sack across the yard, Lia follows holding the slip with Bori's head out of her bag, Maren stands by a bench with a flour sack and a rope coil at her feet. 2: Doyun beside the marked stone with a sack at his hand and a coiled rope in his left hand, a horse cart at right. 3: the capped clerk at the ledger speaking, drivers queued behind, a forked-mark banner above, Lia's back and Bori at right. 4: the cart rolling into the rutted rear path past the stone while Maren, Lia and a capped figure in a green coat stand in the yard.",
+"observedPanelCount": 4
+}
+},
+{
+"id": "s7",
+"n": 7,
+"title": "구겨진 쪽지",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-4-p-46",
+"n": 46,
+"text": "도윤의 손이 허리로 갔다가 빈 고리만 쥐었다. 손바닥 안에는 고리의 차가운 테두리뿐이었다. 리아가 내민 쪽지를 그가 붙잡았다. 아침에 적은 자기 이름 옆에, 리아의 한 줄이 적혀 있었다. 종이가 주먹 안에서 구겨졌다. 리아의 왼손은 비었다."
+},
+{
+"id": "ch-4-p-47",
+"n": 47,
+"text": "바퀴가 표식 돌을 넘었다. 도윤이 조각을 들어 올려도 수레 옆판이 돌의 금과 가죽의 짧은 선 사이를 가렸다. 옆판의 뿔 자국이 햇빛을 스치고 입구 너머 그늘로 들어갔다. 굽이 안쪽에서 바퀴가 벽을 스치는 소리가 한 번 울리고, 이내 짐칸에 가려 낮아졌다."
+},
+{
+"id": "ch-4-p-48",
+"n": 48,
+"text": "“리아.”"
+},
+{
+"id": "ch-4-p-49",
+"n": 49,
+"text": "그가 리아를 보았다. 새긴 손의 이름은 묻지 않았다. 먼저 들어간 수레 쪽이었다."
+},
+{
+"id": "ch-4-p-50",
+"n": 50,
+"text": "굽이는 입구 안에서 한 번 꺾인 뒤에 있었다. 조각이 가리키는 좁은 자리와 실제 흙이 포개지는지, 마당에서는 알 수 없었다. 수레는 이미 앞바퀴를 넘긴 채 그늘을 밀고 있었다. 짐칸의 추가 자루가 모서리에 걸릴지, 더 안쪽까지 들어갈지, 보이는 것은 어긋난 조각과 입구를 지나는 옆판뿐이었다."
+},
+{
+"id": "ch-4-p-51",
+"n": 51,
+"text": "보리가 사슬 쪽을 보고 작게 울었다. 그 울음은 장부의 어느 칸에도 없었다. 리아의 오른손목이 소매 안에서 접힌 채 펴지지 않았다. 가벼운 문장 위의 잉크가 탁자에서 마르고 있었다."
+},
+{
+"id": "ch-4-p-52",
+"n": 52,
+"text": "도윤은 구겨진 쪽지를 펴지 않은 채, 먼저 들어간 수레만 보고 있었다."
+}
+],
+"pFrom": 46,
+"pTo": 52,
+"panelCount": 12,
+"image": "img/ep04-s7.webp",
+"blocking": 2,
+"advisory": 4,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "11칸: 장부에 창작 문장 “언젠가 다시 이 길에서…” 렌더. 계획은 리아의 한 줄 글자를 안 줌(p46·p51). 내용 날조.",
+"en": "Panel 11 letters an invented sentence (언젠가 다시 이 길에서…) on the ledger page; the plan's fact-slip states the glyphs of Lia's line are not supplied, so the image fabricates the content of the 가벼운 문장 (p46, p51)."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 도윤이 든 가죽 조각이 흰 종이 쪽지로 그려짐. 짧은 선 없음 → 돌 금과 어긋난 간격(p47)이 안 보이고 쪽지로 읽힘.",
+"en": "Panel 4 draws the leather piece Doyun lifts as a blank white paper scrap identical to the slip, with no short line on it, so the misaligned interval between the stone's mark and the leather's line (p47, beat-hide) is not shown and the piece reads as the crumpled slip."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸: 옆판 뿔 자국이 큰 갈래 문양. 원문 p16은 긁힌 자국(긴 하나·짧은 둘·겹친 하나). s3·s4와 같은 치환.",
+"en": "Panel 5 renders the horn mark on the side panel as a large stylized forked emblem; p16 describes scratches (one long, two short, one overlapping). Same substitution as s3-s4."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 손바닥에 떨어져 나온 고리. 원문 p46은 허리 고리의 테두리를 쥔 것.",
+"en": "Panel 1 shows a loose metal ring lying in the palm; p46 has the empty ring still at his waist and only its rim in the palm."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 쪽지에 ‘도윤 | 리아’ 두 이름. 원문은 이름 옆 리아의 한 줄, 글자는 계획에 없음.",
+"en": "Panel 2 letters the slip as two names 도윤 | 리아 side by side; p46 has his name beside one line of hers, and the plan says those glyphs are not supplied."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1~3칸: 도윤이 검은 가죽 장갑. s1~s6은 맨손.",
+"en": "Panels 1-3 put black leather gloves on Doyun; s1-s6 drew his hands bare."
+}
+],
+"textsTotal": 13,
+"textsOk": 13,
+"timings": {
+"planS": [
+366,
+636
+],
+"preflightS": [
+655,
+308
+],
+"imageS": 47,
+"imageCalls": 1,
+"preflightRevisions": 1
+},
+"imageUsd": 0.1312,
+"plan": {
+"intent": "Doyun's hand finds an empty ring, then closes on the slip Ria offers and crumples it once her line shows beside the name he wrote that morning. The cart crosses the marker stone, hides the gap he is checking, and passes into the entrance shade with one fading brush. He speaks her name and leaves the carved hand's name unasked, while her empty hand, folded wrist, Bori's soft cry, and drying ink stay in the yard, and he watches only the cart that entered first.",
+"staging": "Damp daylight in the outpost yard, with sunlight on the cart side panel before that panel enters the shade beyond the entrance. Doyun and Ria are in the yard: his waist carries an empty ring, she offers the slip, then her left hand is empty while the slip is crumpled in his fist. The marker stone and the entrance stay separate. A wheel meets the marker stone while he holds the lifted piece and the side panel stands between the viewer and the interval from the stone's mark to the short line on the leather. The horn mark is on that side panel. The bend is inside the entrance after one turn, and the single wall-brush belongs there, masked by the cargo bed and outside the yard view that can see the misaligned piece and the passing side panel. The cart that entered first is already pushing that shade with its front wheel across an unnamed threshold. The extra sack stays in the cargo bed with its corner contact unresolved. Bori faces the chain side. Ria's right wrist remains folded in the sleeve. A table holds a light sentence whose ink is drying. The chain, the table, the ledger, and the carved hand have no fixed positions. The artist chooses framing and the vertical reading order. A later event may share a frame when it stays visibly later.",
+"uncertainties": [
+"The spoken name has no speaker tag. It is assigned to Doyun because he catches the slip and the next unit has him look at Ria. The speaker remains inferred.",
+"Which of his hands meets the ring, and whether that hand later crumples the slip, is unstated. The rim in the open palm and the crumpling fist are successive states.",
+"The morning name and Ria's line have no source glyphs, so the slip carries no invented wording.",
+"The short line on the leather is one end of the hidden interval. These units do not place that short line on the piece he lifts.",
+"The marker stone and the entrance are separate terms. The rear entrance from earlier is not identified here with the bend.",
+"What the front wheel has already crossed is unnamed, and these units do not say it is the same wheel that crosses the marker stone.",
+"Whether the extra sack in the cargo bed catches a corner or goes farther in stays unresolved, so neither outcome is shown.",
+"The subjectless sentence that points toward the cart that entered first has no named subject. It precedes the later moment in which he looks only at that cart, and the two stay sequential. The carved hand is unlocated.",
+"The wall-brush is one sound inside the bend and then lowers behind the cargo bed. The yard view does not show that contact, because the overlap of the piece's narrow place and the soil cannot be known from the yard.",
+"Bori's cry is aimed at an unlocated chain side, and no ledger cell contains it. The ledger's place is unspecified. The cry has no quoted sound.",
+"The cause of the folded right wrist is unstated.",
+"The drying ink belongs to a light sentence on a table. These units do not identify that sentence with the slip. The table is unlocated.",
+"These units give Maren no action and name no driver.",
+"These units do not say whether the address, the cry, the wrist, and the drying ink happen after the brush or while the cart is still passing the entrance. Narration order is kept without adding a cause between them."
+],
+"texts": [
+{
+"id": "text-rim",
+"sourceId": "ch-4-p-46",
+"kind": "caption",
+"speaker": "narrator",
+"text": "손바닥 안에는 고리의 차가운 테두리뿐이었다."
+},
+{
+"id": "text-written",
+"sourceId": "ch-4-p-46",
+"kind": "caption",
+"speaker": "narrator",
+"text": "아침에 적은 자기 이름 옆에, 리아의 한 줄이 적혀 있었다."
+},
+{
+"id": "text-empty",
+"sourceId": "ch-4-p-46",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아의 왼손은 비었다."
+},
+{
+"id": "text-hide",
+"sourceId": "ch-4-p-47",
+"kind": "caption",
+"speaker": "narrator",
+"text": "도윤이 조각을 들어 올려도 수레 옆판이 돌의 금과 가죽의 짧은 선 사이를 가렸다."
+},
+{
+"id": "text-shade",
+"sourceId": "ch-4-p-47",
+"kind": "caption",
+"speaker": "narrator",
+"text": "옆판의 뿔 자국이 햇빛을 스치고 입구 너머 그늘로 들어갔다."
+},
+{
+"id": "text-scrape",
+"sourceId": "ch-4-p-47",
+"kind": "caption",
+"speaker": "narrator",
+"text": "굽이 안쪽에서 바퀴가 벽을 스치는 소리가 한 번 울리고, 이내 짐칸에 가려 낮아졌다."
+},
+{
+"id": "text-ria",
+"sourceId": "ch-4-p-48",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“리아.”"
+},
+{
+"id": "text-unasked",
+"sourceId": "ch-4-p-49",
+"kind": "caption",
+"speaker": "narrator",
+"text": "새긴 손의 이름은 묻지 않았다."
+},
+{
+"id": "text-yard",
+"sourceId": "ch-4-p-50",
+"kind": "caption",
+"speaker": "narrator",
+"text": "조각이 가리키는 좁은 자리와 실제 흙이 포개지는지, 마당에서는 알 수 없었다."
+},
+{
+"id": "text-cry",
+"sourceId": "ch-4-p-51",
+"kind": "caption",
+"speaker": "narrator",
+"text": "보리가 사슬 쪽을 보고 작게 울었다."
+},
+{
+"id": "text-wrist",
+"sourceId": "ch-4-p-51",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아의 오른손목이 소매 안에서 접힌 채 펴지지 않았다."
+},
+{
+"id": "text-ink",
+"sourceId": "ch-4-p-51",
+"kind": "caption",
+"speaker": "narrator",
+"text": "가벼운 문장 위의 잉크가 탁자에서 마르고 있었다."
+},
+{
+"id": "text-watch",
+"sourceId": "ch-4-p-52",
+"kind": "caption",
+"speaker": "narrator",
+"text": "도윤은 구겨진 쪽지를 펴지 않은 채, 먼저 들어간 수레만 보고 있었다."
+}
+],
+"beats": [
+{
+"id": "beat-rim",
+"sourceIds": [
+"ch-4-p-46"
+],
+"action": "Doyun's hand reaches his waist and his open palm holds only the cold rim of an empty ring.",
+"textIds": [
+"text-rim"
+]
+},
+{
+"id": "beat-slip",
+"sourceIds": [
+"ch-4-p-46"
+],
+"action": "He catches the slip Ria holds out, and the slip shows his own morning name beside one line of hers.",
+"textIds": [
+"text-written"
+]
+},
+{
+"id": "beat-crumple",
+"sourceIds": [
+"ch-4-p-46"
+],
+"action": "The paper crumples inside his fist and Ria's left hand is empty.",
+"textIds": [
+"text-empty"
+]
+},
+{
+"id": "beat-hide",
+"sourceIds": [
+"ch-4-p-47"
+],
+"action": "With a wheel across the marker stone, he lifts the piece and the cart side panel hides the interval between the stone's mark and the short line on the leather.",
+"textIds": [
+"text-hide"
+]
+},
+{
+"id": "beat-shade",
+"sourceIds": [
+"ch-4-p-47"
+],
+"action": "The horn mark on the side panel grazes the sunlight and enters the shade beyond the entrance.",
+"textIds": [
+"text-shade"
+]
+},
+{
+"id": "beat-scrape",
+"sourceIds": [
+"ch-4-p-47"
+],
+"action": "Inside the bend, a wheel brushes the wall once and the sound then lowers behind the cargo bed.",
+"textIds": [
+"text-scrape"
+]
+},
+{
+"id": "beat-call",
+"sourceIds": [
+"ch-4-p-48",
+"ch-4-p-49"
+],
+"action": "He looks at Ria, says her name, and leaves the carved hand's name unasked.",
+"textIds": [
+"text-ria",
+"text-unasked"
+]
+},
+{
+"id": "beat-yard",
+"sourceIds": [
+"ch-4-p-50"
+],
+"action": "From the yard the misaligned piece and the side panel passing the entrance are what can be seen, while the cart pushes the shade with its front wheel already across.",
+"textIds": [
+"text-yard"
+]
+},
+{
+"id": "beat-bori",
+"sourceIds": [
+"ch-4-p-51"
+],
+"action": "Bori looks toward the chain side and cries softly.",
+"textIds": [
+"text-cry"
+]
+},
+{
+"id": "beat-wrist",
+"sourceIds": [
+"ch-4-p-51"
+],
+"action": "Ria's right wrist stays folded inside the sleeve and does not unfold.",
+"textIds": [
+"text-wrist"
+]
+},
+{
+"id": "beat-ink",
+"sourceIds": [
+"ch-4-p-51"
+],
+"action": "Ink on a light sentence dries on the table.",
+"textIds": [
+"text-ink"
+]
+},
+{
+"id": "beat-watch",
+"sourceIds": [
+"ch-4-p-52"
+],
+"action": "The crumpled slip stays unopened in his hand as he looks only at the cart that entered first.",
+"textIds": [
+"text-watch"
+]
+}
+],
+"facts": [
+{
+"id": "fact-ring",
+"sourceIds": [
+"ch-4-p-46"
+],
+"statement": "Doyun's hand goes to his waist and the palm holds only the cold rim of an empty ring."
+},
+{
+"id": "fact-slip",
+"sourceIds": [
+"ch-4-p-46"
+],
+"statement": "He catches the slip Ria holds out. Beside his own name written that morning, one line of hers is written. The glyphs of that name and of her line are not supplied."
+},
+{
+"id": "fact-crumple",
+"sourceIds": [
+"ch-4-p-46"
+],
+"statement": "The paper crumples inside a fist and Ria's left hand is empty. Which hand held the ring, and whether that same hand crumples the slip, is unspecified."
+},
+{
+"id": "fact-wheel",
+"sourceIds": [
+"ch-4-p-47"
+],
+"statement": "A wheel crosses the marker stone."
+},
+{
+"id": "fact-hide",
+"sourceIds": [
+"ch-4-p-47"
+],
+"statement": "Doyun lifts the piece, and the cart side panel hides the interval between the mark on the marker stone and the short line on the leather."
+},
+{
+"id": "fact-shade",
+"sourceIds": [
+"ch-4-p-47"
+],
+"statement": "The horn mark on the side panel grazes the sunlight and enters the shade beyond the entrance."
+},
+{
+"id": "fact-scrape",
+"sourceIds": [
+"ch-4-p-47"
+],
+"statement": "Inside the bend, a wheel brushes the wall once, and the sound then lowers behind the cargo bed."
+},
+{
+"id": "fact-address",
+"sourceIds": [
+"ch-4-p-49"
+],
+"statement": "He looks at Ria and leaves the carved hand's name unasked."
+},
+{
+"id": "fact-toward",
+"sourceIds": [
+"ch-4-p-49"
+],
+"statement": "A subjectless sentence points toward the cart that entered first, before the later look that stays on that cart alone."
+},
+{
+"id": "fact-bend",
+"sourceIds": [
+"ch-4-p-50"
+],
+"statement": "The bend lies after one turn inside the entrance."
+},
+{
+"id": "fact-overlap",
+"sourceIds": [
+"ch-4-p-50"
+],
+"statement": "From the yard it cannot be known whether the narrow place the piece indicates overlaps the actual soil."
+},
+{
+"id": "fact-push",
+"sourceIds": [
+"ch-4-p-50"
+],
+"statement": "The cart pushes the shade with its front wheel already across. What that front wheel has crossed is unnamed."
+},
+{
+"id": "fact-visible",
+"sourceIds": [
+"ch-4-p-50"
+],
+"statement": "What is visible is the misaligned piece and the side panel passing the entrance."
+},
+{
+"id": "fact-bori",
+"sourceIds": [
+"ch-4-p-51"
+],
+"statement": "Bori looks toward the chain side and cries softly. That cry is in none of the ledger cells."
+},
+{
+"id": "fact-wrist",
+"sourceIds": [
+"ch-4-p-51"
+],
+"statement": "Ria's right wrist stays folded inside the sleeve and does not unfold. Her right wrist and her empty left hand are different arms."
+},
+{
+"id": "fact-ink",
+"sourceIds": [
+"ch-4-p-51"
+],
+"statement": "Ink on a light sentence is drying on the table."
+},
+{
+"id": "fact-watch",
+"sourceIds": [
+"ch-4-p-52"
+],
+"statement": "The slip stays crumpled and unopened while Doyun looks only at the cart that entered first."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink lines, damp post-rain daylight, adult cast, small marten, costumes held consistent.",
+"moments": [
+{
+"sourceIds": [
+"ch-4-p-46"
+],
+"action": "Doyun's open palm holds only the cold rim of an empty ring at his waist.",
+"textIds": [
+"text-rim"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-46"
+],
+"action": "Doyun catches the open slip Ria offers, with two side-by-side lines of handwriting.",
+"textIds": [
+"text-written"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-46"
+],
+"action": "The slip crumples in Doyun's fist and Ria's left hand is empty.",
+"textIds": [
+"text-empty"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-47"
+],
+"action": "Doyun holds the piece raised beside the marker stone, a wheel already over it, the side panel blocking that gap.",
+"textIds": [
+"text-hide"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-47"
+],
+"action": "The horn mark on the side panel passes from sunlight into the shade beyond the entrance.",
+"textIds": [
+"text-shade"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-47"
+],
+"action": "The cargo bed fills the bend inside the entrance as the single brush sound falls away behind it.",
+"textIds": [
+"text-scrape"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-48",
+"ch-4-p-49"
+],
+"action": "Doyun faces Ria and speaks her name.",
+"textIds": [
+"text-ria",
+"text-unasked"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-50"
+],
+"action": "The misaligned piece is visible in the yard while the side panel passes the entrance, front wheel already in the shade.",
+"textIds": [
+"text-yard"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-51"
+],
+"action": "Bori the small marten looks toward the chain side and cries softly.",
+"textIds": [
+"text-cry"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-51"
+],
+"action": "Ria's right wrist remains folded inside her sleeve.",
+"textIds": [
+"text-wrist"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-51"
+],
+"action": "Wet ink dries across a slight sentence on the table.",
+"textIds": [
+"text-ink"
+]
+},
+{
+"sourceIds": [
+"ch-4-p-52"
+],
+"action": "Doyun looks only at the cart that entered first, the crumpled slip still unopened in his hand.",
+"textIds": [
+"text-watch"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Doyun (black hair, green hooded coat, sword on the back), Lia (chestnut bob, sand jacket, fingerless gloves, brown shoulder bag) and Bori (cream marten) match the s6 image."
+},
+"setting": {
+"passed": true,
+"evidence": "Wet outpost yard, the rear-entrance stone with the forked mark, the rock bend behind it and the covered horse cart continue from s6 panel 4; the ledger table returns in panel 11."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s6 ended with the cart rolling toward the rear entrance; s7 opens on Doyun's hand at his waist and the slip exchange (p46) while the same cart crosses the stone in panels 4-8."
+}
+},
+"textObservations": [
+{
+"id": "text-rim",
+"observedText": "손바닥 안에는 고리의 차가운 테두리뿐이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 caption box; exact text."
+},
+{
+"id": "text-written",
+"observedText": "아침에 적은 자기 이름 옆에, 리아의 한 줄이 적혀 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 caption box; exact text."
+},
+{
+"id": "text-empty",
+"observedText": "리아의 왼손은 비었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 caption box; exact text."
+},
+{
+"id": "text-hide",
+"observedText": "도윤이 조각을 들어 올려도 수레 옆판이 돌의 금과 가죽의 짧은 선 사이를 가렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 caption box; exact text."
+},
+{
+"id": "text-shade",
+"observedText": "옆판의 뿔 자국이 햇빛을 스치고 입구 너머 그늘로 들어갔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 caption box; exact text."
+},
+{
+"id": "text-scrape",
+"observedText": "굽이 안쪽에서 바퀴가 벽을 스치는 소리가 한 번 울리고, 이내 짐칸에 가려 낮아졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 caption box; exact text."
+},
+{
+"id": "text-ria",
+"observedText": "리아.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 balloon with its tail toward Doyun facing Lia; quotation marks dropped."
+},
+{
+"id": "text-unasked",
+"observedText": "새긴 손의 이름은 묻지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 lower caption box; exact text."
+},
+{
+"id": "text-yard",
+"observedText": "조각이 가리키는 좁은 자리와 실제 흙이 포개지는지, 마당에서는 알 수 없었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 8 caption box; exact text."
+},
+{
+"id": "text-cry",
+"observedText": "보리가 사슬 쪽을 보고 작게 울었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 9 caption box; exact text."
+},
+{
+"id": "text-wrist",
+"observedText": "리아의 오른손목이 소매 안에서 접힌 채 펴지지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 10 caption box; exact text."
+},
+{
+"id": "text-ink",
+"observedText": "가벼운 문장 위의 잉크가 탁자에서 마르고 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 11 caption box; exact text."
+},
+{
+"id": "text-watch",
+"observedText": "도윤은 구겨진 쪽지를 펴지 않은 채, 먼저 들어간 수레만 보고 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 12 caption box; exact text."
+}
+],
+"evidence": "Twelve panels in rows of 3/2/3/4. Row 1: Doyun's open gloved palm with a small metal ring, a bare hand offering a slip lettered 도윤 | 리아 to a gloved hand, the slip crumpled in a gloved fist beside Lia's right arm. Row 2: Doyun from behind before the marked stone holding a white piece as a cart with a large forked emblem on its side panel passes; the panel and wheel entering the shaded entrance. Row 3: the cart deep in the rock bend; Doyun facing Lia with the balloon 리아.; the cart's rear wheel past the stone in the yard. Row 4: Bori in the bag crying, Lia with arms folded and right sleeve down, an open ledger with an ink bottle and a handwritten sentence, Doyun from behind watching the cart disappear.",
+"observedPanelCount": 12
+}
+}
+]
+}
+],
+"runs": [
+"scene-20260921",
+"scene-20260922"
 ]
 }
