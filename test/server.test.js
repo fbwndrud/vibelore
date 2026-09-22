@@ -449,18 +449,14 @@ describe('MCP surface', () => {
     });
 
     const first = await session([init, call(2, 'lore_write', { project: dir, workId, autonomy: 'auto' })]);
-    const chapterPlanRun = payload(first.get(2));
-    assert.deepEqual(chapterPlanRun.requests.map((request) => request.step), ['chapter-plan']);
-    const planAnswer = JSON.stringify({ plan: '열쇠를 찾아 문을 연다.', scene: { settings: ['문 앞'], characters: [], items: [], antagonists: [], additionalRefs: [] }, tension: {} });
-    const second = await session([init, call(2, 'lore_resume', { project: dir, runId: chapterPlanRun.runId, answers: { [chapterPlanRun.requests[0].id]: planAnswer } })]);
-    const draftRun = payload(second.get(2));
+    const draftRun = payload(first.get(2));
     assert.deepEqual(draftRun.requests.map((request) => request.step), ['draft']);
 
     await unlink(join(dir, '.vibelore', 'runs', `${draftRun.runId}.json`));
     const resumed = await session([init, call(2, 'lore_write', { project: dir, workId, autonomy: 'auto' })]);
     const resumedRun = payload(resumed.get(2));
     assert.deepEqual(resumedRun.requests.map((request) => request.step), ['draft'],
-      '만료 뒤에는 chapter-plan을 되묻지 않고 미완 단계부터 재개해야 한다');
+      '만료 뒤에는 이전 단계를 되묻지 않고 미완 단계부터 재개해야 한다');
   });
 
   it('automatically summarizes a commit and carries it into the next chapter', async () => {

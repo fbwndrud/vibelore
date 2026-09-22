@@ -5,7 +5,6 @@ import { runEntitySeed } from '../../engine/src/generators/text/steps/entity-see
 import { runRevise } from '../../engine/src/generators/text/steps/revise.js';
 import { runRewrite } from '../../engine/src/generators/text/steps/rewrite.js';
 import { runNextArcProposal } from '../../engine/src/generators/text/steps/next-arc-proposal.js';
-import { runChapterPlan } from '../../engine/src/generators/text/steps/chapter-plan.js';
 import { emptyStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { buildContext } from './context.js';
@@ -109,16 +108,10 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     currentPosition: arcPositionFromRatio(arcEpisode.index, arcPlan.estimatedEpisodes),
     summary: renderArcMap(arcPlan, chapter),
   };
-  const enginePlan = await runChapterPlan({
-    foundation, prevState, chapterNumber: chapter, providers, model: MODEL, arc: planningArc,
-  });
-  // A preflight relay returns a placeholder so it can expose the prompt. Do
-  // not let that placeholder flow into the draft prompt: the real plan answer
-  // changes the prompt identity and would make the host draft the chapter
-  // twice. Resume after chapter-plan has been answered instead.
-  if ((providers.pending?.length ?? 0) > 0) {
-    return { preview: true, chapter, operation: 'chapter_plan', prose: '' };
-  }
+  // The draft prompt takes its chapter plan from the approved EpisodePlan
+  // packet (draft-input-compiler). The engine's own chapter-plan step used to
+  // run here as an extra host round trip, but its answer never reached the
+  // prompt, so it is not requested.
   const previousArtifact = chapter > 1 ? await draftStore.loadArtifact(workId, chapter - 1) : null;
   const previousSceneTail = previousArtifact?.prose
     ? previousArtifact.prose.slice(-2400).trim()
@@ -215,7 +208,6 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
       recentSummaries: contextMeta.recentSummaries,
       previousSceneChars: previousSceneTail.length,
       arcEpisodes: arcPlan.episodes.length,
-      engineChapterPlan: Boolean(enginePlan.plan),
       characterArcBeats: detailedPlan.characterArcBeats?.length ?? 0,
       episodePacketChars: episodePacket.writerText.length,
       episodePacketTokens: episodePacket.usage.usedTokens,

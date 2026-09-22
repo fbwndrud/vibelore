@@ -708,7 +708,7 @@ describe('Phase 2 generation pipeline', () => {
     await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'guided', providers: p });
     const chapterPlan = requests.find((req) => req.step === 'chapter-plan');
     const draft = requests.find((req) => req.step === 'draft');
-    assert.ok(chapterPlan, '원본 engine chapterPlan 단계가 lore_write 안에서 실행되어야 한다');
+    assert.equal(chapterPlan, undefined, 'engine chapter-plan 답변은 초고 프롬프트에 쓰이지 않으므로 요청하지 않는다');
     const prompt = draft.messages.map((m) => m.content).join('\n');
     assert.match(prompt, /PREVIOUS_SCENE_TAIL_TOKEN/);
     assert.doesNotMatch(prompt, /FUTURE_ARC_BEAT_TOKEN/);

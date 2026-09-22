@@ -36,7 +36,8 @@ describe('relay runner', () => {
 
     assert.equal(parked.status, 'needs_model');
     assert.match(parked.runId, /^run-[a-z0-9]+$/);
-    assert.deepEqual(parked.requests, requests);
+    assert.deepEqual(parked.requests.map(({ system, ...rest }) => rest), requests.map(({ system, ...rest }) => rest));
+    assert.ok(parked.requests[0].system.startsWith('s'));
 
     const saved = JSON.parse(await readFile(join(store.rootDir, '.vibelore', 'runs', `${parked.runId}.json`), 'utf8'));
     assert.equal(saved.id, parked.runId);
@@ -112,5 +113,28 @@ describe('relay runner instruction', () => {
     });
     assert.match(parked.instruction, /독립/);
     assert.match(parked.instruction, /병렬/);
+  });
+});
+
+describe('host execution note', () => {
+  it('appends a self-contained, no-tools execution note to every parked request', async () => {
+    const store = await fakeStore();
+    const parked = await runRelayedTool({
+      store, toolName: 'lore_rewrite', args: { workId: 'book', chapter: 1 },
+      executeTool: async () => ({ preview: true }),
+      providerForTool: providerWithPending([
+        { id: 'j', step: 'coherence-judge', jsonMode: true, system: 'S1', user: 'u1' },
+        { id: 'd', step: 'draft', jsonMode: false, system: 'S2', user: 'u2' },
+      ]),
+    });
+    const [json, prose] = parked.requests;
+    assert.equal(json.id, 'j');
+    assert.equal(json.user, 'u1');
+    assert.match(json.system, /^S1\n/);
+    assert.match(json.system, /도구/);
+    assert.match(json.system, /JSON/);
+    assert.match(prose.system, /^S2\n/);
+    assert.match(prose.system, /도구/);
+    assert.doesNotMatch(prose.system, /JSON 객체 하나만/);
   });
 });

@@ -115,16 +115,18 @@ describe('host round trips are batched by dependency', () => {
     const store = await qualityStore();
     const { result, passes } = await replayWithRelay(store);
     assert.equal(result.status, 'completed', JSON.stringify(result));
-    assert.deepEqual(passes.slice(0, 2), [['chapter-plan'], ['draft']]);
-    const batch = passes[2];
+    // The draft prompt takes its plan from the approved EpisodePlan packet, so
+    // no separate engine chapter-plan round trip precedes it.
+    assert.deepEqual(passes[0], ['draft']);
+    const batch = passes[1];
     for (const step of ['continuity-extract', 'story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger']) {
       assert.ok(batch.includes(step), `${step} in first review batch: ${batch}`);
     }
     assert.ok(!batch.includes('continuity-check'), 'continuity-check waits for the extracted delta');
     assert.ok(!batch.includes('continuity-extract-repair'), 'no repair request on a placeholder delta');
-    assert.deepEqual(passes[3], ['continuity-check']);
-    assert.deepEqual(passes[4], ['narrative-boundary', 'chapter-summary']);
-    assert.equal(passes.length, 5);
+    assert.deepEqual(passes[2], ['continuity-check']);
+    assert.deepEqual(passes[3], ['narrative-boundary', 'chapter-summary']);
+    assert.equal(passes.length, 4);
   });
 
   it('records one quality policy evaluation per attempt across resumed passes', async () => {

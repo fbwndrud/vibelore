@@ -3,6 +3,19 @@ import { dropRun, newRunId, saveRun } from './runs.js';
 const TERMINAL_WORKFLOW_STAGES = new Set(['completed', 'rejected', 'clean_fail']);
 
 /**
+ * Every relayed request is self-contained: the canon, plans and prose it needs
+ * are already in `system` and `user`. CLI hosts that spawn a fresh agent per
+ * request otherwise try to read project files and hit turn limits.
+ */
+export const HOST_EXECUTION_NOTE = '[실행 조건] 이 요청은 자기완결이다. 파일 읽기·검색·도구 실행 없이 위 system과 user에 제공된 자료만으로 단일 최종 응답을 만든다.';
+const JSON_EXECUTION_NOTE = '코드블록 없이 JSON 객체 하나만 출력한다.';
+
+function withExecutionNote(request) {
+  const note = request.jsonMode ? `${HOST_EXECUTION_NOTE} ${JSON_EXECUTION_NOTE}` : HOST_EXECUTION_NOTE;
+  return { ...request, system: `${request.system ?? ''}\n\n${note}` };
+}
+
+/**
  * Owns host-model relay parking/resume. MCP server code should stay a thin
  * adapter: choose a store, dispatch a tool, serialize the result.
  */
@@ -66,7 +79,7 @@ export async function runRelayedTool({
   return {
     status: 'needs_model',
     runId: saved.id,
-    requests: pending,
+    requests: pending.map(withExecutionNote),
     instruction:
       '각 request 의 system 과 user 를 그대로 읽고 답을 만든 뒤, lore_resume 에 { runId, answers: { <request id>: "<답변>" } } 로 넘기세요. ' +
       'jsonMode=true 인 요청은 코드블록 없이 순수 JSON 으로만 답해야 합니다. 답을 넘기지 않으면 아래 결정론 결과가 최종입니다. ' +

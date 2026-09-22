@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.3 — 2026-09-22
+
+- Drop the engine chapter-plan host round trip from `lore_write`: the draft
+  prompt already takes its plan from the approved EpisodePlan packet and the
+  engine answer never reached it.
+- Append a self-contained execution note to every relayed request so CLI
+  hosts answer from the provided `system`/`user` alone without reading files
+  or spending agent turns.
+- Align the Codex plugin manifest version with the package version.
+
 ## 0.3.2 — 2026-09-22
 
 - Batch independent `lore_write` model requests into one host round trip
