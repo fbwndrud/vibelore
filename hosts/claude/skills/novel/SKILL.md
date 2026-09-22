@@ -15,7 +15,9 @@ description: >-
 ## 순서
 
 1. **`lore_write`** — 기본은 `guided`, 사용자가 알아서 진행하라고 명시하면 `auto`.
-2. **`lore_resume`** — `needs_model` 요청에 답해 같은 워크플로를 이어갑니다.
+2. **`lore_resume`** — `needs_model` 요청에 답해 같은 워크플로를 이어갑니다. 한 응답의
+   `requests`는 서로 독립이므로 서브에이전트로 병렬 생성해도 되고, 모든 답을 한 번의
+   `lore_resume`에 함께 넘깁니다. 검토 묶음은 한 왕복에 여러 요청으로 옵니다.
 3. **`lore_decide`** — guided의 검사 완료 원고를 사용자에게 보여준 뒤 승인 또는 거절합니다.
 4. 진행 확인은 **`lore_workflow_status`**, 감사 이력은 **`lore_workflow_history`**를 씁니다.
 

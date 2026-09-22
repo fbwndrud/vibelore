@@ -190,6 +190,16 @@ function foldAudience(context, state, events, settlesPromiseIds) {
 }
 
 /**
+ * The optional planning modules an EpisodePlan may carry, validated with the
+ * same rules the commit path applies. Callers run this before drafting so an
+ * incomplete agenda or reveal is repaired at planning time, not after every
+ * review has already been paid for.
+ */
+export function validatePlanningContracts({ agendas = [], collisions = [], reveals = [] } = {}) {
+    return validateAgendaCollisions(agendas, collisions) ?? validateReveals(reveals);
+}
+
+/**
  * Validate sections 49–54 and fold reader-facing state.  All failures are
  * typed and carry the planning layer that must be regenerated.
  */

@@ -288,13 +288,18 @@ describe('catching what a model reading its own draft would miss', () => {
     const relay = createHostRelay({});
     await runCheck({ store, workId: WORK, chapter: 1, prose: CH1, providers: relay, targetChapters: 40 });
     const pending = relay.pending;
-    assert.ok(pending.length >= 2, `기대: extract + check 최소 2건, 실제 ${pending.length}`);
+    assert.ok(pending.length >= 1, `기대: extract 최소 1건, 실제 ${pending.length}`);
     for (const p of pending) {
       assert.match(p.id, /^[0-9a-f]{64}$/);
       assert.ok(p.system.length > 0 && p.user.length > 0);
     }
     assert.ok(pending.some((p) => p.step === 'continuity-extract'));
-    assert.ok(pending.some((p) => p.step === 'continuity-check'));
+    // The semantic check embeds the extracted delta, so it is asked only once
+    // the extraction has an answer -- never on a placeholder.
+    assert.ok(!pending.some((p) => p.step === 'continuity-check'));
+    const second = createHostRelay(Object.fromEntries(pending.map((p) => [p.id, '{}'])));
+    await runCheck({ store, workId: WORK, chapter: 1, prose: CH1, providers: second, targetChapters: 40 });
+    assert.ok(second.pending.some((p) => p.step === 'continuity-check'));
   });
 
   it('the same question gets the same id across passes, so answers stick', async () => {

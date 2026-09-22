@@ -101,3 +101,16 @@ describe('relay runner', () => {
     assert.equal(status.workflow.pendingRunId, parked.runId);
   });
 });
+
+describe('relay runner instruction', () => {
+  it('tells the host that requests in one round trip are independent and may run in parallel', async () => {
+    const store = await fakeStore();
+    const parked = await runRelayedTool({
+      store, toolName: 'lore_rewrite', args: { workId: 'book', chapter: 1 },
+      executeTool: async () => ({ preview: true }),
+      providerForTool: providerWithPending([{ id: 'a', step: 'coherence-judge', jsonMode: true, system: 's', user: 'u' }, { id: 'b', step: 'reader-hook', jsonMode: true, system: 's', user: 'u' }]),
+    });
+    assert.match(parked.instruction, /독립/);
+    assert.match(parked.instruction, /병렬/);
+  });
+});

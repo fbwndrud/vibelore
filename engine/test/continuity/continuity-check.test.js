@@ -451,3 +451,52 @@ describe('continuityCheck', () => {
         expect(result.lexiconAdditions).toEqual([]);
     });
 });
+
+describe('relay-aware continuity prompts', () => {
+    function pendingProvider(calls) {
+        let pending = [];
+        return {
+            get pending() { return pending; },
+            async complete(req) {
+                calls.push(req);
+                pending = [...pending, req];
+                throw new Error('pending');
+            },
+        };
+    }
+    it('does not request an influence repair while the first extraction is still pending', async () => {
+        const calls = [];
+        const foundation = makeFoundation({ characters: [maleChar('c1', '이세종'), femaleChar('c2', '소영')] });
+        await extractDelta({
+            prose: '이세종이 입을 열었다.', castManifestRaw: '', chapterNumber: 2, foundation,
+            prevState: emptyStoryState('work-test'), providers: pendingProvider(calls), model: MODEL,
+            requireInfluenceObservation: true,
+        });
+        expect(calls.map((req) => req.step)).toEqual(['continuity-extract']);
+    });
+    it('asks for compact JSON and embeds the delta without pretty-print indentation', async () => {
+        const calls = [];
+        const providers = createProviderRegistry([makeMockAdapter({ default: '{}', recordCalls: calls })]);
+        const foundation = makeFoundation({ characters: [maleChar('c1', '이세종')] });
+        const delta = {
+            chapterNumber: 2, appearedCharacterIds: ['c1'], newAddressEntries: [], relationshipOps: [],
+            hookChanges: [{ id: 'h1', text: '누가 문을 잠갔나', plantedAtChapter: 1, phase: 'planted', horizon: 'arc', lastMovedChapter: 2 }],
+            mutableChanges: [], influenceEvents: [], noInfluenceReason: '', trackedEntityOps: [],
+        };
+        await continuityCheck({
+            prose: '이세종이 문을 밀었다.', chapterNumber: 2, foundation, delta,
+            prevState: emptyStoryState('work-test'), lexicon: new DefaultHonorificLexicon(), providers, model: MODEL,
+        });
+        const user = calls.find((req) => req.step === 'continuity-check').messages.find((m) => m.role === 'user').content;
+        const deltaSection = user.split('## 이번 회차 Delta\n')[1].split('\n\n')[0];
+        expect(deltaSection.includes('"hookChanges":[{"id":"h1"')).toBe(true);
+        expect(deltaSection.includes('\n')).toBe(false);
+        const extractCalls = [];
+        await extractDelta({
+            prose: '이세종이 문을 밀었다.', castManifestRaw: '', chapterNumber: 2, foundation,
+            prevState: emptyStoryState('work-test'), providers: createProviderRegistry([makeMockAdapter({ default: '{}', recordCalls: extractCalls })]), model: MODEL,
+        });
+        const system = extractCalls[0].messages.find((m) => m.role === 'system').content;
+        expect(/공백|들여쓰기/.test(system)).toBe(true);
+    });
+});

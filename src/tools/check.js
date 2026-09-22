@@ -26,6 +26,7 @@ import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { emptyStoryState } from '../../engine/src/continuity/story-state.js';
 import { lexicons } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
+import { episodePlanReviewView } from '../core/episode-plan-view.js';
 import { createHash, randomUUID } from 'node:crypto';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
@@ -107,7 +108,10 @@ export async function runCheck({ store, workId, chapter, prose, castManifestRaw,
   // builds its user prompt *inside* the try that guards the provider call, so a
   // missing field makes the whole semantic layer vanish silently rather than
   // fail loudly. Omitting prevState costs you layer 2 with no error anywhere.
-  if (includeSemanticContinuity) {
+  // The semantic pass embeds the extracted delta in its prompt. While the relay
+  // is still collecting the extraction, requesting it would expose a stale
+  // placeholder question to the host.
+  if (includeSemanticContinuity && (providers?.pending?.length ?? 0) === 0) {
     const semantic = await continuityCheck({
       prose, chapterNumber: chapter, foundation, delta, prevState,
       lexicon: lex.honorific, providers, model: MODEL,
@@ -126,7 +130,7 @@ export async function runCheck({ store, workId, chapter, prose, castManifestRaw,
         model: MODEL, jsonMode: true, step: 'story-profile-check',
         messages: [
           { role: 'system', content: '승인된 작품 StoryProfile과 회차 본문을 비교한다. 명백하고 구체적인 이탈만 findings에 넣는다. 취향 차이와 장면상 의도는 지적하지 않는다. 모든 finding은 soft다. 순수 JSON만 출력한다.' },
-          { role: 'user', content: `StoryProfile:\n${JSON.stringify(storyProfile)}\n\n회차 비트:\n${JSON.stringify(arcEpisode)}\n\nEpisodePlan:\n${JSON.stringify(episodePlan)}\n\n본문:\n${prose}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"구체적 근거"}]}` },
+          { role: 'user', content: `StoryProfile:\n${JSON.stringify(storyProfile)}\n\n회차 비트:\n${JSON.stringify(arcEpisode)}\n\nEpisodePlan:\n${JSON.stringify(episodePlanReviewView(episodePlan))}\n\n본문:\n${prose}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"구체적 근거"}]}` },
         ],
       });
       const parsed = JSON.parse(String(response.text).replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim());

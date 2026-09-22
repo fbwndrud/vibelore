@@ -378,20 +378,28 @@ describe('MCP surface', () => {
     ]);
     const parked = payload(first.get(3));
     assert.equal(parked.status, 'needs_model');
-    assert.ok(parked.requests.length >= 2);
+    assert.ok(parked.requests.length >= 1);
+    assert.ok(parked.requests.some((r) => r.step === 'continuity-extract'));
     assert.ok(parked.deterministicResult.violations !== undefined,
       '모델을 못 써도 결정론 결과는 함께 와야 합니다');
 
-    // A brand-new server process -- the run has to come off disk.
+    // A brand-new server process -- the run has to come off disk. The semantic
+    // check depends on the extracted delta, so it is asked in the next pass.
     const answers = Object.fromEntries(parked.requests.map((r) => [r.id, '{}']));
     const second = await session([init, call(2, 'lore_resume', { project: dir, runId: parked.runId, answers })]);
-    const resumed = payload(second.get(2));
+    const followUp = payload(second.get(2));
+    assert.equal(followUp.status, 'needs_model');
+    assert.equal(followUp.runId, parked.runId);
+    assert.ok(followUp.requests.some((r) => r.step === 'continuity-check'));
+    for (const r of followUp.requests) answers[r.id] = '{}';
+    const third = await session([init, call(2, 'lore_resume', { project: dir, runId: parked.runId, answers })]);
+    const resumed = payload(third.get(2));
     assert.equal(resumed.status, 'ok');
     assert.ok(['clean', 'soft-only', 'blocked'].includes(resumed.verdict));
 
     // The run is spent; asking again must not silently re-run it.
-    const third = await session([init, call(2, 'lore_resume', { project: dir, runId: parked.runId, answers })]);
-    assert.equal(third.get(2).result.isError, true);
+    const fourth = await session([init, call(2, 'lore_resume', { project: dir, runId: parked.runId, answers })]);
+    assert.equal(fourth.get(2).result.isError, true);
   });
 
   it('resumes lore_write from persisted workflow answers after its run file expires', async () => {

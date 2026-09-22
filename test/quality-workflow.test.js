@@ -93,3 +93,58 @@ describe('first-draft quality through the writing workflow', () => {
     });
   }
 });
+
+describe('host round trips are batched by dependency', () => {
+  async function replayWithRelay(store, autonomy = 'auto') {
+    const { createPreflightRelay } = await import('../src/provider/host-relay.js');
+    const answers = {};
+    const passes = [];
+    let result;
+    for (let pass = 0; pass < 20; pass += 1) {
+      const relay = createPreflightRelay(answers);
+      result = await runWriteWorkflow({ store, workId, autonomy, providers: relay });
+      const steps = relay.pending.map((req) => req.step);
+      if (!steps.length) break;
+      passes.push(steps);
+      for (const req of relay.pending) answers[req.id] = outputs[req.step] ?? '{}';
+    }
+    return { result, passes };
+  }
+
+  it('collects every independent review in one pass and defers dependent checks', async () => {
+    const store = await qualityStore();
+    const { result, passes } = await replayWithRelay(store);
+    assert.equal(result.status, 'completed', JSON.stringify(result));
+    assert.deepEqual(passes.slice(0, 2), [['chapter-plan'], ['draft']]);
+    const batch = passes[2];
+    for (const step of ['continuity-extract', 'story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger']) {
+      assert.ok(batch.includes(step), `${step} in first review batch: ${batch}`);
+    }
+    assert.ok(!batch.includes('continuity-check'), 'continuity-check waits for the extracted delta');
+    assert.ok(!batch.includes('continuity-extract-repair'), 'no repair request on a placeholder delta');
+    assert.deepEqual(passes[3], ['continuity-check']);
+    assert.deepEqual(passes[4], ['narrative-boundary', 'chapter-summary']);
+    assert.equal(passes.length, 5);
+  });
+
+  it('records one quality policy evaluation per attempt across resumed passes', async () => {
+    const store = await qualityStore();
+    await replayWithRelay(store);
+    const history = await runWorkflowHistory({ store, workId });
+    assert.equal(history.events.filter((e) => e.event === 'quality_policy_evaluated').length, 1);
+    assert.equal(history.events.filter((e) => e.event === 'reviews_completed').length, 1);
+  });
+
+  it('shows reviewers a plan view without bookkeeping fields', async () => {
+    const store = await qualityStore();
+    const plan = await store.loadEpisodePlan(workId, 1);
+    await store.saveEpisodePlan(workId, { ...plan, workId, contractVersion: 'mcp-test', createdAt: '2026-01-01T00:00:00.000Z' });
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); return { text: outputs[req.step] ?? '{}' }; } } });
+    for (const step of ['story-profile-check', 'reader-hook']) {
+      const text = requests.find((req) => req.step === step).messages.map((m) => m.content).join('\n');
+      assert.doesNotMatch(text, /contractVersion|createdAt/, step);
+      assert.match(text, /닫힌 문 앞에 선다/, step);
+    }
+  });
+});

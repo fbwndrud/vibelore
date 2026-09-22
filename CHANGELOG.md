@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.2 — 2026-09-22
+
+- Batch independent `lore_write` model requests into one host round trip
+  (extraction, profile check and reviews; then the delta-dependent continuity
+  check and arc review; then boundary and summary). A resumed workflow no
+  longer exposes requests built on placeholder answers or re-logs stage events.
+- Validate optional episode-plan modules (character agendas, reveal contracts)
+  at planning time with the commit validator and issue one
+  `episode-plan-repair` request instead of failing after drafting and review.
+- Send compact JSON in continuity prompts and ask the extractor for compact
+  output; give reviewers an EpisodePlan view without bookkeeping fields or
+  duplicated scene aliases.
+- Tell hosts that requests in one `needs_model` response are independent and
+  may be answered in parallel.
+
 ## 0.3.1 — 2026-09-21
 
 - Add `lore_webtoon_scene`: an opt-in path that adapts a fixed source range

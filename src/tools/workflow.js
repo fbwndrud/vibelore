@@ -59,6 +59,17 @@ async function transition(store, workflow, stage, detail = {}) {
 
 function pending(providers) { return (providers.pending?.length ?? 0) > 0; }
 
+/**
+ * A resumed workflow replays every completed stage from the top, so a stage
+ * event would be appended once per host round trip. Record it once per key.
+ */
+async function logOnce(store, workflow, key, event) {
+  if ((workflow.loggedEventKeys ?? []).includes(key)) return;
+  workflow.loggedEventKeys = [...(workflow.loggedEventKeys ?? []), key];
+  await store.saveWorkflow(workflow.workId, workflow);
+  await store.appendWorkflowEvent(workflow.workId, workflow.workflowId, event);
+}
+
 function parseInfluenceObservation(raw, foundation) {
   let parsed;
   try { parsed = JSON.parse(String(raw ?? '').replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim()); }
@@ -313,7 +324,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     );
     if (normalizedProse !== current.prose) {
       current = { ...current, prose: normalizedProse };
-      await store.appendWorkflowEvent(workId, workflow.workflowId, {
+      await logOnce(store, workflow, `layout:${attempt}`, {
         at: now(), event: 'webnovel_layout_normalized', chapter, attempt,
         transform: 'normalize_dialogue_boundaries',
       });
@@ -326,10 +337,6 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       includeProfileCheck: true,
       requireInfluenceObservation,
     });
-    if (pending(providers)) {
-      await transition(store, workflow, 'awaiting_model', { operation: 'continuity_check', attempt });
-      return { preview: true, workflowId: workflow.workflowId, chapter };
-    }
 
     const experienceLedger = await loadCurrentExperienceLedger({ store, workId });
     const patternLedger = experienceLedger.entries;
@@ -340,39 +347,24 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       prose: current.prose, chapterNumber: chapter,
       plan: renderEpisodePlan(episodePlan), writerModel: MODEL, providers: reviewProvider,
     }), { score: null, reason: null });
-    if (pending(providers)) {
-      await transition(store, workflow, 'awaiting_model', { operation: 'coherence_judge', attempt });
-      return { preview: true, workflowId: workflow.workflowId, chapter };
-    }
 
     const { context: characterContext } = await buildContext({ store, workId, chapter });
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     const editorialContext = priorSummaries.map((item) => item.summary).join('\n');
     editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider }), { score: null, dimensions: {}, findings: [] });
-    if (pending(providers)) {
-      await transition(store, workflow, 'awaiting_model', { operation: 'editorial_quality', attempt });
-      return { preview: true, workflowId: workflow.workflowId, chapter };
-    }
 
     characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, context: characterContext, providers: reviewProvider }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
-    if (pending(providers)) {
-      await transition(store, workflow, 'awaiting_model', { operation: 'character_fidelity', attempt });
-      return { preview: true, workflowId: workflow.workflowId, chapter };
-    }
 
     readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider }), { score: null, dimensions: {}, findings: [] });
-    if (pending(providers)) {
-      await transition(store, workflow, 'awaiting_model', { operation: 'reader_hook', attempt });
-      return { preview: true, workflowId: workflow.workflowId, chapter };
-    }
     patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider }), { chapter, solutionPattern: '', supportingAgency: {} });
+    // Independent reviews above are collected into one host round trip. The
+    // semantic continuity check (needs the extracted delta) and the arc review
+    // (needs the pattern entry) wait for the answers they depend on.
+    arcReview = pending(providers) ? null : await reviews.run('arc-review', (reviewProvider) => runArcReview({ store, workId, arcPlan, chapter, prose: current.prose, patternEntry, providers: reviewProvider }), null);
     if (pending(providers)) {
-      await transition(store, workflow, 'awaiting_model', { operation: 'pattern_ledger', attempt });
-      return { preview: true, workflowId: workflow.workflowId, chapter };
-    }
-    arcReview = await reviews.run('arc-review', (reviewProvider) => runArcReview({ store, workId, arcPlan, chapter, prose: current.prose, patternEntry, providers: reviewProvider }), null);
-    if (pending(providers)) {
-      await transition(store, workflow, 'awaiting_model', { operation: 'arc_review', attempt });
+      await transition(store, workflow, 'awaiting_model', {
+        operation: 'check_and_reviews', attempt, requestedSteps: providers.pending.map((request) => request.step),
+      });
       return { preview: true, workflowId: workflow.workflowId, chapter };
     }
 
@@ -439,7 +431,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const policy = qualityDecision({ violations });
     surfacedAdvisories = policy.advisory;
     const shouldRevise = policy.shouldRevise;
-    await store.appendWorkflowEvent(workId, workflow.workflowId, {
+    await logOnce(store, workflow, `policy:${attempt}:${proseHash(current.prose)}`, {
       at: now(), event: 'quality_policy_evaluated', chapter, attempt,
       blocking: [...new Set(policy.blocking.map((item) => item.code))],
       advisory: [...new Set(policy.advisory.map((item) => item.code))],
@@ -499,19 +491,15 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     });
   }
 
+  // Boundary and summary only need the final prose: one round trip for both.
   const boundary = await runNarrativeBoundary({
     arcPlan, episodePlan, chapter, prose: current.prose, providers,
   });
-  if (pending(providers)) {
-    await transition(store, workflow, 'awaiting_model', { operation: 'narrative_boundary', attempt });
-    return { preview: true, workflowId: workflow.workflowId, chapter };
-  }
-
   const summaryResult = await runChapterSummary({
     prose: current.prose, chapterNumber: chapter, writerModel: MODEL, summaryModel: MODEL, providers,
   });
   if (pending(providers)) {
-    await transition(store, workflow, 'awaiting_model', { operation: 'chapter_summary', attempt });
+    await transition(store, workflow, 'awaiting_model', { operation: 'boundary_and_summary', attempt });
     return { preview: true, workflowId: workflow.workflowId, chapter };
   }
 

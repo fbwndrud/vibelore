@@ -69,7 +69,8 @@ export async function runRelayedTool({
     requests: pending,
     instruction:
       '각 request 의 system 과 user 를 그대로 읽고 답을 만든 뒤, lore_resume 에 { runId, answers: { <request id>: "<답변>" } } 로 넘기세요. ' +
-      'jsonMode=true 인 요청은 코드블록 없이 순수 JSON 으로만 답해야 합니다. 답을 넘기지 않으면 아래 결정론 결과가 최종입니다.',
+      'jsonMode=true 인 요청은 코드블록 없이 순수 JSON 으로만 답해야 합니다. 답을 넘기지 않으면 아래 결정론 결과가 최종입니다. ' +
+      '한 응답의 requests 는 서로 독립이므로 병렬로(서브에이전트·동시 CLI 실행) 답해도 되며, 순서와 무관하게 모든 답을 한 번의 lore_resume 에 함께 넘기세요.',
     deterministicResult: result,
   };
 }

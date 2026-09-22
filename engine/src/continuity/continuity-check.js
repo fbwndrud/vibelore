@@ -154,6 +154,7 @@ export const EXTRACT_DELTA_SYSTEM = [
     '본문 외 추론은 금지. 본문에서 직접 관찰되는 변화만 기록한다.',
     'characterId, speakerId, targetId에는 이번 회차 등장 캐스트에 제공된 정확한 ID만 사용한다. 이름·직책·역할명은 ID가 아니며 임의로 만들지 않는다.',
     '출력은 코드 블록 없이 순수 JSON. 한국어 키/값을 사용해도 무방하나 스키마 키는 영문 그대로 유지한다.',
+    '들여쓰기와 줄바꿈 없는 한 줄 compact JSON으로 출력한다.',
 ].join(' ');
 function buildExtractDeltaUserPrompt(input, manifest) {
     const { prose, chapterNumber, prevState } = input;
@@ -171,10 +172,10 @@ function buildExtractDeltaUserPrompt(input, manifest) {
         String(chapterNumber),
         ``,
         `## 이전 상태 요약 (StoryState N-1)`,
-        JSON.stringify(prevSummary, null, 2),
+        JSON.stringify(prevSummary),
         ``,
         `## 이번 회차 등장 캐스트 (writer manifest)`,
-        JSON.stringify(castSummary, null, 2),
+        JSON.stringify(castSummary),
         ``,
         `## 본문`,
         prose,
@@ -318,7 +319,10 @@ export async function extractDelta(input) {
     const appearedCharacterIds = manifest.map((c) => c.characterId);
     let parsed = llmText ? tryParseJson(llmText) : null;
     let delta = parseChapterDeltaPayload(parsed, input.chapterNumber, appearedCharacterIds);
+    // A relay that is still collecting the first extraction has no real delta
+    // yet; a repair built on that placeholder would only waste a host answer.
     if (input.requireInfluenceObservation === true
+        && (input.providers.pending?.length ?? 0) === 0
         && delta.influenceEvents.length === 0
         && !delta.noInfluenceReason) {
         try {
@@ -402,16 +406,16 @@ function buildContinuityCheckUserPrompt(input) {
         String(chapterNumber),
         ``,
         `## 이전 상태 요약`,
-        JSON.stringify(prevSummary, null, 2),
+        JSON.stringify(prevSummary),
         ``,
         `## Foundation 요약`,
-        JSON.stringify(foundationSummary, null, 2),
+        JSON.stringify(foundationSummary),
         ``,
         `## 이번 회차 Delta`,
-        JSON.stringify(delta, null, 2),
+        JSON.stringify(delta),
         ``,
         `## 장르 invariant 목록`,
-        JSON.stringify(invariants, null, 2),
+        JSON.stringify(invariants),
         ``,
         `## 본문`,
         prose,

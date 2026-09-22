@@ -5,6 +5,7 @@ import { createPublicationUnit } from '../core/publication-unit.js';
 import { advanceWorkingTreeFingerprint } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { MCP_CONTRACT_VERSION, runtimeVersion } from '../core/runtime-version.js';
+import { validatePlanningContracts } from '../../engine/src/core/narrative-planning.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
@@ -165,9 +166,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   const identity = await store.loadStoryIdentity(workId);
   const pilotContract = chapter === 1 ? await store.loadPilotContract(workId) : null;
   const patternLedger = await store.loadPatternLedger(workId);
-  const response = await providers.complete({
-    model: MODEL, jsonMode: true, step: 'episode-plan',
-    messages: [
+  const planMessages = [
       { role: 'system', content: '당신은 승인된 아크 비트를 읽기 쉬운 상업 웹소설 회차 계획으로 확장한다. 이번 화의 즉시 목표, 눈앞의 장애물, 주인공의 선택, 달라진 결과만 먼저 고정한다. readerBridge에는 전문 설정 설명이 아니라 사전 지식 없는 독자가 붙잡을 생활적 상황과 결과를 한 문장으로 쓴다. 등장인물 전원을 활약시키거나 충돌시키지 않는다. foregroundCharacters는 실제로 선택 압력을 받는 중심 인물만 고르고, 나머지는 배경에서 반응하거나 침묵할 수 있다. characterAgendas, characterCollisions, revealContracts, episodeVoiceTargets는 해당 기능이 실제로 필요한 회차에서만 선택적으로 작성한다. 대사의 표면 뜻에 필요한 관찰이나 욕구를 대사보다 먼저 장면에 둔다. readerLoad가 onboarding이면 낯선 핵심 개념은 하나만 전면에 두고, expansion이면 이미 체험한 개념을 조합하며, focus이면 특정 개념 하나가 장면의 중심일 때만 복잡하게 다룬다. 아크의 열린 결과나 다음 화를 미리 소비하지 않는다. 장면은 2~4개의 흐름 단위로 제한하고 문장 연출은 작가에게 남긴다. 순수 JSON만 출력한다.' },
       { role: 'user', content: [
         renderStoryProfile(storyProfile), '', renderStoryIdentity(identity), '', renderPilotContract(pilotContract), '', renderPatternLedger(patternLedger), '', `Arc: ${arcPlan.title}`, `Arc promise: ${arcPlan.promise}`,
@@ -180,17 +179,49 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
         `이전 상태: ${JSON.stringify(state)}`, '',
         '필수 JSON 스키마:',
         '{"title":"가제","premise":"한 문장 상황","readerBridge":"사전 지식 없이도 붙잡을 즉시 상황과 결과","povCharacter":"id|null","cast":["등장 인물 id"],"foregroundCharacters":["실제로 선택 압력을 받는 중심 인물 id"],"locations":[""],"openingState":"","closingState":"","immediateGoal":"","obstacle":"","choice":"","outcome":"","nextQuestion":"","readerLoad":{"phase":"onboarding|expansion|focus","newConcepts":["낯선 핵심 개념"],"complexityReason":"focus일 때만 이유"},"scenes":[{"location":"","characters":["id"],"situation":"","choice":"","change":""}]}',
-        '선택 모듈 JSON 스키마(필요 없으면 키 자체를 생략):',
+        '선택 모듈 JSON 스키마(필요 없으면 키 자체를 생략한다. 쓰기로 했다면 그 모듈의 모든 필드를 채운다. characterAgendas는 항목마다 goal·nextAction·deadline·resources·knowledge·misbelief·redLine·fallback이 전부 필요하고, revealContracts는 dualUseClues·recontextualizesSceneIds·changes.actions과 relationships 또는 costs가 비어 있으면 안 된다):',
         '{"characterAgendas":[{"characterId":"id","goal":"","hiddenPlan":"","nextAction":"","deadline":"","resources":[""],"knowledge":[""],"misbelief":"","redLine":"","fallback":""}],"characterCollisions":[{"agendaIds":["id","id"],"scarceConstraint":"","consequence":""}],"revealContracts":[{"id":"","inducedHypothesis":"","actualCause":"","dualUseClues":[""],"concealment":"","recontextualizesSceneIds":[""],"triggeredByChoice":"","changes":{"actions":[""],"relationships":[""],"costs":[""]}}],"episodeVoiceTargets":[{"characterId":"id","sceneOrder":1,"speakingPressure":"","surfaceIntent":"","hiddenIntent":"","sampleLine":"","narrationFilter":""}],"readerExpectation":{"likelyOutcome":"","evidenceOnPage":[""],"confidenceTarget":"low|medium|high"},"tension":{"ticking":"","stake":"","escalation":""},"costCreatedByResolution":{"immediate":"","deferred":"","beneficiary":"","payer":""},"reveals":[""],"withheld":[""],"powerChanges":[""],"artifacts":[""],"hooksTouched":[""],"carryForward":[""]}',
       ].join('\n') },
-    ],
-  });
+  ];
+  const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };
-  const obj = parse(response.text);
-  if (!obj || !Array.isArray(obj.scenes) || obj.scenes.length < 2 || obj.scenes.length > 4) throw new Error('episode-plan은 2~4개 scenes가 필요합니다.');
-  const planningInputViolations = episodePlanningContractViolations(obj, foundation.characters.map((character) => character.id));
-  if (planningInputViolations.length) throw new Error(`episode-plan 인물 agenda 검증 실패: ${planningInputViolations.join(' ')}`);
-  const planningContracts = compilePlanningContracts(obj);
+  const knownCharacterIds = foundation.characters.map((character) => character.id);
+  const acceptPlan = (raw) => {
+    const parsed = parse(raw);
+    if (!parsed || !Array.isArray(parsed.scenes) || parsed.scenes.length < 2 || parsed.scenes.length > 4) throw new Error('episode-plan은 2~4개 scenes가 필요합니다.');
+    const inputViolations = episodePlanningContractViolations(parsed, knownCharacterIds);
+    if (inputViolations.length) throw new Error(`episode-plan 인물 agenda 검증 실패: ${inputViolations.join(' ')}`);
+    const contracts = compilePlanningContracts(parsed);
+    const failure = validatePlanningContracts({
+      agendas: contracts.characterAgendas, collisions: contracts.characterCollisions, reveals: contracts.revealContracts,
+    });
+    return { parsed, contracts, failure };
+  };
+  // The commit path rejects an incomplete optional module with the same
+  // validator. Catching it here costs at most one extra planning answer instead
+  // of a full draft, every review and a failed commit.
+  let accepted = acceptPlan(response.text);
+  if (accepted.failure) {
+    const repair = await providers.complete({
+      model: MODEL, jsonMode: true, step: 'episode-plan-repair',
+      messages: [
+        planMessages[0],
+        { role: 'user', content: [
+          planMessages[1].content, '',
+          '이전 응답:', String(response.text), '',
+          `검증 오류: ${JSON.stringify(accepted.failure.error)}`,
+          '제목·장면·선택 모듈의 기존 내용은 유지하고, 위 오류에 해당하는 누락되거나 빈 필드만 채워 전체 계획 JSON을 다시 출력한다. 선택 모듈을 쓰려면 그 모듈의 모든 필드를 채우고, 정말 필요 없는 모듈이면 키 자체를 제거한다.',
+        ].join('\n') },
+      ],
+    });
+    if ((providers.pending?.length ?? 0) > 0) return { preview: true };
+    accepted = acceptPlan(repair.text);
+    if (accepted.failure) {
+      throw new Error(`EPISODE_PLAN_CONTRACT_INVALID: ${accepted.failure.error.code} ${accepted.failure.error.message} ${JSON.stringify(accepted.failure.error.details ?? {})}`);
+    }
+  }
+  const obj = accepted.parsed;
+  const planningContracts = accepted.contracts;
   const onboardingCutoff = Math.max(2, Math.ceil(Number(arcPlan.estimatedEpisodes ?? arcPlan.episodes?.length ?? 3) / 3));
   const requiresOnboarding = (storyProfile?.readabilityContract?.complexityRamp ?? 'onboarding-first') === 'onboarding-first'
     && Number(arcPlan.arcNumber) === 1

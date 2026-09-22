@@ -19,7 +19,7 @@ import { CAST_DESIGN_SYSTEM, DRAFT_SYSTEM, REVISE_SYSTEM, WORLDBUILD_SYSTEM, } f
  * 단일 build-time constant. PR 가 engine source 를 변경하면 반드시 bump.
  * 'endless-arc-vN' 패턴. 'v0' = Phase 0 baseline (Stage A merged, ChapterSummary 도입 전).
  */
-export const ENGINE_VERSION = 'endless-arc-v11-reader-accessibility';
+export const ENGINE_VERSION = 'endless-arc-v12-compact-continuity';
 /**
  * Static prompt snapshot. 동적 fragment (arc rule / cold-open / foundation
  * worldFact) 는 의도적으로 제외 — manifest hash 가 매 화 변경되면 lock 의 의미가

@@ -4,7 +4,7 @@
 
 `world/`, `characters/`, `chapters/`는 사람이 읽고 고치는 정본이며 `.vibelore/`는 직접 수정하지 않는다.
 
-소설을 이어 쓸 때는 기본적으로 `lore_write`만 호출한다. `guided`는 검사 완료 원고와 advisory를 사용자에게 보여준 뒤 `lore_decide`, `auto`는 불변식 검사를 통과하고 critic이 정상 완료된 경우에만 자동 커밋한다. `needs_model`이면 요청에 답해 `lore_resume`으로 이어간다. 화별 계획·초고·결정론 검사·critic 검토 묶음·필요한 최소 수정·검사 영수증·커밋의 순서를 임의로 해체하지 않는다.
+소설을 이어 쓸 때는 기본적으로 `lore_write`만 호출한다. `guided`는 검사 완료 원고와 advisory를 사용자에게 보여준 뒤 `lore_decide`, `auto`는 불변식 검사를 통과하고 critic이 정상 완료된 경우에만 자동 커밋한다. `needs_model`이면 요청에 답해 `lore_resume`으로 이어간다. 한 응답의 `requests`는 서로 독립이므로 병렬로 답해도 되며 모든 답을 한 번의 `lore_resume`에 함께 넘긴다. 화별 계획·초고·결정론 검사·critic 검토 묶음·필요한 최소 수정·검사 영수증·커밋의 순서를 임의로 해체하지 않는다.
 
 검토 모델 요청을 받으면 [검토 응답과 감사](docs/OPERATIONS.md#검토-응답과-감사)를 따른다. 실제 요청의 원고와 근거를 읽고 request ID에 답하며, 같은 호스트의 자기검토를 독립 독자 평가로 보고하지 않는다.
 
