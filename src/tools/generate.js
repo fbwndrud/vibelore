@@ -18,7 +18,7 @@ import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { foldLegacyChapterCharacterDynamics } from '../core/character-dynamics-adapter.js';
 import { compileCharacterArcSeeds, renderCharacterArcSeeds } from '../core/character-arc-seeds.js';
-import { compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
+import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
 import { MCP_CONTRACT_VERSION } from '../core/runtime-version.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
@@ -122,7 +122,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     prevState,
     readabilityContract: storyProfile?.readabilityContract,
     characterNames: Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName])),
-    budget: { maxTokens: 1400 },
+    budget: { maxTokens: WRITER_PACKET_MAX_TOKENS },
   });
   if (!episodePacketResult.ok) {
     const details = episodePacketResult.error.missing ? `: ${episodePacketResult.error.missing.join(', ')}` : '';

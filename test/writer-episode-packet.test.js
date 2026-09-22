@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { compileWriterEpisodePacket } from '../src/core/writer-episode-packet.js';
+import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../src/core/writer-episode-packet.js';
 
 function activePlan() {
   return {
@@ -95,7 +95,8 @@ describe('Writer Episode Packet Compiler', () => {
     const result = compileWriterEpisodePacket({ episodePlan: plan, arcEpisode: { chapter: 6 } });
     assert.equal(result.ok, true);
     assert.ok(result.value.usage.usedTokens <= result.value.usage.maxTokens);
-    assert.equal(result.value.usage.maxTokens, 1400);
+    assert.equal(result.value.usage.maxTokens, WRITER_PACKET_MAX_TOKENS);
+    assert.equal(WRITER_PACKET_MAX_TOKENS, 4000);
     assert.match(result.value.writerText, /## Voice Targets/);
     assert.match(result.value.writerText, /han-gyeom/);
     assert.doesNotMatch(result.value.writerText, /kang-taejun|seo-yura/);

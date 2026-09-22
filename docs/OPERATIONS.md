@@ -82,7 +82,7 @@ flowchart LR
 ③경계 판정·요약의 세 왕복이며, 한 응답의 `requests`는 서로 독립이므로 병렬로 답하고
 모든 답을 한 번의 `lore_resume`에 넘깁니다. 회차 계획의 선택 모듈(agenda·reveal)은
 커밋과 같은 검증기를 계획 단계에서 통과해야 하며, 누락 시 `episode-plan-repair` 요청이
-한 번 발급됩니다. 계획이 초고 단계의 Writer Packet 예산(1400 토큰)을 넘을 때도 같은
+한 번 발급됩니다. 계획이 초고 단계의 Writer Packet 상한(4000 토큰, 본문 길이와 무관한 계획 요약의 최장)을 넘을 때도 같은
 요청으로 문장을 줄인 계획을 한 번 받고, 그래도 초과하면 계획 단계에서
 `EPISODE_PACKET_OVERFLOW`로 멈춥니다.
 

@@ -1,6 +1,6 @@
 {
   "name": "vibelore-plugin",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "type": "module",
   "description": "Local novel-writing and webtoon-adaptation plugin with continuity checks, storyboards, lettering, and approval workflows.",

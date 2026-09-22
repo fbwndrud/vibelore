@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.7 — 2026-09-22
+
+- Raise the writer packet ceiling from 1400 to 4000 token units and share the
+  constant between the draft step and the plan-stage check. The packet carries
+  only this episode's plan, the arc beat and a capped residue, so the ceiling
+  now acts as a compressor for a verbose plan instead of a tight cut.
+
 ## 0.3.6 — 2026-09-22
 
 - Check the writer packet budget when an episode plan is accepted: a plan

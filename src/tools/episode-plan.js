@@ -6,14 +6,13 @@ import { advanceWorkingTreeFingerprint } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { MCP_CONTRACT_VERSION, runtimeVersion } from '../core/runtime-version.js';
 import { validatePlanningContracts } from '../../engine/src/core/narrative-planning.js';
-import { compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
+import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
   ? value.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim()).slice(0, max)
   : [];
 const text = (value, max = 1000) => String(value ?? '').trim().slice(0, max);
-const WRITER_PACKET_MAX_TOKENS = 1400;
 const scalarText = (value) => typeof value === 'string' || typeof value === 'number' ? value : '';
 
 function parse(raw) {

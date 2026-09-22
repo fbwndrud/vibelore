@@ -3,7 +3,12 @@ import { createHash } from 'node:crypto';
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 const list = (value) => Array.isArray(value) ? value.map(clean).filter(Boolean) : [];
 const tokenUnits = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
-const DEFAULT_MAX_TOKENS = 1400;
+// Ceiling for the compiled packet, not a prose length. Generous on purpose: the
+// packet only carries this episode's plan, the arc beat and a capped residue, so
+// it does not grow with chapter count; the ceiling exists to compress a verbose
+// plan, not to cut obligations.
+export const WRITER_PACKET_MAX_TOKENS = 4000;
+const DEFAULT_MAX_TOKENS = WRITER_PACKET_MAX_TOKENS;
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);

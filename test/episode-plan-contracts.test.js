@@ -61,8 +61,8 @@ describe('episode plan contracts are validated before drafting', () => {
   it('requests a repair when the accepted plan overflows the writer packet budget', async () => {
     const store = await qualityStore();
     const requests = [];
-    const long = (label) => `${label} `.repeat(120).trim();
-    const bloated = { ...basePlan, readerBridge: long('다리'), closingState: long('결말'), scenes: basePlan.scenes.map((scene) => ({ ...scene, situation: long('상황'), choice: long('선택'), change: long('변화') })) };
+    const long = (label) => `${label} `.repeat(300).trim();
+    const bloated = { ...basePlan, readerBridge: long('다리'), closingState: long('결말'), withheld: Array.from({ length: 8 }, (_, i) => long(`숨김${i}`)), scenes: basePlan.scenes.map((scene) => ({ ...scene, situation: long('상황'), choice: long('선택'), change: long('변화') })) };
     const providers = sequenceProvider({ 'episode-plan': [JSON.stringify(bloated)], 'episode-plan-repair': [JSON.stringify(basePlan)] }, requests);
     const result = await runEpisodePlan({ store, workId, chapter: 2, mode: 'auto', providers });
     const repair = requests.find((req) => req.step === 'episode-plan-repair');
@@ -76,8 +76,8 @@ describe('episode plan contracts are validated before drafting', () => {
 
   it('fails at planning time when the repaired plan still overflows the packet budget', async () => {
     const store = await qualityStore();
-    const long = (label) => `${label} `.repeat(120).trim();
-    const bloated = { ...basePlan, readerBridge: long('다리'), closingState: long('결말'), scenes: basePlan.scenes.map((scene) => ({ ...scene, situation: long('상황'), choice: long('선택'), change: long('변화') })) };
+    const long = (label) => `${label} `.repeat(300).trim();
+    const bloated = { ...basePlan, readerBridge: long('다리'), closingState: long('결말'), withheld: Array.from({ length: 8 }, (_, i) => long(`숨김${i}`)), scenes: basePlan.scenes.map((scene) => ({ ...scene, situation: long('상황'), choice: long('선택'), change: long('변화') })) };
     const providers = sequenceProvider({ 'episode-plan': [JSON.stringify(bloated)], 'episode-plan-repair': [JSON.stringify(bloated)] });
     await assert.rejects(runEpisodePlan({ store, workId, chapter: 2, mode: 'auto', providers }), /EPISODE_PACKET_OVERFLOW/);
     assert.equal(await store.loadEpisodePlan(workId, 2), null);
