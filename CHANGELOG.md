@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.5 — 2026-09-22
+
+- Rewrite README around what a writer sees: hero with showcase panels,
+  without/with contrast, 30-second novel and webtoon flows, per-host
+  collapsible install, feature list, philosophy summary and FAQ. Webtoon
+  adaptation is presented alongside novel writing instead of as an appendix.
+
 ## 0.3.4 — 2026-09-22
 
 - Split the model-profile `quality` stage: `review` now covers the advisory
