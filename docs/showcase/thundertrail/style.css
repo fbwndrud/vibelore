@@ -29,6 +29,10 @@ img{max-width:100%;height:auto;display:block}
 .seg button.active{background:var(--moss);color:var(--card);font-weight:500}
 .btn-gold{height:40px;display:inline-flex;align-items:center;padding:0 16px;border-radius:20px;background:var(--gold);color:var(--ink);text-decoration:none;font-size:14px;font-weight:700;white-space:nowrap}
 .btn-gold:hover{color:var(--ink);filter:brightness(1.05)}
+.plink{height:40px;display:inline-flex;align-items:center;padding:0 16px;border-radius:20px;border:1px solid var(--ink);color:var(--ink);text-decoration:none;font-size:14px;font-weight:500;white-space:nowrap}
+.plink:hover{background:var(--ink);color:var(--card)}
+.topbar .brand{white-space:nowrap}
+@media (max-width:1280px){.topbar .tag{display:none}.topbar{gap:16px;padding:0 24px}}
 
 /* episode head */
 .ephead{padding:28px 40px 20px;display:flex;align-items:flex-end;gap:40px;border-bottom:1px solid var(--line)}
@@ -170,7 +174,8 @@ footer.site a{color:var(--moss)}
   body{background:var(--ink);color:var(--card)}
   .topbar{height:56px;padding:0 16px;gap:10px;background:var(--ink);border-bottom:0;color:var(--card)}
   .topbar .brand{color:var(--card);font-size:16px}
-  .topbar .tag,.topbar .seg,.topbar .btn-gold{display:none}
+  .topbar .tag,.topbar .seg,.topbar .btn-gold,.topbar .plink{display:none}
+  .sheet .mtools .plink{border-color:var(--chip);color:var(--ink)}
   .eptabs{gap:6px;flex-grow:1;justify-content:flex-end}
   .eptab{height:30px;padding:0 10px;font-size:12px;border-color:#56665E;color:var(--card)}
   .eptab small{display:none}
