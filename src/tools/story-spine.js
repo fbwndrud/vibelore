@@ -27,13 +27,15 @@ export function deterministicStorySpineViolations(spine) {
 async function judge({ foundation, spine, providers }) {
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'story-spine-quality', messages: [
     { role: 'system', content: '당신은 한국 상업 장편소설의 스토리 스파인 심사자다. 설정의 매력이 아니라 사건의 인과적 필연성을 본다. 앞 사건을 삭제해도 뒤 사건이 그대로면 감점한다. 주인공의 최초 해법이 실패를 낳고, 그 실패가 더 큰 문제의 원인이 되며, 중간 재해석이 앞 단서의 의미를 바꾸고, 주변 인물의 독립 욕망이 플롯을 꺾고, 마지막 선택의 양쪽 모두 실제 손실이 있어야 한다. 순수 JSON만 출력한다.' },
-    { role: 'user', content: `세계·인물:\n${JSON.stringify(foundation)}\n\nStorySpine:\n${JSON.stringify(spine)}\n\nJSON: {"dimensions":{"causalNecessity":0,"protagonistError":0,"expectationReframe":0,"characterAgency":0,"finalChoiceCost":0,"endingTransformation":0},"findings":[{"code":"REMOVABLE_LINK|CORRECT_FROM_START|INFO_ONLY_TWIST|PASSIVE_CAST|FALSE_CHOICE|UNCHANGED_ENDING","message":"근거와 수정 방향"}]}` },
+    { role: 'user', content: `세계·인물:\n${JSON.stringify(foundation)}\n\nStorySpine:\n${JSON.stringify(spine)}\n\n각 dimensions는 0~100 정수로 채점한다. 65 미만은 취약 차원이다.\nJSON: {"dimensions":{"causalNecessity":0,"protagonistError":0,"expectationReframe":0,"characterAgency":0,"finalChoiceCost":0,"endingTransformation":0},"findings":[{"code":"REMOVABLE_LINK|CORRECT_FROM_START|INFO_ONLY_TWIST|PASSIVE_CAST|FALSE_CHOICE|UNCHANGED_ENDING","message":"근거와 수정 방향"}]}` },
   ] });
   if ((providers.pending?.length ?? 0) > 0) return null;
   const obj = parse(response.text);
   const dimensions = obj?.dimensions ?? {};
   const scores = DIMS.map((key) => Number(dimensions[key]));
   if (scores.some((n) => !Number.isFinite(n) || n < 0 || n > 100)) throw new Error('StorySpine 품질 심사의 6개 차원 점수가 유효하지 않습니다.');
+  // 1~5점 척도 응답은 내용과 무관하게 전 차원이 65 미만으로 떨어지므로 척도 오류로 따로 거절한다.
+  if (scores.every((n) => n <= 5)) throw new Error('StorySpine 품질 심사 점수가 0~100 척도가 아닙니다. 6개 차원을 0~100 정수로 다시 채점하세요.');
   const score = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   const weakDimensions = DIMS.filter((key) => Number(dimensions[key]) < 65);
   return { score, dimensions, weakDimensions, findings: Array.isArray(obj.findings) ? obj.findings.slice(0, 12) : [], verdict: score >= 75 && weakDimensions.length === 0 ? 'passed' : 'failed' };
