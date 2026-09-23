@@ -3,69 +3,77 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>길 위의 번개 · 세 모델 다섯 회차 웹툰</title>
-<meta name="description" content="같은 설계 아래 Codex·Claude·Grok이 회차별로 이어 만든 소설과 장면 웹툰(1~5화). 첫 결과와 검토 판정을 가감 없이 공개합니다.">
+<title>길 위의 번개 · vibelore 제작 예시</title>
+<meta name="description" content="AI가 설계하고 쓰고 검토한 판타지 소설과 장면 웹툰. 작품을 읽거나, 제작 기록·워크플로·토큰과 비용을 살펴보세요.">
+<script>
+  // 예전 뷰어 링크(#ep2/s3)는 작품 읽기로 넘긴다
+  if (/^#ep\d+(\/s\d+)?$/.test(location.hash)) location.replace('read.html' + location.hash);
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="hub.css?v=1">
 </head>
-<body>
-<header class="topbar">
-  <a class="brand" href="./">길 위의 번개</a>
-  <span class="tag">VIBELORE · 세 모델 제작 예시</span>
-  <div class="grow eptabs" id="eptabs"></div>
-  <div class="seg" role="group" aria-label="보기 방식">
-    <button data-mode="webtoon">웹툰</button>
-    <button data-mode="both">나란히</button>
-    <button data-mode="novel">소설</button>
+<body data-page="home" class="hub">
+<header class="hub-hero">
+  <div class="hub-copy">
+    <div class="kicker">VIBELORE 제작 예시</div>
+    <h1>길 위의 번개</h1>
+    <p class="lede">공격 마법 없이 방패 하나로 길을 여는 길잡이 리아와 동료들의 모험 판타지. 소설은 AI가 계획하고 쓰고 비평받아 고쳤고, 웹툰은 그 소설을 장면 단위로 각색해 그렸습니다.</p>
+    <div class="hub-stats" id="hub-stats"></div>
   </div>
-  <a class="plink" href="process.html">제작 과정</a>
-  <a class="btn-gold" href="compare.html">모델 비교</a>
+  <a class="hub-cover" href="read.html" id="hub-cover" aria-label="1화 첫 장면 읽기"></a>
 </header>
 
-<section class="ephead">
-  <div class="lead">
-    <div class="kicker" id="kicker">EPISODE</div>
-    <h1 id="eptitle">…</h1>
-    <p id="eplead"></p>
+<main class="hub-main">
+  <h2>무엇을 보러 오셨나요?</h2>
+  <div class="hub-cards">
+    <a class="hcard primary" href="read.html">
+      <span class="hk">작품 읽기</span>
+      <b>소설과 웹툰을 읽고 싶어요</b>
+      <span class="hd">회차별 웹툰과 같은 대목의 소설 원문을 나란히, 또는 하나만. 제작 정보는 숨겨 둡니다.</span>
+      <span class="go">1화부터 읽기 →</span>
+    </a>
+    <a class="hcard" href="process.html">
+      <span class="hk">제작 기록</span>
+      <b>이 화가 실제로 어떻게 만들어졌는지</b>
+      <span class="hd">회차별 계획, 초고, 비평가 지적, 수정 전후 비교, 장면별 사실 추출·검증·재설계, 1~6화 떡밥 추적.</span>
+      <span class="go">기록 보기 →</span>
+    </a>
+    <a class="hcard" href="workflow.html">
+      <span class="hk">워크플로 해설</span>
+      <b>각 단계는 무슨 역할을 하나요</b>
+      <span class="hd">단계마다 받는 것, 내놓는 것, 누가 판단하는지, 왜 있는지와 실제 사례.</span>
+      <span class="go">해설 보기 →</span>
+    </a>
+    <a class="hcard" href="cost.html">
+      <span class="hk">비용·시간</span>
+      <b>토큰, 시간, 비용이 얼마나 들었나요</b>
+      <span class="hd">회차·단계별 입력·캐시·출력 토큰과 소요 시간, 비용. 실측과 추정을 구분합니다. 예상 비용 계산기 포함.</span>
+      <span class="go">수치 보기 →</span>
+    </a>
+    <a class="hcard" href="compare.html">
+      <span class="hk">모델 비교</span>
+      <b>Codex·Claude·Grok·GPT는 어떻게 달랐나요</b>
+      <span class="hd">회차마다 다른 모델이 이어 만들었습니다. 결과, 비용, 결함 유형을 나란히.</span>
+      <span class="go">비교 보기 →</span>
+    </a>
   </div>
-  <div class="chips">
-    <div class="chip"><span>소설</span><span id="chip-novel"></span></div>
-    <div class="chip"><span>웹툰 각색·연출</span><span id="chip-adapt"></span></div>
-    <div class="chip"><span>이미지</span><span id="chip-image"></span></div>
-    <div class="chip"><span>그림 검토</span><span id="chip-review"></span></div>
-  </div>
-</section>
-
-<main class="reader mode-both" id="reader">
-  <nav class="rail" id="rail" aria-label="장면"></nav>
-  <div class="toon-col" id="toon"></div>
-  <aside class="prose-col">
-    <div class="prose-tools">
-      <span id="prose-label">소설 원문</span>
-      <span class="sizes">글자 크기 <button data-size="s">가</button><button data-size="m">가</button><button data-size="l">가</button></span>
-    </div>
-    <div class="prose" id="prose"></div>
-  </aside>
+  <p class="hub-note">모든 결과는 자동 재생성 없이 첫 결과와 검토 판정을 그대로 공개합니다. 검토는 제작에 쓴 호스트의 자기검토이며 독립 평가가 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a></p>
 </main>
-
-<div class="sheet" id="sheet">
-  <div class="grab"></div>
-  <div class="sh"><span id="sheet-label">원문 보기</span><button id="sheet-toggle">위로 펼치기</button></div>
-  <div class="body" id="sheet-body"></div>
-  <div class="mtools"><button data-mode="webtoon">웹툰</button><button data-mode="novel">소설</button><a class="plink" href="process.html" style="flex:1;height:30px;justify-content:center;font-size:12px">제작 과정</a><a class="btn-gold" href="compare.html" style="flex:1;height:30px;justify-content:center;font-size:12px">모델 비교</a></div>
-</div>
-
-<dialog class="modal" id="modal">
-  <div class="modal-head"><b id="modal-title"></b><button id="modal-close">닫기</button></div>
-  <div class="modal-body" id="modal-body"></div>
-</dialog>
-
-<footer class="site">
-  소설·각색·연출은 회차마다 다른 호스트가, 이미지는 다섯 회차 모두 같은 OpenAI 이미지 모델이 만들었습니다. 동일 입력 성능 실험이 아니라 같은 설계 아래 이어 쓴 제작 예시입니다.<br>
-  이미지 검토는 오케스트레이션 호스트의 자기검토이며 독립 평가가 아닙니다. 판정이 “수정 필요”여도 재생성 없이 첫 결과를 그대로 실었습니다.<br>
-  빌드 <span id="built"></span> · 데이터 <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
-</footer>
-<script src="app.js?v=5"></script>
+<script src="site.js?v=1"></script>
+<script>
+(function () {
+  Promise.all([fetch('data.json').then((r) => r.json()), fetch('costs.json').then((r) => r.json()).catch(() => null)]).then(([d, c]) => {
+    const eps = d.episodes; const scenes = eps.reduce((a, e) => a + e.sceneCount, 0); const panels = eps.reduce((a, e) => a + e.panelTotal, 0);
+    const novelN = c ? c.episodes.length : eps.length;
+    const box = document.getElementById('hub-stats');
+    for (const [b, s] of [[`${novelN}화`, '소설'], [`${eps.length}화 · ${scenes}장면`, '웹툰'], [`${panels}칸`, '그림']]) {
+      const x = document.createElement('div'); x.className = 'hs'; x.innerHTML = `<b></b><span></span>`; x.firstChild.textContent = b; x.lastChild.textContent = s; box.append(x);
+    }
+    const s1 = eps[0].scenes[0]; const img = document.createElement('img'); img.src = s1.image; img.alt = `1화 첫 장면 ${s1.title}`; document.getElementById('hub-cover').append(img);
+  });
+})();
+</script>
 </body>
 </html>

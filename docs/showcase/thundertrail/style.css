@@ -233,3 +233,26 @@ footer.site a{color:var(--moss)}
   .caveat{color:var(--ink)}
   .bar-row{grid-template-columns:70px 1fr 50px}
 }
+
+/* ===== 공통 사이트 메뉴 ===== */
+.snav{display:flex;align-items:center;gap:20px;height:40px;padding:0 40px;background:var(--ink);color:var(--card);font-size:13px;overflow-x:auto;scrollbar-width:none}
+.snav::-webkit-scrollbar{display:none}
+.snav a{color:#C9C2AE;text-decoration:none;white-space:nowrap}
+.snav a:hover{color:var(--card)}
+.snav-home{font-family:var(--serif);font-weight:700;color:var(--card)!important;font-size:14px}
+.snav-links{display:flex;gap:4px}
+.snav-links a{padding:5px 10px;border-radius:14px}
+.snav-links a.on{background:var(--gold);color:var(--ink);font-weight:700}
+@media (max-width:960px){.snav{padding:0 12px;gap:10px;height:38px}.snav-home{display:none}.snav-links a{padding:5px 8px;font-size:12.5px}}
+
+/* ===== 작품 읽기: 제작 정보 스위치 ===== */
+.metatog{height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--chip);background:transparent;color:var(--sub);font-size:13px;white-space:nowrap}
+.metatog[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+body.reader-page:not(.meta-on) .scene-head .badge,
+body.reader-page:not(.meta-on) .scene-title span,
+body.reader-page:not(.meta-on) .scene-actions,
+body.reader-page:not(.meta-on) .findings,
+body.reader-page:not(.meta-on) .ephead .chips,
+body.reader-page:not(.meta-on) .eptab small{display:none}
+body.reader-page:not(.meta-on) .rail a.pass,body.reader-page:not(.meta-on) .rail a.revise{border-color:var(--chip)}
+@media (max-width:960px){.topbar .metatog{display:none}.sheet .mtools .metatog{flex:1;height:30px;font-size:12px;color:var(--ink)}}

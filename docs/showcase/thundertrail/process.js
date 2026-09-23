@@ -18,7 +18,7 @@
   const dur = (s) => s == null ? '–' : s < 60 ? `${s}초` : s < 3600 ? `${Math.floor(s / 60)}분 ${s % 60 ? (s % 60) + '초' : ''}`.trim() : `${Math.floor(s / 3600)}시간 ${Math.round((s % 3600) / 60)}분`;
   const CHAR = { c1: '리아', c2: '도윤', c3: '보리', c4: '마렌' };
 
-  let P = null; let D = null; let KO = {};
+  let P = null; let D = null; let C = null; let KO = {};
   const tr = (key, en) => (KO[key] || en || '');
   // 내부 식별자를 사람이 읽는 말로: 리아(c1) → 리아, c2 → 도윤, text-3 → “대사”
   let TEXTS = {};
@@ -200,11 +200,20 @@
   }
 
   /* ---------- 회차 ---------- */
+  // 회차 목록: 소설이 커밋된 화 전체. 웹툰은 공개된 화만 있다.
+  function epInfo(ch) {
+    const d = D.episodes.find((x) => x.chapter === ch) || {};
+    const c = (C && C.episodes.find((x) => x.chapter === ch)) || {};
+    return { chapter: ch, novelHost: d.novelHost || c.novelHost || '', novelModel: d.novelModel || c.novelModel || '', host: d.host, webtoon: !!d.chapter };
+  }
+  function chapters() { return [...new Set([...P.novel.map((n) => n.chapter), ...D.episodes.map((e) => e.chapter)])].sort((a, b) => a - b); }
   function renderTabs() {
     const box = $('#ptabs'); box.innerHTML = '';
-    for (const e of D.episodes) {
-      box.append(el('button', { class: 'eptab' + (e.chapter === state.ep ? ' active' : ''), role: 'tab', 'aria-selected': String(e.chapter === state.ep), onclick: () => { state.ep = e.chapter; state.scene = 's1'; renderEpisode(); writeHash(); } },
-        el('span', null, `${e.chapter}화`), el('small', null, e.host)));
+    for (const ch of chapters()) {
+      const e = epInfo(ch);
+      const small = state.lane === 'webtoon' ? (e.webtoon ? e.host : '웹툰 준비 중') : (e.novelHost || '');
+      box.append(el('button', { class: 'eptab' + (ch === state.ep ? ' active' : ''), role: 'tab', 'aria-selected': String(ch === state.ep), onclick: () => { state.ep = ch; state.scene = 's1'; renderEpisode(); writeHash(); } },
+        el('span', null, `${ch}화`), el('small', null, small)));
     }
     for (const b of document.querySelectorAll('#lane-seg button')) b.classList.toggle('active', b.dataset.lane === state.lane);
   }
@@ -232,7 +241,7 @@
     return 'k-review';
   }
   function renderNovel(body) {
-    const n = P.novel.find((x) => x.chapter === state.ep); const e = D.episodes.find((x) => x.chapter === state.ep);
+    const n = P.novel.find((x) => x.chapter === state.ep); const e = epInfo(state.ep);
     if (!n) { body.append(el('p', { class: 'note' }, '이 회차의 소설 워크플로 기록이 없습니다.')); return; }
     const total = n.steps.reduce((a, s) => a + (s.sec || 0), 0);
     // 헤더
@@ -387,6 +396,10 @@
   /* ----- 웹툰 ----- */
   function renderWebtoon(body) {
     const e = D.episodes.find((x) => x.chapter === state.ep); const w = P.webtoon.find((x) => x.chapter === state.ep);
+    if (!e || !w) {
+      body.append(el('div', { class: 'box' }, el('h3', null, `${state.ep}화 웹툰`), el('p', null, '이 화의 웹툰은 아직 제작 중이라 공개 전입니다. 소설 쓰기 기록은 위의 “① 소설 쓰기”에서 볼 수 있습니다.')));
+      return;
+    }
     const redesigns = w.scenes.reduce((a, s) => a + (s.redesigns || 0), 0);
     body.append(el('div', { class: 'box' },
       el('h3', null, `${e.chapter}화 · 각색 ${e.host} · ${e.model}${e.effort ? ' · ' + e.effort : ''} · 이미지 ${D.imageModel}`),
@@ -512,7 +525,7 @@
     for (const t of ps.timings || []) tb.append(el('div', { class: 'r' }, el('span', null, STEP_KO[t.step] || t.step), el('i', { class: t.step.includes('preflight') ? 'pf' : t.step.includes('review') ? 'rv' : '', style: `width:${Math.max(4, (t.sec / tmax) * 100)}%` }), el('em', null, dur(t.sec))));
     const side = el('aside', { class: 'side' },
       el('img', { src: s.image, alt: `${e.chapter}화 장면 ${s.n} ${s.title}` }),
-      el('div', { class: 'meta' }, el('b', null, `${s.n}. ${s.title}`), el('br'), `판정 ${s.verdict === 'pass' ? '통과' : '수정 필요'} · ${s.panelCount}칸 · `, el('a', { href: `./#ep${e.chapter}/${s.id}` }, '웹툰 뷰어에서 보기')),
+      el('div', { class: 'meta' }, el('b', null, `${s.n}. ${s.title}`), el('br'), `판정 ${s.verdict === 'pass' ? '통과' : '수정 필요'} · ${s.panelCount}칸 · `, el('a', { href: `read.html#ep${e.chapter}/${s.id}` }, '작품 읽기에서 보기')),
       (ps.timings || []).length ? el('div', { class: 'box', style: 'padding:12px 14px' }, el('h3', null, '단계별 소요 시간'), tb) : null);
     return el('div', { class: 'scene-detail' }, stepper, side);
   }
@@ -535,6 +548,44 @@
     box.append(g, el('p', { class: 'note', style: 'margin-top:10px' }, '이 밖의 판단(장면 분할, 계획, 검증, 검토 판정)은 모두 AI가 내렸습니다. 일부 장면의 이미지 재호출은 실행 환경 오류로 그림이 아예 나오지 않은 경우뿐이며, 사람이 여러 결과 중 고르거나 마음에 들지 않아 다시 뽑은 적은 없습니다.'));
   }
 
+  /* ---------- 떡밥·설정 추적 ---------- */
+  const PHASE = { planted: ['심음', 'h-plant'], advancing: ['진행', 'h-adv'], paid: ['회수', 'h-paid'], resolved: ['회수', 'h-paid'], parked: ['보류', 'h-park'] };
+  const HORIZON = { next: '다음 화 안', soon: '곧', arc: '이 아크 안', long: '장기' };
+  function renderHooks() {
+    const H = P.hooks; const box = $('#hooks-body'); box.innerHTML = '';
+    if (!H || !H.hooks.length) { box.append(el('p', { class: 'note' }, '떡밥 기록이 없습니다.')); return; }
+    const chs = H.chapters;
+    const paid = H.hooks.filter((h) => h.closedAt).length;
+    const parked = H.hooks.filter((h) => !h.closedAt && Object.values(h.events).slice(-1)[0] === 'parked').length;
+    box.append(el('div', { class: 'tags', style: 'margin-bottom:12px' },
+      el('span', { class: 'tg' }, `떡밥 ${H.hooks.length}개`), el('span', { class: 'tg ok' }, `회수 ${paid}`),
+      el('span', { class: 'tg warn' }, `진행 중 ${H.hooks.length - paid - parked}`), el('span', { class: 'tg' }, `보류 ${parked}`)));
+    const grid = el('div', { class: 'hgrid', style: `grid-template-columns:minmax(220px,2.4fr) repeat(${chs.length},minmax(58px,1fr))` });
+    grid.append(el('div', { class: 'hh' }, '떡밥'), ...chs.map((c) => el('div', { class: 'hh c' }, `${c}화`)));
+    for (const h of H.hooks) {
+      grid.append(el('div', { class: 'hn' }, el('span', null, h.text), el('small', null, `${h.planted}화에 심음 · 목표 ${HORIZON[h.horizon] || h.horizon || '–'}${h.closedAt ? ` · ${h.closedAt}화 회수` : ''}`)));
+      for (const c of chs) {
+        const ph = h.events[c] || h.events[String(c)];
+        const alive = c > h.planted && (!h.closedAt || c < h.closedAt);
+        if (ph) { const [lb, cls] = PHASE[ph] || [ph, '']; grid.append(el('div', { class: 'hc ' + cls, title: `${c}화 · ${lb}` }, el('span', null, lb))); }
+        else grid.append(el('div', { class: 'hc' + (alive ? ' h-idle' : ''), title: alive ? `${c}화 · 언급 없음(열린 채 유지)` : '' }, alive ? el('i') : null));
+      }
+    }
+    box.append(el('div', { class: 'box hbox' }, grid,
+      el('div', { class: 'legend2', style: 'margin-top:12px' },
+        el('span', null, el('i', { class: 'hsw h-plant' }), '심음'), el('span', null, el('i', { class: 'hsw h-adv' }), '진행'),
+        el('span', null, el('i', { class: 'hsw h-paid' }), '회수'), el('span', null, el('i', { class: 'hsw h-park' }), '보류'),
+        el('span', null, el('i', { class: 'hsw h-line' }), '열린 채 그 화에선 언급 없음')),
+      el('p', { class: 'note', style: 'margin-top:8px' }, 'AI는 매 화를 커밋할 때 이 화에서 어떤 떡밥을 심고 움직이고 회수했는지 영수증에 적습니다. 다음 화를 계획할 때 이 목록을 다시 읽기 때문에, 오래 열린 떡밥이 잊히지 않습니다. 목표 시점은 떡밥을 심을 때 AI가 정한 회수 예정입니다.')));
+    // 인물 관계 변화
+    const rels = el('div', { class: 'flist' });
+    for (const r of H.relationships) rels.append(el('div', { class: 'fitem' }, el('div', { class: 'fh' }, el('b', null, `${r.chapter}화 · ${CHAR[r.from] || r.from || ''}${r.from ? ' → ' : ''}${CHAR[r.to] || r.to}`), el('span', { class: 'tg' }, r.kind)), el('p', null, r.state)));
+    const facts = H.facts.map((f) => `${f.chapter}화 ${f.knownFactsAdded}개`).join(' · ');
+    box.append(el('details', { class: 'box more', style: 'margin-top:12px' },
+      el('summary', null, `인물 관계 변화 ${H.relationships.length}건 · 인물이 새로 알게 된 사실 (${facts})`),
+      el('p', { class: 'note', style: 'margin:8px 0' }, '관계는 누가 누구를 어떻게 보게 됐는지, 사실은 각 인물이 그 화에서 알게 된 것의 개수입니다. 다음 화에서 인물이 모르는 걸 아는 것처럼 말하지 않게 하는 기준이 됩니다.'), rels));
+  }
+
   /* ---------- 해시 ---------- */
   function writeHash() { history.replaceState(null, '', `#ep${state.ep}/${state.lane}${state.lane === 'webtoon' ? '/' + state.scene : ''}`); }
   function readHash() {
@@ -543,15 +594,16 @@
     return false;
   }
 
-  Promise.all([fetch('process.json').then((r) => r.json()), fetch('data.json').then((r) => r.json())]).then(([p, d]) => {
-    P = p; D = d; KO = p.ko || {};
+  Promise.all([fetch('process.json').then((r) => r.json()), fetch('data.json').then((r) => r.json()), fetch('costs.json').then((r) => r.json()).catch(() => null)]).then(([p, d, c]) => {
+    P = p; D = d; C = c; KO = p.ko || {};
     const deep = readHash();
-    renderStats(); renderLanes(); renderDesign(); renderEpisode(); renderChanges();
+    renderStats(); renderDesign(); renderEpisode(); renderHooks(); renderChanges();
     $('#built').textContent = (p.builtAt || '').slice(0, 10);
     for (const b of document.querySelectorAll('#lane-seg button')) b.addEventListener('click', () => { state.lane = b.dataset.lane; store.set('tt.proc.lane', state.lane); renderEpisode(); writeHash(); });
     document.addEventListener('click', (ev) => { if (!ev.target.closest('.src') && !ev.target.closest('#pop')) $('#pop').classList.add('hidden'); });
     window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') $('#pop').classList.add('hidden'); });
     if (deep) requestAnimationFrame(() => $('#episode').scrollIntoView());
+    else if (location.hash.length > 1) { const t = document.getElementById(location.hash.slice(1)); if (t) setTimeout(() => t.scrollIntoView({ behavior: 'instant' }), 60); }
     window.addEventListener('hashchange', () => { if (readHash()) { renderEpisode(); $('#episode').scrollIntoView(); } });
   }).catch((err) => {
     $('#ep-body').append(el('p', { class: 'note' }, '데이터를 불러오지 못했습니다: ' + err.message));

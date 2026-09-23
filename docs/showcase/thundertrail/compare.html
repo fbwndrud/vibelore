@@ -7,15 +7,13 @@
 <meta name="description" content="Codex·Claude·Grok이 회차별로 만든 소설과 장면 웹툰(1~5화)의 결과, 비용, 검토 판정, 결함 귀속을 한 페이지에서 비교합니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
-<body>
+<body data-page="compare">
 <header class="topbar">
   <a class="brand" href="./">길 위의 번개</a>
-  <span class="tag">모델 비교</span>
   <div class="grow eptabs" id="eptabs"></div>
   <span class="tag">같은 설계 아래 세 모델이 서로 다른 회차를 이어 쓴 제작 예시 · 동일 입력 성능 실험 아님</span>
-  <a class="plink" href="process.html">제작 과정</a>
 </header>
 
 <div class="page" style="padding-top:28px">
@@ -76,6 +74,7 @@ claude mcp add vibelore -- node src/server.js</pre></div>
 
 <footer class="site">이 페이지의 모든 수치는 <a href="data.json">data.json</a>에서 그대로 읽습니다. 빌드 <span id="built"></span>.</footer>
 
+<script src="site.js?v=1"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
@@ -83,7 +82,7 @@ claude mcp add vibelore -- node src/server.js</pre></div>
   const usd = (x) => '$' + x.toFixed(2);
   fetch('data.json').then((r) => r.json()).then((d) => {
     $('#built').textContent = d.builtAt.slice(0, 10);
-    const tabs = $('#eptabs'); for (const e of d.episodes) tabs.append(el('a', { href: `index.html#ep${e.chapter}/s1`, class: 'eptab' }, el('span', null, `${e.chapter}화`), el('small', null, e.host)));
+    const tabs = $('#eptabs'); for (const e of d.episodes) tabs.append(el('a', { href: `read.html#ep${e.chapter}/s1`, class: 'eptab' }, el('span', null, `${e.chapter}화`), el('small', null, e.host)));
 
     /* scorecard */
     const sc = $('#scorecard');
@@ -111,7 +110,7 @@ claude mcp add vibelore -- node src/server.js</pre></div>
       const s = e.scenes[0]; const t = s.timings;
       fs.append(el('div', { class: 'card firstcard' },
         el('div', { class: 't' }, el('span', null, `${e.chapter}화 · ${e.host}`), el('span', { class: 'pill ' + (s.verdict === 'pass' ? 'ok' : 'warn') }, s.verdict === 'pass' ? '검토 통과' : '수정 필요')),
-        el('a', { href: `index.html#ep${e.chapter}/${s.id}` }, el('img', { src: s.image, alt: `${e.chapter}화 첫 장면 ${s.title}`, loading: 'lazy' })),
+        el('a', { href: `read.html#ep${e.chapter}/${s.id}` }, el('img', { src: s.image, alt: `${e.chapter}화 첫 장면 ${s.title}`, loading: 'lazy' })),
         el('div', { class: 'm' }, `${s.title} · p${s.pFrom}–${s.pTo}`, el('br'), `${s.panelCount}칸 · 이미지 API ${t.imageCalls}회${t.imageCalls > 1 ? '(실패 재시도 포함)' : ''} · ${t.imageS || '–'}초 · 각색 ${t.planS.join('+')}초 · 사전 검증 ${t.preflightS.join('+')}초`, el('br'), s.findings.filter((f) => f.severity === 'blocking').map((f) => f.ko).join(' / ') || '차단 없음, 참고 ' + s.advisory + '건')));
     }
 
@@ -119,7 +118,7 @@ claude mcp add vibelore -- node src/server.js</pre></div>
     const heat = $('#heat');
     for (const e of d.episodes) {
       const cells = el('div', { class: 'cells' });
-      for (const s of e.scenes) cells.append(el('a', { href: `index.html#ep${e.chapter}/${s.id}`, class: s.verdict, title: `${s.title} · 차단 ${s.blocking} · 참고 ${s.advisory}` }, s.id));
+      for (const s of e.scenes) cells.append(el('a', { href: `read.html#ep${e.chapter}/${s.id}`, class: s.verdict, title: `${s.title} · 차단 ${s.blocking} · 참고 ${s.advisory}` }, s.id));
       heat.append(el('div', { class: 'row' }, el('b', null, `${e.chapter}화 · ${e.host}`), cells, el('span', { class: 'note' }, `통과 ${e.passCount} · 수정 필요 ${e.sceneCount - e.passCount}`)));
     }
     heat.append(el('div', { class: 'legend' }, el('span', null, el('i', { style: 'background:#DCE9DF' }), '검토 통과'), el('span', null, el('i', { style: 'background:#F3DFC0' }), '수정 필요 판정 · 그대로 공개')));

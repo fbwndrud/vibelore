@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>길 위의 번개 · 비용과 시간</title>
+<meta name="description" content="소설과 웹툰을 만드는 데 든 토큰, 시간, 비용을 회차·단계별로. 실측과 추정을 구분하고, 예상 비용 계산기를 제공합니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="process.css?v=3">
+<link rel="stylesheet" href="cost.css?v=2">
+</head>
+<body class="proc" data-page="cost">
+<section class="phero">
+  <div class="kicker">비용·시간</div>
+  <h1>토큰, 시간, 비용이 얼마나 들었나</h1>
+  <p>모든 수치는 모델 호출 기록에서 그대로 모았습니다. 표마다 <span class="kind k-real">실측</span> <span class="kind k-list">정가 환산</span> <span class="kind k-est">추정</span> <span class="kind k-none">기록 없음</span>을 붙여 어디까지가 확실한 숫자인지 구분합니다.</p>
+  <div class="caveats" id="caveats"></div>
+</section>
+
+<main class="pmain">
+  <section class="psec" id="calc">
+    <div class="sec-head"><h2>예상 비용 계산기</h2><span>이 작품의 실측값으로 내 작품 비용을 어림합니다</span></div>
+    <div class="calc box" id="calc-body"></div>
+  </section>
+
+  <section class="psec" id="episodes">
+    <div class="sec-head"><h2>회차별 합계</h2><span>한 화를 소설로 쓰고 웹툰으로 만들기까지</span></div>
+    <div class="box tblwrap"><table class="ctbl" id="ep-table"></table></div>
+  </section>
+
+  <section class="psec" id="tokens">
+    <div class="sec-head"><h2>토큰은 어디에 쓰였나</h2><span>회차별 답변 모델 토큰 구성. 막대 위에 올리면 숫자가 보입니다</span></div>
+    <div class="box" id="tok-chart"></div>
+  </section>
+
+  <section class="psec" id="steps">
+    <div class="sec-head"><h2>단계별 상세</h2><span>회차와 작업을 고르면 단계마다 호출 수·토큰·시간·비용이 나옵니다</span></div>
+    <div class="epbar"><div class="eptabs" id="st-tabs"></div><div class="seg" id="st-lane"><button data-lane="novel">소설</button><button data-lane="webtoon">웹툰 각색</button><button data-lane="arc">아크 설계</button></div></div>
+    <div class="box tblwrap"><table class="ctbl" id="step-table"></table></div>
+    <p class="note" id="step-note"></p>
+  </section>
+
+  <section class="psec" id="avg">
+    <div class="sec-head"><h2>단계별 평균 (전 회차)</h2><span>워크플로 해설의 “실측” 숫자는 이 표에서 나옵니다</span></div>
+    <div class="box tblwrap"><table class="ctbl" id="avg-table"></table></div>
+  </section>
+
+  <section class="psec" id="images">
+    <div class="sec-head"><h2>이미지</h2><span>모든 회차 같은 이미지 모델, 장면당 한 번 호출</span></div>
+    <div class="box tblwrap"><table class="ctbl" id="img-table"></table></div>
+  </section>
+</main>
+
+<footer class="site">
+  토큰 구분: <b>새 입력</b>은 캐시 없이 처음 읽은 입력, <b>캐시 쓰기</b>는 다음 호출을 위해 캐시에 저장한 입력, <b>캐시 읽기</b>는 캐시에서 싸게 다시 읽은 입력, <b>출력</b>은 모델이 쓴 답(내부 추론 포함)입니다. 공급자마다 단가가 달라 같은 토큰 수라도 비용이 다릅니다.<br>
+  데이터 <a href="costs.json">costs.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
+</footer>
+<script src="site.js?v=1"></script>
+<script src="cost.js?v=4"></script>
+</body>
+</html>

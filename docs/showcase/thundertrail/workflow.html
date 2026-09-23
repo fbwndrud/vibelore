@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>길 위의 번개 · 워크플로 해설</title>
+<meta name="description" content="vibelore가 소설과 웹툰을 만들 때 거치는 단계마다 무엇을 받고 무엇을 내놓는지, 누가 판단하는지, 왜 있는지를 실제 사례와 실측 수치로 설명합니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="process.css?v=3">
+<link rel="stylesheet" href="workflow.css?v=1">
+</head>
+<body class="proc" data-page="workflow">
+<section class="phero">
+  <div class="kicker">워크플로 해설</div>
+  <h1>각 단계는 무슨 역할을 하나</h1>
+  <p>vibelore는 소설 한 화, 웹툰 한 장면을 하나의 워크플로로 다룹니다. 단계는 정해진 순서로만 진행되고, 앞 단계의 검사를 통과한 결과만 다음 단계로 넘어갑니다. 아래 카드는 단계마다 받는 것과 내놓는 것, 판단 주체, 그 단계가 있는 이유를 설명하고, 이 작품에서 실제로 일어난 사례로 연결합니다.</p>
+  <div class="legend2" style="margin-top:6px">
+    <span><i class="who ai"></i>AI 판단</span>
+    <span><i class="who rule"></i>규칙 검사(모델 없이 코드가 판정)</span>
+    <span><i class="who human"></i>사람 결정</span>
+    <span><i class="who img"></i>이미지 모델</span>
+  </div>
+</section>
+
+<main class="pmain">
+  <section class="psec" id="map">
+    <div class="sec-head"><h2>한눈에 보기</h2><span>단계를 누르면 설명으로 이동합니다</span></div>
+    <div class="lanes" id="lanes"></div>
+  </section>
+  <section class="psec" id="novel">
+    <div class="sec-head"><h2>소설 워크플로</h2><span><code>lore_write</code> 한 번 호출로 계획부터 커밋까지 순서대로 진행됩니다</span></div>
+    <div class="wcards" id="novel-cards"></div>
+  </section>
+  <section class="psec" id="webtoon">
+    <div class="sec-head"><h2>웹툰 워크플로</h2><span>장면 하나가 한 워크플로입니다. <code>lore_webtoon_scene</code>이 장면마다 이 순서를 밟습니다</span></div>
+    <div class="wcards" id="webtoon-cards"></div>
+  </section>
+  <section class="psec" id="guards">
+    <div class="sec-head"><h2>왜 이렇게 나눴나</h2><span>단계를 쪼갠 이유는 세 가지입니다</span></div>
+    <div class="cols">
+      <div class="box"><h3>틀리면 되돌릴 수 있는 곳에서 멈춘다</h3><p>확정 설정과 충돌하는 원고, 원문과 어긋난 장면 계획은 커밋·그림 생성 전에 막힙니다. 그림을 그린 뒤, 연재한 뒤에 발견하면 되돌리기 비싸기 때문입니다.</p></div>
+      <div class="box"><h3>취향은 사람에게, 사실은 기계에게</h3><p>분량·설정 충돌처럼 사실 문제만 수정을 강제합니다. 문체나 전개에 대한 비평은 참고로 남기고 작가의 의도를 존중합니다.</p></div>
+      <div class="box"><h3>모든 판단에 영수증을 남긴다</h3><p>각 단계의 입력 해시, 모델 응답, 검사 결과가 워크플로 기록에 남습니다. 이 사이트의 모든 수치와 사례가 그 기록에서 나왔습니다.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  실측 수치는 이 작품 1~6화 제작 기록에서 단계별로 집계했습니다(답변 모델 호출 기준, 호스트 오케스트레이션 제외). 자세한 표는 <a href="cost.html">비용·시간</a>에 있습니다.<br>
+  제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
+</footer>
+<script src="site.js?v=1"></script>
+<script src="workflow.js?v=1"></script>
+</body>
+</html>

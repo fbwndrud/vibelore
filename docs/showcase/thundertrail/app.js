@@ -17,7 +17,7 @@
   const fmtS = (arr) => arr.length ? arr.map((x) => x + '초').join('+') : '–';
 
   let DATA = null;
-  let state = { ep: 1, scene: 's1', mode: store.get('tt.mode', 'both'), size: store.get('tt.size', 'm') };
+  let state = { ep: 1, scene: 's1', mode: store.get('tt.mode', 'both'), size: store.get('tt.size', 'm'), meta: store.get('tt.meta', '0') === '1' };
 
   function parseHash() {
     const m = location.hash.match(/#ep(\d)(?:\/(s\d+))?/);
@@ -36,15 +36,23 @@
   }
   function renderHead() {
     const e = ep();
-    $('#kicker').textContent = `EPISODE ${String(e.chapter).padStart(2, '0')} · ${e.host} · ${e.model}`;
+    $('#kicker').textContent = `EPISODE ${String(e.chapter).padStart(2, '0')}` + (state.meta ? ` · ${e.host} · ${e.model}` : '');
     $('#eptitle').textContent = e.title;
-    $('#eplead').textContent = `${e.sceneCount}장면 ${e.panelTotal}칸. 장면마다 이미지 API 한 번으로 3~12칸을 한 장에 생성했습니다. 왼쪽은 그 첫 결과, 오른쪽은 소설 원문입니다. 검토 통과 ${e.passCount}, 수정 필요 판정 ${e.sceneCount - e.passCount}. 판정과 관계없이 자동 재생성 없이 그대로 공개합니다.`;
+    if (!state.meta) {
+      $('#eplead').textContent = `${e.chapter}화 · 웹툰 ${e.sceneCount}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.`;
+      document.title = `${DATA.work} · ${e.chapter}화`;
+    } else $('#eplead').textContent = `${e.sceneCount}장면 ${e.panelTotal}칸. 장면마다 이미지 API 한 번으로 3~12칸을 한 장에 생성했습니다. 왼쪽은 그 첫 결과, 오른쪽은 소설 원문입니다. 검토 통과 ${e.passCount}, 수정 필요 판정 ${e.sceneCount - e.passCount}. 판정과 관계없이 자동 재생성 없이 그대로 공개합니다.`;
     $('#chip-novel').textContent = `${e.novelHost} · ${e.novelModel}`;
     $('#chip-adapt').textContent = `${e.host} · ${e.model} · ${e.effort}`;
     $('#chip-image').textContent = `OpenAI API · ${DATA.imageModel}`;
     const rv = e.reviewer || DATA.reviewer;
     $('#chip-review').textContent = `${rv.host} (${rv.model}) · 독립 평가 아님`;
-    document.title = `${DATA.work} · ${e.chapter}화 ${e.host}`;
+    if (state.meta) document.title = `${DATA.work} · ${e.chapter}화 ${e.host}`;
+  }
+  function applyMeta() {
+    document.body.classList.toggle('meta-on', state.meta);
+    for (const b of document.querySelectorAll('.metatog')) { b.setAttribute('aria-pressed', String(state.meta)); b.textContent = state.meta ? '제작 정보 끄기' : '제작 정보 보기'; }
+    store.set('tt.meta', state.meta ? '1' : '0');
   }
 
   /* ---------- reader ---------- */
@@ -188,7 +196,7 @@
 
   /* ---------- boot ---------- */
   function renderAll() {
-    renderTabs(); renderHead(); renderScenes(); renderProse(); applyMode(); applySize(); observe();
+    applyMeta(); renderTabs(); renderHead(); renderScenes(); renderProse(); applyMode(); applySize(); observe();
     const s = ep().scenes.find((x) => x.id === state.scene) || ep().scenes[0];
     setCurrent(s.id, { force: true });
     const target = $(`#scene-${s.id}`);
@@ -204,6 +212,7 @@
     $('#built').textContent = d.builtAt.slice(0, 10);
     window.addEventListener('hashchange', onHash);
     for (const b of document.querySelectorAll('[data-mode]')) b.addEventListener('click', () => { state.mode = b.dataset.mode; applyMode(); });
+    for (const b of document.querySelectorAll('.metatog')) b.addEventListener('click', () => { state.meta = !state.meta; applyMeta(); renderHead(); });
     for (const b of document.querySelectorAll('[data-size]')) b.addEventListener('click', () => { state.size = b.dataset.size; applySize(); });
     $('#modal-close').addEventListener('click', () => $('#modal').close());
     $('#modal').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) ev.currentTarget.close(); });

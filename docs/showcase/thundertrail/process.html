@@ -7,45 +7,18 @@
 <meta name="description" content="소설 설계부터 장면 웹툰 검토까지, AI가 어떤 단계를 거쳐 무엇을 만들고 어떻게 판단했는지 실제 기록으로 따라가 봅니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=6">
-<link rel="stylesheet" href="process.css?v=2">
+<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="process.css?v=3">
 </head>
-<body class="proc">
-<header class="topbar">
-  <a class="brand" href="./">길 위의 번개</a>
-  <span class="tag">VIBELORE · 제작 과정</span>
-  <div class="grow"></div>
-  <nav class="pnav" aria-label="페이지">
-    <a href="./">웹툰 보기</a>
-    <a href="process.html" class="active" aria-current="page">제작 과정</a>
-  </nav>
-  <a class="btn-gold" href="compare.html">모델 비교</a>
-</header>
-
+<body class="proc" data-page="process">
 <section class="phero">
-  <div class="kicker">HOW IT WAS MADE</div>
-  <h1>AI는 이 웹툰을 어떻게 만들었나</h1>
-  <p>소설 한 화가 계획되고, 쓰이고, 비평받고, 고쳐진 뒤 장면으로 나뉘어 그림이 되기까지. 각 단계에서 AI가 받은 것, 내놓은 것, 스스로 막거나 되돌린 판단을 실제 작업 기록에서 그대로 꺼냈습니다.</p>
+  <div class="kicker">제작 기록</div>
+  <h1>이 화는 실제로 어떻게 만들어졌나</h1>
+  <p>회차를 고르면 그 화의 계획, 초고, 비평가 지적, 수정, 장면별 사실 추출·검증·재설계, 그림 검토까지 실제 작업 기록 그대로 보여 줍니다. 단계가 각각 무슨 역할인지는 <a href="workflow.html">워크플로 해설</a>, 토큰과 비용은 <a href="cost.html">비용·시간</a>에 있습니다.</p>
   <div class="pstats" id="pstats"></div>
 </section>
 
 <main class="pmain">
-  <section class="psec" id="flow">
-    <div class="sec-head"><h2>전체 흐름</h2><span>단계를 누르면 해당 기록으로 이동합니다</span></div>
-    <div class="lanes" id="lanes"></div>
-    <div class="legend2">
-      <span><i class="who ai"></i>AI 판단</span>
-      <span><i class="who rule"></i>규칙 검사(모델 없이 코드가 판정)</span>
-      <span><i class="who human"></i>사람 결정</span>
-      <span><i class="who img"></i>이미지 모델</span>
-    </div>
-  </section>
-
-  <section class="psec" id="design">
-    <div class="sec-head"><h2>작품 설계</h2><span>모든 화가 따르는 약속. 한 번 승인되면 화마다 다시 해석하지 않습니다</span></div>
-    <div id="design-body"></div>
-  </section>
-
   <section class="psec" id="episode">
     <div class="sec-head"><h2>회차 들여다보기</h2><span>회차를 고르고, 소설 쓰기와 웹툰 만들기 중 보고 싶은 쪽을 고르세요</span></div>
     <div class="epbar">
@@ -56,6 +29,16 @@
       </div>
     </div>
     <div id="ep-body"></div>
+  </section>
+
+  <section class="psec" id="hooks">
+    <div class="sec-head"><h2>떡밥·설정 추적</h2><span>AI가 매 화 커밋할 때 검사 영수증에 남긴 기록. 심은 떡밥이 어느 화에서 움직이고 회수됐는지</span></div>
+    <div id="hooks-body"></div>
+  </section>
+
+  <section class="psec" id="design">
+    <div class="sec-head"><h2>작품 설계</h2><span>모든 화가 따르는 약속. 한 번 승인되면 화마다 다시 해석하지 않습니다</span></div>
+    <div id="design-body"></div>
   </section>
 
   <section class="psec" id="changes">
@@ -71,6 +54,7 @@
   비평·검토는 같은 오케스트레이션 호스트 안에서 이루어진 자기검토이며 독립 평가가 아닙니다. 소요 시간은 호스트 중계를 포함한 실제 경과 시간입니다.<br>
   빌드 <span id="built"></span> · 데이터 <a href="process.json">process.json</a>, <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
 </footer>
-<script src="process.js?v=4"></script>
+<script src="site.js?v=1"></script>
+<script src="process.js?v=7"></script>
 </body>
 </html>
