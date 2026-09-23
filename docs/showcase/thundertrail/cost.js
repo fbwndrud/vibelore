@@ -31,7 +31,7 @@
   /* ---------- 전제 ---------- */
   function caveats() {
     const n = C.notes; const box = $('#caveats');
-    for (const t of [n.orchestrator, n.version, n.novel1, n.codexList, '6화 소설(OpenAI API, gpt-6-luna)은 API가 금액을 돌려주지 않아 토큰만 실측이고 금액은 비워 두었습니다. 6화 웹툰은 제작 중이라 아직 없습니다.'])
+    for (const t of [n.orchestrator, n.version, n.novel1, n.codexList, '6·7화(OpenAI Responses API 직접 호출, gpt-6-luna·gpt-6-sol)는 응답에 금액이 없어 호출별 금액은 비워 두었습니다. OpenAI Costs API의 9/23 일 단위 청구액은 두 모델 모두 $0이었고, 토큰은 실측입니다. 사용량 API는 sol 요청을 39건으로 집계했지만 실행 기록은 37건이며, 2건 차이의 원인은 확인하지 못했습니다.'])
       box.append(el('p', null, t));
   }
 

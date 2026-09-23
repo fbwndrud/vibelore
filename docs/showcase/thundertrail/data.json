@@ -1,7 +1,7 @@
 {
 "work": "길 위의 번개",
 "run": "scene-20260921",
-"builtAt": "2026-09-23T10:35:29+00:00",
+"builtAt": "2026-09-23T15:04:37+00:00",
 "imageModel": "gpt-image-2.5-sunburst",
 "reviewer": {
 "host": "claude-code",
@@ -20,7 +20,7 @@
 "new": "Locations follow only the selected source units: a rock passage blocked by rusted chains, and a side ledge or a mountain outpost only when the excerpt itself reaches them; never advance time of day or place beyond the excerpt; keep light and terrain coherent within the scene.",
 "appliesFrom": "s4"
 },
-"costsNote": "각색 CLI(plan/preflight) 비용 + 이미지 API 비용(OpenAI usage API 조회, openai-usage-20260921.json). Codex 각색은 대시보드 확인 결과 청구 $0, 정가 환산 병기. 4화(scene-20260922) 각색은 Grok CLI 보고값, 이미지는 OpenAI usage API 집계(openai-usage-20260922.json). 5화(scene-20260923-opus) 소설·각색은 Claude Code CLI 보고값(total_cost_usd), 이미지는 OpenAI usage API 집계(openai-usage-20260923.json).",
+"costsNote": "각색 CLI(plan/preflight) 비용 + 이미지 API 비용(OpenAI usage API 조회, openai-usage-20260921.json). Codex 각색은 대시보드 확인 결과 청구 $0, 정가 환산 병기. 4화(scene-20260922) 각색은 Grok CLI 보고값, 이미지는 OpenAI usage API 집계(openai-usage-20260922.json). 5화(scene-20260923-opus) 소설·각색은 Claude Code CLI 보고값(total_cost_usd), 이미지는 OpenAI usage API 집계(openai-usage-20260923.json). 6·7화(scene-20260923-gpt6) 소설·아크·각색은 OpenAI Responses API 직접 호출, 비용은 OpenAI Costs API 일 단위 품목 집계, 이미지는 usage API 분 단위 대응(openai-usage-gpt6.json).",
 "pricingSource": "https://developers.openai.com/api/docs/pricing (2026-09-22 열람) gpt-6-astra short context: input $10/M, cached $1/M, cache write $12.5/M, output $50/M; gpt-image-2.5-sunburst: image input $8/M, text input $5/M, image output $30/M",
 "episodes": [
 {
@@ -18924,11 +18924,6456 @@
 }
 }
 ]
+},
+{
+"chapter": 6,
+"title": "골짜기의 방향",
+"host": "GPT-6 Luna",
+"model": "gpt-6-luna",
+"effort": "high",
+"novelHost": "GPT-6 Luna",
+"novelModel": "gpt-6-luna",
+"sceneCount": 8,
+"panelTotal": 47,
+"passCount": 1,
+"blockingTotal": 5,
+"advisoryTotal": 19,
+"blockingByLayer": {
+"render": 5
+},
+"imageCalls": 8,
+"imageOk": 8,
+"cliCalls": 43,
+"arc": null,
+"cost": {
+"novelUsd": 0.0,
+"webtoonUsd": 0.0,
+"webtoonUsdLow": 0.0,
+"estimated": false,
+"imageUsd": 0.9,
+"imageEstimated": false,
+"costsApiUsd": 0.0
+},
+"tokens": {
+"novel": {
+"calls": 13,
+"in": 94353,
+"cached": 0,
+"out": 47009,
+"reasoning": 37645
+},
+"arc": {},
+"webtoon": {
+"calls": 30,
+"in": 277212,
+"cached": 4848,
+"out": 249480,
+"reasoning": 210851
+}
+},
+"note": "소설(아크 2의 마지막 6화)·장면 분할·각색 모두 gpt-6-luna(OpenAI Responses API 직접 호출, reasoning effort high, store=false, 도구 없음, MCP 요청마다 독립 요청). 소설은 6패스 13호출, 검증 거절 0회로 자동 커밋. 각색: s7이 사전 검증에서 3회 차단(회차 방향 문구의 둔덕·뒤판 걸림·사슴을 수레 장면에 없는 장소·구조·등장물로 읽음, 7화 s3와 같은 유형) → 방향 문구를 발췌 중립형으로 바꾸고(인물 규칙 유지) s7을 새 워크플로로 다시 시작, 차단된 워크플로는 보관. gpt-6-luna가 사전 검증 답의 subjectHash를 두 글자 빠뜨려 적어 STALE_SCENE_PREFLIGHT가 난 뒤, 하네스가 유사도 0.9 이상인 해시 오기만 스키마 값으로 바로잡도록 고침(answer-normalizations.jsonl). 오케스트레이터의 s7 첫 검토 답은 coveredBeatIds에 그림에 보인 beat만 적어 MCP가 INCOMPLETE_SCENE_IMAGE_REVIEW로 거절 → MCP retry로 같은 이미지의 검토 요청을 다시 받아 모든 beat를 적어 제출(판정 내용 동일). 배경 참조 ref-bend-ledge는 5화 재사용.",
+"reviewer": {
+"host": "claude-code",
+"model": "claude-opus-5-5",
+"note": "오케스트레이터(claude-opus-5-5)의 시각 검토. gpt-6-luna와 다른 회사 모델이지만 오케스트레이터 자기검토라 독립 평가 아님."
+},
+"scenes": [
+{
+"id": "s1",
+"n": 1,
+"title": "막힌 굽이",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-6-p-1",
+"n": 1,
+"text": "“굽이가 막혔습니다!”"
+},
+{
+"id": "ch-6-p-2",
+"n": 2,
+"text": "도윤의 외침은 골짜기 벽을 타고 되돌아왔다. 위쪽에서 누군가 알았다고 답했고, 바퀴 소리는 다시 들리지 않았다."
+},
+{
+"id": "ch-6-p-3",
+"n": 3,
+"text": "둔덕의 풀은 젖어 있었다. 수레꾼은 무릎을 감싼 채 그 위에 남았다. 마렌이 장갑을 다시 끼우는 동안, 도윤은 아래 굽이를 내려다봤다. 사슴들은 기운 수레를 둘러싼 채였다. 흰 곡식 줄은 그들 사이를 지나 골짜기 안개로 이어졌다."
+},
+{
+"id": "ch-6-p-4",
+"n": 4,
+"text": "도윤의 손이 허리춤의 빈 고리에 닿았다가 떨어졌다."
+},
+{
+"id": "ch-6-p-5",
+"n": 5,
+"text": "“내려가서 짐이 어디까지 흘렀는지 봐. 수레는 다시 매지 않을 거야.”"
+},
+{
+"id": "ch-6-p-6",
+"n": 6,
+"text": "“짐은 살펴도, 다시 지진 않는 거죠?”"
+},
+{
+"id": "ch-6-p-7",
+"n": 7,
+"text": "마렌이 물었다."
+},
+{
+"id": "ch-6-p-8",
+"n": 8,
+"text": "“그래. 걸어서 간다. 고삐에는 손대지 마.”"
+},
+{
+"id": "ch-6-p-9",
+"n": 9,
+"text": "마렌은 잠시 수레를 보았다. 짐칸에 가로 걸린 판이 자루들을 붙들고 있었다. 판이 풀리면 기울어진 수레가 다시 움직일 수도 있었다."
+},
+{
+"id": "ch-6-p-10",
+"n": 10,
+"text": "“한 번은 지죠. 두 번은 못 져요.”"
+},
+{
+"id": "ch-6-p-11",
+"n": 11,
+"text": "“이번엔 안 지게 할게.”"
+}
+],
+"pFrom": 1,
+"pTo": 11,
+"panelCount": 6,
+"image": "img/ep06-s1.webp",
+"blocking": 3,
+"advisory": 2,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: '굽이가 막혔습니다!'를 '막혔습니다?'로 씀. 도윤의 경고가 질문으로 바뀜.",
+"en": "Panel 1: text-1 renders the exclamation mark as a question mark (굽이가 막혔습니다?), turning Doyun's warning shout into a question."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 도윤 옆구리에 둘둘 말린 밧줄. 잃은 줄이 되살아남(원문은 빈 고리를 만질 뿐).",
+"en": "Panel 2: a coiled rope hangs at Doyun's side although his rope is lost and he only touches an empty loop in beat-2."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 일행이 기운 수레 옆 사슴들 사이 아래에 서 있음. 원문(p2-p3)은 젖은 둔덕 위에서 수레 주변 사슴을 내려다보고, 내려가는 건 나중.",
+"en": "Panel 2: the group stands down beside the leaning wagon among the deer. In the source (p2-p3) they are on the wet mound above and Doyun looks down at the deer around the wagon; they only climb down later."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3~6칸: 계획 문구의 따옴표가 빠짐. 글자 자체는 정확.",
+"en": "Panels 3-6 drop the quotation marks that the plan's text entries carry; the words are exact."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸: 마렌 손이 곡식 옆 수레 판에 얹혀 수레를 만지는 것처럼 보임. 원문은 바라보기만 함.",
+"en": "Panel 5: Maren's hands rest on the wagon board next to the grain, which reads as touching the wagon the source has her only looking at."
+}
+],
+"textsTotal": 8,
+"textsOk": 8,
+"timings": {
+"planS": [
+49
+],
+"preflightS": [
+358,
+152,
+132
+],
+"imageS": 48,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1061,
+"plan": {
+"intent": "Make the quiet after the blocked bend feel precarious: the party has stopped the wagon, but the cargo and the leaning vehicle remain a threat. Let the exchange reveal Doyun’s caution and Maren’s determination not to accept another loss.",
+"staging": "Keep the wet mound above the lower bend and the leaning wagon below, surrounded by deer. The driver remains on the mound; Doyun looks toward the wagon while Maren puts on her gloves and later studies it. Show the board across the wagon bed holding the sacks, and the white grain trail continuing between the deer into the valley fog. Leave the composition and transitions to the artist.",
+"uncertainties": [
+"The person above who acknowledges Doyun is unidentified, and the exact words of that acknowledgment are not given; do not assign the reply to a known character or add lettering for it.",
+"The extent of the cargo’s spread is not yet known; do not depict its inspection as completed.",
+"The wagon moving again is only a possibility if the board comes loose; do not show it moving."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-6-p-1",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“굽이가 막혔습니다!”"
+},
+{
+"id": "text-2",
+"sourceId": "ch-6-p-2",
+"kind": "caption",
+"speaker": "narrator",
+"text": "도윤의 외침은 골짜기 벽을 타고 되돌아왔다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-6-p-2",
+"kind": "caption",
+"speaker": "narrator",
+"text": "위쪽에서 누군가 알았다고 답했고, 바퀴 소리는 다시 들리지 않았다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-6-p-5",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“내려가서 짐이 어디까지 흘렀는지 봐. 수레는 다시 매지 않을 거야.”"
+},
+{
+"id": "text-5",
+"sourceId": "ch-6-p-6",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“짐은 살펴도, 다시 지진 않는 거죠?”"
+},
+{
+"id": "text-6",
+"sourceId": "ch-6-p-8",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“그래. 걸어서 간다. 고삐에는 손대지 마.”"
+},
+{
+"id": "text-7",
+"sourceId": "ch-6-p-10",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“한 번은 지죠. 두 번은 못 져요.”"
+},
+{
+"id": "text-8",
+"sourceId": "ch-6-p-11",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“이번엔 안 지게 할게.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-6-p-1",
+"ch-6-p-2"
+],
+"action": "Doyun calls out that the bend is blocked. His voice returns from the valley walls; someone above acknowledges him, and the wheel sound ceases.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-6-p-3",
+"ch-6-p-4"
+],
+"action": "The group takes in the aftermath: the driver stays on the wet mound, Maren puts her gloves back on, and Doyun looks down at the deer around the leaning wagon and the grain trail fading into fog. His hand touches the empty loop at his waist and drops away.",
+"textIds": []
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-6-p-5",
+"ch-6-p-6",
+"ch-6-p-7",
+"ch-6-p-8"
+],
+"action": "Doyun assigns Maren to check how far the cargo has gone, but rules out hitching the wagon again. Maren checks that the cargo will not be carried back; Doyun confirms they will proceed on foot and cautions her away from the reins.",
+"textIds": [
+"text-4",
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-6-p-9",
+"ch-6-p-10"
+],
+"action": "Maren studies the board holding the sacks and the wagon’s precarious lean. The possibility that the wagon could move again sharpens her refusal to accept a second loss.",
+"textIds": [
+"text-7"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-6-p-11"
+],
+"action": "Doyun answers Maren’s concern with a promise to keep this loss from happening again.",
+"textIds": [
+"text-8"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-6-p-1",
+"ch-6-p-2"
+],
+"statement": "Doyun calls that the bend is blocked. His shout echoes off the valley walls, an unidentified person above acknowledges it, and the wheel sound does not return."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-6-p-3"
+],
+"statement": "The grass on the mound is wet. The wagon driver remains there holding their knees. Maren puts her gloves back on while Doyun looks down toward the bend, where deer surround a leaning wagon. A white trail of grain passes between the deer and continues into the valley fog."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-6-p-4"
+],
+"statement": "Doyun touches the empty loop at his waist, then lets his hand fall."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-6-p-5",
+"ch-6-p-6",
+"ch-6-p-7",
+"ch-6-p-8"
+],
+"statement": "Doyun tells Maren to inspect how far the cargo has gone and says they will not hitch the wagon again. Maren confirms that they are not to carry the cargo back; Doyun says they will walk and warns her not to touch the reins."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-6-p-9"
+],
+"statement": "A board across the wagon bed is holding the sacks. If it comes loose, the leaning wagon might move again."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-6-p-10",
+"ch-6-p-11"
+],
+"statement": "Maren says they cannot afford to lose the cargo twice. Doyun promises to prevent another loss this time."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink lines, restrained post-rain palette, clear adult character designs.",
+"moments": [
+{
+"sourceIds": [
+"ch-6-p-1",
+"ch-6-p-2"
+],
+"action": "Doyun calls toward the blocked bend as his shout echoes through the valley.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-2",
+"ch-6-p-3",
+"ch-6-p-4"
+],
+"action": "Mound tableau: driver clutches their knees; Maren pulls on gloves. Doyun looks down, hand at his empty loop, toward tall branching-antlered deer around the leaning wagon; white grain fades into fog, cute small marten nearby.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-5",
+"ch-6-p-6",
+"ch-6-p-7"
+],
+"action": "Doyun gives Maren the task of checking how far the cargo has gone as they face each other.",
+"textIds": [
+"text-4",
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-8"
+],
+"action": "Doyun answers Maren, directing them to continue on foot and warning her not to touch the reins.",
+"textIds": [
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-9",
+"ch-6-p-10"
+],
+"action": "Maren studies the board across the leaning wagon bed, which holds the sacks, as she refuses another loss.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-11"
+],
+"action": "Doyun faces Maren as he promises to prevent another loss.",
+"textIds": [
+"text-8"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": false,
+"identity": {
+"passed": false,
+"evidence": "No previous scene image; compared against the references. Doyun, Maren (gloves, brick vest) and Bori match, but panel 2 shows a coiled rope at Doyun's side, which the lost-rope fact and the direction rule out."
+},
+"setting": {
+"passed": false,
+"evidence": "Panel 1 uses the bend track with the carved wall from the reference, but panel 2 puts the driver, Doyun, Maren and Bori down beside the leaning wagon among the deer instead of on the mound above looking down."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "First scene of the episode; it opens on the shout and moves through the exchange with Maren in source order."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "굽이가 막혔습니다?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 spiky balloon with its tail to Doyun's cupped hand; the exclamation mark is rendered as a question mark and the quotation marks are dropped."
+},
+{
+"id": "text-2",
+"observedText": "도윤의 외침은 골짜기 벽을 타고 되돌아왔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 caption box; exact text."
+},
+{
+"id": "text-3",
+"observedText": "위쪽에서 누군가 알았다고 답했고, 바퀴 소리는 다시 들리지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 caption box; exact text."
+},
+{
+"id": "text-4",
+"observedText": "내려가서 짐이 어디까지 흘렀는지 봐. 수레는 다시 매지 않을 거야.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 upper balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-5",
+"observedText": "짐은 살펴도, 다시 지진 않는 거죠?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 lower balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-6",
+"observedText": "그래. 걸어서 간다. 고삐에는 손대지 마.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-7",
+"observedText": "한 번은 지죠. 두 번은 못 져요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Maren at the wagon board; exact text without quotation marks."
+},
+{
+"id": "text-8",
+"observedText": "이번엔 안 지게 할게.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail to Doyun; exact text without quotation marks."
+}
+],
+"evidence": "Six panels. Row 1 wide: Doyun from behind shouting with a cupped hand down the bend track beside the carved wall, caption at right. Row 2 wide: the driver hunched beside the leaning wagon and sacks, white grain on the ground, Bori in front, antlered deer close by, Doyun and Maren (pulling on gloves) standing at the same level. Rows 3-4: Doyun and Maren exchange lines face to face; Maren's gloved hand on the wagon board beside spilled grain with Bori; Doyun's promise.",
+"observedPanelCount": 6
+}
+},
+{
+"id": "s2",
+"n": 2,
+"title": "젖은 발판",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-6-p-12",
+"n": 12,
+"text": "도윤이 먼저 홈을 따라 내려갔다. 벽에 비스듬히 파인 발판은 젖어 미끄러웠다. 그는 아래로 내려설 때마다 다음 홈을 확인했고, 리아가 뒤따르자 몸을 틀어 발 디딜 자리를 비워 주었다."
+},
+{
+"id": "ch-6-p-13",
+"n": 13,
+"text": "리아는 왼손으로 바위를 짚었다. 오른손은 소매 안에 붙인 채였다. 손목 안쪽에서 저릿한 맥박이 뛰었지만, 발을 놓칠 정도는 아니었다."
+},
+{
+"id": "ch-6-p-14",
+"n": 14,
+"text": "보리가 가방에서 빠져나와 리아의 어깨에 올라탔다. 둥근 코를 바람 쪽으로 들이밀더니, 곡식이 흐른 비탈이 아니라 골짜기 안쪽을 향해 꾸, 하고 울었다."
+},
+{
+"id": "ch-6-p-15",
+"n": 15,
+"text": "“저 아래를 보고 있네.”"
+},
+{
+"id": "ch-6-p-16",
+"n": 16,
+"text": "리아가 말하자 도윤은 고개를 돌렸다."
+},
+{
+"id": "ch-6-p-17",
+"n": 17,
+"text": "“뭘 봤어?”"
+},
+{
+"id": "ch-6-p-18",
+"n": 18,
+"text": "“아직은 몰라. 가까이 가면 보여.”"
+},
+{
+"id": "ch-6-p-19",
+"n": 19,
+"text": "그는 한 번 그녀의 손을 봤다. 리아는 왼손으로 홈을 더듬었다. 도윤은 아무 말 없이 아래를 확인하고 계속 내려갔다."
+}
+],
+"pFrom": 12,
+"pTo": 19,
+"panelCount": 5,
+"image": "img/ep06-s2.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 리아가 오른쪽 손으로 바위를 짚음. 오른손은 소매 안, 왼손만 쓰는 설정과 어긋남.",
+"en": "Panel 1: Lia braces on the rock with the hand on her right side; beat-1 keeps the right hand inside the sleeve and uses only the left."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸: 도윤이 새긴 손잡이 홈을 딛지 않고 벽 옆 길로 걸어 내려감.",
+"en": "Panel 5: Doyun walks down a path beside the wall rather than stepping down the carved holds."
+}
+],
+"textsTotal": 4,
+"textsOk": 4,
+"timings": {
+"planS": [
+37
+],
+"preflightS": [
+174
+],
+"imageS": 43,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1181,
+"plan": {
+"intent": "Let careful, slippery descent give way to a new question when Bori directs attention farther into the valley. Keep Lia's uncertainty intact: Bori has indicated a direction, but neither companion knows what lies below.",
+"staging": "Keep the carved holds on the wall, with Doyun ahead of Lia on the descent. Preserve the distinction between the grain-spilled slope and the valley interior Bori faces, without fixing their precise layout. Lia uses only her left hand and keeps her right hand inside her sleeve. Doyun's belt loop remains empty; he carries no rope. Leave composition and transitions to the artist.",
+"uncertainties": [
+"The exact shape and distance of the valley interior relative to the grain-spilled slope are not specified; show only that they are different directions.",
+"Bori's call indicates a direction, but the source does not identify what Bori senses or what, if anything, is below.",
+"Lia does not yet know what Bori is looking toward; do not reveal or imply a specific object or creature."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-6-p-14",
+"kind": "sfx",
+"speaker": "c3",
+"text": "꾸,"
+},
+{
+"id": "text-2",
+"sourceId": "ch-6-p-15",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“저 아래를 보고 있네.”"
+},
+{
+"id": "text-3",
+"sourceId": "ch-6-p-17",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“뭘 봤어?”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-6-p-18",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“아직은 몰라. 가까이 가면 보여.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-6-p-12",
+"ch-6-p-13"
+],
+"action": "Doyun leads down the slick, slanted holds, checking each next step and making room as Lia follows. She uses her left hand against the rock while keeping her right hand tucked inside her sleeve; the tingling pulse in her wrist does not cost her footing.",
+"textIds": []
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-6-p-14",
+"ch-6-p-15"
+],
+"action": "Bori leaves the bag for Lia's shoulder, lifts its nose toward the wind, and calls toward the valley interior instead of the grain-spilled slope. Lia notices the direction and says Bori is looking below.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-6-p-16",
+"ch-6-p-17",
+"ch-6-p-18"
+],
+"action": "Doyun turns to Lia and asks what Bori saw. She admits she does not know yet; getting closer is the only way to find out.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-6-p-19"
+],
+"action": "Doyun glances once at Lia's hand. She tests the next hold with her left hand; he checks below in silence and resumes the descent.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-6-p-12"
+],
+"statement": "Doyun descends first along slanted footholds cut into the wall. They are wet and slippery; he checks the next hold each time before stepping."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-6-p-12",
+"ch-6-p-13"
+],
+"statement": "As Lia follows, Doyun turns aside to leave her room to place her feet. Lia braces with her left hand and keeps her right hand inside her sleeve. Her wrist pulses with a tingling sensation, but it does not make her lose a foothold."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-6-p-14"
+],
+"statement": "Bori gets out of the bag and climbs onto Lia's shoulder, raises its rounded nose toward the wind, and calls toward the valley interior rather than the slope where grain has spilled."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-6-p-15",
+"ch-6-p-16",
+"ch-6-p-17",
+"ch-6-p-18"
+],
+"statement": "Lia remarks that Bori is looking below. Doyun turns and asks what it saw. Lia says she does not know yet and that they will see when they get closer."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-6-p-19"
+],
+"statement": "Doyun looks once at Lia's hand. She feels along a foothold with her left hand; he checks below without speaking and continues descending."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic with expressive ink lines, adult cast, a cute small marten, and coherent post-rain light.",
+"moments": [
+{
+"sourceIds": [
+"ch-6-p-12",
+"ch-6-p-13"
+],
+"action": "Wet, slick, slanted holds cut into the wall; Doyun checks the next, turned aside for Lia. She follows, left hand braced, right hand inside her sleeve; his belt loop is empty.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-6-p-14",
+"ch-6-p-15"
+],
+"action": "Bori perches on Lia's shoulder, rounded nose lifted toward the valley interior, away from the grain-spilled slope, calling as Lia looks below.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-16",
+"ch-6-p-17",
+"ch-6-p-18"
+],
+"action": "Doyun faces Lia, asking what Bori saw; she answers that she does not know yet and will see when they get closer.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-19",
+"ch-6-p-13"
+],
+"action": "Doyun glances once at Lia's left hand as she feels along a foothold; her right hand remains inside her sleeve.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-6-p-19",
+"ch-6-p-12"
+],
+"action": "Doyun resumes descending, eyes on the next carved hold below, with Lia following higher on the wall.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Doyun keeps the green hooded coat and sword, this time with no rope on the belt; Lia has the chestnut bob, sand jacket and brown bag; Bori matches s1."
+},
+"setting": {
+"passed": true,
+"evidence": "The same wet carved wall and misty valley as the s1 bend; the group now climbs down the holds."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s1 ended with Doyun's promise to Maren; s2 opens with Doyun leading the climb down, which is the next event (p12)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "꾸,",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 sound lettering beside Bori's raised nose; exact text."
+},
+{
+"id": "text-2",
+"observedText": "저 아래를 보고 있네.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "뭘 봤어?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "아직은 몰라. 가까이 가면 보여.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Lia; exact text without quotation marks."
+}
+],
+"evidence": "Five panels. Row 1 wide: Doyun on the wall looking back at Lia, who follows with a gloved hand on the rock. Row 2: Bori on Lia's shoulder with its nose up, calling, while Lia speaks; Doyun asks and Lia answers. Row 3: split close-up of Doyun's glance and Lia's gloved hand on a hold. Row 4 wide: Doyun descending in front, Lia above with Bori on her shoulder, the valley mist at right.",
+"observedPanelCount": 5
+}
+},
+{
+"id": "s3",
+"n": 3,
+"title": "기울어진 수레",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-6-p-20",
+"n": 20,
+"text": "굽이에 닿자 사슴 두 마리가 수레에서 고개를 들었다. 한 마리는 곡식 냄새를 맡다가 귀를 세웠다. 일행이 벽에 붙어 다가가자 잠시 몸을 굳혔지만, 뿔을 들이밀지는 않았다. 앞선 사슴이 골짜기 안쪽으로 걸음을 옮기자 뒤의 사슴도 따라갔다."
+},
+{
+"id": "ch-6-p-21",
+"n": 21,
+"text": "수레는 여전히 기울어진 채 멈춰 있었다. 뒤판에 걸린 쇠고리 아래로 자루 몇 개가 보였다. 그중 하나에는 검을 넣는 긴 나무 상자가 끈으로 묶여 있었다. 받는 곳을 적은 종이가 상자 귀퉁이에 붙어 있었지만, 잉크가 흙물에 번져 글씨는 반쯤 지워졌다."
+},
+{
+"id": "ch-6-p-22",
+"n": 22,
+"text": "마렌이 다가서려다 멈췄다. 바퀴 옆의 흙이 무너져 얇은 턱만 남아 있었다."
+},
+{
+"id": "ch-6-p-23",
+"n": 23,
+"text": "“저 끈만 잡으면 닿을 것 같은데요.”"
+},
+{
+"id": "ch-6-p-24",
+"n": 24,
+"text": "“당기면 수레가 움직여.”"
+},
+{
+"id": "ch-6-p-25",
+"n": 25,
+"text": "도윤이 말했다."
+},
+{
+"id": "ch-6-p-26",
+"n": 26,
+"text": "“판을 풀지 않아도, 바퀴가 돌아가면 짐이 따라와.”"
+},
+{
+"id": "ch-6-p-27",
+"n": 27,
+"text": "마렌은 장갑 낀 손을 내리지 않았다. 손끝이 끈까지 한 뼘 남은 데서 굳었다."
+},
+{
+"id": "ch-6-p-28",
+"n": 28,
+"text": "“그럼 여기서 봐야겠네요.”"
+}
+],
+"pFrom": 20,
+"pTo": 28,
+"panelCount": 5,
+"image": "img/ep06-s3.webp",
+"blocking": 0,
+"advisory": 3,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 떠나는 사슴 두 마리 중 한 마리만 작은 뿔. 앞서 나온 사슴은 가지 많은 큰 뿔.",
+"en": "Panel 1: only one of the two departing deer has antlers, and they are small; the earlier deer had tall many-branched antlers."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2~5칸: 수레가 수평으로 보여 끈을 당기면 위험한 기울기가 드러나지 않음.",
+"en": "Panels 2-5: the wagon looks level, so the lean that makes pulling the strap dangerous is not visible."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 마렌 장갑 손이 5칸보다 먼저 끈 가까이에 놓임(5칸은 한 뼘 떨어져 멈춤).",
+"en": "Panel 3: Maren's gloved hand already rests near the cords before panel 5 shows it held a handspan away."
+}
+],
+"textsTotal": 4,
+"textsOk": 4,
+"timings": {
+"planS": [
+44
+],
+"preflightS": [
+95
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.118,
+"plan": {
+"intent": "Let the deer move on while the party remains caught at the wagon: Maren sees a way to reach the strap, but Doyun's warning makes the risk of disturbing the stopped load clear. End on her choice to watch rather than pull.",
+"staging": "Keep the stopped, tilted wagon at the bend, the party close to the wall, and the deer moving toward the valley interior. Place the thin remnant of soil beside a wheel where Maren stops; her gloved hand remains a handspan short of the strap. Show the sacks below the iron loop on the rear board and keep the destination paper unreadable. Do not depict the wagon moving or a pull taking place. Leave composition and transitions to the artist.",
+"uncertainties": [
+"The deer’s exact position relative to the wagon is not specified; do not establish whether they are on it, inside it, or beside it.",
+"The source does not specify exactly which strap Maren intends to grab or how it is attached; do not invent that connection.",
+"Doyun warns that pulling could move the wagon, but no movement occurs in this excerpt.",
+"The shape of the bend, the extent of the collapsed soil, and the precise layout of the valley interior are not specified."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-6-p-23",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“저 끈만 잡으면 닿을 것 같은데요.”"
+},
+{
+"id": "text-2",
+"sourceId": "ch-6-p-24",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“당기면 수레가 움직여.”"
+},
+{
+"id": "text-3",
+"sourceId": "ch-6-p-26",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“판을 풀지 않아도, 바퀴가 돌아가면 짐이 따라와.”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-6-p-28",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“그럼 여기서 봐야겠네요.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-6-p-20"
+],
+"action": "The deer react to the party's careful approach, then the lead animal walks toward the valley interior and the second follows. Their departure does not resolve the danger around the wagon.",
+"textIds": []
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-6-p-21",
+"ch-6-p-22"
+],
+"action": "The stopped, tilted wagon and its sacks come into view, including the tied sword case with its unreadable destination paper. Maren moves toward it, then halts at the thin ledge beside a wheel.",
+"textIds": []
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-6-p-23",
+"ch-6-p-24",
+"ch-6-p-25",
+"ch-6-p-26"
+],
+"action": "Maren judges that she can reach the strap. Doyun answers with the specific risk: pulling could move the wagon, and a turning wheel would carry the load along even if the board stays fastened.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-6-p-27",
+"ch-6-p-28"
+],
+"action": "Maren's gloved hand remains suspended a handspan short of the strap. She does not pull; instead, she decides they will watch from there.",
+"textIds": [
+"text-4"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-6-p-20"
+],
+"statement": "At the bend, two deer raise their heads in relation to the wagon. One sniffs grain and raises its ears. As the party approaches close to the wall, the deer briefly stiffen but do not thrust their antlers; the leading deer walks toward the valley interior, followed by the other."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-6-p-21"
+],
+"statement": "The wagon remains stopped and tilted. Sacks are visible below an iron loop on the rear board. A long wooden sword case is tied to one sack. A paper indicating the destination is attached to a corner of the case, but muddy water has blurred the ink and half-erased the writing."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-6-p-22"
+],
+"statement": "Maren starts toward the wagon, then stops because the soil beside a wheel has collapsed, leaving only a thin ledge."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-6-p-23",
+"ch-6-p-24",
+"ch-6-p-25",
+"ch-6-p-26"
+],
+"statement": "Maren says she thinks she could reach the strap. Doyun warns that pulling will move the wagon and explains that if a wheel turns, the load will follow even without unfastening the board."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-6-p-27",
+"ch-6-p-28"
+],
+"statement": "Maren keeps her gloved hand raised, stopping a handspan short of the strap. She says they should watch from where they are."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic with expressive ink lines and a restrained, rain-cleared morning palette.",
+"moments": [
+{
+"sourceIds": [
+"ch-6-p-20"
+],
+"action": "Two deer walk toward the valley interior, the leader followed by the second.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-6-p-21",
+"ch-6-p-22"
+],
+"action": "The stopped wagon tilts; sacks show below the rear-board iron loop, and a long sword case tied to one sack bears a paper with indistinct writing. Maren stops at the thin ledge beside a wheel.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-6-p-23"
+],
+"action": "Maren stands at the ledge, looking toward the strap.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-24",
+"ch-6-p-25",
+"ch-6-p-26"
+],
+"action": "Doyun faces Maren beside the still wagon, his belt loop empty.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-27",
+"ch-6-p-28"
+],
+"action": "Maren's gloved hand hovers a handspan short of the strap as she watches instead of pulling.",
+"textIds": [
+"text-4"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Maren keeps the curly red hair, brick vest and gloves; Doyun the green hooded coat with no rope; Lia the sand jacket, as in s2."
+},
+"setting": {
+"passed": true,
+"evidence": "The same bend track with the wet wall on one side and the misty valley on the other, now at the stopped wagon."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s2 ended with the descent continuing; s3 opens as they reach the bend and the deer walk off (p20)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "저 끈만 잡으면 닿을 것 같은데요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-2",
+"observedText": "당기면 수레가 움직여.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 upper balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "판을 풀지 않아도, 바퀴가 돌아가면 짐이 따라와.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 lower balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "그럼 여기서 봐야겠네요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Maren; exact text without quotation marks."
+}
+],
+"evidence": "Five full-width panels. 1: two deer walking away along the track toward the valley. 2: the wagon's rear with an iron loop, sacks and a long dark sword case tied on with a paper tag of illegible marks, Maren crouched at the edge by the wheel. 3: Maren speaking with the case beside her. 4: Doyun answering with an open gloved hand, Lia behind him, Maren in the foreground. 5: Maren's gloved hand held short of the cords as she speaks.",
+"observedPanelCount": 5
+}
+},
+{
+"id": "s4",
+"n": 4,
+"title": "오래된 발굽길",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-6-p-29",
+"n": 29,
+"text": "리아는 곡식이 흘러내린 자리를 살폈다. 흰 알갱이 아래, 진흙에는 사슴 발굽 자국이 겹쳐 있었다. 몇 개는 곡식에 덮여 가장자리가 무뎠다. 터진 자루에서 곡식이 쏟아지기 전부터 찍힌 흔적이었다."
+},
+{
+"id": "ch-6-p-30",
+"n": 30,
+"text": "보리가 어깨에서 뛰어내렸다. 짧은 앞발로 땅을 건드릴 듯 말 듯 멈췄다가, 리아의 부츠 앞을 밀었다. 코끝은 곡식이 아니라 벽 아래의 좁은 틈을 향했다."
+},
+{
+"id": "ch-6-p-31",
+"n": 31,
+"text": "리아가 따라가자 거기에는 이끼 낀 돌이 반쯤 묻혀 있었다. 돌을 가로지르는 얕은 홈 옆으로 털이 몇 올 걸려 있었다. 진흙에 붙은 털은 새것과 오래된 것이 뒤섞여 색이 바랬고, 바위 틈에는 마른 배설물이 층처럼 눌어붙어 있었다."
+},
+{
+"id": "ch-6-p-32",
+"n": 32,
+"text": "도윤이 발굽 자국 앞에 쪼그려 앉았다. 그는 손대지 않고 흔적을 따라 시선을 옮겼다. 곡식 위에 새로 찍힌 자국은 있었지만, 그 아래의 진흙에도 같은 방향으로 눌린 흔적이 이어졌다. 골짜기 안쪽으로 들어가 굽이를 돌고, 다시 바위 뒤로 사라졌다."
+},
+{
+"id": "ch-6-p-33",
+"n": 33,
+"text": "“곡식 때문에 잠깐 내려온 게 아니야.”"
+},
+{
+"id": "ch-6-p-34",
+"n": 34,
+"text": "마렌이 발밑의 자국을 내려다봤다."
+},
+{
+"id": "ch-6-p-35",
+"n": 35,
+"text": "“쏟아지기 전부터 지나가던 길이군요.”"
+},
+{
+"id": "ch-6-p-36",
+"n": 36,
+"text": "“한 번 지나간 흔적도 아니야.”"
+},
+{
+"id": "ch-6-p-37",
+"n": 37,
+"text": "도윤이 말했다."
+},
+{
+"id": "ch-6-p-38",
+"n": 38,
+"text": "“털하고 오래된 흔적이 겹쳐 있어.”"
+},
+{
+"id": "ch-6-p-39",
+"n": 39,
+"text": "그때 보리가 다시 울었다. 이번에는 짧고 날카로웠다. 몸을 낮춘 채 꼬리가 뻣뻣하게 섰다. 리아는 보리가 가리키는 쪽으로 고개를 들었다. 바위의 꺾인 면에, 흙에 가려진 홈 하나가 더 있었다."
+}
+],
+"pFrom": 29,
+"pTo": 39,
+"panelCount": 6,
+"image": "img/ep06-s4.webp",
+"blocking": 0,
+"advisory": 4,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 쏟아진 곡식이 금빛. 5화와 원문은 흰 곡식.",
+"en": "Panel 1: the spilled grain is golden, while chapter 5 and the source call it white."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 손이 돌을 땅에서 들어 올림. 원문은 반쯤 묻힌 돌을 찾기만 함.",
+"en": "Panel 3: a hand lifts the stone off the ground, although the source says it is half-buried and only found."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 보리 울음에 느낌표 가시 말풍선을 추가. 계획에는 글자 없음.",
+"en": "Panel 6: a spiky balloon with an exclamation mark is drawn for Bori's cry; the plan has no text there."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 리아가 장갑 낀 양손을 모두 내밀어 오른 손목을 소매 안에 두지 않음.",
+"en": "Panel 1: both of Lia's gloved hands are out, so the right wrist is not kept inside the sleeve."
+}
+],
+"textsTotal": 4,
+"textsOk": 4,
+"timings": {
+"planS": [
+55
+],
+"preflightS": [
+148
+],
+"imageS": 55,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1253,
+"plan": {
+"intent": "Shift the party’s understanding from a brief visit for spilled grain to evidence of a repeated route. Let Bori’s attention lead Lia to a second, still-unexplained clue, ending the scene with the route’s destination and meaning unresolved.",
+"staging": "Keep the grain spill and hoofprints in the mud as the scene’s point of reference. The narrow gap beneath the wall leads Lia to the half-buried mossy stone; keep its shallow groove, the hairs, and the layered dried droppings distinct. Doyun examines the prints without touching them, following their direction into the valley and around the bend until they disappear behind a rock. Bori’s final indication draws Lia’s attention to another groove on a bent rock face. Preserve the spatial links stated in the source without establishing that the hairs, droppings, tracks, or grooves share an origin. Leave composition and transitions to the artist.",
+"uncertainties": [
+"The source does not identify what animal left the hairs or droppings; do not assign them to the deer or to each other.",
+"The number and timing of the passages are not specified, and the source does not explain who made either groove.",
+"The tracks disappear behind a rock; what lies beyond it and how the grooves relate to the route remain unknown."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-6-p-33",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“곡식 때문에 잠깐 내려온 게 아니야.”"
+},
+{
+"id": "text-2",
+"sourceId": "ch-6-p-35",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“쏟아지기 전부터 지나가던 길이군요.”"
+},
+{
+"id": "text-3",
+"sourceId": "ch-6-p-36",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“한 번 지나간 흔적도 아니야.”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-6-p-38",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“털하고 오래된 흔적이 겹쳐 있어.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-6-p-29"
+],
+"action": "Lia studies the overlapping hoofprints and notices that some were already in the mud before the grain spilled.",
+"textIds": []
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-6-p-30",
+"ch-6-p-31"
+],
+"action": "Bori directs Lia to the narrow gap beneath the wall. She follows and finds the half-buried grooved stone, the hairs, and the layered dried traces in the crevice.",
+"textIds": []
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-6-p-32",
+"ch-6-p-33",
+"ch-6-p-34",
+"ch-6-p-35",
+"ch-6-p-36",
+"ch-6-p-37",
+"ch-6-p-38"
+],
+"action": "Doyun traces the prints with his gaze and concludes that the deer did not come down only for grain. Maren recognizes that the route predates the spill. Doyun adds that the evidence indicates more than one passage, with hairs and older traces layered together.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-6-p-39"
+],
+"action": "Bori gives a sharper warning. Lia follows its indication and finds another partly hidden groove on a bent rock face, leaving the group with a new clue but no explanation for it.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-6-p-29"
+],
+"statement": "Lia examines deer hoofprints in mud beneath spilled grain. Some prints are partly covered and their edges softened by grain, showing they were made before the sack split."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-6-p-30"
+],
+"statement": "Bori jumps down from Lia’s shoulder, pauses with a short forepaw hovering near the ground, nudges Lia’s boot, and points its nose toward a narrow gap beneath the wall."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-6-p-31"
+],
+"statement": "Following Bori, Lia finds a moss-covered stone half-buried near the gap. A shallow groove crosses it; several hairs cling beside the groove, and dried droppings form layers in a crevice."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-6-p-32"
+],
+"statement": "Doyun crouches before the hoofprints without touching them. New prints on the grain and prints in the mud beneath it continue in the same direction into the valley, around a bend, and out of sight behind a rock."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-6-p-39"
+],
+"statement": "Bori cries sharply, lowers its body, and stiffens its tail. Lia looks toward the indicated area and spots another groove on a bent rock face, partly obscured by soil."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink, adult cast, cute marten. Keep designs: Lia's folded right wrist stays sleeved; Doyun's belt loop empty, no rope; Maren wears gloves.",
+"moments": [
+{
+"sourceIds": [
+"ch-6-p-29"
+],
+"action": "Lia, with her folded right wrist sleeved, studies softened deer hoofprints beneath spilled grain beside the stopped, tilted wagon.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-6-p-30"
+],
+"action": "Bori pauses beside Lia's boot, nose aimed at the narrow gap beneath the wall.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-6-p-31"
+],
+"action": "At the gap, Lia finds a half-buried mossy stone with a shallow groove, caught hairs, and layered dried droppings in its crevice.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-6-p-32",
+"ch-6-p-33",
+"ch-6-p-34",
+"ch-6-p-35"
+],
+"action": "Doyun crouches without touching as prints lead toward the valley bend behind a rock; Maren looks down.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-36",
+"ch-6-p-37",
+"ch-6-p-38"
+],
+"action": "Doyun speaks of repeated passage and hair and older traces layered together, still crouched before the prints.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-39"
+],
+"action": "Bori cries sharply, body low and tail stiff, as Lia looks toward another soil-obscured groove on a bent rock face.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia, Doyun (no rope), Maren (gloves) and Bori keep their s3 designs."
+},
+"setting": {
+"passed": true,
+"evidence": "The same bend track beside the stopped wagon, wet wall on one side and misty valley on the other, as in s3."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s3 ended with Maren deciding to watch from where she stood; s4 moves to Lia studying the prints by the wagon (p29)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "곡식 때문에 잠깐 내려온 게 아니야.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 left balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-2",
+"observedText": "쏟아지기 전부터 지나가던 길이군요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 right balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "한 번 지나간 흔적도 아니야.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 upper balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "털하고 오래된 흔적이 겹쳐 있어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 lower balloon with its tail to Doyun; exact text without quotation marks."
+}
+],
+"evidence": "Six panels. Row 1 wide: Lia crouching over hoofprints beside the wagon wheel and spilled grain. Row 2: Bori sniffing at the gap under the wall by Lia's boot; a hand holding a mossy stone with hairs and dried droppings. Row 3 wide: Doyun and Lia crouched over the prints, Maren bent over them, speaking. Row 4: Doyun close-up over the prints; Bori crying with a raised tail as Lia turns toward a groove in the rock.",
+"observedPanelCount": 6
+}
+},
+{
+"id": "s5",
+"n": 5,
+"title": "돌의 표식",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-6-p-40",
+"n": 40,
+"text": "그녀는 가방 안쪽 주머니에서 얇은 가죽 조각을 꺼냈다. 조각의 가장자리에는 비스듬한 금과 짧은 선이 새겨져 있었다. 리아는 그것을 돌에 대어 보았다."
+},
+{
+"id": "ch-6-p-41",
+"n": 41,
+"text": "비스듬한 금의 각이 바위 홈과 맞았다. 짧은 선도, 이번에는 가려지지 않은 채 제자리에 포개졌다."
+},
+{
+"id": "ch-6-p-42",
+"n": 42,
+"text": "도윤의 눈이 돌에서 리아의 손으로 옮겨왔다."
+},
+{
+"id": "ch-6-p-43",
+"n": 43,
+"text": "“첫 다리 입구에 있던 표식과 같은 모양이네.”"
+},
+{
+"id": "ch-6-p-44",
+"n": 44,
+"text": "리아가 고개를 끄덕였다. 첫 다리의 돌에도 긴 금과 짧은 선이 있었다. 그때는 수레 옆판이 표식의 아래를 가리고 있었다. 이제는 긴 홈이 사슴 발자국이 향하는 골짜기 안쪽을 가리켰다. 짧은 선은 그 길에서 비껴나, 발굽 자국이 드문 높은 둔덕 쪽으로 뻗어 있었다."
+},
+{
+"id": "ch-6-p-45",
+"n": 45,
+"text": "리아가 손가락으로 긴 홈을 따라갔다. 그 선 끝에서 사슴의 오래된 흔적이 이어졌다. 짧은 선 끝에는 눌린 자국이 없었다. 길이 나 있는 게 아니라, 방향만 남겨져 있었다."
+},
+{
+"id": "ch-6-p-46",
+"n": 46,
+"text": "“표식은 안전한 사람 길이라는 약속이 아니야.”"
+},
+{
+"id": "ch-6-p-47",
+"n": 47,
+"text": "도윤이 말했다."
+},
+{
+"id": "ch-6-p-48",
+"n": 48,
+"text": "“지나가는 것들이 어느 쪽으로 움직이는지 남긴 걸 수도 있어.”"
+},
+{
+"id": "ch-6-p-49",
+"n": 49,
+"text": "“여기는 마수들이 오가는 길이야.”"
+},
+{
+"id": "ch-6-p-50",
+"n": 50,
+"text": "리아가 말했다."
+},
+{
+"id": "ch-6-p-51",
+"n": 51,
+"text": "“첫 다리 표식도 같은 뜻이었어.”"
+},
+{
+"id": "ch-6-p-52",
+"n": 52,
+"text": "마렌은 돌과 골짜기 양쪽을 번갈아 보았다."
+},
+{
+"id": "ch-6-p-53",
+"n": 53,
+"text": "“그럼 이쪽으로 사람을 보내면 안 되겠네요.”"
+},
+{
+"id": "ch-6-p-54",
+"n": 54,
+"text": "“응. 적어도 지금은.”"
+},
+{
+"id": "ch-6-p-55",
+"n": 55,
+"text": "리아는 가죽 조각을 돌에 댄 채, 짧은 선이 가리키는 둔덕을 바라봤다. 높이는 조금 더 높아도 바위와 풀숲이 이어져 있었다. 그 선은 마수들의 흔적과 겹치지 않았다. 그렇다고 사람 발길이 안전하게 이어진다는 뜻은 아니었다."
+}
+],
+"pFrom": 40,
+"pTo": 55,
+"panelCount": 7,
+"image": "img/ep06-s5.webp",
+"blocking": 1,
+"advisory": 2,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: '첫 다리 입구에 있던 표식과 같은 모양이네.' 말풍선 꼬리가 리아를 가리킴. 도윤의 알아봄이 리아 대사로 읽힘.",
+"en": "Panel 1: the tail of the text-1 balloon (첫 다리 입구에 있던 표식과 같은 모양이네.) points to Lia, so Doyun's recognition of the bridge mark reads as Lia's line."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 사슴 발자국을 수직 바위면에 그림. 원문의 자국은 아래 진흙.",
+"en": "Panel 2: deer hoofprints are drawn on the vertical rock face; the source's tracks are in the mud below."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "7칸: 둔덕을 가리키는 화살표를 바위에 덧그림. 원문의 짧은 선은 새긴 표식의 일부.",
+"en": "Panel 7: an arrow is drawn onto the rock pointing at the mound; the source's short line is part of the carved mark, not an added arrow."
+}
+],
+"textsTotal": 7,
+"textsOk": 6,
+"timings": {
+"planS": [
+56,
+56
+],
+"preflightS": [
+157,
+198
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 1
+},
+"imageUsd": 0.1186,
+"plan": {
+"intent": "Turn the matching marks from a recognition into a route warning: the long groove follows old deer traces into the valley, while the short line points elsewhere without promising a safe human passage.",
+"staging": "Keep the rock and its marks central to the exchange. The long groove relates to the valley and continuing deer traces; the short line diverges toward the higher mound, where rock and grass continue. Preserve these directions without fixing distances, angles, or an exact route. Lia uses her left hand for the leather and for tracing, with her folded right wrist kept inside her sleeve. Keep Bori present as a small, unobtrusive companion, but give Bori no new action or dialogue. Use expressive ink lines, full color, and clear lettering for the source dialogue only; leave composition and transitions to the artist.",
+"uncertainties": [
+"The excerpt does not establish the mound's exact distance or orientation beyond being higher and in the direction of the short line.",
+"The short line indicates direction but does not establish a traversable path or human safety; the reason it avoids monster traces is not stated.",
+"Bori has no stated action in this excerpt; keep the presence incidental and do not add behavior or dialogue."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-6-p-43",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“첫 다리 입구에 있던 표식과 같은 모양이네.”"
+},
+{
+"id": "text-2",
+"sourceId": "ch-6-p-46",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“표식은 안전한 사람 길이라는 약속이 아니야.”"
+},
+{
+"id": "text-3",
+"sourceId": "ch-6-p-48",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“지나가는 것들이 어느 쪽으로 움직이는지 남긴 걸 수도 있어.”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-6-p-49",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“여기는 마수들이 오가는 길이야.”"
+},
+{
+"id": "text-5",
+"sourceId": "ch-6-p-51",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“첫 다리 표식도 같은 뜻이었어.”"
+},
+{
+"id": "text-6",
+"sourceId": "ch-6-p-53",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“그럼 이쪽으로 사람을 보내면 안 되겠네요.”"
+},
+{
+"id": "text-7",
+"sourceId": "ch-6-p-54",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“응. 적어도 지금은.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-6-p-40",
+"ch-6-p-41",
+"ch-6-p-42",
+"ch-6-p-43"
+],
+"action": "Lia retrieves the leather fragment and fits its marks to the rock. Doyun's attention shifts from the stone to her hand as he recognizes the resemblance to the first bridge marker.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-6-p-44",
+"ch-6-p-45"
+],
+"action": "Lia confirms the comparison and traces the long groove toward the continuing old deer traces. She distinguishes it from the short line toward the higher mound, where no track continues from the mark.",
+"textIds": []
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-6-p-46",
+"ch-6-p-47",
+"ch-6-p-48"
+],
+"action": "Doyun reframes the marker: it is no assurance of a safe human route and may instead record the direction passing creatures move.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-6-p-49",
+"ch-6-p-50",
+"ch-6-p-51"
+],
+"action": "Lia identifies the valley as a monster route and connects that meaning to the marker at the first bridge.",
+"textIds": [
+"text-4",
+"text-5"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-6-p-52",
+"ch-6-p-53",
+"ch-6-p-54"
+],
+"action": "Maren weighs the marker against the valley and asks whether people should be sent that way. Lia advises against it for now.",
+"textIds": [
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-6-p-55"
+],
+"action": "Still holding the leather against the rock, Lia looks toward the higher mound. Its direction avoids the monster traces, but she does not treat that as proof of a safe human route.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-6-p-40"
+],
+"statement": "Lia takes a thin piece of leather from an inner pocket of her bag. Its edge bears a slanted groove and a short line; she places it against a rock."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-6-p-41",
+"ch-6-p-42",
+"ch-6-p-43"
+],
+"statement": "The slanted groove and short line align with marks in the rock. Doyun looks from the rock to Lia's hand and recognizes the shape as like the marker at the first bridge entrance."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-6-p-44",
+"ch-6-p-45"
+],
+"statement": "The long groove points into the valley, in the direction of deer tracks, and old deer traces continue from its end. The short line points away toward a higher mound, where hoofprints are sparse; no pressed tracks continue at its end. Lia says the short line leaves a direction, not an established path."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-6-p-46",
+"ch-6-p-47",
+"ch-6-p-48",
+"ch-6-p-49",
+"ch-6-p-50",
+"ch-6-p-51"
+],
+"statement": "Doyun cautions that the marker does not promise a safe route for people and may instead record the directions passing creatures travel. Lia identifies this place as a route used by monsters and says the first bridge marker had the same meaning."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-6-p-52",
+"ch-6-p-53",
+"ch-6-p-54",
+"ch-6-p-55"
+],
+"statement": "Maren looks between the rock and the valley and asks whether people should be sent that way. Lia answers that they should not, at least for now. Keeping the leather against the rock, Lia looks toward the slightly higher mound, where rock and grass continue and the short line does not overlap monster traces; this does not establish that people can safely travel there."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink lines, adult cast, restrained detail, clear Korean lettering.",
+"moments": [
+{
+"sourceIds": [
+"ch-6-p-40",
+"ch-6-p-41",
+"ch-6-p-42",
+"ch-6-p-43"
+],
+"action": "Lia presses the thin leather fragment to the rock with her left hand, its marks aligned; her folded right wrist stays inside her sleeve. Doyun watches; Bori, a small marten, remains unobtrusive.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-44",
+"ch-6-p-45"
+],
+"action": "Lia's left index finger rests along the long groove toward old deer traces entering the valley; the short line points toward the higher mound, with no tracks continuing from its end.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-6-p-46",
+"ch-6-p-47",
+"ch-6-p-48"
+],
+"action": "Doyun speaks beside the marked rock; his belt loop is empty.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-49",
+"ch-6-p-50",
+"ch-6-p-51"
+],
+"action": "Lia speaks beside the marked rock, with the valley beyond.",
+"textIds": [
+"text-4",
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-52",
+"ch-6-p-53"
+],
+"action": "Gloved Maren speaks beside the rock, questioning whether people should be sent toward the valley.",
+"textIds": [
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-54"
+],
+"action": "Lia answers Maren beside the rock.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-55"
+],
+"action": "The short line points toward the slightly higher rocky, grassy mound, apart from monster traces; Lia holds the leather to the rock with her left hand and looks that way.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia, Doyun (no rope), Maren (gloves) and Bori match s4."
+},
+"setting": {
+"passed": true,
+"evidence": "The same wet rock wall at the bend with the misty valley beyond, as in s4."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s4 ended with Lia turning toward another groove after Bori's cry; s5 opens with her holding the leather piece to that rock (p40)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "첫 다리 입구에 있던 표식과 같은 모양이네.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 1 balloon text is exact, but its tail points down to Lia at the rock instead of Doyun behind her."
+},
+{
+"id": "text-2",
+"observedText": "표식은 안전한 사람 길이라는 약속이 아니야.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "지나가는 것들이 어느 쪽으로 움직이는지 남긴 걸 수도 있어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "여기는 마수들이 오가는 길이야.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-5",
+"observedText": "첫 다리 표식도 같은 뜻이었어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-6",
+"observedText": "그럼 이쪽으로 사람을 보내면 안 되겠네요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-7",
+"observedText": "응. 적어도 지금은.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail to Lia; exact text without quotation marks."
+}
+],
+"evidence": "Seven panels. Row 1 wide: Lia holding the leather piece to the rock, Doyun and Maren crouched behind, Bori beside them. Row 2: close-up of the leather against the carved groove with Lia's finger tracing it and hoofprints drawn on the rock; Doyun speaking. Row 3 wide: Lia speaking with the valley behind. Row 4: Maren asking; Lia answering; Lia from behind holding the leather to the rock as an arrow line points up toward the grassy mound.",
+"observedPanelCount": 7
+}
+},
+{
+"id": "s6",
+"n": 6,
+"title": "겹치지 않는 길",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-6-p-56",
+"n": 56,
+"text": "“어머니가 찾던 건 이 길을 건너는 방법이 아니야.”"
+},
+{
+"id": "ch-6-p-57",
+"n": 57,
+"text": "리아가 말했다."
+},
+{
+"id": "ch-6-p-58",
+"n": 58,
+"text": "“이 흐름하고 겹치지 않는 길이었어.”"
+},
+{
+"id": "ch-6-p-59",
+"n": 59,
+"text": "도윤은 돌의 홈을 다시 확인했다."
+},
+{
+"id": "ch-6-p-60",
+"n": 60,
+"text": "“그쪽에 길이 있다는 근거는 아직 없어.”"
+},
+{
+"id": "ch-6-p-61",
+"n": 61,
+"text": "“알아.”"
+},
+{
+"id": "ch-6-p-62",
+"n": 62,
+"text": "리아는 가죽 조각을 접어 주머니에 넣었다. 이름은 꺼내지 않았다. 대신 손가락으로 둔덕의 방향을 짚었다."
+}
+],
+"pFrom": 56,
+"pTo": 62,
+"panelCount": 4,
+"image": "img/ep06-s6.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 뒷모습의 리아가 오른팔로 둔덕 대신 안개 골짜기를 가리킴. 계획은 왼손으로 둔덕.",
+"en": "Panel 4: seen from behind, Lia points with her right arm and toward the misty valley rather than up at the mound; the plan has her left hand pointing at the mound."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 가죽 조각을 접어 넣는 동작(beat-3)이 없음.",
+"en": "Panel 4: the leather being folded and pocketed (beat-3) is not shown."
+}
+],
+"textsTotal": 4,
+"textsOk": 4,
+"timings": {
+"planS": [
+43
+],
+"preflightS": [
+125
+],
+"imageS": 42,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1178,
+"plan": {
+"intent": "Make Lia’s interpretation of her mother’s search feel like a meaningful lead, while Doyun’s check and her quiet acknowledgment keep it from becoming proof of a traversable route.",
+"staging": "Keep the carved stone grooves and the mound Lia indicates as the necessary spatial anchors, without fixing their distance or exact orientation. Lia handles and folds the leather with her left hand; keep her folded right wrist inside her sleeve. Make Doyun unmistakably the speaker of his warning. Keep Bori unobtrusive and give Bori no new action or dialogue. Use only the quoted dialogue as visible lettering; add no writing to the leather or stone. Leave composition and transitions to the artist.",
+"uncertainties": [
+"The excerpt does not establish that the mound direction contains a usable or safe path.",
+"The referent of the name Lia does not say is not explicitly identified."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-6-p-56",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“어머니가 찾던 건 이 길을 건너는 방법이 아니야.”"
+},
+{
+"id": "text-2",
+"sourceId": "ch-6-p-58",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“이 흐름하고 겹치지 않는 길이었어.”"
+},
+{
+"id": "text-3",
+"sourceId": "ch-6-p-60",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“그쪽에 길이 있다는 근거는 아직 없어.”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-6-p-61",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“알아.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-6-p-56",
+"ch-6-p-57",
+"ch-6-p-58"
+],
+"action": "Lia reframes what her mother was seeking: not a way across the route, but a way apart from the movement flow.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-6-p-59",
+"ch-6-p-60",
+"ch-6-p-61"
+],
+"action": "Doyun checks the stone grooves again and voices the lack of evidence for a path that way. Lia accepts the uncertainty.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-6-p-62"
+],
+"action": "Lia folds and pockets the leather without saying the name, then points toward the mound. Her gesture indicates a direction to consider, not a confirmed path.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-6-p-56",
+"ch-6-p-57",
+"ch-6-p-58"
+],
+"statement": "Lia says her mother was not looking for a way to cross this route, but for a way that does not overlap the movement flow."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-6-p-59",
+"ch-6-p-60",
+"ch-6-p-61"
+],
+"statement": "Doyun checks the grooves in the stone again and says there is no evidence that a path exists in that direction. Lia says she knows."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-6-p-62"
+],
+"statement": "Lia folds the leather piece and puts it in her pocket. She does not say the name, and points toward the mound."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic with expressive ink, restrained acting, clear lettering, consistent adult designs, and a cute, unobtrusive small marten.",
+"moments": [
+{
+"sourceIds": [
+"ch-6-p-56",
+"ch-6-p-57"
+],
+"action": "Lia speaks her first correction, distinguishing her mother's search from crossing the route.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-58"
+],
+"action": "Lia explains that her mother sought a way outside the movement flow.",
+"textIds": [
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-59",
+"ch-6-p-60"
+],
+"action": "Doyun rechecks the stone grooves while stating that no evidence supports a path in that direction.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-61",
+"ch-6-p-62"
+],
+"action": "Lia acknowledges the uncertainty and points toward the mound with her left hand; the folded leather is pocketed, and her right wrist stays inside her sleeve.",
+"textIds": [
+"text-4"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia, Doyun (no rope), Maren (gloves, brick vest) and Bori match s5."
+},
+"setting": {
+"passed": true,
+"evidence": "The same carved wall and misty valley at the bend as s5."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s5 ended with Lia holding the leather to the rock and looking toward the mound; s6 continues with her reinterpretation (p56)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "어머니가 찾던 건 이 길을 건너는 방법이 아니야.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-2",
+"observedText": "이 흐름하고 겹치지 않는 길이었어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "그쪽에 길이 있다는 근거는 아직 없어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "알아.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia; exact text without quotation marks."
+}
+],
+"evidence": "Four full-width panels. 1: Lia speaking in the foreground, Doyun and Maren crouched behind with Bori. 2: close-up of Lia speaking against the valley. 3: Doyun's gloved hand on the carved grooves as he speaks. 4: from behind, Lia pointing out past the bend with Bori at her feet, Maren and Doyun watching.",
+"observedPanelCount": 4
+}
+},
+{
+"id": "s7",
+"n": 7,
+"title": "남겨 둔 검",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-6-p-63",
+"n": 63,
+"text": "마렌은 수레의 나무 상자를 다시 보았다. 받는 곳의 글씨는 알아볼 수 없을 만큼 번져 있었다. 그녀의 손이 허리춤의 장부로 갔다가 멈췄다."
+},
+{
+"id": "ch-6-p-64",
+"n": 64,
+"text": "“검을 기다리는 사람이 있겠네요.”"
+},
+{
+"id": "ch-6-p-65",
+"n": 65,
+"text": "“있겠지.”"
+},
+{
+"id": "ch-6-p-66",
+"n": 66,
+"text": "도윤은 판에 걸린 쇠고리를 보았다."
+},
+{
+"id": "ch-6-p-67",
+"n": 67,
+"text": "“그래도 꺼내지 않아. 지금 움직이면 수레가 더 기울 수 있어.”"
+},
+{
+"id": "ch-6-p-68",
+"n": 68,
+"text": "마렌은 짧게 숨을 내쉬었다. 빈손을 장갑에 문질렀다."
+},
+{
+"id": "ch-6-p-69",
+"n": 69,
+"text": "“그럼 상자도 여기 남기는 거군요.”"
+},
+{
+"id": "ch-6-p-70",
+"n": 70,
+"text": "“그래. 짐을 되찾는 일은 다시 길을 열 수 있을 때 해.”"
+},
+{
+"id": "ch-6-p-71",
+"n": 71,
+"text": "그는 좁은 굽이에서 한 걸음 물러났다. 고삐도, 판도 건드리지 않았다. 기운 수레와 자루들, 배달될 검 상자가 그대로 남았다."
+}
+],
+"pFrom": 63,
+"pTo": 71,
+"panelCount": 4,
+"image": "img/ep06-s7.webp",
+"blocking": 1,
+"advisory": 2,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 도윤 허리에 둘둘 말린 밧줄. 잃은 줄이 되살아남.",
+"en": "Panel 4: a coiled rope hangs at Doyun's hip. His rope was lost in chapter 3 and he only has an empty loop."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "마렌 손이 허리 장부로 갔다 멈추는 동작이 없고(1칸은 턱에 손), 3칸은 빈손을 장갑에 문지르는 대신 두 장갑 손을 비빔.",
+"en": "Beats 1 and 5: Maren's hand moving to the waist ledger and stopping is not shown (panel 1 has her gloved hand at her chin); panel 3 shows both gloved hands rubbed together rather than an empty hand rubbed against a glove."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·3·4칸: 계획 문구의 따옴표가 빠짐. 글자 자체는 정확.",
+"en": "Panels 1, 3 and 4 drop the quotation marks that the plan's text entries carry; the words are exact."
+}
+],
+"textsTotal": 5,
+"textsOk": 5,
+"timings": {
+"planS": [
+45,
+50,
+42,
+54,
+26
+],
+"preflightS": [
+149,
+131,
+104,
+111
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1181,
+"plan": {
+"intent": "Let Maren’s concern for the person awaiting the sword weigh against the risk of shifting the already tilted wagon. Doyun chooses not to retrieve the cargo, and the scene ends with the delivery still left behind and recovery deferred.",
+"staging": "Keep the tilted wagon, its sacks, the wooden sword crate, the board with its iron hook, and the narrow bend as the necessary spatial facts. Maren wears gloves; show her hand move toward the ledger at her waist and stop, then show her rubbing her empty hand against a glove. Keep the destination writing blurred and unreadable; add no other visible writing. Doyun is the speaker of the decision lines and the one who steps back. Show him touching neither the reins nor the board. Maintain the post-rain morning setting without specifying unestablished terrain or mechanics. Leave composition and transitions to the artist.",
+"uncertainties": [
+"The person waiting for the sword is not identified, and the destination writing cannot be read.",
+"The excerpt does not explain the hook’s purpose or establish that it can be used to remove the cargo.",
+"The precise mechanics of how movement could worsen the wagon’s tilt are not specified."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-6-p-64",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“검을 기다리는 사람이 있겠네요.”"
+},
+{
+"id": "text-2",
+"sourceId": "ch-6-p-65",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“있겠지.”"
+},
+{
+"id": "text-3",
+"sourceId": "ch-6-p-67",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“그래도 꺼내지 않아. 지금 움직이면 수레가 더 기울 수 있어.”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-6-p-69",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“그럼 상자도 여기 남기는 거군요.”"
+},
+{
+"id": "text-5",
+"sourceId": "ch-6-p-70",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“그래. 짐을 되찾는 일은 다시 길을 열 수 있을 때 해.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-6-p-63"
+],
+"action": "Maren’s attention returns to the sword crate and its unreadable destination. Her hand moves toward her ledger, then stops without using it.",
+"textIds": []
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-6-p-64"
+],
+"action": "Maren voices the human cost of leaving the sword behind: someone is waiting for it.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-6-p-65"
+],
+"action": "Doyun acknowledges that someone is waiting.",
+"textIds": [
+"text-2"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-6-p-66",
+"ch-6-p-67"
+],
+"action": "Doyun looks at the iron hook on the board and refuses to remove the cargo now, citing the risk that movement could worsen the wagon’s tilt.",
+"textIds": [
+"text-3"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-6-p-68"
+],
+"action": "Maren exhales and rubs her empty hand against a glove.",
+"textIds": []
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-6-p-69"
+],
+"action": "Maren confirms that the crate will be left behind too.",
+"textIds": [
+"text-4"
+]
+},
+{
+"id": "beat-7",
+"sourceIds": [
+"ch-6-p-70",
+"ch-6-p-71"
+],
+"action": "Doyun says they will recover the cargo once the road can be opened again, then steps back without touching the reins or board. The tilted wagon and its cargo remain.",
+"textIds": [
+"text-5"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-6-p-63"
+],
+"statement": "Maren looks again at the wooden crate on the wagon. Its destination writing is too blurred to read. Her hand moves toward the ledger at her waist, then stops."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-6-p-64",
+"ch-6-p-65"
+],
+"statement": "Maren says someone must be waiting for the sword, and Doyun agrees."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-6-p-66",
+"ch-6-p-67"
+],
+"statement": "Doyun looks at the iron hook on the board and says they will not take the cargo out now, because moving could make the wagon tilt further."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-6-p-68",
+"ch-6-p-69",
+"ch-6-p-70"
+],
+"statement": "Maren exhales, rubs her empty hand against a glove, and asks whether the crate will stay too. Doyun says they will recover the cargo when they can open the road again."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-6-p-71"
+],
+"statement": "Doyun steps back from the narrow bend without touching the reins or the board. The tilted wagon, sacks, and delivery crate of swords remain."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink linework, adult cast, cute small marten, consistent clothing and props, coherent post-rain morning light.",
+"moments": [
+{
+"sourceIds": [
+"ch-6-p-63",
+"ch-6-p-64",
+"ch-6-p-65"
+],
+"action": "Maren pauses with her gloved hand beside her waist ledger, looking at the sword crate’s blurred, unreadable destination; Doyun answers nearby.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-66",
+"ch-6-p-67"
+],
+"action": "Doyun looks at the iron hook on the board beside the tilted wagon, explaining why the cargo stays in place.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-68",
+"ch-6-p-69"
+],
+"action": "Maren exhales, rubbing her empty hand against a glove as she asks whether the sword crate stays too.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-70",
+"ch-6-p-71"
+],
+"action": "Doyun stands a step back from the narrow bend while the tilted wagon, sacks, and sword crate remain; a small marten is unobtrusive in the scene.",
+"textIds": [
+"text-5"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": false,
+"evidence": "Maren (curly red hair, brick vest, gloves), Lia and Bori match s6, but Doyun again carries a coiled rope at his hip in panel 4 although his rope is lost."
+},
+"setting": {
+"passed": true,
+"evidence": "The same wet rock wall, misty valley and narrow bend with the stopped wagon as s6."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s6 ended with the group deciding at the bend; s7 returns to the wagon's sword crate (p63) and ends with Doyun stepping back (p71)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "검을 기다리는 사람이 있겠네요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-2",
+"observedText": "있겠지.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 small balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "그래도 꺼내지 않아. 지금 움직이면 수레가 더 기울 수 있어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Doyun as he looks at the iron hook; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "그럼 상자도 여기 남기는 거군요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-5",
+"observedText": "그래. 짐을 되찾는 일은 다시 길을 열 수 있을 때 해.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Doyun seen from behind; exact text without quotation marks."
+}
+],
+"evidence": "Four full-width panels. 1: Maren in the foreground beside the sword crate whose destination lettering is blurred, Doyun behind the wagon answering. 2: Doyun close-up pointing at the iron hook on the board without touching it. 3: Maren exhaling (visible breath) and rubbing her gloved hands. 4: Doyun from behind stepping away from the tilted wagon, sacks and crate; Bori by the wheel, Maren and Lia watching.",
+"observedPanelCount": 4
+}
+},
+{
+"id": "s8",
+"n": 8,
+"title": "장부의 빈칸",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-6-p-72",
+"n": 72,
+"text": "돌아갈 때 보리는 바위 틈을 다시 돌아봤다. 리아가 손을 내밀자 보리는 한 번 망설이고 어깨로 올라왔다. 꼬리가 목에 감겼다가, 위쪽 홈에 닿자 조금 느슨해졌다."
+},
+{
+"id": "ch-6-p-73",
+"n": 73,
+"text": "도윤은 둔덕에 올라서자 길드 장부를 폈다. 닫힌 굽이 아래로 짧은 선을 긋고, 그 옆에 사슴 발자국과 오래된 흔적이 이어진 방향을 적었다. 사람 통행 가능 여부를 적는 칸에는 아무것도 쓰지 않았다."
+},
+{
+"id": "ch-6-p-74",
+"n": 74,
+"text": "“방향은 기록하겠어. 하지만 다음 사람을 보내려면, 어디까지 확인했는지도 같이 있어야 해.”"
+},
+{
+"id": "ch-6-p-75",
+"n": 75,
+"text": "리아는 장부의 빈칸을 보았다. 가죽 조각을 그릴 수는 있었다. 둔덕 너머의 길까지 적으려면 더 가야 했다. 지도에 어디까지 남길지, 누구에게 보여 줄지는 아직 정해지지 않았다."
+},
+{
+"id": "ch-6-p-76",
+"n": 76,
+"text": "마렌이 장부를 덮어 주었다. 그녀의 시선은 번진 배달표가 붙은 상자에 한 번 더 머물렀다."
+},
+{
+"id": "ch-6-p-77",
+"n": 77,
+"text": "아래에서는 사슴들이 바위 뒤로 사라지고 있었다. 골짜기의 굽이는 사람에게 열린 길이 아니라, 그들이 지나가는 방향을 드러낸 표식으로 남았다."
+}
+],
+"pFrom": 72,
+"pTo": 77,
+"panelCount": 10,
+"image": "img/ep06-s8.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸: 빈칸 위에 '사람 통행 가능 여부' 인쇄 머리글을 그림. 캡션의 칸 이름을 되풀이할 뿐 새 주장은 없지만 계획에 없는 글자.",
+"en": "Panel 5: the blank field carries a printed header 사람 통행 가능 여부 in the ledger. It restates the caption's field name and adds no claim, but it is lettering the plan did not ask for."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "10칸: 사슴이 바위 뒤로 사라지지 않고 길 위 바위 곁에 드러나 서 있음.",
+"en": "Panel 10: the deer stand in the open on the path by the rocks rather than disappearing behind them."
+}
+],
+"textsTotal": 13,
+"textsOk": 13,
+"timings": {
+"planS": [
+62,
+69
+],
+"preflightS": [
+206,
+230
+],
+"imageS": 48,
+"imageCalls": 1,
+"preflightRevisions": 1
+},
+"imageUsd": 0.0787,
+"plan": {
+"intent": "Make the difference between recording an animal route and authorizing a human one legible. Bori’s chosen return to Lia, Doyun’s careful but limited record, and Lia’s unresolved decision about what to share leave the bend as evidence of direction—not proof of a road for people.",
+"staging": "Full-color fantasy comic with expressive ink lines, an adult cast, and a small, cute marten; maintain coherent post-rain morning light and terrain. Keep the necessary spatial relations only: Doyun is on the rise, the deer are below and disappear behind rocks, and Bori climbs onto Lia’s shoulder. Leave the location and referent of the upper groove unspecified; the image need only show Bori’s tail loosening. Lia uses only her left hand; keep her folded right wrist inside her sleeve. Maren wears gloves. Doyun’s belt loop is empty and he carries no rope. The ledger may show the source-described line and direction as non-legible marks, with the human-passage field blank; add no other legible writing. Keep the delivery slip smeared and unreadable. Use generous, uncluttered lettering space and preserve the caption sequence, broken only at source sentence boundaries. Let the artist choose composition, transitions, and the arrangement of the ten panels.",
+"uncertainties": [
+"The source does not establish what the upper groove refers to or where it is; do not locate it on Bori or in the terrain.",
+"The source does not specify the exact geography of the closed bend or how far the recorded traces continue.",
+"Whether people can pass is explicitly left unrecorded; do not turn the deer’s direction into a confirmed human route.",
+"Lia’s eventual map scope and intended audience remain undecided.",
+"The delivery slip is smeared; its writing and the box’s destination are not legible."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-6-p-72",
+"kind": "caption",
+"speaker": "narrator",
+"text": "돌아갈 때 보리는 바위 틈을 다시 돌아봤다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-6-p-72",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아가 손을 내밀자 보리는 한 번 망설이고 어깨로 올라왔다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-6-p-72",
+"kind": "caption",
+"speaker": "narrator",
+"text": "꼬리가 목에 감겼다가, 위쪽 홈에 닿자 조금 느슨해졌다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-6-p-73",
+"kind": "caption",
+"speaker": "narrator",
+"text": "도윤은 둔덕에 올라서자 길드 장부를 폈다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-6-p-73",
+"kind": "caption",
+"speaker": "narrator",
+"text": "닫힌 굽이 아래로 짧은 선을 긋고, 그 옆에 사슴 발자국과 오래된 흔적이 이어진 방향을 적었다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-6-p-73",
+"kind": "caption",
+"speaker": "narrator",
+"text": "사람 통행 가능 여부를 적는 칸에는 아무것도 쓰지 않았다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-6-p-74",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“방향은 기록하겠어. 하지만 다음 사람을 보내려면, 어디까지 확인했는지도 같이 있어야 해.”"
+},
+{
+"id": "text-8",
+"sourceId": "ch-6-p-75",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아는 장부의 빈칸을 보았다."
+},
+{
+"id": "text-9",
+"sourceId": "ch-6-p-75",
+"kind": "caption",
+"speaker": "narrator",
+"text": "가죽 조각을 그릴 수는 있었다."
+},
+{
+"id": "text-10",
+"sourceId": "ch-6-p-75",
+"kind": "caption",
+"speaker": "narrator",
+"text": "둔덕 너머의 길까지 적으려면 더 가야 했다. 지도에 어디까지 남길지, 누구에게 보여 줄지는 아직 정해지지 않았다."
+},
+{
+"id": "text-11",
+"sourceId": "ch-6-p-76",
+"kind": "caption",
+"speaker": "narrator",
+"text": "마렌이 장부를 덮어 주었다. 그녀의 시선은 번진 배달표가 붙은 상자에 한 번 더 머물렀다."
+},
+{
+"id": "text-12",
+"sourceId": "ch-6-p-77",
+"kind": "caption",
+"speaker": "narrator",
+"text": "아래에서는 사슴들이 바위 뒤로 사라지고 있었다."
+},
+{
+"id": "text-13",
+"sourceId": "ch-6-p-77",
+"kind": "caption",
+"speaker": "narrator",
+"text": "골짜기의 굽이는 사람에게 열린 길이 아니라, 그들이 지나가는 방향을 드러낸 표식으로 남았다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-6-p-72"
+],
+"action": "While returning, Bori turns to look back toward the crevice.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-6-p-72"
+],
+"action": "Lia offers her left hand. After a hesitation, Bori climbs onto her shoulder.",
+"textIds": [
+"text-2"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-6-p-72"
+],
+"action": "Bori’s tail, wrapped around the neck, loosens slightly. Do not assign the unspecified upper groove to a body part or a feature of the terrain.",
+"textIds": [
+"text-3"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-6-p-73"
+],
+"action": "On the rise, Doyun opens the guild ledger and records the short line and the direction of the deer tracks and older traces below the closed bend. Keep the human-passage field visibly blank; show no added legible writing.",
+"textIds": [
+"text-4",
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-6-p-74"
+],
+"action": "Doyun explains why the ledger must state how much of the route has actually been checked, not only its direction.",
+"textIds": [
+"text-7"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-6-p-75"
+],
+"action": "Lia studies the blank field and considers what can be recorded now. The route beyond the rise has not been checked, and she has not decided how much to put on the map or who should see it.",
+"textIds": [
+"text-8",
+"text-9",
+"text-10"
+]
+},
+{
+"id": "beat-7",
+"sourceIds": [
+"ch-6-p-76"
+],
+"action": "Maren closes the ledger; her attention returns to the box with the smeared delivery slip.",
+"textIds": [
+"text-11"
+]
+},
+{
+"id": "beat-8",
+"sourceIds": [
+"ch-6-p-77"
+],
+"action": "The deer below disappear behind rocks. The bend reads as a sign of their direction, not as a confirmed route for people.",
+"textIds": [
+"text-12",
+"text-13"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-6-p-72"
+],
+"statement": "As they return, Bori looks back toward a crevice. Bori hesitates before climbing onto Lia’s shoulder after she offers a hand. Bori’s tail, which had wrapped around the neck, loosens slightly when it reaches an unspecified upper groove."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-6-p-73"
+],
+"statement": "Doyun opens the guild ledger after reaching a rise. He draws a short line below a closed bend and records the direction of deer tracks and older traces. The field for whether people can pass is left blank."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-6-p-74"
+],
+"statement": "Doyun says that recording a direction is not enough for sending someone after it; the extent actually checked must also be recorded."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-6-p-75"
+],
+"statement": "Lia looks at the blank field. She could draw a piece of leather, but recording the path beyond the rise would require going farther. The extent to show on the map and who should see it are undecided."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-6-p-76"
+],
+"statement": "Maren closes the ledger and looks again at a box bearing a smeared delivery slip."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-6-p-77"
+],
+"statement": "Below, deer are disappearing behind rocks. The valley bend remains an indication of the direction they travel, not a path open to people."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink lines, adult cast, small marten, coherent post-rain morning light.",
+"moments": [
+{
+"sourceIds": [
+"ch-6-p-72"
+],
+"action": "On the return, Bori looks back toward a crevice in the rocks.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-72"
+],
+"action": "Bori settles on Lia's shoulder beside her offered left hand; Lia's folded right wrist stays inside her sleeve.",
+"textIds": [
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-72"
+],
+"action": "Bori's tail loosens slightly from its coil.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-73"
+],
+"action": "On the rise, Doyun's open ledger shows a short line beneath a closed bend and non-legible direction marks for deer tracks and older traces.",
+"textIds": [
+"text-4",
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-73"
+],
+"action": "The ledger's human-passage field stays blank beside the recorded animal direction.",
+"textIds": [
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-74"
+],
+"action": "Doyun speaks beside the ledger, his belt loop empty.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-75"
+],
+"action": "Lia studies the blank field, considering what can be recorded now.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-75"
+],
+"action": "Lia weighs how far a map should extend and who should see it, still beside the ledger.",
+"textIds": [
+"text-10"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-76"
+],
+"action": "Maren, gloved hands on the closed ledger, looks toward a box with a smeared delivery slip.",
+"textIds": [
+"text-11"
+]
+},
+{
+"sourceIds": [
+"ch-6-p-77"
+],
+"action": "Below the rise, deer disappear behind rocks at the valley bend.",
+"textIds": [
+"text-12",
+"text-13"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia (brown bob, sand jacket, fingerless gloves), Doyun (dark green hooded coat, no rope visible), Maren (curly red hair, brick vest, gloves) and Bori match s7."
+},
+"setting": {
+"passed": true,
+"evidence": "The same wet rock wall, misty valley and pines after rain; Doyun now on the rise above the bend as p73 states."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s7 ended with Doyun stepping back from the stopped wagon; s8 is the return (p72) and the ledger entry on the rise (p73-p77), with the sword crate still in view."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "돌아갈 때 보리는 바위 틈을 다시 돌아봤다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 caption over Bori at the rock crevice; exact text."
+},
+{
+"id": "text-2",
+"observedText": "리아가 손을 내밀자 보리는 한 번 망설이고 어깨로 올라왔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 caption as Bori sits on Lia's shoulder; exact text."
+},
+{
+"id": "text-3",
+"observedText": "꼬리가 목에 감겼다가, 위쪽 홈에 닿자 조금 느슨해졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 caption as the tail around Lia's neck loosens; exact text."
+},
+{
+"id": "text-4",
+"observedText": "도윤은 둔덕에 올라서자 길드 장부를 폈다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 upper caption over Doyun opening the ledger on the rise; exact text."
+},
+{
+"id": "text-5",
+"observedText": "닫힌 굽이 아래로 짧은 선을 긋고, 그 옆에 사슴 발자국과 오래된 흔적이 이어진 방향을 적었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 second caption beside the open ledger; exact text."
+},
+{
+"id": "text-6",
+"observedText": "사람 통행 가능 여부를 적는 칸에는 아무것도 쓰지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 caption over the ledger close-up; exact text."
+},
+{
+"id": "text-7",
+"observedText": "“방향은 기록하겠어. 하지만 다음 사람을 보내려면, 어디까지 확인했는지도 같이 있어야 해.”",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail to Doyun; quotation marks kept; exact text."
+},
+{
+"id": "text-8",
+"observedText": "리아는 장부의 빈칸을 보았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 caption, first line, over Lia looking at the ledger; exact text."
+},
+{
+"id": "text-9",
+"observedText": "가죽 조각을 그릴 수는 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 caption, second line; exact text."
+},
+{
+"id": "text-10",
+"observedText": "둔덕 너머의 길까지 적으려면 더 가야 했다. 지도에 어디까지 남길지, 누구에게 보여 줄지는 아직 정해지지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 8 caption over Lia looking out beyond the rise; exact text."
+},
+{
+"id": "text-11",
+"observedText": "마렌이 장부를 덮어 주었다. 그녀의 시선은 번진 배달표가 붙은 상자에 한 번 더 머물렀다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 9 caption over Maren closing the ledger beside the crate; exact text."
+},
+{
+"id": "text-12",
+"observedText": "아래에서는 사슴들이 바위 뒤로 사라지고 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 10 upper caption over the deer below; exact text."
+},
+{
+"id": "text-13",
+"observedText": "골짜기의 굽이는 사람에게 열린 길이 아니라, 그들이 지나가는 방향을 드러낸 표식으로 남았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 10 lower caption; exact text."
+}
+],
+"evidence": "Ten panels in four rows (3, 2, 3, 2), read left to right, top to bottom. Row 1: Bori looking back at the crevice; Bori on Lia's shoulder; Lia with eyes closed as the tail loosens around her neck. Row 2: Doyun on the rise drawing in the open ledger (sketches and marks, nothing legible); ledger close-up with hoofprint marks and a blank field. Row 3: Doyun speaking; Lia looking at the ledger with Bori; Lia from behind looking over the valley. Row 4: Maren pressing the closed ledger beside the crate with its smeared slip; deer below among the rocks.",
+"observedPanelCount": 10
+}
+}
+]
+},
+{
+"chapter": 7,
+"title": "고쳐 적는 길",
+"host": "GPT-6 Sol",
+"model": "gpt-6-sol",
+"effort": "high",
+"novelHost": "GPT-6 Sol",
+"novelModel": "gpt-6-sol",
+"sceneCount": 8,
+"panelTotal": 50,
+"passCount": 1,
+"blockingTotal": 10,
+"advisoryTotal": 18,
+"blockingByLayer": {
+"render": 9,
+"pipeline": 1
+},
+"imageCalls": 8,
+"imageOk": 8,
+"cliCalls": 37,
+"arc": {
+"number": 3,
+"title": "사람이 지날 길",
+"designedBy": "gpt-6-sol",
+"staleDirection": true
+},
+"cost": {
+"novelUsd": 0.0,
+"webtoonUsd": 0.0,
+"webtoonUsdLow": 0.0,
+"estimated": false,
+"imageUsd": 1.02,
+"imageEstimated": false,
+"costsApiUsd": 0.0
+},
+"tokens": {
+"novel": {
+"calls": 12,
+"in": 87686,
+"cached": 0,
+"out": 29791,
+"reasoning": 19033
+},
+"arc": {
+"calls": 2,
+"in": 13573,
+"cached": 0,
+"out": 9137,
+"reasoning": 5430
+},
+"webtoon": {
+"calls": 23,
+"in": 224551,
+"cached": 2811,
+"out": 108983,
+"reasoning": 75298
+}
+},
+"note": "아크 3「사람이 지날 길」(7~9화)은 gpt-6-sol이 lore_arc_plan auto로 설계. 이때 하네스 패치 오류(오케스트레이터 실수)로 4화용 옛 방향 문구가 전달되었고, 결과를 유지하고 공개하기로 함. 소설 7화는 gpt-6-sol 5패스 12호출, 검증 거절 0회 자동 커밋. 편집 점수가 8로 기록됨(다른 항목은 100점 척도라 10점 척도로 답한 것으로 보이나 그대로 둠). 각색: s3가 사전 검증 3회 차단(방향 문구의 둔덕·판자길을 마당 발췌의 필수 장소로 읽음) → 방향 문구 중립화 후 새 워크플로. s3 이미지에 판자길 참조가 새어 들어가 s5부터 ref-broken-planks를 s8에만 붙임. ref-broken-planks는 이 run에서 생성(첫 장에 성이 그려져 “건물 없음”으로 1회 재생성). OpenAI usage API는 9/23 gpt-6-sol 요청을 39건으로 집계했으나 하네스 기록은 37건(소설 12·아크 2·각색 23)이며, 2건 차이는 원인을 확인하지 못함(Costs API 금액은 $0).",
+"reviewer": {
+"host": "claude-code",
+"model": "claude-opus-5-5",
+"note": "오케스트레이터(claude-opus-5-5)의 시각 검토. gpt-6-sol와 다른 회사 모델이지만 오케스트레이터 자기검토라 독립 평가 아님."
+},
+"scenes": [
+{
+"id": "s1",
+"n": 1,
+"title": "출발 직전의 수레",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-7-p-1",
+"n": 1,
+"text": "마렌이 덮어 준 장부는 골짜기를 벗어날 때까지 리아의 손에 있었다. 내리막에서 책등이 오른손목에 스치자 손가락이 움찔했다. 리아는 장부를 왼팔에 끼고 걸음을 늦추지 않았다."
+},
+{
+"id": "ch-7-p-2",
+"n": 2,
+"text": "앞서 가던 도윤이 둔덕 아래를 살폈다. 사슴들이 지나간 굽이는 바위에 가려 보이지 않았지만, 거점 쪽에서는 마차 바퀴 소리가 올라왔다. 마렌도 그 소리를 듣고 발을 재촉했다."
+},
+{
+"id": "ch-7-p-3",
+"n": 3,
+"text": "“벌써 다음 수레를 붙였나 봅니다.”"
+},
+{
+"id": "ch-7-p-4",
+"n": 4,
+"text": "거점 마당에 닿자 말 두 마리가 고삐를 당기며 출발할 채비를 하고 있었다. 수레 옆에는 물자 자루가 높이 묶여 있었고, 장부대에는 리아가 앞서 적은 통행 기록이 펼쳐져 있었다. 굽이 쪽에 붙은 ‘통행 가능’이라는 글씨가 멀리서도 눈에 들어왔다."
+},
+{
+"id": "ch-7-p-5",
+"n": 5,
+"text": "리아가 골짜기에 들어가기 전 남긴 한 줄이었다. 그 아래 마수 흔적은 적다고 쓰여 있었다."
+},
+{
+"id": "ch-7-p-6",
+"n": 6,
+"text": "“수레 세워!”"
+},
+{
+"id": "ch-7-p-7",
+"n": 7,
+"text": "도윤이 말 앞으로 돌아 들어갔다. 고삐를 잡은 손이 멈추자 말이 콧김을 뿜으며 제자리에서 발을 굴렀다. 마렌은 바퀴 앞에 세워 두었던 받침목을 도로 밀어 넣었다. 나무가 바퀴에 맞물리는 소리가 났다."
+}
+],
+"pFrom": 1,
+"pTo": 7,
+"panelCount": 5,
+"image": "img/ep07-s1.webp",
+"blocking": 3,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 도윤 허리에 둘둘 말린 밧줄. 3화에서 잃은 줄이 되살아남(원문은 빈 고리).",
+"en": "Panel 1: a coiled rope hangs at Doyun's hip. His rope was lost in chapter 3 and the source keeps only an empty loop."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸 캡션: '리아가'를 '리야가'로 씀. 주인공 이름 오기.",
+"en": "Panel 3 caption (text-3) renders 리아가 as 리야가, misspelling the protagonist's name."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 장부를 '통행 기록부·날짜·이름·인원·목적지·비고' 인쇄 양식과 붉은 '통행 가능' 도장으로 그림. 원문은 리아의 '통행 가능' 한 줄과 짐승 흔적이 적었다는 메모뿐. 창작 글자.",
+"en": "Panel 3: the ledger is drawn as a printed form with invented lettering 통행 기록부, 날짜, 이름, 인원, 목적지, 비고, 5/14, 리아, 1, 북쪽 골짜기 and a red 통행 가능 stamp. The source gives only Lia's one line 통행 가능 with a note that beast traces were few."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·4칸: 리아가 양손(장갑)으로 장부를 들고 손짓함. 다친 오른 손목을 소매 안에 두지 않음.",
+"en": "Panels 1 and 4: Lia holds the ledger and gestures with gloved hands on both arms; the injured right wrist is not kept inside the sleeve."
+},
+{
+"severity": "advisory",
+"layer": "adapt",
+"layerLabel": "각색 호스트",
+"ko": "1칸: 마지막 장면의 부러진 판자길 끝이 골짜기 하산길에 나옴. 계획 첫 순간이 일행을 그곳에 세웠는데 원문(p1-p2)에는 없는 위치.",
+"en": "Panel 1: the broken boardwalk end from the chapter's final scene appears on the descent from the valley; the plan's first moment placed the group by it, which the source (p1-p2) does not state."
+},
+{
+"severity": "advisory",
+"layer": "adapt",
+"layerLabel": "각색 호스트",
+"ko": "계획이 '수레 세워!'를 리아 대사로 배정. 원문은 화자 미표기이고 곧바로 도윤이 말 앞을 막아 도윤 대사일 수 있음. 그림은 계획을 따름.",
+"en": "Beat-3 assigns 수레 세워! to Lia, but the source line is unattributed and followed at once by Doyun stepping in front of the horses, so it may be Doyun's; the image follows the plan."
+}
+],
+"textsTotal": 4,
+"textsOk": 4,
+"timings": {
+"planS": [
+37
+],
+"preflightS": [
+66
+],
+"imageS": 48,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.118,
+"plan": {
+"intent": "A routine departure becomes urgent when Lia sees that the wagon is about to rely on the passage record she wrote before entering the valley. Her warning turns immediately into a shared effort to halt it.",
+"staging": "Keep the descent and outpost yard in the same daytime, post-rain sequence. Rocks obstruct the view of the bend, not the sound from the outpost. In the yard, the open record is at the ledger stand under the eaves; the two horses, loaded wagon, reins and wheel chock must remain spatially clear enough to follow the stop. Lia carries the covered ledger under her left arm and keeps her injured right wrist inside her sleeve; Maren wears worn gloves, and Doyun carries no rope. A notice board may appear without readable tags. Apart from text-2, add no legible writing to records or props.",
+"uncertainties": [
+"The excerpt does not explicitly identify the speakers of the two dialogue lines. This adaptation assigns the remark to Maren and the stop command to Lia based on their adjacent actions.",
+"The bend is hidden, so its current safety and the deer's present location are not established. The earlier record is shown as Lia's prior assessment, not as proof that the route is safe now.",
+"The person holding the reins is not identified. Do not assign that hand to Doyun or invent a mechanism for the wagon's halt."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-7-p-3",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "벌써 다음 수레를 붙였나 봅니다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-7-p-4",
+"kind": "physical",
+"speaker": "narrator",
+"text": "통행 가능"
+},
+{
+"id": "text-3",
+"sourceId": "ch-7-p-5",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아가 골짜기에 들어가기 전 남긴 한 줄이었다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-7-p-6",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "수레 세워!"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-7-p-1",
+"ch-7-p-2",
+"ch-7-p-3"
+],
+"action": "Lia shifts the ledger away from her hurt wrist as the group descends. Doyun cannot see around the rocky bend, but the approaching wheel sound prompts Maren to hurry and remark on another wagon.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-7-p-4",
+"ch-7-p-5"
+],
+"action": "They reach the yard as the loaded wagon prepares to leave. Lia recognizes her own earlier clearance entry on the open record, making the departure an immediate concern.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-7-p-6",
+"ch-7-p-7"
+],
+"action": "Lia calls for the wagon to stop. Doyun moves before the horses, the reins cease moving, and Maren restores the wheel chock; the wagon does not depart.",
+"textIds": [
+"text-4"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-7-p-1"
+],
+"statement": "Maren covered the ledger, and Lia carried it out of the valley. Its spine brushed Lia's right wrist on the descent, making her fingers flinch; she tucked it under her left arm without slowing."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-7-p-2"
+],
+"statement": "Doyun looks below the mound. Rocks hide the bend the deer passed through, while wagon-wheel sounds rise from the outpost; Maren hears them too and quickens her pace."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-7-p-4",
+"ch-7-p-5"
+],
+"statement": "In the outpost yard, two horses are preparing to pull a wagon with supply sacks tied high beside it. Lia's earlier passage record lies open at the ledger stand. She wrote its visible clearance entry before entering the valley, with a lower assessment that monster traces were few."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-7-p-7"
+],
+"statement": "After the warning, Doyun moves in front of the horses. The hand holding the reins stops; the horses snort and stamp in place. Maren pushes the wooden chock back against the wheel."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic with expressive ink lines, adult cast, and coherent post-rain daylight.",
+"moments": [
+{
+"sourceIds": [
+"ch-7-p-1",
+"ch-7-p-2",
+"ch-7-p-3"
+],
+"action": "On the grassy descent by an old boardwalk's broken end, Lia carries the covered ledger under her left arm, right wrist sleeved; Doyun looks downhill toward rocks as gloved Maren speaks.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-4"
+],
+"action": "Lia sees two horses tugging before a sack-laden wagon; her earlier passage record lies open at the stand under the outpost eaves.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-7-p-4",
+"ch-7-p-5"
+],
+"action": "Lia studies the passage record at the stand, its clearance entry visible; the covered ledger remains under her left arm.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-6"
+],
+"action": "Lia shouts beside the wagon, the covered ledger under her left arm; a small marten sits nearby.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-7"
+],
+"action": "Doyun, his belt loop empty, stands before the stamping horses while gloved Maren fits the wooden chock against the wagon wheel.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": false,
+"identity": {
+"passed": false,
+"evidence": "No previous scene image; compared against the character references. Faces and clothing match (Lia sand jacket, Maren brick vest and gloves, Doyun green hooded coat and sword), but panel 1 hangs a coiled rope at Doyun's hip although his rope is lost and the direction requires an empty belt loop."
+},
+"setting": {
+"passed": true,
+"evidence": "Panel 1 is a grassy slope above a ravine; panels 2-5 use the outpost with the eaves, counter and fence from the reference."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "First scene of the episode: the descent (panel 1) leads to the yard where the wagon is about to leave (panel 2) and ends with the wagon held (panel 5)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "벌써 다음 수레를 붙였나 봅니다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail to Maren pointing downhill; exact text."
+},
+{
+"id": "text-2",
+"observedText": "통행 가능",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 ledger shows 통행 가능 in the remarks column and again as a red stamp."
+},
+{
+"id": "text-3",
+"observedText": "리야가 골짜기에 들어가기 전 남긴 한 줄이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 caption box; 리아가 is rendered as 리야가."
+},
+{
+"id": "text-4",
+"observedText": "수레 세워!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia, as the plan assigns."
+}
+],
+"evidence": "Five panels. Row 1 wide: Lia holding a ledger, Maren pointing and speaking, Doyun looking downhill with a coiled rope at his hip, an old plank end at the slope edge behind him. Row 2: a covered wagon with two horses and a hooded driver; Lia looking at the outpost counter where a man stands. Row 3: close-up of a printed ledger page with columns and a red stamp, Lia's face beside it. Row 4: Lia shouting with an outstretched hand, Bori on a rock, the wagon behind. Row 5: Doyun in front of the horses with a raised palm while Maren fits a chock under the wheel.",
+"observedPanelCount": 5
+}
+},
+{
+"id": "s2",
+"n": 2,
+"title": "내가 쓴 기록",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-7-p-8",
+"n": 8,
+"text": "장부대 주위로 모여 있던 사람들의 시선이 리아에게 쏠렸다. 묶어 놓은 짐은 당장이라도 떠날 모양새였다. 이 수레가 왜 멈췄는지, 대신 어디로 가야 하는지 누군가는 말해야 했다."
+},
+{
+"id": "ch-7-p-9",
+"n": 9,
+"text": "마렌이 수레의 짐을 한 번 훑고 리아 쪽을 보았다."
+},
+{
+"id": "ch-7-p-10",
+"n": 10,
+"text": "“굽이는 안 된다고 말할 수 있어요. 그럼 어디로 돌릴 건지는요?”"
+},
+{
+"id": "ch-7-p-11",
+"n": 11,
+"text": "리아는 대답하려다 장부의 글씨를 다시 보았다. 저 한 줄을 믿고 먼저 들어간 수레가 아직 골짜기에 기울어 있었다. 검 상자도, 꺼내지 못한 배송품도 그 안에 남았다."
+},
+{
+"id": "ch-7-p-12",
+"n": 12,
+"text": "“지금은 돌릴 길이 없어요.”"
+},
+{
+"id": "ch-7-p-13",
+"n": 13,
+"text": "“그럼 그 말부터 해야겠네요.”"
+},
+{
+"id": "ch-7-p-14",
+"n": 14,
+"text": "마렌은 받침목에서 발을 떼지 않았다. 도윤도 말고삐를 놓지 않은 채 리아를 기다렸다."
+},
+{
+"id": "ch-7-p-15",
+"n": 15,
+"text": "리아는 장부대 앞으로 가서 오래된 기록을 닫지 않고 그대로 옆으로 밀었다."
+},
+{
+"id": "ch-7-p-16",
+"n": 16,
+"text": "“도윤, 골짜기에서 적은 거 꺼내 줘. 내 기록이랑 같이 볼 수 있게.”"
+},
+{
+"id": "ch-7-p-17",
+"n": 17,
+"text": "도윤이 겉옷 안에서 접힌 종이를 꺼냈다. 새벽에 수레를 붙일 때 서명한 쪽지와, 골짜기 아래에서 발굽 자국을 보고 적은 확인 기록이었다. 그는 리아가 펼친 장부 옆에 그것들을 차례로 놓았다. 먼저 들어간 수레의 운행이 어디서 멈췄는지도 종이 끝에 적혀 있었다."
+},
+{
+"id": "ch-7-p-18",
+"n": 18,
+"text": "리아는 장부의 ‘흔적 적음’에 손가락을 얹었다."
+},
+{
+"id": "ch-7-p-19",
+"n": 19,
+"text": "“이건 내가 썼어요. 틀렸어요.”"
+}
+],
+"pFrom": 8,
+"pTo": 19,
+"panelCount": 6,
+"image": "img/ep07-s2.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸: 도윤의 서명 쪽지와 발자국 기록이 글 대신 풍경 스케치 지도 두 장으로 그려짐. 글자는 읽히지 않아 창작 문구는 없음.",
+"en": "Panel 5: Doyun's signed slip and hoofprint record are drawn as two sketched landscape maps rather than written notes; their tiny marks are illegible, so no invented text is readable."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4·6칸: 리아가 오른쪽 손으로 기대고 가리킴. 다친 오른 손목을 소매 안에 두는 설정과 어긋남.",
+"en": "Panels 4 and 6: Lia rests and points with the hand on her right side instead of keeping the injured right wrist in the sleeve and using the left."
+}
+],
+"textsTotal": 6,
+"textsOk": 6,
+"timings": {
+"planS": [
+41
+],
+"preflightS": [
+76
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1311,
+"plan": {
+"intent": "A stopped departure becomes a public reckoning. Pressed for an alternative route, Lia admits there is none for now, brings the available records together, and identifies her own mistaken assessment.",
+"staging": "Keep the scene in the outpost yard at the halted supply wagon and ledger stand, in the same post-rain daylight as the preceding scene. The chock is at the wagon wheel beneath Maren's foot; Doyun waits with the horses' reins before retrieving his papers. The stranded wagon is Lia's knowledge, not a confirmed view from the yard. Lia keeps her injured right wrist inside her sleeve and uses her left hand to move the record and point; Maren wears worn gloves. Doyun's belt loop is empty, with no rope or coil. Show two distinct papers beside the still-open ledger. The only legible writing on any document is text-5; leave notes, tags, and other ledger entries without additional readable lettering. Let the artist choose the composition and pace the exchange across six legible panels.",
+"uncertainties": [
+"The excerpt does not establish the exact position or visibility of the tilted wagon relative to the yard; do not depict a sightline to it as fact.",
+"The excerpt does not specify how Doyun handles the reins while placing the papers. Do not invent a tethering or release mechanism.",
+"The excerpt identifies what the two papers record but does not provide their wording, signatures, or the written location where the wagon stopped."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-7-p-10",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "굽이는 안 된다고 말할 수 있어요. 그럼 어디로 돌릴 건지는요?"
+},
+{
+"id": "text-2",
+"sourceId": "ch-7-p-12",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "지금은 돌릴 길이 없어요."
+},
+{
+"id": "text-3",
+"sourceId": "ch-7-p-13",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "그럼 그 말부터 해야겠네요."
+},
+{
+"id": "text-4",
+"sourceId": "ch-7-p-16",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "도윤, 골짜기에서 적은 거 꺼내 줘. 내 기록이랑 같이 볼 수 있게."
+},
+{
+"id": "text-5",
+"sourceId": "ch-7-p-18",
+"kind": "physical",
+"speaker": "narrator",
+"text": "흔적 적음"
+},
+{
+"id": "text-6",
+"sourceId": "ch-7-p-19",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "이건 내가 썼어요. 틀렸어요."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-7-p-8",
+"ch-7-p-9",
+"ch-7-p-10"
+],
+"action": "With the loaded wagon waiting and the gathered people looking to Lia, Maren asks where it should go if the bend cannot be used.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-7-p-11",
+"ch-7-p-12"
+],
+"action": "Lia starts to answer, sees her earlier entry again, and considers the stranded wagon and its cargo. She states that there is no detour available now.",
+"textIds": [
+"text-2"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-7-p-13",
+"ch-7-p-14"
+],
+"action": "Maren tells Lia to say that first. Neither Maren nor Doyun resumes the wagon's departure; both wait for Lia to address the people.",
+"textIds": [
+"text-3"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-7-p-15",
+"ch-7-p-16"
+],
+"action": "Lia moves the old record aside without closing it and asks Doyun to bring out what he recorded in the valley so it can be examined alongside her entry.",
+"textIds": [
+"text-4"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-7-p-17"
+],
+"action": "Doyun takes the folded papers from inside his coat and lays the signed note and hoofprint verification record down in sequence beside the open ledger.",
+"textIds": []
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-7-p-18",
+"ch-7-p-19"
+],
+"action": "Lia places a finger on her earlier assessment and tells everyone that she wrote it and that it was wrong.",
+"textIds": [
+"text-5",
+"text-6"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-7-p-8",
+"ch-7-p-9"
+],
+"statement": "People gathered around the ledger stand turn toward Lia. The wagon's cargo is tied for departure, and Maren looks from it to Lia."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-7-p-11"
+],
+"statement": "Lia knows that a wagon sent ahead on the strength of her earlier entry remains tilted in the valley, with a sword box and undelivered goods still aboard."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-7-p-14",
+"ch-7-p-15"
+],
+"statement": "Maren keeps her foot on the wheel chock, and Doyun keeps hold of the reins while they wait. Lia leaves the old record open and slides it aside at the ledger stand."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-7-p-17",
+"ch-7-p-18"
+],
+"statement": "Doyun produces a note signed when the wagon was attached at dawn and a verification record made after he examined hoofprints below the valley. The end of the latter records where the earlier wagon's journey stopped. Lia points to her own assessment in the ledger."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic with expressive inks and post-rain daylight; established adult character designs, Lia's sleeved right wrist, Maren's worn gloves, and Doyun's empty belt loop.",
+"moments": [
+{
+"sourceIds": [
+"ch-7-p-8",
+"ch-7-p-9",
+"ch-7-p-10"
+],
+"action": "People face Lia at the ledger stand as Maren questions her beside the waiting, loaded two-horse wagon. A small marten sits nearby.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-11",
+"ch-7-p-12"
+],
+"action": "Lia looks down at her open earlier record while answering the waiting crowd, her injured right wrist tucked inside her sleeve.",
+"textIds": [
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-13",
+"ch-7-p-14"
+],
+"action": "Maren keeps her foot on the wagon's wheel chock as she replies; Doyun waits by the horses, holding their reins.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-15",
+"ch-7-p-16"
+],
+"action": "At the ledger stand, Lia addresses Doyun with her left hand resting on the still-open old record, now shifted aside.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-17"
+],
+"action": "Doyun lays his second paper beside the first and Lia's open ledger, leaving all three documents distinct.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-7-p-18",
+"ch-7-p-19"
+],
+"action": "Lia touches her earlier assessment with her left fingertip; Doyun's two papers remain beside the open ledger as she admits her mistake to the gathered people.",
+"textIds": [
+"text-5",
+"text-6"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia keeps the chestnut bob and sand jacket, Maren the curly red hair, brick vest and gloves, Doyun the green hooded coat and sword, now without the rope s1 showed; Bori matches."
+},
+"setting": {
+"passed": true,
+"evidence": "Same outpost yard as s1: the covered wagon with two horses, the counter under the eaves with a lantern, mountains behind."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s1 ended with Doyun at the horses and Maren setting the chock; s2 opens with Maren's foot on the chock and Doyun holding the horses as she questions Lia."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "굽이는 안 된다고 말할 수 있어요. 그럼 어디로 돌릴 건지는요?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail to Maren; exact text."
+},
+{
+"id": "text-2",
+"observedText": "지금은 돌릴 길이 없어요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Lia over the ledger; exact text."
+},
+{
+"id": "text-3",
+"observedText": "그럼 그 말부터 해야겠네요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Maren; exact text."
+},
+{
+"id": "text-4",
+"observedText": "도윤, 골짜기에서 적은 거 꺼내 줘. 내 기록이랑 같이 볼 수 있게.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia at the stand; exact text."
+},
+{
+"id": "text-5",
+"observedText": "흔적 적음",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 label with a leader line to the ledger entry under Lia's finger; exact text."
+},
+{
+"id": "text-6",
+"observedText": "이건 내가 썼어요. 틀렸어요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail to Lia; exact text."
+}
+],
+"evidence": "Six panels. Row 1 wide: Doyun holding the horses, Maren with a foot on the chock speaking, Bori at her feet, Lia seen from behind at the ledger stand. Row 2: Lia looking down at the open ledger; Maren and Doyun waiting by the horses. Row 3 wide: Lia at the stand with her hand on the ledger, Bori on the bag, Doyun in the foreground. Row 4: Doyun's gloved hand laying two papers beside the ledger; Lia pointing at the entry while Maren and Doyun watch.",
+"observedPanelCount": 6
+}
+},
+{
+"id": "s3",
+"n": 3,
+"title": "확인한 것까지만",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-7-p-20",
+"n": 20,
+"text": "마렌이 장갑 끝을 쥐었다."
+},
+{
+"id": "ch-7-p-21",
+"n": 21,
+"text": "“사슴들이 내려온 뒤에 달라진 겁니까?”"
+},
+{
+"id": "ch-7-p-22",
+"n": 22,
+"text": "“아니요. 곡식 자루가 터지기 전부터 다니던 흔적이 있었어요. 내가 처음 봤을 때도 여러 마리분으로 보이는 자국이 있었고, 보리가 그쪽을 계속 경고했어요. 그런데 적게 지나간 것처럼 써서 수레를 보냈어요.”"
+},
+{
+"id": "ch-7-p-23",
+"n": 23,
+"text": "말해 놓고 나니 마당의 바퀴 소리가 유난히 크게 들렸다. 리아는 오른손을 장부 밑으로 넣었다가, 펜을 왼손으로 집었다."
+},
+{
+"id": "ch-7-p-24",
+"n": 24,
+"text": "“방금 골짜기에서도 확인했어요. 오래된 털과 흔적이 겹쳐 있었고, 발굽 자국이 굽이 안쪽까지 이어져요. 잠깐 먹이를 따라 내려온 게 아니에요.”"
+},
+{
+"id": "ch-7-p-25",
+"n": 25,
+"text": "도윤이 옆의 확인 기록을 가리켰다."
+},
+{
+"id": "ch-7-p-26",
+"n": 26,
+"text": "“우리가 직접 본 건 여기까지야. 사슴들이 다니는 굽이에 수레를 다시 넣지 않는다. 둔덕은 방향만 봤고, 사람이 지나갈 수 있는지는 못 봤어.”"
+},
+{
+"id": "ch-7-p-27",
+"n": 27,
+"text": "누군가 묶어 둔 자루 쪽을 돌아보았다. 마렌이 대신 물었다."
+},
+{
+"id": "ch-7-p-28",
+"n": 28,
+"text": "“둔덕으로 가면 굽이를 피할 수는 있는 거죠?”"
+},
+{
+"id": "ch-7-p-29",
+"n": 29,
+"text": "“흔적은 겹치지 않아.”"
+},
+{
+"id": "ch-7-p-30",
+"n": 30,
+"text": "리아가 고개를 들었다."
+},
+{
+"id": "ch-7-p-31",
+"n": 31,
+"text": "“하지만 건널 수 있다는 뜻은 아니에요.”"
+}
+],
+"pFrom": 20,
+"pTo": 31,
+"panelCount": 8,
+"image": "img/ep07-s3.webp",
+"blocking": 1,
+"advisory": 2,
+"findings": [
+{
+"severity": "blocking",
+"layer": "pipeline",
+"layerLabel": "파이프라인(참조·지시)",
+"ko": "4칸: 리아가 마당 장부 앞에 선 칸 배경에 풀 언덕 절벽과 부러진 판자길이 나옴. 발췌(p20-31)는 마당을 벗어나지 않고 둔덕은 방향으로만 언급됨. 회차 환경 참조 이미지가 새어 들어간 것으로 판단, s5부터 참조를 장면별로 한정.",
+"en": "Panel 4: the background shows a grassy cliff edge with a broken wooden boardwalk while Lia stands at the yard ledger. The excerpt (ch-7-p-20..31) stays in the yard and the mound is only a direction, so the image adds a place; the broken-boardwalk reference image supplied for this chapter drew it in."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3·4칸: 리아가 오른쪽 손으로 씀. 계획은 왼손 펜, 오른 손목은 소매 안(8칸은 올바름).",
+"en": "Panels 3-4: Lia writes with the hand on her right side; the plan keeps the pen in her left hand and the right wrist inside the sleeve (panel 8 has it correct)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 도윤의 확인 기록이 글 대신 스케치 지도로 그려짐. 표시는 읽히지 않음.",
+"en": "Panel 6: Doyun's verification record is drawn as a sketched map rather than written notes; the marks are illegible."
+}
+],
+"textsTotal": 12,
+"textsOk": 12,
+"timings": {
+"planS": [
+47,
+33,
+48,
+50
+],
+"preflightS": [
+57,
+80,
+82,
+80
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1253,
+"plan": {
+"intent": "Lia's admission turns a route discussion into an accounting of the risk she understated. The group can rule out another wagon trip through the deer-used bend, but must not mistake a possible detour for a passable route.",
+"staging": "Stay at the ledger and verification record in the yard, beside the waiting wagon and tied sacks, in coherent post-rain daylight. Keep the wagon's wheel noise audible without showing it departing. Maren wears worn gloves. Lia's injured right wrist remains inside her sleeve; she takes the pen with her left hand. Doyun has an empty belt loop and no rope. The records may be visible, but give them no legible writing beyond the supplied text. Keep the bend, valley, and rise in the conversation rather than visiting them or depicting an established route. Use eight generously legible panels; let the artist determine their composition and how the longer speeches flow across them.",
+"uncertainties": [
+"The source does not identify the person who looks toward the tied sacks; do not assign that glance to a named character as fact.",
+"The source does not identify which wheel makes the sound or establish that the waiting wagon moves.",
+"The line in ch-7-p-29 has no explicit speaker tag. Its informal reply between Maren's question and Lia's response supports attribution to Doyun.",
+"Non-overlapping traces do not establish that the rise is passable by a person or wagon. Its precise terrain and route remain unconfirmed."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-7-p-21",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“사슴들이 내려온 뒤에 달라진 겁니까?”"
+},
+{
+"id": "text-2",
+"sourceId": "ch-7-p-22",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“아니요. 곡식 자루가 터지기 전부터 다니던 흔적이 있었어요."
+},
+{
+"id": "text-3",
+"sourceId": "ch-7-p-22",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "내가 처음 봤을 때도 여러 마리분으로 보이는 자국이 있었고, 보리가 그쪽을 계속 경고했어요."
+},
+{
+"id": "text-4",
+"sourceId": "ch-7-p-22",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "그런데 적게 지나간 것처럼 써서 수레를 보냈어요.”"
+},
+{
+"id": "text-5",
+"sourceId": "ch-7-p-23",
+"kind": "caption",
+"speaker": "narrator",
+"text": "말해 놓고 나니 마당의 바퀴 소리가 유난히 크게 들렸다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-7-p-24",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“방금 골짜기에서도 확인했어요. 오래된 털과 흔적이 겹쳐 있었고, 발굽 자국이 굽이 안쪽까지 이어져요."
+},
+{
+"id": "text-7",
+"sourceId": "ch-7-p-24",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "잠깐 먹이를 따라 내려온 게 아니에요.”"
+},
+{
+"id": "text-8",
+"sourceId": "ch-7-p-26",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“우리가 직접 본 건 여기까지야. 사슴들이 다니는 굽이에 수레를 다시 넣지 않는다."
+},
+{
+"id": "text-9",
+"sourceId": "ch-7-p-26",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "둔덕은 방향만 봤고, 사람이 지나갈 수 있는지는 못 봤어.”"
+},
+{
+"id": "text-10",
+"sourceId": "ch-7-p-28",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“둔덕으로 가면 굽이를 피할 수는 있는 거죠?”"
+},
+{
+"id": "text-11",
+"sourceId": "ch-7-p-29",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“흔적은 겹치지 않아.”"
+},
+{
+"id": "text-12",
+"sourceId": "ch-7-p-31",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“하지만 건널 수 있다는 뜻은 아니에요.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-7-p-20",
+"ch-7-p-21"
+],
+"action": "Holding her glove, Maren asks whether the situation changed after the deer came down.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-7-p-22"
+],
+"action": "Lia answers with the earlier evidence, Bori's repeated warnings, and her own understated entry. Her admission connects that entry to the decision to send the wagon.",
+"textIds": [
+"text-2",
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-7-p-23",
+"ch-7-p-24"
+],
+"action": "The wheel noise presses into Lia's pause. She keeps her injured right wrist within its sleeve as her right hand goes beneath the ledger, takes the pen with her left, and gives the group's latest valley findings.",
+"textIds": [
+"text-5",
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-7-p-25",
+"ch-7-p-26"
+],
+"action": "Pointing to the adjacent verification record, Doyun separates the firm prohibition on wagons at the bend from the untested question of passage over the rise.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-7-p-27",
+"ch-7-p-28"
+],
+"action": "Someone's attention goes to the tied sacks. Maren voices the practical hope that the rise might let them avoid the bend.",
+"textIds": [
+"text-10"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-7-p-29",
+"ch-7-p-30",
+"ch-7-p-31"
+],
+"action": "Doyun offers only the narrower observation that the traces do not overlap. Lia looks up and refuses to let that observation become a claim that the rise can be crossed.",
+"textIds": [
+"text-11",
+"text-12"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-7-p-20",
+"ch-7-p-21",
+"ch-7-p-22"
+],
+"statement": "Maren grips the end of her worn glove and questions Lia. Lia says the tracks predated the burst grain sack; when she first saw them, they appeared to come from several animals, and Bori repeatedly warned toward that area. Lia wrote as though fewer had passed, and a wagon was sent."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-7-p-23",
+"ch-7-p-24"
+],
+"statement": "After speaking, Lia finds the yard's wheel noise unusually loud. She puts her right hand beneath the ledger, then takes up the pen with her left. She reports that old hair and tracks overlapped in the valley and hoofprints continued into the inside of the bend; she concludes the deer were not merely following food down briefly."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-7-p-25",
+"ch-7-p-26"
+],
+"statement": "Doyun points to the verification record beside the ledger. He limits his conclusion to what they directly observed: no wagon should re-enter the deer-used bend. They saw only the direction of the rise, not whether a person can pass through it."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-7-p-27",
+"ch-7-p-28",
+"ch-7-p-29",
+"ch-7-p-30",
+"ch-7-p-31"
+],
+"statement": "An unidentified person looks toward the tied sacks. Maren asks whether the rise avoids the bend. Doyun says the traces do not overlap; Lia raises her head and cautions that this does not establish a crossing."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink, adult cast and a cute small marten; same post-rain yard and established clothing.",
+"moments": [
+{
+"sourceIds": [
+"ch-7-p-20",
+"ch-7-p-21"
+],
+"action": "Maren grips the end of her worn glove beside the open ledger and questions Lia; the waiting wagon and tied sacks remain nearby.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-22"
+],
+"action": "A small marten rests nearby as Lia faces Maren across the ledger, recounting the earlier tracks and Bori's past warnings.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-22"
+],
+"action": "Lia's gaze drops to the open ledger as she admits her understated entry was followed by a wagon's dispatch.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-23",
+"ch-7-p-24"
+],
+"action": "Lia reports her valley findings, holding the pen in her left hand while her sleeved right hand rests beneath the ledger.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-24"
+],
+"action": "Lia continues speaking beside the open ledger, pen in her left hand; the tied sacks and waiting wagon remain in the yard.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-25",
+"ch-7-p-26"
+],
+"action": "Doyun, his belt loop empty, points to the verification record beside the ledger while addressing the wagon limit and the untested rise.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-27",
+"ch-7-p-28"
+],
+"action": "An unnamed bystander looks toward the tied sacks as Maren, her worn gloves visible, asks whether the rise avoids the bend.",
+"textIds": [
+"text-10"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-29",
+"ch-7-p-30",
+"ch-7-p-31"
+],
+"action": "Lia lifts her head to answer Doyun's narrow observation; her left hand holds the pen, and her right wrist stays inside its sleeve.",
+"textIds": [
+"text-11",
+"text-12"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia, Maren (worn gloves, brick vest), Doyun (green hooded coat, no rope) and Bori match s2."
+},
+"setting": {
+"passed": false,
+"evidence": "Most panels keep the s2 yard (ledger table, covered wagons, horses, stone wall), but panel 4 shows a grassy cliff edge with a broken wooden boardwalk behind Lia, a place this yard excerpt does not reach."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s2 ended with Lia pointing at her entry and admitting it was wrong; s3 opens with Maren's follow-up question at the same table."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "사슴들이 내려온 뒤에 달라진 겁니까?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-2",
+"observedText": "아니요. 곡식 자루가 터지기 전부터 다니던 흔적이 있었어요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "내가 처음 봤을 때도 여러 마리분으로 보이는 자국이 있었고, 보리가 그쪽을 계속 경고했어요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "그런데 적게 지나간 것처럼 써서 수레를 보냈어요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-5",
+"observedText": "말해 놓고 나니 마당의 바퀴 소리가 유난히 크게 들렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 caption box; exact text."
+},
+{
+"id": "text-6",
+"observedText": "방금 골짜기에서도 확인했어요. 오래된 털과 흔적이 겹쳐 있었고, 발굽 자국이 굽이 안쪽까지 이어져요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-7",
+"observedText": "잠깐 먹이를 따라 내려온 게 아니에요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-8",
+"observedText": "우리가 직접 본 건 여기까지야. 사슴들이 다니는 굽이에 수레를 다시 넣지 않는다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-9",
+"observedText": "둔덕은 방향만 봤고, 사람이 지나갈 수 있는지는 못 봤어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-10",
+"observedText": "둔덕으로 가면 굽이를 피할 수는 있는 거죠?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-11",
+"observedText": "흔적은 겹치지 않아.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 8 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-12",
+"observedText": "하지만 건널 수 있다는 뜻은 아니에요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 8 balloon with its tail to Lia; exact text without quotation marks."
+}
+],
+"evidence": "Eight panels. Row 1: Maren gripping her glove beside the open ledger with the wagon behind; Lia answering with Bori beside her. Row 2: Lia writing while admitting her entry; Lia reporting the valley findings under the caption, with a grassy cliff and a broken boardwalk in the background. Row 3: Lia with the pen and the tied sacks behind; Doyun pointing at a sketched record beside the ledger. Row 4: Maren with a gloved hand at her chin asking about the mound; Doyun in the foreground and Lia answering with Bori on the bag.",
+"observedPanelCount": 8
+}
+},
+{
+"id": "s4",
+"n": 4,
+"title": "짧은 선의 비밀",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-7-p-32",
+"n": 32,
+"text": "리아는 가방에서 얇은 가죽 조각과 접힌 지도를 꺼냈다. 가죽에는 비스듬한 긴 금과 그 옆의 짧은 선이 새겨져 있었다. 그녀는 지도에서 굽이를 짚고, 긴 금이 향하는 골짜기 안쪽에 발굽 자국을 그렸다. 짧은 선은 높은 둔덕 쪽에 따로 옮겼다. 두 선을 길처럼 이어 그리지 않았다."
+},
+{
+"id": "ch-7-p-33",
+"n": 33,
+"text": "“길목 바위에 이 표식이 있어요. 긴 홈 쪽으로 마수 흔적이 이어져요. 짧은 선은 그 흐름에서 비껴난 둔덕을 가리키고요.”"
+},
+{
+"id": "ch-7-p-34",
+"n": 34,
+"text": "도윤이 지도에서 눈을 떼지 않았다."
+},
+{
+"id": "ch-7-p-35",
+"n": 35,
+"text": "“표식을 어떻게 알아봤어?”"
+},
+{
+"id": "ch-7-p-36",
+"n": 36,
+"text": "리아의 손끝이 가죽 조각 가장자리에 걸렸다. 골짜기에서는 이름을 꺼내지 않은 채 돌아설 수 있었다. 여기서는 그 조각을 믿고 사람들이 방향을 정하게 될 터였다."
+},
+{
+"id": "ch-7-p-37",
+"n": 37,
+"text": "“새긴 사람이 내 어머니야. 옆에서 이 모양을 만드는 걸 봤어.”"
+},
+{
+"id": "ch-7-p-38",
+"n": 38,
+"text": "마렌이 리아를 바라보았다. 리아는 가죽 조각을 감추지 않았다."
+},
+{
+"id": "ch-7-p-39",
+"n": 39,
+"text": "“어머니가 남긴 표식을 찾고 있었어요. 둔덕 쪽으로 이어지면 다음 흔적도 있을 거라고 생각했어요. 그래서 처음 봤던 마수 자국을 제대로 적지 않았어요. 길을 서두른 건 나예요.”"
+},
+{
+"id": "ch-7-p-40",
+"n": 40,
+"text": "도윤이 쪽지 위에 올려 둔 손을 거두었다. 그는 잠시 리아를 보더니 지도 아래의 빈칸을 짚었다."
+},
+{
+"id": "ch-7-p-41",
+"n": 41,
+"text": "“그래서 이 칸은?”"
+},
+{
+"id": "ch-7-p-42",
+"n": 42,
+"text": "지도에는 ‘사람 통행 가능’이라고 적는 자리가 있었다. 리아는 펜촉을 그 위에 댔다가 옆으로 옮겼다."
+},
+{
+"id": "ch-7-p-43",
+"n": 43,
+"text": "“비워 둬. 발판도, 건너편에 길이 이어지는지도 확인하지 않았어.”"
+},
+{
+"id": "ch-7-p-44",
+"n": 44,
+"text": "말고삐를 잡고 있던 도윤의 어깨가 조금 내려갔다. 그렇다고 그는 고삐를 놓지는 않았다."
+}
+],
+"pFrom": 32,
+"pTo": 44,
+"panelCount": 8,
+"image": "img/ep07-s4.webp",
+"blocking": 1,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: '어머니가 남긴 표식을 찾고 있었어요.' 말풍선 꼬리가 마렌을 가리킴. 리아의 고백 첫 줄이 마렌 대사로 읽힘.",
+"en": "Panel 4: the tail of the balloon for text-5 (어머니가 남긴 표식을 찾고 있었어요.) points to Maren, so the start of Lia's confession about her mother's marks is attributed to Maren."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·7칸: 쓰는 손이 맨손에 어두운 소매. 리아의 손가락 장갑·모래색 윗옷과 달라 리아의 왼손인지 불분명.",
+"en": "Panels 1 and 7: the writing hand is bare with a dark sleeve, unlike Lia's fingerless gloves and sand jacket, so it is unclear that Lia is drawing with her left hand."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 말풍선 안 '길목' 앞에 쉼표 같은 잡표시.",
+"en": "Panel 1: a stray comma-like mark precedes 길목 inside the balloon."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "8칸: 도윤 손의 고삐가 둘둘 감겨 밧줄처럼 보임. 잃은 밧줄이 아니라 말 고삐.",
+"en": "Panel 8: the reins in Doyun's hand hang as a coil that reads like rope; it is the horse's lead, not the lost rope."
+}
+],
+"textsTotal": 10,
+"textsOk": 9,
+"timings": {
+"planS": [
+63
+],
+"preflightS": [
+98
+],
+"imageS": 47,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1321,
+"plan": {
+"intent": "Lia makes her evidence usable to the others by separating the beasts’ direction from a possible human route, then admits that her search for her mother distorted her earlier report. Doyun tests whether that honesty extends to leaving an unverified crossing unmarked.",
+"staging": "Remain with the group and their map in the same post-rain daytime yard as the preceding scene; do not visit or preview the rock, valley, rise, or far side. The leather’s two engraved marks and Lia’s two separate map annotations need to be distinguishable. Keep the passage field visibly empty, with no added writing on the map, note, or other props. Lia draws and handles the pen with her left hand while her injured right wrist stays inside her sleeve. Maren wears her worn gloves. Doyun has an empty belt loop and no rope; he holds the horse’s reins through the closing response. Keep the dialogue legible and let the artist choose the composition and distribution of the eight panels.",
+"uncertainties": [
+"Lia hoped the rise might lead to another trace of her mother; neither that connection nor a traversable route is established.",
+"The source does not establish whether the passage-field phrase is already printed on the map. The caption identifies its purpose without requiring an inscription in the empty field.",
+"Lia identifies her mother as the maker of the carved mark, but the excerpt does not separately establish whether her statement refers to engraving the leather piece or the mark on the roadside rock.",
+"Doyun’s lowered shoulders do not amount to an explicit decision to use or approve the rise."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-7-p-33",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“길목 바위에 이 표식이 있어요. 긴 홈 쪽으로 마수 흔적이 이어져요."
+},
+{
+"id": "text-2",
+"sourceId": "ch-7-p-33",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "짧은 선은 그 흐름에서 비껴난 둔덕을 가리키고요.”"
+},
+{
+"id": "text-3",
+"sourceId": "ch-7-p-35",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“표식을 어떻게 알아봤어?”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-7-p-37",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“새긴 사람이 내 어머니야. 옆에서 이 모양을 만드는 걸 봤어.”"
+},
+{
+"id": "text-5",
+"sourceId": "ch-7-p-39",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“어머니가 남긴 표식을 찾고 있었어요."
+},
+{
+"id": "text-6",
+"sourceId": "ch-7-p-39",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "둔덕 쪽으로 이어지면 다음 흔적도 있을 거라고 생각했어요."
+},
+{
+"id": "text-7",
+"sourceId": "ch-7-p-39",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "그래서 처음 봤던 마수 자국을 제대로 적지 않았어요. 길을 서두른 건 나예요.”"
+},
+{
+"id": "text-8",
+"sourceId": "ch-7-p-41",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“그래서 이 칸은?”"
+},
+{
+"id": "text-9",
+"sourceId": "ch-7-p-42",
+"kind": "caption",
+"speaker": "narrator",
+"text": "지도에는 ‘사람 통행 가능’이라고 적는 자리가 있었다."
+},
+{
+"id": "text-10",
+"sourceId": "ch-7-p-43",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“비워 둬. 발판도, 건너편에 길이 이어지는지도 확인하지 않았어.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-7-p-32",
+"ch-7-p-33"
+],
+"action": "Lia compares the leather with the map, draws the hoofprints and the separate rise mark with her left hand, and explains what each mark indicates. Their separation must remain clear rather than suggesting a continuous route.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-7-p-34",
+"ch-7-p-35",
+"ch-7-p-36",
+"ch-7-p-37"
+],
+"action": "Still studying the map, Doyun asks for the basis of Lia’s recognition. Her fingertip catches on the leather’s edge before she identifies her mother as the person who carved the mark and says she witnessed its making.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-7-p-38",
+"ch-7-p-39"
+],
+"action": "Maren turns her attention to Lia. Without concealing the leather, Lia names both her private hope of finding another trace and the inaccurate beast-track report and haste that followed from it.",
+"textIds": [
+"text-5",
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-7-p-40",
+"ch-7-p-41"
+],
+"action": "Doyun takes his hand off the note, gives Lia a brief look, then points out the remaining blank on the map and asks about it.",
+"textIds": [
+"text-8"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-7-p-42",
+"ch-7-p-43"
+],
+"action": "Lia brings the nib to the passage field but moves it away without filling it. She states the two checks they have not made: the footing and whether a route continues on the far side.",
+"textIds": [
+"text-9",
+"text-10"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-7-p-44"
+],
+"action": "Doyun’s shoulders ease slightly while his hold on the reins remains. End on that restrained response and the unfilled field, not on an approved crossing.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-7-p-32",
+"ch-7-p-33"
+],
+"statement": "Lia takes a thin piece of leather and a folded map from her bag. The leather bears one long diagonal groove and a separate short line. On the map she places hoofprints inside the valley bend in the long groove’s direction and transfers the short line separately toward a high rise. She does not join the marks into a road."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-7-p-33",
+"ch-7-p-34",
+"ch-7-p-35"
+],
+"statement": "Lia says the mark is on a rock at the approach, beast traces continue toward the long groove, and the short line points to a rise outside that flow. Doyun keeps his eyes on the map while asking how she recognized the mark."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-7-p-36",
+"ch-7-p-37",
+"ch-7-p-38",
+"ch-7-p-39"
+],
+"statement": "With her fingertip caught on the leather’s edge, Lia faces the consequence of others choosing a direction based on it. She says her mother carved the mark and that she watched its shape being made. Maren looks at her; Lia leaves the leather visible and admits that her search for another trace led her to record the first beast marks inaccurately and hurry the journey."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-7-p-40",
+"ch-7-p-41",
+"ch-7-p-42",
+"ch-7-p-43"
+],
+"statement": "Doyun removes his hand from the note, briefly looks at Lia, and points to an empty area below the map. It is the place for recording whether people can pass. Lia touches her pen nib to that place, moves it aside, and says to leave it blank because neither the footing nor a continuing route on the far side has been checked."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-7-p-44"
+],
+"statement": "Doyun’s shoulders lower a little, but he does not release the horse’s reins."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic with expressive ink, a consistent adult cast, a cute small marten, and coherent post-rain daylight in the yard.",
+"moments": [
+{
+"sourceIds": [
+"ch-7-p-32",
+"ch-7-p-33"
+],
+"action": "Lia's left-hand pen hovers over hoofprints inside the map's bend, aligned with the leather's long diagonal groove; its short line corresponds to a separate mark toward the rise.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-34",
+"ch-7-p-35",
+"ch-7-p-36"
+],
+"action": "Doyun studies the map as he questions Lia; her left fingertip catches the leather's edge, her injured right wrist tucked inside her sleeve.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-36",
+"ch-7-p-37"
+],
+"action": "Lia speaks with her left fingertip still hooked on the leather's edge, both engraved marks visible and her injured right wrist hidden by her sleeve.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-38",
+"ch-7-p-39"
+],
+"action": "Maren, wearing worn gloves, watches Lia. Lia keeps the marked leather in view while admitting her hope of finding another trace; a small marten sits nearby.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-39"
+],
+"action": "Lia faces Maren with the leather still plainly visible, owning her inaccurate beast-track report and her haste.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-40",
+"ch-7-p-41"
+],
+"action": "Doyun points to the map's empty lower field with one hand, holding the nearby horse's reins in the other; his released note rests alongside.",
+"textIds": [
+"text-8"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-42",
+"ch-7-p-43"
+],
+"action": "Lia holds her pen in her left hand just aside from the still-empty passage field; the separate map annotations remain unchanged.",
+"textIds": [
+"text-9",
+"text-10"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-43",
+"ch-7-p-44"
+],
+"action": "Doyun's shoulders ease slightly beside the horse; one hand keeps its reins, and his belt loop hangs empty while the nearby map's lower field remains blank.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia, Maren (gloves, brick vest), Doyun (green hooded coat) and Bori match s3."
+},
+"setting": {
+"passed": true,
+"evidence": "The yard table under the eaves with the horses and stone wall, as in s3; no mound or boardwalk appears this time."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s3 ended with Lia refusing to call the rise crossable; s4 opens with her explaining the marks on the map (p32)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "길목 바위에 이 표식이 있어요. 긴 홈 쪽으로 마수 흔적이 이어져요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon shared with text-2; words exact, but a stray comma-like mark precedes 길목."
+},
+{
+"id": "text-2",
+"observedText": "짧은 선은 그 흐름에서 비껴난 둔덕을 가리키고요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail to Lia, in the same balloon as text-1; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "표식을 어떻게 알아봤어?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "새긴 사람이 내 어머니야. 옆에서 이 모양을 만드는 걸 봤어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-5",
+"observedText": "어머니가 남긴 표식을 찾고 있었어요.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 4 upper balloon text is exact, but its tail points down-left to Maren, so Lia's admission reads as Maren speaking."
+},
+{
+"id": "text-6",
+"observedText": "둔덕 쪽으로 이어지면 다음 흔적도 있을 거라고 생각했어요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-7",
+"observedText": "그래서 처음 봤던 마수 자국을 제대로 적지 않았어요. 길을 서두른 건 나예요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-8",
+"observedText": "그래서 이 칸은?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail to Doyun; exact text without quotation marks."
+},
+{
+"id": "text-9",
+"observedText": "지도에는 ‘사람 통행 가능’이라고 적는 자리가 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 caption box; exact text."
+},
+{
+"id": "text-10",
+"observedText": "비워 둬. 발판도, 건너편에 길이 이어지는지도 확인하지 않았어.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 balloon with its tail to the speaker off the right edge beside the writing hand; exact text without quotation marks."
+}
+],
+"evidence": "Eight panels. Row 1: a bare hand with a pen over a hand-drawn map with a Y-shaped mark; Doyun asking Lia. Row 2: Lia at the map answering; Maren with gloved hands at her chin, Bori on the bag, Lia speaking. Row 3: Lia admitting her haste to Maren; Doyun beside a horse pointing at the map's lower field. Row 4: close-up of the map with a dashed empty box and the pen held aside; Doyun beside the horse holding coiled reins.",
+"observedPanelCount": 8
+}
+},
+{
+"id": "s5",
+"n": 5,
+"title": "지우지 않은 정정",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-7-p-45",
+"n": 45,
+"text": "리아는 오래된 기록 옆에 새 줄을 그었다. ‘마수 흔적 축소 기재. 굽이 운행 중단.’ 처음 쓴 글씨는 지우지 않았다. 그 아래 정정한 까닭과 골짜기에서 확인한 흔적을 적고 자기 이름을 남겼다. 펜을 누를 때마다 손목 안쪽이 저려 왔다. 마지막 획이 흐려져 리아는 펜을 고쳐 쥐고 덧그었다."
+},
+{
+"id": "ch-7-p-46",
+"n": 46,
+"text": "마렌이 장부를 읽었다."
+},
+{
+"id": "ch-7-p-47",
+"n": 47,
+"text": "“이렇게 적으면 먼저 보낸 수레도 리아 기록을 따라 들어간 걸로 남아요.”"
+},
+{
+"id": "ch-7-p-48",
+"n": 48,
+"text": "“그래야 해요.”"
+},
+{
+"id": "ch-7-p-49",
+"n": 49,
+"text": "리아는 펼쳐 둔 두 기록을 나란히 밀어 주었다. 먼저 쓴 것과 나중에 본 것을 누구든 비교할 수 있도록."
+},
+{
+"id": "ch-7-p-50",
+"n": 50,
+"text": "도윤이 고삐를 마렌에게 넘기고 장부대에 왔다. 그는 운행 중단 줄을 확인한 뒤, 마당을 향해 펼쳐 놓는 통행판에서 굽이의 ‘출발’ 패를 뺐다. 빈 자리에 붉은 ‘중단’ 패를 걸었다. 수레를 끌던 말은 마렌이 고삐를 느슨하게 해 주자 고개를 숙였다. 잠시 뒤 수레에 묶어 두었던 출발용 끈도 풀렸다."
+}
+],
+"pFrom": 45,
+"pTo": 50,
+"panelCount": 5,
+"image": "img/ep07-s5.webp",
+"blocking": 0,
+"advisory": 4,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·3·4·5칸: 장부 면과 두 패에 Y자 갈래 표식을 그림. 원문은 새긴 표식을 장부나 판에 두지 않음.",
+"en": "Panels 1, 3, 4 and 5: Y-shaped forked marks are drawn on the ledger pages and on both tokens; the source does not put the carved mark on the ledger or the board."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: '굽이'가 출발 패 옆 판의 표지가 아니라 캡션 상자로 들어감.",
+"en": "Panel 4: 굽이 appears as a caption box instead of a label on the board beside the departure token."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·3칸: 쓰는 손이 맨손에 어두운 소매, 3칸은 양손으로 장부를 듦. 왼손만 쓰는 설정이 드러나지 않음.",
+"en": "Panels 1 and 3: the writing hand is bare with a dark sleeve, and in panel 3 Lia holds the books with both hands, so the left-hand-only use is not shown."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2·3칸: 선반과 창문 때문에 장부대가 실내처럼 보임. 앞 장면은 마당 처마 밑.",
+"en": "Panels 2-3: shelves and a window make the ledger stand look indoors, while earlier scenes placed it under the eaves in the yard."
+}
+],
+"textsTotal": 7,
+"textsOk": 7,
+"timings": {
+"planS": [
+43
+],
+"preflightS": [
+109
+],
+"imageS": 47,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1183,
+"plan": {
+"intent": "Lia makes her earlier understatement traceable instead of erasing it. Maren recognizes what the correction means for a cart already sent, and Doyun turns the written halt into a visible stop to departures.",
+"staging": "Keep the ledger stand, the passage board facing the yard, and Maren's cart horse in one continuous post-rain daytime setting. The old entry remains present beside Lia's correction; the two records must remain distinguishable when she presents them. Show her writing with her left hand while her injured right wrist stays inside its sleeve. Maren wears worn gloves. Doyun has an empty belt loop and carries no rope; depict the reins he passes to Maren as reins connected to the horse, distinct from the cart's departure cord. Make Maren's dialogue unmistakably hers and Lia's reply unmistakably Lia's. Use only the specified Korean lettering on visible surfaces; the correction's fuller explanation can be present without legible invented wording.",
+"uncertainties": [
+"The source does not provide the exact wording of Lia's explanation or her notes about the valley traces; do not invent legible entries for them.",
+"The earlier cart is mentioned as already sent, but its location and fate are not shown here.",
+"The source does not identify who unties the cart's departure cord or specify how it is fastened."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-7-p-45",
+"kind": "physical",
+"speaker": "narrator",
+"text": "마수 흔적 축소 기재. 굽이 운행 중단."
+},
+{
+"id": "text-2",
+"sourceId": "ch-7-p-45",
+"kind": "physical",
+"speaker": "c1",
+"text": "리아"
+},
+{
+"id": "text-3",
+"sourceId": "ch-7-p-47",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“이렇게 적으면 먼저 보낸 수레도 리아 기록을 따라 들어간 걸로 남아요.”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-7-p-48",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“그래야 해요.”"
+},
+{
+"id": "text-5",
+"sourceId": "ch-7-p-50",
+"kind": "physical",
+"speaker": "narrator",
+"text": "굽이"
+},
+{
+"id": "text-6",
+"sourceId": "ch-7-p-50",
+"kind": "physical",
+"speaker": "narrator",
+"text": "출발"
+},
+{
+"id": "text-7",
+"sourceId": "ch-7-p-50",
+"kind": "physical",
+"speaker": "narrator",
+"text": "중단"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-7-p-45"
+],
+"action": "Lia leaves the original entry intact and writes the correction and its supporting account beside and below it. Her aching wrist interrupts the last stroke; she regrips the pen and finishes it rather than leaving a faint signature.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-7-p-46",
+"ch-7-p-47",
+"ch-7-p-48"
+],
+"action": "Maren reads the amended ledger and names its consequence for the cart already sent. Lia answers without withdrawing the correction.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-7-p-49"
+],
+"action": "Lia slides the two open records next to each other so the earlier account and the later findings can be compared.",
+"textIds": []
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-7-p-50"
+],
+"action": "Doyun transfers the horse's reins to Maren, comes to the ledger stand, and checks the halt entry before touching the passage board.",
+"textIds": []
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-7-p-50"
+],
+"action": "Doyun removes the bend's departure token and hangs the red halt token in its place, making the recorded decision visible to the yard.",
+"textIds": [
+"text-5",
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-7-p-50"
+],
+"action": "Maren gives the reins slack and the horse lowers its head. After a short interval, the cart's departure cord is untied; the scene ends with the cart no longer prepared to depart.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-7-p-45"
+],
+"statement": "Lia adds a line beside the old record without erasing it. Beneath the correction, she records her reason, the traces confirmed in the valley, and her name. Pain in her inner wrist makes the final stroke faint, so she adjusts her pen and retraces it."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-7-p-46",
+"ch-7-p-47",
+"ch-7-p-48",
+"ch-7-p-49"
+],
+"statement": "Maren reads the ledger and says the correction will show that the earlier cart entered on the basis of Lia's record. Lia accepts that consequence and places the earlier and later records side by side for comparison."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-7-p-50"
+],
+"statement": "Doyun hands the reins to Maren, checks the halt entry at the ledger stand, then replaces the bend's departure token with a red halt token on the passage board facing the yard. Maren slackens the reins and the cart horse lowers its head. A little later, the cart's departure cord is untied."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic with expressive ink lines, adult cast, a cute small marten, consistent prior-scene identities, and post-rain daylight.",
+"moments": [
+{
+"sourceIds": [
+"ch-7-p-45"
+],
+"action": "Lia retraces her faint final signature stroke with her left hand; the correction stands beside an indistinct original entry, with indistinct supporting notes below and her right wrist inside its sleeve.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-46",
+"ch-7-p-47"
+],
+"action": "Maren, wearing worn gloves, reads the amended ledger and tells Lia what the correction means for the cart already sent. Lia listens.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-48",
+"ch-7-p-49"
+],
+"action": "Lia answers as her left hand brings two open records side by side for comparison; the earlier and later accounts remain distinct, with the small marten nearby.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-50"
+],
+"action": "Doyun studies the halt entry at the ledger stand, his belt loop empty. Maren holds reins connected to the horse; the yard-facing board still displays the bend's departure token.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-50"
+],
+"action": "The red halt token occupies the departure token's place on the yard-facing board; Doyun stands beside it. Maren holds slack reins; the horse's head is lowered and the cart's departure cord hangs untied.",
+"textIds": [
+"text-7"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia, Maren (gloves, brick vest), Doyun (green coat, no rope) and Bori match s4."
+},
+"setting": {
+"passed": true,
+"evidence": "The ledger area, the stone wall with the passage board, the horse and the wagon in the yard continue from s4, though panels 2-3 read as an interior with shelves and a window."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s4 ended with the passage field left blank and Doyun holding the reins; s5 opens with Lia writing the correction (p45)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "마수 흔적 축소 기재. 굽이 운행 중단.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 caption box above the ledger; exact text."
+},
+{
+"id": "text-2",
+"observedText": "리아",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 handwritten on the ledger where the pen rests (and again in panel 3); exact text."
+},
+{
+"id": "text-3",
+"observedText": "이렇게 적으면 먼저 보낸 수레도 리아 기록을 따라 들어간 걸로 남아요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Maren; exact text, with quotation marks kept."
+},
+{
+"id": "text-4",
+"observedText": "그래야 해요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Lia; exact text, with quotation marks kept."
+},
+{
+"id": "text-5",
+"observedText": "굽이",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 caption box at the upper left rather than a label on the board; exact text."
+},
+{
+"id": "text-6",
+"observedText": "출발",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 wooden tag on the passage board under a round token; exact text."
+},
+{
+"id": "text-7",
+"observedText": "중단",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 wooden tag under the red token that replaced the departure token; exact text."
+}
+],
+"evidence": "Five full-width panels. 1: a hand with a pen finishing the name 리아 on a ledger page with illegible notes and Y-shaped marks, caption above. 2: Maren pointing at the ledger as she speaks, Lia listening. 3: Lia spreading two open books side by side, Bori on the bag. 4: Doyun at the ledger, Maren holding the horse, the board with a round token and a 출발 tag. 5: the board now shows a red token with a 중단 tag, Doyun beside it, Maren with slack reins and the horse's head lowered, a coiled cord hanging loose on the wagon.",
+"observedPanelCount": 5
+}
+},
+{
+"id": "s6",
+"n": 6,
+"title": "돌아올 자리까지",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-7-p-51",
+"n": 51,
+"text": "움직이지 않는 수레를 보자 리아의 속이 무거워졌다. 자루 안의 물자는 기다리는 곳까지 닿지 못한다. 그렇다고 굽이 대신 지도 속 짧은 선을 가리킬 수도 없었다."
+},
+{
+"id": "ch-7-p-52",
+"n": 52,
+"text": "“내가 둔덕을 보러 갈게.”"
+},
+{
+"id": "ch-7-p-53",
+"n": 53,
+"text": "리아가 말했다."
+},
+{
+"id": "ch-7-p-54",
+"n": 54,
+"text": "“입구부터—”"
+},
+{
+"id": "ch-7-p-55",
+"n": 55,
+"text": "“어디까지 볼 건데?”"
+},
+{
+"id": "ch-7-p-56",
+"n": 56,
+"text": "도윤이 물었다."
+},
+{
+"id": "ch-7-p-57",
+"n": 57,
+"text": "“건너편이 안 보이면 돌아올 거야?”"
+},
+{
+"id": "ch-7-p-58",
+"n": 58,
+"text": "리아는 입을 다물었다. 지금 당장 길을 찾았다고 말하고 싶은 마음이 또 먼저 튀어나왔다는 걸 알았다."
+},
+{
+"id": "ch-7-p-59",
+"n": 59,
+"text": "“입구만 보고 돌아올게. 건널 수 있는지는 같이 확인하자.”"
+},
+{
+"id": "ch-7-p-60",
+"n": 60,
+"text": "“나도 현장에서 보겠어. 발 디딜 자리하고 되돌아올 자리까지.”"
+},
+{
+"id": "ch-7-p-61",
+"n": 61,
+"text": "도윤은 뺀 ‘출발’ 패를 장부 위에 올려놓았다. 패가 다시 걸리려면 자신이 직접 확인한 통행로가 있어야 한다는 뜻이었다."
+}
+],
+"pFrom": 51,
+"pTo": 61,
+"panelCount": 6,
+"image": "img/ep07-s6.webp",
+"blocking": 3,
+"advisory": 1,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸 캡션: '리아의'를 '리야의'로 씀. s1과 같은 이름 오기 반복.",
+"en": "Panel 1 caption (text-1) renders 리아의 as 리야의, misspelling the protagonist's name again (same error as s1)."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: '내가 둔덕을 보러 갈게.' 말풍선 꼬리가 도윤을 가리킴. 리아의 제안이 도윤 대사로 읽힘.",
+"en": "Panel 2: the tail of 내가 둔덕을 보러 갈게. points to Doyun, so Lia's offer to inspect the mound reads as his."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 통행판에 '출발' 패가 그대로 걸려 있음. 원문과 s5에서는 출발 패를 떼고 붉은 정지 패를 걸었음.",
+"en": "Panel 6: the passage board still hangs the departure token with the 출발 tag while Doyun lays a token on the ledger; the source and s5 have the departure token removed and the red halt token hung."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·2칸: 리아가 양손으로 지도를 펼침. 오른 손목을 소매 안에 두지 않음.",
+"en": "Panels 1-2: Lia holds and spreads the map with both hands; the right wrist is not kept in the sleeve."
+}
+],
+"textsTotal": 11,
+"textsOk": 10,
+"timings": {
+"planS": [
+40
+],
+"preflightS": [
+47
+],
+"imageS": 144,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1188,
+"plan": {
+"intent": "A stopped delivery makes Lia want to find an answer quickly. Doyun’s questions turn her offer to scout into a limited plan with a return condition and a shared decision about passage.",
+"staging": "Keep the conversation beside the stopped, sack-laden cart and the ledger stand in the same post-rain daytime yard as the preceding scene. The departure token was already removed; Doyun now places it on the ledger. Keep his belt loop empty and give him no rope. Lia keeps her injured right wrist inside her sleeve and uses her left hand for the map if she handles it. Maren may remain by the cart in worn gloves, without being given dialogue or a new decision. Maintain clear speaker attribution and readable Korean lettering. Do not add legible writing to the map, ledger, board, or other surfaces beyond the specified text. Neither character reaches the rise or verifies a crossing in this scene.",
+"uncertainties": [
+"The excerpt does not establish what lies beyond the rise, whether the far side is visible from its entrance, or whether the route is passable.",
+"It does not specify the cart's exact position relative to the rise or a method for inspecting it.",
+"Doyun states what he intends to verify on site; no footing, return point, or approved passage has yet been confirmed."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-7-p-51",
+"kind": "caption",
+"speaker": "narrator",
+"text": "움직이지 않는 수레를 보자 리아의 속이 무거워졌다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-7-p-51",
+"kind": "caption",
+"speaker": "narrator",
+"text": "자루 안의 물자는 기다리는 곳까지 닿지 못한다. 그렇다고 굽이 대신 지도 속 짧은 선을 가리킬 수도 없었다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-7-p-52",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“내가 둔덕을 보러 갈게.”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-7-p-54",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“입구부터—”"
+},
+{
+"id": "text-5",
+"sourceId": "ch-7-p-55",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“어디까지 볼 건데?”"
+},
+{
+"id": "text-6",
+"sourceId": "ch-7-p-57",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“건너편이 안 보이면 돌아올 거야?”"
+},
+{
+"id": "text-7",
+"sourceId": "ch-7-p-58",
+"kind": "caption",
+"speaker": "narrator",
+"text": "지금 당장 길을 찾았다고 말하고 싶은 마음이 또 먼저 튀어나왔다는 걸 알았다."
+},
+{
+"id": "text-8",
+"sourceId": "ch-7-p-59",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“입구만 보고 돌아올게. 건널 수 있는지는 같이 확인하자.”"
+},
+{
+"id": "text-9",
+"sourceId": "ch-7-p-60",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“나도 현장에서 보겠어. 발 디딜 자리하고 되돌아올 자리까지.”"
+},
+{
+"id": "text-10",
+"sourceId": "ch-7-p-61",
+"kind": "physical",
+"speaker": "narrator",
+"text": "출발"
+},
+{
+"id": "text-11",
+"sourceId": "ch-7-p-61",
+"kind": "caption",
+"speaker": "narrator",
+"text": "패가 다시 걸리려면 자신이 직접 확인한 통행로가 있어야 한다는 뜻이었다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-7-p-51"
+],
+"action": "Lia looks from the motionless, laden cart to the map. The delivery matters, but the map's short line cannot answer what the ground will allow.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-7-p-52",
+"ch-7-p-53",
+"ch-7-p-54",
+"ch-7-p-55",
+"ch-7-p-56"
+],
+"action": "Lia volunteers to inspect the rise and begins to describe her approach. Doyun cuts in with a question about the limit of that inspection.",
+"textIds": [
+"text-3",
+"text-4",
+"text-5"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-7-p-57",
+"ch-7-p-58"
+],
+"action": "Doyun asks what Lia will do if the far side is not visible. She falls silent instead of offering the quick assurance she wanted to give.",
+"textIds": [
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-7-p-59",
+"ch-7-p-60"
+],
+"action": "Lia sets a narrower task: see only the entrance, return, and assess any crossing together. Doyun accepts a part in the field inspection, including footing and a place to turn back.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-7-p-61"
+],
+"action": "Doyun lays the previously removed departure token on the ledger. Departure remains withheld until he has personally verified a passage.",
+"textIds": [
+"text-10",
+"text-11"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-7-p-51"
+],
+"statement": "The cart remains stopped, so the supplies in its sacks cannot reach the people waiting for them. Lia cannot treat a short line on the map as proof of a usable route through the bend."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-7-p-52",
+"ch-7-p-54",
+"ch-7-p-55",
+"ch-7-p-57"
+],
+"statement": "Lia offers to inspect the rise, but Doyun interrupts her unfinished description to ask how far she will go and whether she will return if she cannot see the far side."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-7-p-58",
+"ch-7-p-59",
+"ch-7-p-60",
+"ch-7-p-61"
+],
+"statement": "Lia catches her impulse to claim a route too soon and limits her inspection to the entrance. Whether it can be crossed remains a joint decision. Doyun will inspect the footing and a place to return to himself; he puts the removed departure token on the ledger rather than restoring it."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic with expressive ink lines, adult characters, consistent prior designs, post-rain daylight, and readable Korean lettering.",
+"moments": [
+{
+"sourceIds": [
+"ch-7-p-51"
+],
+"action": "Lia studies an unlettered map beside the stopped, sack-laden cart. Her right wrist stays inside her sleeve; a small marten rests near the wheel.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-52",
+"ch-7-p-53",
+"ch-7-p-54",
+"ch-7-p-55",
+"ch-7-p-56"
+],
+"action": "Beside the cart, Lia faces Doyun with the map in her left hand. He interrupts her unfinished description with a question.",
+"textIds": [
+"text-3",
+"text-4",
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-57",
+"ch-7-p-58"
+],
+"action": "Doyun presses his question. Lia closes her mouth, her quick confidence giving way to hesitation.",
+"textIds": [
+"text-6",
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-59"
+],
+"action": "Lia answers Doyun with a restrained expression, keeping her injured right wrist inside her sleeve.",
+"textIds": [
+"text-8"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-60"
+],
+"action": "Doyun answers beside the ledger stand, his belt loop empty.",
+"textIds": [
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-61"
+],
+"action": "Doyun sets the removed departure token on the ledger, leaving it off the passage board.",
+"textIds": [
+"text-10",
+"text-11"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Lia, Doyun (no rope) and Bori match s5."
+},
+"setting": {
+"passed": true,
+"evidence": "The yard with the laden wagon, fence, stone building and the ledger table, as in s5."
+},
+"actionTransition": {
+"passed": false,
+"evidence": "s5 ended with the red 중단 token hung in the departure token's place. Panel 6 shows the passage board again with the round token and the 출발 tag hanging, as if the departure token were still up, while Doyun also sets a token on the ledger."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "움직이지 않는 수레를 보자 리야의 속이 무거워졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 caption box; 리아의 is rendered as 리야의."
+},
+{
+"id": "text-2",
+"observedText": "자루 안의 물자는 기다리는 곳까지 닿지 못한다. 그렇다고 굽이 대신 지도 속 짧은 선을 가리킬 수도 없었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 caption box; exact text."
+},
+{
+"id": "text-3",
+"observedText": "내가 둔덕을 보러 갈게.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 2 balloon text is exact, but its tail points right to Doyun instead of Lia."
+},
+{
+"id": "text-4",
+"observedText": "입구부터—",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Lia; exact text, quotation marks kept."
+},
+{
+"id": "text-5",
+"observedText": "어디까지 볼 건데?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Doyun; exact text, quotation marks kept."
+},
+{
+"id": "text-6",
+"observedText": "건너편이 안 보이면 돌아올 거야?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Doyun; exact text, quotation marks kept."
+},
+{
+"id": "text-7",
+"observedText": "지금 당장 길을 찾았다고 말하고 싶은 마음이 또 먼저 튀어나왔다는 걸 알았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 caption box; exact text."
+},
+{
+"id": "text-8",
+"observedText": "입구만 보고 돌아올게. 건널 수 있는지는 같이 확인하자.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia; exact text, quotation marks kept."
+},
+{
+"id": "text-9",
+"observedText": "나도 현장에서 보겠어. 발 디딜 자리하고 되돌아올 자리까지.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Doyun; exact text, quotation marks kept."
+},
+{
+"id": "text-10",
+"observedText": "출발",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 wooden tag 출발 still hanging on the passage board, next to the round token Doyun sets on the ledger."
+},
+{
+"id": "text-11",
+"observedText": "패가 다시 걸리려면 자신이 직접 확인한 통행로가 있어야 한다는 뜻이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 caption box; exact text."
+}
+],
+"evidence": "Six panels. Row 1 wide: Lia studying a map on a crate beside the laden wagon, Bori by the wheel, two captions. Row 2 wide: Lia with the map starting to speak, Doyun beside her asking. Row 3: Doyun pressing the question; Lia hesitating with the caption. Row 4 wide: Lia answering. Row 5: Doyun at the ledger answering; his gloved hand setting a round Y-marked token on the ledger, the passage board behind still showing a Y token and the 출발 tag.",
+"observedPanelCount": 6
+}
+},
+{
+"id": "s7",
+"n": 7,
+"title": "완료되지 않은 짐",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-7-p-62",
+"n": 62,
+"text": "마렌은 마당에 멈춘 수레보다 골짜기 쪽을 한 번 더 보았다."
+},
+{
+"id": "ch-7-p-63",
+"n": 63,
+"text": "“검 상자와 다른 배송품도 그 아래 남아 있어요. 약 상자는 먼저 인도했지만, 나머지를 인도한 셈으로 적을 수는 없습니다.”"
+},
+{
+"id": "ch-7-p-64",
+"n": 64,
+"text": "그녀는 차양 밑으로 짐 목록을 가져가 펼쳤다. 리아가 따라가려 하자 마렌은 빈자리를 손바닥으로 짚었다."
+},
+{
+"id": "ch-7-p-65",
+"n": 65,
+"text": "“여기서 확인할게요. 남은 짐이 뭔지, 어디까지 보냈는지. 수레를 새로 꾸릴 순서를 정하려면 그게 먼저예요. 골짜기 수레는 보수해서 들어갈 수 있을 때까지 건드리지 않고요.”"
+},
+{
+"id": "ch-7-p-66",
+"n": 66,
+"text": "리아는 고개를 끄덕였다. 마렌의 낡은 장갑이 목록에서 이미 인도한 약 상자를 지나, 회수하지 못한 짐들 앞에 멈췄다. 마렌은 검 상자 옆에도 완료 표시를 하지 않았다."
+},
+{
+"id": "ch-7-p-67",
+"n": 67,
+"text": "“마렌 씨, 저도 돌아와서 목록 볼게요.”"
+},
+{
+"id": "ch-7-p-68",
+"n": 68,
+"text": "“리아는 우선 발밑을 보고 와요. 목록은 안 도망갑니다.”"
+},
+{
+"id": "ch-7-p-69",
+"n": 69,
+"text": "그 말에 바구니 뒤에서 크림색 꼬리 끝이 움직였다. 마당에 들어올 때 사람들의 발치에서 빠져나간 보리가 거기 앉아 있었다. 리아가 손을 내밀자 보리는 선뜻 오지 않고, 마렌의 목록 위를 기웃거렸다."
+},
+{
+"id": "ch-7-p-70",
+"n": 70,
+"text": "“보리, 그건 먹는 거 아니야.”"
+},
+{
+"id": "ch-7-p-71",
+"n": 71,
+"text": "보리는 짧게 울고서야 리아의 가방으로 뛰어들었다. 마렌이 목록 가장자리에 찍힌 작은 흙자국을 손가락으로 털었다."
+}
+],
+"pFrom": 62,
+"pTo": 71,
+"panelCount": 7,
+"image": "img/ep07-s7.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 짐 목록에 두 표지 외에 읽을 수 없는 작은 낙서와 네모 그림. 읽히는 창작 글자는 없음.",
+"en": "Panel 3: the cargo list carries small illegible scribbles and box drawings beyond the two labels; nothing extra is readable."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 뻗는 손이 리아의 왼손인지 불분명하고 오른 손목이 소매 안에 있는지 보이지 않음.",
+"en": "Panel 6: the reaching hand is not clearly Lia's left, and her right wrist is not shown inside the sleeve."
+}
+],
+"textsTotal": 9,
+"textsOk": 9,
+"timings": {
+"planS": [
+60
+],
+"preflightS": [
+108
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.119,
+"plan": {
+"intent": "Maren refuses to count stranded cargo as delivered and turns the loss into a practical inventory task. Bori’s interruption gives the scene a brief, character-driven release without resolving the delivery problem.",
+"staging": "Keep the action in the same post-rain daytime yard: the stopped cart is in the yard, while the open cargo list is under a canopy and Bori first appears behind a basket. Maren looks toward the valley, but the scene does not travel there or establish a view of the goods below. Keep Maren’s worn gloves. Lia keeps her injured right wrist inside her sleeve and offers Bori her left hand. Bori is the established small, cream-furred marten with a dark brown tail tip; give Bori no spoken words or invented lettered call. On the list, show only the specified legible entry labels and the source-supported distinction between delivered and unmarked goods; add no other readable writing. If the passage board appears in the background, do not restore the previously removed departure token. Do not show Lia leaving the yard.",
+"uncertainties": [
+"The source does not establish the exact position or visible condition of the valley cart, the goods below, or what must be repaired before entry is possible.",
+"The source describes the glimpsed tail tip as cream-colored, while Bori’s registered appearance gives it a dark brown tip. Preserve Bori’s established identity and coloring rather than inventing another animal or a new marking.",
+"The source does not say that Maren knows Bori is behind the basket when she tells Lia to look underfoot, or that Bori caused the dirt mark on the list."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-7-p-63",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“검 상자와 다른 배송품도 그 아래 남아 있어요. 약 상자는 먼저 인도했지만, 나머지를 인도한 셈으로 적을 수는 없습니다.”"
+},
+{
+"id": "text-2",
+"sourceId": "ch-7-p-65",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“여기서 확인할게요. 남은 짐이 뭔지, 어디까지 보냈는지."
+},
+{
+"id": "text-3",
+"sourceId": "ch-7-p-65",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "수레를 새로 꾸릴 순서를 정하려면 그게 먼저예요."
+},
+{
+"id": "text-4",
+"sourceId": "ch-7-p-65",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "골짜기 수레는 보수해서 들어갈 수 있을 때까지 건드리지 않고요.”"
+},
+{
+"id": "text-5",
+"sourceId": "ch-7-p-66",
+"kind": "physical",
+"speaker": "narrator",
+"text": "약 상자"
+},
+{
+"id": "text-6",
+"sourceId": "ch-7-p-66",
+"kind": "physical",
+"speaker": "narrator",
+"text": "검 상자"
+},
+{
+"id": "text-7",
+"sourceId": "ch-7-p-67",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“마렌 씨, 저도 돌아와서 목록 볼게요.”"
+},
+{
+"id": "text-8",
+"sourceId": "ch-7-p-68",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "“리아는 우선 발밑을 보고 와요. 목록은 안 도망갑니다.”"
+},
+{
+"id": "text-9",
+"sourceId": "ch-7-p-70",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“보리, 그건 먹는 거 아니야.”"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-7-p-62",
+"ch-7-p-63"
+],
+"action": "Maren looks past the stopped yard cart toward the valley. She distinguishes the delivered medicine from the goods still below and refuses to record the remainder as delivered.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-7-p-64",
+"ch-7-p-65"
+],
+"action": "Maren carries the cargo list under the canopy and opens it. As Lia moves to follow, Maren places her palm on an empty spot for them to check it there. She sets the inventory and cart-preparation order, while deferring any action on the valley cart.",
+"textIds": [
+"text-2",
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-7-p-66"
+],
+"action": "Lia nods. Maren’s worn glove passes the already delivered medicine entry and stops at the unrecovered goods; she leaves the sword-box entry without a completion mark.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-7-p-67",
+"ch-7-p-68"
+],
+"action": "Lia offers to return to the list later. Maren tells her to attend to what is underfoot first, without abandoning the inventory work.",
+"textIds": [
+"text-7",
+"text-8"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-7-p-69",
+"ch-7-p-70"
+],
+"action": "A tail moves behind a basket, revealing Bori, who slipped away from people’s feet on entering the yard. Lia extends her left hand; Bori does not come immediately and instead peers over Maren’s list. Lia addresses Bori.",
+"textIds": [
+"text-9"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-7-p-71"
+],
+"action": "After a short call, Bori jumps into Lia’s bag. Maren brushes a small dirt mark from the edge of the list with a finger; the undelivered entries remain unresolved.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-7-p-62",
+"ch-7-p-63"
+],
+"statement": "A cart is stopped in the yard. Maren looks toward the valley and says the sword box and other delivery goods remain below; only the medicine box has been delivered."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-7-p-64",
+"ch-7-p-65",
+"ch-7-p-66"
+],
+"statement": "Maren opens the cargo list under the canopy so she and Lia can establish what remains and what has been sent before ordering a newly prepared cart. She leaves the valley cart untouched for now and does not mark the sword box complete."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-7-p-67",
+"ch-7-p-68",
+"ch-7-p-69",
+"ch-7-p-70",
+"ch-7-p-71"
+],
+"statement": "Lia offers to check the list when she returns. Maren directs her attention to the ground first; Bori emerges from behind a basket, investigates the list rather than immediately approaching Lia, then jumps into Lia’s bag."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic, expressive ink lines, adult cast, cute small marten, post-rain daylight, consistent character designs, only selected Korean lettering.",
+"moments": [
+{
+"sourceIds": [
+"ch-7-p-62",
+"ch-7-p-63"
+],
+"action": "Maren, wearing worn gloves, looks past the stopped cart in the damp yard toward the valley as she speaks.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-64",
+"ch-7-p-65"
+],
+"action": "Maren's worn gloved palm rests on an empty place beside the open cargo list beneath the canopy; Lia stands nearby, her injured right wrist inside her sleeve.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-65"
+],
+"action": "Maren faces Lia across the open cargo list beneath the canopy; Lia listens with her injured right wrist still inside her sleeve.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-66"
+],
+"action": "Lia nods as Maren's worn glove rests beside the unmarked sword-box entry; the medicine-box entry is marked complete.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-67",
+"ch-7-p-68"
+],
+"action": "Lia and Maren face each other beside the open list; Lia's injured right wrist stays inside her sleeve.",
+"textIds": [
+"text-7",
+"text-8"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-69",
+"ch-7-p-70"
+],
+"action": "Small cream marten Bori sits partly behind a basket near the canopy, peering toward Maren's list rather than Lia's outstretched left hand; Lia's injured right wrist stays sleeved.",
+"textIds": [
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-71"
+],
+"action": "Bori sits inside Lia's bag while Maren's finger brushes a small dirt mark from the edge of the open list.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Maren (worn gloves, brick vest), Lia (sand jacket) and Bori match s6."
+},
+"setting": {
+"passed": true,
+"evidence": "The yard with the laden wagon, fence and stone building, then the covered area with crates and a lantern, as in the earlier yard scenes."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s6 ended with Doyun setting the departure token aside; s7 turns to Maren looking past the stopped wagon (p62)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "검 상자와 다른 배송품도 그 아래 남아 있어요. 약 상자는 먼저 인도했지만, 나머지를 인도한 셈으로 적을 수는 없습니다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-2",
+"observedText": "여기서 확인할게요. 남은 짐이 뭔지, 어디까지 보냈는지.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "수레를 새로 꾸릴 순서를 정하려면 그게 먼저예요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "골짜기 수레는 보수해서 들어갈 수 있을 때까지 건드리지 않고요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-5",
+"observedText": "약 상자",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 row label on the cargo list with a check mark in the status column; exact text."
+},
+{
+"id": "text-6",
+"observedText": "검 상자",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 row label on the cargo list with only a dash in the status column; exact text."
+},
+{
+"id": "text-7",
+"observedText": "마렌 씨, 저도 돌아와서 목록 볼게요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Lia; exact text without quotation marks."
+},
+{
+"id": "text-8",
+"observedText": "리아는 우선 발밑을 보고 와요. 목록은 안 도망갑니다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Maren; exact text without quotation marks."
+},
+{
+"id": "text-9",
+"observedText": "보리, 그건 먹는 거 아니야.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail to Lia's outstretched hand at the right edge; exact text without quotation marks."
+}
+],
+"evidence": "Seven panels. Row 1 wide: Maren at the wagon looking toward the valley. Row 2: Maren with a gloved palm on the open list beside Lia; Maren facing Lia. Row 3 wide: Maren's glove on the cargo list with the medicine box checked and the sword box left with a dash, Lia watching. Row 4 wide: Lia and Maren exchanging lines. Row 5: Bori peeking from behind a basket as Lia's gloved hand reaches in; Bori in Lia's bag while Maren brushes dirt from the list.",
+"observedPanelCount": 7
+}
+},
+{
+"id": "s8",
+"n": 8,
+"title": "끊긴 발판 앞에서",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-7-p-72",
+"n": 72,
+"text": "둔덕 입구까지는 멀지 않았다. 리아는 앞서 걷다가도 지도에 그려 둔 짧은 선의 끝을 떠올렸다. 그 끝에 길이 있을 거라고 덧그렸다면, 마당의 수레는 지금쯤 이쪽으로 향하고 있었을 것이다."
+},
+{
+"id": "ch-7-p-73",
+"n": 73,
+"text": "도윤이 조금 뒤에서 걸었다. 리아가 가방끈을 왼손으로 고쳐 메자 그의 시선이 잠깐 내려왔다가 둔덕으로 돌아갔다. 리아는 오른손을 재킷 소매 속에 넣었다."
+},
+{
+"id": "ch-7-p-74",
+"n": 74,
+"text": "풀숲이 갈라지는 곳에서 땅이 갑자기 꺼졌다. 옛 발판으로 보이는 널빤지 끝이 흙 밖으로 나와 있었지만, 그다음 판은 없었다. 아래로 떨어진 나무 조각 몇 개가 덤불에 걸려 있었다. 맞은편 둔덕은 보였으나, 그 뒤로 발길이 이어지는지는 여기서 알 수 없었다."
+},
+{
+"id": "ch-7-p-75",
+"n": 75,
+"text": "리아는 널빤지에 발을 올리지 않고 멈췄다. 가방에서 고개를 내민 보리도 코를 내밀었다가 다시 들어갔다."
+},
+{
+"id": "ch-7-p-76",
+"n": 76,
+"text": "도윤이 그녀 옆에 서서 끊긴 자리와 맞은편을 번갈아 보았다."
+},
+{
+"id": "ch-7-p-77",
+"n": 77,
+"text": "“수레는커녕 사람도 바로 못 건너겠네.”"
+},
+{
+"id": "ch-7-p-78",
+"n": 78,
+"text": "“응. 여기서부터 확인해야 해.”"
+},
+{
+"id": "ch-7-p-79",
+"n": 79,
+"text": "거점 쪽에서는 멈춰 선 수레의 말이 울었다. 리아는 지도 속 빈칸을 떠올리며, 건너편 땅을 눈으로 더듬었다. 빠진 발판 너머에 무엇이 이어지는지는 아직 보이지 않았다."
+}
+],
+"pFrom": 72,
+"pTo": 79,
+"panelCount": 5,
+"image": "img/ep07-s8.webp",
+"blocking": 2,
+"advisory": 1,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸 캡션: '리아는'을 '리야는'으로 씀. 이 화에서 세 번째 이름 오기(s1·s6·s8).",
+"en": "Panel 1 caption (text-1) renders 리아는 as 리야는, the third misspelling of the protagonist's name in this chapter (s1, s6, s8)."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 도윤 허리에 둘둘 말린 밧줄. 잃은 줄이 되살아남.",
+"en": "Panel 1: a coiled rope hangs at Doyun's hip; his rope is lost and only an empty loop remains."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·4칸: 끈을 잡은 손이 리아의 오른손으로 보임. 계획은 오른 손목을 소매 안에 둠.",
+"en": "Panels 1 and 4: Lia's hand on the strap looks like her right hand; the plan keeps the right wrist in the sleeve."
+}
+],
+"textsTotal": 5,
+"textsOk": 5,
+"timings": {
+"planS": [
+38
+],
+"preflightS": [
+49
+],
+"imageS": 49,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1312,
+"plan": {
+"intent": "Turn Lia’s unverified line on the map into a visible reason for caution: the cart might have been sent toward a crossing that is broken. End with the route still unconfirmed, not with an attempted crossing.",
+"staging": "Keep the scene on the post-rain daytime approach to the mound entrance. The broken foothold is at Lia and Doyun’s side of the drop; fallen fragments are in brush below, and the opposite mound is visible. Neither person crosses or steps on the protruding board. Lia’s injured right wrist remains inside her sleeve; her left hand handles the bag strap. Bori stays in her bag. Doyun has an empty belt loop and no rope. Keep the cart and horse offsite, indicated only by the sourced call. Letter only the specified Korean text; add no readable writing to a map or other prop.",
+"uncertainties": [
+"The width and depth of the drop, and the condition of any support beneath the protruding board, are not established. Do not show the terrain actively collapsing.",
+"The opposite mound is visible, but whether a route continues behind it cannot be determined from here.",
+"Lia imagines what might have happened had she marked the line as a road; the cart has not been sent toward this crossing in the scene."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-7-p-72",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아는 앞서 걷다가도 지도에 그려 둔 짧은 선의 끝을 떠올렸다. 그 끝에 길이 있을 거라고 덧그렸다면, 마당의 수레는 지금쯤 이쪽으로 향하고 있었을 것이다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-7-p-77",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "“수레는커녕 사람도 바로 못 건너겠네.”"
+},
+{
+"id": "text-3",
+"sourceId": "ch-7-p-78",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "“응. 여기서부터 확인해야 해.”"
+},
+{
+"id": "text-4",
+"sourceId": "ch-7-p-79",
+"kind": "caption",
+"speaker": "narrator",
+"text": "거점 쪽에서는 멈춰 선 수레의 말이 울었다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-7-p-79",
+"kind": "caption",
+"speaker": "narrator",
+"text": "빠진 발판 너머에 무엇이 이어지는지는 아직 보이지 않았다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-7-p-72",
+"ch-7-p-73"
+],
+"action": "As Lia leads the short approach, she recalls the map line and the consequence of having drawn an unverified road beyond it. She adjusts her bag with her left hand. Doyun briefly notices the movement before looking back toward the mound.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-7-p-74",
+"ch-7-p-75"
+],
+"action": "The parted grass reveals the abrupt drop and incomplete former foothold. Lia halts before the protruding board. Bori tests the air from her bag and retreats.",
+"textIds": []
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-7-p-76",
+"ch-7-p-77",
+"ch-7-p-78"
+],
+"action": "Doyun comes alongside Lia and checks the broken crossing against the opposite mound. He states the immediate obstruction; Lia answers by committing to examine the route from this point, without stepping onto the board.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-7-p-79"
+],
+"action": "A horse calls from back toward the base. Lia searches the ground beyond the missing foothold with her eyes, but the view yields no confirmation of a continuing path.",
+"textIds": [
+"text-4",
+"text-5"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-7-p-72",
+"ch-7-p-73"
+],
+"statement": "Lia walks ahead toward the nearby mound entrance, thinking of the short line she drew on her map. Doyun follows. She adjusts her bag strap with her left hand and keeps her right hand inside her jacket sleeve."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-7-p-74",
+"ch-7-p-75"
+],
+"statement": "Where the grass parts, the ground drops away. One apparent former foothold protrudes from the soil, the next board is missing, and fallen wood fragments are caught in brush below. Lia stops without stepping onto the board; Bori briefly extends its nose from her bag, then withdraws."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-7-p-76",
+"ch-7-p-77",
+"ch-7-p-78",
+"ch-7-p-79"
+],
+"statement": "Doyun joins Lia and compares the broken crossing with the visible opposite mound. He says neither a cart nor a person can cross directly; Lia says they must begin checking here. A horse calls from the direction of the stopped cart at the base while Lia studies the far side."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic; expressive ink lines, adult characters, cute cream-furred marten, coherent daylight on wet post-rain terrain.",
+"moments": [
+{
+"sourceIds": [
+"ch-7-p-72",
+"ch-7-p-73"
+],
+"action": "Lia leads through wet grass, adjusting her bag strap with her left hand; her right wrist remains inside her jacket sleeve. Doyun follows just behind, watching her hand.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-74",
+"ch-7-p-75"
+],
+"action": "Lia stands on grass before a plank jutting from the near bank; the next foothold is missing, with fragments caught in brush below. Bori's nose peeks from her bag; the opposite mound is visible.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-7-p-76",
+"ch-7-p-77"
+],
+"action": "Doyun speaks beside Lia on the grassy near bank, his belt loop empty, facing the broken foothold and the visible opposite mound.",
+"textIds": [
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-78"
+],
+"action": "Lia answers Doyun beside the gap, her left hand on her bag strap and her right wrist tucked inside its sleeve. Her feet remain on the grass.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-7-p-79"
+],
+"action": "Lia gazes across the gap toward the opposite mound; no continuing route is visible beyond the missing foothold. Bori rests inside her bag.",
+"textIds": [
+"text-4",
+"text-5"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": false,
+"evidence": "Lia, Bori and Doyun's face and coat match s7, but panel 1 hangs a coiled rope at Doyun's hip, which the lost-rope fact rules out."
+},
+"setting": {
+"passed": true,
+"evidence": "The grassy mound path and the broken boardwalk over the ravine match the boardwalk reference; this is the scene that reaches it."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s7 ended with Bori in Lia's bag at the yard; s8 follows Lia and Doyun on the short walk to the mound entrance (p72)."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "리야는 앞서 걷다가도 지도에 그려 둔 짧은 선의 끝을 떠올렸다. 그 끝에 길이 있을 거라고 덧그렸다면, 마당의 수레는 지금쯤 이쪽으로 향하고 있었을 것이다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 caption box; 리아는 is rendered as 리야는, the rest exact."
+},
+{
+"id": "text-2",
+"observedText": "수레는커녕 사람도 바로 못 건너겠네.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Doyun; exact text, quotation marks kept."
+},
+{
+"id": "text-3",
+"observedText": "응. 여기서부터 확인해야 해.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Lia; exact text, quotation marks kept."
+},
+{
+"id": "text-4",
+"observedText": "거점 쪽에서는 멈춰 선 수레의 말이 울었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 caption box; exact text."
+},
+{
+"id": "text-5",
+"observedText": "빠진 발판 너머에 무엇이 이어지는지는 아직 보이지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 caption box; exact text."
+}
+],
+"evidence": "Five full-width panels. 1: Lia adjusting her bag strap as Doyun follows with a coiled rope at his hip, caption at left. 2: Lia from behind with Bori in the bag, stopped before a broken boardwalk jutting over the ravine. 3: Doyun speaking beside Lia. 4: Lia answering, Bori in the bag. 5: Lia from behind looking across the gap at the opposite mound, two captions.",
+"observedPanelCount": 5
+}
+}
+]
 }
 ],
 "runs": [
 "scene-20260921",
 "scene-20260922",
+"scene-20260923-gpt6",
 "scene-20260923-opus"
 ]
 }
