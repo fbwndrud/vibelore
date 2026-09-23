@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>판결 LIVE · 작품 읽기</title>
+<meta name="description" content="조회수에 미친 렉카 백판사가 동생을 피고석에 앉힌 생방송. Claude Opus 5.5가 설계·집필·각색한 소설과 장면 웹툰 1~3화. 첫 결과와 검토 판정을 가감 없이 공개합니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="verdict.css?v=2">
+</head>
+<body data-page="read" class="reader-page">
+<header class="topbar">
+  <a class="brand" href="./">판결 LIVE</a>
+  <div class="grow eptabs" id="eptabs"></div>
+  <div class="seg" role="group" aria-label="보기 방식">
+    <button data-mode="webtoon">웹툰</button>
+    <button data-mode="both">나란히</button>
+    <button data-mode="novel">소설</button>
+  </div>
+  <button class="metatog" id="meta-toggle" type="button" aria-pressed="false" title="검토 판정·모델·프롬프트 표시">제작 정보</button>
+</header>
+
+<section class="ephead">
+  <div class="lead">
+    <div class="kicker" id="kicker">EPISODE</div>
+    <h1 id="eptitle">…</h1>
+    <p id="eplead"></p>
+  </div>
+  <div class="chips">
+    <div class="chip"><span>소설</span><span id="chip-novel"></span></div>
+    <div class="chip"><span>웹툰 각색·연출</span><span id="chip-adapt"></span></div>
+    <div class="chip"><span>이미지</span><span id="chip-image"></span></div>
+    <div class="chip"><span>그림 검토</span><span id="chip-review"></span></div>
+  </div>
+</section>
+
+<main class="reader mode-both" id="reader">
+  <nav class="rail" id="rail" aria-label="장면"></nav>
+  <div class="toon-col" id="toon"></div>
+  <aside class="prose-col">
+    <div class="prose-tools">
+      <span id="prose-label">소설 원문</span>
+      <span class="sizes">글자 크기 <button data-size="s">가</button><button data-size="m">가</button><button data-size="l">가</button></span>
+    </div>
+    <div class="prose" id="prose"></div>
+  </aside>
+</main>
+
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="sh"><span id="sheet-label">원문 보기</span><button id="sheet-toggle">위로 펼치기</button></div>
+  <div class="body" id="sheet-body"></div>
+  <div class="mtools"><button data-mode="webtoon">웹툰</button><button data-mode="novel">소설</button><button class="metatog" id="meta-toggle-m" type="button" aria-pressed="false">제작 정보</button></div>
+</div>
+
+<dialog class="modal" id="modal">
+  <div class="modal-head"><b id="modal-title"></b><button id="modal-close">닫기</button></div>
+  <div class="modal-body" id="modal-body"></div>
+</dialog>
+
+<footer class="site">
+  소설 설계·집필·웹툰 각색·연출은 모두 Claude Opus 5.5(claude-opus-5-5)가, 이미지는 OpenAI 이미지 모델(gpt-image-2.5-sunburst)이 만들었습니다. 작품 속 인물·채널·플랫폼·사건은 모두 허구입니다.<br>
+  이미지 검토는 같은 모델(오케스트레이션 호스트)의 자기검토이며 독립 평가가 아닙니다. 판정이 “수정 필요”여도 재생성 없이 첫 결과를 그대로 실었습니다.<br>
+  빌드 <span id="built"></span> · 데이터 <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
+</footer>
+<script src="site.js?v=1"></script>
+<script src="app.js?v=7"></script>
+</body>
+</html>

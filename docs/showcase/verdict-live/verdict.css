@@ -1,0 +1,40 @@
+/* 판결 LIVE — 다크 스릴러 팔레트. style.css 토큰만 덮어쓴다. */
+:root{
+  --paper:#0D1017;--card:#151A23;--ink:#E9EDF3;--moss:#FF4D6A;--gold:#F3C44B;
+  --line:#262E3B;--line2:#202734;--muted:#8B95A7;--sub:#B7BFCC;--band:#1B212C;--chip:#3A4455;
+  --warnbg:#3A2C12;--warn:#F3C44B;--okbg:#12301F;--ok:#6FD79A;--redbg:#3A1720;--red:#FF8A9E;
+}
+body{background:var(--paper);color:var(--ink)}
+a:hover{color:var(--gold)}
+.hcard.primary{background:linear-gradient(135deg,#FF4D6A,#B3203F);border-color:#FF4D6A;color:#fff}
+.hcard.primary:hover{color:#fff}
+.hcard.primary .hd{color:#FFE3E8}
+.hcard.primary .go{color:#fff}
+.hub-hero h1{font-family:var(--sans);font-weight:700;letter-spacing:-.03em}
+.hub-hero h1 .live{display:inline-block;margin-left:10px;padding:2px 12px;border-radius:8px;background:#FF4D6A;color:#fff;font-size:.5em;vertical-align:middle;letter-spacing:.06em}
+.hub-cover{box-shadow:0 16px 48px rgba(255,77,106,.18)}
+.eptab.active{background:var(--moss);border-color:var(--moss);color:#fff}
+.eptab.active small{color:#fff}
+.seg button.active{color:#fff}
+.topbar .brand{font-family:var(--sans)}
+img{background:#0B0E14}
+/* style.css가 --ink를 배경으로 쓰는 곳(사이트 메뉴·모바일 리더)을 다크 팔레트에 맞게 되돌린다 */
+.snav{background:#07090D;color:var(--ink);border-bottom:1px solid var(--line)}
+.snav a{color:var(--muted)}
+.snav a:hover,.snav-home{color:var(--ink)!important}
+.snav-links a.on{background:var(--moss);color:#fff}
+.metatog[aria-pressed="true"]{background:var(--moss);color:#fff;border-color:var(--moss)}
+.rail a.current{color:#111}
+.fl.a,.pill.mut{background:#2A3140;color:var(--sub)}
+.scene img{background:#0B0E14}
+@media (max-width:960px){
+  body{background:var(--paper);color:var(--ink)}
+  .topbar{background:var(--card);color:var(--ink);border-bottom:1px solid var(--line)}
+  .topbar .brand,.ephead h1,.scene-title b{color:var(--ink)}
+  .ephead p,.scene-head,.scene-title span,.chip span:first-child{color:var(--muted)}
+  .eptab{color:var(--ink);border-color:var(--chip)}
+  .eptab.active{background:var(--moss);color:#fff;border-color:var(--moss)}
+  .chip{background:var(--card);border-color:var(--line);color:var(--ink)}
+  .scene-actions button,.scene-actions a{color:var(--ink);border-color:var(--chip)}
+  .findings{background:var(--card);color:var(--ink)}
+}

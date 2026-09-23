@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>판결 LIVE · 제작 노트</title>
+<meta name="description" content="판결 LIVE 소설·웹툰 1~3화 제작 노트: 기준 이미지, 회차별 검토 결과, 결함 유형, 비용, 연출 지시 변경, 한계.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="verdict.css?v=2">
+<link rel="stylesheet" href="notes.css?v=1">
+</head>
+<body data-page="notes">
+<main class="notes">
+  <header class="nhead">
+    <div class="kicker">PRODUCTION NOTES</div>
+    <h1>제작 노트</h1>
+    <p>어떻게 만들었고, 무엇이 틀렸는지. 수치는 CLI·API 실행 기록에서 읽은 값입니다. 검토 판정은 제작에 쓴 모델의 자기검토이며 독립 평가가 아닙니다.</p>
+  </header>
+
+  <section>
+    <h2>만든 순서</h2>
+    <ol class="steps">
+      <li><b>작품 설계.</b> 사용자가 후보 다섯 중 고른 설정(렉카 주인공, 1화 동생 해명 방송, 99% 정지, 동생의 합성 알바 과거)을 인터뷰로 확정하고, 독서 계약·세계·인물·이야기 뼈대(StorySpine)를 만들었습니다.</li>
+      <li><b>소설 1~3화.</b> 5화 아크를 세운 뒤 <code>lore_write</code> 자동 모드로 화별 계획 → 초고 → 결정론 검사 → 비평 → 필요한 최소 수정 → 커밋을 돌렸습니다.</li>
+      <li><b>웹툰 인터뷰.</b> 작화(모던 스릴러 컬러)·문자(standard)·판면(세로 스크롤)·경로(장면 통합, 칸 수 auto)는 사용자가 골랐고, 나머지는 사용자 위임(“웹툰 나머지 알아서”)으로 권장안을 적용했습니다. “현대적이고 세련된 연출”은 사용자 요청으로 추가했습니다.</li>
+      <li><b>기준 이미지.</b> 인물 셋과 장소 셋의 기준 이미지를 같은 이미지 모델로 먼저 만들고, 모든 장면에 참조로 붙였습니다.</li>
+      <li><b>장면 웹툰.</b> 화마다 원문을 8장면으로 나누고, 장면마다 각색(사실·비트·대사 선택) → 사전 검증(그릴 수 있는지, 원문과 맞는지) → 이미지 API 한 번(칸 수는 각색이 3~12 중 결정) → 실제 이미지 검토 순으로 진행했습니다. 앞 장면의 완성 이미지를 다음 장면의 참조로 넘깁니다.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>기준 이미지</h2>
+    <p class="sub">장면 생성 때 이미지 모델에 함께 보낸 참조입니다. 편의점 로고처럼 실존 상표가 섞인 부분은 따라 그리지 말라는 설명을 붙였습니다.</p>
+    <div class="refs" id="refs"></div>
+  </section>
+
+  <section>
+    <h2>회차별 결과</h2>
+    <div class="tbl" id="eps"></div>
+  </section>
+
+  <section>
+    <h2>반복된 결함</h2>
+    <ul class="defects">
+      <li><b>없는 글자 창작.</b> 1화 3장면에서 방송명이 원작의 ‘판결 LIVE’ 대신 영어 ‘JUSTICE LIVE’로 그려졌고, 앞 장면 이미지를 다음 장면의 참조로 넘기면서 1화 끝까지 번졌습니다(2화는 ‘NIGHT COURT’). 원작과 다른 고소 내용, 썸네일 문구, 메뉴 이름 창작도 반복됐습니다.</li>
+      <li><b>한 글자·문장부호 변형.</b> 컸다→켰다, 윈윈→원원, 블러→불러, 붙어요→불어요, 들리지→들리치. 원문 대사의 따옴표가 빠지거나 마침표가 쉼표로 바뀐 경우가 많습니다. 검토 기준이 원문과 글자 단위 일치라 이런 차이도 ‘수정 필요’가 됩니다.</li>
+      <li><b>말풍선 이름표.</b> 1화 첫 장면은 영어 이름표(Jaeyun:), 3화 마지막 장면은 한글 이름표(채리, 재윤)가 붙었습니다.</li>
+      <li><b>참조 인물 복제.</b> 3화 첫 장면에서 이름 없는 스트리머들이 서아·채리의 옷차림을 그대로 가져왔습니다.</li>
+      <li><b>잘된 점.</b> 스릴러 톤, 방송 UI 연출, 세 인물의 식별은 24장면 내내 안정적이었습니다. 1화 6장면(99% 정지)과 3화 3장면(비어 있는 302호)이 대표적입니다.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>제작 중 바꾼 연출 지시</h2>
+    <p class="sub">결함을 본 뒤 이후 장면의 연출 지시(direction)에 규칙을 더했습니다. 다만 서버가 이미지 모델에 보내는 프롬프트에는 이 지시가 그대로 들어가지 않고, 사전 검증 단계가 요약한 30단어 이내 스타일 문장과 칸별 순간 설명만 들어갑니다. 그래서 규칙의 효과는 간접적이었습니다.</p>
+    <div class="log" id="log"></div>
+  </section>
+
+  <section>
+    <h2>비용</h2>
+    <div class="tbl" id="cost"></div>
+    <p class="sub" id="cost-note"></p>
+  </section>
+
+  <section>
+    <h2>밝혀 둘 한계</h2>
+    <ul class="defects">
+      <li>작품 설계 인터뷰 답, 작품 생성 입력, 첫 이야기 뼈대는 대화 세션의 모델(Opus 5.5)이 직접 작성했습니다. 뼈대 품질 심사는 새 CLI 프로세스가 했습니다(82점 통과). 당시 서버의 심사 프롬프트에 0~100 척도가 빠져 있어 하네스가 척도 한 줄을 보충했습니다.</li>
+      <li>모든 모델 호출은 도구 없는 새 CLI 프로세스로 실행했고 프롬프트 캐시는 끈 상태(DISABLE_PROMPT_CACHING=1)였습니다.</li>
+      <li>이미지 모델 선택을 확정하려면 서버가 컷 단위 각색 계획 승인을 요구해, 장면 경로에서는 쓰지 않는 1화 콘티를 한 번 만들었습니다. 그 과정에서 재시도 한도 소진과 서버 버그(분할 계획 조립 시 필드 누락, 로컬 한 줄 수정)가 있었고, 비용 표의 ‘이미지 모델 확정 관문’이 그 비용입니다.</li>
+      <li>장면별 이미지 비용은 OpenAI 사용량 API의 창 합계를 호출 수로 나눈 값입니다(병렬 호출이라 호출별 대응 불가).</li>
+    </ul>
+  </section>
+</main>
+<footer class="site">빌드 <span id="built"></span> · 데이터 <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a></footer>
+<script src="site.js?v=1"></script>
+<script src="notes.js?v=1"></script>
+</body>
+</html>
