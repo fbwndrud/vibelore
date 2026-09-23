@@ -31,6 +31,8 @@
     for (const e of DATA.episodes) {
       box.append(el('a', { href: `#ep${e.chapter}/s1`, class: 'eptab' + (e.chapter === state.ep ? ' active' : '') }, el('span', null, `${e.chapter}화`), el('small', null, e.host)));
     }
+    const act = box.querySelector('.active');
+    if (act && box.scrollWidth > box.clientWidth) box.scrollLeft += act.getBoundingClientRect().left - box.getBoundingClientRect().left - (box.clientWidth - act.offsetWidth) / 2;
     for (const b of document.querySelectorAll('.seg button')) b.classList.toggle('active', b.dataset.mode === state.mode);
     for (const b of document.querySelectorAll('.sheet .mtools button')) b.classList.toggle('active', b.dataset.mode === state.mode);
   }

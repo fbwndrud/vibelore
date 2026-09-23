@@ -7,7 +7,7 @@
 <meta name="description" content="Codex·Claude·Grok·GPT-6이 회차별로 만든 소설과 장면 웹툰(1~7화)의 결과, 비용, 검토 판정, 결함 귀속을 한 페이지에서 비교합니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body data-page="compare">
 <header class="topbar">
@@ -20,7 +20,7 @@
 
   <section class="sec">
     <div class="sec-head"><h2>어느 모델을 써볼까</h2><span>회차별 호스트가 다르므로 “같은 장면을 여러 모델이 그린” 비교가 아닙니다. 그래도 결과·비용·실패 유형은 그대로 보입니다.</span></div>
-    <div class="card tbl" id="scorecard" style="grid-template-columns:110px 1fr 1fr 1fr 1.2fr 1fr 1.1fr"></div>
+    <div class="card tbl" id="scorecard" style="grid-template-columns:110px repeat(3,minmax(0,1fr)) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.1fr)"></div>
     <div class="caveat" id="cost-note"></div>
   </section>
 
@@ -101,7 +101,8 @@ claude mcp add vibelore -- node src/server.js</pre></div>
       sc.append(el('div', { 'data-l': '비용' }, `소설 ${usd(c.novelUsd)}${e.host === 'Codex' ? '*' : ''} · 웹툰 ${toon}${c.imageEstimated ? '†' : ''}`,
         el('span', { class: 'sub' }, `각색 ${c.estimated ? usd(c.webtoonUsdLow) + '–' + usd(c.webtoonUsd) : usd(c.webtoonUsd)} + 이미지 ${usd(c.imageUsd)} (${e.imageOk}장)`),
         el('span', { class: 'sub' }, e.host.startsWith('GPT-6') ? 'OpenAI Responses API 직접 호출. Costs API 9/23 일 단위 청구 $0(토큰 사용은 기록됨), 이미지는 OpenAI usage 집계' : c.estimated ? '*OpenAI usage 토큰×정가 환산. 대시보드 확인 결과 실제 청구 $0 (Codex CLI API 키 경로 미청구)' : c.imageEstimated ? '†각색은 CLI 보고값, 이미지는 참조 이미지 수 기준 정가 환산(usage API 미조회)' : '각색은 CLI 보고값, 이미지는 OpenAI usage 집계')));
-      sc.append(el('div', { 'data-l': '해보기' }, el('span', { class: 'cmd' }, { Codex: 'codex mcp add vibelore -- node src/server.js', Claude: 'claude mcp add vibelore -- node src/server.js', Grok: 'grok mcp add vibelore -- node src/server.js' }[e.host] || 'MCP 서버 + OpenAI Responses API 릴레이(needs_model 요청마다 1회, 도구 없음)'), el('span', { class: 'sub' }, '그 다음 lore_webtoon_scene action=start panelCount=auto')));
+      const cmd = { Codex: 'codex mcp add vibelore -- node src/server.js', Claude: 'claude mcp add vibelore -- node src/server.js', Grok: 'grok mcp add vibelore -- node src/server.js' }[e.host];
+      sc.append(el('div', { 'data-l': '해보기' }, cmd ? el('span', { class: 'cmd' }, cmd) : el('span', null, 'MCP 클라이언트 + OpenAI Responses API 릴레이'), el('span', { class: 'sub' }, cmd ? '그 다음 lore_webtoon_scene action=start panelCount=auto' : 'needs_model 요청마다 API 1회 호출(도구 없음) 후 lore_resume')));
     }
     $('#cost-note').textContent = d.costsNote + ' 가격 출처: ' + d.pricingSource + '. Claude·Codex는 요청마다 새 프로세스(맥락 격리)라 캐시 재사용 0 → 전부 캐시 쓰기 단가. Grok은 토큰을 더 쓰고도 단가가 낮아 저렴합니다. 이미지는 일곱 회차 같은 모델(gpt-image-2.5-sunburst, high, 1024×1536)로 장당 $0.09–0.15, 차이는 참조 이미지 수(4–8장)뿐입니다.';
 
