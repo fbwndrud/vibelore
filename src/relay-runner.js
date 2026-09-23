@@ -1,3 +1,4 @@
+import { HOST_EXECUTION_NOTE, layoutRelayRequests } from './core/relay-prompt-layout.js';
 import { dropRun, newRunId, saveRun } from './runs.js';
 
 const TERMINAL_WORKFLOW_STAGES = new Set(['completed', 'rejected', 'clean_fail']);
@@ -7,13 +8,7 @@ const TERMINAL_WORKFLOW_STAGES = new Set(['completed', 'rejected', 'clean_fail']
  * are already in `system` and `user`. CLI hosts that spawn a fresh agent per
  * request otherwise try to read project files and hit turn limits.
  */
-export const HOST_EXECUTION_NOTE = '[실행 조건] 이 요청은 자기완결이다. 파일 읽기·검색·도구 실행 없이 위 system과 user에 제공된 자료만으로 단일 최종 응답을 만든다.';
-const JSON_EXECUTION_NOTE = '코드블록 없이 JSON 객체 하나만 출력한다.';
-
-function withExecutionNote(request) {
-  const note = request.jsonMode ? `${HOST_EXECUTION_NOTE} ${JSON_EXECUTION_NOTE}` : HOST_EXECUTION_NOTE;
-  return { ...request, system: `${request.system ?? ''}\n\n${note}` };
-}
+export { HOST_EXECUTION_NOTE };
 
 /**
  * Owns host-model relay parking/resume. MCP server code should stay a thin
@@ -79,11 +74,14 @@ export async function runRelayedTool({
   return {
     status: 'needs_model',
     runId: saved.id,
-    requests: pending.map(withExecutionNote),
+    requests: layoutRelayRequests(pending, relay.sharedContexts ?? []),
     instruction:
       '각 request 의 system 과 user 를 그대로 읽고 답을 만든 뒤, lore_resume 에 { runId, answers: { <request id>: "<답변>" } } 로 넘기세요. ' +
       'jsonMode=true 인 요청은 코드블록 없이 순수 JSON 으로만 답해야 합니다. 답을 넘기지 않으면 아래 결정론 결과가 최종입니다. ' +
-      '한 응답의 requests 는 서로 독립이므로 병렬로(서브에이전트·동시 CLI 실행) 답해도 되며, 순서와 무관하게 모든 답을 한 번의 lore_resume 에 함께 넘기세요.',
+      '한 응답의 requests 는 서로 독립이므로 병렬로(서브에이전트·동시 CLI 실행) 답해도 되며, 순서와 무관하게 모든 답을 한 번의 lore_resume 에 함께 넘기세요. ' +
+      'promptCache 가 있는 요청들은 system 과 user 의 공통 자료 블록(sharedPrefixEndMarker 까지)이 바이트 단위로 같으므로, 새 프로세스·API 호출로 답한다면 ' +
+      'warmFirst=true 인 요청을 먼저 보내 첫 출력이 시작된 뒤 나머지를 병렬로 보내면 프롬프트 캐시를 재사용합니다. ' +
+      'Claude Code CLI(claude -p)는 system 과 마지막 user 블록에만 캐시 지점을 두므로 공통 자료 블록을 --system-prompt 의 system 뒤에 붙이고 나머지만 stdin 으로 보내세요.',
     deterministicResult: result,
   };
 }

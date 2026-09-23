@@ -113,6 +113,8 @@ describe('relay runner instruction', () => {
     });
     assert.match(parked.instruction, /독립/);
     assert.match(parked.instruction, /병렬/);
+    assert.match(parked.instruction, /warmFirst/);
+    assert.match(parked.instruction, /--system-prompt/);
   });
 });
 
