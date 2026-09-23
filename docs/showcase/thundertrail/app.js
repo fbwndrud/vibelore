@@ -42,7 +42,8 @@
     $('#chip-novel').textContent = `${e.novelHost} · ${e.novelModel}`;
     $('#chip-adapt').textContent = `${e.host} · ${e.model} · ${e.effort}`;
     $('#chip-image').textContent = `OpenAI API · ${DATA.imageModel}`;
-    $('#chip-review').textContent = `${DATA.reviewer.host} (${DATA.reviewer.model}) · 독립 평가 아님`;
+    const rv = e.reviewer || DATA.reviewer;
+    $('#chip-review').textContent = `${rv.host} (${rv.model}) · 독립 평가 아님`;
     document.title = `${DATA.work} · ${e.chapter}화 ${e.host}`;
   }
 
@@ -165,7 +166,8 @@
       body.append(el('p', null, `각색 호스트가 원문 단락(p${s.pFrom}–${s.pTo})에서 뽑은 사실·비트·불확실성. 원문에 없는 것은 그리지 않도록 uncertainties에 명시합니다.`));
       body.append(el('pre', null, JSON.stringify(s.plan, null, 2)));
     } else {
-      body.append(el('p', null, `오케스트레이션 호스트(${DATA.reviewer.host}, ${DATA.reviewer.model})가 실제 이미지를 열어 작성한 검토입니다. 독립 평가가 아닙니다.`));
+      const rv = ep().reviewer || DATA.reviewer;
+      body.append(el('p', null, `오케스트레이션 호스트(${rv.host}, ${rv.model})가 실제 이미지를 열어 작성한 검토입니다. 독립 평가가 아닙니다.`));
       const c = s.review.continuity;
       if (c) {
         body.append(el('h4', null, '연속성 (이전 장면 이미지와 대조)'));

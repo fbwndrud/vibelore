@@ -1,7 +1,7 @@
 {
 "work": "길 위의 번개",
 "run": "scene-20260921",
-"builtAt": "2026-09-22T17:36:16+00:00",
+"builtAt": "2026-09-23T10:35:29+00:00",
 "imageModel": "gpt-image-2.5-sunburst",
 "reviewer": {
 "host": "claude-code",
@@ -20,7 +20,7 @@
 "new": "Locations follow only the selected source units: a rock passage blocked by rusted chains, and a side ledge or a mountain outpost only when the excerpt itself reaches them; never advance time of day or place beyond the excerpt; keep light and terrain coherent within the scene.",
 "appliesFrom": "s4"
 },
-"costsNote": "각색 CLI(plan/preflight) 비용 + 이미지 API 비용(OpenAI usage API 조회, openai-usage-20260921.json). Codex 각색은 대시보드 확인 결과 청구 $0, 정가 환산 병기. 4화(scene-20260922) 각색은 Grok CLI 보고값, 이미지는 OpenAI usage API 집계(openai-usage-20260922.json).",
+"costsNote": "각색 CLI(plan/preflight) 비용 + 이미지 API 비용(OpenAI usage API 조회, openai-usage-20260921.json). Codex 각색은 대시보드 확인 결과 청구 $0, 정가 환산 병기. 4화(scene-20260922) 각색은 Grok CLI 보고값, 이미지는 OpenAI usage API 집계(openai-usage-20260922.json). 5화(scene-20260923-opus) 소설·각색은 Claude Code CLI 보고값(total_cost_usd), 이미지는 OpenAI usage API 집계(openai-usage-20260923.json).",
 "pricingSource": "https://developers.openai.com/api/docs/pricing (2026-09-22 열람) gpt-6-astra short context: input $10/M, cached $1/M, cache write $12.5/M, output $50/M; gpt-image-2.5-sunburst: image input $8/M, text input $5/M, image output $30/M",
 "episodes": [
 {
@@ -15476,10 +15476,3459 @@
 }
 }
 ]
+},
+{
+"chapter": 5,
+"title": "뒤를 채운 굽이",
+"host": "Claude",
+"model": "claude-opus-5-5",
+"effort": "high",
+"novelHost": "Claude",
+"novelModel": "claude-opus-5-5",
+"sceneCount": 7,
+"panelTotal": 48,
+"passCount": 2,
+"blockingTotal": 9,
+"advisoryTotal": 22,
+"blockingByLayer": {
+"render": 9
+},
+"imageCalls": 7,
+"imageOk": 7,
+"cliCalls": 21,
+"cost": {
+"novelUsd": 2.51,
+"webtoonUsd": 7.04,
+"webtoonUsdLow": 7.04,
+"estimated": false,
+"imageUsd": 0.92,
+"imageEstimated": false,
+"costsApiUsd": null
+},
+"note": "소설(아크 2의 5화)·장면 분할·각색 모두 claude-opus-5-5(Claude Code CLI 2.1.280, effort high, 도구 없음, 요청마다 새 프로세스). 소설은 5패스 12호출, 검증 거절 0회로 자동 커밋. 각색은 사전 검증 차단 3회(s1·s2·s3, 각 1회 자동 재설계 후 통과). 배경 참조 3장 중 ref-outpost·ref-rear-bend는 4화 재사용, ref-bend-ledge(굽이 안쪽)는 이 run에서 새로 생성(generate, medium). 그림 검토도 claude-opus-5-5(오케스트레이터)라 독립 평가가 아님. 5화 소설 워크플로(wf-8998b534)는 9/22 Gemini 시도에서 만들어져 첫 모델 요청(화별 계획)에서 멈춰 있었고(Gemini 답변 반영 0건), 9/23 lore_write 재호출로 같은 워크플로를 이어 모든 답변을 claude-opus-5-5가 냈음. 이때 MCP 서버는 Gemini provider가 추가된 미릴리스 0.3.8 작업 트리였으나 호스트 릴레이 경로는 0.3.7과 같음.",
+"reviewer": {
+"host": "claude-code",
+"model": "claude-opus-5-5",
+"note": "5화 호스트와 같은 모델(별도 세션)의 시각 검토. 독립 평가 아님."
+},
+"scenes": [
+{
+"id": "s1",
+"n": 1,
+"title": "멈춘 수레와 마지막 자루",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-5-p-1",
+"n": 1,
+"text": "수레는 굽이를 넘지 못했다. 벽을 스치는 소리가 낮아진 뒤로 바퀴는 다시 구르지 않았다. 해가 산등성이 뒤로 떨어질 때까지 입구 너머 그늘에는 옆판 모서리만 보였다. 이윽고 수레꾼이 걸어 나와 앞바퀴가 벽 턱에 물렸다고 했다. 어두울 때 뒤로 빼다가는 골짜기 쪽으로 미끄러진다고 했다. 사람들은 고개를 끄덕이고 마당의 불가로 흩어졌다. 장부의 줄은 아무도 고치지 않았다."
+},
+{
+"id": "ch-5-p-2",
+"n": 2,
+"text": "새벽은 차가웠다. 입구 돌에 이슬이 앉아 금이 더 흐려져 있었다."
+},
+{
+"id": "ch-5-p-3",
+"n": 3,
+"text": "도윤의 발 앞에 자루 하나가 내려졌다. 대기 더미의 마지막 자루였고, 겉에 그은 분필 표시가 이슬에 번져 있었다."
+},
+{
+"id": "ch-5-p-4",
+"n": 4,
+"text": "\"받는 자리가 여기라서요. 서명 부탁합니다.\""
+},
+{
+"id": "ch-5-p-5",
+"n": 5,
+"text": "도윤은 주머니에서 쪽지를 꺼냈다. 밤새 펴지 않은 종이는 주먹 모양대로 접혀 있었다. 그가 무릎 위에서 쪽지를 폈다. 아침에 쓴 그의 이름이 있었고, 그 옆에 리아가 쓴 기울어진 한 줄이 있었다. 오늘은 비어 있음. 도윤은 그 줄 아래에 이름을 한 번 더 적었다. 연필심이 주름에 걸려 획이 끊겼다."
+},
+{
+"id": "ch-5-p-6",
+"n": 6,
+"text": "리아는 그 끊긴 획을 보았다."
+},
+{
+"id": "ch-5-p-7",
+"n": 7,
+"text": "도윤은 쪽지를 겉옷 안쪽에 넣고 자루를 어깨에 올렸다. 입구를 지나 멈춰 선 수레까지 걸어가 자루를 짐칸 맨 뒤에 얹었다. 그러고는 몰이 자리에 올라앉았다. 수레꾼이 고삐를 쥔 채 그를 올려다보았다. 한쪽 어깨에 흙이 묻어 있었다. 밤새 벽에 기대 잔 모양이었다."
+},
+{
+"id": "ch-5-p-8",
+"n": 8,
+"text": "\"제가 몰겠습니다. 바퀴 옆에 붙어 주세요.\""
+},
+{
+"id": "ch-5-p-9",
+"n": 9,
+"text": "수레꾼은 말없이 고삐를 넘겼다."
+}
+],
+"pFrom": 1,
+"pTo": 9,
+"panelCount": 6,
+"image": "img/ep05-s1.webp",
+"blocking": 3,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 도윤 허리에 둘둘 말린 밧줄. 3화에서 잃은 줄이 되살아남(원문은 빈 고리).",
+"en": "Panel 2: Doyun carries a coiled rope at his hip. The source has his rope lost (p38-p40 later rely on the empty belt loop), so the image restores a lost prop."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 쪽지가 '이름·서명' 표 양식으로 그려지고 도윤·리아·마렌 이름이 적힘. 원문 쪽지는 도윤 이름과 리아의 기울어진 한 줄뿐. 창작 글자.",
+"en": "Panel 3: the slip is drawn as a printed form with invented lettering 이름, 서명, 도윤, 리아, 마렌. The source slip holds only Doyun's name and Lia's slanted line (beat-3); Maren's name and the table are invented, and Lia's line appears only as a caption."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5·6칸: 이름 없는 수레꾼 자리에 마렌(곱슬 적갈색 머리·벽돌색 조끼)을 그림. 도윤 대사 말풍선 꼬리도 마렌을 가리킴. 인물 대체.",
+"en": "Panels 5-6: the unnamed wagon driver is drawn as Maren (curly red-brown tied hair, brick vest), and the text-6 balloon tail points to her. Readers see Maren taking and handing over the reins, which is a character misattribution."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 수레가 굽이 그늘 속 옆판 모서리만이 아니라 마당 옆에 통째로 보임.",
+"en": "Panel 1: the wagon stands fully visible beside the path in the yard rather than showing only a side-board corner in the bend's shade (beat-1)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 쪽지는 도윤 무릎 위인데 리아가 종이를 들고 있음. 소매 속 오른손목 표현 없음.",
+"en": "Panel 4: Lia holds a paper at the bottom edge although the slip is on Doyun's knee; her right wrist is not shown tucked in the sleeve."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 불가의 사람들이 투구 비슷한 모자를 써 병사처럼 보임. 원문에 없는 설정.",
+"en": "Panel 1: the people at the fire wear helmet-like caps that read as soldiers, which the source does not establish."
+}
+],
+"textsTotal": 6,
+"textsOk": 4,
+"timings": {
+"planS": [
+56,
+51
+],
+"preflightS": [
+72,
+65
+],
+"imageS": 43,
+"imageCalls": 1,
+"preflightRevisions": 1
+},
+"imageUsd": 0.1187,
+"plan": {
+"intent": "A quiet, cold turn from a stalled night to a morning decision. The wagon failed the bend at dusk and the camp let it sit. At dawn the last waiting sack lands in front of Doyun with a request to sign. He signs a second time beneath Lia's line saying the day is empty, and the pencil breaks on a crease. Lia sees the break. Doyun speaks few words and makes no speech: he loads the sack, takes the driver's seat and asks for the reins. The reader should feel that his choice comes from the physical facts of the stuck wagon and the empty day. The driver's silent handover confirms the choice. The scene closes on hands and reins before the wagon moves.",
+"staging": "Two lighting states only: dim dusk for beat-1, then cold dewy dawn for everything else. Place and time stay within what the excerpt reaches, and nothing moves forward in time past the rein handover.\n\nThe outpost's rear entrance separates two areas. The receiving side, where the sack drop and the signing happen, is on the outpost side of the entrance. The wagon sits beyond the entrance, stopped inside a narrow bend with a rock wall on one side and the valley side on the other. From outside, at dusk, only the corner of its side board is readable in the shade. Doyun passes through the entrance to reach the wagon's rear and then its driver's seat. The driver stands on the ground below the seat, close enough to hand the reins up.\n\nAt signing, Doyun is low enough to use his knee as a desk; whether he sits or crouches is open. Lia is close enough to see the pencil stroke. Only text-5 must be legible on the slip. The two name entries may read as short handwritten marks without specific lettering.\n\nThe requester of text-4 stays off-panel: render text-4 as a voice balloon with a tail to the panel edge, not as a narration caption, and do not attribute it to a visible character.\n\nContinuity: Lia keeps her right wrist folded inside her sleeve and uses only her left hand. Doyun has an empty belt loop with no rope. The driver is a neutral, unnamed figure. Maren, the marten and the deer do not appear, because the excerpt does not place them here.\n\nDo not depict the jammed-wheel mechanism, the ledger's content or a draft animal. The reins may be shown without revealing what they connect to. Panel count, sizes, cameras and composition are the artist's choice. Favor fewer, larger, legible panels, and a single panel may hold more than one beat.",
+"uncertainties": [
+"The speaker of text-4 (ch-5-p-4) is unidentified. The schema forces the placeholder speaker 'narrator', but this is a spoken line from an unseen person, not narration. It must not be assigned to Lia, Maren or the driver.",
+"The speaker of text-6 (ch-5-p-8) is not named in the source. Doyun (c2) is inferred because he has just taken the driver's seat and the driver responds by handing him the reins.",
+"Which wheel 'beside the wheel' means, and whether the wagon will go forward or back, are unstated. Show no wheel position or maneuver.",
+"The source mentions reins, which imply a draft animal, but none is named. Do not introduce one, including the deer from the direction.",
+"The mark on the entrance stone (ch-5-p-2) may be a crack, a scored line or a guide mark. Treat it only as a faint mark under dew.",
+"The content of the uncorrected ledger line (ch-5-p-1) is not given. Do not letter it.",
+"When Doyun's first name entry was written is unspecified. The source calls it written 'in the morning', and it is not clear which morning. Present it only as an earlier entry.",
+"The link between the signature request and the slip is implied, not stated. Show the signing without explaining it.",
+"That the driver slept against the wall overnight is the narrator's inference from the soil on the shoulder (ch-5-p-7). Show only the soil.",
+"Who physically set the sack down is unknown. Keep the hands unseen or neutral.",
+"Whether Lia is standing or seated while she watches is unspecified.",
+"The previous preflight review ran on the same host and is not an independent review."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-5-p-1",
+"kind": "caption",
+"speaker": "narrator",
+"text": "수레는 굽이를 넘지 못했다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-5-p-1",
+"kind": "caption",
+"speaker": "narrator",
+"text": "장부의 줄은 아무도 고치지 않았다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-5-p-2",
+"kind": "caption",
+"speaker": "narrator",
+"text": "새벽은 차가웠다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-5-p-4",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "받는 자리가 여기라서요. 서명 부탁합니다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-5-p-5",
+"kind": "physical",
+"speaker": "c1",
+"text": "오늘은 비어 있음."
+},
+{
+"id": "text-6",
+"sourceId": "ch-5-p-8",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "제가 몰겠습니다. 바퀴 옆에 붙어 주세요."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-5-p-1"
+],
+"action": "Dusk recap: the wagon is stuck past the entrance, and only its side-board corner shows in the shade. The camp gives up for the night and drifts toward the yard fire. The captions carry the stall and the uncorrected ledger. The driver's spoken report is not drawn.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-5-p-2",
+"ch-5-p-3",
+"ch-5-p-4"
+],
+"action": "Time cut to cold dawn. The dew-dimmed mark on the entrance stone establishes the morning. The last waiting sack, its chalk smeared, is set down at Doyun's feet, and an unseen person asks for his signature.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-5-p-5"
+],
+"action": "Doyun unfolds the fist-creased slip on his knee. Lia's slanted line is legible beside his earlier name, and he signs again beneath it. The pencil catches on a crease and the stroke breaks.",
+"textIds": [
+"text-5"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-5-p-6"
+],
+"action": "Lia registers the broken stroke. It is a silent reaction, and no words are exchanged.",
+"textIds": []
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-5-p-7"
+],
+"action": "Doyun commits by acting. The slip goes away and the sack goes onto his shoulder. He goes through the entrance into the bend and loads the sack at the rear of the stopped wagon, then takes the driver's seat. The artist should show the result, not every step.",
+"textIds": []
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-5-p-7",
+"ch-5-p-8"
+],
+"action": "The driver, reins in hand and soil on one shoulder, looks up at Doyun on the seat. Doyun asks to drive and asks the driver to stay beside the wheel.",
+"textIds": [
+"text-6"
+]
+},
+{
+"id": "beat-7",
+"sourceIds": [
+"ch-5-p-9"
+],
+"action": "The driver passes the reins up without a word. The scene ends on the handover, and the wagon has not moved yet.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-5-p-1"
+],
+"statement": "The wagon could not get past the bend. After a low scraping sound against the wall, its wheels stopped and did not turn again."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-5-p-1"
+],
+"statement": "Until the sun dropped behind the ridge, only the corner of the wagon's side board was visible in the shade beyond the entrance."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-5-p-1"
+],
+"statement": "The wagon driver walked out and reported two things. The front wheel was caught on a ledge of the wall. Backing out in the dark would slide the wagon toward the valley side."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-5-p-1"
+],
+"statement": "The people nodded and scattered to the fire in the yard. No one corrected the line in the ledger. The ledger line's content is not given."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-5-p-2"
+],
+"statement": "The dawn was cold. Dew sat on the entrance stone, and the mark on it looked fainter."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-5-p-3",
+"ch-5-p-4"
+],
+"statement": "Someone set a sack down in front of Doyun's feet. It was the last sack of the waiting pile, and the chalk marking on it had smeared in the dew. An unnamed person said this was the receiving spot and asked for a signature."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-5-p-5"
+],
+"statement": "Doyun took a paper slip from his pocket. He had not opened it all night, so it was still creased into the shape of a fist. He unfolded it on his knee."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-5-p-5"
+],
+"statement": "The slip held Doyun's name, written earlier, and beside it a slanted line in Lia's hand (text-5). Doyun wrote his name once more below that line. The pencil lead caught on a crease, and a stroke broke."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-5-p-6"
+],
+"statement": "Lia saw the broken stroke."
+},
+{
+"id": "fact-10",
+"sourceIds": [
+"ch-5-p-7"
+],
+"statement": "Doyun put the slip inside his outer garment and shouldered the sack. He walked through the entrance to the stopped wagon, placed the sack at the very back of the cargo bed and then sat in the driver's seat."
+},
+{
+"id": "fact-11",
+"sourceIds": [
+"ch-5-p-7"
+],
+"statement": "The wagon driver was holding the reins and looked up at Doyun. One of the driver's shoulders had soil on it."
+},
+{
+"id": "fact-12",
+"sourceIds": [
+"ch-5-p-8",
+"ch-5-p-9"
+],
+"statement": "The line text-6 was said: an offer to drive and a request for the driver to stay beside the wheel. The driver handed over the reins without a word."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy comic, expressive ink lines, adult cast; dim dusk opening, then cold dewy dawn at a mountain outpost's rear entrance and narrow bend; Korean lettering verbatim.",
+"moments": [
+{
+"sourceIds": [
+"ch-5-p-1"
+],
+"action": "Dusk at the outpost's rear entrance: beyond it, only a stuck wagon's side-board corner shows in the bend's shade, while people drift away toward the yard fire.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-2",
+"ch-5-p-3",
+"ch-5-p-4"
+],
+"action": "Cold dawn: dew dims a faint mark on the entrance stone; the last sack, its chalk marking smeared, lies at Doyun's feet while an off-panel voice speaks.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-5"
+],
+"action": "The fist-creased slip open on Doyun's knee: his earlier name, Lia's slanted line beside it, and below it his pencil where the new name's stroke breaks on a crease.",
+"textIds": [
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-6"
+],
+"action": "Lia, right wrist tucked in her sleeve, looks silently down at the broken stroke on Doyun's slip.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-7",
+"ch-5-p-8"
+],
+"action": "Doyun sits on the stopped wagon's driver's seat in the narrow bend, the sack at the cargo bed's rear; below, the driver, soil on one shoulder, holds the reins and looks up.",
+"textIds": [
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-9"
+],
+"action": "Close on hands: the driver silently passes the reins up into Doyun's hand; the wagon still stands.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": false,
+"identity": {
+"passed": false,
+"evidence": "No previous scene image was supplied; compared against the character references. Doyun matches (black hair, green coat, sword) but in panel 2 a coiled rope hangs at his hip, although his rope was lost and the direction asks for an empty belt loop. The unnamed wagon driver in panels 5-6 is drawn with Maren's identity (red-brown curly tied hair, brick vest), so Maren replaces the driver."
+},
+"setting": {
+"passed": true,
+"evidence": "Panel 1 uses the rear entrance boulder with the forked arrow and the outpost eaves at dusk; panel 5 uses the narrow bend with the carved handholds on the rock wall and the misty valley, matching the references."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "First scene of the episode; the dusk recap (panel 1) moves to cold dawn (panel 2) and ends on the reins handover (panel 6) with the wagon still standing, as the source orders."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "수레는 굽이를 넘지 못했다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 top caption box; exact text."
+},
+{
+"id": "text-2",
+"observedText": "장부의 줄은 아무도 고치지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 second caption box; exact text."
+},
+{
+"id": "text-3",
+"observedText": "새벽은 차가웠다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 caption box; exact text."
+},
+{
+"id": "text-4",
+"observedText": "받는 자리가 여기라서요. 서명 부탁합니다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail running off-panel to the right, an unseen speaker; exact text."
+},
+{
+"id": "text-5",
+"observedText": "오늘은 비어 있음.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 3 shows the line as a narration caption box above the slip, not as Lia's slanted handwriting on the slip; the slip itself carries other writing."
+},
+{
+"id": "text-6",
+"observedText": "제가 몰겠습니다. 바퀴 옆에 붙어 주세요.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 5 balloon text is exact, but the tail points down-left toward the red-haired driver's head rather than toward Doyun on the seat."
+}
+],
+"evidence": "Six panels in a 2-column grid of three rows. Row 1: dusk yard with people at a fire, the entrance boulder and a wagon beside the path; Doyun crouching at dawn beside a sack marked with a chalk X. Row 2: close-up of a lined form on his knee with a pencil; Lia looking down with a paper at the bottom edge. Row 3: Doyun on the wagon seat with the X sack behind him in the bend, a red-haired woman in a brick vest below holding the reins; close-up of a muddy gloved hand passing reins to Doyun's gloved hand. Light moves from dusk to dawn and stays coherent.",
+"observedPanelCount": 6
+}
+},
+{
+"id": "s2",
+"n": 2,
+"title": "뒤에서 걸어",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-5-p-10",
+"n": 10,
+"text": "리아가 발판 옆으로 다가갔다."
+},
+{
+"id": "ch-5-p-11",
+"n": 11,
+"text": "\"앞은 내가 볼게. 꺾이는 데서 바닥 먼저 짚고—\""
+},
+{
+"id": "ch-5-p-12",
+"n": 12,
+"text": "\"뒤에서 걸어.\""
+},
+{
+"id": "ch-5-p-13",
+"n": 13,
+"text": "도윤은 리아를 보지 않았다. 고삐를 손에 두 번 감고 말의 귀가 어느 쪽으로 돌아가는지만 보았다."
+},
+{
+"id": "ch-5-p-14",
+"n": 14,
+"text": "\"줄은 네가 적었어. 짐은 내가 받았고.\""
+},
+{
+"id": "ch-5-p-15",
+"n": 15,
+"text": "리아는 입을 열었다가 다물었다. 소매 안의 오른손목은 밤사이 조금도 펴지지 않았다. 앞을 맡으면 왼손 하나로 방패를 세워야 한다. 그 말은 하지 않고 수레 뒤로 물러섰다."
+},
+{
+"id": "ch-5-p-16",
+"n": 16,
+"text": "마렌이 벽 쪽인 짐칸 왼편에 붙었다. 수레꾼은 오른편, 골짜기 쪽 바퀴 옆에 섰다. 마렌이 새로 올라온 자루를 손바닥으로 눌러 보고 끈을 한 번 당겼다."
+},
+{
+"id": "ch-5-p-17",
+"n": 17,
+"text": "\"한 번은 하죠. 이 자루까지는.\""
+},
+{
+"id": "ch-5-p-18",
+"n": 18,
+"text": "두 번은, 이라는 말은 붙이지 않았다."
+},
+{
+"id": "ch-5-p-19",
+"n": 19,
+"text": "리아의 허리에서 가방이 들썩였다. 보리가 코로 덮개를 밀고 나오더니 리아의 마른 식량 주머니에 머리를 박았다. 다시 나왔을 때는 말린 고기 한 조각을 물고 있었다. 리아가 손을 내밀자 보리는 몸을 틀어 고기를 등 뒤로 감췄다. 그러고는 가방 가장자리에 앉아 거점 너머, 사슬이 열려 있는 쪽에서 불어오는 바람에 코를 댄 채 혼자 씹었다. 꼬리는 아직 목에 감겨 있지 않았다."
+},
+{
+"id": "ch-5-p-20",
+"n": 20,
+"text": "\"갑니다.\""
+},
+{
+"id": "ch-5-p-21",
+"n": 21,
+"text": "고삐가 느슨해졌다."
+}
+],
+"pFrom": 10,
+"pTo": 21,
+"panelCount": 7,
+"image": "img/ep05-s2.webp",
+"blocking": 1,
+"advisory": 4,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 도윤의 “뒤에서 걸어.” 말풍선 꼬리가 리아를 가리킴. 앞자리를 누가 맡는지가 이 장면의 핵심인데 화자가 뒤바뀜.",
+"en": "Panel 1: the balloon for text-2 (뒤에서 걸어.) has its tail on Lia, so Doyun's order to walk behind reads as Lia's line. The scene turns on who takes the front."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: “볼게.”의 마침표가 쉼표로 바뀜(단어는 그대로).",
+"en": "Panel 1: text-1 renders the period after 볼게 as a comma; the words are unchanged."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 리아의 오른손목이 소매 안에 접혀 있는지 드러나지 않음.",
+"en": "Panel 3: Lia's right wrist is not clearly shown folded inside the sleeve; both forearms rest at her waist with a gloved hand visible."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸: 보리가 고기를 등 뒤로 감추지 않고 가슴 앞에 들고 있음.",
+"en": "Panel 5: Bori holds the meat in front of its chest instead of twisting away to hide it behind its back (beat-5)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "7칸: 짐칸에 밧줄 같은 뭉치. 원문 수레엔 줄이 없음.",
+"en": "Panel 7: a coil that reads like rope lies on the cargo; the source has no rope on this wagon."
+}
+],
+"textsTotal": 8,
+"textsOk": 7,
+"timings": {
+"planS": [
+87,
+69
+],
+"preflightS": [
+85,
+66
+],
+"imageS": 49,
+"imageCalls": 1,
+"preflightRevisions": 1
+},
+"imageUsd": 0.1316,
+"plan": {
+"intent": "A short, cold standoff over who goes in front, resolved without an argument. Lia offers to lead through the bend. Doyun cuts her off without looking at her and gives a reason built from what each of them signed for: she wrote the line, he received the cargo. The reader learns what Lia does not say. Her right wrist has not straightened overnight, and leading would mean raising a shield with her left hand alone. She swallows it and falls back behind the wagon. The reader should feel that her silence is her familiar error of shielding others by hiding a limit, and that Doyun's refusal is his habit of taking the risky position himself. Maren sets a limit of her own, one attempt, and stops short of saying 'twice'. The marten Bori ignores all of it: it steals dried meat, refuses to hand it back and chews alone into the wind, its tail not yet around its neck. The scene ends on one word and slackened reins, before the wagon moves.",
+"staging": "Place and time: cold dawn, continuous with the previous scene's rein handover. The whole scene happens around the stopped wagon inside the narrow bend beyond the outpost's rear entrance. A rock wall is on one side, and a steep drop to a misty valley is on the other. A grassy mound may sit above the wall as background. Nothing advances past the slack reins, so no wagon motion and no wheel turning is shown.\n\nNecessary spatial facts. Doyun sits on the driver's seat, and the horse stands ahead of him close enough that its ears can be read. Lia starts beside the footboard, low relative to Doyun, and ends behind the wagon. Maren stands at the wall side of the cargo bed, near the newly loaded sack. The unnamed driver stands at the wheel on the valley side. The source calls the wall side the left side. Keep wall-side and valley-side placement consistent in every panel, and do not reverse the wall and the drop between panels. Bori's bag hangs at Lia's waist, so Bori's moments happen wherever Lia stands at that point, most naturally behind the wagon. The wind comes from beyond the outpost, the side where the chain stands open. Only Bori's nose direction needs to show this, and the chain itself need not appear.\n\nVisual load. Several beats contain more than one physical step. Show the payoff state and let transit steps be implied. The reader needs to see the cut-off offer with Doyun's averted gaze, Lia's closed mouth and hidden right wrist, Maren's palm on the sack, Bori's refusal, Bori chewing alone, and the slack reins. Keep at most two text items in any one panel. text-1 should read as cut off, with text-2 following it immediately. text-2, text-3 and text-7 are Doyun's balloons. text-5 is Maren's balloon. text-4, text-6 and text-8 are narration captions without tails. Bori has no lettering.\n\nContinuity and identity. Lia keeps her right wrist folded inside her sleeve and uses only her left hand, including when she reaches toward Bori. Doyun has an empty belt loop and must not carry any rope. Maren is visibly herself: dark red-brown curly hair, a round face and gloves. The wagon driver is a separate, plain, unnamed adult with soil on one shoulder. The driver must not share Maren's hair, face or clothing. The previous image wrongly drew the driver as Maren, so follow the character references here, not that image. Do not show the paper slip, the ledger or any written form. Do not draw soldiers, deer or chain mechanics.\n\nThe horse is confirmed by the source and appears for the first time. The previous scene excluded a draft animal only because its source did not confirm one. The horse's number, color and harness details are the artist's choice, but keep them minimal. Panel count, panel sizes, cameras and composition are the artist's choice. Prefer fewer, larger, legible panels in a vertical reading order.",
+"uncertainties": [
+"The speakers of text-2, text-3 and text-7 (ch-5-p-12, ch-5-p-14, ch-5-p-20) are not named. Doyun (c2) is inferred from the adjacent ch-5-p-13 and from his role holding the reins. For text-7, the driver is a plausible alternative speaker.",
+"The speaker of text-1 (ch-5-p-11) is inferred to be Lia (c1), from ch-5-p-10 and from its informal register toward a peer.",
+"The speaker of text-5 (ch-5-p-17) is inferred to be Maren (c4), because she has just tested the sack in ch-5-p-16. The source does not tag the line.",
+"It is not stated which step 'footboard' in ch-5-p-10 means. It could be the driver's step or another step on the wagon. The only requirement is that Lia stands at the wagon, below Doyun.",
+"Whether 'left' in ch-5-p-16 is relative to the wagon's facing or to the viewer is unstated. The confirmed facts are that Maren is on the wall side and the driver is on the valley side.",
+"That Lia offers her left hand to Bori comes from the continuity direction. Source ch-5-p-19 says only 'hand'. It is consistent with the unstraightened right wrist in ch-5-p-15.",
+"The cause and nature of Lia's wrist injury are not given in this excerpt. Show only a wrist that stays folded under the sleeve, with no bandage, wound or other detail invented.",
+"Source ch-5-p-19 states only that the tail is 'not yet' around the neck. That implies no fear signal now. Do not draw a tail pose that implies fear, and do not add a signal that foreshadows danger.",
+"The chain and its open side in ch-5-p-19 are given no mechanics or exact location. Do not depict how the chain works.",
+"The antlered deer mentioned in the direction are not placed in this excerpt, and the animal named in ch-5-p-13 is a horse. Do not replace the horse with a deer, and do not add deer.",
+"Source ch-5-p-21 says only that the reins went slack. Whether the wagon then starts forward, or in which direction it would move, is not shown and must not be implied by motion.",
+"The newly loaded sack in ch-5-p-16 is most likely the sack Doyun loaded in the previous scene (ch-5-p-7), but the source does not confirm this.",
+"This brief was reviewed only on the same host that generated it, so the review is not independent."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-5-p-11",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "앞은 내가 볼게. 꺾이는 데서 바닥 먼저 짚고—"
+},
+{
+"id": "text-2",
+"sourceId": "ch-5-p-12",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "뒤에서 걸어."
+},
+{
+"id": "text-3",
+"sourceId": "ch-5-p-14",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "줄은 네가 적었어. 짐은 내가 받았고."
+},
+{
+"id": "text-4",
+"sourceId": "ch-5-p-15",
+"kind": "caption",
+"speaker": "narrator",
+"text": "앞을 맡으면 왼손 하나로 방패를 세워야 한다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-5-p-17",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "한 번은 하죠. 이 자루까지는."
+},
+{
+"id": "text-6",
+"sourceId": "ch-5-p-18",
+"kind": "caption",
+"speaker": "narrator",
+"text": "두 번은, 이라는 말은 붙이지 않았다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-5-p-20",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "갑니다."
+},
+{
+"id": "text-8",
+"sourceId": "ch-5-p-21",
+"kind": "caption",
+"speaker": "narrator",
+"text": "고삐가 느슨해졌다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-5-p-10",
+"ch-5-p-11",
+"ch-5-p-12",
+"ch-5-p-13"
+],
+"action": "Lia at the footboard offers to lead and is cut off mid-sentence. From the driver's seat, Doyun tells her to walk behind without turning his head. His attention stays on the reins wrapped around his hand and on the horse's ears. The change is the interruption and the averted gaze.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-5-p-14"
+],
+"action": "Doyun gives his reason in one flat line, still not looking at her. The decision is closed. This is a spoken statement, not a gesture.",
+"textIds": [
+"text-3"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-5-p-15"
+],
+"action": "Lia starts to answer, stops, and ends up behind the wagon, silent. The caption gives the reader the reason she keeps to herself. Her right sleeve hangs over a wrist that stays folded. The payoff is her closed mouth and the hidden wrist, not the walk to the rear.",
+"textIds": [
+"text-4"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-5-p-16",
+"ch-5-p-17",
+"ch-5-p-18"
+],
+"action": "The people take their sides of the wagon. Maren is at the wall side of the cargo bed and the driver is at the valley-side wheel. Maren tests the new sack with her gloved palm and sets her limit of one attempt. A caption notes what she did not add. Her line should read as a practical condition, not bravado.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-5-p-19"
+],
+"action": "Bori's small counter-plot. Bori comes up out of the bag at Lia's waist with stolen dried meat and twists away to hide it from Lia's outstretched hand. It then settles on the bag's edge and chews alone with its nose in the wind. Show two instants, the refusal and the solitary chewing. The raid on the pouch can be implied. Bori makes no sound. The tail is not around its neck, and nothing signals fear.",
+"textIds": []
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-5-p-20",
+"ch-5-p-21"
+],
+"action": "The word to go is spoken, and the reins in Doyun's hand go slack. The scene stops on that slack, before any wheel turns.",
+"textIds": [
+"text-7",
+"text-8"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-5-p-10",
+"ch-5-p-11"
+],
+"statement": "Lia came up beside the footboard of the wagon and started to offer to watch the front and to test the ground first at the turn. Her sentence is cut off mid-way (text-1 ends in a dash)."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-5-p-12",
+"ch-5-p-13"
+],
+"statement": "A line tells her to walk behind (text-2). Doyun did not look at Lia. He had the reins wrapped twice around his hand and watched only which way the horse's ears turned."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-5-p-14"
+],
+"statement": "A line gives the reason: she wrote the line and he received the cargo (text-3). The written line and the receipt connect to the slip in the previous scene, but no paperwork is shown here."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-5-p-15"
+],
+"statement": "Lia opened her mouth and then closed it. Her right wrist inside her sleeve had not straightened at all overnight. Leading would mean raising a shield with her left hand alone. She did not say this and stepped back behind the wagon."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-5-p-16"
+],
+"statement": "Maren moved close against the left side of the cargo bed, which is the wall side. The wagon driver stood on the right, beside the wheel on the valley side. Maren pressed the newly loaded sack with her palm and pulled its cord once."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-5-p-17",
+"ch-5-p-18"
+],
+"statement": "A line agrees to one attempt, as far as this sack goes (text-5). The word 'twice' was deliberately left unsaid (text-6)."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-5-p-19"
+],
+"statement": "The bag at Lia's waist jolted. Bori nosed the flap open, pushed its head into Lia's dry-food pouch and came back out holding a piece of dried meat. When Lia held out her hand, Bori twisted its body and hid the meat behind its back."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-5-p-19"
+],
+"statement": "Bori then sat on the edge of the bag and chewed alone, nose into the wind blowing from beyond the outpost, from the side where the chain stands open. Its tail was not yet wrapped around its neck."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-5-p-20",
+"ch-5-p-21"
+],
+"statement": "A single word announces departure (text-7). The reins went slack (text-8). The source does not say the wagon has moved yet."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink lines, adult cast and cute small marten; cold misty dawn in a narrow mountain bend, rock wall one side, valley drop the other.",
+"moments": [
+{
+"sourceIds": [
+"ch-5-p-10",
+"ch-5-p-11",
+"ch-5-p-12",
+"ch-5-p-13"
+],
+"action": "Lia stands at the wagon's footboard mid-offer, looking up. Doyun on the driver's seat watches only the horse's ears, reins wrapped twice around his hand.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-14"
+],
+"action": "Doyun, profile unmoved and eyes still on the horse, states his flat reason over the twice-wrapped reins; Lia below at the footboard.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-15"
+],
+"action": "Behind the wagon, Lia stands silent, lips pressed shut, her right sleeve hanging over a wrist that stays folded inside it.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-16",
+"ch-5-p-17",
+"ch-5-p-18"
+],
+"action": "Gloved Maren, pressed against the wall side of the cargo bed, rests her palm on the newly loaded sack; the plain driver, soil on one shoulder, stands at the valley-side wheel.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-19"
+],
+"action": "At Lia's waist, Bori sits half out of the bag, twisting its body to hide a scrap of dried meat behind its back from Lia's outstretched left hand.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-19"
+],
+"action": "Bori sits alone on the bag's edge chewing the dried meat, nose lifted into the wind from beyond the outpost, tail hanging loose.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-20",
+"ch-5-p-21"
+],
+"action": "Doyun on the driver's seat, the reins in his hand gone slack, the horse standing ahead, the wagon still stopped in the bend.",
+"textIds": [
+"text-7",
+"text-8"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Doyun keeps the black hair, grey eyes, dark green hooded coat and sword from s1; Lia keeps the chestnut bob, amber eyes and sand jacket; Maren appears in her brick vest with gloves. The driver is now a plain man in a cap with soil on the shoulder, so this scene does not repeat the s1 swap of Maren into the driver's role."
+},
+"setting": {
+"passed": true,
+"evidence": "Same narrow bend as s1 panel 5: wet rock wall with carved handholds on the left, drop to the misty valley on the right, dawn light."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s1 ended on the reins handover with Doyun seated; s2 opens with Doyun on the seat holding the reins and Lia at the footboard, the next event in the source."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "앞은 내가 볼게, 꺾이는 데서 바닥 먼저 짚고—",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 upper balloon with its tail to Lia; the period after 볼게 is rendered as a comma."
+},
+{
+"id": "text-2",
+"observedText": "뒤에서 걸어.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 1 lower balloon text is exact, but its tail points down-left to Lia's head, not to Doyun on the seat."
+},
+{
+"id": "text-3",
+"observedText": "줄은 네가 적었어. 짐은 내가 받았고.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Doyun in profile; exact text."
+},
+{
+"id": "text-4",
+"observedText": "앞을 맡으면 왼손 하나로 방패를 세워야 한다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 caption box beside Lia; exact text."
+},
+{
+"id": "text-5",
+"observedText": "한 번은 하죠. 이 자루까지는.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Maren pressing the sack; exact text."
+},
+{
+"id": "text-6",
+"observedText": "두 번은, 이라는 말은 붙이지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 bottom-right caption box; exact text."
+},
+{
+"id": "text-7",
+"observedText": "갑니다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 balloon with its tail to Doyun on the seat; exact text."
+},
+{
+"id": "text-8",
+"observedText": "고삐가 느슨해졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 bottom-right caption box; exact text."
+}
+],
+"evidence": "Seven panels: row 1 Lia at the footboard looking up at Doyun on the seat with the horse's ears in front; Doyun in profile over the wrapped reins with Lia's back in the foreground. Row 2 Lia alone by the wall with the path behind; Maren with gloves pressing the sack while the capped driver stands at the wheel. Row 3 Bori half out of the bag with a strip of dried meat as a fingerless-gloved hand reaches in; Bori on the bag edge chewing with eyes closed against the dawn valley. Row 4 wide shot from behind Doyun on the wagon in the bend, handholds on the wall and the valley on the right. The wagon has not moved.",
+"observedPanelCount": 7
+}
+},
+{
+"id": "s3",
+"n": 3,
+"title": "굽이를 넘자 몰려든 사슴",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-5-p-22",
+"n": 22,
+"text": "굽이는 입구 안에서 한 번 꺾인 뒤 벽을 따라 둥글게 휘었다. 왼쪽은 젖은 바위벽이었다. 오른쪽은 풀 몇 포기를 지나면 골짜기로 떨어지는 비탈이었다. 폭은 수레 하나 옆에 사람 하나가 겨우 붙을 만했다. 벽 위로는 흙이 둥글게 솟은 둔덕이 있었지만, 거기까지는 사람 키의 두 배가 넘었다."
+},
+{
+"id": "ch-5-p-23",
+"n": 23,
+"text": "도윤이 말을 달래 반 바퀴 뒤로 물렸다. 그러고는 바퀴를 바깥으로 틀었다. 오른쪽 바퀴가 가장자리 흙을 밟자 흙덩이가 떨어져 나가 비탈을 굴렀다. 수레꾼이 숨을 들이켰다. 바퀴가 턱을 넘었다."
+},
+{
+"id": "ch-5-p-24",
+"n": 24,
+"text": "앞은 비어 있었다. 다음 꺾임까지 발자국 하나 없는 젖은 흙이 이어졌다. 도윤의 어깨가 조금 내려갔고, 리아도 숨을 뱉었다. 장부의 줄이 맞았던 것처럼."
+},
+{
+"id": "ch-5-p-25",
+"n": 25,
+"text": "보리가 고기를 떨어뜨렸다."
+},
+{
+"id": "ch-5-p-26",
+"n": 26,
+"text": "뒤에서 돌 구르는 소리가 났다. 리아가 돌아보았다. 입구 쪽 꺾임에 사슴 한 마리가 서 있었다. 등이 수레 옆판만큼 높았고, 가지가 사방으로 벌어진 뿔이 벽을 긁고 있었다. 사슴은 사람을 보지 않았다. 코를 벽에 대고 이끼를 뜯었다. 그 뒤로 한 마리가 더 들어왔다. 그 뒤로 또 한 마리."
+},
+{
+"id": "ch-5-p-27",
+"n": 27,
+"text": "사슴들은 사슬이 있던 쪽에서 왔다. 거점과 수레 사이의 좁은 흙을 한 마리씩 메우며 앞으로 밀려들었다."
+},
+{
+"id": "ch-5-p-28",
+"n": 28,
+"text": "넷. 옆판의 축축한 자국이 떠올랐다. 리아는 그 수를 혀 밑에 눌렀다."
+}
+],
+"pFrom": 22,
+"pTo": 28,
+"panelCount": 7,
+"image": "img/ep05-s3.webp",
+"blocking": 0,
+"advisory": 3,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 수레꾼 위에 느낌표만 든 말풍선. 계획에 없는 글자지만 숨을 들이켜는 원문과는 맞음.",
+"en": "Panel 1: a spiky balloon with only an exclamation mark is drawn over the driver; the plan has no text there, though it matches his gasp."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 나중에 오를 벽 위 둔덕이 보이지 않음.",
+"en": "Panel 1: the earth mound above the wall that sets up the later climb is not visible (beat-1)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6·7칸: 리아 뒤 사슴이 넷보다 많음. 원문이 마릿수를 정하지 않아 모순은 아님.",
+"en": "Panels 6-7: the file behind Lia shows more than four deer; the source never gives the deer count, so this is not a contradiction."
+}
+],
+"textsTotal": 7,
+"textsOk": 7,
+"timings": {
+"planS": [
+71,
+81
+],
+"preflightS": [
+108,
+90
+],
+"imageS": 43,
+"imageCalls": 1,
+"preflightRevisions": 1
+},
+"imageUsd": 0.1316,
+"plan": {
+"intent": "The scene should give the reader a short, false sense of success, then take it away without anyone speaking. First the reader must understand how tight the bend is: a wet rock wall on the left, a crumbling edge and a drop on the right, and room for barely one person beside the wagon. Doyun eases the wagon through by putting its right wheel on the failing edge soil. A clod rolls down the slope and the wagoner gasps. The wheel gets over. The way ahead is empty and unmarked, and Doyun's shoulders drop. Lia breathes out as if her ledger line had been proven right. The reader should feel that relief is earned. Then, with no stated cause, the small marten drops its meat. A stone rolls behind them. Lia turns and sees huge antlered deer calmly grazing moss off the wall. They are coming one after another from the entrance side, where the chain was, and filling the narrow strip between the outpost and the wagon. That strip is the way back. The deer are not hostile; they ignore the people. Lia counts them and recalls a damp mark on the sideboard. Then she keeps the number to herself. The reader should see her familiar error begin again, silence used as protection, while the others do not yet know. The scene stops on her closed mouth, before anyone else reacts.",
+"staging": "Place and time: cold dawn, continuous with the previous scene's slackened reins. The action stays inside the narrow bend just past the outpost's rear entrance and ends in ch-5-p-28. Do not show the next turn being reached, and do not advance time.\n\nFixed geography. The wet rock wall is on the wagon's left. On the right, a few grass tufts, then crumbling edge soil, then a slope into the misty valley. Keep this orientation in every panel and never mirror it. The earth mound above the wall is rounded, mostly earth rather than grass, and clearly more than twice a person's height up, out of reach. The entrance-side turn, where the chain was, lies behind the wagon. The next turn lies ahead.\n\nWidth rule, the fix for the blocking finding. At the pinch the passage fits the wagon plus at most one person beside it. That one person can only be on the left, in the wall-side gap. Once the right wheel is on the edge soil, nobody can stand outboard of the right wheel, because there is no ground there. The source does not say where the wagoner is when he gasps. Place him behind the wagon, as an inference. The source does not place Maren in this excerpt; if she is shown, she stands behind the wagon, or she is the single person in the wall-side gap. Never show two people flanking the wagon at the pinch. Lia walks behind the wagon, as set in the previous scene. Doyun sits on the driver's seat with the horse ahead of him.\n\nDeer. They come from behind the wagon, from the entrance side, and fill the strip between the outpost and the wagon in single file, because the strip is too narrow for them to go abreast. Their backs are as high as the wagon sideboard, and their antlers are tall and branch in every direction, scraping the wall. They graze wall moss and do not look at the people. Nothing in the source says the deer touch the wagon, charge, or corner anyone. Lia is between the deer and the wagon, facing back toward them. Her exact distance from the nearest deer is not stated; keep a readable gap and no contact.\n\nVisual load. Beat-1 and beat-4 each contain several physical steps. Show the payoff state of each and let the transit steps be implied. The reader needs to see: the wheel on the crumbling lip with the falling clod; the empty, unmarked ground ahead with Doyun's lowered shoulders and Lia's exhale; Bori's dropped meat; Lia looking back at the first grazing deer; the file of deer filling the way back; and Lia's closed mouth. No panel should carry more than two text items. Beat-6 has three texts, so it may be spread across two moments. text-5 is Lia's unspoken thought and should be lettered as a thought or inner-voice element, never as a speech balloon, because she says nothing aloud. All other texts are tail-less narration captions. Bori has no lettering. The wagoner's gasp is facial only. No sound-effect lettering is requested, because the source contains no onomatopoeia.\n\nContinuity and identity. Lia keeps her right wrist folded inside her sleeve and uses only her left hand. Doyun has an empty belt loop, and no rope appears anywhere on him or on the wagon. If Maren appears, she keeps her dark red-brown curly hair, round face and gloves. The wagoner is a separate, plain, unnamed adult who does not resemble Maren. Bori is small, cream-furred, with round ears and a dark brown tail tip. The horse from the previous scene remains. Panel count, sizes, cameras and composition are the artist's choice. Prefer fewer, larger, legible panels in a vertical reading order.",
+"uncertainties": [
+"The wagoner's position when he gasps (ch-5-p-23) is not stated. Placing him behind the wagon is an inference forced by the width in ch-5-p-22 and by the right wheel resting on the edge soil. It is not a source fact.",
+"Maren is not mentioned anywhere in ch-5-p-22 to ch-5-p-28. Whether and where she appears is open, within the width rule in the staging.",
+"Lia being behind the wagon is carried over from the previous scene (ch-5-p-15). The excerpt itself does not restate her position.",
+"The lip that the wheel gets over in ch-5-p-23 is not described. It may be a ridge of rock, a step in the soil or the edge itself. Do not invent its shape beyond a small raised edge.",
+"Why Doyun turned the wheels outward (ch-5-p-23) is not stated. Do not add a wall bulge, a rock or other reason that the source does not give.",
+"Bori drops the meat in ch-5-p-25 before the stone sound in ch-5-p-26, and the source gives no cause. Do not show sparks, raised fur, a tail around the neck or any other sensing cue that would explain it.",
+"The count in ch-5-p-28 is four, but ch-5-p-26 names only three deer arriving. ch-5-p-27 says the deer keep filling the strip one by one, which allows a fourth. The count most likely refers to the deer, but that is an inference.",
+"The damp mark on the sideboard in ch-5-p-28 is a recollection. Its origin, number and exact location are not given in this excerpt. Its link to the deer's back height (ch-5-p-26) is implied by juxtaposition, not stated. If it is drawn at all, show only a plain damp smudge, with no count and no cause.",
+"The chain side in ch-5-p-27 is not given any mechanics or exact position. Do not draw the chain or how it works; show only that the deer come from the entrance side.",
+"The cause of the rolling stones in ch-5-p-26 is not stated. Do not draw a deer dislodging them.",
+"The direction describes the mound as grassy, but ch-5-p-22 says it is a rounded earth mound, and places the grass tufts on the valley side. Follow the source.",
+"The source does not say how the others react to the deer after ch-5-p-28, or whether they have noticed. Do not show them turning, reacting or being told. Whether they are shown at all in the last moment is the artist's choice.",
+"This brief was reviewed only on the same host that generated it, so the review is not independent."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-5-p-24",
+"kind": "caption",
+"speaker": "narrator",
+"text": "장부의 줄이 맞았던 것처럼."
+},
+{
+"id": "text-2",
+"sourceId": "ch-5-p-25",
+"kind": "caption",
+"speaker": "narrator",
+"text": "보리가 고기를 떨어뜨렸다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-5-p-26",
+"kind": "caption",
+"speaker": "narrator",
+"text": "뒤에서 돌 구르는 소리가 났다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-5-p-26",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그 뒤로 한 마리가 더 들어왔다. 그 뒤로 또 한 마리."
+},
+{
+"id": "text-5",
+"sourceId": "ch-5-p-28",
+"kind": "thought",
+"speaker": "c1",
+"text": "넷."
+},
+{
+"id": "text-6",
+"sourceId": "ch-5-p-28",
+"kind": "caption",
+"speaker": "narrator",
+"text": "옆판의 축축한 자국이 떠올랐다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-5-p-28",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아는 그 수를 혀 밑에 눌렀다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-5-p-22",
+"ch-5-p-23"
+],
+"action": "The pinch and how it is solved. The reader must see the geography that makes the move dangerous: the wall on the left, the drop on the right, room for barely one person beside the wagon, and the earth mound out of reach above. The payoff instant is the right wheel riding the crumbling edge while a clod tumbles down the slope, and the wheel getting over. The wagoner's gasp is shown on his face, not lettered. Calming the horse, backing and turning the wheels are setup and may be implied.",
+"textIds": []
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-5-p-24"
+],
+"action": "Relief. Past the pinch, empty wet soil with no footprints runs to the next turn. On the seat, Doyun's shoulders drop slightly. Behind the wagon, Lia exhales. The caption ties her relief to the ledger line she wrote. This is the scene's high point, and it should read as quiet, not as celebration.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-5-p-25"
+],
+"action": "A small break in the relief. Bori, on the bag at Lia's waist, lets the dried meat fall. The cause is not shown or implied. There is no sound yet, no sparks and no fear pose. It is simply the first thing out of place.",
+"textIds": [
+"text-2"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-5-p-26"
+],
+"action": "The stones roll behind them. The payoff instant is Lia looking back at the entrance-side turn, where a huge deer, as tall at the back as the sideboard, grazes moss off the wet wall. Its many-branched antlers scrape the stone and it ignores the people. Do not draw the deer kicking stones; the source gives no cause for the sound.",
+"textIds": [
+"text-3"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-5-p-26",
+"ch-5-p-27"
+],
+"action": "The file of deer. More deer come in single file from the chain side and fill the narrow strip between the outpost and the wagon, noses to the wall. The change is that the way back is now occupied. The deer are calm, and the threat lies in their mass and their position, not in aggression.",
+"textIds": [
+"text-4"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-5-p-28"
+],
+"action": "Lia counts, remembers the damp mark on the sideboard, and keeps the number to herself. The payoff is her closed mouth with the deer behind her, while nobody else is told. The scene ends here, before any other character reacts.",
+"textIds": [
+"text-5",
+"text-6",
+"text-7"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-5-p-22"
+],
+"statement": "Inside the entrance, the bend turns once and then curves around along the wall. The left side is a wet rock wall. On the right side, past a few tufts of grass, a slope drops into the valley."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-5-p-22"
+],
+"statement": "The passage is barely wide enough for one wagon with one person squeezed beside it. Above the wall is a rounded earth mound, but it is more than twice a person's height up."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-5-p-23"
+],
+"statement": "Doyun calmed the horse, backed the wagon half a wheel-turn, and then turned the wheels outward. When the right wheel pressed the edge soil, a clod broke away and rolled down the slope. The wagoner drew in a breath. The wheel got over the lip."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-5-p-24"
+],
+"statement": "The way ahead was empty. Wet soil without a single footprint ran on to the next turn. Doyun's shoulders lowered slightly, and Lia also let out her breath, as if the line in the ledger had been right (text-1)."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-5-p-25"
+],
+"statement": "Bori dropped the meat (text-2). The source gives no cause, and this happens before the sound of the stones."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-5-p-26"
+],
+"statement": "A sound of rolling stones came from behind (text-3). Lia looked back. A deer stood at the entrance-side turn. Its back was as high as the wagon's sideboard, and its antlers, branching in every direction, scraped the wall."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-5-p-26"
+],
+"statement": "The deer did not look at the people. It put its nose to the wall and tore off moss. Another deer came in behind it, and then another behind that one (text-4)."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-5-p-27"
+],
+"statement": "The deer came from the side where the chain had been. One by one they filled the narrow strip of soil between the outpost and the wagon, pressing forward."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-5-p-28"
+],
+"statement": "The count is four (text-5). The damp mark on the sideboard came back to Lia's mind (text-6). She pressed the number under her tongue and did not say it aloud (text-7)."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink, cold misty dawn; wet rock wall on wagon's left, valley drop right; Lia's right wrist stays folded in sleeve; Korean lettering verbatim.",
+"moments": [
+{
+"sourceIds": [
+"ch-5-p-22",
+"ch-5-p-23"
+],
+"action": "Narrow bend, earth mound high above the wall: with Doyun driving, the wagon's right wheel crests the crumbling edge soil, a clod tumbling down the slope; the wagoner behind the wagon gasps.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-24"
+],
+"action": "Past the pinch, empty wet soil without a single footprint runs to the next turn; on the seat Doyun's shoulders ease down, and Lia, walking behind the wagon, lets out her breath.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-25"
+],
+"action": "Bori, perched on the bag at Lia's waist, lets its piece of dried meat fall toward the wet ground.",
+"textIds": [
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-26"
+],
+"action": "Lia looks back toward the entrance-side turn, where a huge deer, back level with the wagon's sideboard, grazes moss off the wet wall, its many-branched antlers scraping stone, ignoring the people.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-26",
+"ch-5-p-27"
+],
+"action": "A second and third antlered deer calmly file in behind the first from the entrance side, single file along the wall, filling the narrow strip of ground between the outpost and the wagon.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-27",
+"ch-5-p-28"
+],
+"action": "A fourth deer joins the grazing file; Lia, standing between the deer and the wagon, watches them with a fixed, counting gaze.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-28"
+],
+"action": "Lia keeps her lips pressed shut, the calm file of grazing deer filling the way back behind her.",
+"textIds": [
+"text-7"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Doyun keeps the dark green hooded coat and black hair from s2, Lia the chestnut bob and sand jacket with brown bag, the driver the cap and dark soiled coat, Bori the cream fur and dark-tipped tail."
+},
+"setting": {
+"passed": true,
+"evidence": "Same narrow bend as s2 panel 7: rock wall on the left, drop to the misty valley on the right, dawn sky; the wagon and horse are the same."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s2 ended with the reins going slack before the wheels turned; s3 opens on the wagon moving through the pinch with the right wheel on the crumbling edge, the next event."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "장부의 줄이 맞았던 것처럼.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 caption box; exact text."
+},
+{
+"id": "text-2",
+"observedText": "보리가 고기를 떨어뜨렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 caption box; exact text."
+},
+{
+"id": "text-3",
+"observedText": "뒤에서 돌 구르는 소리가 났다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 caption box; exact text."
+},
+{
+"id": "text-4",
+"observedText": "그 뒤로 한 마리가 더 들어왔다. 그 뒤로 또 한 마리.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 caption box; exact text."
+},
+{
+"id": "text-5",
+"observedText": "넷.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 thought bubble with trailing circles toward Lia's head; exact text."
+},
+{
+"id": "text-6",
+"observedText": "옆판의 축축한 자국이 떠올랐다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 caption box; exact text."
+},
+{
+"id": "text-7",
+"observedText": "리아는 그 수를 혀 밑에 눌렀다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 caption box beside Lia's closed mouth; exact text."
+}
+],
+"evidence": "Seven panels. Row 1 wide: the driver bracing on the cargo, Doyun driving, the right wheel on the edge with a clod tumbling down the slope. Row 2 wide: Lia exhaling behind the wagon, the empty wet track ahead to the next turn. Row 3: Bori at the bag with the meat falling; Lia looking back as an antlered deer grazes moss on the wall. Row 4 wide: deer filing in along the wall behind the wagon's tailboard. Row 5: Lia beside the file of deer with the thought bubble; close-up of her pressed lips with deer filling the way back. Wall and drop sides stay consistent.",
+"observedPanelCount": 7
+}
+},
+{
+"id": "s4",
+"n": 4,
+"title": "기우는 수레, 청록빛 방패",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-5-p-29",
+"n": 29,
+"text": "\"뒤가 찼어요.\""
+},
+{
+"id": "ch-5-p-30",
+"n": 30,
+"text": "수레꾼의 목소리가 갈라졌다. 도윤이 고개를 돌렸다. 회색 눈이 사슴들의 머리 수를 세다가 멈췄다. 뒤로 뺄 길이 없었다. 앞으로 가려면 다음 꺾임을 돌아야 하는데, 그곳은 여기보다 더 좁았다."
+},
+{
+"id": "ch-5-p-31",
+"n": 31,
+"text": "맨 앞의 사슴이 짐칸 꽁무니에 옆구리를 비볐다. 밀려는 게 아니라 지나가려는 것처럼. 수레가 기울었다. 오른쪽 뒷바퀴가 가장자리를 벗어나 허공을 반쯤 밟았다. 짐칸 맨 뒤의 자루가 미끄러졌다. 도윤이 새벽에 얹은 그 자루였다."
+},
+{
+"id": "ch-5-p-32",
+"n": 32,
+"text": "마렌이 손을 뻗었지만 끈 끝만 스쳤다. 자루는 비탈을 두 번 튀고 바위에 부딪혀 터졌다. 흰 곡식이 부채꼴로 흩어지며 아래로 흘러내렸다."
+},
+{
+"id": "ch-5-p-33",
+"n": 33,
+"text": "\"하나……\""
+},
+{
+"id": "ch-5-p-34",
+"n": 34,
+"text": "마렌의 입술이 다음 수를 세다 멈췄다."
+},
+{
+"id": "ch-5-p-35",
+"n": 35,
+"text": "수레가 한 뼘 더 기울었다. 수레꾼의 다리가 바퀴와 비탈 가장자리 사이에 끼어 있었다. 둘째 사슴이 앞으로 밀리며 머리를 틀었다. 벌어진 뿔끝이 수레꾼의 무릎 쪽으로 내려왔다."
+},
+{
+"id": "ch-5-p-36",
+"n": 36,
+"text": "리아의 왼손이 먼저 나갔다. 손바닥 앞에 청록빛이 접시만 하게 열렸다. 비스듬히 세운 방패를 뿔끝이 긁고 지나 벽 쪽으로 꺾였다. 바위 가루가 떨어졌다. 왼손목이 뒤로 젖혀졌다. 소매 속 오른손목까지 저릿하게 울렸다."
+},
+{
+"id": "ch-5-p-37",
+"n": 37,
+"text": "사슴이 놀라 한 걸음 물러섰다. 뒤쪽에 틈이 났다. 수레 꽁무니와 사슴 가슴 사이, 바퀴 하나가 겨우 지나갈 만한 틈이었다."
+},
+{
+"id": "ch-5-p-38",
+"n": 38,
+"text": "리아는 그 틈을 보았다. 방패를 바퀴 밑에 기울여 넣고 수레를 뒤로 밀면 짐칸 하나쯤은 입구 쪽으로 돌려낼 수 있을지도 몰랐다. 짐의 순서가 머릿속에서 저절로 다시 섰다. 저 자루를 먼저, 그다음은—"
+}
+],
+"pFrom": 29,
+"pTo": 38,
+"panelCount": 8,
+"image": "img/ep05-s4.webp",
+"blocking": 2,
+"advisory": 2,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸 자막: “얹은”이 “없은”으로 한 글자 변형. ‘도윤이 새벽에 얹은 자루’라는 뜻이 사라짐.",
+"en": "Panel 2 caption (text-4) renders 얹은 as 없은. The line identifies the lost sack as the one Doyun loaded at dawn, and the typo removes that meaning."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: 사슴 떼가 말 앞, 앞으로 갈 길 위에 서 있음. 원문은 뒤가 막히고 앞은 비었지만 더 좁은 길. 함정의 공간 관계가 뒤집힘.",
+"en": "Panel 1 puts the deer file ahead of the horse on the road the wagon still has to take. The source and beat-1 have the rear filled and the way forward empty but narrower, so the trap's geography is reversed."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: “하나……” 뒤에 마침표가 하나 더 붙음.",
+"en": "Panel 4: text-5 has an extra period after the ellipsis (하나…….)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 방패가 접시만 한 원형이 아니라 큰 부채꼴. 왼손으로 펼친 것인지, 오른손목이 소매 안인지 불분명.",
+"en": "Panel 6: the shield is a large fan-shaped sheet, not a plate-sized disc, and the image does not clearly show the left hand as the casting hand with the right wrist inside the sleeve; the extended forearm's sleeve is rolled up."
+}
+],
+"textsTotal": 8,
+"textsOk": 8,
+"timings": {
+"planS": [
+104
+],
+"preflightS": [
+78
+],
+"imageS": 43,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1318,
+"plan": {
+"intent": "The reader should feel the space close in. The last scene ended on Lia's silence. This scene makes the cost of that silence physical, and no one gets to discuss it first. The rear is full of deer, and Doyun's count stops. There is no way back, and the only way forward is narrower. Then a calm animal just trying to squeeze past tips the wagon. The sack Doyun loaded at dawn goes over the edge and bursts into a fan of white grain. Maren's hand misses it by a cord's end, and her habit of counting losses stops at one. The danger then shifts from cargo to a person: the unnamed wagoner's leg is pinned at the edge while a second deer's antler tips come down toward his knee. Lia acts first, with her left hand only. The small teal shield turns the antler into the wall, and the reader should feel the strain run up both wrists, including the one hidden in her sleeve that nobody else can see. Her action opens a gap the width of one wheel. Lia sees it before anyone else and starts building a plan alone, ordering the cargo in her head. The scene cuts off mid-thought, before she speaks, acts or tells anyone. Relief should never arrive. The deer are never villains; they are a mass in a narrow place.",
+"staging": "Place and time. The scene continues directly from the previous one in the same narrow bend at cold dawn. The next turn ahead is referred to only in a caption. It is never reached or shown up close, and time does not move forward.\n\nFixed orientation. From the wagon's direction of travel, the wet rock wall is on the left. On the right are a few grass tufts, then crumbling edge soil, then the slope into the misty valley. Keep this orientation in every panel and never mirror it. The entrance side, where the deer come from, is behind the wagon. Doyun sits on the driver's seat with the horse ahead of him.\n\nWidth rule, carried over from the previous scene. The passage fits the wagon plus at most one person beside it, and only on the wall side. Once the right rear wheel is half over air, no one can stand outboard of it. Maren, the wagoner and Lia must be placed behind the wagon or in the wall-side gap. Never place them on air or on the valley side of the right wheels.\n\nNecessary contacts and reach. The lead deer's flank touches the rear of the cargo bed. The falling sack leaves from the rear of the cargo bed and goes down the valley slope. Maren is close enough to the rear of the cargo bed that her fingers brush the sack's cord. The wagoner's leg is between a wheel and the slope edge. The second deer's antler tips come down toward his knee. Lia is within arm's reach of that antler, because the shield forms directly in front of her left palm and is plate-sized, not a wall. The deflection carries the antler toward the rock wall, not toward the valley. After the deer steps back, the gap is between the wagon's rear and the deer's chest, about the width of one wheel.\n\nShield. It is teal, small, angled and held in front of the left palm. It turns the antler; it does not push the deer back or strike it. The deer's step back comes from being startled. Keep the glow restrained.\n\nLettering. Captions have no tails. text-5 is a quiet dialogue balloon for Maren, trailing off. text-8 is Lia's unspoken thought and must be lettered as a thought element, not a speech balloon. Keep the trailing dash, and place it last, with nothing after it. No panel carries more than two text items. No sound-effect lettering, because the source contains no onomatopoeia. Do not letter the line from ch-5-p-29, and do not add any placeholder balloon or exclamation mark for the wagoner. The previous scene's review flagged exactly that kind of invented balloon.\n\nContinuity and identity. Lia has dark chestnut hair, amber eyes and faint freckles. Her right wrist stays folded inside her sleeve, and only her left hand acts. Doyun has black hair, grey eyes and a small break in his left eyebrow. His belt loop is empty, and there is no rope on him or on the wagon. Maren has dark red-brown curly hair, a round face and gloves. The wagoner is a separate, plain, unnamed adult who does not resemble Maren. The deer have backs as high as the wagon's sideboard and tall antlers branching in every direction. They look calm and crowded, not aggressive. The horse is still present. Bori does not appear in the source; if the marten is visible, it stays passive, with no new reaction or sensing cue.\n\nThe artist chooses panel count, sizes, cameras and a natural vertical reading layout. Prefer fewer, larger, clearly legible panels.",
+"uncertainties": [
+"The line in ch-5-p-29 is attributed to the wagoner only by juxtaposition with ch-5-p-30. The wagoner has no foundation id, and the host's speaker rule allows only foundation ids or narrator. Assigning the line to Maren (c4) or to the narrator would falsify who spoke, so it is left unlettered. Beat-1 carries the same information through text-1 and the image.",
+"The wagoner is treated as a person separate from Maren, carrying over the previous scene's reading. The excerpt names both a wagoner and Maren in different units, but it does not explicitly say they are different people.",
+"The exact positions of Maren, the wagoner and Lia are not stated. Only the reach relations in the staging follow from the source. Everything else is an inference constrained by the width rule.",
+"The source does not say which wheel pins the wagoner's leg in ch-5-p-35. The right rear wheel at the edge is plausible, but it is not confirmed.",
+"The source says the wagon tilted, and that the right rear wheel left the edge (ch-5-p-31). It gives no tilt angle and does not say the wagon will fall. Do not show the wagon going over.",
+"The number Doyun counts in ch-5-p-30 is not given. The previous scene's thought of four belongs to Lia. It is not Doyun's count, and the source does not confirm it as the current number.",
+"Where the lead deer goes after it rubs the wagon (ch-5-p-31) is not stated. Do not show it passing the wagon or reaching the front.",
+"The deer that steps back in ch-5-p-37 is most likely the second deer from ch-5-p-35, whose antler was deflected. That is an inference.",
+"Doyun has no action after counting in ch-5-p-30. Do not show him drawing his sword, climbing down or speaking.",
+"In ch-5-p-38 it is not clear which sack Lia means by the sack she would move first. The sack that fell has already burst, so she means some other sack still on the wagon. It is also unclear whether 'one cargo bed' implies the wagon has more than one bed. Do not draw a second cargo bed or single out a specific sack.",
+"Lia's idea of setting the shield under a wheel (ch-5-p-38) is her own tentative guess, and the text marks it with 'might'. Nothing in the world facts confirms that a shield can bear a wagon's weight. Do not depict it as working or as happening.",
+"How the others react to the shield, and whether anyone notices Lia's wrist, is not stated. Do not show the others reacting.",
+"Bori is not mentioned in ch-5-p-29 to ch-5-p-38. Whether the marten appears at all is the artist's choice. It has no action.",
+"This brief was produced and checked only on the same host that will review it, so that review is not independent."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-5-p-30",
+"kind": "caption",
+"speaker": "narrator",
+"text": "뒤로 뺄 길이 없었다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-5-p-30",
+"kind": "caption",
+"speaker": "narrator",
+"text": "앞으로 가려면 다음 꺾임을 돌아야 하는데, 그곳은 여기보다 더 좁았다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-5-p-31",
+"kind": "caption",
+"speaker": "narrator",
+"text": "밀려는 게 아니라 지나가려는 것처럼."
+},
+{
+"id": "text-4",
+"sourceId": "ch-5-p-31",
+"kind": "caption",
+"speaker": "narrator",
+"text": "도윤이 새벽에 얹은 그 자루였다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-5-p-33",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "하나……"
+},
+{
+"id": "text-6",
+"sourceId": "ch-5-p-36",
+"kind": "caption",
+"speaker": "narrator",
+"text": "소매 속 오른손목까지 저릿하게 울렸다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-5-p-37",
+"kind": "caption",
+"speaker": "narrator",
+"text": "바퀴 하나가 겨우 지나갈 만한 틈이었다."
+},
+{
+"id": "text-8",
+"sourceId": "ch-5-p-38",
+"kind": "thought",
+"speaker": "c1",
+"text": "저 자루를 먼저, 그다음은—"
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-5-p-29",
+"ch-5-p-30"
+],
+"action": "The trap closes. A warning comes from the rear, and Doyun turns on the driver's seat. His count of the deer stops. The change is that both directions are now closed: the rear is filled with deer, and the only way forward is a turn narrower than this one. The warning line from ch-5-p-29 is not lettered (see uncertainties). Do not add any balloon, exclamation mark or invented word in its place.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-5-p-31"
+],
+"action": "The lead deer squeezes along the rear of the cargo bed. The rub reads as an animal trying to get past, not a shove. The wagon tilts, the right rear wheel is left half over air, and the rearmost sack starts to slide. The caption names whose sack it is.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-5-p-32"
+],
+"action": "The loss. Maren's gloved hand reaches out, but her fingers only graze the end of the cord. The sack bounces twice down the slope, strikes a rock and bursts. White grain fans out and streams toward the misty valley. The key moment is the fan of grain.",
+"textIds": []
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-5-p-33",
+"ch-5-p-34"
+],
+"action": "Maren starts counting what is lost. She says one, and her lips freeze on the next number. Her counting stops because the danger is still moving, not because she runs out of things to count.",
+"textIds": [
+"text-5"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-5-p-35"
+],
+"action": "The danger moves from cargo to a person. The wagon sinks another hand-span. The wagoner's leg is pinned between a wheel and the edge of the slope. The second deer, pushed from behind, twists its head, and its spread antler tips come down toward his knee. The deer is being crowded, not attacking.",
+"textIds": []
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-5-p-36"
+],
+"action": "Lia acts before anyone else, using only her left hand. A small, angled teal shield about the size of a plate appears in front of her palm. The antler tip scrapes across it and is turned into the rock wall, knocking loose rock dust. The cost is shown on her body: her left wrist bends back, and her right wrist, hidden in her sleeve, takes the jolt. The glow stays small, because it only redirects the antler.",
+"textIds": [
+"text-6"
+]
+},
+{
+"id": "beat-7",
+"sourceIds": [
+"ch-5-p-37"
+],
+"action": "The startled deer takes one step back. A narrow gap opens between the wagon's rear and the deer's chest. It is barely the width of one wheel, and it is the only new space in the scene.",
+"textIds": [
+"text-7"
+]
+},
+{
+"id": "beat-8",
+"sourceIds": [
+"ch-5-p-38"
+],
+"action": "Lia sees the gap before anyone else does, and she starts planning without telling anyone. She imagines angling the shield under a wheel, pushing the wagon back and turning a cargo bed out toward the entrance. She is already reordering the cargo in her head. Her thought breaks off with a dash. The scene ends here, before she speaks, moves, or anyone else reacts. Do not show the plan being carried out.",
+"textIds": [
+"text-8"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-5-p-29",
+"ch-5-p-30"
+],
+"statement": "A short spoken line reports that the rear is full. The next unit says the wagoner's voice cracked, which makes the wagoner the most likely speaker. The wagoner is unnamed and has no foundation id."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-5-p-30"
+],
+"statement": "Doyun turned his head. His grey eyes counted the deer's heads and then stopped. The source does not give the number."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-5-p-30"
+],
+"statement": "There was no way to back out (text-1). Going forward meant rounding the next turn, which is narrower than the current spot (text-2)."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-5-p-31"
+],
+"statement": "The lead deer rubbed its flank against the rear end of the cargo bed. It looked as if it was trying to pass, not to push (text-3)."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-5-p-31"
+],
+"statement": "The wagon tilted. Its right rear wheel left the edge and half of it stood over empty air."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-5-p-31"
+],
+"statement": "The rearmost sack on the cargo bed slid. It was the sack Doyun had loaded at dawn (text-4)."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-5-p-32"
+],
+"statement": "Maren reached for the sack, but her hand only brushed the end of its cord."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-5-p-32"
+],
+"statement": "The sack bounced twice on the slope, hit a rock and burst. White grain scattered in a fan shape and flowed down the slope."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-5-p-33",
+"ch-5-p-34"
+],
+"statement": "Maren's lips said one (text-5) and stopped before the next number."
+},
+{
+"id": "fact-10",
+"sourceIds": [
+"ch-5-p-35"
+],
+"statement": "The wagon tilted one more hand-span. The wagoner's leg was caught between a wheel and the edge of the slope. The source does not say which wheel."
+},
+{
+"id": "fact-11",
+"sourceIds": [
+"ch-5-p-35"
+],
+"statement": "The second deer was pushed forward and twisted its head. Its spread antler tips came down toward the wagoner's knee."
+},
+{
+"id": "fact-12",
+"sourceIds": [
+"ch-5-p-36"
+],
+"statement": "Lia's left hand moved first. A teal light, about the size of a plate, opened in front of her palm as an angled shield."
+},
+{
+"id": "fact-13",
+"sourceIds": [
+"ch-5-p-36"
+],
+"statement": "The antler tip scraped across the shield and was turned toward the wall. Rock dust fell. Lia's left wrist was bent back, and the jolt reached her right wrist inside her sleeve (text-6)."
+},
+{
+"id": "fact-14",
+"sourceIds": [
+"ch-5-p-37"
+],
+"statement": "The deer was startled and took one step back. This opened a gap between the rear of the wagon and the deer's chest, barely wide enough for one wheel to pass (text-7)."
+},
+{
+"id": "fact-15",
+"sourceIds": [
+"ch-5-p-38"
+],
+"statement": "Lia saw the gap. She thought that if she angled the shield under a wheel and pushed the wagon back, she might be able to turn out one cargo bed toward the entrance. This is her uncertain idea, not an action taken."
+},
+{
+"id": "fact-16",
+"sourceIds": [
+"ch-5-p-38"
+],
+"statement": "The order of the cargo rearranged itself in Lia's head. Her thought breaks off partway (text-8)."
+}
+]
+},
+"brief": {
+"style": "Finished full-color fantasy webtoon, expressive ink lines, cold misty dawn light in a narrow mountain bend; adult cast, calm massive antlered deer; Korean lettering verbatim inside panels.",
+"moments": [
+{
+"sourceIds": [
+"ch-5-p-29",
+"ch-5-p-30"
+],
+"action": "Doyun on the driver's seat turns his head back, grey eyes fixed on calm antlered deer filling the narrow way behind the wagon; wet rock wall on the wagon's left, misty drop right.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-31"
+],
+"action": "The lead deer rubs its flank along the rear of the cargo bed; the wagon tilts, right rear wheel half over the drop, and the rearmost sack slides from the back.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-32"
+],
+"action": "Below the wagon, the burst sack lies against a rock as white grain fans out and streams down the slope; above, Maren's gloved hand is still outstretched, empty.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-33",
+"ch-5-p-34"
+],
+"action": "Maren at the wagon's rear stares down the slope, lips parted and frozen mid-count.",
+"textIds": [
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-35"
+],
+"action": "The wagon sinks lower; the wagoner's leg is caught between a wheel and the slope edge as the crowded second deer twists its head, spread antler tips lowering toward his knee.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-36"
+],
+"action": "A small, plate-sized teal shield angled in front of Lia's left palm turns the antler tip toward the rock wall; rock dust falls, her left wrist bent back, right wrist hidden in sleeve.",
+"textIds": [
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-37"
+],
+"action": "The startled deer has stepped back one pace, leaving a narrow gap, barely one wheel wide, between the wagon's rear and its chest.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-38"
+],
+"action": "Lia's eyes fix on the narrow one-wheel gap behind the wagon, lips closed, already calculating.",
+"textIds": [
+"text-8"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Doyun keeps the green hooded coat and black hair, Lia the chestnut bob and sand jacket, Maren the curly red-brown hair, brick vest and gloves; the antlered deer match the s3 deer."
+},
+"setting": {
+"passed": true,
+"evidence": "Same wet rock wall, misty valley drop and rocky slope as s3; dawn light is unchanged."
+},
+"actionTransition": {
+"passed": false,
+"evidence": "s3 ended with the deer filing in behind the wagon from the entrance side while the way ahead was empty. Panel 1 here shows the file of deer beyond the horse's head, on the road ahead of the wagon, so the image reverses where the deer are."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "뒤로 뺄 길이 없었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 upper caption box; exact text."
+},
+{
+"id": "text-2",
+"observedText": "앞으로 가려면 다음 꺾임을 돌아야 하는데, 그곳은 여기보다 더 좁았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 lower caption box; exact text."
+},
+{
+"id": "text-3",
+"observedText": "밀려는 게 아니라 지나가려는 것처럼.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 upper caption box; exact text."
+},
+{
+"id": "text-4",
+"observedText": "도윤이 새벽에 없은 그 자루였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 lower caption box; 얹은 is rendered as 없은, which changes 'the sack Doyun loaded' into a non-word that reads as 'did not have'."
+},
+{
+"id": "text-5",
+"observedText": "하나…….",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 balloon with its tail to Maren; an extra period follows the ellipsis."
+},
+{
+"id": "text-6",
+"observedText": "소매 속 오른손목까지 저릿하게 울렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 caption box; exact text."
+},
+{
+"id": "text-7",
+"observedText": "바퀴 하나가 겨우 지나갈 만한 틈이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 caption box; exact text."
+},
+{
+"id": "text-8",
+"observedText": "저 자루를 먼저, 그다음은—",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 8 thought bubble with circles to Lia; exact text."
+}
+],
+"evidence": "Eight panels. Row 1 wide: Doyun looking back from the seat while a file of antlered deer stands on the road beyond the horse. Row 2: a deer's head at the tilted cargo bed as a sack slides out spilling grain; the burst sack on the rocks with grain streaming and an empty gloved hand above. Row 3: Maren reaching out with the balloon; a boot pinned beside the wheel as a deer lowers its antlers. Row 4: Lia with a fan-shaped teal shield turning an antler into the wall and rock chips flying; a deer one pace back leaving a narrow gap beside the wheel; close-up of Lia calculating with the thought bubble.",
+"observedPanelCount": 8
+}
+},
+{
+"id": "s5",
+"n": 5,
+"title": "짐은 두고 사람만",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-5-p-39",
+"n": 39,
+"text": "도윤이 고삐를 놓았다."
+},
+{
+"id": "ch-5-p-40",
+"n": 40,
+"text": "감겨 있던 가죽이 손에서 풀려 몰이 자리 위에 떨어졌다. 그는 뒤로 뛰어내려 짐칸 뒤판을 들어 올렸다. 쇠고리가 걸리는 소리가 짧게 났다. 기울어진 짐칸 안에서 자루들이 판에 막혀 멈췄다. 그는 어느 자루도 고르지 않았다."
+},
+{
+"id": "ch-5-p-41",
+"n": 41,
+"text": "\"판 걸었어. 짐은 두고, 사람만 위로 가.\""
+},
+{
+"id": "ch-5-p-42",
+"n": 42,
+"text": "리아의 눈에 그의 손이 보였다. 판을 건 손이 허리의 빈 고리 쪽으로 가다가 멈췄다. 던질 줄이 없었다."
+},
+{
+"id": "ch-5-p-43",
+"n": 43,
+"text": "\"위로요? 저 높이를 어떻게—\""
+},
+{
+"id": "ch-5-p-44",
+"n": 44,
+"text": "마렌이 말하는 사이 수레꾼이 벽을 더듬었다. 흙 묻은 손바닥이 바위를 쓸다가 한 자리에 멈췄다."
+},
+{
+"id": "ch-5-p-45",
+"n": 45,
+"text": "\"여기 홈이 있어요. 밤에 기대 있다가 손에 걸렸어요. 위로 몇 개 더 있고요.\""
+},
+{
+"id": "ch-5-p-46",
+"n": 46,
+"text": "바위에 손바닥 폭만 한 홈이 비스듬히 줄지어 파여 있었다. 오래전 누군가 짐을 지고 오르내리던 자리였다. 도윤이 그것을 한 번 보고 수레꾼의 팔을 잡았다."
+},
+{
+"id": "ch-5-p-47",
+"n": 47,
+"text": "\"먼저 올라가세요. 다리부터 빼고.\""
+},
+{
+"id": "ch-5-p-48",
+"n": 48,
+"text": "수레꾼이 바퀴 사이에서 다리를 빼내 첫 홈에 발을 걸었다. 마렌은 아직 기운 짐칸의 자루 하나를 두 팔로 받치고 있었다. 벽 쪽으로 쓸려 오는 밀가루 자루였다."
+},
+{
+"id": "ch-5-p-49",
+"n": 49,
+"text": "\"마렌 씨.\""
+},
+{
+"id": "ch-5-p-50",
+"n": 50,
+"text": "도윤이 이름만 불렀다. 마렌은 자루를 보았다. 장갑 낀 손가락이 끈에서 하나씩 떨어졌다. 자루는 판에 기대어 그대로 멈췄다."
+},
+{
+"id": "ch-5-p-51",
+"n": 51,
+"text": "\"……손부터 쓸게요.\""
+},
+{
+"id": "ch-5-p-52",
+"n": 52,
+"text": "마렌이 벽에 붙었다. 튼튼한 어깨가 홈을 따라 올라갔다."
+}
+],
+"pFrom": 39,
+"pTo": 52,
+"panelCount": 7,
+"image": "img/ep05-s5.webp",
+"blocking": 2,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: “던질 줄이 없었다” 자막이 붙은 바로 그 칸에서 도윤 허리에 밧줄 뭉치가 걸려 있음. 그림이 자막과 정면으로 충돌.",
+"en": "Panel 2 shows coiled rope hanging from Doyun's belt in the very panel captioned 던질 줄이 없었다 (text-3). The beat is that his hand finds an empty loop, so the image contradicts its own caption and the source's lost-rope fact."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "7칸: 도윤의 “마렌 씨.” 말풍선 꼬리가 마렌을 가리켜, 마렌이 자기 이름을 부르는 것처럼 읽힘.",
+"en": "Panel 7: the tail of the 마렌 씨. balloon points to Maren, so Doyun's one-word call reads as Maren saying her own name."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸: “걸었어.”의 마침표가 쉼표로 바뀜.",
+"en": "Panel 1: text-2 renders the period after 걸었어 as a comma."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 리아가 팔짱을 껴 장갑 낀 손이 보임. 오른손목이 소매 안에 있는지 불분명.",
+"en": "Panel 2: Lia's arms are folded with a gloved hand visible; the right wrist inside the sleeve is not clearly shown."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 장갑 낀 손가락이 끈 위에 얹혀 있을 뿐 하나씩 떨어지는 동작이 아님.",
+"en": "Panel 6: the gloved fingers rest on the cord rather than visibly lifting off it one by one."
+}
+],
+"textsTotal": 9,
+"textsOk": 8,
+"timings": {
+"planS": [
+89
+],
+"preflightS": [
+124
+],
+"imageS": 44,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.132,
+"plan": {
+"intent": "The previous scene ended inside Lia's head. She was already ordering the cargo and planning to use her shield under a wheel, and she told no one. This scene overrides that unspoken plan without anyone knowing it existed. Doyun lets go of the reins, jumps down, hooks the tailgate so the sacks stop sliding, and deliberately picks none of them. His decision is people up, cargo stays. Lia is the only one who sees the cost behind it: his hand goes to the empty loop on his belt and stops, because there is no rope to throw. His habit of securing a line first has nothing to grab. Maren objects to the height. At the same moment, the wagoner, the person being rescued, supplies what none of the guides expected. His dirty palm finds a groove he felt during the night, and a diagonal row of old hand-width grooves shows that people once climbed here carrying loads. Doyun looks once and acts. He sends the wagoner up first, and the wagoner frees his own leg and sets his own foot in the first groove. The last beat belongs to Maren. She is still holding a flour sack with both arms, her livelihood and her delivery promise. Doyun says only her name, and she releases the cord finger by finger. The sack stays where it is, resting against the board; it is not lost. She answers, and her strong shoulders start up the wall. The payoff is quiet and physical: one person after another chooses their hands over the cargo. Lia does nothing in this scene except see. Her plan is never spoken or used. The scene ends with Maren partway up the grooves. No one reaches the top, the deer do not move, and no one discusses what happened.",
+"staging": "Place and time. This continues directly from the previous scene. It is the same narrow bend, at the same cold dawn, with no time skip. The wagon has not moved. Only the rock wall and the ground beside the wagon are used. The grassy mound above the wall may be glimpsed as the destination, but no one reaches it in this scene.\n\nFixed orientation, carried over and never mirrored. Facing the wagon's direction of travel, the wet rock wall is on the LEFT. On the RIGHT are grass tufts, the crumbling edge and the drop into the misty valley. The horse is AHEAD of the driver's seat, and the way forward is empty but narrower. The deer are BEHIND the wagon, on the entrance side. The previous review flagged a panel that put the deer ahead of the horse; do not repeat that. The deer stay where the previous scene left them: one step back from the wagon's rear, leaving a gap about one wheel wide. They do not advance, retreat or act in this scene. They are calm and crowded, with backs as high as the wagon's sideboard and tall antlers branching in every direction.\n\nWidth rule, carried over. The passage fits the wagon plus at most one person, and only on the wall side. No one stands on the valley side of the right wheels, which are still partly over air. All climbing happens on the LEFT rock wall.\n\nNecessary contacts and reach. The reins fall onto the driver's seat. Doyun ends up at the rear of the cargo bed, close enough to lift and hook the tailgate; the only rear space is the narrow gap, so keep him close to the wagon. The sacks rest against the hooked tailgate. The wagoner is within arm's reach of the rock wall, with his palm on it, and his leg is still between the wheels until he frees it. The grooves are palm-width and run diagonally upward in a row on the wall. Doyun is close enough to grip the wagoner's arm. Maren is close enough to the cargo bed to hold a sack with both arms. Afterward she moves to the wall and climbs the same grooves. Lia is placed where she can see Doyun's hand and belt, on the wall side or behind, not on air.\n\nProps and identity. Doyun has black hair, grey eyes and a small break in his left eyebrow. His belt loop is visibly EMPTY, and there is no rope anywhere, on him or on the wagon. Maren has dark red-brown curly hair, a round face and GLOVES; her sturdy shoulders matter in the climb. The wagoner is a plain, unnamed adult who does not resemble Maren, with earth-stained hands. Lia has dark chestnut hair, amber eyes and faint freckles. Her right wrist stays folded inside her sleeve, and she does not cast or climb here. There is NO shield light in this scene, because the source has none. Bori is not in the source; if visible, the marten stays passive, with no reaction or sensing cue.\n\nLettering. Copy every Hangul string character for character. The previous scene's review found a one-syllable typo that changed the meaning, and an extra period after an ellipsis. Letter text-4 with its trailing dash and nothing after it. Letter text-9 with its leading ellipsis exactly as given, and no added punctuation. Captions have no tails. text-2, text-7 and text-8 are Doyun's balloons. text-4 and text-9 are Maren's balloons. The wagoner gets NO balloon, placeholder or exclamation mark. No sound-effect lettering, because the source contains no onomatopoeia, including for the iron hook. No panel carries more than two text items.\n\nThe artist chooses panel count, sizes, cameras and a natural vertical reading layout. Prefer fewer, larger, legible panels.",
+"uncertainties": [
+"The wagoner's line in ch-5-p-45 has no valid speaker id. He is not in the foundation, and the host allows only c1 to c4 or narrator. Assigning it to Maren or the narrator would falsify who is speaking, so it is left unlettered. His discovery is carried by his gesture and the captions from ch-5-p-46. This is a loss: the rescued person's own words are the writer-skill payoff, and a future host rule for unnamed speakers would restore it.",
+"The speaker of ch-5-p-41 is inferred as Doyun from adjacency to his action. Its casual register suggests he is addressing peers, possibly Lia, but the addressee is not stated.",
+"The speaker of ch-5-p-51 is inferred as Maren from adjacency to her releasing the sack (ch-5-p-50) and going to the wall (ch-5-p-52). The source does not name her.",
+"The source for ch-5-p-48 says the flour sack was sliding toward the wall, while the previous scene had the right rear wheel over the valley side and the sacks now stop against the rear board. The source does not reconcile these directions. Do not invent a tilt direction or dramatize the slide; just show Maren supporting the sack in the tilted bed.",
+"In ch-5-p-48 the wagoner frees his leg from between the wheels, while the previous scene (ch-5-p-35) had it between a wheel and the slope edge. The exact pin point stays unconfirmed. Show him freeing it at the wagon, near the wall side, without specifying which wheel.",
+"It is not stated whether the tailgate is a new safety measure that fully holds the cargo, or how securely it holds. Show only that the sacks stop against it. Do not show the wagon stabilizing or falling.",
+"Jumping down backward in ch-5-p-40 could mean jumping off the seat facing backward or jumping toward the rear. Either way he ends up able to reach the tailgate. The exact route is open, but it must avoid the valley side.",
+"Why Doyun has no rope is not explained in this excerpt, and it is likely from earlier events. Do not invent a reason or show a lost rope.",
+"The height of the wall and where the grooves end are not stated. The grassy mound above comes from the production direction, not this excerpt. Do not show anyone arriving there.",
+"Lia's reaction to her unspoken plan being overridden is not stated. She only sees Doyun's hand. Do not give her an expression of protest, relief or speech, and do not show her climbing or her turn to climb.",
+"The horse's and the deer's reactions are not mentioned. Keep them static.",
+"Bori is not mentioned in ch-5-p-39 to ch-5-p-52. Whether the marten appears is the artist's choice, and it has no action.",
+"This brief was produced on the same host that will review it, so that review is not independent."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-5-p-40",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그는 어느 자루도 고르지 않았다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-5-p-41",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "판 걸었어. 짐은 두고, 사람만 위로 가."
+},
+{
+"id": "text-3",
+"sourceId": "ch-5-p-42",
+"kind": "caption",
+"speaker": "narrator",
+"text": "던질 줄이 없었다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-5-p-43",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "위로요? 저 높이를 어떻게—"
+},
+{
+"id": "text-5",
+"sourceId": "ch-5-p-46",
+"kind": "caption",
+"speaker": "narrator",
+"text": "바위에 손바닥 폭만 한 홈이 비스듬히 줄지어 파여 있었다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-5-p-46",
+"kind": "caption",
+"speaker": "narrator",
+"text": "오래전 누군가 짐을 지고 오르내리던 자리였다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-5-p-47",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "먼저 올라가세요. 다리부터 빼고."
+},
+{
+"id": "text-8",
+"sourceId": "ch-5-p-49",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "마렌 씨."
+},
+{
+"id": "text-9",
+"sourceId": "ch-5-p-51",
+"kind": "dialogue",
+"speaker": "c4",
+"text": "……손부터 쓸게요."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-5-p-39",
+"ch-5-p-40"
+],
+"action": "Doyun makes his choice with his body. He releases the reins, and the leather drops onto the seat. He jumps down to the rear, lifts the tailgate and hooks it shut. The sliding sacks stop against the board. He has now stopped the loss without saving any particular sack. He takes nothing, and the caption states it. No sound effect for the hook; the source gives no onomatopoeia.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-5-p-41"
+],
+"action": "Doyun states the decision aloud: the board is hooked, the cargo stays, and only the people go up. This openly replaces the cargo-first plan Lia had been forming silently in the previous scene. She never voiced that plan, so no one reacts to it.",
+"textIds": [
+"text-2"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-5-p-42"
+],
+"action": "Filtered through what Lia sees: Doyun's hand, fresh from the hook, goes by habit to the empty belt loop and stops there. His usual first move, securing a line, has nothing to hold. Only Lia notices it, and she does not act on it.",
+"textIds": [
+"text-3"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-5-p-43",
+"ch-5-p-44"
+],
+"action": "Two things happen at the same time. Maren's objection to the height is cut off by its dash. While she is still speaking, the wagoner runs his earth-stained palm along the rock wall, and the palm stops at one spot. The change is that the answer comes from the person being rescued, not from the guides.",
+"textIds": [
+"text-4"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-5-p-45",
+"ch-5-p-46"
+],
+"action": "The wagoner's discovery. His hand on the first groove, and a gesture upward toward the others, carry his information (see uncertainties: his spoken line in ch-5-p-45 is not lettered). The row of old diagonal grooves becomes visible, worn by people who climbed with loads long ago. Doyun looks once, does not deliberate, and grips the wagoner's arm.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-5-p-47",
+"ch-5-p-48"
+],
+"action": "Doyun sends the wagoner first and tells him to free his leg. The wagoner pulls his own leg out from between the wheels and sets his own foot in the first groove. This is the concrete completion of the rescue: a rescued person stepping onto new ground himself. In the same stretch of time, Maren is still in the tilted bed area, holding a flour sack with both arms.",
+"textIds": [
+"text-7"
+]
+},
+{
+"id": "beat-7",
+"sourceIds": [
+"ch-5-p-49",
+"ch-5-p-50",
+"ch-5-p-51"
+],
+"action": "Maren releases the cargo. Doyun says only her name, with no argument or explanation. She looks at the sack, and her gloved fingers leave the cord one at a time. The sack rests against the hooked board and stays still; it does not fall. After a pause she answers that she will use her hands first. Her body chooses before her words do, and the words confirm the choice.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"id": "beat-8",
+"sourceIds": [
+"ch-5-p-52"
+],
+"action": "Maren presses to the wall, and her sturdy shoulders start climbing along the grooves. The scene ends with her on the wall. Do not show her or the wagoner reaching the top, do not show anyone else climbing, and do not show what happens next.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-5-p-39",
+"ch-5-p-40"
+],
+"statement": "Doyun let go of the reins. The leather that had been wound around his hand came loose and fell onto the driver's seat."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-5-p-40"
+],
+"statement": "Doyun jumped down backward and lifted the rear board (tailgate) of the cargo bed. An iron hook caught with a short sound. Inside the tilted bed, the sacks were stopped by the board."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-5-p-40"
+],
+"statement": "Doyun did not pick out any of the sacks (text-1)."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-5-p-41"
+],
+"statement": "A spoken line reports that the board is hooked and says to leave the cargo and send only the people up (text-2). It follows directly after Doyun's action, so the speaker is Doyun."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-5-p-42"
+],
+"statement": "Lia saw Doyun's hand. The hand that had hooked the board moved toward the empty loop at his waist and stopped. There was no rope to throw (text-3)."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-5-p-43",
+"ch-5-p-44"
+],
+"statement": "Maren questions going up and asks how anyone could manage that height. Her line breaks off with a dash (text-4)."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-5-p-44"
+],
+"statement": "While Maren was speaking, the wagoner felt along the wall. His earth-stained palm swept across the rock and stopped at one spot. This confirms the wagoner and Maren are two different people."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-5-p-45"
+],
+"statement": "The wagoner says there is a groove here. His hand caught on it while he was leaning against the wall during the night, and there are several more going up."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-5-p-46"
+],
+"statement": "Palm-width grooves were cut into the rock in a diagonal row (text-5). Long ago, someone had climbed up and down here carrying loads (text-6)."
+},
+{
+"id": "fact-10",
+"sourceIds": [
+"ch-5-p-46"
+],
+"statement": "Doyun looked at the grooves once and took hold of the wagoner's arm."
+},
+{
+"id": "fact-11",
+"sourceIds": [
+"ch-5-p-47"
+],
+"statement": "Doyun tells the wagoner, in polite speech, to go up first and to free his leg first (text-7)."
+},
+{
+"id": "fact-12",
+"sourceIds": [
+"ch-5-p-48"
+],
+"statement": "The wagoner pulled his leg out from between the wheels and set his foot in the first groove."
+},
+{
+"id": "fact-13",
+"sourceIds": [
+"ch-5-p-48"
+],
+"statement": "Maren was still supporting one sack in the tilted cargo bed with both arms. It was a flour sack, and the source says it was sliding toward the wall."
+},
+{
+"id": "fact-14",
+"sourceIds": [
+"ch-5-p-49",
+"ch-5-p-50"
+],
+"statement": "Doyun called only Maren's name (text-8) and said nothing else."
+},
+{
+"id": "fact-15",
+"sourceIds": [
+"ch-5-p-50"
+],
+"statement": "Maren looked at the sack. Her gloved fingers came off the cord one at a time. The sack leaned against the board and stayed where it was."
+},
+{
+"id": "fact-16",
+"sourceIds": [
+"ch-5-p-51"
+],
+"statement": "A line opening with an ellipsis says she will use her hands first (text-9). Its placement between Maren releasing the sack and Maren going to the wall makes Maren the speaker."
+},
+{
+"id": "fact-17",
+"sourceIds": [
+"ch-5-p-52"
+],
+"statement": "Maren pressed herself to the wall. Her sturdy shoulders moved up along the grooves."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy webtoon, expressive ink lines, cold misty dawn on a narrow ledge road between wet rock wall and valley drop; adult cast; Korean lettering drawn in-image.",
+"moments": [
+{
+"sourceIds": [
+"ch-5-p-40",
+"ch-5-p-41"
+],
+"action": "At the wagon's rear, Doyun stands empty-handed beside the lifted, hooked tailgate; sacks rest stopped against it, calm antlered deer one step behind the wagon. He says text-2; caption text-1.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-42"
+],
+"action": "Doyun's hand, just off the tailgate hook, stops short of the empty loop on his belt. Lia, on the wall side, right hand hidden in her sleeve, watches it. Caption text-3.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-43",
+"ch-5-p-44"
+],
+"action": "Maren, both arms around a flour sack in the tilted wagon bed, looks up at the high rock wall, saying text-4; nearby, the wagoner's earth-stained palm stops on one spot of the rock.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-45",
+"ch-5-p-46"
+],
+"action": "Old palm-width grooves run diagonally up the rock wall; the wagoner's hand rests in the first one. Doyun, eyes on the grooves, grips the wagoner's arm. Captions text-5 and text-6.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-47",
+"ch-5-p-48"
+],
+"action": "Holding the wagoner's arm, Doyun says text-7; the wagoner, leg drawn free from between the wheels, sets his own boot in the first groove.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-49",
+"ch-5-p-50",
+"ch-5-p-51"
+],
+"action": "In the tilted bed, Maren's gloved fingers lift off the flour sack's cord one by one; the sack rests still against the hooked tailgate. Doyun says text-8; Maren answers text-9.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-52"
+],
+"action": "Maren, pressed flat to the rock wall, climbs the diagonal grooves, her sturdy shoulders rising; she is partway up.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": false,
+"evidence": "Faces and clothing match s4 (Doyun green hooded coat, Lia sand jacket, Maren brick vest and gloves, the capped driver). But panel 2 again gives Doyun coiled rope on his belt, which s4 did not show and the source rules out."
+},
+"setting": {
+"passed": true,
+"evidence": "Same wet rock wall and misty valley as s4; the antlered deer stand behind the wagon and the wall carries the diagonal grooves."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s4 ended with Lia eyeing the gap while planning the cargo; s5 opens with Doyun at the rear board having stopped the sacks, the next event."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "그는 어느 자루도 고르지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 caption box; exact text."
+},
+{
+"id": "text-2",
+"observedText": "판 걸었어, 짐은 두고, 사람만 위로 가.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 balloon with its tail to Doyun; the period after 걸었어 is rendered as a comma."
+},
+{
+"id": "text-3",
+"observedText": "던질 줄이 없었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 caption box; exact text."
+},
+{
+"id": "text-4",
+"observedText": "위로요? 저 높이를 어떻게—",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 balloon with its tail to Maren; exact text."
+},
+{
+"id": "text-5",
+"observedText": "바위에 손바닥 폭만 한 홈이 비스듬히 줄지어 파여 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 caption box; exact text."
+},
+{
+"id": "text-6",
+"observedText": "오래전 누군가 짐을 지고 오르내리던 자리였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 second caption box; exact text."
+},
+{
+"id": "text-7",
+"observedText": "먼저 올라가세요. 다리부터 빼고.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail to Doyun; exact text."
+},
+{
+"id": "text-8",
+"observedText": "마렌 씨.",
+"readable": true,
+"speakerCorrect": false,
+"evidence": "Panel 7 balloon text is exact, but its tail points down-left toward Maren rather than to Doyun at the right."
+},
+{
+"id": "text-9",
+"observedText": "……손부터 쓸게요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 7 lower balloon with its tail to Maren; exact text."
+}
+],
+"evidence": "Eight panels. Row 1 wide: Maren from behind at left, Doyun at the wagon's rear board with the sacks, antlered deer standing behind. Row 2: close-up of Doyun's gloved hand by his belt, where coiled rope hangs, with Lia watching; Maren hugging a sack while the driver's palm presses the wall. Row 3 wide: diagonal grooves in the rock, Doyun gripping the driver's shoulder. Row 4: a boot set in a groove below Doyun speaking; a tall right-hand panel of Maren climbing the grooves partway up. Row 5: gloved hands on the sack's cord; Doyun and Maren exchanging lines.",
+"observedPanelCount": 8
+}
+},
+{
+"id": "s6",
+"n": 6,
+"title": "둔덕 위, 하나 둘 셋 넷",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-5-p-53",
+"n": 53,
+"text": "사슴이 다시 앞으로 들어왔다. 틈이 닫히고 있었다. 리아는 청록빛을 거두었다. 방패는 수레 쪽으로 한 번도 돌아가지 않았다. 왼손이 조금 떨렸다."
+},
+{
+"id": "ch-5-p-54",
+"n": 54,
+"text": "\"뒤에 붙을게.\""
+},
+{
+"id": "ch-5-p-55",
+"n": 55,
+"text": "도윤이 고개만 끄덕였다. 리아가 홈에 발을 걸자 보리가 가방에서 뛰어나와 어깨로 올라왔다. 꼬리가 목을 한 바퀴 감았다. 오른손을 쓸 수 없어서 리아는 왼손과 무릎으로 올라갔다. 두 번째 홈에서 발이 미끄러졌다. 아래에서 도윤의 손바닥이 부츠 뒤축을 받쳤다. 다시 밀어 올렸다."
+},
+{
+"id": "ch-5-p-56",
+"n": 56,
+"text": "둔덕 위의 풀은 이슬에 젖어 있었다. 수레꾼이 무릎을 감싸고 주저앉았고, 마렌은 손을 털며 숨을 골랐다. 리아가 올라서고, 마지막으로 도윤이 벽 끝을 넘어왔다."
+},
+{
+"id": "ch-5-p-57",
+"n": 57,
+"text": "그가 사람들을 세었다. 손가락을 들지 않고 눈으로만."
+},
+{
+"id": "ch-5-p-58",
+"n": 58,
+"text": "\"하나, 둘, 셋, 넷.\""
+},
+{
+"id": "ch-5-p-59",
+"n": 59,
+"text": "리아의 어깨에서 보리가 꾸, 하고 울었다. 도윤의 눈이 거기서 잠깐 멎었다."
+},
+{
+"id": "ch-5-p-60",
+"n": 60,
+"text": "\"보리까지.\""
+}
+],
+"pFrom": 53,
+"pTo": 60,
+"panelCount": 6,
+"image": "img/ep05-s6.webp",
+"blocking": 1,
+"advisory": 3,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 보리가 리아가 아니라 마렌(곱슬 적갈색 머리·흰 셔츠·적갈색 조끼) 어깨에 앉아 있음. 바로 앞 칸에선 리아 어깨. ‘보리까지’ 세는 마지막 비트의 대상이 뒤바뀜.",
+"en": "Panel 6: Bori sits on Maren's shoulder (curly auburn hair, white shirt, red-brown vest) instead of Lia's. The closing beat is Doyun counting Bori on Lia's shoulder, and panel 5 had Bori with Lia."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸: 리아의 두 손이 모두 보여 오른손목이 소매 안에 접힌 상태가 드러나지 않음.",
+"en": "Panel 2: both of Lia's gloved hands are visible, so the right wrist is not shown folded inside the sleeve."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 보리 꼬리가 목을 감지 않고 등 뒤로 늘어짐.",
+"en": "Panel 3: Bori's tail hangs down her back instead of looping once around her neck (beat-3)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 도윤이 보리를 보며 활짝 웃음. 원문은 시선이 잠깐 멎는 정도.",
+"en": "Panel 6: Doyun smiles warmly at Bori; the source gives only a brief stop of his eyes."
+}
+],
+"textsTotal": 6,
+"textsOk": 6,
+"timings": {
+"planS": [
+87
+],
+"preflightS": [
+75
+],
+"imageS": 45,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1312,
+"plan": {
+"intent": "This scene resolves the climb that the previous scene started. The deer press forward again and the one-wheel gap behind the wagon begins to close. Lia lets her teal light go. The key payoff is text-2: the shield never once turned toward the wagon. The silent cargo-saving plan she formed two scenes ago dies unspoken and unused. Her left hand trembles, and the cost stays in her body rather than in words. For once she tells Doyun her move before making it, and he answers only with a nod. The climb is hard and plain. Bori leaves the safe bag by choice and wraps its tail around Lia's neck in fear. Lia climbs with one hand and her knees, slips at the second groove, and is pushed back up by Doyun's palm from below. Doyun takes the last position, as he always does. At the top everyone is on the wet grass on their own feet: the wagoner, Maren, Lia, and finally Doyun. The reward is his count. He says the numbers aloud without lifting a finger, pauses when Bori chirps, and adds the marten to the tally. The scene ends on that small, exact act of care. There is no speech about what was lost below, and nothing happens after it.",
+"staging": "Place and time. This continues directly from the previous scene: the same narrow bend at the same cold dawn, with no time skip. The scene uses two places only: the base of the LEFT rock wall beside the stopped wagon, and the dew-wet grassy mound at the top of that wall. It never goes farther.\n\nOrientation carried over, never mirrored. Facing the wagon's direction of travel, the wet rock wall is on the LEFT and the crumbling edge and misty drop are on the RIGHT. The horse is ahead of the driver's seat. The deer are BEHIND the wagon on the entrance side. In this scene the deer move forward again and the gap behind the wagon narrows. Show only that narrowing. Do not show the deer touching the wagon, reaching anyone or following up the wall. Deer have backs as high as the wagon sideboard and tall, many-branched antlers.\n\nClimb. The diagonal row of palm-width grooves established in the previous scene is on the left wall. Lia climbs using her left hand and her knees. Her right wrist stays folded inside her sleeve and never grips the rock. Her foot slips at the second groove, which is low enough that Doyun's palm reaches her boot heel from below. Doyun is below her, beneath her boot, whether he is on the ground or on the lowest groove. Bori rides on Lia's shoulder with its tail looped once around her neck. Bori does not climb on its own and does not discharge anything.\n\nTop. The mound's grass is visibly wet with dew. The wagoner sits hugging his knee. Maren, in gloves, dusts off her hands and breathes hard. Lia stands with Bori on her shoulder. Doyun arrives last over the wall's top edge. Their exact positions on the mound are open, but all four must be readable in the counting moment. Doyun counts with his eyes only, and his hands stay down. When Bori chirps, his gaze rests on the marten on Lia's shoulder. He does not reach toward it.\n\nShield light. Teal light appears only in the first beat, and only as it is being withdrawn or fading within arm's reach of Lia's left hand. It must not point at, touch or rest under the wagon. There is no shield light during the climb or on the mound.\n\nIdentity and props. Doyun: black hair, grey eyes, small break in his left eyebrow, and an EMPTY belt loop. There is no rope anywhere in the scene; the previous render wrongly drew one. Maren: dark red-brown curly hair, round face, gloves. The wagoner is an unnamed plain adult who does not resemble Maren. Lia: dark chestnut hair, amber eyes, faint freckles. Bori: cream fur, dark brown tail tip, round ears, short forelegs.\n\nLettering. Copy every Hangul string character for character, including every comma and period. text-4 keeps the comma after each number and a single final period. text-5 is a small cry balloon from Bori, with no added punctuation. Captions have no tails. text-4 and text-6 are Doyun's balloons, and their tails must point to Doyun, not to Lia or Bori; the previous render misdirected a tail. text-3 is Lia's balloon. text-1 and text-2 are captions. Add no other sound effects: the source has none for the slip, the jump or the deer. No panel may carry more than two text items.\n\nThe artist chooses panel sizes, cameras and a natural vertical reading layout. Prefer fewer, larger, legible panels.",
+"uncertainties": [
+"The excerpt does not state where the shield was placed, what it was facing, or when it was raised. It states only that the shield was withdrawn and never turned toward the wagon. Do not depict it blocking the deer, and do not imply that withdrawing it caused the deer to advance; the source only gives the order of the deer advancing first and the withdrawal after.",
+"Why Lia withdrew the light is not stated. Freeing her one usable hand for the climb is plausible but unconfirmed.",
+"The cause of the tremble in her left hand is not stated. It may be strain from holding the shield, but show only the tremble.",
+"The speaker of ch-5-p-54 is inferred as Lia from Doyun's nod and her climbing next, with Doyun as the addressee. Whether she means right behind Maren or ahead of Doyun is not stated. The staging only requires that she climbs before Doyun.",
+"In ch-5-p-55, the subject of 'pushed up again' is omitted. It is read as Doyun's palm pushing her boot heel, but it could mean Lia pushing herself up. Show his palm under her heel and her regaining the groove.",
+"Whether Doyun is standing on the ground or already on a groove when he supports her is not stated.",
+"Whether the count of four includes Doyun himself is not stated. There are exactly four humans on the mound, so it most likely does. Do not show him counting on his fingers.",
+"What Bori's cry means is not stated. Do not give it a sensing cue or a warning motion.",
+"The fate of the wagon, the horse and the cargo after everyone climbs is not mentioned. Do not show the wagon falling or the deer reaching it. Keep them out of view or static below.",
+"The height of the wall is not stated.",
+"The order in which the wagoner and Maren reached the top is not narrated in this excerpt; both are already on the mound in ch-5-p-56.",
+"Lia's reaction to being counted, and to her plan never being used, is not stated. Do not add a reply, a smile or tears.",
+"This brief was produced on the same host that will review it, so that review is not independent."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-5-p-53",
+"kind": "caption",
+"speaker": "narrator",
+"text": "틈이 닫히고 있었다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-5-p-53",
+"kind": "caption",
+"speaker": "narrator",
+"text": "방패는 수레 쪽으로 한 번도 돌아가지 않았다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-5-p-54",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "뒤에 붙을게."
+},
+{
+"id": "text-4",
+"sourceId": "ch-5-p-58",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "하나, 둘, 셋, 넷."
+},
+{
+"id": "text-5",
+"sourceId": "ch-5-p-59",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "꾸"
+},
+{
+"id": "text-6",
+"sourceId": "ch-5-p-60",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "보리까지."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-5-p-53"
+],
+"action": "At the base of the wall, the pressure returns. The deer shift forward again behind the wagon and the narrow gap starts to close. Only after that does Lia let the teal light go. The caption confirms that the shield was never aimed at the wagon, so her unspoken plan is abandoned without anyone learning it existed. Her left hand trembles slightly. The tremble is the only sign of strain; she says nothing about it.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-5-p-54",
+"ch-5-p-55"
+],
+"action": "Lia states her move before taking it: she will go up close behind. Doyun gives only a nod. The order is now shared: Lia climbs next, and Doyun stays last. There is no debate.",
+"textIds": [
+"text-3"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-5-p-55"
+],
+"action": "Lia sets her foot in the first groove. Bori comes out of the bag on its own, runs up onto her shoulder and loops its tail once around her neck, which is its fear habit. Lia climbs with her left hand and her knees against the wet rock, and her right wrist stays folded in her sleeve.",
+"textIds": []
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-5-p-55"
+],
+"action": "At the second groove her foot slips. Doyun's open palm catches her boot heel from below and pushes her back up. His habit of taking the last position is what saves her here. No words are exchanged.",
+"textIds": []
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-5-p-56"
+],
+"action": "The top of the mound has dew-wet grass. The wagoner is already sitting down, hugging his knee. Maren is dusting off her gloved hands and catching her breath. Lia gets to her feet with Bori still on her shoulder. Doyun comes over the top edge of the wall last. Everyone who was rescued is standing or sitting on new ground by their own effort.",
+"textIds": []
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-5-p-57",
+"ch-5-p-58"
+],
+"action": "Doyun counts. His hands stay down, with no pointing or raised finger, and only his eyes move from person to person as he says the numbers aloud.",
+"textIds": [
+"text-4"
+]
+},
+{
+"id": "beat-7",
+"sourceIds": [
+"ch-5-p-59",
+"ch-5-p-60"
+],
+"action": "Bori chirps on Lia's shoulder. Doyun's eyes stop on the marten for a beat, and he amends the count to include Bori. The scene ends on that line. Do not show anyone responding to it, and do not show anyone looking back down or talking about what happens next.",
+"textIds": [
+"text-5",
+"text-6"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-5-p-53"
+],
+"statement": "The deer moved forward again. The gap was closing (text-1)."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-5-p-53"
+],
+"statement": "After that, Lia withdrew the teal light. The source states that the shield never once turned toward the wagon (text-2)."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-5-p-53"
+],
+"statement": "Lia's left hand trembled slightly."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-5-p-54",
+"ch-5-p-55"
+],
+"statement": "A casual line says the speaker will stick close behind (text-3). Doyun's nod follows immediately and Lia is the next to act, so the speaker is inferred as Lia, addressing Doyun."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-5-p-55"
+],
+"statement": "Doyun only nodded and said nothing."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-5-p-55"
+],
+"statement": "When Lia set her foot in a groove, Bori jumped out of the bag and climbed onto her shoulder. Its tail wrapped once around her neck."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-5-p-55"
+],
+"statement": "Lia could not use her right hand, so she climbed with her left hand and her knees."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-5-p-55"
+],
+"statement": "Her foot slipped at the second groove. From below, Doyun's palm supported the heel of her boot and pushed her up again."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-5-p-56"
+],
+"statement": "The grass on top of the mound was wet with dew. The wagoner sat down hugging his knee, and Maren dusted off her hands and caught her breath."
+},
+{
+"id": "fact-10",
+"sourceIds": [
+"ch-5-p-56"
+],
+"statement": "Lia got up onto the mound. Doyun came over the top edge of the wall last."
+},
+{
+"id": "fact-11",
+"sourceIds": [
+"ch-5-p-57",
+"ch-5-p-58"
+],
+"statement": "Doyun counted the people with his eyes only, without raising a finger, and said the count aloud up to four (text-4)."
+},
+{
+"id": "fact-12",
+"sourceIds": [
+"ch-5-p-59"
+],
+"statement": "Bori, on Lia's shoulder, gave a short cry (text-5). Doyun's gaze stopped there for a moment."
+},
+{
+"id": "fact-13",
+"sourceIds": [
+"ch-5-p-60"
+],
+"statement": "A final line adds Bori to the count (text-6). It follows directly from Doyun's pause, so the speaker is Doyun."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy comic, expressive ink lines, cold misty dawn, adult cast, cute cream marten; Korean lettering copied verbatim inside the image.",
+"moments": [
+{
+"sourceIds": [
+"ch-5-p-53"
+],
+"action": "At the base of the left rock wall, antlered deer press forward behind the wagon, narrowing the gap, while teal light fades from Lia's left hand.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-53",
+"ch-5-p-54",
+"ch-5-p-55"
+],
+"action": "Lia, her left hand trembling slightly and her right wrist folded in her sleeve, says text-3 to Doyun. Doyun, whose belt loop is empty, answers with a silent nod.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-55"
+],
+"action": "On the wall grooves, Lia climbs with her left hand and knees, her right wrist tucked in her sleeve. Bori clings to her shoulder, tail looped once around her neck.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-55"
+],
+"action": "At the second groove Lia's foot slips; from below, Doyun's open palm pushes up under her boot heel.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-56",
+"ch-5-p-57",
+"ch-5-p-58"
+],
+"action": "On the dew-wet grassy mound, the wagoner sits hugging his knee, gloved Maren breathes hard and Lia stands with Bori. Doyun, last over the edge, counts them with his eyes, hands down.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-59",
+"ch-5-p-60"
+],
+"action": "Bori cries text-5 on Lia's shoulder. Doyun's gaze rests on the marten as he says text-6.",
+"textIds": [
+"text-5",
+"text-6"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": false,
+"evidence": "Panels 1-5 keep the s5 designs (Doyun green hooded coat without rope, Lia sand jacket and brown bag, Maren brick vest and gloves, the capped driver). In panel 6 the woman carrying Bori has Maren's curly auburn hair, white shirt and red-brown vest, although panel 5 had Bori on Lia's shoulder."
+},
+"setting": {
+"passed": true,
+"evidence": "Base of the same grooved rock wall with the deer behind the wagon, then the grassy mound above the bend with the misty valley, as in s5."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s5 ended with Maren climbing the grooves; s6 opens with Lia still below at the closing gap and follows the climb to the mound in order."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "틈이 닫히고 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 upper caption box; exact text."
+},
+{
+"id": "text-2",
+"observedText": "방패는 수레 쪽으로 한 번도 돌아가지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 lower caption box; exact text."
+},
+{
+"id": "text-3",
+"observedText": "뒤에 붙을게.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 balloon with its tail to Lia, whose raised hand trembles; exact text."
+},
+{
+"id": "text-4",
+"observedText": "하나, 둘, 셋, 넷.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 balloon with its tail down to Doyun kneeling at the edge; exact text."
+},
+{
+"id": "text-5",
+"observedText": "꾸",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 small balloon with its tail to Bori's open mouth; exact text."
+},
+{
+"id": "text-6",
+"observedText": "보리까지.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 6 balloon with its tail up to Doyun looking at Bori; exact text."
+}
+],
+"evidence": "Six panels. Row 1 wide: deer massed behind the wagon, Lia at the wall with teal light fading from her raised hand, Doyun and the driver behind her. Row 2 wide: Lia with a trembling fingerless-gloved hand speaking, Doyun nodding. Row 3: Lia climbing the grooves with Bori on her shoulder; a boot slipping as Doyun's gloved palm catches the heel. Row 4: on the grassy mound the driver sits hugging his knee, Maren sits catching her breath, Lia stands with Bori, and Doyun kneels at the edge counting with his hands down; close-up of Bori crying on a woman's shoulder while Doyun smiles at it.",
+"observedPanelCount": 6
+}
+},
+{
+"id": "s7",
+"n": 7,
+"title": "운행은 여기서 끊습니다",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-5-p-61",
+"n": 61,
+"text": "그러고는 거점 쪽으로 몸을 돌렸다. 두 손을 입가에 모았다."
+},
+{
+"id": "ch-5-p-62",
+"n": 62,
+"text": "\"이 운행은 여기서 끊습니다! 오늘 뒤 수레는 들이지 마세요! 굽이가 막혔습니다!\""
+},
+{
+"id": "ch-5-p-63",
+"n": 63,
+"text": "목소리가 벽을 타고 입구 쪽으로 퍼져 나갔다. 잠시 뒤 마당에서 누군가 알았다고 외쳤다. 바퀴 굴러가던 소리 하나가 멈췄다."
+},
+{
+"id": "ch-5-p-64",
+"n": 64,
+"text": "리아는 아무 말도 덧붙이지 않았다. 적은 줄을 고치겠다는 말도, 다른 길을 짜 보겠다는 말도 하지 않았다. 소매 속에서 오른손목이 저릿하게 뛰었다. 이름 하나와 넷이라는 수가 목 안에 걸려 있었지만, 그녀는 그것들을 거기 둔 채 도윤이 보는 쪽을 따라 보았다."
+},
+{
+"id": "ch-5-p-65",
+"n": 65,
+"text": "아래 굽이에는 사슴들이 수레를 둘러싸고 서 있었다. 한 마리가 판에 걸린 자루 냄새를 맡았고, 한 마리는 여전히 벽의 이끼를 뜯었다. 수레는 기운 채 멈춰 있었다. 쏟아지지도, 굴러가지도 않았다."
+},
+{
+"id": "ch-5-p-66",
+"n": 66,
+"text": "그 너머 비탈에는 터진 자루의 곡식이 흰 줄을 그리고 있었다. 바위를 넘고 풀 사이를 지나, 줄은 골짜기 바닥까지 끊기지 않고 이어져 있었다. 끝자락은 새벽 안개에 잠겨 보이지 않았다."
+},
+{
+"id": "ch-5-p-67",
+"n": 67,
+"text": "보리의 꼬리가 리아의 목을 조였다. 보리는 사슬 쪽을 보고 있지 않았다. 검은 눈이 곡식 줄의 끝, 안개가 고인 골짜기 바닥에 박혀 있었다."
+},
+{
+"id": "ch-5-p-68",
+"n": 68,
+"text": "맨 앞의 사슴이 이끼에서 고개를 들었다. 그리고 곡식 줄이 시작되는 비탈 가장자리로 한 발을 내디뎠다."
+}
+],
+"pFrom": 61,
+"pTo": 68,
+"panelCount": 7,
+"image": "img/ep05-s7.webp",
+"blocking": 0,
+"advisory": 4,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸: 보리가 곡식 줄 끝(안개 낀 골짜기 바닥)이 아니라 독자를 정면으로 봄. 마지막 훅이 약해짐.",
+"en": "Panel 6: Bori looks straight out at the reader instead of staring at the misted end of the grain line (beat-6), which weakens the closing hook."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4·5칸: 쏟아진 곡식이 흰색이 아니라 금색이고, 수레 주변 길에도 깔려 있음.",
+"en": "Panels 4-5: the spilled grain is golden rather than the white grain line the source describes, and grain also covers the track around the wagon."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸: 수레가 거의 수평으로 서 있어 기운 상태가 잘 안 보임.",
+"en": "Panel 4: the wagon stands nearly level rather than visibly tilted (beat-4)."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸: 리아 턱 근처에 장갑 낀 손이 보여 오른손목 상태가 불분명.",
+"en": "Panel 3: a gloved hand is raised near Lia's chin; the right wrist inside the sleeve is not clearly shown."
+}
+],
+"textsTotal": 7,
+"textsOk": 7,
+"timings": {
+"planS": [
+75
+],
+"preflightS": [
+66
+],
+"imageS": 42,
+"imageCalls": 1,
+"preflightRevisions": 0
+},
+"imageUsd": 0.1317,
+"plan": {
+"intent": "This scene follows directly from Doyun's count on the mound, with no time skip. First the human decision closes. Doyun turns toward the outpost and shouts that this run ends here and that no more wagons should enter today. The outpost hears him: someone answers from the yard, and one rolling wheel goes quiet. This is his independent halt of the operation, and it lands before Lia has said anything. Her silence is the second movement. She does not offer to fix the list she wrote or to plan another route. Her right wrist throbs inside her sleeve, and a name and the number four catch in her throat unspoken. Instead of defending her plan, she looks where Doyun is looking. The third movement leaves the humans behind. Below, the deer surround the tilted wagon, calm and occupied. One sniffs a sack, one still grazes moss, and the wagon neither spills nor rolls. Beyond the wagon, grain from a burst sack draws an unbroken white line down the slope into the dawn mist. Bori tightens its tail around Lia's neck and stares at where that line disappears. The scene ends when the lead deer lifts its head from the moss and puts one foot toward the top of the grain line. The reader should feel that the loss below has become a trail and that the animals, not the people, are about to choose where it leads. Nothing after that single step is shown.",
+"staging": "Place and time. This continues the previous scene at the same cold dawn with no time skip. The scene has two vantage zones only. The first is the dew-wet grassy mound on top of the left rock wall, where the rescued group stands. The second is the view down into the narrow bend and the slope beyond it. The outpost yard is never shown; it is only heard.\n\nOrientation carried over, never mirrored. Facing the wagon's direction of travel, the rock wall and the mound above it are on the LEFT, and the crumbling edge and the misty drop to the valley are on the RIGHT. The outpost and its entrance lie back along the bend, on the side the group came from. When Doyun shouts, he faces that way, and his voice travels along the wall toward the entrance. The exact distance to the outpost is not stated.\n\nMound. Doyun turns toward the outpost and cups BOTH hands around his mouth. His belt loop is empty, and there is no rope anywhere. Lia stands near him. Her right wrist stays folded inside her sleeve at all times, and her left hand is her only visible working hand. Bori is on LIA's shoulder, never on Maren's, and its tail is looped around Lia's neck. In the tightening moment the loop visibly cinches. Bori's black eyes point down and outward toward the far misted end of the grain line. Maren, in gloves, and the unnamed wagoner may appear on the mound but are not required. If shown, they are quiet background figures and do not react with words. Lia's eyes follow the direction Doyun faces after the shout, toward the bend below. She does not look at her wrist and does not speak.\n\nBend below. The wagon stands tilted and stopped in the same place as before. Its load has not spilled out, and the wagon has not rolled. Several large deer stand around it. Their backs are as high as the wagon's side, and they have tall, many-branched antlers. One deer has its nose at a sack hanging on a board of the wagon. One deer is pulling moss off the rock wall. The mood is calm grazing, not aggression.\n\nGrain line. Beyond the wagon, on the RIGHT-hand drop side, a thin, continuous white line of spilled grain runs down the slope. It crosses rocks and passes through grass and must not break anywhere. It fades into pooled dawn mist on the valley floor, where its end is not visible. The upper end of the line, where it begins at the slope's edge, must be readable. The final action is the lead deer lifting its head from the moss and placing ONE hoof toward that starting edge. Stop there. Do not show deer on the slope, following the line or descending.\n\nLight. Use cold, low dawn light with mist collecting in the valley, consistent with the previous scene. Show no teal shield light anywhere in this scene.\n\nLettering. Copy every Hangul string character for character, including every exclamation mark, comma and period. text-1 and text-2 are Doyun's shout balloons, with a shouting balloon style allowed. Their tails must point to Doyun, not to Lia, Bori or anyone else. The acknowledgement from the yard is NOT lettered as dialogue: no quoted words exist in the source, so it appears only through caption text-3. Add no sound effects for the wheel, the deer or the shout; the source gives none. text-3 through text-7 are tailless captions. Draw no thought balloon for Lia; the name and the number held in her throat stay unwritten. Put no more than two text items in any panel.\n\nThe artist chooses panel sizes, cameras and a natural vertical reading layout. Prefer fewer, larger, legible panels. A tall vertical panel suits the grain line running down into the mist.",
+"uncertainties": [
+"The subject of ch-5-p-61 and the speaker of ch-5-p-62 are omitted in the source. Doyun is inferred from continuity with his final line in the previous scene, from ch-5-p-64 naming Lia as the silent one, and from the story spine describing Doyun's independent halt of the run. This is an inference, not a stated fact.",
+"Who answered from the yard, and whose wagon wheel stopped, is not stated. Keep both offscreen. Do not draw the yard or a second wagon.",
+"The distance and exact direction from the bend to the outpost yard are not stated beyond the voice traveling along the wall toward the entrance.",
+"The name caught in Lia's throat is not identified in ch-5-p-64. It could relate to the earlier count, to Bori, or to someone else, possibly her mother. The number four likely echoes Doyun's count, but this is not confirmed. Do not visualize either one.",
+"The list Lia wrote, mentioned in ch-5-p-64, is not described here. Do not show a paper or a list unless it is established in references.",
+"The chain that Bori is not looking at in ch-5-p-67 is not described. Its location and what it belongs to are unknown. Do not invent or emphasize a chain; leave it out or keep it incidental.",
+"Why Bori stares at the misted end of the grain line is not stated. Do not add a sensing effect, sparks or a warning gesture.",
+"Whether the deer eating moss in ch-5-p-65 is the same animal as the lead deer that lifts its head from the moss in ch-5-p-68 is not stated. Showing them as the same animal is allowed but not required.",
+"The exact number of deer is not stated, only that there are several.",
+"How and when the sack burst and how the grain reached the slope are not narrated in this excerpt. Show only the result.",
+"The horse is not mentioned in this excerpt. Its state and position are unknown. Keep it out of focus and do not change its condition.",
+"What the lead deer's step means and where it leads are not stated. Do not show the next step or the deer following the line.",
+"The cause of the throb in Lia's right wrist is not stated here. Show no injury detail; the wrist stays hidden in her sleeve.",
+"This brief was produced on the same host that will review it, so that review is not independent."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-5-p-62",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "이 운행은 여기서 끊습니다! 오늘 뒤 수레는 들이지 마세요!"
+},
+{
+"id": "text-2",
+"sourceId": "ch-5-p-62",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "굽이가 막혔습니다!"
+},
+{
+"id": "text-3",
+"sourceId": "ch-5-p-63",
+"kind": "caption",
+"speaker": "narrator",
+"text": "잠시 뒤 마당에서 누군가 알았다고 외쳤다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-5-p-63",
+"kind": "caption",
+"speaker": "narrator",
+"text": "바퀴 굴러가던 소리 하나가 멈췄다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-5-p-64",
+"kind": "caption",
+"speaker": "narrator",
+"text": "리아는 아무 말도 덧붙이지 않았다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-5-p-65",
+"kind": "caption",
+"speaker": "narrator",
+"text": "쏟아지지도, 굴러가지도 않았다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-5-p-66",
+"kind": "caption",
+"speaker": "narrator",
+"text": "끝자락은 새벽 안개에 잠겨 보이지 않았다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-5-p-61",
+"ch-5-p-62"
+],
+"action": "Right after counting, Doyun turns away from the group toward the outpost, cups both hands at his mouth and calls the halt. He does not consult anyone first. This is his decision to stop the run and to keep later wagons out.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-5-p-63"
+],
+"action": "The call carries along the wall toward the entrance and is obeyed. The answer from the yard and the stopping wheel arrive as distant, offscreen consequences. The outside flow of wagons has stopped because of his words.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-5-p-64"
+],
+"action": "Lia stays silent. Her plan is not defended, corrected or replaced. Her right wrist throbs inside her sleeve and remains hidden, and nothing she holds back becomes speech or a thought balloon. Her gaze turns to follow Doyun's gaze, not down to her wrist.",
+"textIds": [
+"text-5"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-5-p-65"
+],
+"action": "The view drops to the bend below. The deer have closed around the tilted wagon, but they are not attacking it. One noses at a sack on the wagon's board, and another keeps grazing moss off the wall. The wagon holds, tilted and still.",
+"textIds": [
+"text-6"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-5-p-66"
+],
+"action": "The view goes past the wagon to the slope on the drop side. A continuous white line of spilled grain runs over rocks and through grass all the way down, and it vanishes into the mist on the valley floor. What was lost now reads as a trail.",
+"textIds": [
+"text-7"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-5-p-67"
+],
+"action": "Back on the mound, Bori's tail cinches tighter around Lia's neck in fear. The marten ignores what the humans might watch and stares fixedly at the misted end of the grain line.",
+"textIds": []
+},
+{
+"id": "beat-7",
+"sourceIds": [
+"ch-5-p-68"
+],
+"action": "The lead deer raises its head from the moss and sets one hoof toward the slope edge where the grain line starts. The scene ends on that single step. Nothing further is shown: no descent, no reaction from the watchers and no line of dialogue.",
+"textIds": []
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-5-p-61"
+],
+"statement": "The subject of ch-5-p-61 is omitted. It continues directly from Doyun's closing line in the previous scene, and ch-5-p-64 separates Lia from the speaker. The subject is therefore inferred as Doyun. He turns his body toward the outpost and cups both hands around his mouth."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-5-p-62"
+],
+"statement": "A shouted announcement says three things: this run is cut off here, no following wagons should be let in today, and the bend is blocked (text-1, text-2). The speaker is inferred as Doyun from ch-5-p-61 and ch-5-p-64."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-5-p-63"
+],
+"statement": "The voice spreads along the wall toward the entrance. After a moment someone in the yard shouts back that they understood. One sound of a rolling wheel stops. The yard speaker and the wheel are heard, not seen."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-5-p-64"
+],
+"statement": "Lia adds nothing. She does not say she will correct the list she wrote, and she does not offer to plan another route."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-5-p-64"
+],
+"statement": "Her right wrist throbs with a tingling ache inside her sleeve. A name and the number four are caught in her throat, but she leaves them there. She looks in the direction Doyun is looking."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-5-p-65"
+],
+"statement": "In the bend below, deer stand surrounding the wagon. One sniffs a sack hanging on a board of the wagon, and one is still tearing moss off the wall. The wagon stands stopped and tilted. It has neither spilled nor rolled."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-5-p-66"
+],
+"statement": "Beyond the wagon, on the slope, grain from a burst sack draws a white line. The line passes over rocks and between grasses and runs unbroken to the valley floor. Its far end is hidden in the dawn mist."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-5-p-67"
+],
+"statement": "Bori's tail tightens around Lia's neck. Bori is not looking toward the chain named in ch-5-p-67. Its black eyes are fixed on the end of the grain line, on the valley floor where the mist has pooled."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-5-p-68"
+],
+"statement": "The foremost deer lifts its head from the moss. It then takes one step toward the edge of the slope where the grain line begins."
+}
+]
+},
+"brief": {
+"style": "Full-color fantasy webtoon, expressive ink lines, cold low dawn light, pooled valley mist; adult cast, cute cream marten; rock wall and mound left, misty drop right.",
+"moments": [
+{
+"sourceIds": [
+"ch-5-p-61",
+"ch-5-p-62"
+],
+"action": "On the dew-wet mound, Doyun faces back toward the outpost, both hands cupped at his mouth mid-shout, belt loop empty. Lia stands nearby with Bori on her shoulder.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-63"
+],
+"action": "Quiet dawn view along the left rock wall toward the unseen outpost. The small group on the mound stands still, Doyun still facing back the way they came.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-64"
+],
+"action": "Lia on the mound, lips closed, right wrist folded inside her sleeve, Bori on her shoulder. She turns her gaze to follow Doyun's look down toward the bend.",
+"textIds": [
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-65"
+],
+"action": "Below in the narrow bend, several large antlered deer calmly surround the tilted, stopped wagon. One noses a sack hanging on its board; another pulls moss off the left rock wall.",
+"textIds": [
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-66"
+],
+"action": "Beyond the wagon, an unbroken thin white line of spilled grain runs down the right-hand slope over rocks and through grass. It vanishes into pooled dawn mist on the valley floor.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-5-p-67"
+],
+"action": "On the mound, Bori on Lia's shoulder cinches its tail tighter around her neck. Its black eyes are fixed on the misted far end of the grain line below.",
+"textIds": []
+},
+{
+"sourceIds": [
+"ch-5-p-68"
+],
+"action": "In the bend, the lead deer, head raised from the moss, sets one hoof toward the slope edge where the grain line begins.",
+"textIds": []
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Doyun keeps the green hooded coat and sword with no rope on the belt; Lia has the chestnut bob, sand jacket and Bori on her shoulder; Maren has curly auburn hair and the brick vest. Bori is back on Lia, unlike s6 panel 6."
+},
+"setting": {
+"passed": true,
+"evidence": "Same grassy mound above the grooved wall, the bend below with the wagon and the deer, and the misty valley at dawn, as in s6."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "s6 ended on 보리까지 on the mound; s7 opens with Doyun turning to shout toward the outpost, the next event."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "이 운행은 여기서 끊습니다! 오늘 뒤 수레는 들이지 마세요!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 left balloon with its tail to Doyun's cupped hands; exact text."
+},
+{
+"id": "text-2",
+"observedText": "굽이가 막혔습니다!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 1 right balloon with its tail to Doyun; exact text."
+},
+{
+"id": "text-3",
+"observedText": "잠시 뒤 마당에서 누군가 알았다고 외쳤다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 upper caption box; exact text."
+},
+{
+"id": "text-4",
+"observedText": "바퀴 굴러가던 소리 하나가 멈췄다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 2 lower caption box; exact text."
+},
+{
+"id": "text-5",
+"observedText": "리아는 아무 말도 덧붙이지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 3 caption box below Lia's closed mouth; exact text."
+},
+{
+"id": "text-6",
+"observedText": "쏟아지지도, 굴러가지도 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 4 caption box over the wagon in the bend; exact text."
+},
+{
+"id": "text-7",
+"observedText": "끝자락은 새벽 안개에 잠겨 보이지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Panel 5 caption box over the misty valley; exact text."
+}
+],
+"evidence": "Seven panels. Row 1 wide: Doyun shouting with cupped hands, Lia with Bori and Maren beside him on the mound. Row 2 wide: the grooved wall at left and the group standing on the mound. Row 3: Lia close-up with Bori; the wagon in the bend surrounded by deer, one nosing a hanging sack. Row 4 wide: a line of spilled grain running down the rocky slope into valley mist. Row 5: Bori close-up on Lia's shoulder; the lead deer lowering its head and stepping toward the slope edge where the grain line starts.",
+"observedPanelCount": 7
+}
+}
+]
 }
 ],
 "runs": [
 "scene-20260921",
-"scene-20260922"
+"scene-20260922",
+"scene-20260923-opus"
 ]
 }
