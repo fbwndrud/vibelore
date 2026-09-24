@@ -14,13 +14,19 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="300" alt="길 위의 번개 1화 장면 1"></a><br><sub>『길 위의 번개』 · 판타지 로드 액션</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="300" alt="판결 LIVE 1화 장면 6"></a><br><sub>『판결 LIVE』 · 사이버렉카 스릴러</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="300" alt="처형 1분 전의 황녀 1화 장면 9"></a><br><sub>『처형 1분 전의 황녀』 · 로판 회귀 복수극</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="처형 1분 전의 황녀 1화 장면 9"></a><br><sub>『처형 1분 전의 황녀』 · 로판 회귀 복수극</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="판결 LIVE 1화 장면 6"></a><br><sub>『판결 LIVE』 · 사이버렉카 스릴러</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="길 위의 번개 1화 장면 1"></a><br><sub>『길 위의 번개』 · 판타지 로드 액션</sub></td>
 </tr>
 </table>
 
-<sub>모두 vibelore로 쓴 소설을 각색해 그린 실제 결과입니다. 『길 위의 번개』 1~3화는 세 호스트(Codex·Claude·Grok)가 각각 각색하고 같은 이미지 모델로 그렸고, 『판결 LIVE』(사이버렉카 스릴러) 1~3화는 소설 집필과 웹툰 각색을 Claude Opus 5.5가, 이미지 생성을 Codex(gpt-image-2.5-sunburst)가 맡았습니다. 『처형 1분 전의 황녀』(로판 회귀 복수극) 1~3화는 설계·집필·각색을 GPT-6 Sol이, 그림을 OpenAI 이미지 API가 맡았습니다. 검토 판정·프롬프트·비용까지 [작품 목록](https://fbwndrud.github.io/vibelore/showcase/), [길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)·[모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html), [판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/), [처형 1분 전의 황녀](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)에서 가감 없이 볼 수 있습니다.</sub>
+모두 vibelore로 쓴 소설을 웹툰으로 옮긴 실제 결과입니다. 작품마다 다른 AI가 만들었습니다.
+
+- **[처형 1분 전의 황녀](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**: 설계부터 소설, 웹툰 각색까지 GPT-6 Sol이 맡았습니다.
+- **[판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**: 소설과 웹툰 각색은 Claude Opus 5.5가, 그림은 Codex가 맡았습니다.
+- **[길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**: Codex·Claude·Grok이 같은 소설을 각각 각색했습니다. [모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)도 있습니다.
+
+잘된 장면만 고르지 않았습니다. 검토에서 떨어진 장면, 프롬프트, 비용까지 [작품 목록](https://fbwndrud.github.io/vibelore/showcase/)에서 그대로 볼 수 있습니다.
 
 ---
 
@@ -44,7 +50,7 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 
 호스트 채팅창에 이렇게 말하면 됩니다.
 
-> `night_bus` 다음 화를 guided 모드로 써 줘.
+> 다음 화를 써 줘. 쓰고 나면 보여 주고, 내가 승인하면 확정해.
 
 ```text
 작품 인터뷰 ─▶ 아크 계획 ─▶ 화 계획 ─▶ 초고 ─▶ 설정·시간선 검사 ─▶ 검토 ─▶ 승인 ─▶ 커밋
@@ -52,38 +58,38 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 ```
 
 원고와 검토 근거가 오면 "승인" 또는 "이 부분 고쳐서 다시"라고 답합니다. `auto` 모드는 검사와
-검토를 통과하면 자동으로 커밋합니다. 웹툰은 한 문장 더입니다.
+검토를 통과하면 자동으로 커밋합니다. 웹툰도 한 문장이면 됩니다.
 
-> `night_bus` 1화를 웹툰으로 각색해 줘. 제작 방향부터 물어봐 줘.
+> 1화를 웹툰으로 만들어 줘. 제작 방향부터 물어봐 줘.
 
 ```text
 각색 대본 ─▶ 기준 이미지 ─▶ 구도 러프 ─▶ 작화 ─▶ 대사·효과음 조판 ─▶ 세로형 SVG/HTML
   (승인)       (승인)        (승인)     호스트가 생성     별도 레이어         완성본
 ```
 
-## 3분 설치
+## 설치
+
+쓰고 있는 AI 코딩 도구(Claude Code, Codex, Grok CLI)에게 저장소 주소를 주고 부탁하면 됩니다.
+
+> https://github.com/fbwndrud/vibelore 를 받아서 MCP 서버로 등록해 줘.
+
+필요한 것은 Node.js 22.13 이상(22.x) 또는 24.x뿐입니다. `npm install`도 빌드도 없습니다.
+등록이 끝나면 AI 도구를 한 번 다시 시작하세요.
+
+<details>
+<summary>직접 등록하려면</summary>
 
 ```bash
 git clone https://github.com/fbwndrud/vibelore.git
 ```
 
-Node.js 22.13 이상(22.x) 또는 24.x만 있으면 됩니다. `npm install`도 빌드도 없습니다.
-쓰는 호스트 하나만 골라 등록하세요.
-
-<details>
-<summary><b>Claude Code</b></summary>
+Claude Code:
 
 ```bash
 claude mcp add-json vibelore '{"command":"node","args":["/absolute/path/to/vibelore/src/server.js"]}' --scope project
 ```
 
-Claude Code용 스킬은 `hosts/claude/skills/`에 있습니다.
-</details>
-
-<details>
-<summary><b>Codex</b></summary>
-
-`~/.codex/config.toml`에 추가합니다.
+Codex(`~/.codex/config.toml`):
 
 ```toml
 [mcp_servers.vibelore]
@@ -93,23 +99,20 @@ startup_timeout_sec = 30
 tool_timeout_sec = 6000
 ```
 
-이 저장소는 `.codex-plugin/plugin.json`을 포함한 Codex 플러그인이기도 합니다. 플러그인 설치
-메뉴에 사용자 저장소를 추가할 수 있다면 이 주소를 넣으면 인터뷰 스킬과 MCP 서버가 함께 로드됩니다.
-</details>
-
-<details>
-<summary><b>Grok CLI</b></summary>
+Grok CLI:
 
 ```bash
 grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 ```
+
+Claude Code용 스킬은 `hosts/claude/skills/`에 있고, 이 저장소는 Codex 플러그인(`.codex-plugin/plugin.json`)으로도 설치할 수 있습니다.
 </details>
 
-등록했으면 첫 작품을 만들어 봅니다.
+설치했으면 첫 작품을 시작해 봅니다. 쓰고 싶은 이야기를 한두 문장으로 말하면 됩니다.
 
-> `/absolute/path/to/my-novel`에 `night_bus`라는 작품을 만들고 싶어. 심야버스에서 승객의 후회를 듣는 기사 이야기야. 작품 발견 인터뷰부터 진행해.
+> 새 소설을 시작하고 싶어. 심야버스에서 승객의 후회를 듣는 기사 이야기야. 작품 인터뷰부터 해 줘.
 
-인터뷰는 결과를 바꾸는 취향만 한 라운드에 4~5개씩 묻습니다. 건너뛰려면 "묻지 말고 자동으로"라고
+인터뷰는 결과를 바꾸는 취향만 한 번에 4~5개씩 묻습니다. 건너뛰려면 "묻지 말고 자동으로"라고
 하면 됩니다. 막히면 [시작 안내](docs/GETTING_STARTED.md)를 보세요.
 
 ## 무엇을 해 주나
@@ -129,14 +132,14 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 | 하고 싶은 것 | 호스트에게 이렇게 |
 |---|---|
-| 1화가 마음에 안 들어, 설정은 그대로 두고 다시 | "`night_bus` 1화를 [이런 방향]으로 다시 써 줘" → 검사 → 승인 |
+| 1화가 마음에 안 들어, 설정은 그대로 두고 다시 | "1화를 [이런 방향]으로 다시 써 줘" → 검사 → 승인 |
 | 3화까지 썼는데 2화를 고치고 싶어 | 2화 다시 쓰기 → 승인 → "이후 상태 재계산해 줘" → 필요하면 3화 재검사 요청 |
-| 5화 시점으로 전부 되돌리고 싶어 | "`night_bus`를 5화 시점으로 롤백해 줘" |
-| 이 화 문체가 딱 좋아, 앞으로 이렇게 | "`night_bus` 3화를 문체 기준으로 승인해 줘. 이유: 대사가 짧고 건조해서" |
-| 설정 파일을 손으로 고쳤어 | "`night_bus` 변경 사항 확인해 줘" → 영향 범위와 다음 할 일을 알려 줌 |
+| 5화 시점으로 전부 되돌리고 싶어 | "5화 시점으로 롤백해 줘" |
+| 이 화 문체가 딱 좋아, 앞으로 이렇게 | "3화를 문체 기준으로 승인해 줘. 이유: 대사가 짧고 건조해서" |
+| 설정 파일을 손으로 고쳤어 | "변경 사항 확인해 줘" → 영향 범위와 다음 할 일을 알려 줌 |
 | 왜 이렇게 썼는지 근거를 보고 싶어 | "이번 화 검토 근거와 실제 집필 요청을 보여 줘" |
-| 기존 소설을 웹툰으로 만들고 싶어 | "`night_bus` 1화를 웹툰으로 각색해 줘. 제작 방향부터 물어봐 줘" |
-| 웹툰 한 컷만 다시 그리고 싶어 | "`night_bus` 1화 웹툰 3번 컷을 [이렇게] 다시 그려 줘" |
+| 기존 소설을 웹툰으로 만들고 싶어 | "1화를 웹툰으로 각색해 줘. 제작 방향부터 물어봐 줘" |
+| 웹툰 한 컷만 다시 그리고 싶어 | "1화 웹툰 3번 컷을 [이렇게] 다시 그려 줘" |
 
 수정·재개·백업은 [문제 해결과 백업](docs/TROUBLESHOOTING.md)을 보세요.
 
@@ -148,19 +151,20 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 <td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="길 위의 번개 2화 장면 6"></td>
 <td valign="top">
 
-원작의 세계관·인물·해당 화 상태를 가져오고, 무엇을 살리고 덜어낼지 먼저 정합니다.
-40컷을 채우는 방식이 아니라 핵심 경험에 필요한 컷만 고릅니다.
+이미 쓴 소설을 그대로 웹툰으로 옮깁니다. 인물 외모, 세계관, 그 화까지의 상황을 원작에서 가져오니 다시 설명할 필요가 없습니다.
 
-작화 스타일·문자 표현·판면을 확인한 뒤 각색 대본과 기준 이미지를 승인받고, 동선·접점·대사
-여백을 담은 러프를 검토합니다. **러프를 승인해야 본 작화로 넘어갑니다.** 식사처럼 자세·소품이
-이어지는 컷은 앞 그림을 참조하고, 대사·독백·효과음은 별도로 조판합니다.
+1. **방향 정하기.** 그림체, 말풍선·글자 표현, 세로 스크롤 여부, 제작 방식을 묻습니다.
+2. **각색.** 원작에서 살릴 장면과 줄일 장면을 고르고, 컷 순서와 대사를 정합니다.
+3. **기준 그림.** 인물과 장소의 기준 그림을 먼저 그려 확인받습니다. 이후 모든 컷이 이 그림을 따릅니다.
+4. **러프 확인.** 구도와 대사 자리를 잡은 밑그림을 보여 줍니다. **승인해야 본 그림으로 넘어갑니다.**
+5. **완성.** 그림을 그리고 대사·효과음을 얹어 세로형 웹툰으로 묶습니다.
 
-이미지 모델과 실행 경로·비용은 작품별로 확인해 유지합니다. 서버는 요청·참조·검토·승인을
-관리하고 실제 생성과 시각 검토는 호스트가 합니다. 원작 승인과 웹툰 승인은 별개입니다.
+러프 없이 장면 하나를 대사까지 한 장에 그리는 빠른 방식도 고를 수 있습니다. 위 제작 예시들이 이 방식입니다.
 </td>
 </tr>
 </table>
 
+그림은 AI 도구의 이미지 기능이나 이미지 API로 그립니다. 유료 API를 쓸 때는 먼저 확인을 받고, 소설 승인과 웹툰 승인은 따로 합니다.
 자세한 절차는 [웹툰 제작 안내](docs/WEBTOON.md)를 보세요.
 
 ## 왜 vibelore인가
