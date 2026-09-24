@@ -319,6 +319,14 @@ export const phrases = {
       `Validation error: ${JSON.stringify(error)}`,
       'Keep the existing title, scenes and optional modules; fill only the missing or empty fields named by the error and output the full plan JSON again. If you use an optional module, fill every field of it; if it truly does not apply, omit the whole module.',
     ].join('\n'),
+    // Writer Packet budget overflow repair request body. previousText is the
+    // model's earlier raw response (the serialized plan object), error is the
+    // overflow error object.
+    episodePlanPacketRepair: ({ previousText, error }) => [
+      'Previous response:', previousText, '',
+      `Validation error: ${JSON.stringify(error)}`,
+      'This plan exceeds the Writer Packet budget for the drafting stage. Keep the event, choice, outcome and optional module content as is, and output the full plan JSON again with readerBridge, closingState, scenes[].situation/choice/change, payoff, costCreatedByResolution, exitValue and episodeVoiceTargets rewritten as short, concrete sentences that each say something once.',
+    ].join('\n'),
   },
 
   experience: {

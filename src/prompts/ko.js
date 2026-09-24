@@ -318,6 +318,13 @@ export const phrases = {
       `검증 오류: ${JSON.stringify(error)}`,
       '제목·장면·선택 모듈의 기존 내용은 유지하고, 위 오류에 해당하는 누락되거나 빈 필드만 채워 전체 계획 JSON을 다시 출력한다. 선택 모듈을 쓰려면 그 모듈의 모든 필드를 채우고, 정말 필요 없는 모듈이면 키 자체를 제거한다.',
     ].join('\n'),
+    // Writer Packet 예산 초과 재수리 요청 본문. previousText 는 모델의 이전 응답
+    // 원문(직렬화된 계획 객체), error 는 예산 초과 오류 객체다.
+    episodePlanPacketRepair: ({ previousText, error }) => [
+      '이전 응답:', previousText, '',
+      `검증 오류: ${JSON.stringify(error)}`,
+      '이 계획은 집필 단계의 Writer Packet 예산을 초과한다. 사건·선택·결과·선택 모듈의 내용은 유지하되 readerBridge, closingState, scenes[].situation·choice·change, payoff, costCreatedByResolution, exitValue, episodeVoiceTargets의 문장을 짧고 구체적으로 줄여 전체 계획 JSON을 다시 출력한다. 같은 문장을 두 필드에 반복하지 않는다.',
+    ].join('\n'),
   },
 
   experience: {

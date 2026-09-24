@@ -161,6 +161,34 @@ describe('episode plan contracts are validated before drafting', () => {
     assert.equal(result.plan.status, 'active');
   });
 
+  const KO_PACKET_REPAIR_INSTRUCTION = '이 계획은 집필 단계의 Writer Packet 예산을 초과한다. 사건·선택·결과·선택 모듈의 내용은 유지하되 readerBridge, closingState, scenes[].situation·choice·change, payoff, costCreatedByResolution, exitValue, episodeVoiceTargets의 문장을 짧고 구체적으로 줄여 전체 계획 JSON을 다시 출력한다. 같은 문장을 두 필드에 반복하지 않는다.';
+
+  it('keeps the ko packet-overflow repair instruction byte-identical', async () => {
+    const store = await qualityStore();
+    const requests = [];
+    const long = (label) => `${label} `.repeat(300).trim();
+    const bloated = { ...basePlan, readerBridge: long('다리'), closingState: long('결말'), withheld: Array.from({ length: 8 }, (_, i) => long(`숨김${i}`)), scenes: basePlan.scenes.map((scene) => ({ ...scene, situation: long('상황'), choice: long('선택'), change: long('변화') })) };
+    const providers = sequenceProvider({ 'episode-plan': [JSON.stringify(bloated)], 'episode-plan-repair': [JSON.stringify(basePlan)] }, requests);
+    await runEpisodePlan({ store, workId, chapter: 2, mode: 'auto', providers });
+    const repair = requests.find((req) => req.step === 'episode-plan-repair');
+    const instructionLine = repair.messages[1].content.split('\n').pop();
+    assert.equal(instructionLine, KO_PACKET_REPAIR_INSTRUCTION);
+  });
+
+  it('requests a packet-overflow repair in the work language family instead of hardcoded Korean', async () => {
+    const { store: enStore, workId: enWorkId } = await enQualityStore();
+    const requests = [];
+    const long = (label) => `${label} `.repeat(300).trim();
+    const enBloated = { ...enBasePlan, readerBridge: long('bridge'), closingState: long('ending'), withheld: Array.from({ length: 8 }, (_, i) => long(`hidden${i}`)), scenes: enBasePlan.scenes.map((scene) => ({ ...scene, situation: long('situation'), choice: long('choice'), change: long('change') })) };
+    const providers = sequenceProvider({ 'episode-plan': [JSON.stringify(enBloated)], 'episode-plan-repair': [JSON.stringify(enBasePlan)] }, requests);
+    const result = await runEpisodePlan({ store: enStore, workId: enWorkId, chapter: 2, mode: 'auto', providers });
+    const repair = requests.find((req) => req.step === 'episode-plan-repair');
+    assert.ok(repair, 'packet-overflow repair request issued for en work');
+    const instructionLine = repair.messages[1].content.split('\n').pop();
+    assert.doesNotMatch(instructionLine, /[가-힣]/u, 'en packet-overflow repair instruction must not contain Korean');
+    assert.equal(result.plan.status, 'active');
+  });
+
   it('does not request a repair when optional modules are complete or absent', async () => {
     const store = await qualityStore();
     const requests = [];

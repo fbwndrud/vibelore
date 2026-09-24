@@ -340,9 +340,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
         planMessages[0],
         { role: 'user', content: [
           planMessages[1].content, '',
-          '이전 응답:', JSON.stringify(accepted.parsed), '',
-          `검증 오류: ${JSON.stringify(packet.error)}`,
-          '이 계획은 집필 단계의 Writer Packet 예산을 초과한다. 사건·선택·결과·선택 모듈의 내용은 유지하되 readerBridge, closingState, scenes[].situation·choice·change, payoff, costCreatedByResolution, exitValue, episodeVoiceTargets의 문장을 짧고 구체적으로 줄여 전체 계획 JSON을 다시 출력한다. 같은 문장을 두 필드에 반복하지 않는다.',
+          kit.phrases.episode.episodePlanPacketRepair({ previousText: JSON.stringify(accepted.parsed), error: packet.error }),
         ].join('\n') },
       ],
     });
