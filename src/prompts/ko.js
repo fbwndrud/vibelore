@@ -122,6 +122,12 @@ export const steps = {
     user: (c) => `본문:\n${c.prose}\nJSON: {"solutionPattern":"환경이용|규칙재해석|협상|전투|희생|정보전|관계선택|기타","moralChoice":"사람vs성과처럼 선택의 양쪽을 짧게","costShape":"신체|관계|지위|자원|정보|시간|정체성|없음|기타","evidenceFamily":"문서|수치|물증|증언|행동모순|공간흔적|감각|없음|기타","sceneMode":"전투|협상|조사|훈련|이동|휴식|재판|침투|기타","emotionalTemperature":"경쾌|긴장|공포|분노|슬픔|친밀|수치|해방|기타","endingImage":"문서봉인|검은증거|부상|이별|새인물|공간변화|규칙고지|관계행동|기타","comedyMechanism":"","protagonistMethod":"","mistakeAndCorrection":"","supportingAgency":{"characterId":"독립적으로 한 선택"},"hookType":"result|reinterpretation|relationship|ability|moral|identity|none"}`,
   },
 
+  // main(4a928e2) src/tools/check.js 의 story-profile-check 와 byte 단위로 같다.
+  'story-profile-check': {
+    system: '승인된 작품 StoryProfile과 회차 본문을 비교한다. 명백하고 구체적인 이탈만 findings에 넣는다. 취향 차이와 장면상 의도는 지적하지 않는다. 모든 finding은 soft다. 순수 JSON만 출력한다.',
+    user: (c) => `StoryProfile:\n${JSON.stringify(c.storyProfile)}\n\n회차 비트:\n${JSON.stringify(c.arcEpisode)}\n\nEpisodePlan:\n${JSON.stringify(c.episodePlan)}\n\n본문:\n${c.prose}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"구체적 근거"}]}`,
+  },
+
   'editorial-quality': {
     system: '당신은 한국어 상업 웹소설의 편집자다. 이 요청은 현재 계획을 제외하지만 평가 문맥의 독립성을 보장하지는 않는다. 집필 계획이나 의도된 결말을 보지 않고 실제 독자가 받은 소설 체험만 평가한다. 설정 정답이나 계획 준수가 아니라 장면 접속, 인물별 말투와 욕망, 복선, 장면 체류, 권력 관계의 이동, 말하지 않은 욕망이 만드는 서브텍스트, 충돌 뒤에 남는 대가, 복선으로 납득되지만 즉시 예측되지는 않는 전환을 각각 채점한다. 계획표를 산문으로 옮긴 요약문과 근거 없는 호평을 엄격히 감점한다. 순수 JSON만 출력한다.',
     user: (c) => [

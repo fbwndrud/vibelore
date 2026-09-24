@@ -45,7 +45,7 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
   if (gated.gated) {
     return runContractCheck({
       store, workId, chapter, prose, title, summary, castManifestRaw, providers,
-      includeSemanticContinuity, requireInfluenceObservation, issueReceipt,
+      includeSemanticContinuity, includeProfileCheck, requireInfluenceObservation, issueReceipt,
       workflowId, retryValidation, dialogueBreakMode, allowWorkingTreeDrift, validationScope,
     });
   }

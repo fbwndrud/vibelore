@@ -7,6 +7,9 @@ import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-lan
 import { currentValidationContext, exactHash, sameIdentity, exceptionOnlyRebind, loadValidationSession, saveValidationSession, invalidateValidationSession } from '../core/validation-context.js';
 import { chapterArtifactBundle, computeArtifactHash, continuityContextHash, evaluateChapterCoverage, evaluateChapterLanguage, issueChapterReceipt, lengthCoverage, liveCheckerPlan, overlayInvariantCoverage, publishedChapterProse, readSemanticValidation, requestLanguageCompliance, runPlannedDetectors, schemaCoverage } from '../core/validation-gate.js';
 import { lexiconsForLanguage } from './lexicons.js';
+import { episodeForChapter } from './arc.js';
+import { episodePlanReviewView } from '../core/episode-plan-view.js';
+import { promptKit } from '../prompts/index.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const pending = (providers) => Boolean(providers?.pending?.length);
@@ -17,7 +20,7 @@ export async function shouldUseContractCheck({ store, workId, chapter, forceCont
 }
 
 export async function runContractCheck({ store, workId, chapter, prose, title, summary, castManifestRaw = '', providers,
-  includeSemanticContinuity = true, requireInfluenceObservation = false, issueReceipt = true,
+  includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = true,
   workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope }) {
   const scope = validationScope ?? (workflowId ? `workflow-${workflowId}` : `manual-${chapter}`);
   let state = await loadValidationSession(store, workId, scope);
@@ -60,7 +63,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     // legitimate fail on the revision became clean_fail because the two
     // failures of the already-passed draft were still counted).
     const passedBefore = state.status === 'passed';
-    state = { ...state, input, inputHash, prepared: null, extracted: null, semantic: null, result: null, checkId: null, status: null,
+    state = { ...state, input, inputHash, prepared: null, extracted: null, semantic: null, profileAdvisory: null, result: null, checkId: null, status: null,
       ...(passedBefore ? { epoch: state.epoch + 1, failures: 0 } : {}) };
   }
   const save = () => saveValidationSession(store, workId, scope, state);
@@ -116,6 +119,28 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       }
     },
   };
+  // StoryProfile rules are generated writing guidance, never hard truth (main
+  // 4a928e2 ran this in runCheck). The advisory is queued in the extraction's
+  // host round trip, answered once per artifact and kept in the session. It
+  // goes through the raw provider: its answer is not a judged validation
+  // response, so a miss never spends the budget or turns into provider_error,
+  // and every finding stays soft so taste cannot block a continuity-safe chapter.
+  if (includeProfileCheck && !state.profileAdvisory && context.plans.profile?.status === 'active' && providers?.complete) {
+    const before = providers.pending?.length ?? 0;
+    try {
+      const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'story-profile-check',
+        messages: promptKit({ contract: workContract }).messages('story-profile-check', {
+          storyProfile: context.plans.profile, arcEpisode: episodeForChapter(context.plans.arc, chapter),
+          episodePlan: episodePlanReviewView(context.plans.episode), prose: input.prose }) });
+      if ((providers.pending?.length ?? 0) === before) state.profileAdvisory = { findings: profileFindings(response.text) };
+    } catch (error) {
+      if (error?.name !== 'PendingModelWork') state.profileAdvisory = { findings: [], error: String(error?.message ?? error) };
+    }
+    if (state.profileAdvisory) await save();
+  }
+  for (const finding of state.profileAdvisory?.findings ?? []) {
+    base.violations.push({ severity: 'soft', code: finding.code, chapterNumber: chapter, message: finding.message });
+  }
   const prevState = await canonicalStore.loadStoryState(workId, chapter - 1) ?? emptyStoryState(workId);
   const extractionInput = { prose: input.prose, chapterNumber: chapter, foundation, providers: wrapped, model: MODEL, prevState,
     castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language };
@@ -259,4 +284,14 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     }
     return fail(error.code ?? 'VALIDATION_INCOMPLETE', { validationError: error.message, validationDetails: error.details });
   }
+}
+
+/** Up to ten well-formed advisory findings; a malformed answer is an advisory miss. */
+function profileFindings(text) {
+  try {
+    const parsed = JSON.parse(String(text).replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim());
+    return (Array.isArray(parsed?.findings) ? parsed.findings.slice(0, 10) : [])
+      .filter((finding) => finding && typeof finding.message === 'string')
+      .map((finding) => ({ code: String(finding.code ?? 'PROFILE_DRIFT'), message: finding.message }));
+  } catch { return []; }
 }

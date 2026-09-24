@@ -123,9 +123,9 @@ describe('host round trips are batched by dependency', () => {
     // no separate engine chapter-plan round trip precedes it.
     assert.deepEqual(passes[0], ['draft']);
     const batch = passes[1];
-    // The contract check does not run the advisory story-profile-check, so the
-    // first batch is the extraction plus every independent review.
-    for (const step of ['continuity-extract', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger']) {
+    // The advisory story-profile-check rides in the same round trip as the
+    // extraction and every independent review.
+    for (const step of ['continuity-extract', 'story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger']) {
       assert.ok(batch.includes(step), `${step} in first review batch: ${batch}`);
     }
     assert.ok(!batch.includes('continuity-check'), 'continuity-check waits for the extracted delta');
@@ -150,7 +150,7 @@ describe('host round trips are batched by dependency', () => {
     await store.saveEpisodePlan(workId, { ...plan, workId, contractVersion: 'mcp-test', createdAt: '2026-01-01T00:00:00.000Z' });
     const requests = [];
     await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
-    for (const step of ['reader-hook']) {
+    for (const step of ['story-profile-check', 'reader-hook']) {
       const text = requests.find((req) => req.step === step).messages.map((m) => m.content).join('\n');
       assert.doesNotMatch(text, /contractVersion|createdAt/, step);
       assert.match(text, /닫힌 문 앞에 선다/, step);
