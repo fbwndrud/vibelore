@@ -7,7 +7,7 @@
 ## 작업 기준
 
 - 브랜치: `codex/multilingual-prompts`
-- 작업 폴더: `/Users/lyoojk/vibelore-plugin-multilingual`
+- 작업 폴더: `<local>/vibelore-plugin-multilingual`
 - 기준 커밋: `11455398c53aaa3531afccad905798dbcc463c19`
 - 기존 `webtoon` 작업 폴더의 미커밋 변경은 포함하지 않았다. 웹툰 기능 통합 시 별도 접점 검토가 필요하다.
 - 이번 산출물은 설계와 업무 배분이다. 실제 구현·소설 생성·기존 작품 마이그레이션은 수행하지 않았다.
