@@ -11,6 +11,8 @@ import { SCENE_SCHEMA, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback
   isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
+/** Shape of each findings[] item; findings may be empty. */
+const SCENE_FINDING_SHAPE = { severity: 'blocking | advisory', evidence: 'concrete evidence (required)' };
 const terminal = w => ['completed', 'rejected'].includes(w.stage);
 const record = (w, event, data = {}) => w.events.push({ at: new Date().toISOString(), revision: w.revision, event, ...data });
 const isScene = w => w?.productionMode === SCENE_PRODUCTION_MODE;
@@ -107,7 +109,7 @@ async function drive(repo, w, providers) {
       `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. Keep camera and layout free. Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} positive English drawing instructions (at most ${SCENE_LIMITS.correctionWords} words each) for defects in feedback/previousFindings that the moments alone cannot prevent; omit it otherwise.`,
       { source: w.sceneUnits, plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
         ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
-        coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [],
+        coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
         renderBrief: { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers);
     if (r.waiting) return r.result;
     const passed = validateScenePreflight(r.value, w);
@@ -133,7 +135,7 @@ async function drive(repo, w, providers) {
         schema: { subjectHash: digest({ binding: sceneImageBinding(w), imageHash: w.sceneImage.hash }), inspectedImages: false, observedPanelCount: null,
           ...(w.previousScene ? { continuity: { inspectedPreviousImage: false, ...Object.fromEntries(CONTINUITY_CHECKS.map(k => [k, { passed: false, evidence: '' }])) } } : {}),
           coveredBeatIds: w.scenePlan.beats.map(b => b.id), textObservations: w.scenePlan.texts.map(t => ({ id: t.id, observedText: '', readable: false, speakerCorrect: false, evidence: '' })),
-          spatialCoherence: false, readingOrder: false, evidence: '', findings: [] } }, providers);
+          spatialCoherence: false, readingOrder: false, evidence: '', findings: [], findingItem: SCENE_FINDING_SHAPE } }, providers);
     if (r.waiting) return r.result;
     const passed = validateSceneImageReview(r.value, w); w.visualReview = { ...r.value, passed };
     await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
