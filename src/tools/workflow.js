@@ -230,7 +230,11 @@ async function ensureWorkflow(store, workId, chapter, autonomy, instruction, mod
   const profile = modelProfile ?? (supersession ? current.modelProfile ?? null : null);
   // A draft that was waiting for the user's decision is never auto-committed
   // because a later call asked for auto: the fresh receipt goes to lore_decide.
-  const lockGuided = revalidate && awaitingUserDecision(current);
+  // The lock is inherited: a locked successor superseded again (a second plan
+  // edit mid-check, a later clean_fail, a revise successor after its revision
+  // was applied) still owes the user a decision. It is released only by
+  // lore_decide, a redraft on a new instruction, or a later chapter.
+  const lockGuided = revalidate && (current.autonomyLock === 'guided' || awaitingUserDecision(current));
   const effectiveAutonomy = lockGuided ? 'guided' : autonomy;
   const workflow = {
     workflowId: id('wf'), workId, chapter, stage: revise ? 'revision_requested' : 'started', operation: revise ? 'user_revision' : null,

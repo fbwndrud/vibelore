@@ -329,3 +329,79 @@ test('a guided re-validation stays guided when a later call asks for auto', asyn
   assert.equal(later.prose, guided.prose);
   assert.deepEqual(await store.listChapters(), []);
 });
+
+async function editPremise(store, premise) {
+  const plan = await store.loadEpisodePlan(workId, 1);
+  await store.saveEpisodePlan(workId, { ...plan, premise });
+}
+
+test('the guided lock survives a second supersession that lands mid-check', async () => {
+  const { createPreflightRelay } = await import('../src/provider/host-relay.js');
+  const store = await qualityStore();
+  const model = scriptedProviders();
+  model.healthy = true;
+  const guided = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: model.providers });
+  assert.equal(guided.status, 'awaiting_approval', JSON.stringify(guided));
+
+  await editPremise(store, '지도에서 본 길을 찾아 문을 연다');
+  const paused = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: createPreflightRelay({}) });
+  assert.equal(paused.preview, true, JSON.stringify(paused));
+  const first = await store.loadWorkflow(workId);
+  assert.equal(first.autonomyLock, 'guided');
+
+  await editPremise(store, '두 번째로 고친 전제');
+  for (let call = 0; call < 3; call += 1) {
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers });
+    assert.notEqual(result.status, 'completed', JSON.stringify(result));
+    assert.deepEqual(await store.listChapters(), [], 'never committed without lore_decide');
+    if (result.status === 'awaiting_approval') break;
+  }
+  const current = await store.loadWorkflow(workId);
+  assert.equal(current.stage, 'awaiting_draft_approval');
+  assert.equal(current.autonomyLock, 'guided');
+  assert.equal(current.draftProse, guided.prose);
+
+  // Release: a new instruction is a fresh draft under the caller's autonomy.
+  await editPremise(store, '세 번째로 고친 전제');
+  const redrafted = await runWriteWorkflow({ store, workId, autonomy: 'auto', instruction: '문 앞의 망설임을 줄인다', providers: model.providers });
+  assert.equal(redrafted.status, 'completed', JSON.stringify(redrafted));
+  const history = await runWorkflowHistory({ store, workId });
+  assert.ok(!history.events.some((event) => event.event === 'workflow_started' && event.autonomy === 'guided'));
+});
+
+test('a revise successor keeps the guided lock after its revision was applied', async () => {
+  const { createPreflightRelay } = await import('../src/provider/host-relay.js');
+  const store = await qualityStore();
+  const model = scriptedProviders();
+  model.healthy = true;
+  const guided = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: model.providers });
+  await runWorkflowDecide({ store, workId, approvalId: guided.approvalId, action: 'request_revision', feedback: '마지막 선택의 대가를 장면으로 보여줘.', providers: model.providers });
+  await editPremise(store, '지도에서 본 길을 찾아 문을 연다');
+  // The revision is applied, then the check pauses at the relay.
+  const answers = {};
+  let paused;
+  for (let pass = 0; pass < 4; pass += 1) {
+    const relay = createPreflightRelay(answers);
+    paused = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: relay });
+    const steps = relay.pending.map((req) => req.step);
+    for (const req of relay.pending) answers[req.id] = req.step === 'revise'
+      ? JSON.stringify({ replacements: [{ paragraph: 1, text: '윤재는 입구의 표시를 확인하며 마지막 선택의 대가를 떠올렸다.' }] })
+      : (contractResponse({ step: req.step, messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }] })?.text ?? outputs[req.step] ?? '{}');
+    if (!steps.includes('revise')) break;
+  }
+  const revised = await store.loadWorkflow(workId);
+  assert.notEqual(revised.operation, 'user_revision', JSON.stringify(revised.operation));
+  assert.equal(revised.autonomyLock, 'guided');
+
+  await editPremise(store, '두 번째로 고친 전제');
+  for (let call = 0; call < 3; call += 1) {
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers });
+    assert.notEqual(result.status, 'completed', JSON.stringify(result));
+    if (result.status === 'awaiting_approval') break;
+  }
+  const current = await store.loadWorkflow(workId);
+  assert.equal(current.stage, 'awaiting_draft_approval');
+  assert.equal(current.autonomyLock, 'guided');
+  assert.match(current.draftProse, /마지막 선택의 대가를 떠올렸다/);
+  assert.deepEqual(await store.listChapters(), []);
+});
