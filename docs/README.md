@@ -16,7 +16,7 @@ vibelore는 연결한 AI와 함께 소설을 쓰고, 기존 소설을 세로형 
 | 텍스트·이미지 모델과 비용 경로 확인하기 | [모델 설정](MODELS.md) |
 | 멈춘 작업 이어가기, 손수정 반영, 백업하기 | [문제 해결과 백업](TROUBLESHOOTING.md) |
 | 원고와 이미지가 어디로 전달되는지 확인하기 | [데이터와 보안](../SECURITY.md) |
-| 한국어 외의 언어로 작품 쓰기 | [TOOLS.md — 작품 언어와 분량 단위](TOOLS.md#작품-언어와-분량-단위), [다국어 구현 기록](research/MULTILINGUAL_IMPLEMENTATION.md) |
+| 한국어 외의 언어로 작품 쓰기 | [TOOLS.md — 작품 언어와 분량 단위](TOOLS.md#작품-언어와-분량-단위), [다국어 구현 기록](https://github.com/fbwndrud/vibelore/blob/main/docs/research/MULTILINGUAL_IMPLEMENTATION.md) |
 | README 를 다른 언어로 읽기 | [English](../README.en.md) · [日本語](../README.ja.md) · [Español](../README.es.md) · [Français](../README.fr.md) · [繁體中文](../README.zh-Hant.md) · [ไทย](../README.th.md) · [العربية](../README.ar.md) |
 
 소설은 설정·계획 → 초고·검토 → 승인·저장 순서로 진행합니다.

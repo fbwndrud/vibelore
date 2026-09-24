@@ -2095,10 +2095,20 @@ describe('semantic delta influence fields', () => {
         arcCursorOps: [{ characterId: 'c1', nextBeat: 'wound', note: '律の申し出を断り続ける' }],
     };
     const artifact = canonicalArtifact(bundle({ semanticDelta: delta }));
+    // Current extraction shape: hookChanges with phase/horizon enums (the legacy hookOps shape above stays covered).
+    const { hookOps: _legacyHooks, ...currentDelta } = delta;
+    const hookChangesArtifact = canonicalArtifact(bundle({ semanticDelta: { ...currentDelta,
+        hookChanges: [{ id: 'hook_repair_shortage', text: '板材の到着が次の便に回された', plantedAtChapter: 1, phase: 'advancing', horizon: 'soon', lastMovedChapter: 1 }] } }));
     it('accepts a pass over every generated field of a real ChapterDelta', () => {
-        const result = evaluate(artifact);
-        expect(result.verdict).toBe('pass');
-        expect(result.satisfied).toBe(true);
+        for (const candidate of [artifact, hookChangesArtifact]) {
+            const result = evaluate(candidate);
+            expect(result.verdict).toBe('pass');
+            expect(result.satisfied).toBe(true);
+        }
+    });
+    it('reads a fail on hookChanges.text as a real language failure', () => {
+        const result = evaluate(hookChangesArtifact, { verdict: 'fail', evidence: [{ fieldPath: 'semanticDelta.hookChanges[0].text', quote: '次の便', reason: 'not the work language' }] });
+        expect(result.failureCode).toBe(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH);
     });
     it('reads a fail on anchor, chosen, relationshipOps.state or mutableChanges.status as a real language failure', () => {
         for (const fieldPath of ['semanticDelta.influenceEvents[0].anchor', 'semanticDelta.influenceEvents[0].behavioralProof.chosen', 'semanticDelta.relationshipOps[0].state', 'semanticDelta.mutableChanges[0].status']) {
@@ -2127,9 +2137,14 @@ describe('semantic delta influence fields', () => {
             compliance: compliance(artifact, { verdict: 'fail', evidence: [{ fieldPath: 'prose', quote: '扉が開いた。Ann は...', reason: 'x' }] }), artifact, workContract: WORK_CONTRACT, passEvidence: 'drop-invalid',
         }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
     });
-    it('rejects speakerId and payoffTiming as machine fields', () => {
-        for (const [fieldPath, quote] of [['semanticDelta.newAddressEntries[0].speakerId', 'c2'], ['semanticDelta.hookOps[0].payoffTiming', 'near-term']]) {
-            const err = expectCode(() => evaluate(artifact, { verdict: 'fail', evidence: [{ fieldPath, quote, reason: 'English' }] }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
+    it('rejects speakerId, payoffTiming, phase and horizon as machine fields', () => {
+        for (const [target, fieldPath, quote] of [
+            [artifact, 'semanticDelta.newAddressEntries[0].speakerId', 'c2'],
+            [artifact, 'semanticDelta.hookOps[0].payoffTiming', 'near-term'],
+            [hookChangesArtifact, 'semanticDelta.hookChanges[0].phase', 'advancing'],
+            [hookChangesArtifact, 'semanticDelta.hookChanges[0].horizon', 'soon'],
+        ]) {
+            const err = expectCode(() => evaluate(target, { verdict: 'fail', evidence: [{ fieldPath, quote, reason: 'English' }] }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
             expect(err.details.reason).toBe('machine_field');
         }
     });

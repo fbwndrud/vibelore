@@ -19,6 +19,7 @@ async function markdownFiles(directory) {
   const groups = await Promise.all(entries.map(entry => {
     const path = `${directory}/${entry.name}`;
     if (path === 'docs/showcase') return []; // GitHub Pages site, not part of the npm package
+    if (path === 'docs/research' || path === 'docs/superpowers') return []; // internal records, not shipped
     return entry.isDirectory() ? markdownFiles(path) : entry.name.endsWith('.md') ? [path] : [];
   }));
   return groups.flat();

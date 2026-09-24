@@ -189,7 +189,7 @@ stateDiagram-v2
 実際に Claude Sonnet 5 でプロフィールから 2 話の承認と最終的な言語監査までの全体の流れを確認した言語は、
 英語、スペイン語、日本語、フランス語、韓国語、アラビア語、繁体字中国語、タイ語です。引数契約の
 詳細は[作品の言語と分量の単位](docs/TOOLS.md#작품-언어와-분량-단위)を、検証記録は
-[多言語実装の記録](docs/research/MULTILINGUAL_IMPLEMENTATION.md)を参照してください。
+[多言語実装の記録](https://github.com/fbwndrud/vibelore/blob/main/docs/research/MULTILINGUAL_IMPLEMENTATION.md)を参照してください。
 
 ## 正本と機械状態
 
