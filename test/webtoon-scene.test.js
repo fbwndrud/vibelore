@@ -344,6 +344,22 @@ test('a new work confirms the API image selection inside the scene tool before a
   assert.equal(saved.selection.policyHash, digest(saved.policy));
 });
 
+test('the image-choice notice and next action carry the work language: English work has no Hangul, Korean work keeps it', async () => {
+  const en = await setup({ language: 'en', prose: 'Yun stopped at the closed door.\n\n"Is anyone inside?"' });
+  await writeFile(en.repo.path('image-selection.json'), '{}');
+  const enProposed = await runWebtoonSceneTool({ store: en.store, args: en.args, providers: { complete() { throw new Error('Must not call model'); } } });
+  assert.equal(enProposed.status, 'needs_image_choice');
+  assert.doesNotMatch(enProposed.imageChoice.notice, /[가-힣]/u);
+  assert.doesNotMatch(enProposed.nextAction, /[가-힣]/u);
+
+  const ko = await setup();
+  await writeFile(ko.repo.path('image-selection.json'), '{}');
+  const koProposed = await runWebtoonSceneTool({ store: ko.store, args: ko.args, providers: { complete() { throw new Error('Must not call model'); } } });
+  assert.equal(koProposed.status, 'needs_image_choice');
+  assert.match(koProposed.imageChoice.notice, /별도 OpenAI API 과금/);
+  assert.match(koProposed.nextAction, /confirmImageChoice ID와 원답 feedback/);
+});
+
 test('lettering comparison ignores whitespace and Unicode composition only', () => {
   assert.equal(sameLettering('윤이 문 앞에'.normalize('NFD'), '윤이 문 앞에'), true);
   assert.equal(sameLettering('Ça  va ?'.normalize('NFD'), 'Ça va ?'), true);

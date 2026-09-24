@@ -160,7 +160,7 @@ async function loadPreviousScene(repo, args) {
 }
 
 /** A work without a confirmed API selection proposes one here and confirms it only with the user's own answer, as the panel path does. */
-async function confirmedSceneSelection(repo, args) {
+async function confirmedSceneSelection(repo, args, source) {
   const saved = await readJson(repo.path('image-selection.json'));
   if (saved?.policy?.execution === 'openai-api') {
     const policy = imagePolicyFor(saved.policy.targetModel, 'openai-api');
@@ -172,10 +172,14 @@ async function confirmedSceneSelection(repo, args) {
   if (args.confirmImageChoice === undefined) {
     const choice = pending?.workId === args.workId && digest(pending.policy) === digest(policy) ? pending
       : { id: `wic-${randomUUID()}`, workId: args.workId, policy, remember: 'this-work', proposedAt: new Date().toISOString(),
-        notice: '별도 OpenAI API 과금. 원작·참조 이미지를 OpenAI에 전송. API 키·계정 접근 확인 필요. 모델·경로는 이 작품의 다음 장면·회차에도 유지되며 자동 대체·무제한 재시도는 허용하지 않습니다.' };
+        notice: webtoonMessage(source,
+          '별도 OpenAI API 과금. 원작·참조 이미지를 OpenAI에 전송. API 키·계정 접근 확인 필요. 모델·경로는 이 작품의 다음 장면·회차에도 유지되며 자동 대체·무제한 재시도는 허용하지 않습니다.',
+          'Separate OpenAI API billing applies. The source and reference images are sent to OpenAI. API key/account access must be confirmed. The model and path persist for this work\'s next scenes and chapters; there is no automatic fallback or unlimited retry.') };
     if (choice !== pending) await atomicWrite(pendingPath, JSON.stringify(choice, null, 2));
     return { status: 'needs_image_choice', lane: 'webtoon', productionMode: SCENE_PRODUCTION_MODE, imageChoice: choice, jobs: [],
-      nextAction: '모델·실행 경로·비용을 사용자에게 보여주고 선택하면 같은 start 인자에 confirmImageChoice ID와 원답 feedback을 넣어 다시 호출하세요.' };
+      nextAction: webtoonMessage(source,
+        '모델·실행 경로·비용을 사용자에게 보여주고 선택하면 같은 start 인자에 confirmImageChoice ID와 원답 feedback을 넣어 다시 호출하세요.',
+        'Show the user the model, execution path and cost; once they choose, call start again with the same arguments plus confirmImageChoice ID and their own answer in feedback.') };
   }
   if (!pending || pending.id !== args.confirmImageChoice || pending.workId !== args.workId || digest(pending.policy) !== digest(policy)) throw new Error('STALE_IMAGE_CHOICE');
   if (!nonempty(args.feedback)) throw new Error('IMAGE_CHOICE_USER_ANSWER_REQUIRED');
@@ -206,7 +210,7 @@ async function startScene(store, repo, args, current) {
     const ids = source.units.map(u => u.id), prior = previous.sceneUnits.map(u => ids.indexOf(u.id));
     if (prior.some(i => i < 0) || Math.min(...selected.map(id => ids.indexOf(id))) !== Math.max(...prior) + 1) throw new Error('SCENE_CONTINUATION_SCOPE');
   }
-  const selection = await confirmedSceneSelection(repo, args);
+  const selection = await confirmedSceneSelection(repo, args, source);
   if (selection.status === 'needs_image_choice') return selection;
   const { policy, saved } = selection;
   const references = args.references;
