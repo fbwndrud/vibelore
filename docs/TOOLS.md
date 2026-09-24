@@ -460,15 +460,18 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 ### `lore_webtoon_scene`
 
-러프 없이 장면 전체와 대사를 함께 생성하도록 사용자가 선택한 경우에는 `lore_webtoon_scene`을 사용합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 확정된 이미지 API 선택이 없는 작품은 start가 `needs_image_choice`를 반환하며, 사용자의 원답을 `feedback`에 넣고 `confirmImageChoice`로 확정합니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
+새 웹툰 작업의 기본 경로입니다. 러프 없이 장면 전체와 대사를 함께 생성합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 확정된 이미지 API 선택이 없는 작품은 start가 `needs_image_choice`를 반환하며, 사용자의 원답을 `feedback`에 넣고 `confirmImageChoice`로 확정합니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
 이 별도 경로는 원작 범위 고정 → 통합 영어 연출 → 생성 전 검증 → 장면 이미지 → 실제 시각 검토로 진행합니다.
 `action=start|revise|retry`, `sourceChapters`, `sourceUnitIds`, `direction`, `references`, `asset`을 받습니다.
 기존 승인된 이미지 API 선택이 필요하며 `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`을 사용합니다.
 생성 전 검증이 통과해야 `needs_scene_image`가 나오며 이때만 API를 실행합니다.
 원작·참조·계획 해시가 바뀐 반입과 미열람 시각 검토는 거절합니다.
-세부 계약은 [장면 통합 제작](reference/WEBTOON_WORKFLOW.md#장면-통합-제작--명시적-선택-경로)을 참고하세요.
+세부 계약은 [기본 경로](reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)를 참고하세요.
 
-### `lore_webtoon_plan`
+### `lore_webtoon_plan` (deprecated)
+
+컷별 경로이며 새 작업에는 쓰지 않습니다. `lore_webtoon_scene`이 기본입니다. 새 작업 시작은
+`WEBTOON_PANEL_PATH_DEPRECATED`로 거절되며, 이미 시작된 컷별 작업의 이어가기·조회에만 씁니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -480,7 +483,9 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 `needs_model`은 `lore_resume`으로 보낼 모델 응답입니다. 페이지형 선택은
 `needs_format_support`로 보존하고 멈춥니다.
 
-### `lore_webtoon_render`
+### `lore_webtoon_render` (deprecated)
+
+컷별 경로의 이미지·조판 진행이며 새 작업에는 쓰지 않습니다. 이미 시작된 컷별 작업만 이어갑니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -497,7 +502,9 @@ API를 직접 실행하지 않습니다. 신규 작업은 `continuityPlan.versio
 조판 실패는 이 도구의 `retry=true`로 재개합니다. 검토 불가를 통과로 보고하지 않습니다.
 중첩 이미지·러프·검토 스키마와 예제는 [웹툰 안내](WEBTOON.md)를 따릅니다.
 
-### `lore_webtoon_decide`
+### `lore_webtoon_decide` (deprecated)
+
+컷별 경로의 gate 승인이며 새 작업에는 쓰지 않습니다. 이미 시작된 컷별 작업만 이어갑니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -638,7 +645,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 | 새 자유 장르 작품 | `profile → create → story_plan → writer_skill → arc_plan` |
 | 다음 화 작성 | `lore_write` |
 | 완성 원고 승인 | `lore_decide` |
-| 기존 소설 웹툰화 | `lore_webtoon_plan → lore_webtoon_render`, 각 gate는 `lore_webtoon_decide` |
+| 기존 소설 웹툰화 | `lore_webtoon_scene` (컷별 경로 `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide`는 deprecated) |
 | 웹툰 진행·검토 이력 | `lore_workflow_status/history(lane="webtoon")` |
 | 멈춘 모델 작업 | `lore_resume` |
 | 현재 진행 확인 | `lore_workflow_status` |
