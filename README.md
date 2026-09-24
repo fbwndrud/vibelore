@@ -7,7 +7,7 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024-brightgreen)](docs/GETTING_STARTED.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.md)
-[![Showcase](https://img.shields.io/badge/showcase-%EC%9E%91%ED%92%88%202%ED%8E%B8-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-%EC%9E%91%ED%92%88%203%ED%8E%B8-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 Claude Code, Codex, Grok CLI 같은 AI 코딩 도구에 MCP 서버로 붙여서 씁니다. 본문과 그림은 그 AI가 만들고,
 vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사하고, 승인 전에는 아무것도 확정하지 않습니다.
@@ -16,10 +16,11 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 <tr>
 <td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="300" alt="길 위의 번개 1화 장면 1"></a><br><sub>『길 위의 번개』 · 판타지 로드 액션</sub></td>
 <td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="300" alt="판결 LIVE 1화 장면 6"></a><br><sub>『판결 LIVE』 · 사이버렉카 스릴러</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="300" alt="처형 1분 전의 황녀 1화 장면 9"></a><br><sub>『처형 1분 전의 황녀』 · 로판 회귀 복수극</sub></td>
 </tr>
 </table>
 
-<sub>모두 vibelore로 쓴 소설을 각색해 그린 실제 결과입니다. 『길 위의 번개』 1~3화는 세 호스트(Codex·Claude·Grok)가 각각 각색하고 같은 이미지 모델로 그렸고, 『판결 LIVE』(사이버렉카 스릴러) 1~3화는 소설 집필과 웹툰 각색을 Claude Opus 5.5가, 이미지 생성을 Codex(gpt-image-2.5-sunburst)가 맡았습니다. 검토 판정·프롬프트·비용까지 [작품 목록](https://fbwndrud.github.io/vibelore/showcase/), [길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)·[모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html), [판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)에서 가감 없이 볼 수 있습니다.</sub>
+<sub>모두 vibelore로 쓴 소설을 각색해 그린 실제 결과입니다. 『길 위의 번개』 1~3화는 세 호스트(Codex·Claude·Grok)가 각각 각색하고 같은 이미지 모델로 그렸고, 『판결 LIVE』(사이버렉카 스릴러) 1~3화는 소설 집필과 웹툰 각색을 Claude Opus 5.5가, 이미지 생성을 Codex(gpt-image-2.5-sunburst)가 맡았습니다. 『처형 1분 전의 황녀』(로판 회귀 복수극) 1~3화는 설계·집필·각색을 GPT-6 Sol이, 그림을 OpenAI 이미지 API가 맡았습니다. 검토 판정·프롬프트·비용까지 [작품 목록](https://fbwndrud.github.io/vibelore/showcase/), [길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)·[모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html), [판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/), [처형 1분 전의 황녀](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)에서 가감 없이 볼 수 있습니다.</sub>
 
 ---
 
