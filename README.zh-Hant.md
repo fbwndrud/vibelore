@@ -24,17 +24,32 @@ flowchart LR
 
 ## 安裝
 
-需求：Node.js 22 以上。
+需求：Node.js 22.13 以上（22.x）或 24.x。不需要建置，也不需要安裝相依套件。
 
-此儲存庫是一個包含 `.codex-plugin/plugin.json` 的 Codex 外掛。以外掛方式安裝時，
-作品探索訪談技能與 MCP 伺服器會一起載入，不必在設定中直接寫入儲存庫位置。
+最簡單的方法是把儲存庫網址交給你使用的 AI 程式工具（Claude Code、Codex、Grok CLI）並提出請求。
 
-在其他 MCP 主機上直接連接儲存庫時，請這樣執行。
+> 請取得 https://github.com/fbwndrud/vibelore 並註冊為 MCP 伺服器。
+
+註冊完成後，請重新啟動一次 AI 工具。
+
+若不取得儲存庫，而是用 npm 套件 [`vibelore`](https://www.npmjs.com/package/vibelore) 執行 MCP 伺服器：
 
 ```bash
-git clone https://github.com/fbwndrud/vibelore-plugin.git
-node /absolute/path/to/vibelore-plugin/src/server.js
+claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
 ```
+
+Codex 使用 `command = "npx"`、`args = ["-y", "vibelore"]`，Grok CLI 使用 `grok mcp add vibelore -- npx -y vibelore`。
+要固定版本時，請寫成 `vibelore@0.4.0`。npm 途徑只註冊 MCP 伺服器，訪談技能請以下方的儲存庫方式或 Codex 外掛安裝。
+
+取得儲存庫並直接註冊：
+
+```bash
+git clone https://github.com/fbwndrud/vibelore.git
+claude mcp add-json vibelore '{"command":"node","args":["/absolute/path/to/vibelore/src/server.js"]}' --scope project
+```
+
+此儲存庫也是 Codex 外掛（`.codex-plugin/plugin.json`）。以外掛方式安裝時，作品探索訪談技能與 MCP 伺服器會一起載入。
+Claude Code 用的技能位於 `hosts/claude/skills/`。
 
 伺服器使用 stdio，並不是直接在終端機中執行的程式。請先將它註冊為 Claude
 Code、Codex 或 Grok 的 MCP 伺服器，再以自然語言向該主機提出寫作請求。
@@ -60,7 +75,7 @@ Code、Codex 或 Grok 的 MCP 伺服器，再以自然語言向該主機提出�
 ```bash
 VIBELORE_LOCAL_BASE_URL=http://127.0.0.1:11434/v1 \
 VIBELORE_LOCAL_MODEL=qwen3:14b \
-node /absolute/path/to/vibelore-plugin/src/server.js
+node /absolute/path/to/vibelore/src/server.js
 ```
 
 各主機的註冊方式與實際驗證版本記錄於 [HOSTS.md](HOSTS.md)。
@@ -162,6 +177,16 @@ stateDiagram-v2
 記錄儲存在本機，不會自動對外公開。
 
 詳細方法請參考[審核回應與稽核](docs/OPERATIONS.md#검토-응답과-감사)。
+
+### 改編為網漫
+
+> 把 `night_bus` 第 1 話改編成網漫。先問我製作方向。
+
+已寫好的章節會從原作承接人物、世界觀與到該話為止的狀態進行改編，不必重新說明。`lore_webtoon_scene`
+會先詢問畫風、文字表現、直向捲動與分格數，並確認人物與場景的基準圖。接著將整個場景連同台詞畫成一張
+直向圖片，並檢視實際畫面。文字依照作品語言。先逐格核准草稿的舊流程已 deprecated，只用於延續進行中的
+作業。圖片由主機的圖片工具或圖片 API 繪製；付費 API 只在確認後使用，小說核准與網漫核准分開進行。
+詳情請見[網漫製作指南](docs/WEBTOON.md)。
 
 ## 作品語言
 

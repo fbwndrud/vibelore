@@ -24,18 +24,34 @@ flowchart LR
 
 ## Instalación
 
-Requisitos: Node.js 22 o superior.
+Requisitos: Node.js 22.13 o superior (22.x) o 24.x. No hay paso de compilación ni instalación de dependencias.
 
-Este repositorio es un plugin de Codex que incluye `.codex-plugin/plugin.json`. Si lo
-instalas como plugin, la skill de entrevista de descubrimiento de la obra y el servidor MCP
-se cargan juntos, y no hace falta escribir la ubicación del repositorio en la configuración.
+Lo más sencillo es dar la dirección del repositorio a tu herramienta de programación con IA (Claude Code,
+Codex, Grok CLI) y pedírselo.
 
-Para conectar el repositorio directamente desde otro host MCP, ejecútalo así.
+> Descarga https://github.com/fbwndrud/vibelore y regístralo como servidor MCP.
+
+Cuando termine el registro, reinicia una vez la herramienta de IA.
+
+Para ejecutar el servidor MCP con el paquete npm [`vibelore`](https://www.npmjs.com/package/vibelore) sin descargar el repositorio:
 
 ```bash
-git clone https://github.com/fbwndrud/vibelore-plugin.git
-node /absolute/path/to/vibelore-plugin/src/server.js
+claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
 ```
+
+En Codex usa `command = "npx"` y `args = ["-y", "vibelore"]`; en Grok CLI, `grok mcp add vibelore -- npx -y vibelore`.
+Para fijar una versión, escríbela como `vibelore@0.4.0`. La vía npm solo registra el servidor MCP, así que las
+skills de entrevista se instalan con el método del repositorio de abajo o como plugin de Codex.
+
+Para descargar el repositorio y registrarlo directamente:
+
+```bash
+git clone https://github.com/fbwndrud/vibelore.git
+claude mcp add-json vibelore '{"command":"node","args":["/absolute/path/to/vibelore/src/server.js"]}' --scope project
+```
+
+El repositorio también es un plugin de Codex (`.codex-plugin/plugin.json`). Si lo instalas como plugin, la skill
+de entrevista de descubrimiento de la obra y el servidor MCP se cargan juntos. Las skills para Claude Code están en `hosts/claude/skills/`.
 
 El servidor usa stdio. No es un programa que se ejecute directamente desde la terminal. Primero
 regístralo como servidor MCP en Claude Code, Codex o Grok y después pide a ese host, en lenguaje
@@ -63,7 +79,7 @@ ni transmisión del nivel de razonamiento, así que solo debe usarse con endpoin
 ```bash
 VIBELORE_LOCAL_BASE_URL=http://127.0.0.1:11434/v1 \
 VIBELORE_LOCAL_MODEL=qwen3:14b \
-node /absolute/path/to/vibelore-plugin/src/server.js
+node /absolute/path/to/vibelore/src/server.js
 ```
 
 El método de registro por host y las versiones verificadas se registran en [HOSTS.md](HOSTS.md).
@@ -176,6 +192,19 @@ de la fuente de ejecución, el origen de la revisión y su estado de finalizaci�
 guarda en local y no se publica automáticamente fuera.
 
 Para más detalles, consulta [Respuestas de revisión y auditoría](docs/OPERATIONS.md#검토-응답과-감사).
+
+### Adaptación a webtoon
+
+> Adapta el capítulo 1 de `night_bus` a webtoon. Pregúntame primero por la dirección.
+
+Un capítulo ya escrito se adapta tomando del original los personajes, el mundo y el estado hasta ese
+capítulo, así que no hace falta volver a explicarlos. `lore_webtoon_scene` pregunta primero por el estilo de
+dibujo, el rotulado, el desplazamiento vertical y el número de viñetas, y confirma las imágenes de referencia
+de personajes y lugares. Después dibuja cada escena completa, con los diálogos incluidos, como una sola imagen
+vertical y revisa la imagen real. El rotulado sigue el idioma de la obra. El flujo anterior de aprobar un boceto
+por viñeta está obsoleto y solo continúa trabajos ya en curso. Las imágenes salen de la herramienta de imagen
+del host o de una API de imágenes; una API de pago solo se usa tras confirmación, y la aprobación del webtoon es
+independiente de la de la novela. Consulta la [guía de webtoon](docs/WEBTOON.md).
 
 ## Idioma de la obra
 

@@ -24,18 +24,34 @@ flowchart LR
 
 ## インストール
 
-要件: Node.js 22 以上。
+要件: Node.js 22.13 以上（22.x）または 24.x。ビルドも依存関係のインストールも不要です。
 
-このリポジトリは `.codex-plugin/plugin.json` を含む Codex プラグインです。プラグインとして
-インストールすると、作品発見インタビューのスキルと MCP サーバーが一緒に読み込まれ、リポジトリの
-場所を設定に直接書く必要がありません。
+いちばん簡単なのは、使っている AI コーディングツール（Claude Code、Codex、Grok CLI）にリポジトリの
+アドレスを渡して頼むことです。
 
-他の MCP ホストでリポジトリを直接接続する場合は、次のように実行します。
+> https://github.com/fbwndrud/vibelore を取得して MCP サーバーとして登録して。
+
+登録が終わったら AI ツールを一度再起動してください。
+
+リポジトリを取得せずに npm パッケージ [`vibelore`](https://www.npmjs.com/package/vibelore) で MCP サーバーを実行する場合:
 
 ```bash
-git clone https://github.com/fbwndrud/vibelore-plugin.git
-node /absolute/path/to/vibelore-plugin/src/server.js
+claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
 ```
+
+Codex は `command = "npx"`、`args = ["-y", "vibelore"]`、Grok CLI は `grok mcp add vibelore -- npx -y vibelore` です。
+バージョンを固定するには `vibelore@0.4.0` のように書きます。npm 経路は MCP サーバーだけを登録するため、
+インタビュースキルは下のリポジトリ方式か Codex プラグインでインストールします。
+
+リポジトリを取得して直接登録する場合:
+
+```bash
+git clone https://github.com/fbwndrud/vibelore.git
+claude mcp add-json vibelore '{"command":"node","args":["/absolute/path/to/vibelore/src/server.js"]}' --scope project
+```
+
+このリポジトリは Codex プラグイン（`.codex-plugin/plugin.json`）でもあります。プラグインとしてインストールすると、
+作品発見インタビューのスキルと MCP サーバーが一緒に読み込まれます。Claude Code 用スキルは `hosts/claude/skills/` にあります。
 
 サーバーは stdio を使用します。ターミナルから直接実行するプログラムではありません。まず Claude
 Code、Codex、または Grok に MCP サーバーとして登録してから、そのホストに自然言語で執筆を依頼します。
@@ -62,7 +78,7 @@ OpenAI、Anthropic、Google、xAI の API キーを vibelore に渡して直接�
 ```bash
 VIBELORE_LOCAL_BASE_URL=http://127.0.0.1:11434/v1 \
 VIBELORE_LOCAL_MODEL=qwen3:14b \
-node /absolute/path/to/vibelore-plugin/src/server.js
+node /absolute/path/to/vibelore/src/server.js
 ```
 
 ホストごとの登録方法と実際に確認したバージョンは [HOSTS.md](HOSTS.md) に記録しています。
@@ -164,6 +180,17 @@ stateDiagram-v2
 記録はローカルに保存され、自動的に外部へ公開されることはありません。
 
 詳しい方法は[レビュー応答と監査](docs/OPERATIONS.md#검토-응답과-감사)を参照してください。
+
+### ウェブトゥーン化
+
+> `night_bus` の1話をウェブトゥーンにして。制作の方向から聞いて。
+
+書き上げた話を、人物・世界観・その話までの状況を原作から引き継いで脚色するので、改めて説明する必要は
+ありません。`lore_webtoon_scene` はまず画風、文字表現、縦スクロール、コマ数を尋ね、人物と場所の基準画を
+確認します。その後、場面全体を台詞まで含めて1枚の縦長画像として描き、実際の画像を検討します。文字は作品の
+言語に従います。コマごとにラフを承認する以前の方式は deprecated で、進行中の作業だけを続けます。画像は
+ホストの画像ツールまたは画像 API で描きます。有料 API は確認後にだけ使い、小説の承認とウェブトゥーンの承認は
+別々に行います。詳しくは[ウェブトゥーン制作ガイド](docs/WEBTOON.md)を参照してください。
 
 ## 作品の言語
 

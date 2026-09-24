@@ -24,18 +24,33 @@ flowchart LR
 
 ## التثبيت
 
-المتطلبات: Node.js 22 أو أحدث.
+المتطلبات: Node.js 22.13 أو أحدث (22.x) أو 24.x. لا توجد خطوة بناء ولا تثبيت للاعتماديات.
 
-هذا المستودع إضافة (plugin) لـ Codex تتضمن `.codex-plugin/plugin.json`. عند تثبيته كإضافة،
-تُحمَّل مهارة مقابلة اكتشاف العمل وخادم MCP معًا، ولا حاجة إلى كتابة موقع المستودع يدويًا
-في الإعدادات.
+أسهل طريقة هي أن تعطي عنوان المستودع لأداة البرمجة بالذكاء الاصطناعي التي تستخدمها (Claude Code أو Codex أو Grok CLI) وتطلب منها ذلك.
 
-عند ربط المستودع مباشرة من مضيف MCP آخر، شغّله على النحو التالي.
+> نزّل https://github.com/fbwndrud/vibelore وسجّله كخادم MCP.
+
+بعد انتهاء التسجيل أعد تشغيل أداة الذكاء الاصطناعي مرة واحدة.
+
+لتشغيل خادم MCP من حزمة npm [`vibelore`](https://www.npmjs.com/package/vibelore) دون تنزيل المستودع:
 
 ```bash
-git clone https://github.com/fbwndrud/vibelore-plugin.git
-node /absolute/path/to/vibelore-plugin/src/server.js
+claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
 ```
+
+في Codex استخدم `command = "npx"` و`args = ["-y", "vibelore"]`، وفي Grok CLI استخدم `grok mcp add vibelore -- npx -y vibelore`.
+لتثبيت إصدار محدد اكتبه بالشكل `vibelore@0.4.0`. مسار npm يسجّل خادم MCP فقط، لذا ثبّت مهارات المقابلة
+بطريقة المستودع أدناه أو كإضافة Codex.
+
+لتنزيل المستودع وتسجيله مباشرة:
+
+```bash
+git clone https://github.com/fbwndrud/vibelore.git
+claude mcp add-json vibelore '{"command":"node","args":["/absolute/path/to/vibelore/src/server.js"]}' --scope project
+```
+
+المستودع أيضًا إضافة (plugin) لـ Codex (`.codex-plugin/plugin.json`). عند تثبيته كإضافة تُحمَّل مهارة مقابلة
+اكتشاف العمل وخادم MCP معًا. مهارات Claude Code موجودة في `hosts/claude/skills/`.
 
 يستخدم الخادم stdio، وهو ليس برنامجًا يُشغَّل مباشرة من الطرفية. سجّله أولًا كخادم MCP في
 Claude Code أو Codex أو Grok، ثم اطلب من ذلك المضيف الكتابة باللغة الطبيعية.
@@ -62,7 +77,7 @@ Claude Code أو Codex أو Grok، ثم اطلب من ذلك المضيف الك
 ```bash
 VIBELORE_LOCAL_BASE_URL=http://127.0.0.1:11434/v1 \
 VIBELORE_LOCAL_MODEL=qwen3:14b \
-node /absolute/path/to/vibelore-plugin/src/server.js
+node /absolute/path/to/vibelore/src/server.js
 ```
 
 تُسجَّل طريقة التسجيل لكل مضيف والإصدارات التي جرى التحقق منها فعليًا في [HOSTS.md](HOSTS.md).
@@ -164,6 +179,17 @@ stateDiagram-v2
 يُحفظ السجل محليًا ولا يُنشر خارجيًا تلقائيًا.
 
 للتفاصيل راجع [استجابات المراجعة والتدقيق](docs/OPERATIONS.md#검토-응답과-감사).
+
+### التحويل إلى ويبتون
+
+> حوّل الفصل 1 من `night_bus` إلى ويبتون. اسألني عن الاتجاه أولًا.
+
+يُقتبس الفصل المكتوب مع أخذ الشخصيات والعالم والحالة حتى ذلك الفصل من الأصل، فلا حاجة إلى شرحها من جديد.
+يسأل `lore_webtoon_scene` أولًا عن أسلوب الرسم وكتابة النصوص والتمرير العمودي وعدد اللوحات، ثم يؤكد الرسوم
+المرجعية للشخصيات والأماكن. بعد ذلك يرسم كل مشهد كاملًا مع الحوار صورةً عمودية واحدة، ويراجع الصورة الفعلية.
+تتبع النصوص المرسومة لغة العمل. طريقة الموافقة على مسودة لكل لوحة على حدة قديمة (deprecated) ولا تُستخدم إلا
+لمتابعة الأعمال الجارية. تُرسم الصور بأداة الصور لدى المضيف أو بواجهة API للصور؛ ولا تُستخدم واجهة مدفوعة إلا
+بعد التأكيد، وموافقة الويبتون منفصلة عن موافقة الرواية. راجع [دليل الويبتون](docs/WEBTOON.md).
 
 ## لغة العمل
 

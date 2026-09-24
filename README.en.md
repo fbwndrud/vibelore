@@ -24,18 +24,33 @@ flowchart LR
 
 ## Installation
 
-Requirements: Node.js 22 or later.
+Requirements: Node.js 22.13 or later (22.x) or 24.x. There is no build step and no dependency installation.
 
-This repository is a Codex plugin that includes `.codex-plugin/plugin.json`. Installing it
-as a plugin loads the story discovery interview skill and the MCP server together, so you
-do not need to write the repository location into your settings by hand.
+The easiest way is to give your AI coding tool (Claude Code, Codex, Grok CLI) the repository address and ask.
 
-To connect the repository directly from another MCP host, run it like this.
+> Clone https://github.com/fbwndrud/vibelore and register it as an MCP server.
+
+Restart the AI tool once after registration.
+
+To run the MCP server from the npm package [`vibelore`](https://www.npmjs.com/package/vibelore) without cloning the repository:
 
 ```bash
-git clone https://github.com/fbwndrud/vibelore-plugin.git
-node /absolute/path/to/vibelore-plugin/src/server.js
+claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
 ```
+
+For Codex use `command = "npx"` and `args = ["-y", "vibelore"]`; for Grok CLI, `grok mcp add vibelore -- npx -y vibelore`.
+To pin a version, write it as `vibelore@0.4.0`. The npm path registers only the MCP server, so install the
+interview skills with the repository method below or as a Codex plugin.
+
+To clone the repository and register it directly:
+
+```bash
+git clone https://github.com/fbwndrud/vibelore.git
+claude mcp add-json vibelore '{"command":"node","args":["/absolute/path/to/vibelore/src/server.js"]}' --scope project
+```
+
+The repository is also a Codex plugin (`.codex-plugin/plugin.json`). Installing it as a plugin loads the
+story discovery interview skill and the MCP server together. Claude Code skills live in `hosts/claude/skills/`.
 
 The server uses stdio. It is not a program you run directly from a terminal. First register
 it as an MCP server in Claude Code, Codex, or Grok, then ask that host to write in natural
@@ -62,7 +77,7 @@ authentication or passing a reasoning level, so use it only with a trusted local
 ```bash
 VIBELORE_LOCAL_BASE_URL=http://127.0.0.1:11434/v1 \
 VIBELORE_LOCAL_MODEL=qwen3:14b \
-node /absolute/path/to/vibelore-plugin/src/server.js
+node /absolute/path/to/vibelore/src/server.js
 ```
 
 Per-host registration steps and the versions actually verified are recorded in [HOSTS.md](HOSTS.md).
@@ -169,6 +184,18 @@ completion or failure status together.
 Records are stored locally and are never published externally on their own.
 
 See [Review responses and auditing](docs/OPERATIONS.md#검토-응답과-감사) for details.
+
+### Webtoon adaptation
+
+> Adapt chapter 1 of `night_bus` into a webtoon. Ask me about the direction first.
+
+A written chapter is adapted with its characters, world, and state taken from the source, so nothing has
+to be explained again. `lore_webtoon_scene` first asks about art style, lettering, vertical scrolling, and
+panel count, then confirms reference art for characters and places. Each whole scene is then drawn,
+lettering included, as one vertical image, and the actual picture is reviewed. Lettering follows the
+work's language. The older per-panel rough approval flow is deprecated and only continues work already in
+progress. Images come from the host's image tool or an image API; a paid API is used only after
+confirmation, and webtoon approval is separate from novel approval. See the [webtoon guide](docs/WEBTOON.md).
 
 ## Work language
 
