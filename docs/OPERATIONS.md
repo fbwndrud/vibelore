@@ -248,7 +248,7 @@ MCP 표면을 바꾸면 다음을 함께 갱신합니다.
 ```json
 {
   "project": "/absolute/path/to/my-novel",
-  "workId": "night_bus",
+  "workId": "my-novel",
   "limit": 100,
   "includeModelExchanges": true
 }
