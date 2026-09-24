@@ -224,10 +224,10 @@ describe('extractDelta prompt families', () => {
             '2',
             ``,
             `## 이전 상태 요약 (StoryState N-1)`,
-            JSON.stringify({ chapterNumber: 0, addressMapKeys: [], openHookIds: [] }, null, 2),
+            JSON.stringify({ chapterNumber: 0, addressMapKeys: [], activeHookIds: [] }),
             ``,
             `## 이번 회차 등장 캐스트 (writer manifest)`,
-            JSON.stringify([{ characterId: 'c1', canonicalName: '이세종', aliases: [], addressTermsUsed: ['도련님'] }], null, 2),
+            JSON.stringify([{ characterId: 'c1', canonicalName: '이세종', aliases: [], addressTermsUsed: ['도련님'] }]),
             '- characterId 는 canonicalName/aliases 로 식별한다. addressTermsUsed 는 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
             ``,
             `## 본문`,
@@ -237,7 +237,7 @@ describe('extractDelta prompt families', () => {
             '{',
             '  "newAddressEntries": [{ "speakerId": "...", "targetId": "...", "term": "...", "register": "formal|intimate|subordinate|..." }],',
             '  "relationshipOps": [{ "to": "...", "kind": "...", "state": "..." }],',
-            '  "hookOps": [{ "hookId": "...", "description": "...", "startChapter": 0, "status": "open|progressing|resolved|deferred", "payoffTiming": "immediate|near-term|mid-arc|slow-burn|endgame", "lastAdvancedChapter": 0 }],',
+            '  "hookChanges": [{ "id": "...", "text": "독자가 아직 답을 기다리는 약속", "plantedAtChapter": 0, "phase": "planted|advancing|paid|parked", "horizon": "next|soon|arc|long|finale", "lastMovedChapter": 0 }],',
             '  "mutableChanges": [{ "characterId": "...", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
             '  "influenceEvents": [{ "characterId": "...", "anchor": "본문에서 확인 가능한 짧은 근거", "interpretation": "이 사건을 인물이 어떻게 받아들였는가", "dimensionChanges": { "작품별_dimension_id": -1 }, "nextChoiceBias": "다음 선택에 생긴 편향", "behavioralProof": { "hypothesis": "성격 가설", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["선택A", "선택B"], "chosen": "실제 선택", "costPaid": "지불한 비용", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "from이 to를 어떻게 보게 됐는가" }] }],',
             '  "noInfluenceReason": "인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성. influenceEvents 가 있으면 빈 문자열",',
@@ -422,7 +422,7 @@ describe('extractDelta extractionValidation', () => {
         const cap = capturing(completeEmptyExtraction(hash, {
             newAddressEntries: [{ speakerId: 'c1', targetId: 'c1', term: 'sir', register: 'formal' }],
             relationshipOps: [{ to: 'c1', kind: 'ally', state: 'warm' }],
-            hookOps: [{ hookId: 'h1', description: 'the letter', startChapter: 2, status: 'open', lastAdvancedChapter: 2 }],
+            hookChanges: [{ id: 'h1', text: 'the letter', plantedAtChapter: 2, phase: 'planted', lastMovedChapter: 2 }],
             mutableChanges: [{ characterId: 'c1', location: 'study', knownFactsAdded: ['the letter'] }],
             influenceEvents: [{
                 characterId: 'c1',
@@ -438,7 +438,7 @@ describe('extractDelta extractionValidation', () => {
         const result = await extractDelta({ ...input, providers: cap.providers });
         expect(result.extractionValidation.status).toBe('completed');
         expect(result.delta.newAddressEntries).toHaveLength(1);
-        expect(result.delta.hookOps[0].hookId).toBe('h1');
+        expect(result.delta.hookChanges[0].id).toBe('h1');
         expect(result.delta.influenceEvents[0].characterId).toBe('c1');
         expect(result.delta.trackedEntityOps).toEqual([{ kind: 'Timeline', data: { era: 'present' } }]);
     });
@@ -597,7 +597,7 @@ describe('continuityCheck prompt families', () => {
             '2',
             ``,
             `## 이전 상태 요약`,
-            JSON.stringify({ chapterNumber: 0, addressMapKeys: [], openHookIds: [] }, null, 2),
+            JSON.stringify({ chapterNumber: 0, addressMapKeys: [], activeHookIds: [] }),
             ``,
             `## Foundation 요약`,
             JSON.stringify({
@@ -611,13 +611,13 @@ describe('continuityCheck prompt families', () => {
                 }],
                 intrinsicChanges: [],
                 worldFacts: [],
-            }, null, 2),
+            }),
             ``,
             `## 이번 회차 Delta`,
-            JSON.stringify(emptyDelta(2, ['c1']), null, 2),
+            JSON.stringify(emptyDelta(2, ['c1'])),
             ``,
             `## 장르 invariant 목록`,
-            JSON.stringify(registry.get('noble-clan-regression').invariants, null, 2),
+            JSON.stringify(registry.get('noble-clan-regression').invariants),
             ``,
             `## 본문`,
             PROSE,

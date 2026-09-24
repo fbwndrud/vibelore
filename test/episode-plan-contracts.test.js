@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { runEpisodePlan } from '../src/tools/episode-plan.js';
 import { createPreflightRelay } from '../src/provider/host-relay.js';
 import { qualityStore, workId } from './fixtures/quality-workflow.js';
+import { approvalResponse } from './fixtures/approval-response.js';
 
 const basePlan = {
   title: '두 번째 문', premise: '윤재가 잠긴 두 번째 문을 연다.', povCharacter: 'hero', cast: ['hero'], locations: ['탑 복도'],
@@ -20,6 +21,8 @@ const completeReveal = { ...incompleteReveal, recontextualizesSceneIds: ['chapte
 function sequenceProvider(answers, requests = []) {
   const queues = Object.fromEntries(Object.entries(answers).map(([step, list]) => [step, [...list]]));
   return { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+    // The episode approval gate asks for a language proof; answer it without counting it as planning.
+    const approval = approvalResponse(req); if (approval) return approval;
     requests.push(req);
     const queue = queues[req.step];
     if (!queue || !queue.length) throw new Error(`unexpected step ${req.step}`);

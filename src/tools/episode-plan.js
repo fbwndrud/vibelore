@@ -219,7 +219,13 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
     const parsed = parse(raw);
     if (!parsed || !Array.isArray(parsed.scenes) || parsed.scenes.length < 2 || parsed.scenes.length > 4) throw new Error('episode-plan은 2~4개 scenes가 필요합니다.');
     const inputViolations = episodePlanningContractViolations(parsed, knownCharacterIds);
-    if (inputViolations.length) throw new Error(`episode-plan 계획 계약 검증 실패: ${inputViolations.join(' ')}`);
+    // Incomplete agendas or reveal contracts get the same single repair round as
+    // the planning-contract validator below instead of failing the whole plan.
+    if (inputViolations.length) {
+      return { parsed, contracts: null, failure: { error: {
+        code: 'EPISODE_PLAN_CONTRACT_INVALID', message: `episode-plan 계획 계약 검증 실패: ${inputViolations.join(' ')}`, details: { violations: inputViolations },
+      } } };
+    }
     const contracts = compilePlanningContracts(parsed);
     const failure = validatePlanningContracts({
       agendas: contracts.characterAgendas, collisions: contracts.characterCollisions, reveals: contracts.revealContracts,

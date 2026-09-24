@@ -512,7 +512,7 @@ function isStringArray(value) {
 function isLegacyWellFormedExtraction(parsed) {
     if (!isRecord(parsed))
         return false;
-    for (const key of EXTRACT_ARRAY_KEYS) {
+    for (const key of [...EXTRACT_ARRAY_KEYS, 'hookOps']) {
         if (key in parsed && !Array.isArray(parsed[key]))
             return false;
     }
@@ -541,9 +541,23 @@ function isCompleteRelationshipOp(raw) {
         return false;
     return isNonEmptyString(raw.to) && isNonEmptyString(raw.kind) && isNonEmptyString(raw.state);
 }
+function isCompleteLegacyHookOp(raw) {
+    if (!isNonEmptyString(raw.hookId) || !isNonEmptyString(raw.description) || !isNonEmptyString(raw.status))
+        return false;
+    if ('startChapter' in raw && !isFiniteNumber(raw.startChapter))
+        return false;
+    if ('lastAdvancedChapter' in raw && !isFiniteNumber(raw.lastAdvancedChapter))
+        return false;
+    if ('payoffTiming' in raw && typeof raw.payoffTiming !== 'string')
+        return false;
+    return true;
+}
+/** Current hook shape (id/text/phase), or the legacy hookOps shape the parser still folds in. */
 function isCompleteHookChange(raw) {
     if (!isRecord(raw))
         return false;
+    if (!('id' in raw) && 'hookId' in raw)
+        return isCompleteLegacyHookOp(raw);
     if (!isNonEmptyString(raw.id) || !isNonEmptyString(raw.text) || !isNonEmptyString(raw.phase))
         return false;
     if ('plantedAtChapter' in raw && !isFiniteNumber(raw.plantedAtChapter))
@@ -632,7 +646,8 @@ function isNewContractDeltaComplete(parsed, resolveId) {
     if (typeof reason !== 'string' && !(Array.isArray(parsed.influenceEvents) && parsed.influenceEvents.length > 0))
         return false;
     for (const key of EXTRACT_ARRAY_KEYS) {
-        const rows = parsed[key];
+        // The parser folds legacy `hookOps` into hookChanges, so either key satisfies it.
+        const rows = key === 'hookChanges' ? (parsed.hookChanges ?? parsed.hookOps) : parsed[key];
         if (!Array.isArray(rows))
             return false;
         const valid = NEW_CONTRACT_ENTRY_VALIDATORS[key];

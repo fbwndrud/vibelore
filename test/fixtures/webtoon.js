@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MarkdownStateStore } from '../../src/store/markdown-store.js';
 import { runInit } from '../../src/tools/init.js';
+import { approvalFixtureProvider } from './approval-response.js';
 import { WEBTOON_AREAS } from '../../src/core/webtoon-contract.js';
 
 export const workId = 'webtoon-test';
@@ -15,7 +16,7 @@ after(async () => { for (const root of testRoots) await rm(root, { recursive: tr
 export async function webtoonStore() {
   const root = await mkdtemp(join(tmpdir(), 'vibelore-webtoon-')); testRoots.add(root);
   const store = new MarkdownStateStore(root);
-  await runInit({ store, workId, genre: 'other', worldFacts: ['문은 안에서만 열린다.'] });
+  await runInit({ providers: approvalFixtureProvider(), store, workId, genre: 'other', worldFacts: ['문은 안에서만 열린다.'] });
   const foundation = await store.loadFoundation(workId);
   await store.saveFoundation({ ...foundation, characters: [{ id: 'hero', canonicalName: '윤', aliases: [], registeredAtChapter: 1,
     intrinsic: { gender: 'female', coreAppearance: ['짧은 머리'] }, mutable: { scars: ['미래의 상처'] } }] });

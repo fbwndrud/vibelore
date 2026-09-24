@@ -21,6 +21,8 @@ import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { qualityStore, outputs as qualityOutputs, workId as qualityWorkId } from './fixtures/quality-workflow.js';
 import { approvalResponse } from './fixtures/approval-response.js';
 import { contractResponse } from './fixtures/contract-response.js';
+import { SYNTHETIC_LONG_PROSE } from './fixtures/synthetic-prose.js';
+import { runCheck } from '../src/tools/check.js';
 
 const SERVER = fileURLToPath(new URL('../src/server.js', import.meta.url));
 
@@ -154,7 +156,7 @@ describe('MCP surface', () => {
       const answers = {};
       for (const request of result.requests) {
         seen[request.step] = { stage: request.stage, model: request.model, reasoningEffort: request.reasoningEffort };
-        answers[request.id] = qualityOutputs[request.step] ?? '{}';
+        answers[request.id] = proofAnswer(request) ?? qualityOutputs[request.step] ?? '{}';
       }
       result = await invoke('lore_resume', { runId: result.runId, answers });
     }
@@ -171,7 +173,7 @@ describe('MCP surface', () => {
       const answers = {};
       for (const request of result.requests) {
         seen[request.step] = { stage: request.stage, model: request.model, reasoningEffort: request.reasoningEffort };
-        answers[request.id] = qualityOutputs[request.step] ?? '{}';
+        answers[request.id] = proofAnswer(request) ?? qualityOutputs[request.step] ?? '{}';
       }
       result = await invoke('lore_resume', { runId: result.runId, answers });
     }
@@ -528,7 +530,14 @@ describe('MCP surface', () => {
 for (const interrupted of [false, true]) {
   it(`restores status, context and the next writing workflow through MCP (interrupted=${interrupted})`, async () => {
     const store = await qualityStore();
-    for (const chapter of [1, 2]) await runCommit({ store, workId: qualityWorkId, chapter, prose: `${chapter}번째 문을 열었다.`, summary: `${chapter}번째 문.`, providers: createHostRelay({}), delta: { chapterNumber: chapter, appearedCharacterIds: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], mutableChanges: [], trackedEntityOps: [] } });
+    // The work has an explicit language contract, so each chapter is checked for a receipt before commit.
+    const checker = { pending: [], async complete(req) { return contractResponse(req) ?? { text: qualityOutputs[req.step] ?? '{}' }; } };
+    for (const chapter of [1, 2]) {
+      const chapterInput = { store, workId: qualityWorkId, chapter, prose: `${chapter}번째 문을 열었다.\n\n${SYNTHETIC_LONG_PROSE}`, castManifestRaw: '', providers: checker };
+      const checked = await runCheck({ ...chapterInput, issueReceipt: true });
+      assert.equal(checked.validationComplete, true, JSON.stringify(checked));
+      await runCommit({ ...chapterInput, checkId: checked.checkId });
+    }
     const args = { project: store.rootDir, workId: qualityWorkId };
     if (interrupted) await assert.rejects(rollbackToSnapshot({ store, workId: qualityWorkId, chapter: 1, failAt: 'after:chapters' }), /injected/);
     else {

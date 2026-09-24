@@ -107,7 +107,10 @@ describe('host round trips are batched by dependency', () => {
       const steps = relay.pending.map((req) => req.step);
       if (!steps.length) break;
       passes.push(steps);
-      for (const req of relay.pending) answers[req.id] = outputs[req.step] ?? '{}';
+      for (const req of relay.pending) {
+        const contract = contractResponse({ step: req.step, messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }] });
+        answers[req.id] = contract?.text ?? outputs[req.step] ?? '{}';
+      }
     }
     return { result, passes };
   }
@@ -120,14 +123,17 @@ describe('host round trips are batched by dependency', () => {
     // no separate engine chapter-plan round trip precedes it.
     assert.deepEqual(passes[0], ['draft']);
     const batch = passes[1];
-    for (const step of ['continuity-extract', 'story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger']) {
+    // The contract check does not run the advisory story-profile-check, so the
+    // first batch is the extraction plus every independent review.
+    for (const step of ['continuity-extract', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger']) {
       assert.ok(batch.includes(step), `${step} in first review batch: ${batch}`);
     }
     assert.ok(!batch.includes('continuity-check'), 'continuity-check waits for the extracted delta');
     assert.ok(!batch.includes('continuity-extract-repair'), 'no repair request on a placeholder delta');
     assert.deepEqual(passes[2], ['continuity-check']);
-    assert.deepEqual(passes[3], ['narrative-boundary', 'chapter-summary']);
-    assert.equal(passes.length, 4);
+    // Title, summary and their language proof come from the checked artifact,
+    // then the boundary judge reads the final prose.
+    assert.deepEqual(passes.slice(3), [['chapter-title'], ['chapter-summary'], ['language-contract'], ['narrative-boundary']]);
   });
 
   it('records one quality policy evaluation per attempt across resumed passes', async () => {
@@ -143,8 +149,8 @@ describe('host round trips are batched by dependency', () => {
     const plan = await store.loadEpisodePlan(workId, 1);
     await store.saveEpisodePlan(workId, { ...plan, workId, contractVersion: 'mcp-test', createdAt: '2026-01-01T00:00:00.000Z' });
     const requests = [];
-    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); return { text: outputs[req.step] ?? '{}' }; } } });
-    for (const step of ['story-profile-check', 'reader-hook']) {
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    for (const step of ['reader-hook']) {
       const text = requests.find((req) => req.step === step).messages.map((m) => m.content).join('\n');
       assert.doesNotMatch(text, /contractVersion|createdAt/, step);
       assert.match(text, /닫힌 문 앞에 선다/, step);

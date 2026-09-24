@@ -564,7 +564,7 @@ function schemaValidated({ extractionValidation, delta, chapterNumber, bundle, f
         return false;
     if (delta.chapterNumber !== chapterNumber)
         return false;
-    for (const key of ['appearedCharacterIds', 'newAddressEntries', 'relationshipOps', 'hookOps', 'mutableChanges', 'influenceEvents']) {
+    for (const key of ['appearedCharacterIds', 'newAddressEntries', 'relationshipOps', 'hookChanges', 'mutableChanges', 'influenceEvents']) {
         if (!Array.isArray(delta[key]))
             return false;
     }
