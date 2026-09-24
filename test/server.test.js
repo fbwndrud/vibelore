@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
 import { runCommit } from '../src/tools/commit.js';
+import { runWebtoonTool } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { rollbackToSnapshot } from '../src/tools/snapshots.js';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
@@ -267,7 +268,9 @@ describe('MCP surface', () => {
       assert.equal(replies.get(2).result.isError, undefined, JSON.stringify(replies.get(2)));
       return payload(replies.get(2));
     };
-    const first = await invoke('lore_webtoon_plan', { imageModel: 'gpt-image-2' });
+    const blocked = (await session([init, call(2, 'lore_webtoon_plan', { ...args, imageModel: 'gpt-image-2' })], { surface: 'public' })).get(2);
+    assert.match(JSON.stringify(blocked), /WEBTOON_PANEL_PATH_DEPRECATED/);
+    const first = await runWebtoonTool({ store, toolName: 'lore_webtoon_plan', args: { workId: webtoonWorkId, imageModel: 'gpt-image-2' }, providers: createHostRelay() });
     assert.equal(first.status, 'needs_interview');
     const profile = await invoke('lore_webtoon_plan', { workflowId: first.workflowId, responses: webtoonAnswers });
     let result = await invoke('lore_webtoon_decide', { workflowId: first.workflowId, approvalId: profile.approvalId, action: 'approve' });
