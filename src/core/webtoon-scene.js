@@ -21,7 +21,8 @@ export const SCENE_SCHEMA = {
 const need = (ok, message) => { if (!ok) throw new Error(message); };
 /** Retry-report wording that must not reach the image model. */
 const RETRY_FRAMING = /\b(previous|prior|last time|earlier|again|instead|wrong|mistake|misspell\w*|incorrect|error|fix|failed|not|no|never|don't|do not|avoid|stop)\b/i;
-export const isEnglish = value => nonempty(value) && !/[ᄀ-ᇿ㄰-㆏가-힯]/u.test(value);
+/** Direction fields are English for every work language: every letter must be Latin script (digits, punctuation and symbols pass). */
+export const isEnglish = value => nonempty(value) && [...value.matchAll(/\p{L}/gu)].every(([c]) => /\p{Script=Latin}/u.test(c));
 const unique = rows => new Set(rows.map(r => r.id)).size === rows.length && rows.every(r => safeId(r.id));
 const words = s => s.trim().split(/\s+/u).length;
 const needTextCoverage = (assigned, texts) => need(assigned.length === texts.length && new Set(assigned).size === assigned.length

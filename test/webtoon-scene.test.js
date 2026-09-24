@@ -9,9 +9,15 @@ import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { readWebtoonWorkflow } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
-import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS } from '../src/core/webtoon-scene.js';
+import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish } from '../src/core/webtoon-scene.js';
 
 const plan = scenePlan, preflight = scenePreflight, setup = sceneSetup;
+
+test('scene direction must be Latin-script English for every work language', () => {
+  for (const ok of ['She waits at the door.', 'Panel 3: 2 figures, 50% shadow — calm.', 'Yun\'s café scene.']) assert.equal(isEnglish(ok), true, ok);
+  for (const bad of ['윤이 문 앞에 선다.', 'ユンが扉の前に立つ。', '尹停在門前。', 'ยุนหยุดหน้าประตู', 'يون تقف أمام الباب', 'She says 안녕 at the door.', '', '   ']) assert.equal(isEnglish(bad), false, bad);
+});
+
 function provider({ blocking = false, visual = true } = {}) {
   return { provenance: { kind: 'fixture' }, async complete(r) {
     const d = JSON.parse(r.messages.at(-1).content); let answer;
