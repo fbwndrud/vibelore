@@ -180,6 +180,7 @@ export const phrases = {
     autonomousShort: '(자율)',
     unknown: 'unknown',
     chapterSuffix: (n) => `${n}화`,
+    chapterProseLabel: (n) => `${n}화 본문`,
   },
 
   profile: {

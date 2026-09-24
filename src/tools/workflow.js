@@ -470,7 +470,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     }
     // Extraction, profile check and reviews all carry this prose verbatim; the
     // relay presents it as one shared prompt prefix for the whole batch.
-    providers.shareContext?.({ id: 'chapter-prose', label: `${chapter}화 본문`, text: current.prose });
+    providers.shareContext?.({ id: 'chapter-prose', label: kit.phrases.common.chapterProseLabel(chapter), text: current.prose });
     const checkedProse = current.prose;
     check = await runCheck({
       store, workId, chapter, prose: current.prose,
@@ -669,7 +669,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   // The check already queued this request beside the title and summary of the
   // same final prose, so on the normal path it is answered here without a
   // round trip of its own.
-  providers.shareContext?.({ id: 'chapter-prose', label: `${chapter}화 본문`, text: current.prose });
+  providers.shareContext?.({ id: 'chapter-prose', label: kit.phrases.common.chapterProseLabel(chapter), text: current.prose });
   const boundary = await judgeBoundary(current.prose);
   if (pending(providers)) {
     await transition(store, workflow, 'awaiting_model', { operation: 'narrative_boundary', attempt });

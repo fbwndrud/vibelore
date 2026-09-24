@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
  * carries the same prose. The layout moves only the material every member
  * already has into a shared block and pushes the role and step data behind it:
  *
- *   system  HOST_EXECUTION_NOTE                       identical for everyone
+ *   system  HOST_EXECUTION_NOTE (ko; English for other families)  identical for everyone
  *   user    [공통 자료 시작 …] label + text [공통 자료 끝 …]   identical within a group
  *           [이번 요청 역할] original system
  *           [이번 요청 자료] original user, shared text replaced by a pointer
@@ -24,6 +24,44 @@ import { createHash } from 'node:crypto';
  */
 export const HOST_EXECUTION_NOTE = '[실행 조건] 이 요청은 자기완결이다. 파일 읽기·검색·도구 실행 없이 위 system과 user에 제공된 자료만으로 단일 최종 응답을 만든다.';
 export const JSON_EXECUTION_NOTE = '코드블록 없이 JSON 객체 하나만 출력한다.';
+
+/**
+ * The relay scaffolding follows the work's prompt family, like every other static
+ * instruction: `ko` keeps the Korean text byte for byte, every other family gets
+ * English. A Korean note inside an English request pulled a real en profile answer
+ * into Korean (2026-09-24 acceptance). The family is fixed per work, so the shared
+ * prefix stays byte-identical within one work.
+ */
+const SCAFFOLD = Object.freeze({
+  ko: Object.freeze({
+    note: HOST_EXECUTION_NOTE,
+    json: JSON_EXECUTION_NOTE,
+    blockStart: (id, digest) => `[공통 자료 시작 · ${id} · sha256:${digest}]`,
+    blockEnd: (id) => `[공통 자료 끝 · ${id}]`,
+    role: '[이번 요청 역할]',
+    data: '[이번 요청 자료]',
+    pointer: (id, label) => `(위 [공통 자료 · ${id}]의 「${label}」 전문)`,
+  }),
+  multilingual: Object.freeze({
+    note: '[Execution conditions] This request is self-contained. Without reading files, searching or running tools, produce a single final answer from the material given in the system and user above only.',
+    json: 'Output exactly one JSON object with no code fence.',
+    blockStart: (id, digest) => `[Shared material start · ${id} · sha256:${digest}]`,
+    blockEnd: (id) => `[Shared material end · ${id}]`,
+    role: '[Role for this request]',
+    data: '[Material for this request]',
+    pointer: (id, label) => `(the full "${label}" in [Shared material · ${id}] above)`,
+  }),
+});
+
+/** Scaffolding for a prompt family. Anything that is not `ko` is the multilingual family. */
+export function relayScaffold(promptFamily = 'ko') {
+  return promptFamily === 'ko' ? SCAFFOLD.ko : SCAFFOLD.multilingual;
+}
+
+/** The execution note a relayed request of this family carries. */
+export function hostExecutionNote(promptFamily = 'ko') {
+  return relayScaffold(promptFamily).note;
+}
 export const PROMPT_LAYOUT_VERSION = 'shared-prefix-v1';
 
 /**
@@ -52,33 +90,35 @@ function occurrences(haystack, needle) {
   return count;
 }
 
-function withExecutionNote(request) {
-  const note = request.jsonMode ? `${HOST_EXECUTION_NOTE} ${JSON_EXECUTION_NOTE}` : HOST_EXECUTION_NOTE;
+function withExecutionNote(request, text) {
+  const note = request.jsonMode ? `${text.note} ${text.json}` : text.note;
   return { ...request, system: `${request.system ?? ''}\n\n${note}` };
 }
 
-function sharedBlock(context, digest) {
-  return `[공통 자료 시작 · ${context.id} · sha256:${digest.slice(0, 16)}]\n`
+function sharedBlock(context, digest, text) {
+  return `${text.blockStart(context.id, digest.slice(0, 16))}\n`
     + `## ${context.label}\n${context.text}\n`
-    + `[공통 자료 끝 · ${context.id}]\n\n`;
+    + `${text.blockEnd(context.id)}\n\n`;
 }
 
-function groupedRequest(request, context, block, pointer) {
+function groupedRequest(request, context, block, pointer, text) {
   const at = request.user.indexOf(context.text);
   const stepUser = `${request.user.slice(0, at)}${pointer}${request.user.slice(at + context.text.length)}`;
-  const tail = request.jsonMode ? `\n\n${JSON_EXECUTION_NOTE}` : '';
+  const tail = request.jsonMode ? `\n\n${text.json}` : '';
   return {
     ...request,
-    system: HOST_EXECUTION_NOTE,
-    user: `${block}[이번 요청 역할]\n${request.system ?? ''}\n\n[이번 요청 자료]\n${stepUser}${tail}`,
+    system: text.note,
+    user: `${block}${text.role}\n${request.system ?? ''}\n\n${text.data}\n${stepUser}${tail}`,
   };
 }
 
 /**
  * @param {Array<{id:string, step:string, jsonMode?:boolean, system:string, user:string}>} requests
  * @param {Array<{id:string, label:string, text:string}>} sharedContexts  declaration order decides ties
+ * @param {{promptFamily?: string}} [options]  the work's prompt family; `ko` by default
  */
-export function layoutRelayRequests(requests, sharedContexts = []) {
+export function layoutRelayRequests(requests, sharedContexts = [], { promptFamily = 'ko' } = {}) {
+  const text = relayScaffold(promptFamily);
   const assigned = new Map();
   for (const context of sharedContexts) {
     if (!context?.text) continue;
@@ -91,20 +131,20 @@ export function layoutRelayRequests(requests, sharedContexts = []) {
   const groups = new Map();
   return requests.map((request) => {
     const context = assigned.get(request.id);
-    if (!context) return withExecutionNote(request);
+    if (!context) return withExecutionNote(request, text);
     const digest = sha(context.text);
     let group = groups.get(context);
     if (!group) {
-      const block = sharedBlock(context, digest);
+      const block = sharedBlock(context, digest, text);
       const size = [...assigned.values()].filter((item) => item === context).length;
       const estimatedTokens = estimateTokensLowerBound(block);
       group = {
         block,
-        pointer: `(위 [공통 자료 · ${context.id}]의 「${context.label}」 전문)`,
+        pointer: text.pointer(context.id, context.label),
         hint: {
           layout: PROMPT_LAYOUT_VERSION,
-          sharedPrefixId: `sha256:${sha(`${HOST_EXECUTION_NOTE}\u0000${block}`)}`,
-          sharedPrefixEndMarker: `[공통 자료 끝 · ${context.id}]\n\n`,
+          sharedPrefixId: `sha256:${sha(`${text.note}\u0000${block}`)}`,
+          sharedPrefixEndMarker: `${text.blockEnd(context.id)}\n\n`,
           sharedPrefixChars: block.length,
           estimatedSharedTokens: estimatedTokens,
           groupSize: size,
@@ -116,6 +156,6 @@ export function layoutRelayRequests(requests, sharedContexts = []) {
     }
     const promptCache = { ...group.hint, warmFirst: group.warm && group.first };
     group.first = false;
-    return { ...groupedRequest(request, context, group.block, group.pointer), promptCache };
+    return { ...groupedRequest(request, context, group.block, group.pointer, text), promptCache };
   });
 }

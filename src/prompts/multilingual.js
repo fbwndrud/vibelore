@@ -179,6 +179,7 @@ export const phrases = {
     autonomousShort: '(free)',
     unknown: 'unknown',
     chapterSuffix: (n) => `ch. ${n}`,
+    chapterProseLabel: (n) => `Chapter ${n} prose`,
   },
 
   profile: {

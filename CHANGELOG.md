@@ -38,6 +38,11 @@
   v1 works keep `## 요약`, v2 (non-`ko`) works write `## Summary`. Reading
   accepts both headings, so summaries already written with `## 요약` in a v2
   work still load.
+- Relayed requests (`needs_model`) carry the execution note, JSON note and
+  shared-prefix markers in the work's prompt family: `ko` works keep the
+  Korean text byte for byte, other works get English, so a Korean note no
+  longer pulls a non-`ko` answer into Korean. The shared chapter-prose label
+  follows the family too.
 
 ### Existing Korean works: what changes in `lore_write`
 

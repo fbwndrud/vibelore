@@ -284,6 +284,10 @@ MCP 표면을 바꾸면 다음을 함께 갱신합니다.
 | `user` 앞부분 | `[공통 자료 시작 · chapter-prose · sha256:…]`부터 `[공통 자료 끝 · chapter-prose]`까지. 바이트 단위로 같습니다 |
 | `user` 뒷부분 | `[이번 요청 역할]`(원래 `system`), `[이번 요청 자료]`(원래 `user`, 본문 자리는 공통 자료 참조 표기), JSON 조건 |
 
+실행 조건과 표지는 작품의 프롬프트 계열을 따릅니다. `ko` 작품은 위 한국어 표지 그대로이고, 다른 언어 작품은
+`[Shared material start · …]`, `[Role for this request]`, `[Material for this request]` 같은 영어 표지를 씁니다.
+계열은 작품마다 고정이라 한 작품 안에서 공통 접두부는 바이트 단위로 같습니다.
+
 요청에 추가되는 `promptCache` 힌트:
 
 | 필드 | 의미 |
