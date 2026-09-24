@@ -22,6 +22,12 @@
   path.
 - Closing-arc chapters get the cliffhanger advisory again on the contract
   check path (the arc position is passed to the detectors).
+- The approval language gate classifies the cast-design `intrinsic.genderLabel`
+  as work-language text, so `lore_create` no longer ends in `clean_fail
+  INCOMPLETE_LANGUAGE_EVIDENCE` after every reviewer answer passed. A generated
+  `intrinsic.ageBand` ("early twenties") is now reviewed as work-language text
+  instead of being exempt as an enum; only the `unknown` default stays machine.
+  A new test derives the fields from the live generator prompt schemas.
 
 ### Existing Korean works: what changes in `lore_write`
 
