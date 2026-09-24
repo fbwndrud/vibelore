@@ -43,6 +43,12 @@
   Korean text byte for byte, other works get English, so a Korean note no
   longer pulls a non-`ko` answer into Korean. The shared chapter-prose label
   follows the family too.
+- Non-`ko` StoryProfiles no longer get English host defaults ("Design question
+  N", "web serial", the reader-legibility and register-policy guidance) in
+  work-language fields when the model omits them. The multilingual prompt asks
+  for those values in the work language; if one is still missing it is stored
+  empty and the runtime prompt guidance falls back to the static instruction.
+  `ko` defaults are unchanged.
 
 ### Existing Korean works: what changes in `lore_write`
 
