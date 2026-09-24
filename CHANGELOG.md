@@ -34,6 +34,10 @@
   reviewed as generated text. When the model omits it, the host inserts its
   static `ko`/`en` question, which is bound to the approval hash but is not a
   work-language artifact.
+- Chapter summaries (`summaries/NNN.md`) use the canonical format heading:
+  v1 works keep `## 요약`, v2 (non-`ko`) works write `## Summary`. Reading
+  accepts both headings, so summaries already written with `## 요약` in a v2
+  work still load.
 
 ### Existing Korean works: what changes in `lore_write`
 

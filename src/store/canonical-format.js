@@ -40,7 +40,7 @@ export class CanonicalFormatError extends Error {
 }
 
 /**
- * 다섯 쌍으로 고정한 소유 표제. 표시 언어마다 표제를 추가하지 않는다.
+ * 여섯 쌍으로 고정한 소유 표제. 표시 언어마다 표제를 추가하지 않는다.
  * key 는 의미 식별자이며 파일에는 언어별 표제만 나타난다.
  */
 export const CANONICAL_HEADINGS = Object.freeze({
@@ -50,6 +50,7 @@ export const CANONICAL_HEADINGS = Object.freeze({
     description: '설명',
     dramaticModel: '극적 모델',
     speechProfile: '말투 프로필',
+    summary: '요약',
   }),
   [CANONICAL_FORMAT_VERSION_MULTILINGUAL]: Object.freeze({
     worldFacts: 'World facts',
@@ -57,11 +58,14 @@ export const CANONICAL_HEADINGS = Object.freeze({
     description: 'Description',
     dramaticModel: 'Dramatic model',
     speechProfile: 'Speech profile',
+    summary: 'Summary',
   }),
 });
 
 export const SETTING_SECTION_KEYS = Object.freeze(['worldFacts']);
 export const CHARACTER_SECTION_KEYS = Object.freeze(['contradiction', 'description', 'dramaticModel', 'speechProfile']);
+/** summaries/NNN.md 의 소유 표제. */
+export const SUMMARY_SECTION_KEYS = Object.freeze(['summary']);
 
 export const CANONICAL_FORMAT_VERSIONS = Object.freeze([
   CANONICAL_FORMAT_VERSION_LEGACY_KO,

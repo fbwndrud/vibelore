@@ -28,10 +28,10 @@ import {
 } from '../md/frontmatter.js';
 import {
   CANONICAL_FORMAT_ERROR_CODES, CANONICAL_FORMAT_KEYS, CanonicalFormatError,
-  CHARACTER_SECTION_KEYS, SETTING_SECTION_KEYS,
+  CHARACTER_SECTION_KEYS, SETTING_SECTION_KEYS, SUMMARY_SECTION_KEYS,
   allOwnedHeadings, assertCanonicalSections, formatKeysToWrite, headingsFor, resolveDocumentFormat,
 } from './canonical-format.js';
-import { CANONICAL_FORMAT_VERSION_MULTILINGUAL, normalizeLanguageTag } from '../../engine/src/core/language-policy.js';
+import { CANONICAL_FORMAT_VERSION_LEGACY_KO, CANONICAL_FORMAT_VERSION_MULTILINGUAL, normalizeLanguageTag } from '../../engine/src/core/language-policy.js';
 
 /** 비교 전용 정규화. 태그가 깨졌으면 원문 그대로 비교해 오류를 숨기지 않는다. */
 function comparableLanguage(value) {
@@ -726,9 +726,12 @@ export class MarkdownStateStore {
   async saveChapterSummary(record) {
     assertSafeId('workId', record.workId);
     const { summary, workId, chapterNumber, ...meta } = record;
+    // 요약 표제도 작품의 정본 형식 버전을 따른다(v1 한국어 / v2 영문). 기록이 없는 구작은 v1.
+    const contract = await this.loadCanonicalContract(workId);
+    const heading = headingsFor(contract?.canonicalFormatVersion ?? CANONICAL_FORMAT_VERSION_LEGACY_KO).summary;
     await writeAtomic(this.summaryPath(chapterNumber), formatDocument(
       { workId, chapter: chapterNumber },
-      section('요약', summary ?? ''),
+      section(heading, summary ?? ''),
     ));
     if (Object.keys(meta).length > 0) {
       await writeJson(this.sidecar('summaries', `${chapterNumber}.json`), meta);
@@ -745,7 +748,8 @@ export class MarkdownStateStore {
       ...meta,
       workId: String(data.workId ?? workId),
       chapterNumber: Number(data.chapter ?? chapterNumber),
-      summary: readSection(body, '요약') ?? body.trim(),
+      // 두 표제를 모두 읽는다. 0.4.0 초기에 v2 작품에 한국어 표제로 쓴 요약도 그대로 읽힌다.
+      summary: allOwnedHeadings(SUMMARY_SECTION_KEYS).map((heading) => readSection(body, heading)).find((value) => value != null) ?? body.trim(),
     };
   }
 
