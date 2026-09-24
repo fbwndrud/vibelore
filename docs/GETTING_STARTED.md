@@ -28,7 +28,20 @@ AI 도구에게 저장소 주소를 주고 등록을 부탁하세요.
 도구가 보이면 준비가 끝났습니다. 보이지 않으면 [연결 문제 해결](TROUBLESHOOTING.md#도구가-보이지-않아요)을 보세요.
 
 <details>
-<summary>직접 등록하려면</summary>
+<summary>npm으로 등록하려면</summary>
+
+저장소 없이 npm 패키지 `vibelore`로 서버를 실행합니다. 명령만 바뀌고 나머지 설정은 아래와 같습니다.
+
+```bash
+claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
+```
+
+Codex는 `command = "npx"`, `args = ["-y", "vibelore"]`, Grok CLI는 `grok mcp add vibelore -- npx -y vibelore`입니다.
+이 방식은 MCP 서버만 등록하므로 인터뷰 스킬은 저장소 방식이나 Codex 플러그인으로 설치합니다.
+</details>
+
+<details>
+<summary>저장소를 받아 직접 등록하려면</summary>
 
 ```bash
 git clone https://github.com/fbwndrud/vibelore.git /absolute/path/to/vibelore

@@ -73,11 +73,25 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 
 > https://github.com/fbwndrud/vibelore 를 받아서 MCP 서버로 등록해 줘.
 
-필요한 것은 Node.js 22.13 이상(22.x) 또는 24.x뿐입니다. `npm install`도 빌드도 없습니다.
+필요한 것은 Node.js 22.13 이상(22.x) 또는 24.x뿐입니다. 빌드도 의존성 설치도 없습니다.
 등록이 끝나면 AI 도구를 한 번 다시 시작하세요.
 
 <details>
-<summary>직접 등록하려면</summary>
+<summary>npm으로 등록하려면</summary>
+
+저장소를 받지 않고 npm 패키지 [`vibelore`](https://www.npmjs.com/package/vibelore)로 MCP 서버를 실행합니다.
+
+```bash
+claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
+```
+
+Codex는 `command = "npx"`, `args = ["-y", "vibelore"]`, Grok CLI는 `grok mcp add vibelore -- npx -y vibelore`입니다.
+특정 버전에 고정하려면 `vibelore@0.3.9`처럼 적습니다. npm 경로는 MCP 서버만 등록하므로 인터뷰 스킬은
+아래 저장소 방식이나 Codex 플러그인으로 설치합니다.
+</details>
+
+<details>
+<summary>저장소를 받아 직접 등록하려면</summary>
 
 ```bash
 git clone https://github.com/fbwndrud/vibelore.git

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.9 — 2026-09-24
+
+- Publish to npm as `vibelore`. Hosts can run the MCP server with
+  `npx -y vibelore` instead of cloning the repository; the npm path registers
+  the server only, so skills still come from the repository or the Codex
+  plugin. The Codex plugin name stays `vibelore-plugin`.
+
 ## 0.3.8 — 2026-09-24
 
 - `lore_webtoon_scene` no longer fails with

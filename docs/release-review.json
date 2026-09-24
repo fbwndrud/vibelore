@@ -1,8 +1,8 @@
 {
   "status": "approved",
-  "version": "0.3.0",
+  "version": "0.3.9",
   "targetLicense": "Apache-2.0",
-  "reason": "The maintainer explicitly requested publication and push of version 0.3.0 on 2026-09-20. The release includes webtoon workflows and the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
+  "reason": "The maintainer explicitly requested publishing the plugin to npm as `vibelore` on 2026-09-24, in addition to the GitHub release. The npm package ships the files listed in package.json `files`, including the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
   "approvedBy": "JoungKyoung Lyoo",
-  "approvedAt": "2026-09-20"
+  "approvedAt": "2026-09-24"
 }
