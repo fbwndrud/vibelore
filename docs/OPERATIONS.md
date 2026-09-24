@@ -167,7 +167,7 @@ sequenceDiagram
 - 설정의 `command`가 실제 `node` 실행 파일을 찾는지 확인합니다.
 - `args`가 `src/server.js`의 절대 경로인지 확인합니다.
 - 호스트를 재시작해 MCP 목록을 다시 읽습니다.
-- Node.js 22.13.0 이상인 22.x 또는 24.x LTS인지 확인합니다.
+- Node.js 22.13.0 이상인 22.x, 24.x 또는 26.x인지 확인합니다.
 
 ### 시작 timeout
 

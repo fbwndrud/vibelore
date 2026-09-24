@@ -14,7 +14,7 @@ flowchart LR
 
 ## 1. 설치
 
-필요한 것은 Node.js 22.13 이상(22.x) 또는 24.x, 그리고 AI 코딩 도구 하나입니다.
+필요한 것은 Node.js 22.13 이상(22.x), 24.x 또는 26.x, 그리고 AI 코딩 도구 하나입니다.
 `npm install`도 빌드도 없습니다.
 
 AI 도구에게 저장소 주소를 주고 등록을 부탁하세요.
@@ -37,6 +37,7 @@ claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scop
 ```
 
 Codex는 `command = "npx"`, `args = ["-y", "vibelore"]`, Grok CLI는 `grok mcp add vibelore -- npx -y vibelore`입니다.
+Windows에서는 `npx` 앞에 `cmd /c`를 붙입니다(`"command":"cmd","args":["/c","npx","-y","vibelore"]`).
 이 방식은 MCP 서버만 등록하므로 인터뷰 스킬은 저장소 방식이나 Codex 플러그인으로 설치합니다.
 </details>
 

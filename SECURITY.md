@@ -40,5 +40,5 @@ complete `.vibelore` directories to public issues.
   [recovery instructions](docs/OPERATIONS.md#전체-rollback).
 
 Keep Node.js on a supported, patched release. The supported families are Node
-22.x (minimum 22.13.0) and 24.x. Model judgments and prose-quality checks are not
+22.x (minimum 22.13.0), 24.x and 26.x. Model judgments and prose-quality checks are not
 security boundaries. Maintain an independent backup of valuable manuscripts.

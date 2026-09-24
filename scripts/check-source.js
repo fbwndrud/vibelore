@@ -9,7 +9,7 @@ for (const path of ['LICENSE', 'NOTICE', 'SECURITY.md', 'CONTRIBUTING.md', 'docs
 for (const path of ['package.json', 'engine/package.json']) {
   const pkg = JSON.parse(readFileSync(path));
   assert.equal(pkg.license, 'Apache-2.0');
-  assert.equal(pkg.engines.node, '^22.13.0 || ^24.0.0');
+  assert.equal(pkg.engines.node, '^22.13.0 || ^24.0.0 || ^26.0.0');
   assert.equal(pkg.repository.url, 'https://github.com/fbwndrud/vibelore.git');
 }
 const manifest = JSON.parse(readFileSync('.codex-plugin/plugin.json'));

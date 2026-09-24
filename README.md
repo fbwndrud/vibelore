@@ -4,7 +4,7 @@
 
 *Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into a vertical webtoon. Local, Markdown, no extra API keys for writing.*
 
-[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024-brightgreen)](docs/GETTING_STARTED.md)
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.md)
 [![Showcase](https://img.shields.io/badge/showcase-%EC%9E%91%ED%92%88%203%ED%8E%B8-orange)](https://fbwndrud.github.io/vibelore/showcase/)
@@ -73,7 +73,7 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 
 > https://github.com/fbwndrud/vibelore 를 받아서 MCP 서버로 등록해 줘.
 
-필요한 것은 Node.js 22.13 이상(22.x) 또는 24.x뿐입니다. 빌드도 의존성 설치도 없습니다.
+필요한 것은 Node.js 22.13 이상(22.x), 24.x 또는 26.x뿐입니다. 빌드도 의존성 설치도 없습니다.
 등록이 끝나면 AI 도구를 한 번 다시 시작하세요.
 
 <details>
@@ -86,7 +86,8 @@ claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scop
 ```
 
 Codex는 `command = "npx"`, `args = ["-y", "vibelore"]`, Grok CLI는 `grok mcp add vibelore -- npx -y vibelore`입니다.
-특정 버전에 고정하려면 `vibelore@0.3.9`처럼 적습니다. npm 경로는 MCP 서버만 등록하므로 인터뷰 스킬은
+Windows에서는 `npx` 앞에 `cmd /c`를 붙입니다(`"command":"cmd","args":["/c","npx","-y","vibelore"]`).
+특정 버전에 고정하려면 `vibelore@<버전>`처럼 적습니다. npm 경로는 MCP 서버만 등록하므로 인터뷰 스킬은
 아래 저장소 방식이나 Codex 플러그인으로 설치합니다.
 </details>
 

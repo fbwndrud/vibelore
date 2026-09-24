@@ -1,6 +1,6 @@
 # Contributing
 
-Use Node.js 22.x (22.13.0 or newer) or 24.x. There is no dependency installation
+Use Node.js 22.x (22.13.0 or newer), 24.x or 26.x. There is no dependency installation
 or build step.
 
 ```sh

@@ -1,6 +1,6 @@
 {
   "name": "vibelore",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "type": "module",
   "description": "Local novel-writing and webtoon-adaptation plugin with continuity checks, storyboards, lettering, and approval workflows.",
   "files": [
@@ -44,7 +44,7 @@
     "check:release": "node scripts/check-release.js"
   },
   "engines": {
-    "node": "^22.13.0 || ^24.0.0"
+    "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
   },
   "license": "Apache-2.0",
   "repository": {

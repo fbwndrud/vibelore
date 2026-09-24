@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.10 — 2026-09-24
+
+- Support Node.js 26: `engines` is now `^22.13.0 || ^24.0.0 || ^26.0.0` and CI
+  runs Node 26. The full engine and plugin suites pass on Node 22.23, 24.21 and
+  26.10.
+- Installation docs note the `cmd /c npx` form for Windows hosts and no longer
+  pin a specific version in the npm example.
+
 ## 0.3.9 — 2026-09-24
 
 - Publish to npm as `vibelore`. Hosts can run the MCP server with
