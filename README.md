@@ -14,14 +14,8 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="230" alt="길 위의 번개 1화 — Codex 각색"></a><br><sub>1화 · Codex 각색</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep02-s1.webp" width="230" alt="길 위의 번개 2화 — Claude 각색"></a><br><sub>2화 · Claude 각색</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep03-s1.webp" width="230" alt="길 위의 번개 3화 — Grok 각색"></a><br><sub>3화 · Grok 각색</sub></td>
-</tr>
-<tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="230" alt="판결 LIVE 1화 장면 6"></a><br><sub>판결 LIVE 1화</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep02-s3.webp" width="230" alt="판결 LIVE 2화 장면 3"></a><br><sub>판결 LIVE 2화</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep03-s3.webp" width="230" alt="판결 LIVE 3화 장면 3"></a><br><sub>판결 LIVE 3화</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="300" alt="길 위의 번개 1화 장면 1"></a><br><sub>『길 위의 번개』 · 판타지 로드 액션</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="300" alt="판결 LIVE 1화 장면 6"></a><br><sub>『판결 LIVE』 · 사이버렉카 스릴러</sub></td>
 </tr>
 </table>
 
