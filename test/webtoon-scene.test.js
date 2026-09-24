@@ -18,6 +18,13 @@ test('scene direction must be Latin-script English for every work language', () 
   for (const bad of ['윤이 문 앞에 선다.', 'ユンが扉の前に立つ。', '尹停在門前。', 'ยุนหยุดหน้าประตู', 'يون تقف أمام الباب', 'She says 안녕 at the door.', '', '   ']) assert.equal(isEnglish(bad), false, bad);
 });
 
+test('scene image prompt carries the work language line', async () => {
+  const { store, args } = await setup({ language: 'ja', prose: 'ユンは閉じた扉の前で立ち止まった。\n\n「中にいますか?」' });
+  const r = await runWebtoonSceneTool({ store, args, providers: provider() });
+  assert.equal(r.jobs.length, 1);
+  assert.match(r.jobs[0].prompt, /All quoted text is in Japanese \(ja\)/);
+});
+
 function provider({ blocking = false, visual = true } = {}) {
   return { provenance: { kind: 'fixture' }, async complete(r) {
     const d = JSON.parse(r.messages.at(-1).content); let answer;

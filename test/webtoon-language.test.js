@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { languageTag, resolveWebtoonLanguage, webtoonLanguageDirective } from '../src/core/webtoon-language.js';
+import { languageTag, resolveWebtoonLanguage, webtoonLanguageDirective, sceneLetteringLine } from '../src/core/webtoon-language.js';
 import { resolveWebtoonSource } from '../src/store/webtoon-store.js';
 import { coverage } from '../src/core/webtoon-contract.js';
 import { composeWebtoonBoard, boardHtml } from '../src/core/webtoon-board.js';
@@ -72,4 +72,14 @@ test('unsupported lettering is blocked at planning before reference or art jobs'
   const request = p.requests.find(r => r.step === 'webtoon-plan');
   assert.match(request.messages[0].content, /Target work language \(BCP 47\): ko/);
   assert.equal(JSON.parse(request.messages[1].content).languageContract.language, 'ko');
+});
+
+test('scene lettering line names language, script and reading direction', () => {
+  const line = language => sceneLetteringLine({ languageContract: { language } });
+  assert.equal(line('ko'), 'All quoted text is in Korean (ko), written in Korean script (ISO 15924 Kore). Letter it in that script exactly as quoted, reading left-to-right inside each balloon.');
+  assert.match(line('ja'), /Japanese \(ja\), written in Japanese script \(ISO 15924 Jpan\).*left-to-right/);
+  assert.match(line('zh-Hant'), /Traditional Chinese \(zh-Hant\).*ISO 15924 Hant/);
+  assert.match(line('th'), /Thai \(th\).*ISO 15924 Thai.*left-to-right/);
+  assert.match(line('ar'), /Arabic \(ar\).*ISO 15924 Arab.*right-to-left/);
+  assert.match(sceneLetteringLine({}), /Korean \(ko\)/);
 });
