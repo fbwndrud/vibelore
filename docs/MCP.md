@@ -80,10 +80,11 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 ## 공통 입력과 응답
 
-웹툰은 `lore_webtoon_plan`으로 인터뷰·각색, `lore_webtoon_render`로 이미지 job·러프·조판,
-`lore_webtoon_decide`로 현재 ID에 결합된 승인을 처리합니다. 러프 없이 장면 전체를 한 장으로
-만드는 별도 경로는 `lore_webtoon_scene`입니다. `needs_interview`는 사용자 답,
-`needs_model`은 호스트 모델 답을 뜻하며 후자는 기존 `lore_resume`을 공유합니다.
+웹툰은 `lore_webtoon_scene`으로 러프 없이 장면 전체를 대사까지 한 장으로 생성합니다.
+`lore_webtoon_plan`(인터뷰·각색), `lore_webtoon_render`(이미지 job·러프·조판),
+`lore_webtoon_decide`(현재 ID에 결합된 승인)는 [deprecated]이며 이미 시작된 컷별 작업을
+이어갈 때만 씁니다. `needs_interview`는 사용자 답, `needs_model`은 호스트 모델 답을 뜻하며
+후자는 기존 `lore_resume`을 공유합니다.
 
 조회에는 `lore_workflow_status/history(lane="webtoon", workflowId="wt-...")`를 사용합니다.
 lane 생략은 소설 조회입니다. 재개 계약은 [웹툰 상태표](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를

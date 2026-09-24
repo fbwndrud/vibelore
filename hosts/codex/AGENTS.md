@@ -1,6 +1,6 @@
 # 소설 집필 — vibelore
 
-웹툰화 요청은 설치된 `webtoon-discovery-interview` 스킬을 읽고 `lore_webtoon_plan`으로 시작한다. 스킬이 자동 로드되지 않는 MCP 단독 연결이면 vibelore 설치 경로의 `skills/webtoon-discovery-interview/SKILL.md`를 읽는다. 작화·문자·판면 선택과 사용자 러프 승인, 모델·비용 확인을 거치며, 웹툰 조회에는 `lane="webtoon"`을 지정한다. 소설 정본과 웹툰 산출물을 분리한다.
+웹툰화 요청은 설치된 `webtoon-discovery-interview` 스킬을 읽고 `lore_webtoon_scene`으로 시작한다. 스킬이 자동 로드되지 않는 MCP 단독 연결이면 vibelore 설치 경로의 `skills/webtoon-discovery-interview/SKILL.md`를 읽는다. 원작 범위·화풍·참조·칸 수·이미지 모델 확인을 거치며, 웹툰 조회에는 `lane="webtoon"`을 지정한다. `lore_webtoon_plan`은 deprecated이며 이미 시작된 컷별 작업을 마무리할 때만 쓴다. 소설 정본과 웹툰 산출물을 분리한다.
 
 이 저장소는 vibelore 소설 프로젝트입니다. `world/`, `characters/`, `chapters/` 는
 사람이 읽고 고치는 마크다운이고, `.vibelore/` 는 건드리지 마세요.

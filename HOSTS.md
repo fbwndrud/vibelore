@@ -66,8 +66,9 @@ Grok CLI 1.0.5는 루트 `AGENTS.md`를 프로젝트 지시로 읽는 것을 확
 
 ## 웹툰 제작에 필요한 호스트 기능
 
-웹툰은 동일한 MCP 연결에 `lore_webtoon_plan`, `lore_webtoon_render`,
-`lore_webtoon_decide`, 그리고 러프 없이 장면 전체를 한 장으로 만드는 `lore_webtoon_scene`이 추가됩니다. 플러그인 설치는 웹툰 인터뷰 스킬도 포함합니다.
+웹툰은 동일한 MCP 연결에 기본 경로 `lore_webtoon_scene`(러프 없이 장면 전체를 대사까지
+한 장으로 생성)이 추가됩니다. `lore_webtoon_plan`, `lore_webtoon_render`, `lore_webtoon_decide`는
+[deprecated]이며 이미 시작된 컷별 작업을 이어갈 때만 씁니다. 플러그인 설치는 웹툰 인터뷰 스킬도 포함합니다.
 MCP만 등록하면 스킬이 자동 설치되지 않으므로 호스트에게 vibelore 설치 경로의
 `skills/webtoon-discovery-interview/SKILL.md`를 읽도록 지정하세요. 스킬만 따로 복사하면
 상대 경로의 참조 문서가 끊길 수 있으므로 설치 트리 안의 원본을 읽습니다.

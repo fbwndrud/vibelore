@@ -6,12 +6,16 @@
 ## 웹툰 작업 재개·수정
 
 웹툰은 `lore_workflow_status(lane="webtoon",workflowId="wt-...")`로 현재 단계를 읽습니다.
-미완료 모델 요청은 실제 요청 ID로 `lore_resume`, 사용자 질문은 같은 workflow의
-`lore_webtoon_plan(responses=...)`, 승인은 현재 `lore_webtoon_decide(approvalId=...)`로 답합니다.
-세부 상태와 반입 계약은 [웹툰 안내](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를 따릅니다.
+기본 경로(`lore_webtoon_scene`)에서 미완료 모델 요청은 실제 요청 ID로 `lore_resume`,
+검증·검토 불합격은 관측 결함을 `feedback`으로 담아 `action="revise"`로 재개합니다.
 
-조판 실패는 render의 `retry=true`로 재개합니다. 조판만 고치려면 `lettering`,
-구도 러프는 `storyboard`, 사건·대사·컷 구성은 `adaptation`으로 수정 범위를 구분합니다.
+컷별 경로(`lore_webtoon_plan`/`render`/`decide`, deprecated)는 이미 시작된 작업만 다음처럼
+이어갑니다. 사용자 질문은 같은 workflow의 `lore_webtoon_plan(responses=...)`, 승인은 현재
+`lore_webtoon_decide(approvalId=...)`로 답합니다. 조판 실패는 render의 `retry=true`로
+재개합니다. 조판만 고치려면 `lettering`, 구도 러프는 `storyboard`, 사건·대사·컷 구성은
+`adaptation`으로 수정 범위를 구분합니다.
+
+세부 상태와 반입 계약은 [웹툰 안내](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를 따릅니다.
 실제 이미지를 못 열었다면 미완료 근거를 남기며, `.vibelore/`를 고쳐 승인을 우회하지 않습니다.
 `webtoon/` 손수정은 diff와 의도를 확인한 뒤 `adoptEdits=true`로 재검토합니다.
 소설 rollback은 웹툰 회차의 되돌리기 도구가 아닙니다. 원작 판본과 후보·승인 이력은 별개로 보존합니다.

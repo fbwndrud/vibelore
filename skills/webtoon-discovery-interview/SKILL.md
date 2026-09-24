@@ -28,13 +28,16 @@ description: Vibelore 소설·세계관·캐릭터를 웹툰으로 각색할 때
 1. **원작 범위.** `sourceChapters`, 필요하면 `sourceUnitIds`. 읽은 범위만 지정한다.
 2. **화풍과 연출 방향.** 사용자의 원답을 받아 영어 `direction`으로 옮긴다. 옮긴 영어 문장을
    사용자에게 보여주고 의도와 맞는지 확인받은 뒤에만 전달한다.
-3. **참조 이미지.** 인물·배경 기준 이미지의 파일 경로와 영어 `description`. 해시는 서버가
-   요구하는 `inputHash` 규칙을 따른다.
+3. **참조 이미지.** 인물·배경 기준 이미지의 파일 경로와 영어 `description`. 필드명은 `hash`다
+   (`inputHash`는 생성된 장면 이미지를 반입하는 `asset` 전용 필드이며 서로 다른 계약이다).
 4. **`panelCount`.** 정수 1~12 또는 `"auto"`. 사용자가 고른다. 미선택이면
    `needs_interview`(선택지 `4, 6, 8, 9, auto`)이며, `auto`는 각색마다 AI가 3~12칸 중 새로
    고르고 3칸 미만은 응답 `warnings`의 연속성 경고로 보여준다.
-5. **이미지 모델·실행 경로·비용.** 서버의 `needs_image_choice`를 그대로 보여주고 사용자 선택을
-   받는다. 표시된 기본값이나 무응답은 승인으로 처리하지 않는다.
+5. **이미지 모델·실행 경로·비용.** 이 작품에 확정된 API 선택이 없으면 `action="start"` 호출이
+   `needs_image_choice`를 반환한다(`imageChoice.id`, 모델·실행 경로·과금이 담긴
+   `imageChoice.policy`, 안내문 `imageChoice.notice`). 이를 그대로 보여주고 사용자 원답을 받은
+   뒤, 같은 `start` 인자에 `confirmImageChoice=imageChoice.id`와 `feedback=사용자 원답`을 추가해
+   다시 호출하면 이 작품의 선택으로 확정된다. 표시된 기본값이나 무응답은 승인으로 처리하지 않는다.
 
 세부 계약은 [기본 경로](../../docs/reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)를
 따른다. `needs_model`(`webtoon-scene-plan`, `webtoon-scene-preflight`,
@@ -53,9 +56,10 @@ description: Vibelore 소설·세계관·캐릭터를 웹툰으로 각색할 때
 이어지는 장면은 `previousWorkflowId`로 연결해 직전 장면의 실제 이미지·설계·검토 결과를
 상속한다. 원문은 직전 구간 바로 다음 문단부터 시작해야 한다.
 
-생성 전 검증이나 이미지 검토가 불합격이면 자동 재설계 예산(`autoRevisions`) 안에서 관측
-결함을 feedback으로 삼아 서버가 다시 설계·검증·생성한다. 예산을 다 쓰면 `scene_preflight_blocked`
-또는 `scene_needs_revision`이며 `action="revise"`와 사용자 feedback으로 이어간다.
+생성 전 검증이나 이미지 검토가 불합격이면 자동 재설계 예산(`autoRevisions`, start 전용,
+0~3, 기본 2) 안에서 관측 결함을 feedback으로 삼아 서버가 다시 설계·검증·생성한다. 예산을
+다 쓰면 `scene_preflight_blocked` 또는 `scene_needs_revision`이며 `action="revise"`와 사용자
+feedback으로 이어간다.
 
 `lore_workflow_status` 또는 `history`를 `lane="webtoon"`과 정확한 `workflowId`로 조회한다.
 원작 drift는 `lore_sync`로 먼저 해결한다.
