@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.0 — 2026-09-24
+
+- Integrate novel work language (BCP 47) support end to end, with an
+  8-language regression sample (`ko`, `en`, `ja`, `zh-Hant`, `es`, `ar`, `fr`,
+  `th`) covering novel writing and the scene webtoon flow.
+- Scene webtoons inherit the work's language; the image prompt names the
+  language, script and reading direction (including right-to-left for `ar`).
+- Lettering comparison between the plan and the observed image text is NFC
+  normalized, and the reviewer transcribes observed text in the drawn script.
+- Scene direction fields must be Latin-script English regardless of the work
+  language.
+- Scene user-facing messages (questions, warnings, notices) are `ko` or `en`
+  by work language.
+- Deprecate the `lore_webtoon_plan` per-panel path: new MCP workflow starts on
+  that path are blocked with `WEBTOON_PANEL_PATH_DEPRECATED`, directing
+  callers to `lore_webtoon_scene`.
+- Episode-plan repair instructions follow the work-language prompt family
+  instead of a fixed language.
+- Restore the advisory story-profile check on the `lore_write` contract-check
+  path.
+
 ## 0.3.10 — 2026-09-24
 
 - Support Node.js 26: `engines` is now `^22.13.0 || ^24.0.0 || ^26.0.0` and CI
