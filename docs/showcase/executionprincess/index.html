@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>처형 1분 전의 황녀 · vibelore 제작 예시</title>
+<meta name="description" content="누명을 쓰고 처형당한 황녀가 칼날이 떨어지기 1분 전으로 돌아온다. GPT-6 Sol이 설계·집필·각색한 로맨스 판타지 회귀 복수극 소설과 장면 웹툰.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="hub.css?v=1">
+<link rel="stylesheet" href="princess.css?v=1">
+</head>
+<body data-page="home" class="hub">
+<header class="hub-hero">
+  <div class="hub-copy">
+    <div class="kicker">VIBELORE 제작 예시 · GPT-6 SOL</div>
+    <h1>처형 1분 전의 황녀<span class="min">D-1:00</span></h1>
+    <p class="lede">북부 군량 독살의 누명을 쓰고 목이 잘린 황녀 아델리아. 눈을 뜨니 다시 단두대 위, 모래시계에는 1분이 남았다. 도망칠 길은 없다. 필요한 건 칼을 멈추게 할 문장 하나. 판결문과 증거 목록의 날짜가 이틀 어긋나 있다. <b>“카르단 베르크!”</b></p>
+    <p class="lede" style="font-size:14px">처형장에서 연회장, 무도회장으로 무대를 옮기며 벌이는 로맨스 판타지 회귀 복수극. 작품 설계부터 소설 집필, 웹툰 각색·연출까지 GPT-6 Sol(gpt-6-sol)이 맡았고, 그림은 OpenAI 이미지 API(gpt-image-2.5-sunburst)로 그렸습니다. 인물·나라·사건은 모두 허구입니다.</p>
+    <div class="hub-stats" id="hub-stats"></div>
+  </div>
+  <a class="hub-cover" href="read.html#ep1/s9" id="hub-cover" aria-label="1화 마지막 장면 읽기"></a>
+</header>
+<main class="hub-main">
+  <h2>무엇을 보러 오셨나요?</h2>
+  <div class="hub-cards">
+    <a class="hcard primary" href="read.html">
+      <span class="hk">작품 읽기</span>
+      <b>소설과 웹툰을 읽고 싶어요</b>
+      <span class="hd">1~3화 웹툰과 같은 대목의 소설 원문을 나란히, 또는 하나만 볼 수 있습니다. 제작 정보는 숨겨 둡니다.</span>
+      <span class="go">1화부터 읽기 →</span>
+    </a>
+    <a class="hcard" href="notes.html">
+      <span class="hk">제작 노트</span>
+      <b>어떻게 만들었고, 무엇이 틀렸나요</b>
+      <span class="hd">인물·배경 기준 이미지, 회차별 검토 결과와 결함 유형, 토큰·비용, 제작 중 바꾼 연출 지시와 한계를 그대로 공개합니다.</span>
+      <span class="go">노트 보기 →</span>
+    </a>
+    <a class="hcard" href="../">
+      <span class="hk">다른 작품</span>
+      <b>『판결 LIVE』·『길 위의 번개』</b>
+      <span class="hd">Claude Opus 5.5 사이버렉카 스릴러, 그리고 회차마다 모델을 바꿔 만든 판타지 로드 액션.</span>
+      <span class="go">작품 목록 →</span>
+    </a>
+  </div>
+  <p class="hub-note">모든 웹툰 장면은 자동 재생성 없이 장면당 한 번 생성한 첫 결과와 검토 판정을 그대로 공개합니다. 그림 검토는 제작을 조율한 Claude Opus 5.5가 했습니다. 각색 모델(GPT-6 Sol)과는 다른 모델이지만 독립 평가는 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a></p>
+</main>
+<script src="site.js?v=2"></script>
+<script>
+(function () {
+  fetch('data.json').then((r) => r.json()).then((d) => {
+    const eps = d.episodes; const scenes = eps.reduce((a, e) => a + e.sceneCount, 0); const panels = eps.reduce((a, e) => a + e.panelTotal, 0);
+    const box = document.getElementById('hub-stats');
+    for (const [b, s] of [[`${eps.length}화`, '소설'], [`${eps.length}화 · ${scenes}장면`, '웹툰'], [`${panels}칸`, '그림']]) {
+      const x = document.createElement('div'); x.className = 'hs'; x.innerHTML = '<b></b><span></span>'; x.firstChild.textContent = b; x.lastChild.textContent = s; box.append(x);
+    }
+    const s1 = eps[0].scenes[8]; const img = document.createElement('img'); img.src = s1.image; img.alt = `1화 장면 ${s1.n} ${s1.title}`; document.getElementById('hub-cover').append(img);
+  });
+})();
+</script>
+</body>
+</html>

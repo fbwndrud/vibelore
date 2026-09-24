@@ -1,0 +1,19 @@
+/* 처형 1분 전의 황녀 — 상아·장미·금 로판 팔레트. style.css 토큰만 덮어쓴다. */
+:root{
+  --paper:#F6EFE9;--card:#FFFCF9;--ink:#2B1E2A;--moss:#8E3558;--gold:#B4873A;
+  --line:#E4D6CF;--line2:#EDE2DC;--muted:#7C6873;--sub:#57434F;--band:#F0E4DE;--chip:#D6C3BC;
+}
+.hcard.primary{background:linear-gradient(135deg,#8E3558,#5A1F3A);border-color:#8E3558;color:#fff}
+.hcard.primary:hover{color:#fff}
+.hcard.primary .hd{color:#F7E3EB}
+.hcard.primary .go{color:#F3D9A0}
+.hub-hero h1{letter-spacing:-.03em}
+.hub-hero h1 .min{display:inline-block;margin-left:10px;padding:2px 12px;border-radius:8px;background:var(--gold);color:#fff;font-family:var(--sans);font-size:.42em;vertical-align:middle;letter-spacing:.04em}
+.hub-cover{box-shadow:0 16px 48px rgba(142,53,88,.22)}
+.eptab.active{background:var(--moss);border-color:var(--moss);color:#fff}
+.eptab.active small{color:#fff}
+.snav-links a.on{background:var(--moss);color:#fff}
+.metatog[aria-pressed="true"]{background:var(--moss);color:#fff;border-color:var(--moss)}
+@media (max-width:960px){
+  .eptab.active{background:var(--moss);color:#fff;border-color:var(--moss)}
+}
