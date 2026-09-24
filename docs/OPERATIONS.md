@@ -80,7 +80,10 @@ flowchart LR
 `lore_write`는 의존 관계가 없는 요청을 한 왕복에 묶어 반환합니다. 시도마다 대체로
 ①추출·프로필 검사·독립 검토 묶음 → ②의미 연속성 검사(추출 결과 필요)와 아크 검토 →
 ③경계 판정·요약의 세 왕복이며, 한 응답의 `requests`는 서로 독립이므로 병렬로 답하고
-모든 답을 한 번의 `lore_resume`에 넘깁니다. 회차 계획의 선택 모듈(agenda·reveal)은
+모든 답을 한 번의 `lore_resume`에 넘깁니다. 이 묶음들은 이번 화 본문을 공통 자료 블록으로
+앞에 두므로([프롬프트 캐시](#프롬프트-캐시와-warm-first)), 요청마다 새 프로세스나 API 호출로
+답하는 호스트는 `promptCache.warmFirst=true`인 요청을 먼저 보내고 첫 출력이 시작된 뒤
+나머지를 병렬로 보냅니다. 회차 계획의 선택 모듈(agenda·reveal)은
 커밋과 같은 검증기를 계획 단계에서 통과해야 하며, 누락 시 `episode-plan-repair` 요청이
 한 번 발급됩니다. 계획이 초고 단계의 Writer Packet 상한(4000 토큰, 본문 길이와 무관한 계획 요약의 최장)을 넘을 때도 같은
 요청으로 문장을 줄인 계획을 한 번 받고, 그래도 초과하면 계획 단계에서
@@ -234,6 +237,51 @@ MCP 표면을 바꾸면 다음을 함께 갱신합니다.
 2. [TOOLS.md](TOOLS.md)
 3. [GETTING_STARTED.md](GETTING_STARTED.md)의 호출 예제
 4. MCP surface 테스트
+
+## 프롬프트 캐시와 warm-first
+
+프롬프트 캐시는 접두부 일치이며, 캐시 항목은 앞 요청의 응답 스트리밍이 시작된 뒤에야 읽을 수
+있습니다. 그래서 같은 접두부의 요청을 동시에 보내면 모두 캐시 쓰기 비용만 내고 재사용은
+없습니다. vibelore는 워크플로가 공유를 선언한 자료(현재는 이번 화 본문)가 한 `needs_model`
+응답의 요청 둘 이상에 그대로 들어 있을 때만 그 요청들의 배치를 바꿉니다.
+
+| 위치 | 내용 |
+|---|---|
+| `system` | 실행 조건 한 줄. 묶음 안의 모든 요청이 같습니다 |
+| `user` 앞부분 | `[공통 자료 시작 · chapter-prose · sha256:…]`부터 `[공통 자료 끝 · chapter-prose]`까지. 바이트 단위로 같습니다 |
+| `user` 뒷부분 | `[이번 요청 역할]`(원래 `system`), `[이번 요청 자료]`(원래 `user`, 본문 자리는 공통 자료 참조 표기), JSON 조건 |
+
+요청에 추가되는 `promptCache` 힌트:
+
+| 필드 | 의미 |
+|---|---|
+| `layout` | `shared-prefix-v1` |
+| `sharedPrefixId` | `system`과 공통 블록의 해시. 같은 값이면 접두부가 같습니다 |
+| `sharedPrefixEndMarker` | 공통 블록 끝 표식. `user`를 이 표식 뒤에서 나누면 공통 부분과 단계 부분이 됩니다 |
+| `sharedPrefixChars` | 공통 블록 길이(JavaScript UTF-16 단위). 다른 언어에서는 표식으로 나누는 편이 안전합니다 |
+| `estimatedSharedTokens` | 토크나이저 없이 낸 하한 추정치 |
+| `groupSize` | 같은 접두부를 쓰는 요청 수 |
+| `warmFirst` | 먼저 보낼 요청 하나. 추정치가 1024토큰 미만이면 모두 `false`이며 그대로 병렬로 보냅니다 |
+
+최소 캐시 길이는 Claude Opus 5·Opus 5.5가 512토큰, Sonnet 5·Opus 4.8이 1024토큰이며
+Opus 4.6·Haiku 4.5는 4096토큰입니다. 기본 TTL은 5분이고 읽기마다 갱신되므로, 한 묶음을
+몇 분 안에 처리하는 워크플로에는 1시간 TTL이 필요하지 않습니다.
+
+호스트별 적용:
+
+- Claude Code CLI(`claude -p`): 캐시 지점이 system 프롬프트와 마지막 user 블록에만 놓입니다.
+  공통 블록을 user 안에 둔 채 보내면 접두부가 같아도 읽기가 0입니다(stdin 한 블록,
+  stream-json 두 블록 모두 실측 0). `--system-prompt`에 `system` + 빈 줄 + 공통 블록을 넣고
+  나머지를 stdin으로 보냅니다. `--output-format stream-json --include-partial-messages`로
+  warm-first 요청의 첫 `stream_event`를 받은 뒤 나머지를 시작합니다.
+- Claude API 직접 호출: 공통 블록을 별도 text 블록으로 나누고 그 블록에 `cache_control`을 둡니다.
+- 자동 접두부 캐시를 쓰는 호스트(Codex 등): 배치 그대로 보내면 됩니다. 해당 호스트의 최소
+  길이와 라우팅 조건을 따르며 vibelore는 적중을 보장하지 않습니다.
+- 한 대화 안에서 직접 답하거나 서브에이전트로 답하는 호스트: 호스트 자체 문맥이 앞에 붙으므로
+  이 배치로 얻는 이득이 없거나 작습니다. 병렬 답변 규칙은 그대로입니다.
+
+배치 변경은 표시 방식만 바꿉니다. 요청 ID는 엔진 원 요청의 fingerprint 그대로이고, 감사
+기록(`modelExchanges`)은 원 요청을 저장하며, 직접 provider는 이 배치를 보지 않습니다.
 
 ## 검토 응답과 감사
 

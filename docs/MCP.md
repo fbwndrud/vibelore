@@ -132,6 +132,11 @@ sequenceDiagram
 각 request는 `id`, `step`, `jsonMode`, `system`, `user`를 담습니다. `system` 끝에는 파일
 읽기·도구 실행 없이 제공된 내용만으로 단일 응답을 만들라는 실행 조건이 붙습니다. 한 응답의
 `requests`는 서로 독립이므로 병렬로 답하고 모든 답을 한 번의 `lore_resume`에 넘깁니다.
+같은 본문을 공유하는 요청 묶음에는 `promptCache`(`sharedPrefixId`, `sharedPrefixEndMarker`,
+`warmFirst` 등)가 붙고, `system`은 실행 조건만, `user` 앞부분은 바이트 단위로 같은 공통 자료
+블록이 됩니다. 요청마다 새로 호출하는 호스트는 `warmFirst` 요청을 먼저 보내 첫 출력이 시작된
+뒤 나머지를 병렬로 보냅니다. 자세한 내용은
+[프롬프트 캐시와 warm-first](OPERATIONS.md#프롬프트-캐시와-warm-first)를 보세요.
 `lore_write`는 의존 관계별로 요청을 묶어 화당 왕복 수를 줄입니다. `lore_write`에
 `modelProfile`을 넘긴 경우 `stage`(identity·planning·draft·review·quality·final), `model`
 (`{ provider, modelId }`), `reasoningEffort`가 추가됩니다. 이 값은 호스트가 요청을 어느

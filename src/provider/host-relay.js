@@ -47,12 +47,20 @@ export class PendingModelWork extends Error {
 export function createHostRelay(answers = {}) {
   const seeded = new Map(Object.entries(answers));
   const pending = new Map();
+  const shared = new Map();
 
   return {
     provenance: { kind: 'host-relay', contextIsolation: 'unverified' },
     /** Requests this pass wanted answered and could not. */
     get pending() {
       return [...pending.values()];
+    },
+    /** Material a workflow shares across independent requests, for the relay prompt layout. */
+    get sharedContexts() {
+      return [...shared.values()];
+    },
+    shareContext({ id, label, text }) {
+      if (typeof text === 'string' && text.length > 0) shared.set(`${id}\u0000${text}`, { id, label, text });
     },
     register: () => undefined,
     has: () => true,
@@ -107,6 +115,8 @@ export function createPreflightRelay(answers = {}) {
   return {
     provenance: base.provenance,
     get pending() { return base.pending; },
+    get sharedContexts() { return base.sharedContexts; },
+    shareContext: base.shareContext,
     register: base.register,
     has: base.has,
     async complete(req) {

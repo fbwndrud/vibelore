@@ -329,6 +329,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
         transform: 'normalize_dialogue_boundaries',
       });
     }
+    // Extraction, profile check and reviews all carry this prose verbatim; the
+    // relay presents it as one shared prompt prefix for the whole batch.
+    providers.shareContext?.({ id: 'chapter-prose', label: `${chapter}화 본문`, text: current.prose });
     check = await runCheck({
       store, workId, chapter, prose: current.prose,
       castManifestRaw: current.castManifestRaw, providers,
@@ -492,6 +495,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   }
 
   // Boundary and summary only need the final prose: one round trip for both.
+  providers.shareContext?.({ id: 'chapter-prose', label: `${chapter}화 본문`, text: current.prose });
   const boundary = await runNarrativeBoundary({
     arcPlan, episodePlan, chapter, prose: current.prose, providers,
   });

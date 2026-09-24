@@ -21,6 +21,18 @@
   three short `renderBrief.corrections` describing the wanted result. Wording
   about the earlier attempt, the wrong output or negations is rejected
   (`SCENE_CORRECTION_NOT_POSITIVE`).
+- Lay out independent requests in one `needs_model` batch so they share a
+  byte-identical prompt prefix: when a workflow-declared shared text (this
+  chapter's prose) appears once in two or more requests, `system` becomes the
+  execution note alone and `user` starts with a deterministic shared block,
+  followed by the original role instruction and step data. No request gains
+  material it did not have; request ids, audit exchanges and direct providers
+  are unchanged.
+- Add a `promptCache` hint (`sharedPrefixId`, `sharedPrefixEndMarker`,
+  `sharedPrefixChars`, `estimatedSharedTokens`, `groupSize`, `warmFirst`) and
+  tell hosts that answer with fresh processes to send the `warmFirst` request
+  first and the rest after its first output. Claude Code CLI hosts must move
+  the shared block into `--system-prompt`; see OPERATIONS.md.
 
 ## 0.3.7 — 2026-09-22
 
