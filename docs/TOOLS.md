@@ -111,7 +111,7 @@ StoryProfile의 `readerLegibility`는 전문 지식 없이도 장면의 목표·
 ```json
 {
   "project": "/novels/night-bus",
-  "workId": "night_bus",
+  "workId": "my-novel",
   "brief": "심야버스 기사가 승객의 후회를 듣는 현대 판타지",
   "mode": "review"
 }
@@ -223,7 +223,7 @@ EpisodePlan은 `readerBridge` 한 문장으로 해당 화의 즉시 상황과 �
 ```json
 {
   "project": "/novels/night-bus",
-  "workId": "night_bus",
+  "workId": "my-novel",
   "mode": "review",
   "episodes": 5,
   "direction": "첫 승객의 후회를 해결하되 기사의 능력에는 더 큰 대가가 생긴다"
@@ -300,7 +300,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 ```json
 {
   "project": "/novels/night-bus",
-  "workId": "night_bus",
+  "workId": "my-novel",
   "instruction": "첫 장면은 직전 화의 문 닫히는 소리에서 바로 이어 간다",
   "autonomy": "guided",
   "modelProfile": {

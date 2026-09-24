@@ -296,7 +296,7 @@ Opus 4.6·Haiku 4.5는 4096토큰입니다. 기본 TTL은 5분이고 읽기마�
 ```json
 {
   "project": "/absolute/path/to/my-novel",
-  "workId": "night_bus",
+  "workId": "my-novel",
   "limit": 100,
   "includeModelExchanges": true
 }

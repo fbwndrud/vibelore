@@ -15,5 +15,14 @@
 .snav-links a.on{background:var(--moss);color:#fff}
 .metatog[aria-pressed="true"]{background:var(--moss);color:#fff;border-color:var(--moss)}
 @media (max-width:960px){
+  /* 리더는 모바일에서 어두운 읽기 화면을 쓴다: 초록 톤을 자두색으로 */
+  .eptab{border-color:#6B4A5C}
   .eptab.active{background:var(--moss);color:#fff;border-color:var(--moss)}
+  .chip{background:#3A2433;border-color:#553447}
+  .chip span:first-child,.ephead p,.scene-head,.scene-title span,.reader.mode-novel .prose-tools{color:#D8C3CD}
+  .scene-actions button,.scene-actions a{border-color:#6B4A5C}
+  footer.site{color:#D8C3CD;border-top-color:#553447}
+  /* 제작 노트는 모바일에서도 밝은 배경 */
+  body[data-page="notes"]{background:var(--paper);color:var(--ink)}
+  body[data-page="notes"] footer.site{color:var(--muted);border-top-color:var(--line)}
 }
