@@ -41,7 +41,7 @@ import { dropRun, loadRun, sweepRuns } from './runs.js';
 import { runRelayedTool } from './relay-runner.js';
 import { runWebtoonTool, readWebtoonWorkflow } from './tools/webtoon.js';
 import { runWebtoonSceneTool } from './tools/webtoon-scene.js';
-import { SCENE_PANEL_LIMITS } from './core/webtoon-scene.js';
+import { SCENE_PANEL_LIMITS, SCENE_AUTO_REVISIONS } from './core/webtoon-scene.js';
 
 const SERVER_INFO = { name: 'vibelore', version: JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version };
 const FALLBACK_PROTOCOL = '2025-06-18';
@@ -404,6 +404,7 @@ const TOOLS = [
       sourceUnitIds: { type: 'array', items: { type: 'string' }, description: '고정된 원작 문단 ID. 생략 시 선택 회차 전체. 한 이미지에 담을 장면 범위로 지정한다.' },
       direction: { type: 'string', description: '사용자가 확정한 작화·한국어 문자·판면/배치 재량을 영어로 전달. 기존 API 선택 필요.' },
       references: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'path', 'hash', 'description'] } },
+      autoRevisions: { type: 'integer', minimum: 0, maximum: SCENE_AUTO_REVISIONS.max, description: `start 전용. 생성 전 검증 또는 이미지 검토가 불합격이면 관측 결함을 feedback으로 자동 재설계하는 횟수(기본 ${SCENE_AUTO_REVISIONS.default}). 재설계마다 새 이미지 요청이 나가며 실패한 시도는 attempts에 남는다. 0이면 기존처럼 scene_needs_revision에서 멈춘다.` },
       feedback: { type: 'string' }, asset: { type: 'object', properties: { path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object' } }, required: ['path', 'inputHash', 'provenance'] },
     }, required: ['workId'] },
   },

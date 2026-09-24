@@ -61,9 +61,9 @@ test('dialogue changed from source and missing text bindings are rejected before
   assert.throws(() => validateScenePlan(p, units), /SCENE_TEXT_COVERAGE/);
 });
 
-test('observed text or speaker failures remain review findings and do not trigger a new image job', async () => {
+test('with autoRevisions 0, observed text or speaker failures remain review findings and do not trigger a new image job', async () => {
   const { store, args } = await setup();
-  const r = await runWebtoonSceneTool({ store, args, providers: provider() });
+  const r = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: provider() });
   const p = provider(), complete = p.complete;
   p.complete = async request => {
     const response = await complete(request);
@@ -97,7 +97,7 @@ test('panel count is a user choice before model calls; missing or invalid choice
 
 test('a count mismatch blocks completion and changing a selected count cannot reuse an image receipt', async () => {
   const { store, args } = await setup();
-  const r = await runWebtoonSceneTool({ store, args: { ...args, panelCount: 8 }, providers: provider() });
+  const r = await runWebtoonSceneTool({ store, args: { ...args, panelCount: 8, autoRevisions: 0 }, providers: provider() });
   assert.match(r.jobs[0].prompt, /EXACTLY 8 panels/);
   await assert.rejects(runWebtoonSceneTool({ store, args: { workId, panelCount: 6 }, providers: provider() }), /SCENE_PANEL_COUNT_PINNED/);
   const result = await runWebtoonSceneTool({ store, args: { workId, asset: { path: args.references[0].path, inputHash: r.jobs[0].inputHash,
@@ -106,7 +106,7 @@ test('a count mismatch blocks completion and changing a selected count cannot re
 });
 
 test('continuation preserves prior failure, binds its image, and requires actual two-image continuity review', async () => {
-  const { store, repo, args } = await setup();
+  const { store, repo, args: base } = await setup(), args = { ...base, autoRevisions: 0 };
   const r = await runWebtoonSceneTool({ store, args: { ...args, panelCount: 8, sourceUnitIds: ['ch-1-p-1'] }, providers: provider() });
   const first = await runWebtoonSceneTool({ store, args: { workId, asset: { path: args.references[0].path, inputHash: r.jobs[0].inputHash,
     provenance: { kind: 'openai-api', requestedModel: 'gpt-image-2.5-sunburst', selectionId: 'selected-api' } } }, providers: provider() });
@@ -250,4 +250,65 @@ test('a scene workflow saved before the short render brief gets the new drawing 
   assert.equal(revised.status, 'needs_scene_image');
   assert.match(revised.jobs[0].prompt, /Each panel shows one clear moment/);
   assert.equal(revised.jobs[0].inputHash, sceneImageBinding(await repo.load()));
+});
+
+const apiAsset = (path, job) => ({ path, inputHash: job.inputHash, provenance: { kind: 'openai-api', requestedModel: 'gpt-image-2.5-sunburst', selectionId: 'selected-api' } });
+
+test('a failed image review re-plans automatically with the observed defects, keeps each attempt, and stops at the budget', async () => {
+  const { store, args } = await setup();
+  const p = provider(), complete = p.complete, seen = [];
+  p.complete = async request => {
+    const d = JSON.parse(request.messages.at(-1).content); seen.push({ step: request.step, d });
+    const response = await complete(request);
+    if (request.step === 'webtoon-scene-preflight' && d.feedback) {
+      const v = JSON.parse(response.text); v.renderBrief.corrections = ['The caption sits in a white box at the top.']; v.renderBrief.focusTextIds = [d.plan.texts[0].id]; return { text: JSON.stringify(v) };
+    }
+    if (request.step !== 'webtoon-scene-image-review') return response;
+    const v = JSON.parse(response.text); v.textObservations[0].observedText = '틀린 글자';
+    return { text: JSON.stringify(v) };
+  };
+  let r = await runWebtoonSceneTool({ store, args, providers: p });
+  assert.deepEqual(r.autoRevision, { limit: 2, used: 0 });
+  assert.match(r.jobs[0].prompt, /never add speaker names/); assert.match(r.jobs[0].prompt, /Never copy lettering from reference images/);
+  assert.doesNotMatch(r.jobs[0].prompt, /Key points for this page|extra care/);
+  for (let i = 1; i <= 2; i++) {
+    r = await runWebtoonSceneTool({ store, args: { workId, asset: apiAsset(args.references[0].path, r.jobs[0]) }, providers: p });
+    assert.equal(r.status, 'needs_scene_image'); assert.equal(r.revision, i + 1);
+    assert.deepEqual(r.autoRevision, { limit: 2, used: i }); assert.equal(r.attempts.length, i);
+    assert.equal(r.attempts[i - 1].failedAt, 'image_review'); assert.ok(r.attempts[i - 1].image.hash);
+    assert.match(r.attempts[i - 1].feedback, /but the image showed "틀린 글자"/);
+    assert.match(r.jobs[0].prompt, /Key points for this page:\n- The caption sits in a white box at the top\./);
+    assert.match(r.jobs[0].prompt, /Letter these lines with extra care, character by character, exactly as quoted:\n- "/);
+    assert.doesNotMatch(r.jobs[0].prompt, /previous attempt|틀린 글자/);
+  }
+  const replans = seen.filter(x => x.step === 'webtoon-scene-plan' && x.d.feedback);
+  assert.equal(replans.length, 2); assert.ok(replans[0].d.previousFindings.textObservations);
+  r = await runWebtoonSceneTool({ store, args: { workId, asset: apiAsset(args.references[0].path, r.jobs[0]) }, providers: p });
+  assert.equal(r.status, 'scene_needs_revision'); assert.equal(r.jobs, undefined); assert.equal(r.attempts.length, 2);
+});
+
+test('auto revision budget is validated at start and older workflows without a budget never auto revise', async () => {
+  const { store, repo, args } = await setup();
+  for (const autoRevisions of [-1, 4, 1.5, '2']) await assert.rejects(runWebtoonSceneTool({ store, args: { ...args, autoRevisions }, providers: provider() }), /INVALID_SCENE_AUTO_REVISIONS/);
+  const r = await runWebtoonSceneTool({ store, args, providers: provider() });
+  const legacy = await repo.load(); delete legacy.autoRevision; delete legacy.attempts; await repo.save(legacy);
+  const p = provider(), complete = p.complete;
+  p.complete = async request => { const response = await complete(request);
+    if (request.step !== 'webtoon-scene-image-review') return response;
+    const v = JSON.parse(response.text); v.observedPanelCount = 7; return { text: JSON.stringify(v) }; };
+  const done = await runWebtoonSceneTool({ store, args: { workId, asset: apiAsset(args.references[0].path, r.jobs[0]) }, providers: p });
+  assert.equal(done.status, 'scene_needs_revision'); assert.deepEqual(done.autoRevision, { limit: 0, used: 0 });
+});
+
+test('render brief emphasis is bounded, positive English and names only known text ids', () => {
+  const w = { panelCount: 1, sceneUnits: [{ id: 'u' }], scenePlan: { texts: [] } };
+  const brief = { style: 'Ink.', moments: [{ sourceIds: ['u'], action: 'She waits.', textIds: [] }] };
+  assert.ok(validateSceneRenderBrief({ ...brief, corrections: ['Balloon tails point to the speaking mouth.'] }, w));
+  for (const corrections of [['a', 'b', 'c', 'd'], ['이름표 금지'], [Array(21).fill('word').join(' ')], 'text'])
+    assert.throws(() => validateSceneRenderBrief({ ...brief, corrections }, w), /SCENE_RENDER_BRIEF_OVERLOADED/);
+  for (const c of ['No name labels on balloons.', 'Fix the caption verb.', 'Draw eight panels instead of nine.', 'Spell it correctly this time, unlike the previous page.'])
+    assert.throws(() => validateSceneRenderBrief({ ...brief, corrections: [c] }, w), /SCENE_CORRECTION_NOT_POSITIVE/);
+  const withText = { ...w, scenePlan: { texts: [{ id: 't1' }] } }, texted = { ...brief, moments: [{ ...brief.moments[0], textIds: ['t1'] }] };
+  assert.ok(validateSceneRenderBrief({ ...texted, focusTextIds: ['t1'] }, withText));
+  for (const focusTextIds of [['t2'], ['t1', 't1'], 't1']) assert.throws(() => validateSceneRenderBrief({ ...texted, focusTextIds }, withText), /INVALID_SCENE_TEXT_ASSIGNMENT/);
 });

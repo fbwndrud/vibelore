@@ -8,6 +8,19 @@
 - Make the advisory review timeout configurable with
   `VIBELORE_REVIEW_TIMEOUT_MS` (default 45s). It only applies when the server
   calls a local adapter itself; the host relay is unaffected.
+- Scene webtoons now re-plan automatically when the preflight or the image
+  review fails: `lore_webtoon_scene` takes `autoRevisions` (0~3, default 2) at
+  start, turns the observed defects (panel count, mismatched text or speaker,
+  continuity, blocking findings) into feedback, and issues a new image job.
+  Failed attempts stay in `attempts`; `0` keeps the old stop at
+  `scene_needs_revision`. Workflows started before this keep a budget of 0.
+- The scene image prompt forbids speaker name tags, text beyond the quoted
+  lines and copying lettering from reference images, and asks for an exact
+  panel count without insets. A revision's preflight adds only positive emphasis:
+  `renderBrief.focusTextIds` (the server re-quotes those exact lines) and up to
+  three short `renderBrief.corrections` describing the wanted result. Wording
+  about the earlier attempt, the wrong output or negations is rejected
+  (`SCENE_CORRECTION_NOT_POSITIVE`).
 
 ## 0.3.7 — 2026-09-22
 

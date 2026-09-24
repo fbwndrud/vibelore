@@ -7,10 +7,12 @@ import { imagePolicyFor, imageSelectionConfirmed, validateImageProvenance } from
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
-import { SCENE_SCHEMA, SCENE_CHECKS, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, CONTINUITY_CHECKS,
+import { SCENE_SCHEMA, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, CONTINUITY_CHECKS,
   isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
+/** Shape of each findings[] item; findings may be empty. */
+const SCENE_FINDING_SHAPE = { severity: 'blocking | advisory', evidence: 'concrete evidence (required)' };
 const terminal = w => ['completed', 'rejected'].includes(w.stage);
 const record = (w, event, data = {}) => w.events.push({ at: new Date().toISOString(), revision: w.revision, event, ...data });
 const isScene = w => w?.productionMode === SCENE_PRODUCTION_MODE;
@@ -22,6 +24,7 @@ export function scenePublicState(w) {
     image: w.sceneImage ? { hash: w.sceneImage.hash, path: w.sceneImage.path, provenance: w.sceneImage.provenance } : null,
     panelCountMode: scenePanelCountMode(w), panelCount: w.panelCount ?? null, warnings: sceneWarnings(w), previousScene: w.previousScene,
     artifacts: w.artifacts, timings: w.timings, failures: w.failures,
+    autoRevision: w.autoRevision ?? { limit: 0, used: 0 }, attempts: w.attempts ?? [],
     limitations: ['Whole-scene raster with generated lettering; not editable vector lettering.', 'Host review is self-reported, not independent reader evaluation.'] };
 }
 
@@ -38,6 +41,25 @@ async function verifyInputs(repo, w) {
 function needCurrentPreflight(w) {
   if (w.stage !== 'needs_scene_image' || !w.preflight?.passed || w.preflight.subjectHash !== sceneBinding(w)) throw new Error('SCENE_PREFLIGHT_REQUIRED');
   if (w.preflight.renderBriefHash !== digest(w.preflight.renderBrief)) throw new Error('SCENE_RENDER_BRIEF_CHANGED');
+}
+
+/** Start a new plan revision; earlier candidates stay on disk under their own revision directory. */
+function beginRevision(w, feedback) {
+  w.previousFindings = w.visualReview ?? w.preflight; w.feedback = feedback;
+  w.revision++; w.pending = null; w.preflight = null; w.visualReview = null; w.scenePlan = null; w.sceneImage = null; w.artifacts = {}; w.stage = 'scene_generate';
+  if (scenePanelCountMode(w) === 'auto') w.panelCount = undefined;
+}
+
+/** Failed preflight or image review re-plans automatically within the workflow budget; every failed attempt stays in `attempts`. */
+function autoRevise(w) {
+  if (!w.autoRevision || w.autoRevision.used >= w.autoRevision.limit) return false;
+  const feedback = sceneRevisionFeedback(w);
+  (w.attempts ??= []).push({ revision: w.revision, failedAt: w.visualReview ? 'image_review' : 'preflight', panelCount: w.panelCount,
+    image: w.sceneImage ? { hash: w.sceneImage.hash, path: w.sceneImage.path } : null, artifacts: w.artifacts, feedback });
+  w.autoRevision.used++;
+  record(w, 'scene_auto_revision', { used: w.autoRevision.used, limit: w.autoRevision.limit });
+  beginRevision(w, feedback);
+  return true;
 }
 
 async function modelTask(repo, w, step, system, data, providers) {
@@ -84,9 +106,10 @@ async function drive(repo, w, providers) {
   if (w.stage === 'scene_preflight') {
     const hash = sceneBinding(w);
     const r = await modelTask(repo, w, 'webtoon-scene-preflight',
-      `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. Keep camera and layout free. Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability.`,
-      { source: w.sceneUnits, plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene, schema: { subjectHash: hash,
-        coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [],
+      `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. Keep camera and layout free. Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
+      { source: w.sceneUnits, plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
+        ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
+        coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
         renderBrief: { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers);
     if (r.waiting) return r.result;
     const passed = validateScenePreflight(r.value, w);
@@ -94,6 +117,7 @@ async function drive(repo, w, providers) {
     await repo.writeCandidate(w, 'preflight.json', JSON.stringify(w.preflight, null, 2));
     if (passed) await repo.writeCandidate(w, 'render-brief.json', JSON.stringify(w.preflight.renderBrief, null, 2));
     w.stage = passed ? 'needs_scene_image' : 'scene_preflight_blocked';
+    if (!passed && autoRevise(w)) return drive(repo, w, providers);
   }
   if (w.stage === 'needs_scene_image') {
     needCurrentPreflight(w);
@@ -111,7 +135,7 @@ async function drive(repo, w, providers) {
         schema: { subjectHash: digest({ binding: sceneImageBinding(w), imageHash: w.sceneImage.hash }), inspectedImages: false, observedPanelCount: null,
           ...(w.previousScene ? { continuity: { inspectedPreviousImage: false, ...Object.fromEntries(CONTINUITY_CHECKS.map(k => [k, { passed: false, evidence: '' }])) } } : {}),
           coveredBeatIds: w.scenePlan.beats.map(b => b.id), textObservations: w.scenePlan.texts.map(t => ({ id: t.id, observedText: '', readable: false, speakerCorrect: false, evidence: '' })),
-          spatialCoherence: false, readingOrder: false, evidence: '', findings: [] } }, providers);
+          spatialCoherence: false, readingOrder: false, evidence: '', findings: [], findingItem: SCENE_FINDING_SHAPE } }, providers);
     if (r.waiting) return r.result;
     const passed = validateSceneImageReview(r.value, w); w.visualReview = { ...r.value, passed };
     await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
@@ -119,6 +143,7 @@ async function drive(repo, w, providers) {
     await repo.writeCandidate(w, 'scene.html', html);
     w.stage = passed ? 'completed' : 'scene_needs_revision';
     record(w, 'scene_reviewed', { passed, imageHash: w.sceneImage.hash });
+    if (!passed && autoRevise(w)) return drive(repo, w, providers);
   }
   return scenePublicState(w);
 }
@@ -141,6 +166,8 @@ async function startScene(store, repo, args, current) {
   const previous = args.previousWorkflowId ? await loadPreviousScene(repo, args) : undefined;
   if (current && !terminal(current) && !(previous?.workflowId === current.workflowId && current.stage === 'scene_needs_revision')) throw new Error('WEBTOON_WORKFLOW_ACTIVE');
   if (!isEnglish(args.direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
+  const autoLimit = args.autoRevisions ?? SCENE_AUTO_REVISIONS.default;
+  if (!Number.isInteger(autoLimit) || autoLimit < 0 || autoLimit > SCENE_AUTO_REVISIONS.max) throw new Error('INVALID_SCENE_AUTO_REVISIONS');
   const source = await resolveWebtoonSource(store, args.workId, args.sourceChapters);
   const selected = args.sourceUnitIds ?? source.units.map(u => u.id);
   if (!Array.isArray(selected) || !selected.length || new Set(selected).size !== selected.length || selected.some(id => !source.units.some(u => u.id === id))) throw new Error('INVALID_SCENE_SOURCE_SCOPE');
@@ -160,7 +187,7 @@ async function startScene(store, repo, args, current) {
     stage: 'scene_generate', source, sceneUnits: source.units.filter(u => selected.includes(u.id)), direction: args.direction,
     panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount: args.panelCount }),
     ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: previous.visualReview.findings, reviewPassed: previous.visualReview.passed } } : {}),
-    imagePolicy: policy, imageSelection: saved.selection,
+    imagePolicy: policy, imageSelection: saved.selection, autoRevision: { limit: autoLimit, used: 0 }, attempts: [],
     sceneReferences: [...references, ...(previous ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
     acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity() };
   record(w, 'scene_started', { sourceHash: source.hash });
@@ -185,9 +212,7 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
     if (!run && args.action === 'revise') {
       if (!nonempty(args.feedback)) throw new Error('SCENE_REVISION_FEEDBACK_REQUIRED');
       if (w.pending) await dropRun(store.rootDir, w.pending.runId);
-      w.previousFindings = w.visualReview ?? w.preflight; w.feedback = args.feedback;
-      w.revision++; w.pending = null; w.preflight = null; w.visualReview = null; w.scenePlan = null; w.sceneImage = null; w.artifacts = {}; w.stage = 'scene_generate';
-      if (scenePanelCountMode(w) === 'auto') w.panelCount = undefined;
+      beginRevision(w, args.feedback);
       record(w, 'scene_revision_requested', { feedback: args.feedback });
     }
     if (!run && args.action === 'retry') {
