@@ -238,8 +238,7 @@ indépendantes : vous pouvez converser en coréen tout en écrivant une œuvre e
 Les langues pour lesquelles le flux complet, du profil à l'approbation de l'épisode 2 et à l'audit
 linguistique final, a été vérifié avec Claude Sonnet 5 sont l'anglais, l'espagnol, le japonais, le
 français, le coréen, l'arabe, le chinois traditionnel et le thaï. Pour le détail du contrat des
-arguments, consultez [Langue de l'œuvre et unités de longueur](docs/TOOLS.md#작품-언어와-분량-단위),
-et pour le journal de validation, le [Journal d'implémentation multilingue](https://github.com/fbwndrud/vibelore/blob/main/docs/research/MULTILINGUAL_IMPLEMENTATION.md).
+arguments, consultez [Langue de l'œuvre et unités de longueur](docs/TOOLS.md#작품-언어와-분량-단위).
 
 ## Canon et état machine
 

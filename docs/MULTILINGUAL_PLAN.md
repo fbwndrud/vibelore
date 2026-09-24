@@ -2,7 +2,7 @@
 
 작성일: 2026-09-09. 상태: **5차 검토 완료, 구현 착수 가능한 설계**. 구현·회귀 검증은 아직 수행하지 않았다.
 
-사용자 요청에 따라 최대 5차의 검토·보완을 수행했다. 1~3차는 Claude/Grok, 4~5차는 Claude의 재검토와 Codex 대조로 진행했다. 5차의 최종 판정은 READY이며, 주요 설계 모순은 해소됐다. [차수별 채택·기각 기록](https://github.com/fbwndrud/vibelore/blob/main/docs/research/multilingual-2026-09-09/loops/REVIEW_LOG.md)과 [5차 최종 검토](https://github.com/fbwndrud/vibelore/blob/main/docs/research/multilingual-2026-09-09/loops/round-5-claude.md)에 근거를 남겼다.
+사용자 요청에 따라 최대 5차의 검토·보완을 수행했다. 1~3차는 Claude/Grok, 4~5차는 Claude의 재검토와 Codex 대조로 진행했다. 5차의 최종 판정은 READY이며, 주요 설계 모순은 해소됐다. 검토 원문은 공개 저장소에 포함하지 않는다.
 
 ## 작업 기준
 
@@ -196,7 +196,7 @@ Claude와 Grok은 같은 기준 커밋에서 시작하는 별도 작업 폴더�
 
 Claude CLI의 `claude-opus-5`가 기준 커밋의 파일을 직접 읽어 구조를 검토했다. Grok CLI의 `grok-4.6-build`는 별도로 선별한 코드 발췌를 받아 검사와 호환성을 검토했다. 모두 기획만 수행했다. Grok의 첫 호출은 긴 입력 처리 중 turn limit으로 종료되어, 근거를 줄여 다시 호출했고 두 번째 응답이 정상 완료됐다. 이 실패를 완료된 검토로 세지 않았다.
 
-원본: [Claude 검토](https://github.com/fbwndrud/vibelore/blob/main/docs/research/multilingual-2026-09-09/claude-review.md), [Grok 검토](https://github.com/fbwndrud/vibelore/blob/main/docs/research/multilingual-2026-09-09/grok-review.md). 두 보고서는 모델 제안 원문이므로 아래 판정 및 본문 설계가 우선한다.
+검토 원문은 모델 제안이므로 공개 저장소에 포함하지 않으며, 아래 판정 및 본문 설계가 우선한다.
 
 | 모델 제안/관찰 | Codex 판정 |
 |---|---|

@@ -235,8 +235,7 @@ conversar en coreano mientras escribes una obra en japonés.
 Los idiomas en los que se ha verificado el flujo completo con Claude Sonnet 5 real, desde el perfil
 hasta la aprobación del capítulo 2 y la auditoría final de idioma, son inglés, español, japonés,
 francés, coreano, árabe, chino tradicional y tailandés. Para los detalles del contrato de argumentos,
-consulta [Idioma de la obra y unidades de extensión](docs/TOOLS.md#작품-언어와-분량-단위); para el
-registro de verificación, el [registro de implementación multilingüe](https://github.com/fbwndrud/vibelore/blob/main/docs/research/MULTILINGUAL_IMPLEMENTATION.md).
+consulta [Idioma de la obra y unidades de extensión](docs/TOOLS.md#작품-언어와-분량-단위).
 
 ## Canon y estado de la máquina
 

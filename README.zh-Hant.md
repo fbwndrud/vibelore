@@ -211,8 +211,7 @@ stateDiagram-v2
 
 已以實際的 Claude Sonnet 5 從設定檔到第 2 章核准與最終語言稽核驗證完整流程的語言有
 英語、西班牙語、日語、法語、韓語、阿拉伯語、繁體中文與泰語。參數契約的
-細節請參考[作品語言與篇幅單位](docs/TOOLS.md#작품-언어와-분량-단위)，驗證記錄請參考
-[多語言實作記錄](https://github.com/fbwndrud/vibelore/blob/main/docs/research/MULTILINGUAL_IMPLEMENTATION.md)。
+細節請參考[作品語言與篇幅單位](docs/TOOLS.md#작품-언어와-분량-단위)。
 
 ## 正典與機器狀態
 

@@ -237,8 +237,7 @@ Claude Code용 스킬은 `hosts/claude/skills/`에 있고, 이 저장소는 Code
 
 실제 Claude Sonnet 5로 프로필부터 2화 승인과 최종 언어 감사까지 전체 흐름을 확인한 언어는
 영어, 스페인어, 일본어, 프랑스어, 한국어, 아랍어, 번체 중국어, 태국어입니다. 인자 계약의
-세부는 [작품 언어와 분량 단위](docs/TOOLS.md#작품-언어와-분량-단위)를, 검증 기록은
-[다국어 구현 기록](https://github.com/fbwndrud/vibelore/blob/main/docs/research/MULTILINGUAL_IMPLEMENTATION.md)을 참고하세요.
+세부는 [작품 언어와 분량 단위](docs/TOOLS.md#작품-언어와-분량-단위)를 참고하세요.
 
 ## 파일은 어디에
 

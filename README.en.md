@@ -224,7 +224,7 @@ so you can write a Japanese novel while talking in Korean.
 The languages verified end to end with a real Claude Sonnet 5, from profile through second-chapter
 approval and the final language audit, are English, Spanish, Japanese, French, Korean, Arabic,
 Traditional Chinese, and Thai. See [Work language and length units](docs/TOOLS.md#작품-언어와-분량-단위)
-for the argument contract details and the [multilingual implementation record](https://github.com/fbwndrud/vibelore/blob/main/docs/research/MULTILINGUAL_IMPLEMENTATION.md) for the verification log.
+for the argument contract details.
 
 ## Canon and machine state
 
