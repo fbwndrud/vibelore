@@ -357,3 +357,15 @@ test('verbatim check accepts decomposed plan text for composed source prose', ()
   p.texts[0].text = units[0].text.normalize('NFD');
   assert.doesNotThrow(() => validateScenePlan(p, units));
 });
+
+test('non-Korean works get English scene chrome and Korean works keep Korean', async () => {
+  const en = await setup({ language: 'en', prose: 'Yun stopped at the closed door.\n\n"Is anyone inside?"' });
+  const asked = await runWebtoonSceneTool({ store: en.store, args: { ...en.args, panelCount: undefined }, providers: provider() });
+  assert.equal(asked.status, 'needs_interview');
+  assert.doesNotMatch(JSON.stringify(asked), /[가-힣]/u);
+  const two = await runWebtoonSceneTool({ store: en.store, args: { ...en.args, panelCount: 2 }, providers: provider() });
+  assert.doesNotMatch(JSON.stringify(two.warnings ?? []), /[가-힣]/u);
+  const ko = await setup();
+  const koAsked = await runWebtoonSceneTool({ store: ko.store, args: { ...ko.args, panelCount: undefined }, providers: provider() });
+  assert.match(koAsked.questions[0].question, /몇 칸/);
+});

@@ -4,6 +4,7 @@ import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../st
 import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.js';
 import { importWebtoonImages } from '../core/webtoon-board.js';
 import { imagePolicyFor, imageSelectionConfirmed, validateImageProvenance } from '../core/webtoon-images.js';
+import { webtoonMessage } from '../core/webtoon-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
@@ -139,7 +140,7 @@ async function drive(repo, w, providers) {
     if (r.waiting) return r.result;
     const passed = validateSceneImageReview(r.value, w); w.visualReview = { ...r.value, passed };
     await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
-    const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? '검토 완료' : '검토에서 우려 발견'} · 원본 이미지 안에 문자 포함</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="생성된 장면 전체"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(r.value.findings, null, 2))}</pre></html>`;
+    const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(r.value.findings, null, 2))}</pre></html>`;
     await repo.writeCandidate(w, 'scene.html', html);
     w.stage = passed ? 'completed' : 'scene_needs_revision';
     record(w, 'scene_reviewed', { passed, imageHash: w.sceneImage.hash });
@@ -187,7 +188,11 @@ async function confirmedSceneSelection(repo, args) {
 
 /** Validate every user choice before any model or image call; returns the interview instead of a workflow when the count is missing. */
 async function startScene(store, repo, args, current) {
-  if (args.panelCount === undefined) return { status: 'needs_interview', questions: [{ id: 'panelCount', question: `이 장면을 몇 칸으로 생성할까요? "auto"는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 고릅니다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성이 떨어질 수 있습니다. 칸 크기와 배치는 AI가 정합니다.`, options: SCENE_PANEL_OPTIONS }], jobs: [] };
+  const source = await resolveWebtoonSource(store, args.workId, args.sourceChapters);
+  if (args.panelCount === undefined) return { status: 'needs_interview', questions: [{ id: 'panelCount', question: webtoonMessage(source,
+    `이 장면을 몇 칸으로 생성할까요? "auto"는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 고릅니다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성이 떨어질 수 있습니다. 칸 크기와 배치는 AI가 정합니다.`,
+    `How many panels should this scene have? "auto" lets the AI choose ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} panels on every adaptation. Fewer than ${SCENE_PANEL_LIMITS.continuityMin} panels may weaken continuity. The AI decides panel sizes and layout.`),
+    options: SCENE_PANEL_OPTIONS }], jobs: [] };
   const auto = args.panelCount === 'auto';
   if (!auto && (!Number.isInteger(args.panelCount) || args.panelCount < SCENE_PANEL_LIMITS.min || args.panelCount > SCENE_PANEL_LIMITS.max)) throw new Error('INVALID_SCENE_PANEL_COUNT');
   const previous = args.previousWorkflowId ? await loadPreviousScene(repo, args) : undefined;
@@ -195,7 +200,6 @@ async function startScene(store, repo, args, current) {
   if (!isEnglish(args.direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
   const autoLimit = args.autoRevisions ?? SCENE_AUTO_REVISIONS.default;
   if (!Number.isInteger(autoLimit) || autoLimit < 0 || autoLimit > SCENE_AUTO_REVISIONS.max) throw new Error('INVALID_SCENE_AUTO_REVISIONS');
-  const source = await resolveWebtoonSource(store, args.workId, args.sourceChapters);
   const selected = args.sourceUnitIds ?? source.units.map(u => u.id);
   if (!Array.isArray(selected) || !selected.length || new Set(selected).size !== selected.length || selected.some(id => !source.units.some(u => u.id === id))) throw new Error('INVALID_SCENE_SOURCE_SCOPE');
   if (previous) {

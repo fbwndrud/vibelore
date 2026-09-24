@@ -1,5 +1,5 @@
 import { digest, nonempty, safeId } from './webtoon-contract.js';
-import { sceneLetteringLine } from './webtoon-language.js';
+import { sceneLetteringLine, webtoonMessage } from './webtoon-language.js';
 
 export const SCENE_PRODUCTION_MODE = 'scene-direct-v1';
 export const PREVIOUS_SCENE_ID = 'previous-scene';
@@ -35,7 +35,9 @@ const needTextCoverage = (assigned, texts) => need(assigned.length === texts.len
 export const scenePanelCountMode = w => w.panelCountMode ?? 'user';
 /** Advisory only: a one- or two-panel scene gives the reviewer little to match against the neighbouring scenes. */
 export const sceneWarnings = w => scenePanelCountMode(w) === 'user' && w.panelCount < SCENE_PANEL_LIMITS.continuityMin
-  ? [`칸 수 ${w.panelCount}은 ${SCENE_PANEL_LIMITS.continuityMin}칸 미만이라 앞뒤 장면과의 연속성이 잘 지켜지지 않을 수 있습니다.`] : [];
+  ? [webtoonMessage(w.source,
+    `칸 수 ${w.panelCount}은 ${SCENE_PANEL_LIMITS.continuityMin}칸 미만이라 앞뒤 장면과의 연속성이 잘 지켜지지 않을 수 있습니다.`,
+    `${w.panelCount} panels is below ${SCENE_PANEL_LIMITS.continuityMin}; continuity with neighbouring scenes may weaken.`)] : [];
 
 /** Structural checks are deliberately separate from semantic preflight. */
 export function validateScenePlan(plan, units, { resolvePanelCount = false } = {}) {
