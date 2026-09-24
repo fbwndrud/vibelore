@@ -560,6 +560,8 @@ export const phrases = {
     episodePendingRule: '- lore_episode_decide로 승인하거나 거절한 뒤 집필하세요.',
     episodeMissingHeading: '## 상세 EpisodePlan 없음',
     episodeMissingRule: '- lore_episode_plan으로 현재 아크 비트를 장면 계획으로 확장한 뒤 집필하세요.',
+    contextOverflow: (actualTokens, maxTokens) => `전체 집필 컨텍스트가 ${actualTokens} 토큰으로 ${maxTokens} 토큰 예산을 넘었습니다. 화를 나누거나 계획을 줄여 다시 시도하세요.`,
+    mandatoryOverflow: '필수 정사(세계 사실·활성 떡밥)를 컨텍스트 예산 안에 넣을 수 없습니다. 화를 나누거나 계획을 줄여 다시 시도하세요.',
     addressHeading: '## 호칭 (누가 누구를 어떻게 부르는지 — 바뀌면 이유가 필요합니다)',
     address: (speaker, target, term, register, since) => `- ${speaker} → ${target}: "${term}" (${register}, ${since}화부터)`,
     hooksHeading: '## 미해결 떡밥 (독자가 기억하고 있습니다)',

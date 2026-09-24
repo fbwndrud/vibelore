@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
+import { tokenUnits } from './token-units.js';
 
 const fail = (code, message, details = {}) => ({ ok: false, error: { code, message, ...details } });
-const tokens = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
+const tokens = (value) => tokenUnits(value);
 const terms = (value) => [...new Set(String(value ?? '').toLocaleLowerCase('ko').match(/[가-힣a-z0-9_]{2,}/g) ?? [])];
 const hash = (value) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 

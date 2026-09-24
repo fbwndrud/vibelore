@@ -26,8 +26,9 @@ import { openCanonRepository } from '../core/canon-repository.js';
 import { isHookActive } from '../../engine/src/continuity/story-state.js';
 import { PROMPT_FAMILY_KO, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
+import { tokenUnits } from '../core/token-units.js';
 
-const MAX_CONTEXT_TOKENS = 18000;
+export const MAX_CONTEXT_TOKENS = 18000;
 
 function renderCharacter(foundation, character, chapter, kit) {
   const t = kit.phrases.context;
@@ -132,9 +133,9 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     mandatory, candidates: memory.candidates, query: retrievalQuery,
     indexGeneration: `memory:${memory.documents}`, tokenizerRevision: 'unicode61-or-ko-basic-1', rankerRevision: memory.backend,
   });
-  if (!compiledMemory.ok) throw new Error(`${compiledMemory.error.code}: 필수 정사를 컨텍스트에 넣을 수 없어 장면 분할 또는 재계획이 필요합니다.`);
-
   const t = kit.phrases.context;
+  if (!compiledMemory.ok) throw new Error(`${compiledMemory.error.code}: ${t.mandatoryOverflow}`);
+
   const sections = [
     t.heading(chapter, workId),
     '',
@@ -203,9 +204,9 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   sections.push('', renderSlidingWindow(window));
 
   const context = sections.join('\n');
-  const actualTokens = Math.max(1, Math.ceil([...context].length / 2));
+  const actualTokens = tokenUnits(context);
   if (actualTokens > MAX_CONTEXT_TOKENS) {
-    throw new Error(`context_overflow: 전체 집필 컨텍스트 ${actualTokens} 토큰이 ${MAX_CONTEXT_TOKENS} 토큰 예산을 넘어 장면 분할 또는 재계획이 필요합니다.`);
+    throw new Error(`context_overflow: ${t.contextOverflow(actualTokens, MAX_CONTEXT_TOKENS)}`);
   }
   const contextHash = `sha256:${createHash('sha256').update(context).digest('hex')}`;
   const trace = {

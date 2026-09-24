@@ -7,16 +7,18 @@
  *   2. 최근 commitPhase 직후 StoryState carry-forward (있으면)
  *   3. (확장 hook) mid-summary / arc-summary — 본 PR 미포함, 후속.
  *
- * Budget 초과 시 oldest 순으로 trim. token estimate = chars / 2 (한국어 근사).
- * 실 tokenizer 도입은 후속.
+ * Budget 초과 시 oldest 순으로 trim. token estimate 는 스크립트별 `tokenUnits()`
+ * (한국어 등 dense script 는 / 2, Latin 등 sparse script 는 / 4 — 자세한 계산은
+ * `./token-units.js` 참조). 실 tokenizer 도입은 후속.
  *
  * 이 token 근사는 **분량 계약과 무관한 컨텍스트 예산**이다. 작품 분량 목표는
  * `language-policy` 의 `length` 계약과 측정 정책이 소유하며 둘을 섞지 않는다.
  */
 import { pickByFamily } from './prompt-language.js';
-/** 한국어 prose 의 거친 token 추정. 정확도 보단 ratio 비교용. */
+import { tokenUnits } from './token-units.js';
+/** 스크립트별 prose 의 거친 token 추정. 정확도 보단 ratio 비교용. */
 export function approxTokens(text) {
-    return Math.ceil(text.length / 2);
+    return tokenUnits(text);
 }
 const DEFAULT_BUDGET = 12_000;
 const DEFAULT_WINDOW = 5;
