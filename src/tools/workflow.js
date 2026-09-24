@@ -230,7 +230,8 @@ async function ensureWorkflow(store, workId, chapter, autonomy, instruction, mod
   const profile = modelProfile ?? (supersession ? current.modelProfile ?? null : null);
   // A draft that was waiting for the user's decision is never auto-committed
   // because a later call asked for auto: the fresh receipt goes to lore_decide.
-  const effectiveAutonomy = revalidate && awaitingUserDecision(current) ? 'guided' : autonomy;
+  const lockGuided = revalidate && awaitingUserDecision(current);
+  const effectiveAutonomy = lockGuided ? 'guided' : autonomy;
   const workflow = {
     workflowId: id('wf'), workId, chapter, stage: revise ? 'revision_requested' : 'started', operation: revise ? 'user_revision' : null,
     autonomy: effectiveAutonomy, instruction: revalidate ? String(current.instruction ?? '') : String(instruction ?? ''), attempt: 0,
@@ -239,7 +240,7 @@ async function ensureWorkflow(store, workId, chapter, autonomy, instruction, mod
     ...(supersession ? { supersedes: current.workflowId } : {}),
     ...(revalidate ? { inheritedDraft, draftProse: current.draftProse, castManifestRaw: current.castManifestRaw } : {}),
     ...(revise ? { revisionFeedback: current.revisionFeedback } : {}),
-    ...(effectiveAutonomy !== autonomy ? { autonomyLock: effectiveAutonomy } : {}),
+    ...(lockGuided ? { autonomyLock: 'guided' } : {}),
   };
   // The superseded workflow is saved first: saveWorkflow also moves `current`.
   if (supersession) await supersede(store, workId, current, supersession, workflow.workflowId);

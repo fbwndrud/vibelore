@@ -260,6 +260,7 @@ test('a plan edit never lets an auto call commit a draft that was waiting for ap
   assert.equal(fresh.status, 'awaiting_approval', JSON.stringify(fresh));
   const current = await assertRevalidated(store, guided.workflowId, guided.prose, 'revalidate');
   assert.equal(current.autonomy, 'guided');
+  assert.equal(current.autonomyLock, 'guided');
   assert.deepEqual(await store.listChapters(), []);
   const approved = await runWorkflowDecide({ store, workId, approvalId: fresh.approvalId, action: 'approve', providers: model.providers });
   assert.equal(approved.status, 'completed', JSON.stringify(approved));
@@ -310,4 +311,21 @@ test('a ready_to_commit draft whose auto-commit failed is re-validated after a p
   assert.equal(model.drafts, draftsBefore);
   await assertRevalidated(store, parked.workflowId, guided.prose, 'revalidate');
   assert.equal((await store.loadCheckReceipt(workId, parked.checkId)).stale, true);
+});
+
+test('a guided re-validation stays guided when a later call asks for auto', async () => {
+  const store = await qualityStore();
+  const model = scriptedProviders();
+  model.healthy = true;
+  const guided = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: model.providers });
+  const plan = await store.loadEpisodePlan(workId, 1);
+  await store.saveEpisodePlan(workId, { ...plan, premise: '지도에서 본 길을 찾아 문을 연다' });
+  const { createPreflightRelay } = await import('../src/provider/host-relay.js');
+  const first = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: createPreflightRelay({}) });
+  assert.equal(first.preview, true, JSON.stringify(first));
+  assert.equal((await store.loadWorkflow(workId)).autonomyLock, 'guided');
+  const later = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers });
+  assert.equal(later.status, 'awaiting_approval', JSON.stringify(later));
+  assert.equal(later.prose, guided.prose);
+  assert.deepEqual(await store.listChapters(), []);
 });
