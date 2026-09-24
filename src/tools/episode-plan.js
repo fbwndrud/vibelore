@@ -243,16 +243,14 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
         planMessages[0],
         { role: 'user', content: [
           planMessages[1].content, '',
-          '이전 응답:', String(response.text), '',
-          `검증 오류: ${JSON.stringify(accepted.failure.error)}`,
-          '제목·장면·선택 모듈의 기존 내용은 유지하고, 위 오류에 해당하는 누락되거나 빈 필드만 채워 전체 계획 JSON을 다시 출력한다. 선택 모듈을 쓰려면 그 모듈의 모든 필드를 채우고, 정말 필요 없는 모듈이면 키 자체를 제거한다.',
+          kit.phrases.episode.episodePlanRepair({ previousText: String(response.text), error: accepted.failure.error }),
         ].join('\n') },
       ],
     });
     if ((providers.pending?.length ?? 0) > 0) return { preview: true };
     accepted = acceptPlan(repair.text);
     if (accepted.failure) {
-      throw new Error(`EPISODE_PLAN_CONTRACT_INVALID: ${accepted.failure.error.code} ${accepted.failure.error.message} ${JSON.stringify(accepted.failure.error.details ?? {})}`);
+      throw new Error(`${accepted.failure.error.code}: ${accepted.failure.error.message} ${JSON.stringify(accepted.failure.error.details ?? {})}`);
     }
   }
   const buildPlan = (acceptedPlan) => {
@@ -351,7 +349,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
     if ((providers.pending?.length ?? 0) > 0) return { preview: true };
     accepted = acceptPlan(repair.text);
     if (accepted.failure) {
-      throw new Error(`EPISODE_PLAN_CONTRACT_INVALID: ${accepted.failure.error.code} ${accepted.failure.error.message} ${JSON.stringify(accepted.failure.error.details ?? {})}`);
+      throw new Error(`${accepted.failure.error.code}: ${accepted.failure.error.message} ${JSON.stringify(accepted.failure.error.details ?? {})}`);
     }
     plan = buildPlan(accepted);
     packet = packetBudget(plan);

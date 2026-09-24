@@ -311,6 +311,13 @@ export const phrases = {
       `  - ${id}${order ? `@${order}` : ''}: 압력=${pressure} / 겉목적=${surface} / 숨은목적=${hidden} / 예시="${sample}" / 서술필터=${filter}`,
     backgroundFreedom: '- 전면 인물이 아닌 등장인물은 독립 논점을 증명할 필요가 없다. 반응하거나 침묵해도 된다.',
     sceneFreedom: '- 장면 표현과 대사 결은 자유지만 고정된 Arc 비트와 도착 결과는 바꾸지 않는다.',
+    // 계획 재수리 요청 본문. previousText 는 모델의 이전 응답 원문, error 는
+    // 검증 실패 객체다. 라벨·오류·채우기 지시 세 줄을 한 블록으로 만든다.
+    episodePlanRepair: ({ previousText, error }) => [
+      '이전 응답:', previousText, '',
+      `검증 오류: ${JSON.stringify(error)}`,
+      '제목·장면·선택 모듈의 기존 내용은 유지하고, 위 오류에 해당하는 누락되거나 빈 필드만 채워 전체 계획 JSON을 다시 출력한다. 선택 모듈을 쓰려면 그 모듈의 모든 필드를 채우고, 정말 필요 없는 모듈이면 키 자체를 제거한다.',
+    ].join('\n'),
   },
 
   experience: {

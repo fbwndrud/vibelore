@@ -311,6 +311,14 @@ export const phrases = {
       `  - ${id}${order ? `@${order}` : ''}: pressure=${pressure} / surface intent=${surface} / hidden intent=${hidden} / example="${sample}" / narration filter=${filter}`,
     backgroundFreedom: '- Characters outside the foreground do not have to prove an independent position. They may simply react or stay silent.',
     sceneFreedom: '- Staging and the texture of dialogue are free, but do not change the fixed arc beat or the state it must arrive at.',
+    // Plan repair request body. previousText is the model's earlier raw response,
+    // error is the validation failure object. Builds one block of the previous
+    // response label, the validation error label and the fill-in instruction.
+    episodePlanRepair: ({ previousText, error }) => [
+      'Previous response:', previousText, '',
+      `Validation error: ${JSON.stringify(error)}`,
+      'Keep the existing title, scenes and optional modules; fill only the missing or empty fields named by the error and output the full plan JSON again. If you use an optional module, fill every field of it; if it truly does not apply, omit the whole module.',
+    ].join('\n'),
   },
 
   experience: {
