@@ -10,8 +10,11 @@
   `scene_needs_revision`. Workflows started before this keep a budget of 0.
 - The scene image prompt forbids speaker name tags, text beyond the quoted
   lines and copying lettering from reference images, and asks for an exact
-  panel count without insets. A revision's preflight may add up to three short
-  `renderBrief.corrections` that reach the image prompt.
+  panel count without insets. A revision's preflight adds only positive emphasis:
+  `renderBrief.focusTextIds` (the server re-quotes those exact lines) and up to
+  three short `renderBrief.corrections` describing the wanted result. Wording
+  about the earlier attempt, the wrong output or negations is rejected
+  (`SCENE_CORRECTION_NOT_POSITIVE`).
 
 ## 0.3.7 — 2026-09-22
 
