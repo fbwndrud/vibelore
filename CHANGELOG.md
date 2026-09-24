@@ -20,6 +20,37 @@
   instead of a fixed language.
 - Restore the advisory story-profile check on the `lore_write` contract-check
   path.
+- Closing-arc chapters get the cliffhanger advisory again on the contract
+  check path (the arc position is passed to the detectors).
+
+### Existing Korean works: what changes in `lore_write`
+
+Korean (`ko`) works keep the Korean prompt family, but every chapter now goes
+through the same contract validation gate as other languages.
+
+- **Validation gate and receipts.** Each chapter is checked against the live
+  work contract (plans, profile, language, published HEAD). A passing check
+  issues a validation receipt bound to that identity, and commit consumes it.
+  A plan or contract change after the check makes the receipt stale instead of
+  committing it.
+- **Persistent validation budget.** Extraction and semantic validation share a
+  three-attempt budget per validation epoch that survives resumes. A model
+  transport failure returns `provider_error` without spending the budget, and
+  the next `lore_write` resumes.
+- **`clean_fail` and `retryValidation`.** When the budget runs out the draft is
+  kept. A bare `lore_write` returns the same `clean_fail` without calling a
+  model; `lore_write(retryValidation=true)` re-checks the kept draft in a new
+  epoch. `lore_write` with a new `instruction`, or after an arc/plan/contract
+  change or a `lore_sync` that made the kept draft stale, drafts the chapter
+  again in a new workflow. The old workflow stays in the history, marked
+  `workflow_superseded`.
+- **New checks.** Each chapter gets a language-compliance request and a
+  generated title, and the detector plan adds `scanStyle`,
+  `scanSentenceStats`, `scanEntityMentions`, and, where they apply,
+  `scanWorldGroupConflict` and `scanFanficLeak`. Soft and advisory findings
+  still never block a commit.
+- **More host round trips.** A chapter now takes about 7 host model round
+  trips instead of about 4.
 
 ## 0.3.10 — 2026-09-24
 

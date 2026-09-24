@@ -2,7 +2,7 @@
   "status": "approved",
   "version": "0.4.0",
   "targetLicense": "Apache-2.0",
-  "reason": "The maintainer explicitly requested releasing multilingual novel and scene-webtoon support (BCP 47 work language, NFC lettering comparison, Latin-script direction fields, per-panel path deprecation) as 0.4.0 on 2026-09-24. The npm package ships the files listed in package.json `files`, including the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
+  "reason": "The 0.4.0 version bump comes from the approved implementation plan for the feat/multilingual branch (docs/superpowers/plans/2026-09-24-multilingual-p0-p2.md), which ships multilingual novel and scene-webtoon support (BCP 47 work language, NFC lettering comparison, Latin-script direction fields, per-panel path deprecation) as 0.4.0. The npm package ships the files listed in package.json `files`, including the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
   "approvedBy": "JoungKyoung Lyoo",
   "approvedAt": "2026-09-24"
 }
