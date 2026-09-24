@@ -9,7 +9,6 @@
  * inject. 100화 작품 token ~70% 감소가 목표.
  */
 import { pickByFamily } from './prompt-language.js';
-import { tokenUnits } from './token-units.js';
 export const EMPTY_SCENE = {
     settings: [],
     characters: [],
@@ -25,9 +24,9 @@ function envBudget() {
     const n = Number(raw);
     return Number.isFinite(n) && n > 0 ? n : DEFAULT_BUDGET;
 }
-/** Rough script-aware estimate consistent with sliding-window.ts / token-units.js. */
+/** Rough char/2 estimate consistent with sliding-window.ts. */
 function approxTokens(text) {
-    return tokenUnits(text);
+    return Math.ceil(text.length / 2);
 }
 function entityCost(e) {
     const attrs = JSON.stringify(e.attrs);

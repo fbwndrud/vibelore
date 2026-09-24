@@ -50,7 +50,7 @@ describe('resolveEntityContext', () => {
         expect(r.missingIds).toEqual([]); // entity exists, just filtered out
     });
     it('budget trims by stable order', () => {
-        const big = { foo: 'x'.repeat(2000) }; // ~500 tokens per entity (Latin is sparse-script, / 4)
+        const big = { foo: 'x'.repeat(2000) }; // ~1000 tokens per entity
         const r = resolveEntityContext({
             scene: { ...noScene, settings: ['e1', 'e2', 'e3'] },
             snapshots: [

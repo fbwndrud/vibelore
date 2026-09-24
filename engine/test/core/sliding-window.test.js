@@ -30,10 +30,10 @@ function buildStore(summaries) {
     };
 }
 describe('approxTokens', () => {
-    it('script-aware estimate — dense (Hangul) stays / 2, sparse (Latin) is / 4', () => {
-        expect(approxTokens('')).toBe(1);
+    it('rough chars/2 estimate', () => {
+        expect(approxTokens('')).toBe(0);
         expect(approxTokens('한국어')).toBe(2);
-        expect(approxTokens('abcd')).toBe(1);
+        expect(approxTokens('abcd')).toBe(2);
     });
 });
 describe('buildSlidingWindow', () => {
@@ -56,7 +56,7 @@ describe('buildSlidingWindow', () => {
         expect(w.trimmedCount).toBe(0);
     });
     it('budget trims oldest summaries first', async () => {
-        const big = 'x'.repeat(800); // approxTokens ~200 (Latin is sparse-script, / 4)
+        const big = 'x'.repeat(800); // approxTokens ~400
         const summaries = [
             summary(1, big),
             summary(2, big),

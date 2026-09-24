@@ -204,7 +204,12 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   sections.push('', renderSlidingWindow(window));
 
   const context = sections.join('\n');
-  const actualTokens = tokenUnits(context);
+  // ko 계열은 0.3.10 그대로 flat chars/2 를 쓴다(예산이 프롬프트 바이트에 반영되는
+  // 다른 지점 -- entity-context/sliding-window/memory-compiler -- 은 이 수정의
+  // 범위 밖이다). 그 외 계열만 스크립트 인지 tokenUnits() 로 추정한다.
+  const actualTokens = kit.family === PROMPT_FAMILY_KO
+    ? Math.max(1, Math.ceil([...context].length / 2))
+    : tokenUnits(context);
   if (actualTokens > MAX_CONTEXT_TOKENS) {
     throw new Error(`context_overflow: ${t.contextOverflow(actualTokens, MAX_CONTEXT_TOKENS)}`);
   }

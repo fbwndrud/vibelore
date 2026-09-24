@@ -7,10 +7,21 @@
  * `context_overflow` at content sizes a Korean work of equivalent semantic
  * weight would pass comfortably.
  *
+ * The fix is family-aware, not script-aware: the `ko` prompt family keeps
+ * the exact 0.3.10 `Math.ceil([...context].length / 2)` estimate (verified
+ * below on a realistic mixed Hangul/ASCII/JSON/markdown context, not just
+ * pure Hangul prose — `tokenUnits()` would estimate that mixed content
+ * lower, which is exactly the ko-prompt-byte regression a first version of
+ * this fix introduced by routing ko through `tokenUnits()` too, and by
+ * extending the estimator into engine/src/core/{sliding-window,
+ * entity-context}.js and src/core/memory-compiler.js — those three are out
+ * of scope for this bug and stay on their original ko-identical estimators).
+ * Every other prompt family uses `tokenUnits()`.
+ *
  * These tests pin: (1) a large-but-legitimate English context no longer
- * false-positives, (2) Korean's estimate is unchanged (dense-script chars
- * still cost the original / 2 rate), and (3) the overflow message follows
- * the static ko/en rule instead of always being Korean.
+ * false-positives, (2) a realistic mixed Korean context keeps the exact old
+ * estimate (not the lower `tokenUnits()` one), and (3) the overflow message
+ * follows the static ko/en rule instead of always being Korean.
  */
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
@@ -66,9 +77,17 @@ function latinText(len, seed = 0) {
   return (sentence.repeat(Math.ceil(len / sentence.length))).slice(0, len) + ` (${seed})`;
 }
 
-function hangulText(len, seed = 0) {
-  const sentence = '등대지기는 수리공이 도착하기 전에 널빤지를 세었고 항구 위원회와 무관하게 밀물은 제 시간표를 지켰다. ';
-  return (sentence.repeat(Math.ceil(len / sentence.length))).slice(0, len) + ` (${seed})`;
+/**
+ * Realistic mixed ko content: Hangul prose interleaved with ASCII, markdown
+ * bullets and an inline JSON-ish blob (the kind of thing that actually
+ * shows up in a chapter — ids, statuses, file paths), not pure Hangul prose.
+ * Non-Hangul characters outnumber Hangul characters in this unit, which is
+ * exactly the shape that makes `tokenUnits()` diverge from the legacy
+ * `chars / 2` estimate.
+ */
+function mixedKoText(len, seed = 0) {
+  const unit = `- (${seed}) 등대지기는 수리공이 도착하기 전에 널빤지를 세었다. "status": "active", "tags": ["harbor", "council"], see docs/notes.md for detail. `;
+  return (unit.repeat(Math.ceil(len / unit.length))).slice(0, len);
 }
 
 describe('writing-context token budget is script-aware (src/tools/context.js)', () => {
@@ -99,7 +118,7 @@ describe('writing-context token budget is script-aware (src/tools/context.js)', 
     assert.ok(trace.actualTokens < Math.ceil(totalChars / 2));
   });
 
-  it('a Korean context near the budget keeps the same estimate as before (dense-script chars stay at / 2)', async () => {
+  it('a realistic mixed Korean context (Hangul + ASCII/markdown/JSON) keeps the exact old flat /2 estimate', async () => {
     const store = await newStore('ko');
     await runInit({
       store, workId: 'w', genre: 'other', povMode: '3인칭제한',
@@ -107,16 +126,19 @@ describe('writing-context token budget is script-aware (src/tools/context.js)', 
       providers: approvalFixtureProvider(),
     });
     const foundation = await store.loadFoundation('w');
-    await store.saveFoundation({ ...foundation, characters: bigCast(15, 900, hangulText) });
+    await store.saveFoundation({ ...foundation, characters: bigCast(15, 900, mixedKoText) });
 
     const { context } = await buildContext({ store, workId: 'w', chapter: 1 });
     const trace = await store.loadContextTrace('w', 1);
     assert.ok(trace);
     assert.ok(trace.actualTokens <= MAX_CONTEXT_TOKENS, 'fixture should stay under budget');
-    // Korean prose is dense-script, so tokenUnits() reproduces the legacy
-    // chars/2 heuristic exactly (the fix must not shrink or inflate ko budgets).
+    // The ko prompt family is exempt from tokenUnits(): it must reproduce the
+    // legacy chars/2 heuristic exactly, byte for byte, even though this
+    // content is mixed enough (non-Hangul outnumbers Hangul) that
+    // tokenUnits() would estimate it noticeably lower.
     assert.equal(trace.actualTokens, Math.ceil([...context].length / 2));
-    assert.equal(trace.actualTokens, tokenUnits(context));
+    assert.ok(tokenUnits(context) < trace.actualTokens,
+      'fixture should be mixed enough that tokenUnits() would diverge from the ko estimate — otherwise this test cannot prove the family gate matters');
   });
 
   it('the overflow message is English for an English work', async () => {

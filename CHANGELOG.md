@@ -49,16 +49,15 @@
   for those values in the work language; if one is still missing it is stored
   empty and the runtime prompt guidance falls back to the static instruction.
   `ko` defaults are unchanged.
-- Fix the writing-context and memory-compiler token budgets (`src/tools/
-  context.js`, `src/core/memory-compiler.js`, `engine/src/core/
-  sliding-window.js`, `engine/src/core/entity-context.js`) to use the
-  script-aware `tokenUnits()` estimator instead of a flat `chars / 2`, which
-  overcounted sparse scripts like English by roughly 2x and could throw a
-  false `context_overflow` on a legitimately sized English chapter while `ko`
-  passed. `ko` estimates are unchanged (dense-script chars still cost `/ 2`).
-  The `context_overflow` error text now follows the work's `ko`/`en` prompt
-  family and no longer implies an automatic scene split or re-plan that the
-  product does not perform.
+- Fix the writing-context token budget (`src/tools/context.js`) to estimate
+  non-`ko` works with the script-aware `tokenUnits()` estimator instead of a
+  flat `chars / 2`, which overcounted sparse scripts like English by roughly
+  2x and could throw a false `context_overflow` on a legitimately sized
+  English chapter while `ko` passed. `ko` works keep the exact 0.3.10
+  `chars / 2` estimate, byte for byte, including on mixed Hangul/ASCII/JSON
+  content. The `context_overflow` error text now follows the work's `ko`/`en`
+  prompt family and no longer implies an automatic scene split or re-plan
+  that the product does not perform.
 
 ### Existing Korean works: what changes in `lore_write`
 
