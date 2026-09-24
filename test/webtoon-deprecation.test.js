@@ -12,3 +12,9 @@ test('new panel workflows are deprecated at the MCP entry; existing ones keep wo
   const resumed = await runWebtoonTool({ store, toolName: 'lore_webtoon_plan', args: { workId, workflowId: started.workflowId }, providers: provider(), blockNewPanelWorkflows: true });
   assert.equal(resumed.workflowId, started.workflowId);
 });
+
+test('an unknown workflowId is not treated as a new start; not-found wins over the deprecation error', async () => {
+  const store = await webtoonStore();
+  await assert.rejects(runWebtoonTool({ store, toolName: 'lore_webtoon_plan', args: { workId, workflowId: 'wt-does-not-exist' }, providers: provider(), blockNewPanelWorkflows: true }),
+    /WEBTOON_WORKFLOW_NOT_FOUND/);
+});

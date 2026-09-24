@@ -738,8 +738,8 @@ export async function runWebtoonTool({ store, toolName, args, providers, run = n
       await persist(repo, workflow); return result ?? publicState(workflow);
     }
     if (toolName === 'lore_webtoon_plan' && (!workflow || (args.newWorkflow && terminal(workflow)))) {
-      if (blockNewPanelWorkflows) throw new Error('WEBTOON_PANEL_PATH_DEPRECATED: The per-panel path is deprecated. Start new webtoon work with lore_webtoon_scene; existing panel workflows can still be read and finished.');
       if (args.workflowId && !workflow) throw new Error('WEBTOON_WORKFLOW_NOT_FOUND');
+      if (blockNewPanelWorkflows) throw new Error('WEBTOON_PANEL_PATH_DEPRECATED: The per-panel path is deprecated. Start new webtoon work with lore_webtoon_scene; existing panel workflows can still be read and finished.');
       const scope = { episode: args.episode ?? 1, maxShots: args.maxShots ?? 40 };
       if (!Number.isSafeInteger(scope.episode) || scope.episode < 1 || !Number.isSafeInteger(scope.maxShots) || scope.maxShots < 1 || scope.maxShots > 120) throw new Error('INVALID_PRODUCTION_SCOPE');
       const source = await resolveWebtoonSource(store, args.workId, args.sourceChapters);
