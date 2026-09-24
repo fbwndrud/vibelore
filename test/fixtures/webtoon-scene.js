@@ -23,8 +23,8 @@ export function scenePreflight(d, blocking = false) {
 }
 
 /** Webtoon store with a confirmed API selection and one reference image, plus valid start args. */
-export async function sceneSetup() {
-  const store = await webtoonStore(), repo = new WebtoonStore(store);
+export async function sceneSetup({ language, prose } = {}) {
+  const store = await webtoonStore({ language, prose }), repo = new WebtoonStore(store);
   const policy = imagePolicyFor('gpt-image-2.5-sunburst', 'openai-api');
   await atomicWrite(repo.path('image-selection.json'), JSON.stringify({ workId, policy, selection: { id: 'selected-api', workId, policyHash: digest(policy) } }));
   const path = join(store.rootDir, 'ref.png'); await writeFile(path, pixel);

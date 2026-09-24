@@ -1,10 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { languageTag, resolveWebtoonLanguage, webtoonLanguageDirective } from '../src/core/webtoon-language.js';
+import { resolveWebtoonSource } from '../src/store/webtoon-store.js';
 import { coverage } from '../src/core/webtoon-contract.js';
 import { composeWebtoonBoard, boardHtml } from '../src/core/webtoon-board.js';
 import { runWebtoonTool } from '../src/tools/webtoon.js';
 import { answers, webtoonStore, workId, provider, plan } from './fixtures/webtoon.js';
+
+test('webtoon source inherits the work language from the shared resolver', async () => {
+  const ko = await resolveWebtoonSource(await webtoonStore(), workId, [1]);
+  assert.equal(ko.languageContract.language, 'ko');
+  assert.equal(ko.languageContract.promptFamily, 'ko');
+  assert.equal(ko.languageContract.resolver, 'work-language');
+  const ja = await resolveWebtoonSource(await webtoonStore({ language: 'ja', prose: 'ユンは閉じた扉の前で立ち止まった。\n\n「中にいますか?」' , name: 'ユン' }), workId, [1]);
+  assert.equal(ja.languageContract.language, 'ja');
+  assert.equal(ja.languageContract.promptFamily, 'multilingual');
+  assert.ok(ja.languageContract.workContractHash);
+  assert.notEqual(ja.hash, ko.hash);
+});
 
 test('language bridge consumes shared novel contract and never swallows resolver conflicts', async () => {
   const foundation = { language: 'fr' }, storyProfile = { language: 'fr' };

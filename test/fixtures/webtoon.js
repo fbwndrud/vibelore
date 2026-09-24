@@ -13,16 +13,16 @@ export const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAA
 const testRoots = new Set();
 after(async () => { for (const root of testRoots) await rm(root, { recursive: true, force: true }); });
 
-export async function webtoonStore() {
+export async function webtoonStore({ language, prose = '윤이 닫힌 문 앞에 멈췄다.\n\n윤이 문 안으로 말을 건넸다.', name = '윤' } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'vibelore-webtoon-')); testRoots.add(root);
   const store = new MarkdownStateStore(root);
-  await runInit({ providers: approvalFixtureProvider(), store, workId, genre: 'other', worldFacts: ['문은 안에서만 열린다.'] });
+  await runInit({ providers: approvalFixtureProvider(), store, workId, genre: 'other', worldFacts: ['문은 안에서만 열린다.'], ...(language ? { language } : {}) });
   const foundation = await store.loadFoundation(workId);
-  await store.saveFoundation({ ...foundation, characters: [{ id: 'hero', canonicalName: '윤', aliases: [], registeredAtChapter: 1,
+  await store.saveFoundation({ ...foundation, characters: [{ id: 'hero', canonicalName: name, aliases: [], registeredAtChapter: 1,
     intrinsic: { gender: 'female', coreAppearance: ['짧은 머리'] }, mutable: { scars: ['미래의 상처'] } }] });
-  await store.saveArtifact({ workId, chapterNumber: 1, title: '문', prose: '윤이 닫힌 문 앞에 멈췄다.\n\n윤이 문 안으로 말을 건넸다.' });
+  await store.saveArtifact({ workId, chapterNumber: 1, title: '문', prose });
   await store.saveStoryState({ workId, chapterNumber: 1, scars: [], location: '문 밖' });
-  await store.saveStoryProfile(workId, { status: 'active', revision: 1, narrativeContract: { readerPromise: '인물의 선택이 관계를 바꾼다.' } });
+  await store.saveStoryProfile(workId, { status: 'active', revision: 1, ...(language ? { language } : {}), narrativeContract: { readerPromise: '인물의 선택이 관계를 바꾼다.' } });
   return store;
 }
 
