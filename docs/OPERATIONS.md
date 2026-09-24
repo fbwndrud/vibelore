@@ -58,7 +58,7 @@ flowchart TD
 |---|---|---|
 | `needs_model` | 호스트 모델 작업 대기 | request별 답을 만들어 `lore_resume` |
 | `CRITIC_INCOMPLETE` | 필수 검토 실패·불완전 응답·시간 초과 | 보존된 원고와 검토 기록을 보여주고 `lore_decide`로 승인·수정 요청·보류 |
-| `clean_fail` | 최대 3회 수정 후 필수 gate 실패 | inspect로 위반 확인, 방향을 좁혀 새 실행 |
+| `clean_fail` | 최대 3회 수정 또는 검사 예산 3회 후 필수 gate 실패 | inspect로 위반 확인, 같은 원고 재검사는 `retryValidation=true`, 새 초고는 좁힌 `instruction`으로 `lore_write` |
 | 활성 ArcPlan 없음 | 본문보다 아크가 먼저 필요 | `lore_arc_plan(review)` 후 승인 |
 | profile/spine/skill 없음 | 작품 설계 단계 누락 | 해당 status 확인 후 누락 단계 생성 |
 | stale HEAD 또는 identity | 실행 중 정본·계획 변경 | 기존 결과 폐기, 최신 상태에서 재시작 |
@@ -104,10 +104,23 @@ flowchart LR
 
 `clean_fail`은 저장 실패가 아니라 품질 gate가 정식 커밋을 막은 상태입니다.
 
+`clean_fail` 원고는 workflow에 보존됩니다. 인자 없이 `lore_write`를 다시 부르면 모델을
+호출하지 않고 같은 `clean_fail`을 돌려줍니다.
+
 1. `lore_workflow_inspect`로 hard violation과 점수를 확인합니다.
 2. 분량, 정본 충돌, 아크 의무 누락 중 원인을 분리합니다.
-3. 사용자 의도가 바뀌지 않았다면 좁은 `instruction`으로 재시도합니다.
-4. 아크 자체가 문제라면 원고를 억지로 고치지 말고 아크 계획을 다시 검토합니다.
+3. 원고는 그대로 두고 검사만 다시 받으려면 `lore_write(retryValidation=true)`를 씁니다. 새 검사
+   epoch와 3회 예산으로 같은 원고를 검사합니다. 계획·계약이 바뀌어 원고가 낡았다면
+   `STALE_WORK_CONTRACT`와 함께 새 초고 안내를 돌려줍니다.
+4. 사용자 의도가 바뀌지 않았다면 좁은 `instruction`으로 `lore_write`를 부릅니다. 새
+   `instruction`이 있으면 같은 화를 새 workflow로 처음부터 다시 씁니다.
+5. 아크 자체가 문제라면 원고를 억지로 고치지 말고 아크 계획을 다시 검토합니다. 계획을 고친 뒤
+   `lore_write`를 부르면 현재 계약으로 같은 화를 새로 씁니다. `lore_sync` 뒤
+   (`WORKING_TREE_DRIFT`)도 같습니다.
+
+새 시도는 이전 workflow를 지우지 않습니다. 이전 workflow는 `clean_fail`로 남고 이벤트 기록에
+`workflow_superseded`가 붙습니다. 새 workflow의 `supersedes`가 이전 ID를 가리키므로
+`lore_workflow_history(workflowId=...)`로 두 시도를 모두 감사할 수 있습니다.
 
 ## 앞 화 수정
 

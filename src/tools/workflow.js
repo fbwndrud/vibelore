@@ -154,9 +154,30 @@ export function dramaticQualityViolations(editorial, chapter) {
   });
 }
 
-async function ensureWorkflow(store, workId, chapter, autonomy, instruction, modelProfile = null) {
+// A clean_fail draft is kept for retryValidation, but it must not become a
+// dead end. A new instruction, a draft invalidated by a contract or working-tree
+// change, or a validation identity that no longer matches the live one all mean
+// the preserved draft cannot pass as it is, so lore_write starts a fresh attempt.
+// The old workflow stays on disk with its events for the audit trail.
+const REDRAFT_FAILURE_CODES = new Set(['STALE_WORK_CONTRACT', 'WORKING_TREE_DRIFT']);
+async function cleanFailNeedsRedraft({ store, workId, workflow, chapter, instruction, retryValidation }) {
+  if (!workflow || workflow.chapter !== chapter || workflow.stage !== 'clean_fail' || retryValidation) return null;
+  const nextInstruction = String(instruction ?? '').trim();
+  if (nextInstruction && nextInstruction !== String(workflow.instruction ?? '').trim()) return 'new_instruction';
+  if (REDRAFT_FAILURE_CODES.has(workflow.failure?.code)) return workflow.failure.code;
+  const session = await loadValidationSession(store, workId, `workflow-${workflow.workflowId}`);
+  if (!session?.identity) return null;
+  try {
+    const live = await currentValidationContext({ store, workId, chapter });
+    return sameIdentity(session.identity, live.identity) ? null : 'STALE_WORK_CONTRACT';
+  } catch {
+    return null;
+  }
+}
+
+async function ensureWorkflow(store, workId, chapter, autonomy, instruction, modelProfile = null, redraft = null) {
   const current = await store.loadWorkflow(workId);
-  if (current && current.chapter === chapter && !['completed', 'rejected'].includes(current.stage)) {
+  if (current && current.chapter === chapter && !['completed', 'rejected'].includes(current.stage) && !redraft) {
     if (modelProfile && JSON.stringify(current.modelProfile ?? null) !== JSON.stringify(modelProfile)) {
       current.modelProfile = modelProfile;
       await store.saveWorkflow(workId, current);
@@ -169,10 +190,17 @@ async function ensureWorkflow(store, workId, chapter, autonomy, instruction, mod
     autonomy, instruction: String(instruction ?? ''), attempt: 0,
     auditLevel: 'standard', createdAt: now(), updatedAt: now(),
     ...(modelProfile ? { modelProfile } : {}),
+    ...(redraft ? { supersedes: current.workflowId } : {}),
   };
+  if (redraft) {
+    await store.appendWorkflowEvent(workId, current.workflowId, {
+      at: workflow.createdAt, event: 'workflow_superseded', chapter, by: workflow.workflowId, reason: redraft,
+    });
+  }
   await store.saveWorkflow(workId, workflow);
   await store.appendWorkflowEvent(workId, workflow.workflowId, {
     at: workflow.createdAt, event: 'workflow_started', chapter, autonomy, ...(modelProfile ? { modelProfile } : {}),
+    ...(redraft ? { supersedes: current.workflowId, reason: redraft } : {}),
   });
   return workflow;
 }
@@ -199,7 +227,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const drift = await detectWorkingTreeDrift({ store, sourceHead: publication.value.head });
     if (drift.status !== 'clean') {
       const existing = await store.loadWorkflow(workId);
-      if (existing) {
+      if (existing && !['completed', 'rejected', 'clean_fail'].includes(existing.stage)) {
         const scope = `workflow-${existing.workflowId}`;
         const validation = await loadValidationSession(store, workId, scope);
         if (validation) await invalidateValidationSession(store, workId, scope, validation, 'WORKING_TREE_DRIFT');
@@ -224,13 +252,14 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   const blocked = prerequisites({ foundation, profile, storySpine, writerSkill, arcPlan, arcEpisode });
   if (blocked) return { status: 'needs_setup', chapter, ...blocked };
 
-  const workflow = await ensureWorkflow(store, workId, chapter, autonomy, instruction, requestedModelProfile);
+  const redraft = await cleanFailNeedsRedraft({ store, workId, workflow: await store.loadWorkflow(workId), chapter, instruction, retryValidation });
+  const workflow = await ensureWorkflow(store, workId, chapter, autonomy, instruction, requestedModelProfile, redraft);
   providers = withModelProfile(baseProviders, workflow.modelProfile ?? null);
   const resolution = await resolveWorkLanguage({ store, workId, requested: language });
   const workContract = resolution.contract;
   const kit = promptKit({ contract: workContract });
   foundation = executionFoundationSnapshot(foundation, workContract);
-  if (workflow.stage === 'clean_fail' && !retryValidation) return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, prose: workflow.draftProse, failure: workflow.failure, nextAction: 'retryValidation=true starts a new validation epoch for this preserved draft.' };
+  if (workflow.stage === 'clean_fail' && !retryValidation) return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, prose: workflow.draftProse, failure: workflow.failure, nextAction: 'retryValidation=true starts a new validation epoch for this preserved draft; lore_write with a new instruction drafts the chapter anew.' };
   if (retryValidation) {
     delete workflow.userApproval;
     delete workflow.approvalId;
@@ -247,7 +276,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     if (!sameIdentity(priorValidation.identity, live.identity) && !(retryValidation && exceptionOnlyRebind(priorValidation, live))) {
       await invalidateValidationSession(store, workId, `workflow-${workflow.workflowId}`, priorValidation);
       await transition(store, workflow, 'clean_fail', { failure: { code: 'STALE_WORK_CONTRACT' } });
-      return { status: 'clean_fail', code: 'STALE_WORK_CONTRACT', workflowId: workflow.workflowId, prose: workflow.draftProse };
+      return { status: 'clean_fail', code: 'STALE_WORK_CONTRACT', workflowId: workflow.workflowId, prose: workflow.draftProse,
+        nextAction: 'The preserved draft no longer matches the current plans or contract, so retryValidation cannot pass it. Call lore_write without retryValidation to draft the chapter anew.' };
     }
   }
   const runtime = await getRuntimeIdentity();
