@@ -22,7 +22,7 @@ export async function shouldUseContractCheck({ store, workId, chapter, forceCont
 
 export async function runContractCheck({ store, workId, chapter, prose, title, summary, castManifestRaw = '', providers,
   includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = true,
-  workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, targetChapters }) {
+  workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, targetChapters, metadataCompanion = null }) {
   const scope = validationScope ?? (workflowId ? `workflow-${workflowId}` : `manual-${chapter}`);
   let state = await loadValidationSession(store, workId, scope);
   const invocation = providers?.validationContext?.runId ?? null;
@@ -201,17 +201,30 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
         message: cited.length ? cited.map(e => `"${e.quote}": ${e.reason}`).join(' / ') : `${invariantId} failed the semantic review.` });
     }
     if (!state.prepared) {
+      // Title and summary both read only the checked prose, so they share one
+      // host round trip. A relay that throws on a miss must not keep the
+      // summary from being queued behind a pending title.
+      const queued = async (ask) => { try { return await ask(); } catch (error) { if (error?.name === 'PendingModelWork') return null; throw error; } };
       let preparedTitle = input.title ?? context.plans.episode?.title;
+      let titleResponse = null;
       if (!preparedTitle) {
-        const response = await wrapped.complete({ model: MODEL, step: 'chapter-title', jsonMode: true,
-          messages: [{ role: 'system', content: workContract.promptFamily === 'ko' ? '본문의 짧은 제목을 작품 언어로 만든다. JSON {"title":"..."}만 출력한다.' : 'Give this chapter a short title in the target work language. Return JSON {"title":"..."}.' }, { role: 'user', content: `Language: ${workContract.language}\n${input.prose}` }] });
-        if (pending(wrapped)) return preview();
-        preparedTitle = JSON.parse(response.text).title;
+        titleResponse = await queued(() => wrapped.complete({ model: MODEL, step: 'chapter-title', jsonMode: true,
+          messages: [{ role: 'system', content: workContract.promptFamily === 'ko' ? '본문의 짧은 제목을 작품 언어로 만든다. JSON {"title":"..."}만 출력한다.' : 'Give this chapter a short title in the target work language. Return JSON {"title":"..."}.' }, { role: 'user', content: `Language: ${workContract.language}\n${input.prose}` }] }));
       }
       let preparedSummary = input.summary;
+      let generated = null;
       if (preparedSummary === undefined || preparedSummary === null) {
-        const generated = await runChapterSummary({ prose: input.prose, chapterNumber: chapter, writerModel: MODEL, summaryModel: MODEL, providers: wrapped, workContract, language: workContract.language, foundation });
-        if (pending(wrapped)) return preview();
+        generated = await queued(() => runChapterSummary({ prose: input.prose, chapterNumber: chapter, writerModel: MODEL, summaryModel: MODEL, providers: wrapped, workContract, language: workContract.language, foundation }));
+      }
+      const metadataPending = pending(wrapped);
+      // A caller may queue requests that read the same final prose (the
+      // workflow's narrative boundary) into this round trip. They go through
+      // the raw provider: they are not judged validation answers, and the
+      // caller asks them again for their real result once the check passes.
+      if (metadataCompanion) await queued(() => metadataCompanion(providers));
+      if (metadataPending) return preview();
+      if (!preparedTitle) preparedTitle = JSON.parse(titleResponse.text).title;
+      if (generated) {
         preparedSummary = { text: generated.summary, plotBeat: generated.plotBeat, sceneTags: generated.sceneTags, povCharacter: generated.povCharacter };
         preparedSummary = Object.fromEntries(Object.entries(preparedSummary).filter(([,v]) => v !== undefined));
       }

@@ -395,6 +395,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   let revisionPreservation = workflow.revisionPreservation ?? null;
   const revisionCandidates = await store.loadRevisionCandidates(workId, workflow.workflowId) ?? [];
   const requireInfluenceObservation = storySpine?.status === 'active' && (foundation.characters?.length ?? 0) >= 2;
+  const judgeBoundary = (prose, relay = providers) => runNarrativeBoundary({
+    arcPlan, episodePlan, chapter, prose, providers: relay, kit, workContract, language: workContract.language,
+  });
   let attempt = 1;
   for (; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const normalizedProse = normalizeWebnovelLayout(
@@ -411,6 +414,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     // Extraction, profile check and reviews all carry this prose verbatim; the
     // relay presents it as one shared prompt prefix for the whole batch.
     providers.shareContext?.({ id: 'chapter-prose', label: `${chapter}화 본문`, text: current.prose });
+    const checkedProse = current.prose;
     check = await runCheck({
       store, workId, chapter, prose: current.prose,
       castManifestRaw: current.castManifestRaw, providers,
@@ -418,6 +422,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       includeSemanticContinuity: true,
       includeProfileCheck: true,
       requireInfluenceObservation, forceContract: true, issueReceipt: true, workflowId: workflow.workflowId, retryValidation: retryValidation && attempt === 1,
+      // The boundary judge reads the same checked prose as the title and
+      // summary, so it rides in their round trip instead of a pass of its own.
+      metadataCompanion: (relay) => judgeBoundary(checkedProse, relay),
     });
 
     // While the mandatory check is still collecting host answers, the reviews
@@ -602,11 +609,11 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     });
   }
 
-  // Boundary and summary only need the final prose: one round trip for both.
+  // The check already queued this request beside the title and summary of the
+  // same final prose, so on the normal path it is answered here without a
+  // round trip of its own.
   providers.shareContext?.({ id: 'chapter-prose', label: `${chapter}화 본문`, text: current.prose });
-  const boundary = await runNarrativeBoundary({
-    arcPlan, episodePlan, chapter, prose: current.prose, providers, kit, workContract, language: workContract.language,
-  });
+  const boundary = await judgeBoundary(current.prose);
   if (pending(providers)) {
     await transition(store, workflow, 'awaiting_model', { operation: 'narrative_boundary', attempt });
     return { preview: true, workflowId: workflow.workflowId, chapter };

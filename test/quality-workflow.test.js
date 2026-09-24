@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { runWriteWorkflow, runWorkflowDecide, runWorkflowHistory, proseHash } from '../src/tools/workflow.js';
 import { qualityStore, outputs, workId } from './fixtures/quality-workflow.js';
+import { layoutRelayRequests } from '../src/core/relay-prompt-layout.js';
 
 describe('first-draft quality through the writing workflow', () => {
   it('does not publish a resumed legacy ready draft without a completed review', async () => {
@@ -96,28 +97,40 @@ describe('first-draft quality through the writing workflow', () => {
 });
 
 describe('host round trips are batched by dependency', () => {
-  async function replayWithRelay(store, autonomy = 'auto') {
+  async function replayWithRelay(store, autonomy = 'auto', { repeatEachPass = false } = {}) {
     const { createPreflightRelay } = await import('../src/provider/host-relay.js');
     const answers = {};
     const passes = [];
+    const ids = [];
+    const layouts = [];
     let result;
     for (let pass = 0; pass < 20; pass += 1) {
-      const relay = createPreflightRelay(answers);
+      let relay = createPreflightRelay(answers);
       result = await runWriteWorkflow({ store, workId, autonomy, providers: relay });
+      if (repeatEachPass && relay.pending.length) {
+        // A host that calls lore_resume again before answering must see the
+        // exact same questions, not a fresh set of request IDs.
+        const first = relay.pending.map((req) => req.id);
+        relay = createPreflightRelay(answers);
+        result = await runWriteWorkflow({ store, workId, autonomy, providers: relay });
+        assert.deepEqual(relay.pending.map((req) => req.id), first, `pass ${pass} is idempotent`);
+      }
       const steps = relay.pending.map((req) => req.step);
       if (!steps.length) break;
       passes.push(steps);
+      ids.push(relay.pending.map((req) => req.id));
+      layouts.push(layoutRelayRequests(relay.pending, relay.sharedContexts));
       for (const req of relay.pending) {
         const contract = contractResponse({ step: req.step, messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }] });
         answers[req.id] = contract?.text ?? outputs[req.step] ?? '{}';
       }
     }
-    return { result, passes };
+    return { result, passes, ids, layouts };
   }
 
   it('collects every independent review in one pass and defers dependent checks', async () => {
     const store = await qualityStore();
-    const { result, passes } = await replayWithRelay(store);
+    const { result, passes, layouts } = await replayWithRelay(store);
     assert.equal(result.status, 'completed', JSON.stringify(result));
     // The draft prompt takes its plan from the approved EpisodePlan packet, so
     // no separate engine chapter-plan round trip precedes it.
@@ -131,9 +144,36 @@ describe('host round trips are batched by dependency', () => {
     assert.ok(!batch.includes('continuity-check'), 'continuity-check waits for the extracted delta');
     assert.ok(!batch.includes('continuity-extract-repair'), 'no repair request on a placeholder delta');
     assert.deepEqual(passes[2], ['continuity-check']);
-    // Title, summary and their language proof come from the checked artifact,
-    // then the boundary judge reads the final prose.
-    assert.deepEqual(passes.slice(3), [['chapter-title'], ['chapter-summary'], ['language-contract'], ['narrative-boundary']]);
+    // Title, summary and the boundary judge read the same checked prose in one
+    // round trip; the language proof checks the title and summary, so it follows.
+    assert.deepEqual([...passes[3]].sort(), ['chapter-summary', 'chapter-title', 'narrative-boundary']);
+    assert.deepEqual(passes[4], ['language-contract']);
+    assert.equal(passes.length, 5, JSON.stringify(passes));
+    // The three prose readers share one cacheable prose prefix, warmed once.
+    const metadata = layouts[3];
+    assert.equal(new Set(metadata.map((req) => req.promptCache?.sharedPrefixId)).size, 1);
+    assert.ok(metadata.every((req) => req.promptCache?.groupSize === 3), JSON.stringify(metadata.map((req) => req.promptCache)));
+    assert.equal(metadata.filter((req) => req.promptCache.warmFirst).length, 1);
+  });
+
+  it('never re-asks an answered request and repeats identical IDs on an unanswered resume', async () => {
+    const store = await qualityStore();
+    const { result, passes, ids } = await replayWithRelay(store, 'auto', { repeatEachPass: true });
+    assert.equal(result.status, 'completed', JSON.stringify(result));
+    assert.equal(passes.length, 5, JSON.stringify(passes));
+    const all = ids.flat();
+    assert.equal(new Set(all).size, all.length, 'no request ID is asked in two passes');
+  });
+
+  it('keeps summary and boundary together when the plan already names the chapter', async () => {
+    const store = await qualityStore();
+    const plan = await store.loadEpisodePlan(workId, 1);
+    await store.saveEpisodePlan(workId, { ...plan, title: '첫 문' });
+    const { result, passes } = await replayWithRelay(store);
+    assert.equal(result.status, 'completed', JSON.stringify(result));
+    assert.deepEqual([...passes[3]].sort(), ['chapter-summary', 'narrative-boundary']);
+    assert.deepEqual(passes[4], ['language-contract']);
+    assert.equal(passes.length, 5, JSON.stringify(passes));
   });
 
   it('records one quality policy evaluation per attempt across resumed passes', async () => {

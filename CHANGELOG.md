@@ -49,8 +49,12 @@ through the same contract validation gate as other languages.
   `scanSentenceStats`, `scanEntityMentions`, and, where they apply,
   `scanWorldGroupConflict` and `scanFanficLeak`. Soft and advisory findings
   still never block a commit.
-- **More host round trips.** A chapter now takes about 7 host model round
-  trips instead of about 4.
+- **One more host round trip.** A chapter now takes 5 host model round trips
+  instead of 4: draft; extraction with the independent reviews; the semantic
+  continuity check; the chapter title, summary and narrative boundary together
+  (they read the same final prose); then the language-compliance proof. The
+  extra pass is the language-compliance proof, which checks the generated
+  title and summary and so has to come after them.
 
 ## 0.3.10 — 2026-09-24
 

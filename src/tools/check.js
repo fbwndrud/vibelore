@@ -40,13 +40,13 @@ function safely(label, fn) {
 
 const SEVERITY_RANK = { hard: 0, soft: 1, info: 2 };
 
-export async function runCheck({ store, workId, chapter, prose, title, summary, castManifestRaw, providers, targetChapters, dialogueBreakMode = 'strict', includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = false, forceContract = false, workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope }) {
+export async function runCheck({ store, workId, chapter, prose, title, summary, castManifestRaw, providers, targetChapters, dialogueBreakMode = 'strict', includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = false, forceContract = false, workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, metadataCompanion = null }) {
   const gated = await shouldUseContractCheck({ store, workId, chapter, forceContract });
   if (gated.gated) {
     return runContractCheck({
       store, workId, chapter, prose, title, summary, castManifestRaw, providers,
       includeSemanticContinuity, includeProfileCheck, requireInfluenceObservation, issueReceipt,
-      workflowId, retryValidation, dialogueBreakMode, allowWorkingTreeDrift, validationScope, targetChapters,
+      workflowId, retryValidation, dialogueBreakMode, allowWorkingTreeDrift, validationScope, targetChapters, metadataCompanion,
     });
   }
 
