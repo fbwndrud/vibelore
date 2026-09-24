@@ -154,30 +154,53 @@ export function dramaticQualityViolations(editorial, chapter) {
   });
 }
 
-// A clean_fail draft is kept for retryValidation, but it must not become a
-// dead end. A new instruction, a draft invalidated by a contract or working-tree
-// change, or a validation identity that no longer matches the live one all mean
-// the preserved draft cannot pass as it is, so lore_write starts a fresh attempt.
-// The old workflow stays on disk with its events for the audit trail.
-const REDRAFT_FAILURE_CODES = new Set(['STALE_WORK_CONTRACT', 'WORKING_TREE_DRIFT']);
-async function cleanFailNeedsRedraft({ store, workId, workflow, chapter, instruction, retryValidation }) {
-  if (!workflow || workflow.chapter !== chapter || workflow.stage !== 'clean_fail' || retryValidation) return null;
+// A kept draft (clean_fail, or parked for guided approval / commit) must not
+// become a dead end after its validation identity went stale. When only canon,
+// plans or the contract changed (an arc/episode plan edit, STALE_WORK_CONTRACT,
+// or a hand edit published through lore_sync), the prose is still the writer's
+// answer to the same instruction: a superseding workflow inherits it and runs
+// validation again under the live contract, with a new receipt and budget.
+// Only a new instruction, or a kept draft that no longer exists, drafts anew.
+// The old workflow stays on disk as clean_fail with its events for the audit.
+const STALE_FAILURE_CODES = new Set(['STALE_WORK_CONTRACT', 'WORKING_TREE_DRIFT']);
+const PARKED_STAGES = new Set(['clean_fail', 'awaiting_draft_approval', 'ready_to_commit']);
+async function keptDraftSupersession({ store, workId, workflow, chapter, instruction, retryValidation }) {
+  if (!workflow || workflow.chapter !== chapter || !PARKED_STAGES.has(workflow.stage) || retryValidation) return null;
   const nextInstruction = String(instruction ?? '').trim();
-  if (nextInstruction && nextInstruction !== String(workflow.instruction ?? '').trim()) return 'new_instruction';
-  if (REDRAFT_FAILURE_CODES.has(workflow.failure?.code)) return workflow.failure.code;
-  const session = await loadValidationSession(store, workId, `workflow-${workflow.workflowId}`);
-  if (!session?.identity) return null;
-  try {
-    const live = await currentValidationContext({ store, workId, chapter });
-    return sameIdentity(session.identity, live.identity) ? null : 'STALE_WORK_CONTRACT';
-  } catch {
-    return null;
+  const newInstruction = Boolean(nextInstruction) && nextInstruction !== String(workflow.instruction ?? '').trim();
+  let reason = workflow.stage === 'clean_fail' && STALE_FAILURE_CODES.has(workflow.failure?.code) ? workflow.failure.code : null;
+  if (!reason) {
+    const session = await loadValidationSession(store, workId, `workflow-${workflow.workflowId}`);
+    if (session?.identity) {
+      try {
+        const live = await currentValidationContext({ store, workId, chapter });
+        if (!sameIdentity(session.identity, live.identity)) reason = 'STALE_WORK_CONTRACT';
+      } catch { /* an unreadable live contract is reported by the normal path */ }
+    }
   }
+  if (newInstruction && (workflow.stage === 'clean_fail' || reason)) return { mode: 'redraft', reason: 'new_instruction' };
+  if (!reason) return null;
+  return workflow.draftProse ? { mode: 'revalidate', reason } : { mode: 'redraft', reason };
 }
 
-async function ensureWorkflow(store, workId, chapter, autonomy, instruction, modelProfile = null, redraft = null) {
+async function supersede(store, workId, current, supersession, successorId) {
+  const scope = `workflow-${current.workflowId}`;
+  const validation = await loadValidationSession(store, workId, scope);
+  if (validation && !validation.stale) await invalidateValidationSession(store, workId, scope, validation, supersession.reason === 'new_instruction' ? 'SUPERSEDED' : supersession.reason);
+  if (current.stage !== 'clean_fail') {
+    await transition(store, current, 'clean_fail', { failure: { code: supersession.reason === 'new_instruction' ? 'SUPERSEDED' : supersession.reason } });
+  }
+  current.supersededBy = successorId;
+  await store.saveWorkflow(workId, current);
+  await store.appendWorkflowEvent(workId, current.workflowId, {
+    at: now(), event: 'workflow_superseded', chapter: current.chapter, by: successorId,
+    reason: supersession.reason, mode: supersession.mode,
+  });
+}
+
+async function ensureWorkflow(store, workId, chapter, autonomy, instruction, modelProfile = null, supersession = null) {
   const current = await store.loadWorkflow(workId);
-  if (current && current.chapter === chapter && !['completed', 'rejected'].includes(current.stage) && !redraft) {
+  if (current && current.chapter === chapter && !['completed', 'rejected'].includes(current.stage) && !supersession) {
     if (modelProfile && JSON.stringify(current.modelProfile ?? null) !== JSON.stringify(modelProfile)) {
       current.modelProfile = modelProfile;
       await store.saveWorkflow(workId, current);
@@ -185,22 +208,24 @@ async function ensureWorkflow(store, workId, chapter, autonomy, instruction, mod
     }
     return current;
   }
+  const revalidate = supersession?.mode === 'revalidate';
+  const inheritedDraft = revalidate ? { workflowId: current.workflowId, proseHash: proseHash(current.draftProse) } : null;
+  const profile = modelProfile ?? (supersession ? current.modelProfile ?? null : null);
   const workflow = {
     workflowId: id('wf'), workId, chapter, stage: 'started', operation: null,
-    autonomy, instruction: String(instruction ?? ''), attempt: 0,
+    autonomy, instruction: revalidate ? String(current.instruction ?? '') : String(instruction ?? ''), attempt: 0,
     auditLevel: 'standard', createdAt: now(), updatedAt: now(),
-    ...(modelProfile ? { modelProfile } : {}),
-    ...(redraft ? { supersedes: current.workflowId } : {}),
+    ...(profile ? { modelProfile: profile } : {}),
+    ...(supersession ? { supersedes: current.workflowId } : {}),
+    ...(revalidate ? { inheritedDraft, draftProse: current.draftProse, castManifestRaw: current.castManifestRaw } : {}),
   };
-  if (redraft) {
-    await store.appendWorkflowEvent(workId, current.workflowId, {
-      at: workflow.createdAt, event: 'workflow_superseded', chapter, by: workflow.workflowId, reason: redraft,
-    });
-  }
+  // The superseded workflow is saved first: saveWorkflow also moves `current`.
+  if (supersession) await supersede(store, workId, current, supersession, workflow.workflowId);
   await store.saveWorkflow(workId, workflow);
   await store.appendWorkflowEvent(workId, workflow.workflowId, {
-    at: workflow.createdAt, event: 'workflow_started', chapter, autonomy, ...(modelProfile ? { modelProfile } : {}),
-    ...(redraft ? { supersedes: current.workflowId, reason: redraft } : {}),
+    at: workflow.createdAt, event: 'workflow_started', chapter, autonomy, ...(profile ? { modelProfile: profile } : {}),
+    ...(supersession ? { supersedes: current.workflowId, reason: supersession.reason, mode: supersession.mode } : {}),
+    ...(inheritedDraft ? { inheritedDraft } : {}),
   });
   return workflow;
 }
@@ -252,14 +277,14 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   const blocked = prerequisites({ foundation, profile, storySpine, writerSkill, arcPlan, arcEpisode });
   if (blocked) return { status: 'needs_setup', chapter, ...blocked };
 
-  const redraft = await cleanFailNeedsRedraft({ store, workId, workflow: await store.loadWorkflow(workId), chapter, instruction, retryValidation });
-  const workflow = await ensureWorkflow(store, workId, chapter, autonomy, instruction, requestedModelProfile, redraft);
+  const supersession = await keptDraftSupersession({ store, workId, workflow: await store.loadWorkflow(workId), chapter, instruction, retryValidation });
+  const workflow = await ensureWorkflow(store, workId, chapter, autonomy, instruction, requestedModelProfile, supersession);
   providers = withModelProfile(baseProviders, workflow.modelProfile ?? null);
   const resolution = await resolveWorkLanguage({ store, workId, requested: language });
   const workContract = resolution.contract;
   const kit = promptKit({ contract: workContract });
   foundation = executionFoundationSnapshot(foundation, workContract);
-  if (workflow.stage === 'clean_fail' && !retryValidation) return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, prose: workflow.draftProse, failure: workflow.failure, nextAction: 'retryValidation=true starts a new validation epoch for this preserved draft; lore_write with a new instruction drafts the chapter anew.' };
+  if (workflow.stage === 'clean_fail' && !retryValidation) return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, prose: workflow.draftProse, failure: workflow.failure, nextAction: 'retryValidation=true starts a new validation epoch for this preserved draft; lore_write with a new instruction drafts the chapter anew. After a plan, contract or lore_sync change, a bare lore_write re-validates this draft under the current contract.' };
   if (retryValidation) {
     delete workflow.userApproval;
     delete workflow.approvalId;
@@ -277,7 +302,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       await invalidateValidationSession(store, workId, `workflow-${workflow.workflowId}`, priorValidation);
       await transition(store, workflow, 'clean_fail', { failure: { code: 'STALE_WORK_CONTRACT' } });
       return { status: 'clean_fail', code: 'STALE_WORK_CONTRACT', workflowId: workflow.workflowId, prose: workflow.draftProse,
-        nextAction: 'The preserved draft no longer matches the current plans or contract, so retryValidation cannot pass it. Call lore_write without retryValidation to draft the chapter anew.' };
+        nextAction: 'The preserved draft was checked under older plans or contract, so retryValidation cannot pass it. Call lore_write without retryValidation to re-validate the same prose under the current contract, or with a new instruction to draft the chapter anew.' };
     }
   }
   const runtime = await getRuntimeIdentity();
@@ -814,5 +839,6 @@ export async function runWorkflowInspect({ store, workId, workflowId }) {
     });
     if (run) safe.pendingRunId = run.id;
   }
-  return { found: true, workflow: safe, receipt };
+  // The kept or parked draft is what the user decides on; inspect shows it.
+  return { found: true, workflow: safe, receipt, ...(draftProse ? { draftProse } : {}) };
 }
