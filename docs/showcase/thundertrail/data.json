@@ -15,7 +15,7 @@
 "scene": "s4",
 "reason": "grok preflight blocked 3x: direction itinerary (night/dawn side path/outpost) conflicts with excerpt ch-3-p-22..27",
 "blockedWorkflowId": "wt-0d0cc5c6-ca67-4274-84b0-51f343d40aef",
-"archivedTo": "/Users/lyoojk/vibelore/works/thundertrail/production-workspaces/scene-ep03/.vibelore/webtoon/workflows-blocked/",
+"archivedTo": "works/thundertrail/production-workspaces/scene-ep03/.vibelore/webtoon/workflows-blocked/",
 "old": "Night rock passage blocked by chains, then dawn side path and a mountain outpost; keep light and terrain coherent within the scene.",
 "new": "Locations follow only the selected source units: a rock passage blocked by rusted chains, and a side ledge or a mountain outpost only when the excerpt itself reaches them; never advance time of day or place beyond the excerpt; keep light and terrain coherent within the scene.",
 "appliesFrom": "s4"

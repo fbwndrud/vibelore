@@ -396,7 +396,7 @@ const TOOLS = [
   },
   {
     name: 'lore_webtoon_scene',
-    description: '명시적으로 선택한 장면 통합 제작. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토. 컷 배치와 카메라는 이미지 모델에 맡긴다. 기존 승인 API 선택과 인물·배경 참조를 재사용하며 기존 컷별 workflow는 변경하지 않는다. needs_model은 lore_resume으로 답하고 needs_scene_image일 때만 호스트가 API를 실행한다.',
+    description: '명시적으로 선택한 장면 통합 제작. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토. 컷 배치와 카메라는 이미지 모델에 맡긴다. 기존 승인 API 선택과 인물·배경 참조를 재사용하며, 선택이 없는 작품은 start에서 needs_image_choice로 과금 선택을 사용자에게 확인한다. 기존 컷별 workflow는 변경하지 않는다. needs_model은 lore_resume으로 답하고 needs_scene_image일 때만 호스트가 API를 실행한다.',
     inputSchema: { type: 'object', properties: { ...projectArg, workflowId: { type: 'string' }, revision: { type: 'integer' },
       action: { type: 'string', enum: ['start', 'revise', 'retry'] }, sourceChapters: { type: 'array', items: { type: 'integer' } },
       panelCount: { anyOf: [{ type: 'integer', minimum: SCENE_PANEL_LIMITS.min, maximum: SCENE_PANEL_LIMITS.max }, { type: 'string', enum: ['auto'] }], description: `사용자가 선택한 정확한 칸 수(${SCENE_PANEL_LIMITS.min}~${SCENE_PANEL_LIMITS.max}) 또는 "auto". auto는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 다시 고른다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성 경고가 warnings에 실린다. start에서 누락하면 needs_interview. 칸 크기와 배치는 AI가 선택.` },
@@ -406,6 +406,8 @@ const TOOLS = [
       references: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'path', 'hash', 'description'] } },
       autoRevisions: { type: 'integer', minimum: 0, maximum: SCENE_AUTO_REVISIONS.max, description: `start 전용. 생성 전 검증 또는 이미지 검토가 불합격이면 관측 결함을 feedback으로 자동 재설계하는 횟수(기본 ${SCENE_AUTO_REVISIONS.default}). 재설계마다 새 이미지 요청이 나가며 실패한 시도는 attempts에 남는다. 0이면 기존처럼 scene_needs_revision에서 멈춘다.` },
       feedback: { type: 'string' }, asset: { type: 'object', properties: { path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object' } }, required: ['path', 'inputHash', 'provenance'] },
+      imageModel: { type: 'string', enum: ['gpt-image-2', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'], description: '확정된 API 선택이 없는 작품의 start에서 제안할 OpenAI API 모델. 기본 2.5 Sunburst.' },
+      confirmImageChoice: { type: 'string', description: 'needs_image_choice로 받은 imageChoice.id. 사용자의 원답을 feedback에 넣어 같은 start를 다시 호출하면 이 작품의 API 선택으로 확정한다.' },
     }, required: ['workId'] },
   },
   {

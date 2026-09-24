@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { WebtoonStore, resolveWebtoonSource, readJson } from '../store/webtoon-store.js';
+import { readFile, rm } from 'node:fs/promises';
+import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
 import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.js';
 import { importWebtoonImages } from '../core/webtoon-board.js';
 import { imagePolicyFor, imageSelectionConfirmed, validateImageProvenance } from '../core/webtoon-images.js';
@@ -158,6 +158,33 @@ async function loadPreviousScene(repo, args) {
   return previous;
 }
 
+/** A work without a confirmed API selection proposes one here and confirms it only with the user's own answer, as the panel path does. */
+async function confirmedSceneSelection(repo, args) {
+  const saved = await readJson(repo.path('image-selection.json'));
+  if (saved?.policy?.execution === 'openai-api') {
+    const policy = imagePolicyFor(saved.policy.targetModel, 'openai-api');
+    if (imageSelectionConfirmed({ workId: args.workId, imagePolicy: policy, imageSelection: saved.selection })) return { policy, saved };
+  }
+  const policy = imagePolicyFor(args.imageModel ?? 'gpt-image-2.5-sunburst', 'openai-api');
+  const pendingPath = repo.path('image-choice-pending.json');
+  const pending = await readJson(pendingPath);
+  if (args.confirmImageChoice === undefined) {
+    const choice = pending?.workId === args.workId && digest(pending.policy) === digest(policy) ? pending
+      : { id: `wic-${randomUUID()}`, workId: args.workId, policy, remember: 'this-work', proposedAt: new Date().toISOString(),
+        notice: '별도 OpenAI API 과금. 원작·참조 이미지를 OpenAI에 전송. API 키·계정 접근 확인 필요. 모델·경로는 이 작품의 다음 장면·회차에도 유지되며 자동 대체·무제한 재시도는 허용하지 않습니다.' };
+    if (choice !== pending) await atomicWrite(pendingPath, JSON.stringify(choice, null, 2));
+    return { status: 'needs_image_choice', lane: 'webtoon', productionMode: SCENE_PRODUCTION_MODE, imageChoice: choice, jobs: [],
+      nextAction: '모델·실행 경로·비용을 사용자에게 보여주고 선택하면 같은 start 인자에 confirmImageChoice ID와 원답 feedback을 넣어 다시 호출하세요.' };
+  }
+  if (!pending || pending.id !== args.confirmImageChoice || pending.workId !== args.workId || digest(pending.policy) !== digest(policy)) throw new Error('STALE_IMAGE_CHOICE');
+  if (!nonempty(args.feedback)) throw new Error('IMAGE_CHOICE_USER_ANSWER_REQUIRED');
+  const confirmed = { workId: args.workId, policy, selection: { id: pending.id, workId: args.workId, policyHash: digest(policy), confirmedAt: new Date().toISOString(),
+    userAnswer: args.feedback, billing: policy.billing, scope: 'this-work-until-user-changes', preserveReferences: false, source: TOOL } };
+  await atomicWrite(repo.path('image-selection.json'), JSON.stringify(confirmed, null, 2));
+  await rm(pendingPath, { force: true });
+  return { policy, saved: confirmed };
+}
+
 /** Validate every user choice before any model or image call; returns the interview instead of a workflow when the count is missing. */
 async function startScene(store, repo, args, current) {
   if (args.panelCount === undefined) return { status: 'needs_interview', questions: [{ id: 'panelCount', question: `이 장면을 몇 칸으로 생성할까요? "auto"는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 고릅니다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성이 떨어질 수 있습니다. 칸 크기와 배치는 AI가 정합니다.`, options: SCENE_PANEL_OPTIONS }], jobs: [] };
@@ -175,10 +202,9 @@ async function startScene(store, repo, args, current) {
     const ids = source.units.map(u => u.id), prior = previous.sceneUnits.map(u => ids.indexOf(u.id));
     if (prior.some(i => i < 0) || Math.min(...selected.map(id => ids.indexOf(id))) !== Math.max(...prior) + 1) throw new Error('SCENE_CONTINUATION_SCOPE');
   }
-  const saved = await readJson(repo.path('image-selection.json'));
-  if (!saved || saved.policy?.execution !== 'openai-api') throw new Error('SCENE_REQUIRES_CONFIRMED_API_SELECTION');
-  const policy = imagePolicyFor(saved.policy.targetModel, 'openai-api');
-  if (!imageSelectionConfirmed({ workId: args.workId, imagePolicy: policy, imageSelection: saved.selection })) throw new Error('SCENE_REQUIRES_CONFIRMED_API_SELECTION');
+  const selection = await confirmedSceneSelection(repo, args);
+  if (selection.status === 'needs_image_choice') return selection;
+  const { policy, saved } = selection;
   const references = args.references;
   if (!Array.isArray(references) || !references.length || references.length > SCENE_LIMITS.referenceImages - (previous ? 1 : 0)
     || references.some(r => r.id === PREVIOUS_SCENE_ID) || new Set(references.map(r => r.id)).size !== references.length
@@ -203,7 +229,7 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
     if (w && w.workId !== args.workId) throw new Error('WORKFLOW_WORK_MISMATCH');
     if (!run && args.action === 'start') {
       w = await startScene(store, repo, args, w);
-      if (w.status === 'needs_interview') return w;
+      if (w.status === 'needs_interview' || w.status === 'needs_image_choice') return w;
     } else if (!isScene(w)) throw new Error('SCENE_WORKFLOW_NOT_FOUND');
     if (args.revision !== undefined && args.revision !== w.revision) throw new Error('STALE_WEBTOON_REVISION');
     if (args.action !== 'start' && args.panelCount !== undefined && args.panelCount !== (scenePanelCountMode(w) === 'auto' ? 'auto' : w.panelCount)) throw new Error('SCENE_PANEL_COUNT_PINNED');

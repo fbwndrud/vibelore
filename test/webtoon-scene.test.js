@@ -312,3 +312,21 @@ test('render brief emphasis is bounded, positive English and names only known te
   assert.ok(validateSceneRenderBrief({ ...texted, focusTextIds: ['t1'] }, withText));
   for (const focusTextIds of [['t2'], ['t1', 't1'], 't1']) assert.throws(() => validateSceneRenderBrief({ ...texted, focusTextIds }, withText), /INVALID_SCENE_TEXT_ASSIGNMENT/);
 });
+
+test('a new work confirms the API image selection inside the scene tool before any model call', async () => {
+  const { store, repo, args } = await setup();
+  await writeFile(repo.path('image-selection.json'), '{}');
+  const providers = { complete() { throw new Error('Must not call model'); } };
+  const proposed = await runWebtoonSceneTool({ store, args, providers });
+  assert.equal(proposed.status, 'needs_image_choice'); assert.deepEqual(proposed.jobs, []); assert.equal(await repo.load(), null);
+  assert.equal(proposed.imageChoice.policy.execution, 'openai-api'); assert.equal(proposed.imageChoice.policy.targetModel, 'gpt-image-2.5-sunburst');
+  assert.match(proposed.imageChoice.notice, /별도 OpenAI API 과금/);
+  await assert.rejects(runWebtoonSceneTool({ store, args: { ...args, confirmImageChoice: 'wic-other', feedback: '승인' }, providers }), /STALE_IMAGE_CHOICE/);
+  await assert.rejects(runWebtoonSceneTool({ store, args: { ...args, confirmImageChoice: proposed.imageChoice.id }, providers }), /IMAGE_CHOICE_USER_ANSWER_REQUIRED/);
+  await assert.rejects(runWebtoonSceneTool({ store, args: { ...args, imageModel: 'gpt-image-2', confirmImageChoice: proposed.imageChoice.id, feedback: '승인' }, providers }), /STALE_IMAGE_CHOICE/);
+  const r = await runWebtoonSceneTool({ store, args: { ...args, confirmImageChoice: proposed.imageChoice.id, feedback: '유료 API 사용 승인' }, providers: provider() });
+  assert.equal(r.status, 'needs_scene_image');
+  const saved = JSON.parse(await readFile(repo.path('image-selection.json'), 'utf8'));
+  assert.equal(saved.selection.id, proposed.imageChoice.id); assert.equal(saved.selection.userAnswer, '유료 API 사용 승인');
+  assert.equal(saved.selection.policyHash, digest(saved.policy));
+});

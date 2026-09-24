@@ -1,7 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.3.8 — 2026-09-24
 
+- `lore_webtoon_scene` no longer fails with
+  `SCENE_REQUIRES_CONFIRMED_API_SELECTION` on a work without a confirmed image
+  API choice. Start returns `needs_image_choice` with the proposed model,
+  billing and data-transfer notice; calling start again with
+  `confirmImageChoice` and the user's own answer in `feedback` saves the choice
+  for this work. `imageModel` proposes a different OpenAI image model.
+- Replace an absolute local path in the Thundertrail showcase data with a
+  repository-relative one.
 - Keep `textPolicyVersion` through segmented webtoon plan assembly; the outline
   probe and part checks now use the same scope as the final plan check, and
   plan-part requests state a per-part shot cap and layout bounds.
