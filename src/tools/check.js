@@ -46,7 +46,7 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
     return runContractCheck({
       store, workId, chapter, prose, title, summary, castManifestRaw, providers,
       includeSemanticContinuity, includeProfileCheck, requireInfluenceObservation, issueReceipt,
-      workflowId, retryValidation, dialogueBreakMode, allowWorkingTreeDrift, validationScope,
+      workflowId, retryValidation, dialogueBreakMode, allowWorkingTreeDrift, validationScope, targetChapters,
     });
   }
 

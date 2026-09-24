@@ -8,6 +8,7 @@ import { currentValidationContext, exactHash, sameIdentity, exceptionOnlyRebind,
 import { chapterArtifactBundle, computeArtifactHash, continuityContextHash, evaluateChapterCoverage, evaluateChapterLanguage, issueChapterReceipt, lengthCoverage, liveCheckerPlan, overlayInvariantCoverage, publishedChapterProse, readSemanticValidation, requestLanguageCompliance, runPlannedDetectors, schemaCoverage } from '../core/validation-gate.js';
 import { lexiconsForLanguage } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
+import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { episodePlanReviewView } from '../core/episode-plan-view.js';
 import { promptKit } from '../prompts/index.js';
 
@@ -21,7 +22,7 @@ export async function shouldUseContractCheck({ store, workId, chapter, forceCont
 
 export async function runContractCheck({ store, workId, chapter, prose, title, summary, castManifestRaw = '', providers,
   includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = true,
-  workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope }) {
+  workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, targetChapters }) {
   const scope = validationScope ?? (workflowId ? `workflow-${workflowId}` : `manual-${chapter}`);
   let state = await loadValidationSession(store, workId, scope);
   const invocation = providers?.validationContext?.runId ?? null;
@@ -71,7 +72,12 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   if (state.status === 'passed' && state.result) return state.result;
   const { workContract, foundation, canonicalStore } = context;
   const plan = liveCheckerPlan({ workContract, foundation, profile: context.plans.profile });
-  const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, entities: await canonicalStore.loadEntitySnapshots(workId) });
+  const arcEpisode = episodeForChapter(context.plans.arc, chapter);
+  const estimated = targetChapters ?? foundation?.targetChapters ?? 0;
+  const arcPosition = arcEpisode
+    ? arcPositionFromRatio(arcEpisode.index, context.plans.arc.estimatedEpisodes)
+    : (estimated > 0 ? arcPositionFromRatio(chapter, estimated) : 'rising');
+  const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, arcPosition, entities: await canonicalStore.loadEntitySnapshots(workId) });
   const length = lengthCoverage({ workContract, prose: input.prose });
   const prosody = scan.detectorResults.find(row => row.checkerId === 'runProsodyScan' && ['passed','failed'].includes(row.status));
   const base = {
