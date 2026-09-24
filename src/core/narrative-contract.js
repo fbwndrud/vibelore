@@ -6,10 +6,18 @@ const clean = (value, limit = 600) => String(value ?? '').trim().slice(0, limit)
 const strings = (value, limit = 6) => Array.isArray(value)
   ? value.map((item) => clean(item, 300)).filter(Boolean).slice(0, limit)
   : [];
+/**
+ * A stored guidance value that actually says something. The multilingual family stores
+ * an omitted readerLegibility/registerPolicy as '' (B5), so a blank value must fall back
+ * to the family's static guidance. ko keeps its original `||` / `??` semantics byte for byte.
+ */
+const filled = (value) => (typeof value === 'string' && value.trim() ? value : null);
+const guidance = (kit, value, fallback) => (kit.family === 'ko' ? value || fallback : filled(value) ?? fallback);
 const digest = (value) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 export function compileNarrativeContract({ profile, identity, writerSkill, kit: kitSource }) {
-  const t = asKit(kitSource ?? { profile }).phrases.contract;
+  const kit = asKit(kitSource ?? { profile });
+  const t = kit.phrases.contract;
   const voiceRecipe = profile?.voiceContract?.genreVoiceRecipe ?? {};
   const contract = {
     schemaVersion: 2,
@@ -28,10 +36,8 @@ export function compileNarrativeContract({ profile, identity, writerSkill, kit: 
       variation: strings(profile?.voiceDesign?.variationRules || profile?.voice?.variationRules
         || [voiceRecipe.rhythm, voiceRecipe.exposition].filter(Boolean)),
     },
-    readerLegibility: clean(profile?.narrativeContract?.readerLegibility
-      || t.defaultReaderLegibility),
-    registerPolicy: clean(profile?.narrativeContract?.registerPolicy
-      || t.defaultRegisterPolicy),
+    readerLegibility: clean(guidance(kit, profile?.narrativeContract?.readerLegibility, t.defaultReaderLegibility)),
+    registerPolicy: clean(guidance(kit, profile?.narrativeContract?.registerPolicy, t.defaultRegisterPolicy)),
     readability: {
       surfaceEase: clean(profile?.readabilityContract?.surfaceEase || 'easy'),
       conceptPacing: clean(profile?.readabilityContract?.conceptPacing || 'slow'),
@@ -144,8 +150,12 @@ export function compileDraftContract({ profile, identity, writerSkill, episodePl
     protagonistAppeal: String(identity?.protagonistAppeal ?? '').trim(),
     emotionalDefect: String(identity?.emotionalDefect ?? '').trim(),
     recurringPleasures: profile?.storyEngines ?? identity?.competenceSignature ?? [],
-    readerLegibility: profile?.narrativeContract?.readerLegibility ?? contract.readerLegibility,
-    registerPolicy: profile?.narrativeContract?.registerPolicy ?? contract.registerPolicy,
+    readerLegibility: kit.family === 'ko'
+      ? profile?.narrativeContract?.readerLegibility ?? contract.readerLegibility
+      : filled(profile?.narrativeContract?.readerLegibility) ?? contract.readerLegibility,
+    registerPolicy: kit.family === 'ko'
+      ? profile?.narrativeContract?.registerPolicy ?? contract.registerPolicy
+      : filled(profile?.narrativeContract?.registerPolicy) ?? contract.registerPolicy,
     narration: { ...contract.narration, depth: String(profile?.povDesign?.narrativeDistance ?? contract.narration.depth), tones: profile?.tones ?? [] },
     characterExpression: {
       principles: profile?.voiceDesign?.principles ?? profile?.voice?.principles ?? [profile?.voiceContract?.genreVoiceRecipe?.narration, profile?.voiceContract?.genreVoiceRecipe?.dialogue, profile?.voiceContract?.emotionalRendering].filter(Boolean),

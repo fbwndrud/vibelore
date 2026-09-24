@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { runStoryProfile, runStoryProfileDecide, compileBriefWithProfile } from '../src/tools/story-profile.js';
-import { compileNarrativeContract } from '../src/core/narrative-contract.js';
+import { compileDraftContract, compileNarrativeContract } from '../src/core/narrative-contract.js';
 import { phrases as koPhrases } from '../src/prompts/ko.js';
 import { phrases as multilingualPhrases } from '../src/prompts/multilingual.js';
 import { promptKit } from '../src/prompts/index.js';
@@ -78,6 +78,16 @@ for (const [language, work] of Object.entries(WORKS)) {
     const brief = compileBriefWithProfile('brief', approved.profile, 'worldbuild', kit);
     assert.ok(brief.includes(`Reader legibility: ${multilingualPhrases.contract.defaultReaderLegibility}`));
     assert.ok(brief.includes(`Register policy: ${multilingualPhrases.contract.defaultRegisterPolicy}`));
+    // Review 2026-09-24 Important 1: the writer's draft contract must not show blank guidance lines.
+    for (const blank of ['', '   ']) {
+      const profile = { ...approved.profile, narrativeContract: { ...approved.profile.narrativeContract, readerLegibility: blank, registerPolicy: blank } };
+      const draft = compileDraftContract({ profile, kit, episodePlan: { title: 't', scenes: [] }, chapter: 1 });
+      const text = JSON.stringify(draft);
+      assert.ok(text.includes(multilingualPhrases.contract.defaultReaderLegibility), `draft legibility for ${JSON.stringify(blank)}`);
+      assert.ok(text.includes(multilingualPhrases.contract.defaultRegisterPolicy), `draft register policy for ${JSON.stringify(blank)}`);
+      assert.equal(compileNarrativeContract({ profile, kit }).readerLegibility, multilingualPhrases.contract.defaultReaderLegibility);
+      assert.ok(compileBriefWithProfile('brief', profile, 'worldbuild', kit).includes(`Reader legibility: ${multilingualPhrases.contract.defaultReaderLegibility}`));
+    }
   });
 }
 

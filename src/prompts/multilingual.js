@@ -228,8 +228,8 @@ export const phrases = {
     briefExpositionPolicy: (v) => `Exposition policy: ${v}`,
     // An omitted value is stored empty (see defaultReaderLegibility above); the brief
     // then carries the static instruction, as the narrative contract does.
-    briefReaderLegibility: (v) => `Reader legibility: ${v || phrases.contract.defaultReaderLegibility}`,
-    briefRegisterPolicy: (v) => `Register policy: ${v || phrases.contract.defaultRegisterPolicy}`,
+    briefReaderLegibility: (v) => `Reader legibility: ${String(v ?? '').trim() || phrases.contract.defaultReaderLegibility}`,
+    briefRegisterPolicy: (v) => `Register policy: ${String(v ?? '').trim() || phrases.contract.defaultRegisterPolicy}`,
     briefSurfaceEase: (v) => `Surface ease: ${v}`,
     briefConceptPacing: (v) => `New concept pace: ${v}`,
     briefInferenceLoad: (v) => `Reader inference load: ${v}`,

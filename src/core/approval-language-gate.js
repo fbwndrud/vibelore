@@ -9,7 +9,6 @@ import { resolveWorkLanguage } from './work-language.js';
 import { createPublicationUnit } from './publication-unit.js';
 import { createGenreProfileRegistry } from '../../engine/src/continuity/genre-profile.js';
 import { CHARACTER_ARC_BEATS } from '../../engine/src/continuity/character-arc.js';
-import { phrases as koPhrases } from '../prompts/ko.js';
 import { phrases as multilingualPhrases } from '../prompts/multilingual.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
@@ -57,18 +56,24 @@ function projectEntityAttributes(value) {
 // messages are ko/en). Only the exact static text is exempt; the reviewer sees its
 // digest and the hash still binds the value. A model-written question under the same
 // id is generated text and is reviewed like every other open question.
-const HOST_READABILITY_QUESTIONS = [koPhrases, multilingualPhrases].map(({ profile }) => JSON.stringify({
-  id: 'reading-experience-contract', title: profile.readabilityQuestionTitle,
-  question: profile.readabilityQuestion, recommendation: profile.readabilityRecommendation,
-}));
-const isHostReadabilityQuestion = (value, path) => path.at(-1) === 'openQuestions' && path.at(-2) === 'designReview'
-  && Object.keys(value).length === 4 && HOST_READABILITY_QUESTIONS.includes(JSON.stringify({
-    id: value.id, title: value.title, question: value.question, recommendation: value.recommendation }));
+// Only non-ko works are exempt: a ko work's Korean question is Korean text and keeps its
+// pre-B2 projection (and artifact hash). The match is anchored at the root
+// designReview.openQuestions, needs exactly these four keys and the exact English text.
+const HOST_READABILITY_QUESTION = JSON.stringify({
+  id: 'reading-experience-contract', title: multilingualPhrases.profile.readabilityQuestionTitle,
+  question: multilingualPhrases.profile.readabilityQuestion, recommendation: multilingualPhrases.profile.readabilityRecommendation,
+});
+const isHostReadabilityQuestion = (value, path, promptFamily) => promptFamily !== 'ko'
+  && path.length === 2 && path[0] === 'designReview' && path[1] === 'openQuestions'
+  && Object.keys(value).length === 4 && JSON.stringify({
+    id: value.id, title: value.title, question: value.question, recommendation: value.recommendation }) === HOST_READABILITY_QUESTION;
 
-export function projectApprovalValue(value, path = []) {
-  if (Array.isArray(value)) return value.map(item => projectApprovalValue(item, path));
+/** `promptFamily` is the work's family; the default `ko` exempts no host text. */
+export function projectApprovalValue(value, path = [], options = {}) {
+  const { promptFamily = 'ko' } = options;
+  if (Array.isArray(value)) return value.map(item => projectApprovalValue(item, path, options));
   if (!value || typeof value !== 'object') return value;
-  if (isHostReadabilityQuestion(value, path)) return { id: hash(value) };
+  if (isHostReadabilityQuestion(value, path, promptFamily)) return { id: hash(value) };
   const out = {};
   for (const [key, item] of Object.entries(value)) {
     if (CONTROL.has(key) || item === undefined) continue;
@@ -83,7 +88,7 @@ export function projectApprovalValue(value, path = []) {
     else if (key === 'quality' && path.length === 0 && item && typeof item === 'object' && !Array.isArray(item) && typeof item.verdict === 'string' && item.dimensions) out[key] = { id: hash(item) };
     else if (machineLeaf(key, path, item) && (typeof item === 'string' || Array.isArray(item) && item.every(v => typeof v === 'string'))) out[key] = { id: item };
     else if (['rationale', 'serialization'].includes(key) && typeof item === 'string') out[key] = { description: item };
-    else out[key] = projectApprovalValue(item, [...path, key]);
+    else out[key] = projectApprovalValue(item, [...path, key], options);
   }
   return out;
 }
@@ -145,7 +150,7 @@ export async function gateApprovalActivation({ store, workId, kind, value, provi
   if (typeof store.loadApprovalValidation !== 'function' || typeof store.saveApprovalValidation !== 'function') return resultFailure(null, 'VALIDATION_INCOMPLETE', { reason: 'approval_state_store_missing' });
   const approvalValue = kind === 'foundation' && Object.hasOwn(value, 'brief')
     ? { ...value, brief: { sourceBrief: value.brief } } : value;
-  const artifact = canonicalApprovalArtifact({ kind, revision, value: projectApprovalValue(approvalValue) });
+  const artifact = canonicalApprovalArtifact({ kind, revision, value: projectApprovalValue(approvalValue, [], { promptFamily: workLanguage.contract?.promptFamily }) });
   const artifactHash = computeArtifactHash(artifact);
   const workContract = workLanguage.contract;
   const contractHash = computeLanguageContractHash(workContract);

@@ -161,7 +161,9 @@ function ensureReadabilityQuestion(review, readability, mode, kit, rawReview) {
   }
   const raw = (Array.isArray(rawReview?.openQuestions) ? rawReview.openQuestions : [])
     .find((item) => String(item?.id ?? '').trim() === READABILITY_QUESTION_ID);
-  const generated = ['title', 'question', 'recommendation'].every((key) => typeof raw?.[key] === 'string' && raw[key].trim())
+  // ko keeps its pre-B2 behaviour byte for byte: the static ko question always replaces
+  // a model-written one. Only non-ko families keep the model's work-language question.
+  const generated = kit.family !== 'ko' && ['title', 'question', 'recommendation'].every((key) => typeof raw?.[key] === 'string' && raw[key].trim())
     ? review.openQuestions.find((item) => item.id === READABILITY_QUESTION_ID)
     : null;
   const question = generated ?? {

@@ -78,15 +78,43 @@ test('an English question under the readability id that is not the exact host te
   assert.equal(out.validation.failureCode, 'OUTPUT_LANGUAGE_MISMATCH');
 });
 
-test('only the exact static host readability question of either family is exempt from the work-language review', () => {
-  for (const kitPhrases of [multilingualPhrases, koPhrases]) {
-    const staticQuestion = { id: QUESTION_ID, title: kitPhrases.profile.readabilityQuestionTitle, question: kitPhrases.profile.readabilityQuestion, recommendation: kitPhrases.profile.readabilityRecommendation };
-    const projected = projectApprovalValue({ designReview: { openQuestions: [staticQuestion] } }).designReview.openQuestions[0];
-    assert.deepEqual(Object.keys(projected), ['id']);
-    assert.match(projected.id, /^[0-9a-f]{64}$/);
-    const edited = projectApprovalValue({ designReview: { openQuestions: [{ ...staticQuestion, recommendation: 'changed' }] } }).designReview.openQuestions[0];
-    assert.equal(edited.recommendation, 'changed');
+test('only the exact multilingual host question, only in a non-ko work, only at designReview.openQuestions, is exempt', () => {
+  const question = (kitPhrases) => ({ id: QUESTION_ID, title: kitPhrases.profile.readabilityQuestionTitle, question: kitPhrases.profile.readabilityQuestion, recommendation: kitPhrases.profile.readabilityRecommendation });
+  const project = (value, promptFamily) => projectApprovalValue(value, [], { promptFamily });
+  const exempt = project({ designReview: { openQuestions: [question(multilingualPhrases)] } }, 'multilingual').designReview.openQuestions[0];
+  assert.deepEqual(Object.keys(exempt), ['id']);
+  assert.match(exempt.id, /^[0-9a-f]{64}$/);
+  // An edited copy is generated text and is reviewed.
+  assert.equal(project({ designReview: { openQuestions: [{ ...question(multilingualPhrases), recommendation: 'changed' }] } }, 'multilingual').designReview.openQuestions[0].recommendation, 'changed');
+  // ko works: the Korean question is Korean text in a Korean work; nothing is exempt and the projection is as before B2.
+  for (const kitPhrases of [koPhrases, multilingualPhrases]) {
+    const value = { designReview: { openQuestions: [question(kitPhrases)] } };
+    assert.deepEqual(project(value, 'ko'), value);
+    assert.deepEqual(projectApprovalValue(value), value, 'the default projection exempts nothing');
   }
+  // The ko text is not exempt in a non-ko work either.
+  assert.deepEqual(project({ designReview: { openQuestions: [question(koPhrases)] } }, 'multilingual').designReview.openQuestions[0], question(koPhrases));
+  // Anchored at the root designReview only.
+  const nested = { wrapper: { designReview: { openQuestions: [question(multilingualPhrases)] } } };
+  assert.deepEqual(project(nested, 'multilingual').wrapper.designReview.openQuestions[0], question(multilingualPhrases));
+});
+
+// Review 2026-09-24 Important 2: before B2 the ko path always replaced a model-written
+// readability question with the static ko question. ko must stay exactly that way.
+test('ko replaces a model-written readability question with the static ko question, as before', async () => {
+  const store = await newStore();
+  const own = { id: QUESTION_ID, title: '읽기', question: '모델이 쓴 난도 질문', recommendation: '모델 추천' };
+  const providers = { pending: [], async complete(request) {
+    if (request.step === 'story-profile') return { text: JSON.stringify({ genreLabel: '항구 드라마', engineGenre: 'other', designReview: { settledDecisions: [], openQuestions: [own] } }) };
+    const input = JSON.parse(request.messages[1].content);
+    reviewed.push(input.artifact);
+    return { text: JSON.stringify({ language: 'ko', artifactHash: input.artifactHash, verdict: 'pass', evidence: [], allowedExceptions: [] }) };
+  } };
+  const reviewed = [];
+  const out = await runStoryProfile({ store, workId: 'book', language: 'ko', brief: '항구 이야기', mode: 'review', providers });
+  // Review Minor 3: a ko work's reviewer sees the Korean question text, as before B2 (no digest).
+  assert.ok(JSON.stringify(reviewed.at(-1)).includes(koPhrases.profile.readabilityQuestion));
+  assert.deepEqual(out.profile.designReview.openQuestions, [{ id: QUESTION_ID, title: koPhrases.profile.readabilityQuestionTitle, question: koPhrases.profile.readabilityQuestion, recommendation: koPhrases.profile.readabilityRecommendation }]);
 });
 
 test('the multilingual profile prompt asks the model for the readability question in the work language', () => {
