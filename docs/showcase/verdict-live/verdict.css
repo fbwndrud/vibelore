@@ -38,3 +38,15 @@ img{background:#0B0E14}
   .scene-actions button,.scene-actions a{color:var(--ink);border-color:var(--chip)}
   .findings{background:var(--card);color:var(--ink)}
 }
+/* 자동 재설계: 이전 시도 */
+.attempts{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.attempts summary{cursor:pointer;font-weight:600;font-size:13px}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:10px}
+.agrid figure{margin:0;display:flex;flex-direction:column;gap:6px}
+.agrid img{width:100%;height:auto;border-radius:6px;display:block}
+.agrid figcaption{font-size:12px;line-height:1.5;display:flex;flex-direction:column;gap:4px}
+.agrid figcaption ul{margin:0;padding-left:16px}
+.agrid .emph{color:var(--muted)}
+@media (max-width:640px){.agrid{grid-template-columns:1fr 1fr;gap:8px}.agrid figcaption{font-size:11px}}
+.agrid figcaption li{font-size:12px;line-height:1.5;margin:2px 0;padding:0;border:0}
+@media (max-width:640px){.agrid figcaption li{font-size:11px}}

@@ -31,6 +31,22 @@
       t.append(tr);
     }
     $('#eps').append(t);
+    const e1 = d.episodes.find((e) => e.regen);
+    if (e1) {
+      const rt = el('table');
+      const h = el('tr'); for (const x of ['장면', '시도', '최종 판정', '시도별 계획/그림 칸', '시도별 문구 정확']) h.append(el('th', null, x)); rt.append(h);
+      for (const s of e1.scenes) {
+        const all = [...s.attempts.map((a) => [a.plannedPanels, a.observedPanels, a.textsOk, a.textsTotal]), [s.panelCount, s.review.observedPanelCount, s.textsOk, s.textsTotal]];
+        const a = el('a', null, `${s.n} · ${s.title}`); a.href = `read.html#ep1/${s.id}`; const td = el('td'); td.append(a);
+        const tr = el('tr');
+        tr.append(td, el('td', 'n', all.length), el('td', null, s.verdict === 'pass' ? '통과' : '수정 필요'),
+          el('td', null, all.map((x) => `${x[0]}/${x[1]}`).join(' → ')), el('td', null, all.map((x) => `${x[2]}/${x[3]}`).join(' → ')));
+        rt.append(tr);
+      }
+      $('#regen').append(rt);
+      const b = e1.regen.before;
+      $('#regen-note').textContent = `검토 통과 ${b.passCount}/${b.sceneCount} → ${e1.passCount}/${e1.sceneCount}. 이미지 호출 ${b.imageCalls}회 → ${e1.imageCalls}회. 각색·검증 모델 비용 $${b.webtoonUsd.toFixed(2)} → $${e1.cost.webtoonUsd.toFixed(2)}. 칸은 ‘계획/그림’, 문구는 ‘정확/전체’이며 화살표는 시도 순서입니다.`;
+    }
     const log = $('#log');
     d.directionChanges.forEach((c, i) => {
       const k = LOG_KO[i] || [c.change || '관찰', c.reason || c.note];
@@ -44,8 +60,10 @@
     ];
     for (const e of d.episodes) rows.push([`소설 ${e.chapter}화 (아크 포함)`, e.cost.novelCalls, e.cost.novelUsd, 'Claude CLI 보고값']);
     rows.push(['이미지 모델 확정 관문', c.imageModelGateCalls, c.imageModelGateUsd, '1화 컷 콘티·재시도 한도 소진 후 재시작 포함']);
-    for (const e of d.episodes) rows.push([`웹툰 ${e.chapter}화 각색·사전 검증`, e.cliCalls, e.cost.webtoonUsd, '장면 분할 포함']);
-    rows.push(['이미지 생성 (기준 6 + 장면 24)', c.imagesRequests, c.imagesUsd, 'OpenAI 사용량 API 실측, 정가 환산']);
+    rows.push(['웹툰 1화 첫 제작 각색·사전 검증 (재생성으로 대체)', c.ep1Before.cliCalls, c.ep1Before.webtoonUsd, '장면 분할 포함']);
+    for (const e of d.episodes) rows.push([`웹툰 ${e.chapter}화 각색·사전 검증${e.regen ? ' (재생성, 자동 재설계 포함)' : ''}`, e.cliCalls, e.cost.webtoonUsd, e.regen ? '장면 분할은 첫 제작 것 재사용' : '장면 분할 포함']);
+    rows.push(['이미지 생성 (기준 6 + 첫 제작 장면 24)', c.imagesRequests, c.imagesUsd, 'OpenAI 사용량 API 실측, 정가 환산']);
+    rows.push(['이미지 생성 (1화 재생성 12)', c.ep1RegenImages, c.ep1RegenImagesUsdEstimated, '추정: 첫 제작 장당 평균 × 12']);
     let total = 0;
     for (const [a, n, v, note] of rows) { total += v; const tr = el('tr'); tr.append(el('td', null, a), el('td', 'n', n), el('td', 'n', usd(v)), el('td', null, note)); ct.append(tr); }
     const tr = el('tr', 'total'); tr.append(el('td', null, '합계'), el('td'), el('td', 'n', usd(total)), el('td', null, '작품 설계 인터뷰(대화 세션 작성)는 제외')); ct.append(tr);

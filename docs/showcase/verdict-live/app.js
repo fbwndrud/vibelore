@@ -43,10 +43,11 @@
     if (!state.meta) {
       $('#eplead').textContent = `${e.chapter}화 · 웹툰 ${e.sceneCount}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.`;
       document.title = `${DATA.work} · ${e.chapter}화`;
-    } else $('#eplead').textContent = `${e.sceneCount}장면 ${e.panelTotal}칸. 장면마다 이미지 API 한 번으로 3~12칸을 한 장에 생성했습니다. 왼쪽은 그 첫 결과, 오른쪽은 소설 원문입니다. 검토 통과 ${e.passCount}, 수정 필요 판정 ${e.sceneCount - e.passCount}. 판정과 관계없이 자동 재생성 없이 그대로 공개합니다.`;
+    } else if (e.regen) $('#eplead').textContent = `${e.sceneCount}장면 ${e.panelTotal}칸. 검토에서 떨어진 장면을 서버가 결함 목록으로 다시 설계해 새로 그리는 자동 재설계(최대 ${e.regen.autoRevisionLimit}회)를 넣고 다시 만든 회차입니다. 검토 통과 ${e.passCount}/${e.sceneCount} (재생성 전 ${e.regen.before.passCount}/${e.regen.before.sceneCount}). 이전 시도의 그림과 판정도 장면마다 그대로 공개합니다.`;
+    else $('#eplead').textContent = `${e.sceneCount}장면 ${e.panelTotal}칸. 장면마다 이미지 API 한 번으로 3~12칸을 한 장에 생성했습니다. 왼쪽은 그 첫 결과, 오른쪽은 소설 원문입니다. 검토 통과 ${e.passCount}, 수정 필요 판정 ${e.sceneCount - e.passCount}. 판정과 관계없이 자동 재생성 없이 그대로 공개합니다.`;
     $('#chip-novel').textContent = `${e.novelHost} · ${e.novelModel}`;
     $('#chip-adapt').textContent = `${e.host} · ${e.model} · ${e.effort}`;
-    $('#chip-image').textContent = `OpenAI API · ${DATA.imageModel}`;
+    $('#chip-image').textContent = `Codex · OpenAI API · ${DATA.imageModel}`;
     const rv = e.reviewer || DATA.reviewer;
     $('#chip-review').textContent = `${rv.host} (${rv.model}) · 독립 평가 아님`;
     if (state.meta) document.title = `${DATA.work} · ${e.chapter}화 ${e.host}`;
@@ -63,14 +64,17 @@
     return `원문 p${s.pFrom}–${s.pTo} · ${s.panelCount}칸 · 이미지 API ${t.imageCalls}회${t.imageCalls > 1 ? '(재시도 포함)' : ''}${t.imageS ? ' · ' + t.imageS + '초' : ''}${s.imageUsd ? ' · $' + s.imageUsd.toFixed(2) : ''} · 각색 ${fmtS(t.planS)} · 사전 검증 ${fmtS(t.preflightS)}`;
   }
   function findingsBlock(s) {
+    const regen = !!ep().regen;
     const head = el('div', { class: 'fhead' + (s.verdict === 'pass' ? ' pass' : '') },
       el('b', null, `가감 없이 · 장면 ${s.n} 검토`),
-      el('span', null, '자동 재생성 없이 첫 결과와 판정을 그대로 공개합니다. 검토는 오케스트레이션 호스트의 자기검토입니다.'));
+      el('span', null, regen
+        ? (s.attempts.length ? `${s.attempts.length + 1}번째 시도의 결과입니다. 앞 시도의 그림과 판정은 아래에 있습니다. 검토는 오케스트레이션 호스트의 자기검토입니다.` : '첫 시도에 통과했습니다. 검토는 오케스트레이션 호스트의 자기검토입니다.')
+        : '자동 재생성 없이 첫 결과와 판정을 그대로 공개합니다. 검토는 오케스트레이션 호스트의 자기검토입니다.'));
     const ul = el('ul');
     for (const f of s.findings) {
       ul.append(el('li', null,
         el('span', { class: 'fl ' + (f.severity === 'blocking' ? 'b' : 'a') }, f.severity === 'blocking' ? '차단' : '참고'),
-        el('span', null, f.ko),
+        el('span', null, f.correction ? el('b', null, '[정정] ') : null, f.ko),
         el('span', { class: 'layer', title: '결함 귀속' }, f.layerLabel)));
     }
     ul.append(el('li', null, el('span', { class: 'fl ok' }, '확인'),
@@ -78,7 +82,27 @@
     const det = el('details', null, el('summary', null, '검토 원문(영문) 보기'));
     det.append(el('pre', { style: 'white-space:pre-wrap;font-size:11px;margin:6px 0 0' }, s.findings.map((f) => `[${f.severity}] ${f.en}`).join('\n\n') + '\n\n' + s.review.evidence));
     ul.append(el('li', null, det));
-    return el('div', { class: 'findings' }, head, ul);
+    const box = el('div', { class: 'findings' }, head, ul);
+    if (s.attempts && s.attempts.length) box.append(attemptsBlock(s));
+    return box;
+  }
+  function attemptsBlock(s) {
+    const det = el('details', { class: 'attempts' }, el('summary', null, `이전 시도 ${s.attempts.length}개 보기 · 자동 재설계 전 그림과 판정`));
+    const grid = el('div', { class: 'agrid' });
+    for (const a of s.attempts) {
+      const ul = el('ul');
+      for (const f of a.findings.filter((f) => f.severity === 'blocking')) ul.append(el('li', null, f.correction ? el('b', null, '[정정] ') : null, f.ko));
+      const emph = [];
+      if (a.emphasis && a.emphasis.focusTextIds) emph.push(`정확히 쓸 문구 ${a.emphasis.focusTextIds.length}개 강조`);
+      if (a.emphasis && a.emphasis.corrections) emph.push(...a.emphasis.corrections);
+      const fig = el('figure', null,
+        el('a', { href: a.image, target: '_blank', rel: 'noopener' }, el('img', { src: a.image, alt: `장면 ${s.n} ${a.n}번째 시도`, loading: 'lazy', width: 1024, height: 1536 })),
+        el('figcaption', null, el('b', null, `${a.n}번째 시도 · 수정 필요`), el('span', null, `계획 ${a.plannedPanels}칸 / 그림 ${a.observedPanels}칸 · 문구 ${a.textsOk}/${a.textsTotal} 정확`), ul,
+          emph.length ? el('span', { class: 'emph' }, '이 시도에 들어간 강조: ' + emph.join(' · ')) : null));
+      grid.append(fig);
+    }
+    det.append(grid);
+    return det;
   }
   function renderScenes() {
     const e = ep();
