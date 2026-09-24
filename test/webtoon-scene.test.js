@@ -9,7 +9,7 @@ import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { readWebtoonWorkflow } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
-import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish } from '../src/core/webtoon-scene.js';
+import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering } from '../src/core/webtoon-scene.js';
 
 const plan = scenePlan, preflight = scenePreflight, setup = sceneSetup;
 
@@ -342,4 +342,18 @@ test('a new work confirms the API image selection inside the scene tool before a
   const saved = JSON.parse(await readFile(repo.path('image-selection.json'), 'utf8'));
   assert.equal(saved.selection.id, proposed.imageChoice.id); assert.equal(saved.selection.userAnswer, '유료 API 사용 승인');
   assert.equal(saved.selection.policyHash, digest(saved.policy));
+});
+
+test('lettering comparison ignores whitespace and Unicode composition only', () => {
+  assert.equal(sameLettering('윤이 문 앞에'.normalize('NFD'), '윤이 문 앞에'), true);
+  assert.equal(sameLettering('Ça  va ?'.normalize('NFD'), 'Ça va ?'), true);
+  assert.equal(sameLettering('ca va ?', 'Ça va ?'), false);
+  assert.equal(sameLettering('中にいますか', '中にいますか?'), false);
+});
+
+test('verbatim check accepts decomposed plan text for composed source prose', () => {
+  const units = [{ id: 'u1', text: '윤이 닫힌 문 앞에 멈췄다.' }];
+  const p = plan(units);
+  p.texts[0].text = units[0].text.normalize('NFD');
+  assert.doesNotThrow(() => validateScenePlan(p, units));
 });

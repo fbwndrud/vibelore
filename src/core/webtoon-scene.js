@@ -24,6 +24,9 @@ const need = (ok, message) => { if (!ok) throw new Error(message); };
 const RETRY_FRAMING = /\b(previous|prior|last time|earlier|again|instead|wrong|mistake|misspell\w*|incorrect|error|fix|failed|not|no|never|don't|do not|avoid|stop)\b/i;
 /** Direction fields are English for every work language: every letter must be Latin script (digits, punctuation and symbols pass). */
 export const isEnglish = value => nonempty(value) && [...value.matchAll(/\p{L}/gu)].every(([c]) => /\p{Script=Latin}/u.test(c));
+const nfc = s => s.normalize('NFC');
+/** Same visible lettering: only whitespace and Unicode composition may differ. */
+export const sameLettering = (observed, expected) => nfc(observed).replace(/\s/gu, '') === nfc(expected).replace(/\s/gu, '');
 const unique = rows => new Set(rows.map(r => r.id)).size === rows.length && rows.every(r => safeId(r.id));
 const words = s => s.trim().split(/\s+/u).length;
 const needTextCoverage = (assigned, texts) => need(assigned.length === texts.length && new Set(assigned).size === assigned.length
@@ -47,7 +50,7 @@ export function validateScenePlan(plan, units, { resolvePanelCount = false } = {
   }
   for (const t of plan.texts) {
     need(['dialogue', 'thought', 'caption', 'sfx', 'physical'].includes(t.kind) && nonempty(t.speaker), 'INVALID_SCENE_TEXT_ROLE');
-    need(nonempty(t.text) && source.get(t.sourceId)?.includes(t.text), 'SCENE_TEXT_NOT_VERBATIM');
+    need(nonempty(t.text) && nfc(source.get(t.sourceId) ?? '').includes(nfc(t.text)), 'SCENE_TEXT_NOT_VERBATIM');
   }
   needTextCoverage(plan.beats.flatMap(b => { need(Array.isArray(b.textIds), 'INVALID_SCENE_TEXT_ASSIGNMENT'); return b.textIds; }), plan.texts);
   need(Array.isArray(plan.uncertainties) && plan.uncertainties.every(isEnglish), 'INVALID_SCENE_UNCERTAINTIES');
@@ -133,7 +136,7 @@ export function validateSceneImageReview(review, w) {
   return review.observedPanelCount === w.panelCount
     && (!w.previousScene || CONTINUITY_CHECKS.every(k => review.continuity[k].passed))
     && !review.findings.some(f => f.severity === 'blocking') && review.spatialCoherence && review.readingOrder && review.textObservations.every(o => o.readable && o.speakerCorrect
-    && o.observedText.replace(/\s/g, '') === w.scenePlan.texts.find(t => t.id === o.id).text.replace(/\s/g, ''));
+    && sameLettering(o.observedText, w.scenePlan.texts.find(t => t.id === o.id).text));
 }
 
 /** Concrete, reviewer-observed defects that the next automatic attempt must address; never a verdict to copy. */
