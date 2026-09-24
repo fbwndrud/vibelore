@@ -5,7 +5,7 @@
 | 경로 | 내용 |
 |---|---|
 | `index.html` | 작품 목록. |
-| `verdict-live/` | 『판결 LIVE』(사이버렉카 스릴러) 1~3화. 허브(`index.html`), 리더(`read.html`, thundertrail 리더 복제), 제작 노트(`notes.html`: 기준 이미지·회차별 결과·결함 유형·연출 지시 변경·비용·한계), `data.json`, `img/`(장면 24장 + 기준 이미지 6장). 전 과정 Claude Opus 5.5. |
+| `verdict-live/` | 『판결 LIVE』(사이버렉카 스릴러) 1~3화. 허브(`index.html`), 리더(`read.html`, thundertrail 리더 복제), 제작 노트(`notes.html`: 기준 이미지·회차별 결과·결함 유형·연출 지시 변경·비용·한계), `data.json`, `img/`(장면 24장 + 기준 이미지 6장). 집필·각색 Claude Opus 5.5, 이미지 생성 Codex(gpt-image-2.5-sunburst). |
 | `thundertrail/index.html` | 허브. 방문 목적별(읽기 / 제작 기록 / 워크플로 해설 / 비용·시간 / 모델 비교) 입구. 옛 `#epN/sN` 링크는 `read.html`로 넘김. |
 | `thundertrail/read.html` | 『길 위의 번개』 리더. 웹툰·나란히·소설 보기. 기본은 읽기 전용이고 “제작 정보” 토글로 판정·근거·프롬프트를 켬. |
 | `thundertrail/process.html` | 제작 기록. 회차별 소설·웹툰 단계의 중간 산출물과 AI 판단 근거, 떡밥·설정 추적 타임라인(심기 → 진전 → 회수), 설계 변경 기록. |

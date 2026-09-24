@@ -19,7 +19,7 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 </tr>
 </table>
 
-<sub>모두 vibelore로 쓴 소설을 각색해 그린 실제 결과입니다. 『길 위의 번개』 1~3화는 세 호스트(Codex·Claude·Grok)가 각각 각색하고 같은 이미지 모델로 그렸고, 『판결 LIVE』(사이버렉카 스릴러) 1~3화는 소설부터 웹툰까지 전 과정을 Claude Opus 5.5로 만들었습니다. 검토 판정·프롬프트·비용까지 [작품 목록](https://fbwndrud.github.io/vibelore/showcase/), [길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)·[모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html), [판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)에서 가감 없이 볼 수 있습니다.</sub>
+<sub>모두 vibelore로 쓴 소설을 각색해 그린 실제 결과입니다. 『길 위의 번개』 1~3화는 세 호스트(Codex·Claude·Grok)가 각각 각색하고 같은 이미지 모델로 그렸고, 『판결 LIVE』(사이버렉카 스릴러) 1~3화는 소설 집필과 웹툰 각색을 Claude Opus 5.5가, 이미지 생성을 Codex(gpt-image-2.5-sunburst)가 맡았습니다. 검토 판정·프롬프트·비용까지 [작품 목록](https://fbwndrud.github.io/vibelore/showcase/), [길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)·[모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html), [판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)에서 가감 없이 볼 수 있습니다.</sub>
 
 ---
 
