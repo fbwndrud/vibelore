@@ -28,6 +28,12 @@
   `intrinsic.ageBand` ("early twenties") is now reviewed as work-language text
   instead of being exempt as an enum; only the `unknown` default stays machine.
   A new test derives the fields from the live generator prompt schemas.
+- Review-mode StoryProfiles no longer fail the language gate for every non-`ko`
+  work because of a fixed English "Reading difficulty" question. The model now
+  writes that open question in the work language like the others, and it is
+  reviewed as generated text. When the model omits it, the host inserts its
+  static `ko`/`en` question, which is bound to the approval hash but is not a
+  work-language artifact.
 
 ### Existing Korean works: what changes in `lore_write`
 

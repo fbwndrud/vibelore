@@ -148,15 +148,28 @@ export function normalizeStoryProfile(profile) {
   };
 }
 
-function ensureReadabilityQuestion(review, readability, mode, kit) {
-  if (mode !== 'review' || readability.confirmedByUser) return review;
-  const question = {
+/**
+ * 읽기 난도 질문도 다른 열린 질문처럼 모델이 작품 언어로 쓴다. 모델이 같은 id 로 제목·질문·
+ * 추천을 모두 쓴 경우 그 질문을 그대로 쓰고, 빠뜨린 경우에만 호스트의 정적 ko/en 질문을
+ * 넣는다(정적 문구는 작품 언어 산출물이 아니므로 승인 언어 검토에서 digest 로만 묶인다,
+ * 2026-09-24 ar/zh-Hant/th 표본). 질문이 필요 없으면 남은 같은 id 질문을 뺀다.
+ */
+function ensureReadabilityQuestion(review, readability, mode, kit, rawReview) {
+  const withoutRequired = review.openQuestions.filter((item) => item.id !== READABILITY_QUESTION_ID);
+  if (mode !== 'review' || readability.confirmedByUser) {
+    return withoutRequired.length === review.openQuestions.length ? review : { ...review, openQuestions: withoutRequired };
+  }
+  const raw = (Array.isArray(rawReview?.openQuestions) ? rawReview.openQuestions : [])
+    .find((item) => String(item?.id ?? '').trim() === READABILITY_QUESTION_ID);
+  const generated = ['title', 'question', 'recommendation'].every((key) => typeof raw?.[key] === 'string' && raw[key].trim())
+    ? review.openQuestions.find((item) => item.id === READABILITY_QUESTION_ID)
+    : null;
+  const question = generated ?? {
       id: READABILITY_QUESTION_ID,
       title: kit.phrases.profile.readabilityQuestionTitle,
       question: kit.phrases.profile.readabilityQuestion,
       recommendation: kit.phrases.profile.readabilityRecommendation,
     };
-  const withoutRequired = review.openQuestions.filter((item) => item.id !== READABILITY_QUESTION_ID);
   const openQuestions = [...withoutRequired.slice(0, 4), question];
   return {
     ...review,
@@ -366,6 +379,7 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
     profile.readabilityContract,
     mode,
     kit,
+    obj.designReview,
   );
   const approvalResolution = await resolveWorkLanguage({ store, workId, foundation, profile, requested: profile.language, length: profile.format.length });
   const approval = await gateApprovalActivation({ store, workId, kind: 'profile', value: profile, providers, resolution: approvalResolution, retryValidation });

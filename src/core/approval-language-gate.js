@@ -9,6 +9,8 @@ import { resolveWorkLanguage } from './work-language.js';
 import { createPublicationUnit } from './publication-unit.js';
 import { createGenreProfileRegistry } from '../../engine/src/continuity/genre-profile.js';
 import { CHARACTER_ARC_BEATS } from '../../engine/src/continuity/character-arc.js';
+import { phrases as koPhrases } from '../prompts/ko.js';
+import { phrases as multilingualPhrases } from '../prompts/multilingual.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const MAX_ATTEMPTS = 3;
@@ -50,9 +52,23 @@ function projectEntityAttributes(value) {
   return value;
 }
 
+// The host's static readability question (src/tools/story-profile.js) is ko/en host
+// text, not generated work-language prose (docs/MULTILINGUAL_PLAN.md: static host
+// messages are ko/en). Only the exact static text is exempt; the reviewer sees its
+// digest and the hash still binds the value. A model-written question under the same
+// id is generated text and is reviewed like every other open question.
+const HOST_READABILITY_QUESTIONS = [koPhrases, multilingualPhrases].map(({ profile }) => JSON.stringify({
+  id: 'reading-experience-contract', title: profile.readabilityQuestionTitle,
+  question: profile.readabilityQuestion, recommendation: profile.readabilityRecommendation,
+}));
+const isHostReadabilityQuestion = (value, path) => path.at(-1) === 'openQuestions' && path.at(-2) === 'designReview'
+  && Object.keys(value).length === 4 && HOST_READABILITY_QUESTIONS.includes(JSON.stringify({
+    id: value.id, title: value.title, question: value.question, recommendation: value.recommendation }));
+
 export function projectApprovalValue(value, path = []) {
   if (Array.isArray(value)) return value.map(item => projectApprovalValue(item, path));
   if (!value || typeof value !== 'object') return value;
+  if (isHostReadabilityQuestion(value, path)) return { id: hash(value) };
   const out = {};
   for (const [key, item] of Object.entries(value)) {
     if (CONTROL.has(key) || item === undefined) continue;
