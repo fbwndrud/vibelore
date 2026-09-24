@@ -40,22 +40,33 @@ through the same contract validation gate as other languages.
 - **`clean_fail` and `retryValidation`.** When the budget runs out the draft is
   kept. A bare `lore_write` returns the same `clean_fail` without calling a
   model; `lore_write(retryValidation=true)` re-checks the kept draft in a new
-  epoch. When only canon, plans or the contract changed after the check (an
-  arc or episode plan edit, `STALE_WORK_CONTRACT`, or a hand edit published
-  with `lore_sync`), a bare `lore_write` re-validates the same kept prose under
-  the current contract instead of drafting again. This applies to a
-  `clean_fail` draft and to a guided draft waiting for approval. The old
-  receipt and approval are void; the re-check issues a fresh receipt with a
-  fresh three-attempt budget, repairs hard violations within that budget, and
-  then asks for approval (`guided`) or commits (`auto`) as usual. Only
-  `lore_write` with a new `instruction` drafts the chapter again. Either way
-  the check runs in a new workflow: the old one stays in the history as
-  `clean_fail`, marked `workflow_superseded` (with `mode: revalidate` or
-  `redraft`), and the new one records the inherited prose as
-  `inheritedDraft.proseHash`. If nothing changed, `lore_write` returns the kept
-  draft without calling a model.
-- **`lore_workflow_inspect` shows the kept draft.** It now returns the kept or
-  parked draft prose as `draftProse`.
+  epoch.
+- **Re-validation instead of redrafting.** When only canon, plans or the
+  contract changed after the check (an arc or episode plan edit,
+  `STALE_WORK_CONTRACT`, or a hand edit published with `lore_sync`),
+  `lore_write` (bare or with `retryValidation=true`) re-validates the same kept
+  prose under the current contract instead of drafting again.
+  - It covers a `clean_fail` draft, a guided draft waiting for approval, and a
+    `ready_to_commit` draft whose auto-commit failed.
+  - The old receipt and approval are void. The re-check issues a fresh receipt
+    with a fresh three-attempt budget (also for a `clean_fail` that had spent
+    its budget), repairs hard violations within that budget, then asks for
+    approval (`guided`) or commits (`auto`) as usual.
+  - A draft that was waiting for the user's decision stays `guided` even when
+    the call asks for `auto`; the fresh receipt goes through `lore_decide`.
+  - A pending `lore_decide(action="request_revision")` feedback is carried
+    over: the new workflow applies that revision to the kept draft under the
+    current contract.
+  - `lore_write` drafts the chapter again only with a new `instruction`, or
+    when the kept draft no longer exists.
+  - The check runs in a new workflow. The old one stays in the history as
+    `clean_fail`, marked `workflow_superseded` (`mode`: `revalidate`,
+    `revise` or `redraft`); the new one records the inherited prose as
+    `inheritedDraft.proseHash`. If nothing changed, `lore_write` returns the
+    kept draft without calling a model.
+- **`lore_workflow_inspect` can show the kept draft.** With `detail="full"` it
+  returns the kept or parked draft prose as `draftProse`; the default
+  `detail="summary"` leaves it out.
 - **New checks.** Each chapter gets a language-compliance request and a
   generated title, and the detector plan adds `scanStyle`,
   `scanSentenceStats`, `scanEntityMentions`, and, where they apply,

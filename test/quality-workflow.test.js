@@ -96,6 +96,26 @@ describe('first-draft quality through the writing workflow', () => {
   }
 });
 
+describe('the batched boundary request is not a validation answer', () => {
+  it('a boundary transport error during the check spends no validation budget and is asked again after it', async () => {
+    const { loadValidationSession } = await import('../src/core/validation-context.js');
+    const store = await qualityStore();
+    let boundaryCalls = 0;
+    const providers = { async complete(req) {
+      const contract = contractResponse(req); if (contract) return contract;
+      if (req.step === 'narrative-boundary' && ++boundaryCalls === 1) throw new Error('socket hang up');
+      return { text: outputs[req.step] ?? '{}' };
+    } };
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers });
+    assert.equal(result.status, 'completed', JSON.stringify(result));
+    assert.equal(boundaryCalls, 2);
+    assert.equal(result.boundary.reason, '첫 사건이 끝났다.');
+    const session = await loadValidationSession(store, workId, `workflow-${result.workflowId}`);
+    assert.equal(session.failures, 0);
+    assert.equal(session.epoch, 1);
+  });
+});
+
 describe('host round trips are batched by dependency', () => {
   async function replayWithRelay(store, autonomy = 'auto', { repeatEachPass = false } = {}) {
     const { createPreflightRelay } = await import('../src/provider/host-relay.js');

@@ -58,7 +58,7 @@ flowchart TD
 |---|---|---|
 | `needs_model` | 호스트 모델 작업 대기 | request별 답을 만들어 `lore_resume` |
 | `CRITIC_INCOMPLETE` | 필수 검토 실패·불완전 응답·시간 초과 | 보존된 원고와 검토 기록을 보여주고 `lore_decide`로 승인·수정 요청·보류 |
-| `clean_fail` | 최대 3회 수정 또는 검사 예산 3회 후 필수 gate 실패 | inspect로 위반과 `draftProse` 확인, 같은 원고 재검사는 `retryValidation=true`, 계획·계약 수정이나 `lore_sync` 뒤에는 인자 없는 `lore_write`가 같은 원고를 재검사, 새 초고는 좁힌 `instruction`으로 `lore_write` |
+| `clean_fail` | 최대 3회 수정 또는 검사 예산 3회 후 필수 gate 실패 | inspect로 위반 확인(`detail="full"`이면 `draftProse` 포함), 같은 원고 재검사는 `retryValidation=true`, 계획·계약 수정이나 `lore_sync` 뒤에는 `lore_write`가 같은 원고를 재검사, 새 초고는 좁힌 `instruction`으로 `lore_write` |
 | 활성 ArcPlan 없음 | 본문보다 아크가 먼저 필요 | `lore_arc_plan(review)` 후 승인 |
 | profile/spine/skill 없음 | 작품 설계 단계 누락 | 해당 status 확인 후 누락 단계 생성 |
 | stale HEAD 또는 identity | 실행 중 정본·계획 변경 | 기존 영수증·승인 폐기, 보존 원고를 최신 계약으로 재검사(`lore_write`) |
@@ -109,28 +109,34 @@ flowchart LR
 `clean_fail` 원고는 workflow에 보존됩니다. 인자 없이 `lore_write`를 다시 부르면 모델을
 호출하지 않고 같은 `clean_fail`을 돌려줍니다.
 
-1. `lore_workflow_inspect`로 hard violation과 점수, 보존 원고(`draftProse`)를 확인합니다.
+1. `lore_workflow_inspect`로 hard violation과 점수를 확인합니다. 보존 원고는
+   `detail="full"`일 때 `draftProse`로 함께 옵니다.
 2. 분량, 정본 충돌, 아크 의무 누락 중 원인을 분리합니다.
 3. 원고와 계약을 그대로 두고 검사만 다시 받으려면 `lore_write(retryValidation=true)`를 씁니다.
-   새 검사 epoch와 3회 예산으로 같은 원고를 검사합니다. 계획·계약이 바뀌어 검사 기준이
-   낡았다면 `STALE_WORK_CONTRACT`와 함께 4의 재검사 안내를 돌려줍니다.
+   새 검사 epoch와 3회 예산으로 같은 원고를 검사합니다. 계획·계약이 바뀌었다면 4와 같이 동작합니다.
 4. 아크나 회차 계획을 고쳤거나, 손수정을 `lore_sync`로 발행했거나(`WORKING_TREE_DRIFT` 뒤),
-   `STALE_WORK_CONTRACT`를 받았다면 인자 없이 `lore_write`를 부릅니다. 새 초고 없이 같은
-   원고를 현재 정본·계약으로 다시 검사합니다. 이전 영수증과 승인은 무효이며, 새 영수증과 3회
-   예산으로 검사하고 hard 위반은 예산 안에서 최소 수정합니다. 통과하면 `guided`는 다시 승인을
-   묻고 `auto`는 커밋합니다. 승인 대기 중이던 guided 원고도 같습니다.
+   `STALE_WORK_CONTRACT`를 받았다면 `lore_write`를 다시 부릅니다(`retryValidation`은 있어도
+   없어도 됩니다). 새 초고 없이 같은 원고를 현재 정본·계약으로 다시 검사합니다.
+   - `clean_fail` 원고, 승인 대기 중인 guided 원고, 자동 커밋이 실패한 `ready_to_commit`
+     원고에 모두 적용됩니다.
+   - 이전 영수증과 승인은 무효입니다. 새 영수증과 새 3회 예산으로 검사하며(예산을 소진한
+     `clean_fail`도 새 예산을 받습니다), hard 위반은 예산 안에서 최소 수정합니다.
+   - 통과하면 `guided`는 다시 승인을 묻고 `auto`는 커밋합니다. 단, 사용자 승인을 기다리던
+     원고는 호출이 `auto`여도 `guided`로 유지되어 `lore_decide`를 거칩니다.
+   - `lore_decide(action="request_revision")`로 요청한 수정이 남아 있었다면 그 피드백을
+     새 workflow가 이어받아 보존 원고에 적용한 뒤 검사합니다.
 5. 사용자 의도가 바뀌었다면 좁힌 새 `instruction`으로 `lore_write`를 부릅니다. 새
-   `instruction`이 있을 때만 같은 화를 새 workflow에서 처음부터 다시 씁니다.
+   `instruction`이 있거나 보존 원고가 없을 때만 같은 화를 새 workflow에서 처음부터 다시 씁니다.
 6. 아크 자체가 문제라면 원고를 억지로 고치지 말고 아크 계획을 다시 검토한 뒤 4를 따릅니다.
 
 아무것도 바뀌지 않았다면 인자 없는 `lore_write`는 모델을 부르지 않고 보존 원고를 그대로
 돌려줍니다.
 
-재검사와 새 초고는 모두 새 workflow에서 진행하며 이전 workflow를 지우지 않습니다. 이전
-workflow는 `clean_fail`로 남고 이벤트 기록에 `workflow_superseded`(`mode`: `revalidate` 또는
-`redraft`)가 붙습니다. 새 workflow의 `supersedes`가 이전 ID를 가리키고, 재검사라면
-`inheritedDraft.proseHash`가 물려받은 원고를 가리키므로 `lore_workflow_history(workflowId=...)`로
-두 시도를 모두 감사할 수 있습니다.
+재검사·수정 이어받기·새 초고는 모두 새 workflow에서 진행하며 이전 workflow를 지우지 않습니다.
+이전 workflow는 `clean_fail`로 남고 이벤트 기록에 `workflow_superseded`(`mode`: `revalidate`,
+`revise` 또는 `redraft`)가 붙습니다. 새 workflow의 `supersedes`가 이전 ID를 가리키고, 원고를
+물려받았다면 `inheritedDraft.proseHash`가 그 원고를 가리키므로
+`lore_workflow_history(workflowId=...)`로 두 시도를 모두 감사할 수 있습니다.
 
 ## 앞 화 수정
 

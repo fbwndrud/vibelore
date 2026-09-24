@@ -10,10 +10,12 @@ import { contractResponse } from './fixtures/contract-response.js';
 // continuity-check answers with an unbound '{}' until `healthy` is set, which
 // spends the three-attempt validation budget and parks the draft as clean_fail.
 function scriptedProviders() {
-  const state = { healthy: false, drafts: 0, steps: [] };
+  const state = { healthy: false, drafts: 0, steps: [], requests: [] };
   state.providers = { pending: [], async complete(req) {
     state.steps.push(req.step);
+    state.requests.push(req);
     if (req.step === 'draft') state.drafts += 1;
+    if (req.step === 'revise') return { text: JSON.stringify({ replacements: [{ paragraph: 1, text: '윤재는 입구의 표시를 확인하며 마지막 선택의 대가를 떠올렸다.' }] }) };
     if (req.step === 'continuity-check' && !state.healthy) return { text: '{}' };
     return contractResponse(req) ?? { text: outputs[req.step] ?? '{}' };
   } };
@@ -55,19 +57,15 @@ async function assertRevalidated(store, failedId, keptProse, mode) {
   return current;
 }
 
-test('after an arc-plan edit, retryValidation reports the stale contract and a bare lore_write re-validates the kept draft', async () => {
+test('after an arc-plan edit, retryValidation re-validates the kept draft under the current contract', async () => {
   const { store, model, failedId } = await cleanFailedStore();
   const kept = (await store.loadWorkflow(workId)).draftProse;
   const arc = await store.loadArcPlan(workId);
   await store.saveArcPlan(workId, { ...arc, episodes: arc.episodes.map((episode) => episode.chapter === 1 ? { ...episode, beat: '문을 열고 안을 둘러본다' } : episode) });
 
-  const retried = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers, retryValidation: true });
-  assert.equal(retried.code, 'STALE_WORK_CONTRACT', JSON.stringify(retried));
-  assert.match(retried.nextAction, /retryValidation/);
-
   model.healthy = true;
   const draftsBefore = model.drafts;
-  const fresh = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers });
+  const fresh = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers, retryValidation: true });
   assert.equal(fresh.status, 'completed', JSON.stringify(fresh));
   assert.equal(model.drafts, draftsBefore);
   await assertRevalidated(store, failedId, kept, 'revalidate');
@@ -109,7 +107,9 @@ test('a new instruction after clean_fail starts a fresh draft; a bare lore_write
 test('lore_workflow_inspect returns the kept clean_fail draft prose', async () => {
   const { store } = await cleanFailedStore();
   const kept = (await store.loadWorkflow(workId)).draftProse;
-  const inspected = await runWorkflowInspect({ store, workId });
+  const summary = await runWorkflowInspect({ store, workId });
+  assert.equal(summary.draftProse, undefined, 'summary detail omits the prose');
+  const inspected = await runWorkflowInspect({ store, workId, detail: 'full' });
   assert.equal(inspected.draftProse, kept);
   assert.equal(inspected.workflow.draftProse, undefined);
 });
@@ -162,8 +162,10 @@ test('a hand edit during approval, then lore_sync, lets lore_write re-validate t
   await runSyncStatus({ store, workId, action: 'apply', approvalId: validated.approvalId, providers: model.providers });
 
   const draftsBefore = model.drafts;
-  const fresh = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: model.providers });
+  // The draft was waiting for the user's decision: an auto call must not commit it.
+  const fresh = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers });
   assert.equal(fresh.status, 'awaiting_approval', JSON.stringify(fresh));
+  assert.equal((await store.loadWorkflow(workId)).autonomy, 'guided');
   assert.equal(fresh.chapter, 2);
   assert.notEqual(fresh.workflowId, parkedId);
   assert.equal(model.drafts, draftsBefore);
@@ -206,7 +208,7 @@ test('a plan edit during guided approval re-validates the same prose without a d
   assert.equal(receipt.workflowId, current.workflowId);
   assert.equal((await store.loadCheckReceipt(workId, oldCheckId)).stale, true);
   await assert.rejects(runWorkflowDecide({ store, workId, approvalId: guided.approvalId, action: 'approve', providers: model.providers }));
-  const inspected = await runWorkflowInspect({ store, workId });
+  const inspected = await runWorkflowInspect({ store, workId, detail: 'full' });
   assert.equal(inspected.draftProse, guided.prose);
   const approved = await runWorkflowDecide({ store, workId, approvalId: fresh.approvalId, action: 'approve', providers: model.providers });
   assert.equal(approved.status, 'completed', JSON.stringify(approved));
@@ -228,7 +230,8 @@ test('through the host relay, re-validation after a plan edit supersedes once an
   let result;
   for (let pass = 0; pass < 12; pass += 1) {
     const relay = createPreflightRelay(answers);
-    result = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: relay });
+    // Every resumed pass asks for auto; the draft waited for approval, so it stays guided.
+    result = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: relay });
     successors.add((await store.loadWorkflow(workId)).workflowId);
     if (!relay.pending.length) break;
     passes.push(relay.pending.map((req) => req.step));
@@ -243,4 +246,68 @@ test('through the host relay, re-validation after a plan edit supersedes once an
   assert.ok(!passes.flat().includes('draft'), JSON.stringify(passes));
   assert.equal(passes.length, 4, JSON.stringify(passes));
   assert.deepEqual(passes.at(-1), ['language-contract']);
+});
+
+test('a plan edit never lets an auto call commit a draft that was waiting for approval', async () => {
+  const store = await qualityStore();
+  const model = scriptedProviders();
+  model.healthy = true;
+  const guided = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: model.providers });
+  assert.equal(guided.status, 'awaiting_approval', JSON.stringify(guided));
+  const plan = await store.loadEpisodePlan(workId, 1);
+  await store.saveEpisodePlan(workId, { ...plan, premise: '지도에서 본 길을 찾아 문을 연다' });
+  const fresh = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers });
+  assert.equal(fresh.status, 'awaiting_approval', JSON.stringify(fresh));
+  const current = await assertRevalidated(store, guided.workflowId, guided.prose, 'revalidate');
+  assert.equal(current.autonomy, 'guided');
+  assert.deepEqual(await store.listChapters(), []);
+  const approved = await runWorkflowDecide({ store, workId, approvalId: fresh.approvalId, action: 'approve', providers: model.providers });
+  assert.equal(approved.status, 'completed', JSON.stringify(approved));
+});
+
+test('pending user revision feedback survives a plan edit and is applied to the kept draft', async () => {
+  const store = await qualityStore();
+  const model = scriptedProviders();
+  model.healthy = true;
+  const guided = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: model.providers });
+  assert.equal(guided.status, 'awaiting_approval', JSON.stringify(guided));
+  const feedback = '마지막 선택의 대가를 장면으로 보여줘.';
+  await runWorkflowDecide({ store, workId, approvalId: guided.approvalId, action: 'request_revision', feedback, providers: model.providers });
+  const plan = await store.loadEpisodePlan(workId, 1);
+  await store.saveEpisodePlan(workId, { ...plan, premise: '지도에서 본 길을 찾아 문을 연다' });
+
+  const stepsBefore = model.steps.length;
+  const fresh = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers });
+  assert.equal(fresh.status, 'awaiting_approval', JSON.stringify(fresh));
+  const asked = model.requests.slice(stepsBefore);
+  assert.ok(!asked.some((req) => req.step === 'draft'), JSON.stringify(asked.map((req) => req.step)));
+  const revise = asked.find((req) => req.step === 'revise');
+  assert.ok(revise, JSON.stringify(asked.map((req) => req.step)));
+  assert.match(revise.messages.map((m) => m.content).join('\n'), /마지막 선택의 대가/);
+  assert.match(fresh.prose, /마지막 선택의 대가를 떠올렸다/);
+  assert.notEqual(fresh.prose, guided.prose);
+  const { current } = await assertSuperseded(store, guided.workflowId);
+  assert.equal(current.revisionFeedback, feedback);
+  assert.equal(current.autonomy, 'guided');
+  assert.deepEqual(current.inheritedDraft, { workflowId: guided.workflowId, proseHash: proseHash(guided.prose) });
+  const history = await runWorkflowHistory({ store, workId, workflowId: guided.workflowId });
+  assert.equal(history.events.find((event) => event.event === 'workflow_superseded').mode, 'revise');
+});
+
+test('a ready_to_commit draft whose auto-commit failed is re-validated after a plan edit', async () => {
+  const store = await qualityStore();
+  const model = scriptedProviders();
+  model.healthy = true;
+  const guided = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: model.providers });
+  const parked = await store.loadWorkflow(workId);
+  // Simulate an auto run whose commit step failed after the receipt was issued.
+  await store.saveWorkflow(workId, { ...parked, autonomy: 'auto', stage: 'ready_to_commit', approvalId: undefined });
+  const plan = await store.loadEpisodePlan(workId, 1);
+  await store.saveEpisodePlan(workId, { ...plan, premise: '지도에서 본 길을 찾아 문을 연다' });
+  const draftsBefore = model.drafts;
+  const fresh = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: model.providers });
+  assert.equal(fresh.status, 'completed', JSON.stringify(fresh));
+  assert.equal(model.drafts, draftsBefore);
+  await assertRevalidated(store, parked.workflowId, guided.prose, 'revalidate');
+  assert.equal((await store.loadCheckReceipt(workId, parked.checkId)).stale, true);
 });

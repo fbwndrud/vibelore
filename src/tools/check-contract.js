@@ -221,7 +221,9 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       // workflow's narrative boundary) into this round trip. They go through
       // the raw provider: they are not judged validation answers, and the
       // caller asks them again for their real result once the check passes.
-      if (metadataCompanion) await queued(() => metadataCompanion(providers));
+      // So no failure of theirs (transport error included) may reach the
+      // catch-all below and spend the validation budget.
+      if (metadataCompanion) { try { await metadataCompanion(providers); } catch { /* re-asked after the check */ } }
       if (metadataPending) return preview();
       if (!preparedTitle) preparedTitle = JSON.parse(titleResponse.text).title;
       if (generated) {

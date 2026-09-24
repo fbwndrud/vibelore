@@ -401,7 +401,7 @@ const TOOLS = [
   },
   {
     name: 'lore_workflow_inspect',
-    description: '특정 또는 현재 워크플로의 상세 상태를 확인한다. 소설은 보존·승인 대기 원고(draftProse)와 검사 영수증을 포함하고 모델 응답은 제외한다. lane=webtoon의 full은 원작·계획 상세를 포함할 수 있으므로 필요한 경우만 사용한다.',
+    description: '특정 또는 현재 워크플로의 상세 상태를 확인한다. 소설은 상세 상태와 검사 영수증을 주고, detail=full일 때만 보존·승인 대기 원고(draftProse)를 포함한다. 모델 응답은 제외한다. lane=webtoon의 full은 원작·계획 상세를 포함할 수 있으므로 필요한 경우만 사용한다.',
     inputSchema: { type: 'object', properties: { ...projectArg, lane: { type: 'string', enum: ['prose', 'webtoon'] }, workflowId: { type: 'string' }, detail: { type: 'string', enum: ['summary', 'full'] } }, required: ['workId'] },
   },
   {
@@ -664,7 +664,7 @@ async function dispatchTool(store, name, args) {
     case 'lore_workflow_history':
       return { status: 'ok', ...(await runWorkflowHistory({ store, workId: args.workId, workflowId: args.workflowId, limit: args.limit, includeModelExchanges: args.includeModelExchanges })) };
     case 'lore_workflow_inspect':
-      return { status: 'ok', ...(await runWorkflowInspect({ store, workId: args.workId, workflowId: args.workflowId })) };
+      return { status: 'ok', ...(await runWorkflowInspect({ store, workId: args.workId, workflowId: args.workflowId, detail: args.detail })) };
     case 'lore_resume': {
       const run = await loadRun(store.rootDir, args.runId);
       if (!run) throw new Error(`runId "${args.runId}" 를 찾을 수 없습니다 (만료됐거나 이미 완료됨).`);
