@@ -12,8 +12,20 @@ const parse = (value) => {
   catch { return null; }
 };
 
+const DEFAULT_REVIEW_TIMEOUT_MS = 45000;
+
+/**
+ * Review timeout for one advisory request. 45s suits the host relay (where
+ * `complete()` returns at once) and fast local models; an API provider with
+ * thinking enabled may need more, so `VIBELORE_REVIEW_TIMEOUT_MS` raises it.
+ */
+export function reviewTimeoutMs(env = process.env) {
+  const value = Number.parseInt(env.VIBELORE_REVIEW_TIMEOUT_MS ?? '', 10);
+  return Number.isSafeInteger(value) && value > 0 ? value : DEFAULT_REVIEW_TIMEOUT_MS;
+}
+
 /** One review attempt: retain evidence independently of publication policy. */
-export function createReviewAudit({ providers, prose, chapter, contractDigest, saveExchange, timeoutMs = 45000 }) {
+export function createReviewAudit({ providers, prose, chapter, contractDigest, saveExchange, timeoutMs = DEFAULT_REVIEW_TIMEOUT_MS }) {
   const records = [];
   const binding = { chapter, proseHash: hash(prose), contractDigest };
   const auditedProvider = {
