@@ -48,12 +48,13 @@ test('coverage IDs alone, missing edge, stale evidence and unseen visuals do not
     { ...valid, inspectedImages: false }, { ...valid, observations: [{ shotId: 'a', verdict: 'clear', evidence: '' }] }]) assert.equal(validateSegmentReview(bad, packet), false);
 });
 
-function segmentedProvider() {
+function segmentedProvider({ omitTextPolicy = false } = {}) {
   let full;
   return provider({ response: (r, d) => {
     if (r.step === 'webtoon-plan-outline') {
       full = plan(d.source);
-      return { ...full, sequences: full.sequences[0].shots.map((s, i) => ({ id: `seq${i}`, purpose: 'fixture scene',
+      const { textPolicyVersion, ...header } = full;
+      return { ...(omitTextPolicy ? header : full), sequences: full.sequences[0].shots.map((s, i) => ({ id: `seq${i}`, purpose: 'fixture scene',
         sourceIds: s.sourceIds, entryState: 'before', exitState: 'after' })) };
     }
     if (r.step === 'webtoon-plan-part') {
@@ -89,6 +90,19 @@ test('real workflow splits drafting and reviews while preserving existing approv
   assert.ok(visual.every(d => !d.contract && !d.artifacts));
   assert.deepEqual(await readFile(store.chapterPath(1)), before);
   assert.equal((await new WebtoonStore(store).load()).segmentDraft.outline.sequences.length, 2);
+});
+
+test('segmented plan keeps the workflow text policy when the outline omits it', async () => {
+  const store = await webtoonStore(), p = segmentedProvider({ omitTextPolicy: true });
+  const call = (name, args = {}) => runWebtoonTool({ store, toolName: `lore_webtoon_${name}`, args: { workId, ...args }, providers: p });
+  let r = await call('plan', { segmented: true, imageModel: 'gpt-image-2', responses: answers });
+  r = await call('decide', { workflowId: r.workflowId, approvalId: r.approvalId, action: 'approve' });
+  assert.equal(r.approval.kind, 'plan');
+  const saved = await new WebtoonStore(store).load();
+  assert.equal(saved.plan.textPolicyVersion, saved.textPolicyVersion);
+  const part = JSON.parse(p.requests.find(r => r.step === 'webtoon-plan-part').messages.at(-1).content);
+  assert.equal(part.maxShotsThisPart, Math.min(6, part.remainingShots - 1));
+  assert.ok(part.layout.height && part.layout.gapAfter);
 });
 
 test('actual host relay persists part progress across request IDs and rejects stale runs', async () => {

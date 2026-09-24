@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Keep `textPolicyVersion` through segmented webtoon plan assembly; the outline
+  probe and part checks now use the same scope as the final plan check, and
+  plan-part requests state a per-part shot cap and layout bounds.
+- Make the advisory review timeout configurable with
+  `VIBELORE_REVIEW_TIMEOUT_MS` (default 45s). It only applies when the server
+  calls a local adapter itself; the host relay is unaffected.
+
 ## 0.3.7 — 2026-09-22
 
 - Raise the writer packet ceiling from 1400 to 4000 token units and share the

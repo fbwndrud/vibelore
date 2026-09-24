@@ -33,6 +33,8 @@ export const segmentSource = (w, ids) => ({ hash: w.source.hash,
   units: w.source.units.filter(u => ids.includes(u.id)), foundation: w.source.foundation,
   chapters: w.source.chapters.map(({ chapter, beforeState, afterState }) => ({ chapter, beforeState, afterState })) });
 
+const planScope = w => (w.textPolicyVersion ? { ...w.scope, textPolicyVersion: w.textPolicyVersion } : w.scope);
+
 export async function generateSegmentedPlan(w, call) {
   w.segmentDraft ??= { parts: {} };
   const draft = w.segmentDraft;
@@ -53,16 +55,19 @@ export async function generateSegmentedPlan(w, call) {
     }
     const retained = w.editorial.beats.filter(b => ['expand', 'condense'].includes(b.decision)).flatMap(b => b.sourceIds);
     if (assigned.size !== retained.length || retained.some(id => !assigned.has(id))) throw new Error('SEGMENT_OUTLINE_SOURCE_COVERAGE');
+    // textPolicyVersion is workflow metadata, not model output; stamp it and validate with the final check's scope.
+    if (w.textPolicyVersion) response.textPolicyVersion = w.textPolicyVersion;
     const probe = { ...response, sequences: [{ id: 'outline-probe', purpose: 'Header validation only', shots: [{
       id: 'outline-probe-shot', sourceIds: [retained[0]], characters: [], environmentId: response.visualBible?.environments?.[0]?.id,
       storyTime: 'validation', visualState: 'validation', action: 'validation', knowledgeBefore: [], knowledgeAfter: [], texts: [], height: 640, gapAfter: 0 }] }] };
-    if (!nonempty(response.panelCountReason) || validateWebtoonPlan(probe, w.source, w.scope).length) throw new Error('SEGMENT_OUTLINE_INVALID');
+    if (!nonempty(response.panelCountReason) || validateWebtoonPlan(probe, w.source, planScope(w)).length) throw new Error('SEGMENT_OUTLINE_INVALID');
     draft.outline = response;
   }
   const outline = draft.outline;
   for (let index = 0; index < outline.sequences.length; index++) {
     const seq = outline.sequences[index];
     if (draft.parts[seq.id]) continue;
+    const remainingShots = w.scope.maxShots - Object.values(draft.parts).flatMap(p => p.shots).length;
     const previous = draft.parts[outline.sequences[index - 1]?.id]?.shots.slice(-2) ?? [];
     const response = await call('webtoon-plan-part',
       '이번 장면만 1~6컷으로 각색한다. 공통 방향과 전체 개요는 바꾸지 않는다. 원문을 그대로 모두 그리지 말고 동기→선택→결과가 읽히는 순간을 고른다. 소품을 남기면 왜 만지는지 드러내고, 지시 대사는 서로 다른 대상을 구별할 시각 증거를 넣는다. 앞 장면의 끝과 다음 장면의 입장 상태를 연결한다. 컷 ID는 sequenceId를 접두사로 사용한다. 실제 대사를 작성한다. 원작을 모르는 독자의 이해를 점검한다.',
@@ -71,18 +76,19 @@ export async function generateSegmentedPlan(w, call) {
         source: segmentSource(w, seq.sourceIds), editorial: w.editorial.beats.filter(b => b.sourceIds.some(id => seq.sourceIds.includes(id))),
         sourceReferences: { note: '설계 때 읽은 전체 문서가 필요하면 sourceId/documentId로 원문을 다시 확인한다. 생략된 문서를 추측하지 않는다.',
           documents: w.source.documents?.map(({ id, path, hash }) => ({ id, path, hash })) },
-        remainingShots: w.scope.maxShots - Object.values(draft.parts).flatMap(p => p.shots).length,
+        remainingShots, maxShotsThisPart: Math.min(SEGMENT_SIZE, remainingShots - (outline.sequences.length - index - 1)),
+        layout: { height: '240~2400 정수', gapAfter: '0~1600 정수' },
         schema: { sequenceId: seq.id, shots: [{ ...PLAN_SCHEMA.sequences[0].shots[0], beatIds: ['beat-id'], purpose: '컷 목적', readerDelta: '독자 변화' }] } });
     if (!response || response.pending) return response;
     if (response.sequenceId !== seq.id || !Array.isArray(response.shots) || !response.shots.length || response.shots.length > SEGMENT_SIZE
       || response.shots.some(s => !s || !s.id?.startsWith(`${seq.id}-`) || !Array.isArray(s.sourceIds) || s.sourceIds.some(id => !seq.sourceIds.includes(id)))) throw new Error('SEGMENT_PART_INVALID');
     const candidate = { ...outline, sequences: [{ id: seq.id, purpose: seq.purpose, shots: response.shots }] };
-    if (validateWebtoonPlan(candidate, w.source, w.scope).length) throw new Error('SEGMENT_PART_INVALID');
+    if (validateWebtoonPlan(candidate, w.source, planScope(w)).length) throw new Error('SEGMENT_PART_INVALID');
     const count = Object.values(draft.parts).flatMap(p => p.shots).length + response.shots.length;
     if (count + outline.sequences.length - index - 1 > w.scope.maxShots) throw new Error('SEGMENT_SCOPE_EXCEEDED');
     draft.parts[seq.id] = response;
   }
-  return { ...outline, editorial: w.editorial,
+  return { ...outline, ...(w.textPolicyVersion ? { textPolicyVersion: w.textPolicyVersion } : {}), editorial: w.editorial,
     sequences: outline.sequences.map(s => ({ id: s.id, purpose: s.purpose, shots: draft.parts[s.id].shots })) };
 }
 

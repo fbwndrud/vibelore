@@ -25,7 +25,7 @@ import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../cor
 import { findLatestRun } from '../runs.js';
 import { normalizeWebnovelLayout } from './webnovel-format.js';
 import { evaluateChapterStyle, evaluateRevisionPreservation } from '../core/style-continuity.js';
-import { createReviewAudit, reviewFindingAdvisories } from '../core/review-audit.js';
+import { createReviewAudit, reviewFindingAdvisories, reviewTimeoutMs } from '../core/review-audit.js';
 import { compileDraftContract } from '../core/narrative-contract.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { normalizeModelProfile, withModelProfile } from '../core/model-profile.js';
@@ -341,7 +341,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const experienceLedger = await loadCurrentExperienceLedger({ store, workId });
     const patternLedger = experienceLedger.entries;
     const contract = compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter });
-    const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest,
+    const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(),
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
