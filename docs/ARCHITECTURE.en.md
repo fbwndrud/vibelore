@@ -15,12 +15,12 @@ For how to start see [Getting started](GETTING_STARTED.en.md); for webtoon usage
 flowchart TB
     U["User · requests and approvals"] <--> H["Connected AI · chat and tool execution"]
     H <--> V["vibelore MCP · work order and state management"]
-    H <--> G["Image generation tool or chosen image API"]
+    H <--> G["OpenAI image API chosen by the user"]
     V <--> N["Novel production · design → writing → checks"]
     V <--> W["Webtoon production · adaptation → English direction → pre-generation check → scene image → visual review"]
     N <--> C["Source files · world / characters / manuscript"]
     C -->|"copy and pin the chosen source version"| W
-    W --> O["Webtoon files · script / reference images / SVG·HTML"]
+    W --> O["Scene image · scene.html · plan/review JSON (.vibelore/webtoon)"]
     N <--> S["Local records · progress / review / approval / recovery"]
     W <--> S
 ```
@@ -192,8 +192,8 @@ work folder/
 ├── characters/     source character settings
 ├── chapters/       approved novel manuscript
 ├── summaries/      per-chapter summaries
-├── webtoon/        approved webtoon direction, script, reference images, finished results
-└── .vibelore/      progress, candidates, checks, approval records, recovery data
+├── webtoon/        approved direction, script, reference images, finished results of the per-panel path (deprecated)
+└── .vibelore/      progress, candidates, checks, approval records, recovery data, scene webtoon results (webtoon/candidates/)
 ```
 
 Approving a webtoon does not overwrite the novel's manuscript or established state. Rolling the novel back to an earlier point

@@ -18,15 +18,17 @@ This document does not guarantee quality rankings or speed for any model.
 
 ## How is the webtoon image model chosen?
 
-The AI first confirms the model, execution path and cost, and the choice you confirm is saved per work.
-The same choice is used for the next panels and chapters of that work.
+The default path (whole scene) uses only the OpenAI image API. The model is one of `gpt-image-2`, `gpt-image-2.5-sunburst` (default)
+and `gpt-image-2.5-flare`. When the first scene starts, the AI shows the model, execution path, separate billing and what gets sent,
+and your answer is saved as the choice for the work. The same choice is used for the next scenes and chapters of that work.
 
 | Execution path | What it needs | Who runs it |
 |---|---|---|
-| Host built-in image tool | A host environment where that tool is available, and its limits | The host AI |
-| Image API | A tool that can call the chosen model, a key, account permission and consent to separate billing | The host AI's API execution environment |
+| OpenAI image API | A tool that can call the chosen model, `OPENAI_API_KEY` in the execution environment, account permission and consent to separate billing | The host AI's API execution environment |
+| Host built-in image tool | Only for work already started on the per-panel path (deprecated) | The host AI |
 
-The vibelore server manages image requests, references, imports and approvals, and never calls an API directly.
+Every automatic redesign and every redraw you ask for is a new image call and costs money.
+The vibelore server manages image requests, references, imports and reviews, and never calls an API directly.
 The server accepting a model name does not mean your account can actually use it.
 Images are generated after the model and path are confirmed to be runnable. When a path can't run or a limit is exceeded,
 it does not switch to another model or a paid path automatically.

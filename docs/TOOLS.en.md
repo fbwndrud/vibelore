@@ -98,7 +98,7 @@ Language and continuity are required gates. A manuscript that fails a required g
 approval. Only when the required gates pass and just the critic fails or is incomplete
 is the path used that keeps the same manuscript waiting for approval with `CRITIC_INCOMPLETE`.
 
-Revisions are limited to 3. When they run out, it doesn't restart automatically; it ends with the manuscript kept, and to run validation again on the same
+Checks are limited to 3, with at most 2 minimal revisions between them. When the third check still fails (`clean_fail`), it doesn't restart automatically; it ends with the manuscript kept, and to run validation again on the same
 manuscript, state `retryValidation=true`. If the plan or contract changed after a kept or approval-pending manuscript
 was checked, or a hand edit was published with `lore_sync`, `lore_write` (with or without `retryValidation`)
 re-checks the same manuscript under the current contract (no new draft). A manuscript that was waiting for approval
@@ -163,8 +163,8 @@ such as the main genre pleasure, the current goal, the first concrete reward and
 A short idea can lead to 20-30 decisions over several rounds, but the number of questions is not a quota, and the interview ends when the important open decisions are gone.
 The questions are advisory, and the user can deliberately approve the current design.
 
-For web novel and web serial formats, `dialogueBreakMode=strict`, which normalizes dialogue into separate paragraphs, is the
-default. Only formats close to print can use `relaxed`.
+When `dialogueBreakMode` isn't stated, `ko` works default to `strict`, which normalizes dialogue into separate paragraphs, and other
+languages default to `natural`, the language's usual dialogue-plus-speaker-narration convention. `strict`, `relaxed` and `natural` can be chosen explicitly in the profile format.
 The StoryProfile's `readerLegibility` is a work-level principle that lets readers follow a scene's goal, the surface meaning of dialogue and the result
 without special knowledge, and `registerPolicy` is the standard for using precise times, figures and jargon where they are actually
 needed and choosing natural expressions in everyday scenes. Neither is a per-genre
@@ -177,7 +177,7 @@ at least once. When the user approves the profile, the current values are fixed 
 
 | Required | Optional |
 |---|---|
-| `workId`, `brief` | `project`, `mode: review\|auto`, `feedback`, `language` |
+| `workId`, `brief` | `project`, `mode: review\|auto`, `feedback`, `language`, `length` |
 
 ```json
 {
@@ -211,7 +211,7 @@ finishes.
 
 | Required | Optional |
 |---|---|
-| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `language` |
+| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `language`, `length` |
 
 ### `lore_story_plan`
 
@@ -362,7 +362,7 @@ Reads the plan, approval and completion state of a given chapter.
 
 ### `lore_write`
 
-Runs everything from the next chapter's plan through the draft, checks, up to 3 revisions, the receipt, and approval and commit.
+Runs everything from the next chapter's plan through the draft, checks (up to 3, with at most 2 revisions between them), the receipt, and approval and commit.
 
 | Required | Optional |
 |---|---|
@@ -397,7 +397,9 @@ on semantic advisories alone.
 
 Model requests are bundled by dependency. In the order chapter plan (one `episode-plan-repair` if an optional module is incomplete or it exceeds the Writer Packet budget) → draft → [state extraction, profile check, 5 reviews] → [semantic continuity check, arc review] →
 [boundary judgment, summary] → [language-compliance proof], the `requests` in one `needs_model` answer are independent of each other and can be answered
-in parallel. The chapter design in the draft prompt comes from the approved EpisodePlan, and there is no separate engine chapter-plan
+in parallel. A chapter without revisions takes 6 round trips including the plan and the draft; when the work has no story identity yet (usually chapter 1)
+its round trip, and chapter 1's pilot contract round trip, can be added. When the language-compliance proof fails (`OUTPUT_LANGUAGE_MISMATCH`), the next attempt
+first adds a mandatory prose revise or a `chapter-language-repair` round for the title or summary, and each failure uses one of the 3 checks. The chapter design in the draft prompt comes from the approved EpisodePlan, and there is no separate engine chapter-plan
 request.
 
 The approved work promise, tone and narration direction and up to two style examples go into the actual draft request.
@@ -426,7 +428,7 @@ also returns the `pendingRunId` to pass to `lore_resume`, so the same run can co
 
 | Required | Optional |
 |---|---|
-| `workId` | `project` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full` |
 
 ### `lore_workflow_history`
 
@@ -434,7 +436,7 @@ Reads stage transitions, checks, approvals and commit events in time order.
 
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `workflowId`, `limit`, `includeModelExchanges` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `limit`, `includeModelExchanges` |
 
 If `workflowId` is omitted it looks up the current workflow, and `limit` defaults to the last 100 events.
 `includeModelExchanges` is off by default. When `true`, it returns the actual draft and review requests and answers linked to the
@@ -455,7 +457,7 @@ answers are not exposed. For webtoons, choose the detail with `lane="webtoon"` a
 
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `workflowId`, `detail: summary\|full` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full` |
 
 ## Webtoon production
 
@@ -466,8 +468,9 @@ for the detailed flow see [WEBTOON_WORKFLOW.en.md](reference/WEBTOON_WORKFLOW.en
 
 The default path for new webtoon work. It generates a whole scene together with its dialogue, without roughs. For a new scene the user must choose `panelCount` as an integer (1-12) or `"auto"`; if it is missing, `needs_interview` suggests `[4, 6, 8, 9, "auto"]`. With `auto` the AI picks a suitable number of 3-12 panels anew for each adaptation, and the check, image and review after that are fixed to that number. Integers under 3 are allowed, but a continuity-loss warning is put in the response `warnings`. For a work with no confirmed image API choice, start returns `needs_image_choice`; put the user's own answer in `feedback` and confirm with `confirmImageChoice`. With `previousWorkflowId` it inherits the previous scene's actual image and review results and checks the continuity of characters, background and action. If the actual panel count differs from the choice, it doesn't complete. A new scene sends an image request only after the pre-generation check has settled a short `renderBrief` and a `drawability` judgment. The drawing model is not sent review reports or duplicate direction text. If the pre-generation check or the image review fails, it redesigns automatically `autoRevisions` times (start only, 0-3, default 2), using the observed defects as feedback, and issues a new image request. Failed attempts remain in the response `attempts`; with 0 it stops at `scene_needs_revision` as before.
 This separate path goes: pin the source range → unified English direction → pre-generation check → scene image → visual review of the actual image.
-It takes `action=start|revise|retry`, `sourceChapters`, `sourceUnitIds`, `direction`, `references` and `asset`.
-An existing approved image API choice is needed; `needs_model` uses `lore_resume` and lookups use `lane=webtoon`.
+It takes `action=start|revise|retry`, `workflowId`, `revision`, `sourceChapters`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
+`previousWorkflowId`, `autoRevisions`, `imageModel`, `confirmImageChoice`, `feedback` and `asset`.
+Without an image API choice, start returns `needs_image_choice`; `needs_model` uses `lore_resume` and lookups use `lane=webtoon`.
 `needs_scene_image` appears only after the pre-generation check passes, and only then is the API run.
 Imports whose source, reference or plan hash changed, and visual reviews that didn't open the image, are refused.
 For the detailed contract, see [Default path](reference/WEBTOON_WORKFLOW.en.md#default-path-whole-scene-production).
@@ -482,7 +485,7 @@ refused with `WEBTOON_PANEL_PATH_DEPRECATED`; it is used only to continue and lo
 | `workId` | `project`, `workflowId`, `revision`, `sourceChapters[]`, `episode`, `maxShots`, `mode`, `segmented`, `imageModel`, `direction`, `feedback`, `responses`, `retry`, `newWorkflow`, `adoptEdits` |
 
 It manages source pinning, the interview, direction approval, scene selection, and adaptation, review and plan approval.
-A new job's W04 art, W15 lettering and W16 page format need the user's choice even in auto.
+If a job in progress still has W04 art, W15 lettering or W16 page format open, they need the user's choice even in auto.
 `maxShots` is a cap, not a target panel count. `needs_interview` is a user answer, and
 `needs_model` a model answer sent with `lore_resume`. A page-format choice is kept as
 `needs_format_support` and stops.
@@ -497,14 +500,14 @@ Image and lettering progress on the per-panel path; not used for new work. It on
 
 `quality` is `references`, `preview` or `final`. After the model, path and cost are confirmed, the host
 runs only the returned jobs and imports them with the actual image path and the current `inputHash`. The server does not run a paid
-API directly. New jobs cannot receive final art without a full-panel plan with `continuityPlan.version=2`,
+API directly. Jobs with `continuityPlan.version=2` cannot receive final art without the full-panel plan,
 a review of the actual roughs and the user's storyboard approval.
 `continue`/anchor depends on a reviewed earlier image and `cut` can be generated in parallel from an approved rough, but
 both need a link review of the adjacent actual images.
 
 `revisionTarget:{kind:"lettering",shotIds:[...]}` with feedback is a lettering fix that keeps the art.
 A lettering failure resumes with this tool's `retry=true`. An impossible review is not reported as a pass.
-Nested image, rough and review schemas and examples follow the [webtoon guide](WEBTOON.en.md).
+Nested image, rough and review schemas and examples follow the [per-panel appendix of the webtoon execution contract](reference/WEBTOON_WORKFLOW.en.md#appendix-per-panel-path-deprecated).
 
 ### `lore_webtoon_decide` (deprecated)
 
@@ -542,7 +545,7 @@ Generates an unsaved draft.
 
 | Required | Optional |
 |---|---|
-| `workId`, `chapter` | `project`, `plan`, `targetChars`, `tension` |
+| `workId`, `chapter` | `project`, `plan`, `targetChars`, `tension`, `language`, `length` |
 
 ### `lore_check`
 
@@ -550,7 +553,7 @@ Runs the deterministic and semantic checks on the prose.
 
 | Required | Optional |
 |---|---|
-| `workId`, `chapter`, `prose` | `project`, `castManifestRaw`, `deterministicOnly` |
+| `workId`, `chapter`, `prose` | `project`, `title`, `summary`, `castManifestRaw`, `deterministicOnly`, `retryValidation` |
 
 ### `lore_revise`
 
@@ -611,8 +614,9 @@ independent of each other, so make them in parallel and pass them at once. The e
 to produce a single answer from the given content only, without reading files or using tools. In a bundle with `promptCache`,
 `system` is a single execution condition and the role instructions move after the common material block in `user`;
 sending the `warmFirst` request first reuses the cache
-([Prompt cache and warm-first](OPERATIONS.en.md#prompt-cache-and-warm-first)). Low-level novel checks
-can return only the deterministic result with an empty object, but unanswered webtoon requests do not complete with empty answers and keep waiting.
+([Prompt cache and warm-first](OPERATIONS.en.md#prompt-cache-and-warm-first)). Empty `answers`
+never finish a run, for novels or webtoons; the same requests come back as `needs_model`. If you stop answering, that response's
+`deterministicResult` is the only output and a `lore_write` workflow stays in `awaiting_model`.
 
 ## State and recovery
 

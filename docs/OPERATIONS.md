@@ -19,7 +19,7 @@
 
 세부 상태와 반입 계약은 [웹툰 안내](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를 따릅니다.
 실제 이미지를 못 열었다면 미완료 근거를 남기며, `.vibelore/`를 고쳐 승인을 우회하지 않습니다.
-`webtoon/` 손수정은 diff와 의도를 확인한 뒤 `adoptEdits=true`로 재검토합니다.
+(컷별 경로) `webtoon/` 손수정은 diff와 의도를 확인한 뒤 `adoptEdits=true`로 재검토합니다. 장면 경로는 `webtoon/`에 쓰지 않습니다.
 소설 rollback은 웹툰 회차의 되돌리기 도구가 아닙니다. 원작 판본과 후보·승인 이력은 별개로 보존합니다.
 소설을 되돌려도 웹툰 상태·publication과 그 작업에 연결된 모델 감사·대기 요청은 유지합니다.
 중단된 rollback 재개에서도 같은 경계를 지키며 이전 소설의 승인·대기 요청은 복원하지 않습니다.
@@ -60,7 +60,7 @@ flowchart TD
 |---|---|---|
 | `needs_model` | 호스트 모델 작업 대기 | request별 답을 만들어 `lore_resume` |
 | `CRITIC_INCOMPLETE` | 필수 검토 실패·불완전 응답·시간 초과 | 보존된 원고와 검토 기록을 보여주고 `lore_decide`로 승인·수정 요청·보류 |
-| `clean_fail` | 최대 3회 수정 또는 검사 예산 3회 후 필수 gate 실패 | inspect로 위반 확인(`detail="full"`이면 `draftProse` 포함), 같은 원고 재검사는 `retryValidation=true`, 계획·계약 수정이나 `lore_sync` 뒤에는 `lore_write`가 같은 원고를 재검사, 새 초고는 좁힌 `instruction`으로 `lore_write` |
+| `clean_fail` | 검사 3회(그 사이 수정 최대 2회) 또는 검사 예산 3회 후 필수 gate 실패 | inspect로 위반 확인(`detail="full"`이면 `draftProse` 포함), 같은 원고 재검사는 `retryValidation=true`, 계획·계약 수정이나 `lore_sync` 뒤에는 `lore_write`가 같은 원고를 재검사, 새 초고는 좁힌 `instruction`으로 `lore_write` |
 | 활성 ArcPlan 없음 | 본문보다 아크가 먼저 필요 | `lore_arc_plan(review)` 후 승인 |
 | profile/spine/skill 없음 | 작품 설계 단계 누락 | 해당 status 확인 후 누락 단계 생성 |
 | stale HEAD 또는 identity | 실행 중 정본·계획 변경 | 기존 영수증·승인 폐기, 보존 원고를 최신 계약으로 재검사(`lore_write`) |
@@ -76,17 +76,18 @@ flowchart TD
 flowchart LR
     N[needs_model] --> A{모델 답을 만들 것인가?}
     A -->|예| R[lore_resume + answers]
-    A -->|아니오| D[lore_resume + 빈 answers]
+    A -->|아니오| D[답을 멈추고 사용자에게 보고]
     R --> N2{추가 요청?}
     N2 -->|예| R
     N2 -->|아니오| C[완료 결과]
-    D --> G[degraded 결과]
+    D --> G[deterministicResult만 남고 workflow는 awaiting_model]
 ```
 
 `lore_write`는 의존 관계가 없는 요청을 한 왕복에 묶어 반환합니다. 초고 뒤 시도마다 대체로
 ①추출·프로필 검사·독립 검토 묶음 → ②의미 연속성 검사(추출 결과 필요)와 아크 검토 →
 ③제목·요약·경계 판정(같은 최종 본문을 읽음) → ④언어 준수 증명(제목·요약을 검사하므로 그다음)의
-네 왕복이며, 초고를 더하면 수정이 없는 화는 5왕복입니다. 계획에 제목이 있으면 ③에서 제목 요청이
+네 왕복이며, 화 계획과 초고를 더하면 수정이 없는 화는 6왕복입니다. 작품 정체성(story identity)이 아직
+없으면(보통 1화) 그 왕복이, 1화는 pilot contract 왕복이 더해질 수 있습니다. 계획에 제목이 있으면 ③에서 제목 요청이
 빠질 뿐 왕복 수는 같습니다. 한 응답의 `requests`는 서로 독립이므로 병렬로 답하고
 모든 답을 한 번의 `lore_resume`에 넘깁니다. 이 묶음들은 이번 화 본문을 공통 자료 블록으로
 앞에 두므로([프롬프트 캐시](#프롬프트-캐시와-warm-first)), 요청마다 새 프로세스나 API 호출로
@@ -97,9 +98,14 @@ flowchart LR
 요청으로 문장을 줄인 계획을 한 번 받고, 그래도 초과하면 계획 단계에서
 `EPISODE_PACKET_OVERFLOW`로 멈춥니다.
 
-빈 답변의 degraded 경로는 일부 소설 도구의 동작입니다. 웹툰 모델 요청은 빈 답변으로
-완료되지 않고 대기를 유지합니다. 일반 재개에서는 실제 요청에 답하며 검토 생략 수단으로
-사용하지 않습니다.
+언어 준수 증명이 실패하면(`OUTPUT_LANGUAGE_MISMATCH`) 근거가 저장되고 다음 시도에 수정 왕복이
+더해집니다. 본문에 근거가 있으면 hard 위반으로 필수 수정(revise)을, 제목·요약에 근거가 있으면
+`chapter-language-repair`를 먼저 요청한 뒤 언어 준수 증명을 다시 받습니다. `semanticDelta`에 근거가 있으면
+추출과 의미 검사를 다시 합니다. 실패마다 검사 3회 중 1회를 쓰며, 다음 검사 요청에는 이전 근거가 함께 실립니다.
+
+빈 `answers`는 소설·웹툰 어느 쪽에서도 작업을 끝내지 않고 같은 요청을 다시 돌려줍니다. 답을 멈추면
+`needs_model` 응답의 `deterministicResult`가 유일한 결과이며 `lore_write` 워크플로는 `awaiting_model`로
+남습니다. 일반 재개에서는 실제 요청에 답하며 검토 생략 수단으로 사용하지 않습니다.
 
 호스트가 request의 `system`과 `user`를 바꾸지 않고 답을 생성해야 합니다. 답 ID를 임의로
 새로 만들지 않습니다.

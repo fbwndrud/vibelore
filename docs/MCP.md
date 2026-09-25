@@ -90,9 +90,9 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 조회에는 `lore_workflow_status/history(lane="webtoon", workflowId="wt-...")`를 사용합니다.
 lane 생략은 소설 조회입니다. 재개 계약은 [웹툰 상태표](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를
-따릅니다. `needs_images`는 생성 완료가 아닌 요청서이며 이미지 실행은 호스트가 담당합니다.
-웹툰도 공통 입력 검증·작품 단위 잠금·중단된 소설 복구 처리를 거친 뒤 실행합니다.
-독립 이미지 작업은 병렬 실행할 수 있으나 저장 변경은 직렬화됩니다.
+따릅니다. 기본 경로의 `needs_scene_image`(작업 1개)와 컷별 경로의 `needs_images`는 생성 완료가 아닌
+요청서이며 이미지 실행은 호스트가 담당합니다. 웹툰도 공통 입력 검증·작품 단위 잠금·중단된 소설 복구
+처리를 거친 뒤 실행합니다. 컷별 경로의 독립 이미지 작업은 병렬 실행할 수 있으나 저장 변경은 직렬화됩니다.
 
 | 인자 | 형식 | 의미 |
 |---|---|---|
@@ -145,7 +145,9 @@ sequenceDiagram
 (`{ provider, modelId }`), `reasoningEffort`가 추가됩니다. 이 값은 호스트가 요청을 어느
 모델과 생각 수준으로 처리할지 정하는 힌트이며, vibelore가 직접 모델을 호출하지는 않습니다.
 
-빈 `answers`는 모델 판단을 포기한다는 뜻입니다. 결정론 결과로 끝나며 `degraded: true`가 표시됩니다.
+빈 `answers`는 작업을 끝내지 않습니다. 같은 요청이 `needs_model`로 다시 돌아오므로 빈 답으로 재시도하지 마세요.
+답을 멈추면 `needs_model` 응답의 `deterministicResult`가 유일한 결과이며, `lore_write` 워크플로는
+`awaiting_model`로 멈춰 있습니다.
 
 ## 작품 수명주기
 

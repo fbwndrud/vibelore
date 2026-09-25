@@ -98,7 +98,7 @@ base language가 `ko`면 한국어 특화 계열, 그 밖의 언어(영어 포�
 승인이든 승인도 발행도 되지 않습니다. 필수 gate를 통과한 뒤 critic만 실패하거나 불완전한
 경우에만 `CRITIC_INCOMPLETE`와 함께 같은 원고를 승인 대기로 보존하는 경로를 사용합니다.
 
-수정은 최대 3회입니다. 소진하면 자동으로 다시 시작하지 않고 원고를 보존한 채 종료하며, 같은
+검사는 최대 3회이며 그 사이 최소 수정은 최대 2회입니다. 세 번째 검사에서도 실패하면(`clean_fail`) 자동으로 다시 시작하지 않고 원고를 보존한 채 종료하며, 같은
 원고로 검증을 다시 돌리려면 `retryValidation=true`를 명시합니다. 보존 원고나 승인 대기 원고의
 검사 뒤 계획·계약이 바뀌었거나 손수정을 `lore_sync`로 발행했다면, `lore_write`(`retryValidation`
 여부와 무관)가 같은 원고를 현재 계약으로 다시 검사합니다(새 초고 없음). 승인을 기다리던 원고는
@@ -164,8 +164,9 @@ repo skill `story-discovery-interview`가 대화를 진행하고, 이 도구가 
 질문 수는 할당량이 아니며 중요한 미결정이 사라지면 인터뷰를 끝냅니다.
 질문은 advisory이며 사용자가 현재 설계를 의도적으로 승인할 수 있습니다.
 
-웹소설·웹연재 형식은 대사를 독립 문단으로 정규화하는 `dialogueBreakMode=strict`가
-기본입니다. 인쇄물에 가까운 형식만 `relaxed`를 사용할 수 있습니다.
+`dialogueBreakMode`를 명시하지 않으면 `ko` 작품은 대사를 독립 문단으로 정규화하는 `strict`,
+그 밖의 언어는 그 언어의 일반적인 대사+발화자 서술 관습인 `natural`이 기본입니다. `strict`·`relaxed`·`natural`은
+프로필 형식에서 명시해 고를 수 있습니다.
 StoryProfile의 `readerLegibility`는 전문 지식 없이도 장면의 목표·대사 표면 뜻·결과를
 따라가게 하는 작품 단위 원칙이며, `registerPolicy`는 정밀 시각·수치·전문어를 실제로
 필요한 상황에 쓰고 일상 장면에는 자연스러운 표현을 고르는 기준입니다. 둘 다 장르별
@@ -178,7 +179,7 @@ StoryProfile의 `readerLegibility`는 전문 지식 없이도 장면의 목표·
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `brief` | `project`, `mode: review\|auto`, `feedback`, `language` |
+| `workId`, `brief` | `project`, `mode: review\|auto`, `feedback`, `language`, `length` |
 
 ```json
 {
@@ -212,7 +213,7 @@ pending StoryProfile을 승인하거나 거절합니다.
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `language` |
+| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `language`, `length` |
 
 ### `lore_story_plan`
 
@@ -363,7 +364,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 ### `lore_write`
 
-다음 화 계획부터 초고, 검사, 최대 3회 수정, 영수증과 승인·커밋까지 실행합니다.
+다음 화 계획부터 초고, 검사(최대 3회, 그 사이 수정 최대 2회), 영수증과 승인·커밋까지 실행합니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -399,7 +400,9 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 모델 요청은 의존 관계별로 묶입니다. 화별 계획(선택 모듈이 불완전하거나 Writer Packet 예산을 넘으면
 `episode-plan-repair` 한 번) → 초고 → [상태 추출·프로필 검사·검토 5종] → [의미 연속성 검사·아크 검토] →
 [경계 판정·요약] → [언어 준수 증명] 순서로, 한 `needs_model` 응답의 `requests`는 서로 독립이라 병렬로 답해도
-됩니다. 초고 프롬프트의 회차 기획은 승인된 EpisodePlan에서 오며 별도 engine chapter-plan
+됩니다. 수정이 없는 화는 계획과 초고를 포함해 6왕복이며, 작품 정체성이 없으면(보통 1화) 그 왕복과 1화의 pilot contract
+왕복이 더해질 수 있습니다. 언어 준수 증명이 실패하면(`OUTPUT_LANGUAGE_MISMATCH`) 다음 시도에 본문 필수 수정이나
+제목·요약용 `chapter-language-repair` 왕복이 먼저 더해지고, 실패마다 검사 3회 중 1회를 씁니다. 초고 프롬프트의 회차 기획은 승인된 EpisodePlan에서 오며 별도 engine chapter-plan
 요청은 없습니다.
 
 승인된 작품 약속·톤·서술 방향과 최대 두 개의 문체 예시가 실제 초고 요청에 들어갑니다.
@@ -429,7 +432,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full` |
 
 ### `lore_workflow_history`
 
@@ -437,7 +440,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `workflowId`, `limit`, `includeModelExchanges` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `limit`, `includeModelExchanges` |
 
 `workflowId`를 생략하면 현재 workflow를 조회하며, `limit`의 기본값은 최근 이벤트 100개입니다.
 `includeModelExchanges`는 기본적으로 꺼져 있습니다. `true`이면 조회한 이벤트에 연결된
@@ -458,7 +461,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `workflowId`, `detail: summary\|full` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full` |
 
 ## 웹툰 제작
 
@@ -469,8 +472,9 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 새 웹툰 작업의 기본 경로입니다. 러프 없이 장면 전체와 대사를 함께 생성합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 확정된 이미지 API 선택이 없는 작품은 start가 `needs_image_choice`를 반환하며, 사용자의 원답을 `feedback`에 넣고 `confirmImageChoice`로 확정합니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
 이 별도 경로는 원작 범위 고정 → 통합 영어 연출 → 생성 전 검증 → 장면 이미지 → 실제 시각 검토로 진행합니다.
-`action=start|revise|retry`, `sourceChapters`, `sourceUnitIds`, `direction`, `references`, `asset`을 받습니다.
-기존 승인된 이미지 API 선택이 필요하며 `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`을 사용합니다.
+`action=start|revise|retry`, `workflowId`, `revision`, `sourceChapters`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
+`previousWorkflowId`, `autoRevisions`, `imageModel`, `confirmImageChoice`, `feedback`, `asset`을 받습니다.
+이미지 API 선택이 없으면 start가 `needs_image_choice`를 반환하며, `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`을 사용합니다.
 생성 전 검증이 통과해야 `needs_scene_image`가 나오며 이때만 API를 실행합니다.
 원작·참조·계획 해시가 바뀐 반입과 미열람 시각 검토는 거절합니다.
 세부 계약은 [기본 경로](reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)를 참고하세요.
@@ -485,7 +489,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 | `workId` | `project`, `workflowId`, `revision`, `sourceChapters[]`, `episode`, `maxShots`, `mode`, `segmented`, `imageModel`, `direction`, `feedback`, `responses`, `retry`, `newWorkflow`, `adoptEdits` |
 
 원작 고정, 인터뷰, 방향 승인, 장면 선별, 각색·검토·계획 승인을 관리합니다.
-새 작업의 W04 작화·W15 문자·W16 판면은 auto에서도 사용자 선택이 필요합니다.
+진행 중인 작업에 W04 작화·W15 문자·W16 판면이 아직 남아 있으면 auto에서도 사용자 선택이 필요합니다.
 `maxShots`는 상한이지 목표 컷 수가 아닙니다. `needs_interview`는 사용자 답변,
 `needs_model`은 `lore_resume`으로 보낼 모델 응답입니다. 페이지형 선택은
 `needs_format_support`로 보존하고 멈춥니다.
@@ -500,14 +504,14 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 `quality`는 `references`, `preview`, `final`입니다. 모델·경로·비용 확인 뒤 호스트가
 반환된 jobs만 실행하고 실제 이미지 경로와 현재 `inputHash`로 반입합니다. 서버는 유료
-API를 직접 실행하지 않습니다. 신규 작업은 `continuityPlan.version=2`의 전체 컷 계획,
+API를 직접 실행하지 않습니다. `continuityPlan.version=2` 작업은 전체 컷 계획,
 실제 러프 검토와 사용자 storyboard 승인 없이는 본 작화를 받을 수 없습니다.
 `continue`/anchor는 검토된 앞 그림에 의존하고 `cut`은 승인 러프로 병렬 생성할 수 있지만,
 인접한 실제 그림의 연결 검토는 둘 다 필요합니다.
 
 `revisionTarget:{kind:"lettering",shotIds:[...]}`와 feedback은 그림을 유지하는 조판 수정입니다.
 조판 실패는 이 도구의 `retry=true`로 재개합니다. 검토 불가를 통과로 보고하지 않습니다.
-중첩 이미지·러프·검토 스키마와 예제는 [웹툰 안내](WEBTOON.md)를 따릅니다.
+중첩 이미지·러프·검토 스키마와 예제는 [웹툰 실행 규약의 컷별 경로 부록](reference/WEBTOON_WORKFLOW.md#부록-컷별-경로-deprecated)을 따릅니다.
 
 ### `lore_webtoon_decide` (deprecated)
 
@@ -545,7 +549,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `chapter` | `project`, `plan`, `targetChars`, `tension` |
+| `workId`, `chapter` | `project`, `plan`, `targetChars`, `tension`, `language`, `length` |
 
 ### `lore_check`
 
@@ -553,7 +557,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `chapter`, `prose` | `project`, `castManifestRaw`, `deterministicOnly` |
+| `workId`, `chapter`, `prose` | `project`, `title`, `summary`, `castManifestRaw`, `deterministicOnly`, `retryValidation` |
 
 ### `lore_revise`
 
@@ -614,8 +618,9 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 없이 제공된 내용만으로 단일 응답을 만들라는 실행 조건이 붙어 있습니다. `promptCache`가 있는
 묶음은 `system`이 실행 조건 하나이고 역할 지시가 `user`의 공통 자료 블록 뒤로 옮겨지며,
 `warmFirst` 요청을 먼저 보내면 캐시를 재사용합니다
-([프롬프트 캐시와 warm-first](OPERATIONS.md#프롬프트-캐시와-warm-first)). 저수준 소설 검사는
-빈 객체로 결정론 결과만 반환할 수 있지만, 웹툰의 미응답 요청은 빈 답변으로 완료되지 않고 대기합니다.
+([프롬프트 캐시와 warm-first](OPERATIONS.md#프롬프트-캐시와-warm-first)). 빈 `answers`는
+소설·웹툰 어느 쪽에서도 작업을 끝내지 않고 같은 요청을 `needs_model`로 다시 돌려줍니다. 답을 멈추면 그 응답의
+`deterministicResult`가 유일한 결과이며 `lore_write` 워크플로는 `awaiting_model`로 남습니다.
 
 ## 상태와 복구
 

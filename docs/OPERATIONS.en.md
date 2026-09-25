@@ -19,7 +19,7 @@ Separate the revision scope as `lettering` to fix only lettering, `storyboard` f
 
 Detailed states and the import contract follow the [webtoon guide](reference/WEBTOON_WORKFLOW.en.md#continue-by-state).
 If the actual image could not be opened, leave the evidence of incompleteness; don't edit `.vibelore/` to bypass approval.
-Hand edits to `webtoon/` are re-reviewed with `adoptEdits=true` after checking the diff and the intent.
+(Per-panel path) Hand edits to `webtoon/` are re-reviewed with `adoptEdits=true` after checking the diff and the intent. The scene path doesn't write to `webtoon/`.
 A novel rollback is not a rollback tool for webtoon episodes. The source version and the candidate and approval history are kept separately.
 Rolling the novel back keeps the webtoon state and publication, and the model audits and pending requests linked to that work.
 Resuming an interrupted rollback keeps the same boundary and does not restore the earlier novel's approvals or pending requests.
@@ -60,7 +60,7 @@ When an error occurs, call a status tool first before calling the same generatio
 |---|---|---|
 | `needs_model` | Waiting for host model work | Make an answer per request and call `lore_resume` |
 | `CRITIC_INCOMPLETE` | A required review failed, answered incompletely or timed out | Show the kept manuscript and review record, then approve, request a revision or hold with `lore_decide` |
-| `clean_fail` | A required gate failed after at most 3 revisions or a 3-attempt check budget | Check the violations with inspect (`detail="full"` includes `draftProse`); to re-check the same manuscript use `retryValidation=true`; after a plan or contract change or `lore_sync`, `lore_write` re-checks the same manuscript; for a new draft, call `lore_write` with a narrowed `instruction` |
+| `clean_fail` | A required gate failed after 3 checks (at most 2 revisions between them) or a 3-attempt check budget | Check the violations with inspect (`detail="full"` includes `draftProse`); to re-check the same manuscript use `retryValidation=true`; after a plan or contract change or `lore_sync`, `lore_write` re-checks the same manuscript; for a new draft, call `lore_write` with a narrowed `instruction` |
 | No active ArcPlan | An arc is needed before prose | `lore_arc_plan(review)`, then approve |
 | No profile/spine/skill | A work design stage is missing | Check the status and create the missing stage |
 | stale HEAD or identity | Canon or plan changed during the run | Void the old receipt and approval, re-check the kept manuscript under the latest contract (`lore_write`) |
@@ -76,17 +76,18 @@ When an error occurs, call a status tool first before calling the same generatio
 flowchart LR
     N[needs_model] --> A{Produce model answers?}
     A -->|yes| R[lore_resume + answers]
-    A -->|no| D[lore_resume + empty answers]
+    A -->|no| D[Stop answering and tell the user]
     R --> N2{More requests?}
     N2 -->|yes| R
     N2 -->|no| C[Final result]
-    D --> G[degraded result]
+    D --> G[Only deterministicResult; workflow stays awaiting_model]
 ```
 
 `lore_write` returns requests without dependencies bundled in one round trip. After the draft, each attempt is usually
 four round trips: ① the extraction, profile check and independent review bundle → ② the semantic continuity check (needs the extraction result) and arc review →
 ③ title, summary and boundary judgment (they read the same final prose) → ④ the language-compliance proof (it checks the title and summary, so it comes after them).
-With the draft, a chapter without revisions takes 5 round trips. If the plan already has a title, the title request is left out of ③
+With the chapter plan and the draft, a chapter without revisions takes 6 round trips. When the work has no story identity yet
+(usually chapter 1) its round trip is added, and chapter 1 can add a pilot contract round trip. If the plan already has a title, the title request is left out of ③
 but the number of round trips is the same. The `requests` in one answer are independent of each other, so answer them in parallel and
 pass all answers in one `lore_resume`. These bundles put this chapter's prose first as a common material block
 ([prompt cache](#prompt-cache-and-warm-first)), so a host that answers each request with a new process or API call
@@ -96,8 +97,14 @@ when one is missing, an `episode-plan-repair` request is issued once. When the p
 the same request is used once to get a plan with shortened sentences, and if it still exceeds the cap it stops at the planning stage with
 `EPISODE_PACKET_OVERFLOW`.
 
-The degraded path with empty answers is the behavior of some novel tools. Webtoon model requests do not complete
-with empty answers and stay waiting. In normal resumption, answer the actual requests; don't use it as a way to skip review.
+When the language-compliance proof fails (`OUTPUT_LANGUAGE_MISMATCH`), the evidence is stored and the next attempt adds a repair round.
+Evidence in the prose becomes a hard violation with a mandatory revise, and evidence in the title or summary first requests
+`chapter-language-repair`; then the language-compliance proof is requested again. Evidence in `semanticDelta` re-runs the extraction and
+the semantic check. Each failure uses one of the 3 checks, and the next check request carries the earlier evidence.
+
+Empty `answers` never finish a run, for novels or webtoons; the same requests come back. If you stop answering, the `deterministicResult`
+in the `needs_model` response is the only output and a `lore_write` workflow stays in `awaiting_model`. In normal resumption, answer the
+actual requests; don't use it as a way to skip review.
 
 The host must generate answers without changing a request's `system` and `user`. Don't invent new answer IDs.
 

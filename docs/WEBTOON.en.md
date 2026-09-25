@@ -2,7 +2,7 @@
 
 [한국어](WEBTOON.md) | English
 
-This turns a novel written with vibelore into a **vertical-scroll webtoon**. Character looks, the world, and the situation up to that chapter
+This turns a novel written with vibelore into **webtoon scenes**. Character looks, the world, and the situation up to that chapter
 are taken straight from the source. The novel manuscript is left untouched and the webtoon is saved separately.
 
 You don't need to write tool calls yourself. Just talk to the AI as in the examples below.
@@ -12,12 +12,15 @@ You don't need to write tool calls yourself. Just talk to the AI as in the examp
 - **vibelore connected:** install it as in [Getting started](GETTING_STARTED.en.md) and check that the tools are visible.
 - **The source:** a work written with vibelore and the chapter to adapt. For a novel written elsewhere, first do
   [Continue a novel you already wrote](GETTING_STARTED.en.md#5-continue-a-novel-you-already-wrote).
-- **An AI that can draw:** it must be able to make images and open the images it made.
+- **An AI that can open images:** the host must call the image API and be able to open the images it made to review them.
   Connecting vibelore does not add a drawing capability.
-- **An image model choice:** decide whether to use the AI tool's built-in image feature or a paid image API.
-  An API needs its own key and billing. Don't paste the key into the chat; set it in the execution environment.
+- **The OpenAI image API:** the host draws with one of the OpenAI image models `gpt-image-2`, `gpt-image-2.5-sunburst` (default)
+  and `gpt-image-2.5-flare`, called through the API. The AI tool's built-in image feature is not used on this path.
+  The API needs its own key and billing. Don't paste the key into the chat; set it in the execution environment.
+- **Reference art:** at least one character or background reference image file (PNG/JPEG) inside the work folder.
 
-The finished result is a tall vertical SVG and HTML. Splitting it into PNG/JPEG for platform upload is a separate job.
+The finished result is one PNG/JPEG image per scene with the dialogue drawn in, plus `scene.html` that shows it.
+A page format such as one tall vertical image is set in the direction. Splitting it for platform upload is a separate job.
 The manuscript and images stay on your computer, but material needed to make and review the images can be
 sent to the connected AI service. See [Data and security](../SECURITY.md).
 
@@ -52,23 +55,24 @@ show it**.
 
 | What you decide | Example answer |
 |---|---|
-| The core of this episode and the adaptation range | "The strangeness of coming back is the center. Cut exposition, but keep the motive of looking for his daughter." |
+| The source range and the core of the adaptation | "The opening of chapter 1; the strangeness of coming back is the center. Cut exposition, but keep the motive of looking for his daughter." |
 | Art style | "Vivid color, natural anatomy, slightly exaggerated expressions." |
-| Lettering | "Inner thoughts in light boxes, actual speech in balloons." |
-| Reading format | "Make it read as a vertical scroll." |
-| Cost | "Confirm the image model and billing first, and tell me when a redraw costs money." |
+| Lettering, page format and layout freedom | "Inner thoughts in light boxes, actual speech in balloons. Draw it as one tall vertical image." |
+| Reference art | "Use `refs/hero.png` for the character and `refs/street.png` for the street." |
+| Panel count | "Use auto." |
+| Image model and cost | "Use the default model; I know every redraw costs money." |
 
-For lettering you choose between a **dark monologue box** (default), a **light box**, and **minimal boxes**.
-Whether the art style came out as you wanted is checked on the reference art.
+Lettering, page format and layout freedom are not separate menu choices; they go into the English direction (`direction`).
+When the AI shows your answers summed up in English, check that they mean what you meant.
 
-Even if you say "just go ahead", a new work's art style, lettering, reading format and panel count are confirmed with you.
-Choices made once are reused for the next episode. The image model is kept once chosen, and when it can't run it is not
-secretly switched to another model or a paid path.
+Even if you say "just go ahead", the panel count and the image model and its cost are confirmed with you. The image model is kept
+once chosen, for this work's later scenes and episodes too, and when it can't run it is not secretly switched to another model.
+Reference art is named each time a scene starts.
 
 ## Whole scene: one image, dialogue included
 
 The source paragraph range is split into scenes, and each scene goes through direction → pre-generation check → image → review of the actual
-image. The image model and the character and background reference art chosen earlier are reused.
+image. The image model chosen earlier is reused, and the drawing follows the character and background reference art you name.
 
 > Draw the first scene of chapter 1 as one image. Use auto for the panel count, and if there is a previous scene, review it as a continuation.
 
@@ -79,8 +83,9 @@ At the start you are asked for the **panel count**. Choose from `4, 6, 8, 9, aut
 - 1-2 panels are allowed, but the sense of continuity with the scenes around it can weaken. 3 or more are recommended.
 
 Panel sizes and layout are left to the image model. If you name the previous scene, the two images are reviewed side by side
-for continuity of characters, background and action. If the pre-generation check or the image review fails, the AI fixes the
-faults itself and redraws, within the redesign budget you set.
+for continuity of characters, background and action. If the pre-generation check or the image review fails, the AI re-plans from
+the faults and redraws (2 times by default, at most 3, and each one costs an image call). If it still fails, you are shown the result
+and the evidence and asked how to fix it. There is no separate approval step; a scene that passes the review is done.
 
 ## Per panel (deprecated): what you check at each step
 
@@ -107,6 +112,12 @@ looked at together, and continuity of characters, background and action is check
 that need a new composition from the rough and the reference art. For the detailed structure, see
 [Architecture](ARCHITECTURE.en.md#webtoon-production-structure).
 
+On the whole-scene method, dialogue, inner thoughts, sound effects and sign text are all drawn inside the image by the image model.
+Dialogue is not translated; it goes in as the original text in the work language. The AI opens the actual image to check the text
+and who is speaking. Fixing even one word means redrawing the scene, which is a new image cost.
+
+### Lettering on the per-panel method (deprecated)
+
 | Kind of text | How it is made | How to fix it |
 |---|---|---|
 | Dialogue | A speaker is set and a balloon is placed on the art | Ask to change the wording or the balloon position |
@@ -119,18 +130,19 @@ review and your check. Passing the checks does not mean there are no staging pro
 
 ## Where is the finished result?
 
-The reviewed result of a whole-scene job stays in the work folder under `.vibelore/webtoon/candidates/<workflowId>/r<revision>/`
-as `scene.html`, the original image, and the plan and review JSON. `<revision>` goes up with each redesign or retry,
+The result of a whole-scene job stays in the work folder under `.vibelore/webtoon/candidates/<workflowId>/r<revision>/`
+as the scene image (PNG/JPEG), `scene.html`, and the plan and review JSON. Nothing is written to the `webtoon/` folder. `<revision>` goes up with each redesign or retry,
 and `<workflowId>` is different for each job.
 
 ```text
 my-novel/
 ├── chapters/                    source novel — never overwritten by webtoon production
-├── webtoon/                     approved webtoon direction and character/place reference art
 └── .vibelore/
     └── webtoon/candidates/<workflowId>/r<revision>/
-        ├── scene.html            reviewed result with the scene image and dialogue
-        └── scene-plan.json       scene adaptation and review plan
+        ├── scene.png             scene image with the dialogue drawn in (scene.jpg for JPEG)
+        ├── scene.html            page showing the scene image and the review evidence
+        ├── scene-plan.json       scene adaptation plan
+        └── image-review.json     review of the actual image
 ```
 
 The per-panel method (deprecated) saves to `webtoon/episodes/<episode>-<workflowId>/` once adaptation and approval are done, as
@@ -138,15 +150,16 @@ The per-panel method (deprecated) saves to `webtoon/episodes/<episode>-<workflow
 
 > Check the progress of webtoon episode 1, and open the finished scene HTML.
 
-What you see during review is the same candidate file. Don't edit the text in the SVG or HTML directly; ask for a script change and
-regeneration. Nothing is uploaded to an external service automatically.
+What you see during review is the same candidate file. The scene text is inside the image, so say what to fix and have it redrawn.
+On the per-panel method, don't edit the text in the SVG or HTML directly either; ask for a script change and regeneration. Nothing is uploaded to an external service automatically.
 
 ## Fix or continue
 
 For an episode in progress, just say **what to change**.
 
 For a whole-scene job, say something like "fix the problems the review observed in this scene (panel count, lettering, continuity) and redraw it",
-and within the redesign budget the AI finds the cause and adapts, checks and generates again.
+and it adapts, checks and generates again from that feedback (each time is a new image cost). The automatic redesign budget is
+spent only on failed checks and reviews.
 
 For the per-panel method (deprecated), ask with the scope separated like this.
 
@@ -165,9 +178,9 @@ If it stopped midway:
 
 To start the next episode:
 
-> Check that webtoon episode 1 got final approval, then start webtoon episode 2 from source chapter 2. Reuse the existing art style and reference art.
+> Check that the webtoon episode 1 scene finished its review (completed), then start webtoon episode 2 from source chapter 2. Reuse the existing art style and reference art.
 
-Adapting a finished episode again creates a new job while keeping the earlier approved version. Editing the source later
+Adapting a finished episode again creates a new job while keeping the earlier result. Editing the source later
 does not automatically change the source of a webtoon in production. To remake it from the new source, ask for
 that.
 

@@ -90,9 +90,9 @@ the latter shares the existing `lore_resume`.
 
 For lookups, use `lore_workflow_status/history(lane="webtoon", workflowId="wt-...")`.
 Omitting lane looks up the novel. The resume contract follows the [webtoon state table](reference/WEBTOON_WORKFLOW.en.md#continue-by-state).
-`needs_images` is a request, not a finished generation; the host is responsible for running images.
-Webtoons also run after the common input validation, the per-work lock and recovery of an interrupted novel run.
-Independent image jobs can run in parallel, but stored changes are serialized.
+`needs_scene_image` on the default path (one job) and `needs_images` on the per-panel path are requests, not finished generation;
+the host is responsible for running images. Webtoons also run after the common input validation, the per-work lock and recovery of an
+interrupted novel run. Independent image jobs on the per-panel path can run in parallel, but stored changes are serialized.
 
 | Argument | Format | Meaning |
 |---|---|---|
@@ -145,7 +145,9 @@ after its first output starts. For details see
 (`{ provider, modelId }`) and `reasoningEffort` are added. These values are hints for the host on which
 model and thinking level to process the request with; vibelore does not call a model directly.
 
-Empty `answers` means giving up the model judgment. It ends with the deterministic result and is marked `degraded: true`.
+Empty `answers` does not finish the run. The same requests come back as `needs_model`, so don't retry with empty answers.
+If you stop answering, the `deterministicResult` in the `needs_model` response is the only output, and a `lore_write` workflow
+stays paused in `awaiting_model`.
 
 ## Work lifecycle
 

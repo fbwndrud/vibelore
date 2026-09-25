@@ -30,7 +30,7 @@ What to do depends on the state the AI reports.
 | Waiting for an interview or approval | Your decision is needed | Answer the questions, or look at the result and approve or ask for changes |
 | Waiting for image execution | The image model, key or permission needs checking | Check the model to use and its cost, then choose |
 | Review failed | The review didn't finish or found a problem | "Show me why it failed and what results remain" |
-| Lettering layout failed (`layout_blocked`) | A balloon covers a face or the reading order is tangled | Ask to re-place only the problem part |
+| Lettering layout failed (`layout_blocked`, per-panel method, deprecated) | A balloon covers a face or the reading order is tangled | Ask to re-place only the problem part |
 | Another run is using it (`PROJECT_BUSY`, `WEBTOON_BUSY`) | Another run is changing the same work | Continue after that run ends. Don't delete the lock file |
 
 If you close the AI tool, the work stops too. It does not keep running in the background.
@@ -47,7 +47,8 @@ scope of the fix can be narrowed.
 
 > In the middle of the fight the enemy suddenly moved to the other side. Check the movement across the following panels and tell me first how much has to be redrawn.
 
-A webtoon's script, composition, drawing and lettering layout are fixed separately. If only a balloon's position is wrong, the picture
+In a scene webtoon the text is inside the image, so fixing even one word redraws the scene (a new image cost).
+The per-panel method (deprecated) fixes the script, composition, drawing and lettering layout separately, and if only a balloon's position is wrong, the picture
 doesn't need to be redrawn. See [Fixing a webtoon](WEBTOON.en.md#fix-or-continue).
 
 ## I edited the manuscript or settings files by hand
@@ -78,8 +79,8 @@ Stop the AI tool, then copy **the whole work folder, hidden folders included**, 
 | Folder | Contents |
 |---|---|
 | `world/`, `characters/`, `chapters/`, `summaries/` | Settings and manuscript |
-| `webtoon/` | Approved webtoon scripts, reference art, finished results |
-| `.vibelore/` | Candidates in progress, review and approval records, rollback records |
+| `webtoon/` | Approved scripts, reference art and finished results of per-panel work (deprecated) |
+| `.vibelore/` | Candidates in progress, scene webtoon results (`webtoon/candidates/`), review and approval records, rollback records |
 
 If you copy only the manuscript, work in progress and review records can't be restored. If you back up with Git, check that
 hidden folders and images were not left out. Don't put API keys in a public repository.
