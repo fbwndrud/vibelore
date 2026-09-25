@@ -343,7 +343,7 @@ const TOOLS = [
   {
     name: 'lore_resume',
     description:
-      'status=needs_model 로 중단된 작업을 이어받는다. requests 의 각 질문에 답한 텍스트를 answers 에 { id: 답변 } 형태로 넘기면 중단 지점부터 계속한다. 빈 answers는 작업을 끝내지 않고 같은 requests를 다시 돌려준다. 답을 멈추면 needs_model 응답의 deterministicResult가 유일한 결과이며 lore_write workflow는 awaiting_model로 멈춰 있다.',
+      'status=needs_model 로 중단된 작업을 이어받는다. requests 의 각 질문에 답한 텍스트를 answers 에 { id: 답변 } 형태로 넘기면 중단 지점부터 계속한다. 빈 answers는 작업을 끝내지 않고 같은 requests를 다시 돌려준다. 답을 멈추면 소설·설계 도구는 needs_model 응답의 deterministicResult가 유일한 결과이고(lore_write는 멈춘 workflow 식별 정보뿐이며 awaiting_model로 남는다), 웹툰은 같은 단계에서 대기하며 lore_workflow_status(lane=webtoon)로 확인한다.',
     inputSchema: {
       type: 'object',
       properties: {

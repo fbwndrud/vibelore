@@ -102,8 +102,10 @@ Evidence in the prose becomes a hard violation with a mandatory revise, and evid
 `chapter-language-repair`; then the language-compliance proof is requested again. Evidence in `semanticDelta` re-runs the extraction and
 the semantic check. Each failure uses one of the 3 checks, and the next check request carries the earlier evidence.
 
-Empty `answers` never finish a run, for novels or webtoons; the same requests come back. If you stop answering, the `deterministicResult`
-in the `needs_model` response is the only output and a `lore_write` workflow stays in `awaiting_model`. In normal resumption, answer the
+Empty `answers` never finish a run, for novels or webtoons; the same requests come back. If you stop answering, for novel and design
+tools the `deterministicResult` in the `needs_model` response is the only output; for `lore_write` it only identifies the paused workflow
+(`preview`, `workflowId`, `chapter`), and the workflow stays in `awaiting_model`. Webtoon responses have no `deterministicResult`; the
+workflow waits at the same stage, and the result so far is visible with `lore_workflow_status(lane="webtoon")`. In normal resumption, answer the
 actual requests; don't use it as a way to skip review.
 
 The host must generate answers without changing a request's `system` and `user`. Don't invent new answer IDs.

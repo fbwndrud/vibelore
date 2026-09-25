@@ -104,8 +104,9 @@ flowchart LR
 추출과 의미 검사를 다시 합니다. 실패마다 검사 3회 중 1회를 쓰며, 다음 검사 요청에는 이전 근거가 함께 실립니다.
 
 빈 `answers`는 소설·웹툰 어느 쪽에서도 작업을 끝내지 않고 같은 요청을 다시 돌려줍니다. 답을 멈추면
-`needs_model` 응답의 `deterministicResult`가 유일한 결과이며 `lore_write` 워크플로는 `awaiting_model`로
-남습니다. 일반 재개에서는 실제 요청에 답하며 검토 생략 수단으로 사용하지 않습니다.
+소설·설계 도구는 `needs_model` 응답의 `deterministicResult`가 유일한 결과입니다. `lore_write`에서는 멈춘
+workflow 식별 정보(`preview`, `workflowId`, `chapter`)뿐이며 워크플로는 `awaiting_model`로 남습니다. 웹툰 응답에는
+`deterministicResult`가 없고 같은 단계에서 대기하며, 지금까지의 결과는 `lore_workflow_status(lane="webtoon")`로 봅니다. 일반 재개에서는 실제 요청에 답하며 검토 생략 수단으로 사용하지 않습니다.
 
 호스트가 request의 `system`과 `user`를 바꾸지 않고 답을 생성해야 합니다. 답 ID를 임의로
 새로 만들지 않습니다.

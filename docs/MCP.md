@@ -146,7 +146,7 @@ sequenceDiagram
 모델과 생각 수준으로 처리할지 정하는 힌트이며, vibelore가 직접 모델을 호출하지는 않습니다.
 
 빈 `answers`는 작업을 끝내지 않습니다. 같은 요청이 `needs_model`로 다시 돌아오므로 빈 답으로 재시도하지 마세요.
-답을 멈추면 `needs_model` 응답의 `deterministicResult`가 유일한 결과이며, `lore_write` 워크플로는
+답을 멈추면 소설·설계 도구는 `needs_model` 응답의 `deterministicResult`가 유일한 결과이며(웹툰 응답에는 없음), `lore_write`에서는 멈춘 workflow 식별 정보뿐이고 워크플로는
 `awaiting_model`로 멈춰 있습니다.
 
 ## 작품 수명주기

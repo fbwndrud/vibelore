@@ -146,7 +146,7 @@ after its first output starts. For details see
 model and thinking level to process the request with; vibelore does not call a model directly.
 
 Empty `answers` does not finish the run. The same requests come back as `needs_model`, so don't retry with empty answers.
-If you stop answering, the `deterministicResult` in the `needs_model` response is the only output, and a `lore_write` workflow
+If you stop answering, for novel and design tools the `deterministicResult` in the `needs_model` response is the only output (webtoon responses have none); for `lore_write` it only identifies the paused workflow, and the workflow
 stays paused in `awaiting_model`.
 
 ## Work lifecycle

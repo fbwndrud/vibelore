@@ -65,5 +65,6 @@ Markdown so people can read and edit them, and the tool respects hand edits.
 
 **Empty answers don't finish the run.** Calling `lore_resume` with no answers returns the same requests again, so
 never retry with empty answers. If you can't produce model answers, stop and tell the user: the `deterministicResult` in
-the `needs_model` response is the only output (it still lists the form-of-address, point-of-view, rhythm and structure
-findings), and a `lore_write` workflow stays paused in `awaiting_model` until the requests are answered.
+the `needs_model` response is the only output, and for `lore_write` it only identifies the paused workflow
+(`preview`, `workflowId`, `chapter`) and holds no findings; the workflow stays paused in `awaiting_model` until the requests are answered.
+Deterministic findings alone need `lore_check(deterministicOnly=true)` on the advanced surface.

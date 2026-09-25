@@ -615,8 +615,10 @@ to produce a single answer from the given content only, without reading files or
 `system` is a single execution condition and the role instructions move after the common material block in `user`;
 sending the `warmFirst` request first reuses the cache
 ([Prompt cache and warm-first](OPERATIONS.en.md#prompt-cache-and-warm-first)). Empty `answers`
-never finish a run, for novels or webtoons; the same requests come back as `needs_model`. If you stop answering, that response's
-`deterministicResult` is the only output and a `lore_write` workflow stays in `awaiting_model`.
+never finish a run, for novels or webtoons; the same requests come back as `needs_model`. If you stop answering, for novel and design tools that response's
+`deterministicResult` is the only output; for `lore_write` it only identifies the paused workflow (`preview`, `workflowId`, `chapter`),
+and the workflow stays in `awaiting_model`. Webtoon responses have no `deterministicResult`; the workflow waits at the same stage, and
+the result so far is visible with `lore_workflow_status(lane="webtoon")`.
 
 ## State and recovery
 

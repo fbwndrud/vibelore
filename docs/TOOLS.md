@@ -619,8 +619,10 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 묶음은 `system`이 실행 조건 하나이고 역할 지시가 `user`의 공통 자료 블록 뒤로 옮겨지며,
 `warmFirst` 요청을 먼저 보내면 캐시를 재사용합니다
 ([프롬프트 캐시와 warm-first](OPERATIONS.md#프롬프트-캐시와-warm-first)). 빈 `answers`는
-소설·웹툰 어느 쪽에서도 작업을 끝내지 않고 같은 요청을 `needs_model`로 다시 돌려줍니다. 답을 멈추면 그 응답의
-`deterministicResult`가 유일한 결과이며 `lore_write` 워크플로는 `awaiting_model`로 남습니다.
+소설·웹툰 어느 쪽에서도 작업을 끝내지 않고 같은 요청을 `needs_model`로 다시 돌려줍니다. 답을 멈추면 소설·설계 도구는 그 응답의
+`deterministicResult`가 유일한 결과이며, `lore_write`에서는 멈춘 workflow 식별 정보(`preview`, `workflowId`, `chapter`)뿐이고
+워크플로는 `awaiting_model`로 남습니다. 웹툰 응답에는 `deterministicResult`가 없고 같은 단계에서 대기하며,
+지금까지의 결과는 `lore_workflow_status(lane="webtoon")`로 봅니다.
 
 ## 상태와 복구
 
