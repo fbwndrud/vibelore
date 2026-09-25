@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { budgetEstimator } from './token-units.js';
+import { searchTerms } from './search-terms.js';
 
 const fail = (code, message, details = {}) => ({ ok: false, error: { code, message, ...details } });
 // ko(와 계열 미지정 구형 호출)는 기존 code point / 2 그대로, 다른 계열은 tokenUnits().
 const legacyTokens = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
-const terms = (value) => [...new Set(String(value ?? '').toLocaleLowerCase('ko').match(/[가-힣a-z0-9_]{2,}/g) ?? [])];
 const hash = (value) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 function validateContext(context) {
@@ -15,8 +15,8 @@ function validateContext(context) {
   return null;
 }
 
-function score(candidate, queryTerms) {
-  const haystack = terms(candidate.text);
+function score(candidate, queryTerms, language) {
+  const haystack = searchTerms(candidate.text, language);
   const matches = queryTerms.filter((term) => haystack.some((word) => word === term || word.includes(term) || term.includes(word))).length;
   return matches * 1000 + Number(candidate.priority ?? 0) * 10 + Math.min(Number(candidate.chapter ?? 0), 999999) / 1000000;
 }
@@ -42,10 +42,10 @@ export function compileMemory(context, input) {
     });
   }
 
-  const queryTerms = terms(input.query);
+  const queryTerms = searchTerms(input.query, input.language);
   const ranked = (input.candidates ?? [])
     .filter((candidate) => candidate?.text && !mandatory.some((item) => item.id === candidate.id))
-    .map((candidate) => ({ ...candidate, score: score(candidate, queryTerms), tokenCost: tokens(candidate.text) }))
+    .map((candidate) => ({ ...candidate, score: score(candidate, queryTerms, input.language), tokenCost: tokens(candidate.text) }))
     .sort((a, b) => b.score - a.score || String(a.id).localeCompare(String(b.id)));
   let remaining = available - mandatoryTokens;
   const discretionary = [];

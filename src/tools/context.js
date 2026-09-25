@@ -19,6 +19,7 @@ import { renderStorySpine } from './story-spine.js';
 import { renderEpisodePlan } from './episode-plan.js';
 import { hookDebt, retrieveMemory } from './memory-index.js';
 import { compileMemory } from '../core/memory-compiler.js';
+import { SEARCH_TERMS_REVISION } from '../core/search-terms.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { createHash } from 'node:crypto';
 import { renderSceneCharacterPacket } from '../core/character-dynamics-adapter.js';
@@ -124,7 +125,8 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     episodePlan?.readerExpectation?.likelyOutcome, ...(episodePlan?.hooksTouched ?? []), ...(scene?.entityIds ?? [])].filter(Boolean).join(' ');
   const published = store.publishedRevision ? { ok: true, value: store.publishedRevision } : { ok: true, value: null };
   const snapshotId = published.value?.head ?? 'legacy-working-tree';
-  const memory = await retrieveMemory({ store, workId, query: retrievalQuery, currentChapter: chapter });
+  const searchLanguage = workLanguage.contract?.language;
+  const memory = await retrieveMemory({ store, workId, query: retrievalQuery, currentChapter: chapter, language: searchLanguage });
   // Candidates get the same `scope:ref` ids as the mandatory set so facts and
   // active hooks are not selected twice. The window already carries its
   // summaries verbatim, and a redraft must not see canon from the chapter it
@@ -144,8 +146,8 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   }, {
     scope: { chapter, entityIds: scene?.entityIds ?? [] }, budget: { maxTokens: 12000, reservedTokens: 3000 },
     mandatory, candidates: candidates,
-    query: retrievalQuery, promptFamily: kit.family,
-    indexGeneration: `memory:${memory.documents}`, tokenizerRevision: 'unicode61-or-ko-basic-1', rankerRevision: memory.backend,
+    query: retrievalQuery, promptFamily: kit.family, language: searchLanguage,
+    indexGeneration: `memory:${memory.documents}`, tokenizerRevision: SEARCH_TERMS_REVISION, rankerRevision: memory.backend,
   });
   const t = kit.phrases.context;
   if (!compiledMemory.ok) throw new Error(`${compiledMemory.error.code}: ${t.mandatoryOverflow}`);

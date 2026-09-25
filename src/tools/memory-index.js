@@ -1,21 +1,28 @@
 import { DatabaseSync } from 'node:sqlite';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { isHookActive, normalizeHook } from '../../engine/src/continuity/story-state.js';
+import { searchTerms } from '../core/search-terms.js';
 
-const terms = (value) => [...new Set(String(value ?? '').match(/[가-힣A-Za-z0-9_]{2,}/g) ?? [])].slice(0, 16);
-const ftsQuery = (query) => terms(query).map((term) => `"${term.replaceAll('"', '""')}"`).join(' OR ');
+const ftsQuery = (queryTerms) => queryTerms.map((term) => `"${term.replaceAll('"', '""')}"`).join(' OR ');
 
 /** Rebuildable FTS projection. Markdown/StoryState remain authoritative. */
-export async function rebuildMemoryIndex({ store, workId }) {
+export async function rebuildMemoryIndex({ store, workId, language }) {
   const path = store.sidecar('memory.db');
   await mkdir(dirname(path), { recursive: true });
+  // The index is a projection. Start from an empty file so a database written
+  // by a Node build with a different SQLite (for example with FTS5) or a
+  // damaged file cannot block the rebuild.
+  await rm(path, { force: true });
   const db = new DatabaseSync(path);
   try {
     let backend = 'sqlite-bm25';
-    try { db.exec('DROP TABLE IF EXISTS memory; CREATE VIRTUAL TABLE memory USING fts5(scope, ref UNINDEXED, chapter UNINDEXED, text, tokenize="unicode61");'); backend = 'sqlite-fts5-bm25'; }
-    catch { db.exec('DROP TABLE IF EXISTS memory; CREATE TABLE memory(scope TEXT NOT NULL, ref TEXT NOT NULL, chapter INTEGER NOT NULL, text TEXT NOT NULL);'); }
-    const insert = db.prepare('INSERT INTO memory(scope, ref, chapter, text) VALUES (?, ?, ?, ?)');
+    // `terms` holds segmented words joined by spaces; unicode61 alone cannot
+    // split scripts written without spaces.
+    try { db.exec('CREATE VIRTUAL TABLE memory USING fts5(scope UNINDEXED, ref UNINDEXED, chapter UNINDEXED, text UNINDEXED, terms, tokenize="unicode61");'); backend = 'sqlite-fts5-bm25'; }
+    catch { db.exec('CREATE TABLE memory(scope TEXT NOT NULL, ref TEXT NOT NULL, chapter INTEGER NOT NULL, text TEXT NOT NULL, terms TEXT NOT NULL);'); }
+    const statement = db.prepare('INSERT INTO memory(scope, ref, chapter, text, terms) VALUES (?, ?, ?, ?, ?)');
+    const insert = { run: (scope, ref, chapter, text) => statement.run(scope, ref, chapter, text, searchTerms(text, language).join(' ')) };
     const foundation = await store.loadFoundation(workId);
     for (const fact of foundation?.worldFacts ?? []) insert.run('fact', fact.id, fact.registeredAtChapter ?? 1, fact.statement);
     for (const character of foundation?.characters ?? []) insert.run('character', character.id, character.registeredAtChapter ?? 1, [character.canonicalName, ...(character.aliases ?? []), character.contradiction, character.description].filter(Boolean).join(' '));
@@ -34,19 +41,19 @@ export async function rebuildMemoryIndex({ store, workId }) {
   } finally { db.close(); }
 }
 
-export async function retrieveMemory({ store, workId, query, currentChapter, limit = 8 }) {
-  const rebuilt = await rebuildMemoryIndex({ store, workId });
-  const queryTerms = terms(query).map((term) => term.toLocaleLowerCase('ko'));
+export async function retrieveMemory({ store, workId, query, currentChapter, limit = 8, language }) {
+  const rebuilt = await rebuildMemoryIndex({ store, workId, language });
+  const queryTerms = searchTerms(query, language).slice(0, 16);
   if (!queryTerms.length) return { query, candidates: [], selected: [], ...rebuilt };
   const db = new DatabaseSync(store.sidecar('memory.db'), { readOnly: true });
   try {
     if (rebuilt.backend === 'sqlite-fts5-bm25') {
-      const candidates = db.prepare('SELECT scope, ref, CAST(chapter AS INTEGER) AS chapter, text, -bm25(memory) AS score FROM memory WHERE memory MATCH ? ORDER BY bm25(memory) LIMIT ?').all(ftsQuery(query), Math.max(limit * 3, 12)).map((row) => ({ ...row, score: Number(row.score) }));
+      const candidates = db.prepare('SELECT scope, ref, CAST(chapter AS INTEGER) AS chapter, text, -bm25(memory) AS score FROM memory WHERE memory MATCH ? ORDER BY bm25(memory) LIMIT ?').all(ftsQuery(queryTerms), Math.max(limit * 3, 12)).map((row) => ({ ...row, score: Number(row.score) }));
       const selected = candidates.filter((row) => row.scope !== 'summary' || row.chapter < currentChapter - 5).slice(0, limit);
       return { query, candidates, selected, ...rebuilt };
     }
-    const rows = db.prepare('SELECT scope, ref, chapter, text FROM memory').all();
-    const documents = rows.map((row) => ({ ...row, tokens: terms(row.text).map((term) => term.toLocaleLowerCase('ko')) }));
+    const rows = db.prepare('SELECT scope, ref, chapter, text, terms FROM memory').all();
+    const documents = rows.map(({ terms: indexed, ...row }) => ({ ...row, tokens: indexed ? indexed.split(' ') : [] }));
     const averageLength = documents.reduce((sum, doc) => sum + doc.tokens.length, 0) / Math.max(documents.length, 1);
     const candidates = documents.map((document) => {
       let score = 0;

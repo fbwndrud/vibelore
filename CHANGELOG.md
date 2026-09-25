@@ -18,9 +18,13 @@
   the oldest summaries, then shortens the newest summary instead of failing.
   Continuity text with control characters, reserved markup or instruction-like
   content is left out. Every omission is recorded in the draft trace.
-- Known gap: memory search terms cover Hangul and Latin letters only, so
-  `ja`, `zh-Hant`, `ar` and `th` works get recent summaries but no older
-  memory yet.
+- Memory search splits words with `Intl.Segmenter` in the work language, so
+  `ja`, `zh-Hant`, `th`, `ar` and accented Latin works retrieve older memory,
+  and a Korean word with a common particle also matches its stem (`수아가`
+  and `수아는` meet at `수아`).
+- The memory index is rebuilt from an empty file, so a `memory.db` written by
+  a Node build with a different SQLite (such as one with FTS5) or a damaged
+  file no longer blocks context assembly.
 
 ## 0.4.0 — 2026-09-24
 
