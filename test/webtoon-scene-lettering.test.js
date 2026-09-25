@@ -93,3 +93,35 @@ test('revision feedback does not report a missing source quote mark as a letteri
   w.visualReview.textObservations[0].observedText = 'اثنان.';
   assert.match(sceneRevisionFeedback(w), /text-1 must read "اثنتان\." but the image showed "اثنان\."/);
 });
+
+test('Arabic tanween al-fath matches whether it is written on the alif or on the letter before it, in both directions', () => {
+  const onLetter = 'سيبقى مغلقًا حتى أنتهي.', onAlif = 'سيبقى مغلقاً حتى أنتهي.';
+  assert.equal(sameLettering(onAlif, onLetter), true);
+  assert.equal(sameLettering(onLetter, onAlif), true);
+  // With a shadda on the preceding letter the moved mark still lands in canonical order.
+  assert.equal(sameLettering('مرّاً', 'مرًّا'), true);
+  assert.equal(sameLettering('مرًّا', 'مرّاً'), true);
+  // Shadda + vowel order is already canonical under NFC.
+  assert.equal(sameLettering('مرَّ', 'مرَّ'), true);
+});
+
+test('Arabic diacritics that change the written word still fail, in both directions', () => {
+  const planned = 'لن أفتح رصيفًا نصفه مكسور.';
+  for (const [observed, expected] of [
+    ['لن أفتح رصيفا نصفه مكسور.', planned], [planned, 'لن أفتح رصيفا نصفه مكسور.'],                 // tanween dropped
+    ['لن أفتح رصيًفا نصفه مكسور.', planned], [planned, 'لن أفتح رصيًفا نصفه مكسور.'],     // tanween on another letter
+    ['لن أفتح رصيفاٌ نصفه مكسور.', planned], [planned, 'لن أفتح رصيفاٌ نصفه مكسور.'], // a different tanween
+    ['يفرَقّ', 'يفرّق'], ['يفرّق', 'يفرَقّ'],                         // shadda moved to another letter
+    ['أً', 'ًا'], ['ىً', 'ًا'],                                                  // only a bare alif takes the variant
+  ]) assert.equal(sameLettering(observed, expected), false, `${observed} vs ${expected}`);
+});
+
+test('the plan-vs-source check accepts either tanween al-fath placement', () => {
+  const units = [{ id: 'u1', text: '"سيبقى مغلقاً حتى أنتهي."' }];
+  const p = { title: 'Pier', intent: 'She refuses.', staging: 'A pier.', uncertainties: [], facts: [{ id: 'fact-1', sourceIds: ['u1'], statement: 'She refuses.' }],
+    beats: [{ id: 'beat-1', sourceIds: ['u1'], action: 'She refuses.', textIds: ['text-1'] }],
+    texts: [{ id: 'text-1', sourceId: 'u1', kind: 'dialogue', speaker: 'c1', text: 'سيبقى مغلقًا حتى أنتهي.' }] };
+  assert.doesNotThrow(() => validateScenePlan(p, units));
+  p.texts[0].text = 'سيبقى مغلقا حتى أنتهي.';
+  assert.throws(() => validateScenePlan(p, units), /SCENE_TEXT_NOT_VERBATIM/);
+});

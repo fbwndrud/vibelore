@@ -42,7 +42,13 @@ export function letteringText(value) {
   do { before = s; s = s.replace(EDGE_MARKS, ''); const pair = SINGLE_PAIR.exec(s); if (pair) s = pair[1].trim(); } while (s !== before);
   return s;
 }
-const lettered = s => nfc(letteringText(s));
+/**
+ * Arabic tanween al-fath has two standard spellings: fathatan on the final bare alif (ـاً) or on the letter before it (ـًا).
+ * Only that mark-placement variant is folded, onto the letter before the alif; NFC then puts it in canonical order with
+ * any shadda there. NFC already orders shadda and a short vowel on one letter. Every other diacritic difference still fails.
+ */
+const tanweenFath = s => s.replace(/\u0627\u064B/gu, '\u064B\u0627').normalize('NFC');
+const lettered = s => tanweenFath(nfc(letteringText(s)));
 /** Same visible lettering: only whitespace, Unicode composition and the typography letteringText drops may differ. */
 export const sameLettering = (observed, expected) => lettered(observed).replace(/\s/gu, '') === lettered(expected).replace(/\s/gu, '');
 const unique = rows => new Set(rows.map(r => r.id)).size === rows.length && rows.every(r => safeId(r.id));
