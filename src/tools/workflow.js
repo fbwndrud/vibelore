@@ -318,6 +318,11 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   foundation = executionFoundationSnapshot(foundation, workContract);
   if (workflow.stage === 'clean_fail' && !retryValidation) return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, prose: workflow.draftProse, failure: workflow.failure, nextAction: 'retryValidation=true re-validates this preserved draft in a new epoch; lore_write with a new instruction drafts the chapter anew. After a plan, contract or lore_sync change, lore_write re-validates this draft under the current contract.' };
   if (retryValidation) {
+    // A retry of a failed draft is a new user round with the full quality
+    // revise budget. Only a retry that starts from clean_fail resets it: a
+    // relayed host resumes with the same retryValidation argument after every
+    // round trip, and those resumes must not refill the budget.
+    if (workflow.stage === 'clean_fail') delete workflow.qualityRevisions;
     delete workflow.userApproval;
     delete workflow.approvalId;
     delete workflow.checkId;
@@ -835,6 +840,9 @@ export async function runWorkflowDecide({ store, workId, approvalId, action, fee
   if (action === 'request_revision') {
     if (!String(feedback).trim()) throw new Error('수정 요청에는 feedback이 필요합니다.');
     delete workflow.checkId; delete workflow.userApproval; delete workflow.approvalId;
+    // The user's feedback opens a new revision round with the full quality
+    // revise budget (lore_decide is a separate call, never a relay resume).
+    delete workflow.qualityRevisions;
     await transition(store, workflow, 'revision_requested', {
       operation: 'user_revision', revisionFeedback: String(feedback).trim(),
     });
