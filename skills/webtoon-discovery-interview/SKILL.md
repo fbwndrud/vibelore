@@ -25,7 +25,8 @@ summaries in natural Korean, an English-speaking user in English, and so on. The
 Questions, options and notices the server returns in `needs_interview`, `warnings` and `imageChoice.notice` are already
 worded for `ko` or `en`; show them as returned rather than re-translating them.
 Webtoon dialogue is always the original text in the work language and is never translated.
-Check the work language with `lore_status` or the StoryProfile's `language`; if the key is missing, it is ko. The image
+Check the work language with `lore_configure`: `language.tag` is the resolved work language (a work with no language key
+already resolves to `ko`). `lore_status` doesn't return it. The image
 prompt automatically states the language, script (ISO 15924) and reading direction, so don't create separate
 translation instructions in the interview.
 
@@ -34,8 +35,11 @@ translation instructions in the interview.
 1. **Source range.** `sourceChapters`, and `sourceUnitIds` if needed. Specify only the range that was read.
 2. **Art style and direction.** Take the user's own answer and turn it into an English `direction`. Show the English text you wrote to
    the user, and pass it on only after they confirm it matches their intent.
-3. **Reference images.** File paths of character and background reference images and an English `description`. The field name is `hash`
-   (`inputHash` is a field only for the `asset` that imports a generated scene image; they are different contracts).
+3. **Reference images.** File paths of character and background reference images the user supplies, with an English `description`.
+   They are required on every `start` (at least one; at most 16, or 15 when continuing a previous scene; the id `previous-scene`
+   is reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. Only the confirmed image model is reused between
+   scenes, never the references. The field name is `hash` (`inputHash` is a field only for the `asset` that imports a generated
+   scene image; they are different contracts).
 4. **`panelCount`.** An integer 1-12 or `"auto"`. The user chooses. If not chosen, the result is
    `needs_interview` (options `4, 6, 8, 9, auto`); `auto` lets the AI choose 3-12 panels anew for each adaptation, and fewer
    than 3 panels are shown as a continuity warning in the response `warnings`.
@@ -50,6 +54,11 @@ For `needs_model` (`webtoon-scene-plan`, `webtoon-scene-preflight`,
 `webtoon-scene-image-review`), read the request's system/user and the actual evidence and answer `lore_resume` with the
 exact `runId` and JSON per request ID. This is model work; keep it separate from questions for the user.
 Lookups use `lore_workflow_status`/`history(lane="webtoon")`.
+
+At `needs_scene_image`, read [Codex image execution](references/codex-images.md#scene-path-needs_scene_image). The host runs
+the one job through the OpenAI image API and imports the file with `asset: { path, inputHash: jobs[0].inputHash, provenance:
+{ kind: "openai-api", requestedModel: jobs[0].apiRequest.model, selectionId: jobs[0].apiRequest.selectionId } }`; any other
+provenance fails with `IMAGE_EXECUTION_PROVENANCE_REQUIRED`. Every automatic re-plan and every `revise` is another paid image call.
 
 ## Latin-script English sent to the server
 
@@ -70,28 +79,29 @@ feedback.
 Look up with `lore_workflow_status` or `history` using `lane="webtoon"` and the exact `workflowId`.
 Resolve source drift with `lore_sync` first.
 
-Distinguish finishing a run from verifying the quality of the work. A failed automatic review falls back to user review, and only
-results that passed the source, hash and range checks can be approved by the user. Report generation quality, reader response and actual cost
-only as far as they were measured.
+Distinguish finishing a run from verifying the quality of the work. The scene path has no approval step: `completed` means the
+host's own image review passed, not user approval or publication. A failed image review ends in `scene_needs_revision` once the
+automatic budget is spent; show the image and the evidence, and continue with `action="revise"` only with the user's feedback.
+Report generation quality, reader response and actual cost only as far as they were measured.
 
 ## Appendix: per-panel path (deprecated)
 
 The following applies only to continuing per-panel work already started. New work uses the scene path above.
 
-Start with `lore_webtoon_plan`. Use the source project's `project` and `workId`, and specify only the source
-range that was read as `sourceChapters`. Read and reuse the novel intent already approved; don't reinterpret it as a new
+Continue with `lore_webtoon_plan` and the existing `workflowId`; starting new work (no existing workflow, or `newWorkflow` on a
+finished one) is refused with `WEBTOON_PANEL_PATH_DEPRECATED`. Use the source project's `project` and `workId`. Read and reuse the novel intent already approved; don't reinterpret it as a new
 webtoon preference.
 
 ### Questions and answers
 
 - For multilingual works, read [Work language contract and integration scope](../../docs/reference/WEBTOON_WORKFLOW.md#작품-언어-계약과-통합-범위). Convey explanations to the user in the conversation language, and keep the production text in the source language of `languageContract`. Submit selected values and IDs as they are. For a language contract error or an unsupported-lettering error, explain the supported scope and stop; don't work around it with an arbitrary translation.
-- For new work, read [Required choices: art, lettering, page format](../../docs/reference/WEBTOON_WORKFLOW.md#제작-전-필수-선택--작화문자판면) and ask W04/W15/W16 first. If an Ask tool is provided, show user-facing names and differences and take the choice. Ask about art and page format separately, and allow direct specification too. Announce the unsupported state of page formats before the choice. Don't promise unsupported lettering designs as if they were implemented.
+- If the existing workflow still has W04/W15/W16 unanswered, read [Required choices: art, lettering, page format](../../docs/reference/WEBTOON_WORKFLOW.md#제작-전-필수-선택--작화문자판면) and ask them first. If an Ask tool is provided, show user-facing names and differences and take the choice. Ask about art and page format separately, and allow direct specification too. Announce the unsupported state of page formats before the choice. Don't promise unsupported lettering designs as if they were implemented.
 - Read `inherited` and the source material of each question's `inherited.documentIds`, and first separate "established facts / undecided visual elements / needs approval to change" (ko: 확정 사실 / 미정 시각 요소 / 변경 시 승인 필요; use these exact labels with a Korean user). Compare future states in the current documents with that chapter's manuscript and the state at the time. Don't re-create character names, personalities, relationships or world rules.
 - All `questions` of `needs_interview` are the current round. Based on the inherited facts, show only the presentation not yet decided, with a number, the question, a recommendation and the difference between choices, and wait for the answer. Source facts don't replace the user's answer about webtoon preferences. Don't pass the questions on to the novel creation tools.
 - Pass answers to `lore_webtoon_plan` of the same `workflowId` as `responses: { <questionId>: <the user's own answer> }`. Pass a natural-language answer covering several questions as `feedback` so the model organizes it. The model doesn't choose preferences on the user's behalf.
 - A displayed recommendation or no answer is not an answer. While undecided items remain in `coverage`, continue the same interview. Pass corrections as a new answer to that question ID.
 - Find out the version to check, existing settings and tool support by reading the material. Adaptation latitude, preferences and production limits are the user's decisions.
-- Only when the current webtoon request explicitly says “알아서/자동으로/묻지 말고” (or "automatically", "don't ask" in the user's language) may you use `mode="auto"`. Don't extend an auto instruction given for novel writing to the webtoon. This mode records the default choices as delegated, but for new work the user must choose art, lettering and page format. Reuse choices already settled for the same work.
+- Only when the current webtoon request explicitly says “알아서/자동으로/묻지 말고” (or "automatically", "don't ask" in the user's language) may you use `mode="auto"`. Don't extend an auto instruction given for novel writing to the webtoon. This mode records the default choices as delegated, but the user must still choose art, lettering and page format (W04/W15/W16). Reuse choices already settled for the same work.
 
 ### Direction and adaptation approval
 
@@ -108,7 +118,7 @@ If the preference itself changes, update the answer to that question in `lore_we
 
 ### Model work and image import
 
-- For a new episode, after reference approval read [Composition rough approval and parallel drawing](../../docs/reference/WEBTOON_WORKFLOW.md#구도-러프-승인과-병렬-작화) and set `continuityPlan.version=2`. `needs_continuity_plan` means the setting is needed first, and `needs_continuity_roughs` and `needs_continuity_review` follow the same procedure. Don't automatically replace the version or images of existing work.
+- For a per-panel episode already in progress, after reference approval read [Composition rough approval and parallel drawing](../../docs/reference/WEBTOON_WORKFLOW.md#구도-러프-승인과-병렬-작화) and set `continuityPlan.version=2`. `needs_continuity_plan` means the setting is needed first, and `needs_continuity_roughs` and `needs_continuity_review` follow the same procedure. Don't automatically replace the version or images of existing work.
 - `needs_model`: read the request's system/user and the actual evidence, and pass the exact `runId` and JSON per request ID to `lore_resume`. This is model work; keep it separate from questions for the user. If you don't answer, the work waits.
 - `webtoon-editorial`: read [Scene selection and adaptation review](references/editorial-selection.md) first. It is an editorial candidate that comes before the panel plan, choosing scenes based on the inherited reader promise and the user's answers. Don't interpret the source mapping as an obligation to draw every scene.
 - A visual critic answers `inspectedImages=true` only after actually opening the images and HTML in `artifacts`. Put the shot IDs read into `coveredIds`, and don't hide failures or findings. Don't call a review by the same host an independent reader evaluation.

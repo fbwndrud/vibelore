@@ -11,7 +11,7 @@ Before generating a new work, discover the work the user actually wants to read.
 
 Hold the whole interview in the language the user writes in: a Korean-speaking user gets every question, recommendation, example and summary in natural Korean, an English-speaking user gets them in English, and so on. These instructions are in English only for maintainability; they never set the conversation language. The work language (below) is a separate setting.
 
-For a Korean-speaking user or a `ko` work, use the exact Korean strings marked `ko:` in this skill instead of translating the English text yourself. They match the wording the server shows (`src/prompts/ko.js`), so the user sees one phrasing for each choice. Korean glossary for recurring terms:
+For a Korean-speaking user or a `ko` work, use the exact Korean strings marked `ko:` in this skill instead of translating the English text yourself. The reading-difficulty question, title and recommendation match the wording the server shows (`src/prompts/ko.js`), so the user sees one phrasing for them; the other `ko:` strings, including the per-axis option labels, are this skill's fixed wording and are not in the server. Korean glossary for recurring terms:
 
 - reading contract — ko: 독서 계약
 - author's latitude — ko: 작가 재량
@@ -61,7 +61,7 @@ Don't treat thematic depth and difficulty of reading as the same thing. In a nor
 
 Ask it with the server's wording. ko question: “주제의 깊이와 별개로, 문장 난도·새 개념 투입 속도·독자가 추론할 양·초반 복잡성 상승 방식을 어떻게 할까요?” (title ko: 읽기 난도)
 
-The recommended default is "easy to read + slow concept introduction + explicit surface meaning + complexity after the reader settles in". ko: “권장은 ‘쉽게 읽히는 문장 + 느린 개념 투입 + 표면 뜻은 명확하게 + 초반은 익숙해진 뒤 복잡해짐’입니다. 주제적 깊이는 이와 별개로 높일 수 있습니다.” When summarizing the settled values, use the ko form “읽기 난도: … / 개념 속도: … / 추론 부담: … / 복잡성: …”. Apply these values without asking only when the user explicitly asked to proceed automatically without questions. Store reading difficulty as a lasting contract for the whole work; don't expand it into micro-rules such as per-chapter sentence length or proper noun counts.
+The recommended default is "easy to read + slow concept introduction + explicit surface meaning + complexity after the reader settles in". ko: “권장은 ‘쉽게 읽히는 문장 + 느린 개념 투입 + 표면 뜻은 명확하게 + 초반은 익숙해진 뒤 복잡해짐’입니다. 주제적 깊이는 이와 별개로 높일 수 있습니다.” When summarizing the settled values, use the ko form “읽기 난도: … / 개념 속도: … / 추론 부담: … / 복잡성: …” with the option labels above; the server's own settled summary prints the stored enum values (`easy|standard|dense` and so on) in that form. Apply these values without asking only when the user explicitly asked to proceed automatically without questions. Store reading difficulty as a lasting contract for the whole work; don't expand it into micro-rules such as per-chapter sentence length or proper noun counts.
 
 ## Work language
 

@@ -25,9 +25,9 @@ user, and so on). These instructions are in English only for maintainability.
 3. **`lore_decide`** — show the checked guided manuscript to the user, then approve or reject.
 4. Check progress with **`lore_workflow_status`** and the audit history with **`lore_workflow_history`**.
 
-The workflow runs the per-chapter plan, the original draft prompt, the continuity check, the coherence judge, up to 3 revisions,
-the check receipt, the summary and the commit in order. A chapter of an active workflow can't be bypassed with the low-level
-`lore_commit` without a receipt. When the 3 revisions are used up, it ends with the manuscript kept and
+The workflow runs the per-chapter plan, the original draft prompt, the continuity check, the coherence judge, up to 3 checked
+attempts (at most 2 revisions between them), the check receipt, the summary and the commit in order. A chapter of an active workflow
+can't be bypassed with the low-level `lore_commit` without a receipt. When the third check fails, it ends (`clean_fail`) with the manuscript kept and
 doesn't restart automatically. State `retryValidation=true` only to run validation again on the same manuscript.
 
 ## Work language
@@ -63,6 +63,7 @@ say so and get the user's judgment. Don't ruin the prose to beat the tool.
 has to change, the right move is to edit `characters/<id>.md` directly. Those files are
 Markdown so people can read and edit them, and the tool respects hand edits.
 
-**If you can't produce model answers, just pass.** If you pass no answers to `lore_resume`,
-it finishes with the deterministic check results only. That is still a useful result that catches every
-form-of-address, point-of-view, rhythm and structure violation.
+**Empty answers don't finish the run.** Calling `lore_resume` with no answers returns the same requests again, so
+never retry with empty answers. If you can't produce model answers, stop and tell the user: the `deterministicResult` in
+the `needs_model` response is the only output (it still lists the form-of-address, point-of-view, rhythm and structure
+findings), and a `lore_write` workflow stays paused in `awaiting_model` until the requests are answered.
