@@ -48,6 +48,17 @@
   and `lore_refold` apply the check, rejected entries surface as a soft
   `ADDRESS_ENTRY_REJECTED` advisory, and a refold clears entries an earlier
   extractor wrote with speaker and target swapped.
+- The previous-scene join rule now opens a chapter straight into a new action
+  or reaction and forbids repeating or restating the previous chapter's last
+  sentence, line or image. Before, it asked the writer to show how the scene
+  continued, and chapters opened by replaying the last line.
+- Payoff guidance asks for results the reader feels through action, dialogue
+  and change in the scene instead of "on-screen evidence", which pulled
+  climaxes toward documents and ledgers.
+- Cast design no longer seeds every character with the example's silver hair
+  and left-cheek scar: the schema examples are neutral placeholders, and a
+  rule asks for different kinds of marks on different body parts, not a mark
+  on everyone.
 - Edits to `world/` or `characters/` no longer stall writing with no way out.
   `lore_sync action=validate` shows which world facts and characters changed
   and which published plans mention them, and `action=apply` with that

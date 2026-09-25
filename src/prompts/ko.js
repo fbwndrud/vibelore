@@ -418,7 +418,7 @@ export const phrases = {
   packet: {
     ownerFallback: '선택 주체',
     bridgeLoss: (v) => `실패 시 손실: ${v}`,
-    bridgeProof: (v) => `결과 증거: ${v}`,
+    bridgeProof: (v) => `결과가 드러나는 장면: ${v}`,
     readerContractHeading: '## Reader Contract',
     readerBridge: (v) => `- 전문 설정을 몰라도 붙잡을 즉시 상황과 결과: ${v}`,
     readerLoad: (surfaceEase, inferenceLoad, phase) => `- 읽기 난도: ${surfaceEase} / 추론 부담=${inferenceLoad} / 단계=${phase}`,
@@ -442,7 +442,7 @@ export const phrases = {
     characterCarryFooter: '- 이전 관계를 설명하지 말고 현재 말투·거리·망설임 중 필요한 한 곳에만 반영한다.',
     protectedTruthsHeading: '## Protected Truths',
     withheld: (v) => `아직 숨김: ${v}`,
-    payoffProof: (v) => `결과는 설명이 아니라 화면 증거로 확인되어야 함: ${v}`,
+    payoffProof: (v) => `결과는 설명이 아니라 장면 속 행동·대사·변화로 독자가 체감해야 함: ${v}`,
     voiceTargetsHeading: '## Voice Targets',
     voiceTarget: (name, order, pressure, surface, hidden, sample, filter) =>
       `- ${name}${order ? `@${order}` : ''}: 압력=${pressure} / 겉목적=${surface} / 숨은목적=${hidden} / 예시="${sample}" / 서술필터=${filter}`,
@@ -519,7 +519,7 @@ export const phrases = {
     cast: (v) => `등장인물: ${v}`,
     locations: (v) => `장소: ${v}`,
     previousTailHeading: '## 직전 화 마지막 장면 — 장면 접속 기준',
-    previousTailRule: '이번 화 첫 장면은 시간·공간·부상·대화 상태가 위 장면에서 어떻게 이어지는지 보여 준 뒤 전진한다. 요약으로 건너뛰지 않는다.',
+    previousTailRule: '이번 화는 위 장면 직후의 상태에서 곧바로 새 행동이나 반응으로 연다. 위 장면의 마지막 문장·대사·이미지를 반복하거나 되풀이하지 않는다. 시간·공간·부상 상태는 위 장면과 어긋나지 않게 유지한다.',
     genreLine: (genre, pov) => `장르·시점: ${genre} · ${pov}`,
     defaultPov: '3인칭제한',
   },

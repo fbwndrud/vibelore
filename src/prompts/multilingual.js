@@ -449,7 +449,7 @@ export const phrases = {
     characterCarryFooter: '- Do not explain the earlier relationship; let it show in exactly one of register, distance or hesitation where it is needed.',
     protectedTruthsHeading: '## Protected Truths',
     withheld: (v) => `still withheld: ${v}`,
-    payoffProof: (v) => `the result must be confirmed by evidence on the page, not by explanation: ${v}`,
+    payoffProof: (v) => `the reader must feel the result through action, dialogue and change in the scene, not through explanation: ${v}`,
     voiceTargetsHeading: '## Voice Targets',
     voiceTarget: (name, order, pressure, surface, hidden, sample, filter) =>
       `- ${name}${order ? `@${order}` : ''}: pressure=${pressure} / surface intent=${surface} / hidden intent=${hidden} / example="${sample}" / narration filter=${filter}`,
@@ -526,7 +526,7 @@ export const phrases = {
     cast: (v) => `Characters: ${v}`,
     locations: (v) => `Locations: ${v}`,
     previousTailHeading: '## Final scene of the previous chapter — the join for this scene',
-    previousTailRule: 'The first scene of this chapter shows how time, place, injuries and the state of the conversation continue from the scene above, and only then moves forward. Do not skip it in summary.',
+    previousTailRule: 'Open this chapter right after the scene above with a new action or reaction. Do not repeat or restate its last sentence, line of dialogue or image. Keep time, place and injuries consistent with it.',
     genreLine: (genre, pov) => `Genre and viewpoint: ${genre} · ${pov}`,
     // 시점 값은 소스 코드가 비교하는 기계 계약이다. 라벨만 영어이고 값은 번역하지
     // 않는다(계획: "소스 코드가 비교하는 한국어 enum/시점 값도 기계 계약으로 보존").

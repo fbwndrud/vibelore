@@ -242,6 +242,14 @@ describe('llmCastDesign — 공개 3-인자 호출', () => {
         expect(system).toBe('한국어 소설 초기 캐스트 디자이너. JSON 만 출력. intrinsic 핀고정 계약 준수.');
         expect(user).toContain('너는 ko 소설의 초기 캐스트 디자이너다.');
     });
+    it('does not seed every cast with the same scar or mole and asks for distinct marks', async () => {
+        const ko = await capture3({ ...BASE_INPUT });
+        expect(/왼쪽 뺨|은발/.test(ko.user)).toBe(false);
+        expect(ko.user).toContain('인물마다 다른 부위와 종류');
+        const ja = await capture3({ ...BASE_INPUT, language: 'ja' });
+        expect(/left cheek|silver hair/i.test(ja.user)).toBe(false);
+        expect(ja.user).toContain('a different kind of mark on a different part');
+    });
     it('4번째 인자가 input 의 명시 언어와 어긋나면 거부한다', async () => {
         const { providers } = capturingProviders();
         const ctx = { workId: 'w', model: { provider: 'openai', modelId: 'mock' }, providers, log: noopLogger() };
