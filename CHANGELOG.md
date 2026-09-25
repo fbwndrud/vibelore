@@ -73,6 +73,11 @@
   workflow now stores how many quality revisions it applied. Across resumes
   it allows two revisions and then ends in `clean_fail`, the same as one
   uninterrupted call. The mandatory-validation budget is unchanged.
+- The staged-entity and recent-summary sections of the writing context now use
+  English labels in v2 (non-`ko`) works, for example `## Entities on stage this
+  chapter` and `## Recent N chapter summaries`. They follow the same canonical
+  format version as the stored summaries (`## 요약` in v1, `## Summary` in v2).
+  v1 works keep the Korean labels byte for byte.
 
 ### Existing Korean works: what changes in `lore_write`
 

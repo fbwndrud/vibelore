@@ -25,6 +25,7 @@ import { renderSceneCharacterPacket } from '../core/character-dynamics-adapter.j
 import { openCanonRepository } from '../core/canon-repository.js';
 import { isHookActive } from '../../engine/src/continuity/story-state.js';
 import { PROMPT_FAMILY_KO, promptKit } from '../prompts/index.js';
+import { CANONICAL_FORMAT_VERSION_LEGACY_KO } from '../../engine/src/core/language-policy.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { tokenUnits } from '../core/token-units.js';
 
@@ -97,6 +98,13 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   // 계열을 따르고, 작품 데이터·ID·고유명은 저장된 값 그대로 둔다.
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });
+  // The engine renders the entity and summary sections. Their labels follow the
+  // canonical format version like the stored documents (summaries/NNN.md:
+  // v1 `## 요약`, v2 `## Summary`): v1 works get the legacy call with no
+  // language, so their bytes stay exactly as before; v2 works get English.
+  const sectionLanguage = workLanguage.canonicalFormatVersion === CANONICAL_FORMAT_VERSION_LEGACY_KO
+    ? undefined
+    : workLanguage.contract;
 
   const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store, promptFamily: kit.family });
   const lastState = window.lastStoryState;
@@ -192,7 +200,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
       }).join('\n'));
   }
 
-  if (entity.injected.length > 0) sections.push('', renderEntityContext(entity));
+  if (entity.injected.length > 0) sections.push('', renderEntityContext(entity, sectionLanguage));
 
   if (compiledMemory.value.discretionary.length) {
     sections.push('', t.memoryHeading,
@@ -201,7 +209,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   const debts = hookDebt(lastState?.hooks, chapter);
   if (debts.length) sections.push('', t.hookDebtHeading, ...debts.map((debt) => t.hookDebt(debt.id, debt.staleFor, debt.action)));
 
-  sections.push('', renderSlidingWindow(window));
+  sections.push('', renderSlidingWindow(window, sectionLanguage));
 
   const context = sections.join('\n');
   // ko 계열은 0.3.10 그대로 flat chars/2 를 쓴다(entity-context/sliding-window/

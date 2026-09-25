@@ -67,3 +67,28 @@ describe('buildContext budgets follow the work prompt family', () => {
     assert.ok(!context.includes('token budget 으로 4 개 생략'));
   });
 });
+
+describe('entity and summary section labels follow the canonical format version', () => {
+  it('en (v2): the writing context headings carry no Hangul; only user-authored canon may', async () => {
+    const { context } = await work('en');
+    const lines = context.split('\n');
+    // Section headings and the bracketed notes the renderers add.
+    const labels = lines.filter((line) => /^## /.test(line) || /^\(.*\)$/.test(line));
+    const hangul = labels.filter((line) => /[\p{Script=Hangul}]/u.test(line));
+    assert.deepEqual(hangul, [], `Korean labels in an en context: ${hangul.join(' | ')}`);
+    assert.ok(lines.some((line) => /^## Entities on stage this chapter \(12, budget 2000t, used ~\d+t\)$/.test(line)));
+    assert.ok(lines.some((line) => /^## Recent 5 chapter summaries \(sliding window, budget 12000t, used ~\d+t\)$/.test(line)));
+    assert.ok(lines.some((line) => line.startsWith('- Chapter 7: ')));
+    // Any Hangul left in the whole context must come from canon the user wrote, never from labels.
+    const hangulLines = lines.filter((line) => /[\p{Script=Hangul}]/u.test(line));
+    for (const line of hangulLines) assert.ok(!/^## |^\(|^- (화|Chapter) /.test(line), `label line with Hangul: ${line}`);
+  });
+
+  it('ko (v1): the entity and summary labels stay Korean, byte for byte', async () => {
+    const { context } = await work('ko');
+    const lines = context.split('\n');
+    assert.ok(lines.includes('## 이번 화 무대 entity (7개, budget 2000t, used ~1771t)'));
+    assert.ok(lines.includes('## 최근 5 화 요약 (sliding window, budget 12000t, used ~6040t)'));
+    assert.ok(lines.some((line) => line.startsWith('- 화 7: ')));
+  });
+});
