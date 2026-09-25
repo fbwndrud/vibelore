@@ -28,23 +28,38 @@ const RETRY_FRAMING = /\b(previous|prior|last time|earlier|again|instead|wrong|m
 /** Direction fields are English for every work language: every letter must be Latin script (digits, punctuation and symbols pass). */
 export const isEnglish = value => nonempty(value) && [...value.matchAll(/\p{L}/gu)].every(([c]) => /\p{Script=Latin}/u.test(c));
 const nfc = s => s.normalize('NFC');
-/** Double-style dialogue marks of every script; a word never begins or ends with one, so either edge may drop it on its own. */
-const DIALOGUE_MARKS = '"\u201C\u201D\u201E\u201F\u00AB\u00BB\u2039\u203A\u300C\u300D\u300E\u300F\uFE41\uFE42\uFE43\uFE44\u301D\u301E\u301F\uFF02';
-const EDGE_MARKS = new RegExp(`^[${DIALOGUE_MARKS}\\s]+|[${DIALOGUE_MARKS}\\s]+$`, 'gu');
-/** Single-style marks double as apostrophes (boys’, 'Tis), so they are only dropped as an enclosing pair. */
-const SINGLE_PAIR = /^['\u2018\u201A\u201B]([\s\S]*\S)['\u2019\u2018]$/u;
-const EMPHASIS = [/(\*{1,3})(?=\S)([^*\n]*?\S)\1/gu, /(?<![\p{L}\p{N}_])(_{1,3})(?=\S)([^_\n]*?\S)\1(?![\p{L}\p{N}_])/gu];
-/**
- * The words a balloon, caption or sign actually shows: the source's enclosing dialogue quotation marks and its Markdown
- * emphasis markers are prose typography, not lettering. The inner text stays verbatim. Every verbatim check normalizes
- * both of its sides with this, so it stays strict about the words.
- */
-export function letteringText(value) {
-  let s = String(value), before;
-  do { before = s; for (const re of EMPHASIS) s = s.replace(re, '$2'); } while (s !== before);
-  do { before = s; s = s.replace(EDGE_MARKS, ''); const pair = SINGLE_PAIR.exec(s); if (pair) s = pair[1].trim(); } while (s !== before);
-  return s;
+/** Wrapping dialogue quotation pairs, opener then closer, across scripts. */
+const QUOTE_PAIRS = [['\u201C', '\u201D'], ['\u201E', '\u201C'], ['\u201E', '\u201D'], ['\u00AB', '\u00BB'], ['\u00BB', '\u00AB'], ['\u2039', '\u203A'], ['\u203A', '\u2039'],
+  ['\u300C', '\u300D'], ['\u300E', '\u300F'], ['\uFE41', '\uFE42'], ['\uFE43', '\uFE44'], ['\u301D', '\u301E'], ['\u301D', '\u301F'], ['"', '"'], ['\uFF02', '\uFF02']];
+/** Single-style marks double as apostrophes (boys’, 'Tis, the Hebrew geresh stand-in in דק'). */
+const SINGLE_PAIRS = [["'", "'"], ['\u2018', '\u2019'], ['\u201A', '\u2018']];
+/** The inner text holds no mark left waiting for the outer pair, so the outer marks really wrap the whole line. */
+function balanced(inner, open, close) {
+  if (open === close) return !inner.includes(open);
+  let depth = 0;
+  for (const c of inner) { if (c === open) depth++; else if (c === close && --depth < 0) return false; }
+  return depth === 0;
 }
+function unwrapQuotes(value) {
+  const chars = [...value];
+  if (chars.length < 3) return value;
+  const [first, last] = [chars[0], chars.at(-1)], inner = chars.slice(1, -1).join('');
+  const wraps = ([open, close]) => first === open && last === close && balanced(inner, open, close);
+  // A closing single mark right after a letter or digit reads as an apostrophe, so only ,'  .'  ?'  !' and the like close a quote.
+  if (QUOTE_PAIRS.some(wraps) || (SINGLE_PAIRS.some(wraps) && !/[\p{L}\p{N}\p{M}]$/u.test(inner))) return inner.trim();
+  return value;
+}
+/** Markdown emphasis wraps a whole word or phrase: no letter, digit or marker on the outside, no marker inside (f*ck, 5*3*2 and *** stay). */
+const EMPHASIS = [/(?<![\p{L}\p{N}\p{M}*])(\*{1,3})(?=[^*\s])([^*\n]*?[^*\s])\1(?![\p{L}\p{N}\p{M}*])/gu,
+  /(?<![\p{L}\p{N}\p{M}_])(_{1,3})(?=[^_\s])([^_\n]*?[^_\s])\1(?![\p{L}\p{N}\p{M}_])/gu];
+const stripEmphasis = value => { let s = value, before; do { before = s; for (const re of EMPHASIS) s = s.replace(re, '$2'); } while (s !== before); return s; };
+const stripQuotes = value => { let s = value, before; do { before = s; s = unwrapQuotes(s.trim()); } while (s !== before); return s; };
+/**
+ * The words a balloon, caption or sign actually shows: a matched quotation pair wrapping the whole line and Markdown
+ * emphasis around a word or phrase are prose typography, not lettering. Lone, inner and apostrophe marks and censor
+ * asterisks stay. The inner text stays verbatim.
+ */
+export const letteringText = value => stripQuotes(stripEmphasis(String(value)));
 /**
  * Arabic tanween al-fath has two standard spellings: fathatan on the final bare alif (ـاً) or on the letter before it (ـًا).
  * Only that mark-placement variant is folded, onto the letter before the alif; NFC then puts it in canonical order with
@@ -52,8 +67,13 @@ export function letteringText(value) {
  */
 const tanweenFath = s => s.replace(/\u0627\u064B/gu, '\u064B\u0627').normalize('NFC');
 const lettered = s => tanweenFath(nfc(letteringText(s)));
-/** Same visible lettering: only whitespace, Unicode composition and the typography letteringText drops may differ. */
-export const sameLettering = (observed, expected) => lettered(observed).replace(/\s/gu, '') === lettered(expected).replace(/\s/gu, '');
+const compact = s => tanweenFath(nfc(s)).replace(/\s/gu, '');
+/**
+ * Same visible lettering. The expected side is what the image prompt asked for (letteringText of the plan). The observed
+ * side may add a wrapping quotation pair, a lettering convention, but a drawn Markdown marker is a visible defect.
+ * Otherwise only whitespace, Unicode composition and the tanween al-fath placement may differ.
+ */
+export const sameLettering = (observed, expected) => compact(stripQuotes(String(observed))) === compact(letteringText(expected));
 const unique = rows => new Set(rows.map(r => r.id)).size === rows.length && rows.every(r => safeId(r.id));
 const words = s => s.trim().split(/\s+/u).length;
 const needTextCoverage = (assigned, texts) => need(assigned.length === texts.length && new Set(assigned).size === assigned.length

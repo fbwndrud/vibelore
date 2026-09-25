@@ -146,3 +146,37 @@ test('the planner is told which lettering kinds exist, including physical writin
   assert.equal(SCENE_SCHEMA.texts[0].kind, 'dialogue|thought|caption|sfx|physical');
   assert.match(SCENE_TEXT_KIND_INSTRUCTION, /physical: writing that exists on an object in the scene/);
 });
+
+test('review fix M1: only a matched pair wrapping the whole line is stripped; lone and inner marks stay', () => {
+  for (const [raw, lettered] of [['“Six planks,”', 'Six planks,'], ['«Oui»', 'Oui'], ['„Wo?“', 'Wo?'], ['「はい」', 'はい'], ['『中?』', '中?'],
+    ['‹Oui›', 'Oui'], ['"No."', 'No.'], ["'No,'", 'No,'], ['“He said “no” twice.”', 'He said “no” twice.'], ['"\'Hi,\'"', 'Hi,'], ['\'He said "no"\'', 'He said "no"']])
+    assert.equal(letteringText(raw), lettered, raw);
+  for (const kept of ['Il a dit « non »', '« Oui », dit-il, « va. »', 'He said "no"', '彼は「はい」', '"Yes," he said. "No."',
+    '"Six planks here,', 'Six planks here,"', '«Oui', 'Oui»', '「はい', 'はい」', '“Mismatched»', "'Tis nothing, boys'", "'עוד 10 דק'", "the boys’", "'Tis late"])
+    assert.equal(letteringText(kept), kept, kept);
+});
+
+test('review fix M2: only emphasis that wraps a word or phrase is stripped; censor and arithmetic asterisks stay', () => {
+  for (const [raw, lettered] of [['*yet*', 'yet'], ['**yet**', 'yet'], ['there *yet*,', 'there yet,'], ['***now***', 'now'], ['(*really*)', '(really)'], ['_yes_', 'yes']])
+    assert.equal(letteringText(raw), lettered, raw);
+  for (const kept of ['f*ck', 's*it', 'f*ck this s*it', '시*', '개*끼', '시*, 개*끼', '5*3*2', '***', 'a * b * c', 'snake_case_name'])
+    assert.equal(letteringText(kept), kept, kept);
+  const units = [{ id: 'u1', text: '"What the f*ck," he said. "Oh s*it."' }, { id: 'u2', text: '"시*, 개*끼야." 그가 말했다.' }];
+  const p = { title: 'Pier', intent: 'He swears.', staging: 'A pier.', uncertainties: [], facts: [{ id: 'fact-1', sourceIds: ['u1'], statement: 'He swears.' }],
+    beats: [{ id: 'beat-1', sourceIds: ['u1', 'u2'], action: 'He swears.', textIds: ['text-1', 'text-2'] }],
+    texts: [{ id: 'text-1', sourceId: 'u1', kind: 'dialogue', speaker: 'c1', text: 'What the f*ck,' }, { id: 'text-2', sourceId: 'u2', kind: 'dialogue', speaker: 'c1', text: '시*, 개*끼야.' }] };
+  assert.doesNotThrow(() => validateScenePlan(p, units));
+  assert.ok(sceneImagePrompt(scene('en', p.texts)).includes('"What the f*ck,"'));
+  assert.equal(sameLettering('fck this sit', 'f*ck this s*it'), false);
+});
+
+test('review fix L2: asterisks the image model drew literally fail review against a plan with emphasis', () => {
+  const planned = "We don't need to spend anything there *yet*,";
+  assert.equal(sameLettering("We don't need to spend anything there *yet*,", planned), false);
+  assert.equal(sameLettering("We don't need to spend anything there yet,", planned), true);
+  // Drawn wrapping quotes remain tolerated, as before.
+  assert.equal(sameLettering('「木料呢。」', '木料呢。'), true);
+  const w = { ...scene('en', [{ id: 'text-1', sourceId: 'u1', kind: 'dialogue', speaker: 'c2', text: planned }]), panelCount: 1,
+    visualReview: { observedPanelCount: 1, textObservations: [{ id: 'text-1', observedText: planned, readable: true, speakerCorrect: true }], findings: [] } };
+  assert.match(sceneRevisionFeedback(w), /text-1 must read "We don't need to spend anything there yet," but the image showed/);
+});

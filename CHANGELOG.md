@@ -12,10 +12,12 @@
 - Right-to-left scene prompts (such as `ar`) also state the page reading
   order: rows top to bottom, panels within a row right to left, and the first
   spoken line at the right or top. Left-to-right prompts are unchanged.
-- Scene lettering drops the prose's enclosing dialogue quotation marks (any
-  script) and Markdown emphasis markers and keeps the inner words verbatim.
-  The image prompt, the plan-vs-source check and the review-vs-plan check
-  all use the same normalization.
+- Scene lettering drops a matched dialogue quotation pair (any script) that
+  wraps the whole line and Markdown emphasis around a word or phrase, and
+  keeps the inner words verbatim; lone or inner quote marks, apostrophes and
+  censor asterisks (`f*ck`, `시*`) stay. The image prompt and the
+  plan-vs-source check use the same normalization; review accepts a drawn
+  wrapping quote pair but fails literally drawn emphasis markers.
 - The lettering match accepts both standard placements of Arabic tanween
   al-fath (on the final alif or on the letter before it). Other diacritic
   differences still fail.
