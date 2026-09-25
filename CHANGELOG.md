@@ -85,6 +85,11 @@
 - The memory index is rebuilt from an empty file, so a `memory.db` written by
   a Node build with a different SQLite (such as one with FTS5) or a damaged
   file no longer blocks context assembly.
+- Webtoon scenes: a previous scene whose image review failed is no longer
+  sent to the image model as a drawing reference, so its defects do not carry
+  into the next scene. The continuity review still compares against it, and
+  a changed previous image still stops the workflow. A passed previous scene
+  is carried as before.
 
 ## 0.4.0 — 2026-09-24
 

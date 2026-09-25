@@ -36,6 +36,9 @@ async function verifyInputs(repo, w) {
     const images = await importWebtoonImages(repo.store.rootDir, [{ shotId: r.id, path: r.path }], [r.id]);
     if (images[r.id].hash !== r.hash) throw new Error('SCENE_REFERENCE_CHANGED');
   }
+  // The continuity review still opens a previous scene that was kept out of the drawing.
+  const previousImage = w.previousScene?.image;
+  if (previousImage && digest(await readFile(previousImage.path)) !== previousImage.hash) throw new Error('SCENE_PREVIOUS_IMAGE_CHANGED');
 }
 
 /** A paid image call is only allowed against the preflight that reviewed exactly this plan and brief. */
@@ -214,7 +217,9 @@ async function startScene(store, repo, args, current) {
   if (selection.status === 'needs_image_choice') return selection;
   const { policy, saved } = selection;
   const references = args.references;
-  if (!Array.isArray(references) || !references.length || references.length > SCENE_LIMITS.referenceImages - (previous ? 1 : 0)
+  // A failed scene stays available to the continuity review, but its image never feeds the next drawing.
+  const drawFromPrevious = Boolean(previous?.visualReview.passed);
+  if (!Array.isArray(references) || !references.length || references.length > SCENE_LIMITS.referenceImages - (drawFromPrevious ? 1 : 0)
     || references.some(r => r.id === PREVIOUS_SCENE_ID) || new Set(references.map(r => r.id)).size !== references.length
     || references.some(r => !safeId(r.id) || !isEnglish(r.description) || !nonempty(r.hash))) throw new Error('SCENE_REFERENCES_REQUIRED');
   const w = { workflowId: `wt-${randomUUID()}`, productionMode: SCENE_PRODUCTION_MODE, workId: args.workId, revision: 1,
@@ -222,7 +227,7 @@ async function startScene(store, repo, args, current) {
     panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount: args.panelCount }),
     ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: previous.visualReview.findings, reviewPassed: previous.visualReview.passed } } : {}),
     imagePolicy: policy, imageSelection: saved.selection, autoRevision: { limit: autoLimit, used: 0 }, attempts: [],
-    sceneReferences: [...references, ...(previous ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
+    sceneReferences: [...references, ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
     acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity() };
   record(w, 'scene_started', { sourceHash: source.hash });
   return w;
