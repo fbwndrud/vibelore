@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../i18n.js?v=1"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>판결 LIVE · 작품 읽기</title>
 <meta name="description" content="조회수에 미친 렉카 백판사가 동생을 피고석에 앉힌 생방송. Claude Opus 5.5가 설계·집필·각색하고 Codex가 그린 소설과 장면 웹툰 1~3화. 첫 결과와 검토 판정을 가감 없이 공개합니다.">
@@ -12,7 +13,7 @@
 </head>
 <body data-page="read" class="reader-page">
 <header class="topbar">
-  <a class="brand" href="./">판결 LIVE</a>
+  <a class="brand" href="./" lang="ko">판결 LIVE</a>
   <div class="grow eptabs" id="eptabs"></div>
   <div class="seg" role="group" aria-label="보기 방식">
     <button data-mode="webtoon">웹툰</button>
@@ -25,7 +26,7 @@
 <section class="ephead">
   <div class="lead">
     <div class="kicker" id="kicker">EPISODE</div>
-    <h1 id="eptitle">…</h1>
+    <h1 id="eptitle" lang="ko">…</h1>
     <p id="eplead"></p>
   </div>
   <div class="chips">
@@ -44,14 +45,14 @@
       <span id="prose-label">소설 원문</span>
       <span class="sizes">글자 크기 <button data-size="s">가</button><button data-size="m">가</button><button data-size="l">가</button></span>
     </div>
-    <div class="prose" id="prose"></div>
+    <div class="prose" id="prose" lang="ko"></div>
   </aside>
 </main>
 
 <div class="sheet" id="sheet">
   <div class="grab"></div>
   <div class="sh"><span id="sheet-label">원문 보기</span><button id="sheet-toggle">위로 펼치기</button></div>
-  <div class="body" id="sheet-body"></div>
+  <div class="body" id="sheet-body" lang="ko"></div>
   <div class="mtools"><button data-mode="webtoon">웹툰</button><button data-mode="novel">소설</button><button class="metatog" id="meta-toggle-m" type="button" aria-pressed="false">제작 정보</button></div>
 </div>
 
@@ -61,11 +62,11 @@
 </dialog>
 
 <footer class="site">
-  소설 설계·집필·웹툰 각색·연출은 모두 Claude Opus 5.5(claude-opus-5-5)가, 이미지는 Codex(gpt-image-2.5-sunburst)가 만들었습니다. 작품 속 인물·채널·플랫폼·사건은 모두 허구입니다.<br>
-  이미지 검토는 같은 모델(오케스트레이션 호스트)의 자기검토이며 독립 평가가 아닙니다. 판정이 “수정 필요”여도 재생성 없이 첫 결과를 그대로 실었습니다.<br>
-  빌드 <span id="built"></span> · 데이터 <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
+  <span data-i18n="vl.read.footer">  소설 설계·집필·웹툰 각색·연출은 모두 Claude Opus 5.5(claude-opus-5-5)가, 이미지는 Codex(gpt-image-2.5-sunburst)가 만들었습니다. 작품 속 인물·채널·플랫폼·사건은 모두 허구입니다.<br>
+  이미지 검토는 같은 모델(오케스트레이션 호스트)의 자기검토이며 독립 평가가 아닙니다. 판정이 “수정 필요”여도 재생성 없이 첫 결과를 그대로 실었습니다.</span><br>
+  <span data-i18n="common.builtData">빌드</span> <span id="built"></span> · <span data-i18n="common.data">데이터</span> <a href="data.json">data.json</a> · <span data-i18n="common.madeWith">제작 도구</span> <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
 </footer>
-<script src="site.js?v=1"></script>
-<script src="app.js?v=8"></script>
+<script src="site.js?v=3"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

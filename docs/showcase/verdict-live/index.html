@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../i18n.js?v=1"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>판결 LIVE · vibelore 제작 예시</title>
 <meta name="description" content="조회수에 미친 렉카 백판사가 동생을 피고석에 앉힌 생방송. Claude Opus 5.5로 설계·집필·각색하고 Codex로 그린 사이버렉카 스릴러 소설과 장면 웹툰.">
@@ -15,8 +16,8 @@
 <header class="hub-hero">
   <div class="hub-copy">
     <div class="kicker">VIBELORE 제작 예시 · CLAUDE OPUS 5.5</div>
-    <h1>판결 LIVE<span class="live">● LIVE</span></h1>
-    <p class="lede">구독자 142만 렉카 채널 ‘백판사’. 시청자 투표 게이지가 100%에 닿으면 미리 걸어 둔 형량이 자동 실행되는 생방송에, 그는 딥페이크 학폭 영상으로 매장 직전인 친동생을 피고로 앉힌다. 준비한 무죄 증거가 다른 영상으로 바뀌어 재생되고, 게이지는 99%에서 멈춘다. <b>“나머지 1%는 우리가 누른다.”</b></p>
+    <h1 lang="ko">판결 LIVE<span class="live">● LIVE</span></h1>
+    <p class="lede" data-i18n="vl.hub.lede1">구독자 142만 렉카 채널 ‘백판사’. 시청자 투표 게이지가 100%에 닿으면 미리 걸어 둔 형량이 자동 실행되는 생방송에, 그는 딥페이크 학폭 영상으로 매장 직전인 친동생을 피고로 앉힌다. 준비한 무죄 증거가 다른 영상으로 바뀌어 재생되고, 게이지는 99%에서 멈춘다. <b>“나머지 1%는 우리가 누른다.”</b></p>
     <p class="lede" style="font-size:14px">사이버렉카·딥페이크·신상털기·후원경제를 섞은 안티히어로 스릴러. 작품 설계부터 소설 집필, 웹툰 각색·연출까지는 Claude Opus 5.5가, 이미지 생성은 Codex(gpt-image-2.5-sunburst)가 맡았습니다. 인물·채널·플랫폼·사건은 모두 허구입니다.</p>
     <div class="hub-stats" id="hub-stats"></div>
   </div>
@@ -44,18 +45,19 @@
       <span class="go">작품 목록 →</span>
     </a>
   </div>
-  <p class="hub-note">모든 웹툰 장면은 자동 재생성 없이 첫 결과와 검토 판정을 그대로 공개합니다. 검토는 제작에 쓴 모델의 자기검토이며 독립 평가가 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a></p>
+  <p class="hub-note" data-i18n="ve.hub.note">모든 웹툰 장면은 자동 재생성 없이 첫 결과와 검토 판정을 그대로 공개합니다. 검토는 제작에 쓴 모델의 자기검토이며 독립 평가가 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a></p>
 </main>
-<script src="site.js?v=1"></script>
+<script src="site.js?v=3"></script>
 <script>
 (function () {
   fetch('data.json').then((r) => r.json()).then((d) => {
     const eps = d.episodes; const scenes = eps.reduce((a, e) => a + e.sceneCount, 0); const panels = eps.reduce((a, e) => a + e.panelTotal, 0);
     const box = document.getElementById('hub-stats');
-    for (const [b, s] of [[`${eps.length}화`, '소설'], [`${eps.length}화 · ${scenes}장면`, '웹툰'], [`${panels}칸`, '그림']]) {
+    const T = window.T || ((s) => s);
+    for (const [b, s] of [[T('{n}화', { n: eps.length }), T('소설')], [T('{n}화', { n: eps.length }) + ' · ' + T('{n}장면', { n: scenes }), T('웹툰')], [T('{n}칸', { n: panels }), T('그림')]]) {
       const x = document.createElement('div'); x.className = 'hs'; x.innerHTML = '<b></b><span></span>'; x.firstChild.textContent = b; x.lastChild.textContent = s; box.append(x);
     }
-    const s1 = eps[0].scenes[5]; const img = document.createElement('img'); img.src = s1.image; img.alt = `1화 장면 ${s1.n} ${s1.title}`; document.getElementById('hub-cover').append(img);
+    const s1 = eps[0].scenes[5]; const img = document.createElement('img'); img.src = s1.image; img.alt = T('1화 장면 {n} {title}', { n: s1.n, title: s1.title }); document.getElementById('hub-cover').append(img);
   });
 })();
 </script>

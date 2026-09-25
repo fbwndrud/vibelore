@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../i18n.js?v=1"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>길 위의 번개 · vibelore 제작 예시</title>
 <meta name="description" content="AI가 설계하고 쓰고 검토한 판타지 소설과 장면 웹툰. 작품을 읽거나, 제작 기록·워크플로·토큰과 비용을 살펴보세요.">
@@ -18,7 +19,7 @@
 <header class="hub-hero">
   <div class="hub-copy">
     <div class="kicker">VIBELORE 제작 예시</div>
-    <h1>길 위의 번개</h1>
+    <h1 lang="ko">길 위의 번개</h1>
     <p class="lede">공격 마법 없이 방패 하나로 길을 여는 길잡이 리아와 동료들의 모험 판타지. 소설은 AI가 계획하고 쓰고 비평받아 고쳤고, 웹툰은 그 소설을 장면 단위로 각색해 그렸습니다.</p>
     <div class="hub-stats" id="hub-stats"></div>
   </div>
@@ -59,19 +60,19 @@
       <span class="go">비교 보기 →</span>
     </a>
   </div>
-  <p class="hub-note">모든 결과는 자동 재생성 없이 첫 결과와 검토 판정을 그대로 공개합니다. 검토는 제작에 쓴 호스트의 자기검토이며 독립 평가가 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a> · 다른 작품: <a href="../verdict-live/">판결 LIVE</a></p>
+  <p class="hub-note" data-i18n="tt.hub.note">모든 결과는 자동 재생성 없이 첫 결과와 검토 판정을 그대로 공개합니다. 검토는 제작에 쓴 호스트의 자기검토이며 독립 평가가 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a> · 다른 작품: <a href="../verdict-live/">판결 LIVE</a> · 다국어: <a href="../multilingual/">8개 언어 소설·웹툰</a></p>
 </main>
-<script src="site.js?v=1"></script>
+<script src="site.js?v=2"></script>
 <script>
 (function () {
   Promise.all([fetch('data.json').then((r) => r.json()), fetch('costs.json').then((r) => r.json()).catch(() => null)]).then(([d, c]) => {
     const eps = d.episodes; const scenes = eps.reduce((a, e) => a + e.sceneCount, 0); const panels = eps.reduce((a, e) => a + e.panelTotal, 0);
     const novelN = c ? c.episodes.length : eps.length;
     const box = document.getElementById('hub-stats');
-    for (const [b, s] of [[`${novelN}화`, '소설'], [`${eps.length}화 · ${scenes}장면`, '웹툰'], [`${panels}칸`, '그림']]) {
+    for (const [b, s] of [[T('{n}화', { n: novelN }), T('소설')], [T('{n}화', { n: eps.length }) + ' · ' + T('{n}장면', { n: scenes }), T('웹툰')], [T('{n}칸', { n: panels }), T('그림')]]) {
       const x = document.createElement('div'); x.className = 'hs'; x.innerHTML = `<b></b><span></span>`; x.firstChild.textContent = b; x.lastChild.textContent = s; box.append(x);
     }
-    const s1 = eps[0].scenes[0]; const img = document.createElement('img'); img.src = s1.image; img.alt = `1화 첫 장면 ${s1.title}`; document.getElementById('hub-cover').append(img);
+    const s1 = eps[0].scenes[0]; const img = document.createElement('img'); img.src = s1.image; img.alt = T('1화 첫 장면 {title}', { title: s1.title }); document.getElementById('hub-cover').append(img);
   });
 })();
 </script>

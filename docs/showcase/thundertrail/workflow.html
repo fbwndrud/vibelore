@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../i18n.js?v=1"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>길 위의 번개 · 워크플로 해설</title>
 <meta name="description" content="vibelore가 소설과 웹툰을 만들 때 거치는 단계마다 무엇을 받고 무엇을 내놓는지, 누가 판단하는지, 왜 있는지를 실제 사례와 실측 수치로 설명합니다.">
@@ -30,11 +31,11 @@
     <div class="lanes" id="lanes"></div>
   </section>
   <section class="psec" id="novel">
-    <div class="sec-head"><h2>소설 워크플로</h2><span><code>lore_write</code> 한 번 호출로 계획부터 커밋까지 순서대로 진행됩니다</span></div>
+    <div class="sec-head"><h2>소설 워크플로</h2><span data-i18n="tt.wf.novelsub"><code>lore_write</code> 한 번 호출로 계획부터 커밋까지 순서대로 진행됩니다</span></div>
     <div class="wcards" id="novel-cards"></div>
   </section>
   <section class="psec" id="webtoon">
-    <div class="sec-head"><h2>웹툰 워크플로</h2><span>장면 하나가 한 워크플로입니다. <code>lore_webtoon_scene</code>이 장면마다 이 순서를 밟습니다</span></div>
+    <div class="sec-head"><h2>웹툰 워크플로</h2><span data-i18n="tt.wf.webtoonsub">장면 하나가 한 워크플로입니다. <code>lore_webtoon_scene</code>이 장면마다 이 순서를 밟습니다</span></div>
     <div class="wcards" id="webtoon-cards"></div>
   </section>
   <section class="psec" id="guards">
@@ -47,11 +48,11 @@
   </section>
 </main>
 
-<footer class="site">
+<footer class="site" data-i18n="tt.wf.footer">
   실측 수치는 이 작품 1~7화 제작 기록에서 단계별로 집계했습니다(답변 모델 호출 기준, 호스트 오케스트레이션 제외). 자세한 표는 <a href="cost.html">비용·시간</a>에 있습니다.<br>
   제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
 </footer>
-<script src="site.js?v=1"></script>
-<script src="workflow.js?v=2"></script>
+<script src="site.js?v=2"></script>
+<script src="workflow.js?v=3"></script>
 </body>
 </html>

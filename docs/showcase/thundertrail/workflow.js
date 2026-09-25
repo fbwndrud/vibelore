@@ -11,6 +11,7 @@
     for (const k of kids.flat(Infinity)) if (k != null && k !== false) n.append(k.nodeType ? k : document.createTextNode(String(k)));
     return n;
   };
+  const T = window.T || ((s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : s));
   const WHO = { ai: 'AI 판단', rule: '규칙 검사', human: '사람 결정', img: '이미지 모델' };
 
   // steps: 이 카드가 대응하는 모델 호출 단계 이름(costs.json summary.step). 비어 있으면 모델 호출 없음.
@@ -100,7 +101,7 @@
   ];
 
   const fmtK = (n) => n >= 10000 ? `${(n / 1000).toFixed(0)}K` : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(Math.round(n));
-  const dur = (s) => s < 60 ? `${Math.round(s)}초` : `${Math.floor(s / 60)}분 ${Math.round(s % 60)}초`;
+  const dur = (s) => s < 60 ? T('{n}초', { n: Math.round(s) }) : T('{m}분 {s}초', { m: Math.floor(s / 60), s: Math.round(s % 60) });
 
   function stat(C, steps) {
     if (!C || !steps.length) return null;
@@ -108,20 +109,20 @@
     if (!rows.length) return null;
     const a = rows.reduce((o, r) => { for (const k of ['calls', 'new', 'cacheRead', 'cacheWrite', 'output', 'sec', 'secKnown', 'tokKnown']) o[k] = (o[k] || 0) + r[k]; return o; }, {});
     if (!a.tokKnown) return null;
-    return { calls: a.calls, inTok: (a.new + a.cacheRead + a.cacheWrite) / a.tokKnown, outTok: a.output / a.tokKnown, sec: a.secKnown ? a.sec / a.secKnown : null, per: '호출 1회 평균(1~6화 전체)' };
+    return { calls: a.calls, inTok: (a.new + a.cacheRead + a.cacheWrite) / a.tokKnown, outTok: a.output / a.tokKnown, sec: a.secKnown ? a.sec / a.secKnown : null, per: T('호출 1회 평균(1~6화 전체)') };
   }
 
   function card(s, i, C, lane) {
     const st = stat(C, s.steps);
     return el('article', { class: 'wcard', id: `${lane}-${s.id}` },
-      el('div', { class: 'wh' }, el('span', { class: 'wn' }, String(i + 1)), el('div', null, el('h3', null, s.t), el('div', { class: 'wtool' }, s.who.map((w) => el('span', { class: 'wwho' }, el('i', { class: 'who ' + w }), WHO[w])), el('code', null, s.tool))),
-        s.loop ? el('span', { class: 'loop' }, '↺ ' + s.loop) : null),
-      el('p', { class: 'wrole' }, s.role),
-      el('dl', { class: 'dl' }, el('dt', null, '받는 것'), el('dd', null, s.in), el('dt', null, '내놓는 것'), el('dd', null, s.out)),
-      el('div', { class: 'why' }, el('b', null, '왜 있나 '), s.why),
-      st ? el('div', { class: 'wstat' }, el('span', null, `이 작품 실측 · 호출 ${st.calls}회`), el('span', null, `입력 ${fmtK(st.inTok)} · 출력 ${fmtK(st.outTok)} 토큰`), st.sec ? el('span', null, `약 ${dur(st.sec)}`) : null, el('small', null, st.per), el('a', { href: `cost.html#step-${s.steps[0]}` }, '표 보기'))
-        : el('div', { class: 'wstat none' }, el('span', null, s.steps.length ? '이 단계의 토큰 기록 없음' : s.who.includes('img') ? '이미지 비용·시간은 비용·시간 페이지' : '모델 호출 없음(코드·사람)'), s.who.includes('img') ? el('a', { href: 'cost.html#images' }, '보기') : null),
-      el('div', { class: 'wex' }, el('span', { class: 'muted small' }, '이 작품에서 · '), s.ex.map(([t, h]) => el('a', { href: h }, t + ' →'))));
+      el('div', { class: 'wh' }, el('span', { class: 'wn' }, String(i + 1)), el('div', null, el('h3', null, T(s.t)), el('div', { class: 'wtool' }, s.who.map((w) => el('span', { class: 'wwho' }, el('i', { class: 'who ' + w }), T(WHO[w]))), el('code', null, T(s.tool)))),
+        s.loop ? el('span', { class: 'loop' }, '↺ ' + T(s.loop)) : null),
+      el('p', { class: 'wrole' }, T(s.role)),
+      el('dl', { class: 'dl' }, el('dt', null, T('받는 것')), el('dd', null, T(s.in)), el('dt', null, T('내놓는 것')), el('dd', null, T(s.out))),
+      el('div', { class: 'why' }, el('b', null, T('왜 있나 ')), T(s.why)),
+      st ? el('div', { class: 'wstat' }, el('span', null, T('이 작품 실측 · 호출 {n}회', { n: st.calls })), el('span', null, T('입력 {i} · 출력 {o} 토큰', { i: fmtK(st.inTok), o: fmtK(st.outTok) })), st.sec ? el('span', null, T('약 {d}', { d: dur(st.sec) })) : null, el('small', null, st.per), el('a', { href: `cost.html#step-${s.steps[0]}` }, T('표 보기')))
+        : el('div', { class: 'wstat none' }, el('span', null, T(s.steps.length ? '이 단계의 토큰 기록 없음' : s.who.includes('img') ? '이미지 비용·시간은 비용·시간 페이지' : '모델 호출 없음(코드·사람)')), s.who.includes('img') ? el('a', { href: 'cost.html#images' }, T('보기')) : null),
+      el('div', { class: 'wex' }, el('span', { class: 'muted small' }, T('이 작품에서 · ')), s.ex.map(([t, h]) => el('a', { href: h }, T(t) + ' →'))));
   }
 
   function lanes() {
@@ -129,9 +130,9 @@
     for (const [title, sub, list, lane] of [['소설', '한 화 = 하나의 영속 워크플로', NOVEL, 'novel'], ['웹툰', '한 장면 = 하나의 워크플로', WEBTOON, 'webtoon']]) {
       const steps = el('div', { class: 'steps' });
       list.forEach((s, i) => steps.append(el('a', { class: 'step', href: `#${lane}-${s.id}` },
-        el('span', { class: 'n' }, `${i + 1}`, s.who.map((w) => el('i', { class: 'who ' + w, title: WHO[w] }))), el('span', { class: 't' }, s.t),
-        s.loop ? el('span', { class: 'loop' }, '↺ ' + s.loop) : null)));
-      box.append(el('div', { class: 'lane' }, el('div', { class: 'lane-h' }, el('b', null, title), el('span', null, sub)), steps));
+        el('span', { class: 'n' }, `${i + 1}`, s.who.map((w) => el('i', { class: 'who ' + w, title: T(WHO[w]) }))), el('span', { class: 't' }, T(s.t)),
+        s.loop ? el('span', { class: 'loop' }, '↺ ' + T(s.loop)) : null)));
+      box.append(el('div', { class: 'lane' }, el('div', { class: 'lane-h' }, el('b', null, T(title)), el('span', null, T(sub))), steps));
     }
   }
 
