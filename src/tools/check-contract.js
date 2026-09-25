@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { extractDelta, continuityCheck, computeExtractionContextHash } from '../../engine/src/continuity/continuity-check.js';
 import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
 import { emptyStoryState } from '../../engine/src/continuity/story-state.js';
+import { scanDestroyedEntityMentions } from '../../engine/src/continuity/entity-ops.js';
 import { evaluateChapterQuality } from '../../engine/src/continuity/quality-gate.js';
 import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-language.js';
 import { currentValidationContext, exactHash, sameIdentity, exceptionOnlyRebind, loadValidationSession, saveValidationSession, invalidateValidationSession } from '../core/validation-context.js';
@@ -77,7 +78,10 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   const arcPosition = arcEpisode
     ? arcPositionFromRatio(arcEpisode.index, context.plans.arc.estimatedEpisodes)
     : (estimated > 0 ? arcPositionFromRatio(chapter, estimated) : 'rising');
-  const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, arcPosition, entities: await canonicalStore.loadEntitySnapshots(workId) });
+  const entities = await canonicalStore.loadEntitySnapshots(workId);
+  const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, arcPosition, entities });
+  // A destroyed entity named again is often a memory, so it stays advisory.
+  scan.violations.push(...scanDestroyedEntityMentions({ snapshots: entities, prose: input.prose, chapterNumber: chapter }));
   const length = lengthCoverage({ workContract, prose: input.prose });
   const prosody = scan.detectorResults.find(row => row.checkerId === 'runProsodyScan' && ['passed','failed'].includes(row.status));
   const base = {
@@ -149,7 +153,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   }
   const prevState = await canonicalStore.loadStoryState(workId, chapter - 1) ?? emptyStoryState(workId);
   const extractionInput = { prose: input.prose, chapterNumber: chapter, foundation, providers: wrapped, model: MODEL, prevState,
-    castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language };
+    castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language,
+    ...(entities.length ? { entities } : {}) };
   try {
     if (!state.extracted) {
       const extracted = await extractDelta(extractionInput);

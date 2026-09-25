@@ -261,6 +261,7 @@ const DRAFT_MANIFEST_RULES = [
     '',
     'manifest 규칙:',
     '- 이번 회차에 실제로 등장한 (대사/행동/시점) 캐릭터만 포함.',
+    '- 회상·기억·언급으로만 나오는 인물은 넣지 않는다. 이전 상태 characterStates 에서 vitalStatus 가 dead 인 인물은 살아 있음이 이번 화에서 밝혀지지 않는 한 등장시키지 않는다.',
     '- characterId 는 Foundation 의 id 그대로 사용.',
     '- addressTermsUsed 는 해당 캐릭터가 본문에서 다른 캐릭터를 향해 사용한 호칭들의 집합.',
     '- 본문에 `⟦vle:…⟧` 패턴은 cast-manifest 외에 다른 어떤 것도 출력하지 말 것.',
@@ -272,6 +273,7 @@ const DRAFT_MANIFEST_RULES_MULTILINGUAL = [
     '',
     'Manifest rules:',
     '- Include only characters who actually appear in this chapter (speech, action, or viewpoint).',
+    '- Do not include a character who is only remembered, recalled or mentioned. A character whose vitalStatus is dead in the previous characterStates does not appear unless this chapter reveals them alive.',
     '- Use the Foundation id verbatim as characterId. Do not translate ids, JSON keys or the sentinel tag.',
     '- addressTermsUsed is the set of address terms that character used toward other characters in the prose, written in the target work language exactly as they appear in the text.',
     '- Do not emit any `⟦vle:…⟧` pattern other than the cast-manifest block.',
@@ -304,6 +306,16 @@ function buildDraftSystem(arc, customPromptOverride, context, options = {}) {
         parts.push('', overrideBlock);
     }
     return parts.join('\n');
+}
+const TRACKED_RECORDS_PER_KIND = 8;
+function recentTrackedRecords(tracked) {
+    const byKind = new Map();
+    for (const record of tracked ?? []) {
+        const list = byKind.get(record.kind) ?? [];
+        list.push(record);
+        byKind.set(record.kind, list);
+    }
+    return [...byKind.values()].flatMap((list) => list.slice(-TRACKED_RECORDS_PER_KIND));
 }
 function summariseCharacterForPrompt(foundation, chapterNumber, id) {
     // resolveCharacter throws if not registered at/before chapterNumber — fall back to raw.
@@ -407,7 +419,9 @@ function buildUserPrompt(input) {
             .filter(isHookActive)
             .map((h) => ({ id: h.id, text: h.text, phase: h.phase })),
         relationships: prevState.relationships,
-        trackedEntities: prevState.trackedEntities,
+        // Recent records per kind; the full history stays in StoryState.
+        trackedEntities: recentTrackedRecords(prevState.trackedEntities),
+        ...(prevState.characterStates ? { characterStates: prevState.characterStates } : {}),
         // Arc Flow Stage A (EPIC #191) — per-character arc 진행도. legacy state =
         // {} fallback. 작가 prompt 안에 노출되어 LLM 이 인물별 6-beat 위치 인식.
         arcCursor: prevState.arcCursor ?? {},

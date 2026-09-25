@@ -70,23 +70,46 @@ export function normalizeStoryState(state) {
  *      `${speakerId}->${targetId}` with `sinceChapter = delta.chapterNumber`.
  *      Last-write-wins within the same delta.
  *   2. `relationships`: each `delta.relationshipOps` replaces the existing
- *      entry whose `(to, kind)` matches, preserving position; otherwise
+ *      entry whose `(from, to, kind)` matches, preserving position; otherwise
  *      appended at the end.
  *   3. `hooks`: upsert by `id`. Replace in place if present, else append.
  *      Records are normalized through `normalizeHook` so snapshots written by
  *      earlier vibelore builds (`hookId`/`status`/`payoffTiming` vocabulary)
  *      load into the current `id`/`phase`/`horizon` shape.
- *   4. `trackedEntities`: upsert by `kind` (one snapshot per kind). Replace in
- *      place if present, else append.
+ *   4. `trackedEntities`: upsert by `kind` plus the record's natural key
+ *      (`trackedRecordKey`). Replace in place if present, else append, so
+ *      earlier records of the same kind stay.
+ *   5. `characterStates`: `delta.mutableChanges` fold per character —
+ *      `vitalStatus` (alive|dead|missing), location, status, accumulated
+ *      `knownFacts` and `sinceChapter`. Foundation keeps the design-time
+ *      `Character.mutable`; this is the chapter-by-chapter state.
  *
  * NOT applied to StoryState (consumed by other layers):
- *   - `delta.mutableChanges`: folded into `Character.mutable` by the
- *     Foundation registry — Character lives in Foundation, not StoryState.
  *   - `delta.appearedCharacterIds`: writer cast-manifest output consumed by
  *     the continuity check / context builder; not part of carry-forward state.
  *
  * Throws `chapter-out-of-order` if `delta.chapterNumber <= prev.chapterNumber`.
  */
+export const VITAL_STATUSES = new Set(['alive', 'dead', 'missing']);
+const TRACKED_KEY_FIELDS = ['id', 'key', 'name', 'fact', 'event', 'clue', 'item', 'title'];
+const TRACKED_KEY_PAIRS = [['from', 'to'], ['user', 'ability'], ['owner', 'item']];
+/**
+ * Natural key of a tracked-entity record within its kind. A record without
+ * one (a whole-kind snapshot such as `{ now: '회귀후' }`) keeps the old
+ * one-snapshot-per-kind behaviour under the empty key.
+ */
+export function trackedRecordKey(data) {
+    const record = data ?? {};
+    for (const [left, right] of TRACKED_KEY_PAIRS) {
+        if (typeof record[left] === 'string' && typeof record[right] === 'string')
+            return `${left}:${record[left]}|${right}:${record[right]}`;
+    }
+    for (const field of TRACKED_KEY_FIELDS) {
+        if (typeof record[field] === 'string' && record[field].trim())
+            return `${field}:${record[field].trim()}`;
+    }
+    return '';
+}
 export function reduceStoryState(prev, delta) {
     if (delta.chapterNumber <= prev.chapterNumber) {
         throw new Error(`chapter-out-of-order: prev=${prev.chapterNumber} expected delta>${prev.chapterNumber}`);
@@ -104,13 +127,16 @@ export function reduceStoryState(prev, delta) {
         };
     }
     const nextRelationships = prev.relationships.map((r) => ({
+        ...(r.from !== undefined ? { from: r.from } : {}),
         to: r.to,
         kind: r.kind,
         state: r.state,
     }));
     for (const op of delta.relationshipOps) {
-        const idx = nextRelationships.findIndex((r) => r.to === op.to && r.kind === op.kind);
-        const cloned = { to: op.to, kind: op.kind, state: op.state };
+        // Direction is part of the key: A->C and B->C are different relationships.
+        // Legacy entries without `from` only match ops without `from`.
+        const idx = nextRelationships.findIndex((r) => r.to === op.to && r.kind === op.kind && (r.from ?? null) === (op.from ?? null));
+        const cloned = { ...(op.from !== undefined ? { from: op.from } : {}), to: op.to, kind: op.kind, state: op.state };
         if (idx >= 0) {
             nextRelationships[idx] = cloned;
         }
@@ -136,7 +162,8 @@ export function reduceStoryState(prev, delta) {
         data: { ...t.data },
     }));
     for (const op of delta.trackedEntityOps) {
-        const idx = nextTracked.findIndex((t) => t.kind === op.kind);
+        const key = trackedRecordKey(op.data);
+        const idx = nextTracked.findIndex((t) => t.kind === op.kind && trackedRecordKey(t.data) === key);
         const cloned = { kind: op.kind, data: { ...op.data } };
         if (idx >= 0) {
             nextTracked[idx] = cloned;
@@ -172,6 +199,26 @@ export function reduceStoryState(prev, delta) {
             });
         }
     }
+    const nextCharacterStates = {};
+    for (const [id, entry] of Object.entries(prev.characterStates ?? {})) {
+        nextCharacterStates[id] = { ...entry, knownFacts: [...(entry.knownFacts ?? [])] };
+    }
+    for (const change of delta.mutableChanges ?? []) {
+        const current = nextCharacterStates[change.characterId] ?? { knownFacts: [] };
+        const knownFacts = [...current.knownFacts];
+        for (const fact of change.knownFactsAdded ?? []) {
+            if (!knownFacts.includes(fact))
+                knownFacts.push(fact);
+        }
+        nextCharacterStates[change.characterId] = {
+            ...current,
+            ...(VITAL_STATUSES.has(change.vitalStatus) ? { vitalStatus: change.vitalStatus } : {}),
+            ...(change.location ? { location: change.location } : {}),
+            ...(change.status ? { status: change.status } : {}),
+            knownFacts,
+            sinceChapter: delta.chapterNumber,
+        };
+    }
     return {
         workId: prev.workId,
         chapterNumber: delta.chapterNumber,
@@ -179,6 +226,9 @@ export function reduceStoryState(prev, delta) {
         relationships: nextRelationships,
         hooks: nextHooks,
         trackedEntities: nextTracked,
+        // Present only once a character state was recorded, so states of
+        // works that never recorded one stay byte-identical.
+        ...(Object.keys(nextCharacterStates).length ? { characterStates: nextCharacterStates } : {}),
         // Arc Flow Stage A (EPIC #191) — Stage A 는 carry-forward 만.
         // 신규 ChapterDelta.arcCursorOps 는 Stage B 가 추가 (delta-driven 갱신).
         arcCursor: nextArcCursor,

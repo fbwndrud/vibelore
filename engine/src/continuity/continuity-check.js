@@ -33,7 +33,7 @@ import { createHash } from 'node:crypto';
 import { computeLanguageContractHash } from '../core/language-policy.js';
 import { languageSystemLines, pickByFamily, promptFamilyCaptureContext, resolveStepPromptLanguage, } from '../core/prompt-language.js';
 import { scanLexicon, } from './lexicon-scan.js';
-import { isHookActive, normalizeHook } from './story-state.js';
+import { isHookActive, normalizeHook, VITAL_STATUSES } from './story-state.js';
 // ───────────────────────────── cast-manifest parsing ──────────────────────
 /**
  * Parse the cast-manifest body emitted by the writer. The OutputSanitizer has
@@ -250,6 +250,9 @@ function extractionHashPayload(input, contract) {
         prevState: canonicalValue(input.prevState ?? null),
         castManifestRaw: typeof input.castManifestRaw === 'string' ? input.castManifestRaw : '',
         workContractHash: computeLanguageContractHash(contract),
+        // Known entities reach the prompt only when supplied; the key is absent
+        // otherwise so existing bindings keep their hash.
+        ...(Array.isArray(input.entities) && input.entities.length ? { entities: canonicalValue(input.entities) } : {}),
     };
 }
 /**
@@ -418,13 +421,45 @@ const EXTRACT_LABELS_EN = Object.freeze({
     belief: 'how "from" now sees "to"',
     noInfluenceReason: 'fill in specifically only when there truly is no choice, cost, perception or relationship change; an empty string when influenceEvents is non-empty',
 });
+const TRACKED_PROMPT_LIMIT_PER_KIND = 8;
+function recentTrackedEntities(tracked) {
+    const byKind = new Map();
+    for (const record of tracked ?? []) {
+        const list = byKind.get(record.kind) ?? [];
+        list.push(record);
+        byKind.set(record.kind, list);
+    }
+    return [...byKind.values()].flatMap((list) => list.slice(-TRACKED_PROMPT_LIMIT_PER_KIND));
+}
+/**
+ * What the extractor and the semantic checker see of earlier chapters: active
+ * hooks with their text and phase, recorded character states, recent tracked
+ * records per kind and, when supplied, the known entities. Keys that would be
+ * empty are left out.
+ */
+function continuityStateSummary(prevState, entities) {
+    const activeHooks = (prevState.hooks ?? []).filter(isHookActive);
+    const tracked = recentTrackedEntities(prevState.trackedEntities);
+    return {
+        chapterNumber: prevState.chapterNumber,
+        addressMapKeys: Object.keys(prevState.addressMap.entries),
+        activeHookIds: activeHooks.map((h) => h.id ?? h.hookId),
+        ...(activeHooks.length ? { activeHooks: activeHooks.map((h) => ({ id: h.id ?? h.hookId, text: h.text ?? h.description ?? '', phase: h.phase ?? null })) } : {}),
+        ...(prevState.characterStates ? { characterStates: prevState.characterStates } : {}),
+        ...(tracked.length ? { trackedEntities: tracked } : {}),
+        ...(Array.isArray(entities) && entities.length ? {
+            knownEntities: entities.map((e) => ({ entityId: e.entityId, kind: e.kind, name: e.canonicalName, status: e.status })),
+        } : {}),
+    };
+}
 function extractDeltaSchemaLines(labels, bindHash) {
     const lines = [
         '{',
         '  "newAddressEntries": [{ "speakerId": "...", "targetId": "...", "term": "...", "register": "formal|intimate|subordinate|..." }],',
-        '  "relationshipOps": [{ "to": "...", "kind": "...", "state": "..." }],',
+        '  "relationshipOps": [{ "from": "...", "to": "...", "kind": "...", "state": "..." }],',
         `  "hookChanges": [{ "id": "...", "text": "${labels.hookText}", "plantedAtChapter": 0, "phase": "planted|advancing|paid|parked", "horizon": "next|soon|arc|long|finale", "lastMovedChapter": 0 }],`,
-        '  "mutableChanges": [{ "characterId": "...", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
+        '  "mutableChanges": [{ "characterId": "...", "vitalStatus": "alive|dead|missing", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
+        '  "entityOps": [{ "op": "register|update|retire", "entityId": "...", "kind": "...", "name": "...", "fields": {}, "cause": "retire|destroyed" }],',
         `  "influenceEvents": [{ "characterId": "...", "anchor": "${labels.anchor}", "interpretation": "${labels.interpretation}", "dimensionChanges": { "${labels.dimensionId}": -1 }, "nextChoiceBias": "${labels.nextChoiceBias}", "behavioralProof": { "hypothesis": "${labels.hypothesis}", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["${labels.alternatives[0]}", "${labels.alternatives[1]}"], "chosen": "${labels.chosen}", "costPaid": "${labels.costPaid}", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "${labels.belief}" }] }],`,
         `  "noInfluenceReason": "${labels.noInfluenceReason}",`,
         bindHash
@@ -439,11 +474,7 @@ function extractDeltaSchemaLines(labels, bindHash) {
 function buildExtractDeltaUserPrompt(input, manifest, ctx, bindHash) {
     const { prose, chapterNumber, prevState } = input;
     const labels = pickByFamily(ctx, { ko: EXTRACT_LABELS_KO, multilingual: EXTRACT_LABELS_EN });
-    const prevSummary = {
-        chapterNumber: prevState.chapterNumber,
-        addressMapKeys: Object.keys(prevState.addressMap.entries),
-        activeHookIds: (prevState.hooks ?? []).filter(isHookActive).map((h) => h.id ?? h.hookId),
-    };
+    const prevSummary = continuityStateSummary(prevState, input.entities);
     // 추출기가 ID 와 본문 인물을 잇는 유일한 단서는 이 명단이다. 이름 없이 ID 와 호칭만
     // 주면 c1/c2 가 뒤바뀐 Delta 가 나온다(2026-09-15 ko·zh-Hant·es 표본, REGISTRATION fail).
     const knownCharacters = new Map((input.foundation?.characters ?? []).map((c) => [c.id, c]));
@@ -539,6 +570,8 @@ function isCompleteAddressEntry(raw, resolveId) {
 function isCompleteRelationshipOp(raw) {
     if (!isRecord(raw))
         return false;
+    if ('from' in raw && raw.from !== null && typeof raw.from !== 'string')
+        return false;
     return isNonEmptyString(raw.to) && isNonEmptyString(raw.kind) && isNonEmptyString(raw.state);
 }
 function isCompleteLegacyHookOp(raw) {
@@ -576,6 +609,8 @@ function isCompleteMutableChange(raw, resolveId) {
     if ('location' in raw && typeof raw.location !== 'string')
         return false;
     if ('status' in raw && typeof raw.status !== 'string')
+        return false;
+    if ('vitalStatus' in raw && raw.vitalStatus !== null && typeof raw.vitalStatus !== 'string')
         return false;
     if ('knownFactsAdded' in raw && !isStringArray(raw.knownFactsAdded))
         return false;
@@ -697,12 +732,13 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
     const relationshipOps = [];
     for (const raw of asArray(obj.relationshipOps)) {
         const e = asRecord(raw);
+        const from = asString(e.from);
         const to = asString(e.to);
         const kind = asString(e.kind);
         const state = asString(e.state);
         if (!to || !kind || !state)
             continue;
-        relationshipOps.push({ to, kind, state });
+        relationshipOps.push({ ...(from ? { from } : {}), to, kind, state });
     }
     const hookChanges = [];
     for (const raw of asArray(obj.hookChanges ?? obj.hookOps)) {
@@ -723,6 +759,9 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
         if (!characterId)
             continue;
         const entry = { characterId };
+        const vitalStatus = asString(e.vitalStatus);
+        if (vitalStatus && VITAL_STATUSES.has(vitalStatus))
+            entry.vitalStatus = vitalStatus;
         const location = asString(e.location);
         if (location)
             entry.location = location;
@@ -739,6 +778,28 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
                 entry.knownFactsAdded = facts;
         }
         mutableChanges.push(entry);
+    }
+    const entityOps = [];
+    for (const raw of asArray(obj.entityOps)) {
+        const e = asRecord(raw);
+        const op = asString(e.op);
+        const entityId = asString(e.entityId);
+        if (!entityId)
+            continue;
+        if (op === 'register') {
+            const kind = asString(e.kind);
+            const name = asString(e.name);
+            if (kind && name)
+                entityOps.push({ op, entityId, kind, name });
+        }
+        else if (op === 'update') {
+            const fields = asRecord(e.fields);
+            if (Object.keys(fields).length)
+                entityOps.push({ op, entityId, fields });
+        }
+        else if (op === 'retire') {
+            entityOps.push({ op, entityId, ...(asString(e.cause) === 'destroyed' ? { cause: 'destroyed' } : {}) });
+        }
     }
     const trackedEntityOps = [];
     for (const raw of asArray(obj.trackedEntityOps)) {
@@ -782,6 +843,7 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
         influenceEvents,
         noInfluenceReason: asString(obj.noInfluenceReason) ?? '',
         trackedEntityOps,
+        entityOps,
     };
 }
 function characterIdResolver(foundation) {
@@ -795,6 +857,10 @@ function characterIdResolver(foundation) {
     return (value) => idByReference.get(value) ?? null;
 }
 function resolveCharacterIds(delta, resolveId) {
+    delta.relationshipOps = delta.relationshipOps.map(({ from: rawFrom, ...rest }) => {
+        const from = rawFrom ? resolveId(rawFrom) : null;
+        return { ...(from ? { from } : {}), ...rest, to: resolveId(rest.to) ?? rest.to };
+    });
     delta.mutableChanges = delta.mutableChanges.flatMap((change) => {
         const characterId = resolveId(change.characterId);
         return characterId ? [{ ...change, characterId }] : [];
@@ -1006,11 +1072,7 @@ function semanticSectionLines(ctx, contextHash, requiredIds) {
 }
 function buildContinuityCheckSections(input) {
     const { prevState, foundation, delta } = input;
-    const prevSummary = {
-        chapterNumber: prevState.chapterNumber,
-        addressMapKeys: Object.keys(prevState.addressMap.entries),
-        activeHookIds: (prevState.hooks ?? []).filter(isHookActive).map((h) => h.id ?? h.hookId),
-    };
+    const prevSummary = continuityStateSummary(prevState, input.entities);
     // 선언 시점이 없으면 검수기는 POV 를 판정할 수 없어 uncertain 만 돌려준다
     // (2026-09-15 ko·zh-Hant·es 표본). 있을 때만 싣어 시점 없는 legacy 프롬프트는 그대로 둔다.
     const povDesign = isRecord(input.povDesign)
@@ -1089,12 +1151,14 @@ const CHECK_FALLBACK_KO = Object.freeze({
     invariant: (id) => `invariant 위반${id ? ` (${id})` : ''}`,
     mutable: 'mutable 변경에 서사적 근거 부족',
     unregistered: (id) => `Foundation 에 미등록된 캐릭터 "${id}" 의 knownFacts 변경 시도`,
+    deadOnStage: (id, since) => `${since}화에 사망으로 기록된 캐릭터 "${id}" 가 이번 화 cast manifest 에 등장한다. 살아 있음을 밝히는 장면이 아니면 회상·언급으로 바꾸고 manifest 에서 뺀다.`,
 });
 const CHECK_FALLBACK_EN = Object.freeze({
     intrinsic: 'the chapter text contradicts a Foundation intrinsic',
     invariant: (id) => `invariant violation${id ? ` (${id})` : ''}`,
     mutable: 'the mutable change is not grounded in the chapter text',
     unregistered: (id) => `knownFacts change attempted for character "${id}" which is not registered in Foundation`,
+    deadOnStage: (id, since) => `character "${id}", recorded dead in chapter ${since}, is in this chapter's cast manifest. Unless the chapter reveals them alive, make it a memory or mention and drop them from the manifest.`,
 });
 function normaliseGender(value) {
     if (value === 'male' || value === 'female')
@@ -1349,6 +1413,24 @@ export async function continuityCheck(input) {
             // 어느 쪽이 터졌는지 가릴 수단이 이 상수뿐이다. #255.
             origin: 'structural',
             message: fallback.unregistered(change.characterId),
+        });
+    }
+    // ─── Structural: a character recorded dead appears on stage ───────────
+    // The cast manifest lists only characters who act, speak or hold the POV
+    // in this chapter; memories are not appearances. A chapter that records
+    // the character alive again (a reveal) is its own justification.
+    const revived = new Set(input.delta.mutableChanges.filter((change) => change.vitalStatus && change.vitalStatus !== 'dead').map((change) => change.characterId));
+    for (const characterId of input.delta.appearedCharacterIds ?? []) {
+        const state = input.prevState?.characterStates?.[characterId];
+        if (state?.vitalStatus !== 'dead' || revived.has(characterId))
+            continue;
+        violations.push({
+            severity: 'hard',
+            code: 'DEAD_CHARACTER_ON_STAGE',
+            chapterNumber: input.chapterNumber,
+            characterId,
+            origin: 'structural',
+            message: fallback.deadOnStage(characterId, state.sinceChapter),
         });
     }
     // ─── Layer-2: LLM semantic pass ───────────────────────────────────────

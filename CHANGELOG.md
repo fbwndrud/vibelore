@@ -22,6 +22,26 @@
   `ja`, `zh-Hant`, `th`, `ar` and accented Latin works retrieve older memory,
   and a Korean word with a common particle also matches its stem (`수아가`
   and `수아는` meet at `수아`).
+- StoryState records character state per chapter (`characterStates`): the
+  extractor may set `vitalStatus` (`alive`, `dead`, `missing`), and location,
+  status and accumulated known facts carry forward. A character recorded dead
+  who is in a later chapter's cast manifest is a hard
+  `DEAD_CHARACTER_ON_STAGE` violation unless that chapter records them alive
+  again. The writer sees `characterStates`, and the manifest rules now say a
+  remembered or mentioned character is not an appearance.
+- The extractor can emit `entityOps` (register, update, retire with
+  `cause: "destroyed"`), so entity lifecycle reaches the entity snapshots on
+  commit. It is shown the known entities. A destroyed entity named again in a
+  later chapter is a soft `DESTROYED_ENTITY_MENTION` advisory.
+- Tracked entities keep one record per natural key within a kind (name, fact,
+  event, from/to and similar) instead of one record per kind, so a new
+  KnowledgeMatrix fact or Timeline event no longer erases the earlier ones.
+  Prompts show the latest eight records per kind.
+- Relationships carry a `from` side; `A -> C` and `B -> C` of the same kind
+  are separate entries. Legacy entries without `from` stay as they are.
+- The extractor and the semantic checker see active hook text and phase,
+  character states and recent tracked records, not only ids. The writing
+  context lists only open hooks under unresolved hooks.
 - An oversized assembled writing context no longer stops `lore_write`,
   `lore_rewrite` or the character review. Those paths record the overflow in
   the context trace and the draft audit (`contextOverflow`) and continue,

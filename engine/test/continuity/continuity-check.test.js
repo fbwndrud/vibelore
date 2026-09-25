@@ -500,3 +500,66 @@ describe('relay-aware continuity prompts', () => {
         expect(/공백|들여쓰기/.test(system)).toBe(true);
     });
 });
+// ─── continuity state that survives chapters ───────────────────────────────
+describe('extractDelta carries continuity state', () => {
+    it('shows the extractor active hook text, character states, tracked records and known entities', async () => {
+        const calls = [];
+        const providers = createProviderRegistry([makeMockAdapter({ default: '{}', recordCalls: calls })]);
+        const foundation = makeFoundation({ characters: [maleChar('c1', '이세종'), femaleChar('c2', '소영')] });
+        const prevState = {
+            ...emptyStoryState('work-test'), chapterNumber: 4,
+            hooks: [{ id: 'h1', text: 'HOOK_TEXT_TOKEN', phase: 'planted', plantedAtChapter: 2 }],
+            characterStates: { c2: { vitalStatus: 'dead', knownFacts: [], sinceChapter: 3 } },
+            trackedEntities: [{ kind: 'Artifact', data: { name: 'TRACKED_TOKEN', owner: 'c1' } }],
+        };
+        await extractDelta({
+            prose: '평범한 회차였다.', castManifestRaw: '', chapterNumber: 5, foundation, prevState, providers, model: MODEL,
+            entities: [{ entityId: 'sword', kind: 'item', canonicalName: 'ENTITY_TOKEN', aliases: [], status: 'active' }],
+        });
+        const prompt = calls[0].messages.map((m) => m.content).join('\n');
+        for (const token of ['HOOK_TEXT_TOKEN', 'TRACKED_TOKEN', 'ENTITY_TOKEN', '"vitalStatus":"dead"', '"from"', '"entityOps"'])
+            expect(prompt.includes(token)).toBe(true);
+    });
+    it('parses relationship direction, vital status and entity lifecycle ops', async () => {
+        const providers = createProviderRegistry([makeMockAdapter({ default: JSON.stringify({
+                relationshipOps: [{ from: '이세종', to: 'c2', kind: '신뢰', state: '의심' }],
+                mutableChanges: [{ characterId: 'c2', vitalStatus: 'dead' }, { characterId: 'c1', vitalStatus: 'asleep' }],
+                entityOps: [
+                    { op: 'retire', entityId: 'sword', cause: 'destroyed' },
+                    { op: 'register', entityId: 'shard', kind: 'item', name: '검 조각' },
+                    { op: 'update', entityId: 'shard', fields: { owner: 'c1' } },
+                    { op: 'explode', entityId: 'x' },
+                ],
+            }) })]);
+        const foundation = makeFoundation({ characters: [maleChar('c1', '이세종'), femaleChar('c2', '소영')] });
+        const result = await extractDelta({ prose: '검이 부러졌다.', castManifestRaw: '', chapterNumber: 5, foundation, prevState: emptyStoryState('work-test'), providers, model: MODEL });
+        expect(result.delta.relationshipOps).toEqual([{ from: 'c1', to: 'c2', kind: '신뢰', state: '의심' }]);
+        expect(result.delta.mutableChanges).toEqual([{ characterId: 'c2', vitalStatus: 'dead' }, { characterId: 'c1' }]);
+        expect(result.delta.entityOps).toEqual([
+            { op: 'retire', entityId: 'sword', cause: 'destroyed' },
+            { op: 'register', entityId: 'shard', kind: 'item', name: '검 조각' },
+            { op: 'update', entityId: 'shard', fields: { owner: 'c1' } },
+        ]);
+    });
+});
+describe('continuityCheck character presence', () => {
+    const foundation = makeFoundation({ characters: [maleChar('c1', '이세종'), femaleChar('c2', '소영')] });
+    const deadState = { ...emptyStoryState('work-test'), chapterNumber: 4, characterStates: { c2: { vitalStatus: 'dead', knownFacts: [], sinceChapter: 3 } } };
+    const check = (delta) => continuityCheck({
+        prose: '소영이 문을 열었다.', chapterNumber: 5, delta, prevState: deadState, foundation,
+        lexicon: new DefaultHonorificLexicon([]), providers: createProviderRegistry([makeMockAdapter({ default: '{}' })]), model: MODEL,
+    });
+    it('blocks a character recorded dead from appearing on stage', async () => {
+        const result = await check(emptyDelta(5, ['c1', 'c2']));
+        const hit = result.violations.find((v) => v.code === 'DEAD_CHARACTER_ON_STAGE');
+        expect(hit?.severity).toBe('hard');
+        expect(hit?.characterId).toBe('c2');
+        expect(hit?.origin).toBe('structural');
+    });
+    it('accepts the appearance when the same chapter records the character alive again', async () => {
+        const delta = emptyDelta(5, ['c2']);
+        delta.mutableChanges = [{ characterId: 'c2', vitalStatus: 'alive' }];
+        const result = await check(delta);
+        expect(result.violations.some((v) => v.code === 'DEAD_CHARACTER_ON_STAGE')).toBe(false);
+    });
+});

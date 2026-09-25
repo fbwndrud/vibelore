@@ -211,9 +211,11 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   const address = renderAddressMap(lastState, foundation, kit);
   if (address) sections.push('', t.addressHeading, address);
 
-  if (lastState?.hooks?.length) {
+  // Only hooks still open; paid or parked ones are not promises to the reader.
+  const openHooks = (lastState?.hooks ?? []).filter(isHookActive);
+  if (openHooks.length) {
     sections.push('', t.hooksHeading,
-      lastState.hooks.map((h) => {
+      openHooks.map((h) => {
         const text = h.text || h.id;
         const started = h.plantedAtChapter;
         return t.hook(text, started);

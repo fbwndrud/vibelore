@@ -215,12 +215,12 @@ describe('reduceStoryState', () => {
         expect(next.hooks).not.toBe(prev.hooks);
         expect(next.trackedEntities).not.toBe(prev.trackedEntities);
     });
-    it('ignores mutableChanges and appearedCharacterIds (not part of StoryState carry-forward)', () => {
+    it('folds mutableChanges into characterStates and ignores appearedCharacterIds', () => {
         const prev = emptyStoryState('w');
         const delta = emptyDelta(1);
         delta.appearedCharacterIds = ['c1', 'c2'];
         delta.mutableChanges = [
-            { characterId: 'c1', location: '본가', status: 'alive', knownFactsAdded: ['아버지 사망'] },
+            { characterId: 'c1', location: '본가', status: '아버지를 잃고 흔들림', vitalStatus: 'alive', knownFactsAdded: ['아버지 사망'] },
         ];
         const next = reduceStoryState(prev, delta);
         expect(next.chapterNumber).toBe(1);
@@ -228,5 +228,59 @@ describe('reduceStoryState', () => {
         expect(next.relationships).toEqual([]);
         expect(next.hooks).toEqual([]);
         expect(next.trackedEntities).toEqual([]);
+        expect(next.characterStates).toEqual({
+            c1: { vitalStatus: 'alive', location: '본가', status: '아버지를 잃고 흔들림', knownFacts: ['아버지 사망'], sinceChapter: 1 },
+        });
+    });
+    it('characterStates: carries a death forward and accumulates known facts', () => {
+        const first = emptyDelta(1);
+        first.mutableChanges = [{ characterId: 'c1', knownFactsAdded: ['열쇠 위치'] }];
+        const second = emptyDelta(2);
+        second.mutableChanges = [{ characterId: 'c1', vitalStatus: 'dead', knownFactsAdded: ['배신자 이름', '열쇠 위치'] }];
+        const next = reduceStoryState(reduceStoryState(emptyStoryState('w'), first), second);
+        expect(next.characterStates.c1.vitalStatus).toBe('dead');
+        expect(next.characterStates.c1.sinceChapter).toBe(2);
+        expect(next.characterStates.c1.knownFacts).toEqual(['열쇠 위치', '배신자 이름']);
+        const third = reduceStoryState(next, emptyDelta(3));
+        expect(third.characterStates.c1.vitalStatus).toBe('dead');
+    });
+    it('omits characterStates while no character state has been recorded', () => {
+        const next = reduceStoryState(emptyStoryState('w'), emptyDelta(1));
+        expect('characterStates' in next).toBe(false);
+    });
+    it('relationships: keeps A->C and B->C apart by their from side', () => {
+        const delta = emptyDelta(1);
+        delta.relationshipOps = [
+            { from: 'a', to: 'c', kind: '신뢰', state: '믿음' },
+            { from: 'b', to: 'c', kind: '신뢰', state: '의심' },
+        ];
+        const once = reduceStoryState(emptyStoryState('w'), delta);
+        const update = emptyDelta(2);
+        update.relationshipOps = [{ from: 'b', to: 'c', kind: '신뢰', state: '화해' }];
+        const next = reduceStoryState(once, update);
+        expect(next.relationships).toEqual([
+            { from: 'a', to: 'c', kind: '신뢰', state: '믿음' },
+            { from: 'b', to: 'c', kind: '신뢰', state: '화해' },
+        ]);
+    });
+    it('trackedEntities: keeps one record per natural key within a kind', () => {
+        const first = emptyDelta(1);
+        first.trackedEntityOps = [
+            { kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2'] } },
+            { kind: 'Timeline', data: { chapter: 1, event: '다리가 무너졌다' } },
+        ];
+        const second = emptyDelta(2);
+        second.trackedEntityOps = [
+            { kind: 'KnowledgeMatrix', data: { fact: '표식의 주인', holders: ['c1'] } },
+            { kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2', 'c4'] } },
+            { kind: 'Timeline', data: { chapter: 2, event: '막힌 통로를 찾았다' } },
+        ];
+        const next = reduceStoryState(reduceStoryState(emptyStoryState('w'), first), second);
+        expect(next.trackedEntities).toEqual([
+            { kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2', 'c4'] } },
+            { kind: 'Timeline', data: { chapter: 1, event: '다리가 무너졌다' } },
+            { kind: 'KnowledgeMatrix', data: { fact: '표식의 주인', holders: ['c1'] } },
+            { kind: 'Timeline', data: { chapter: 2, event: '막힌 통로를 찾았다' } },
+        ]);
     });
 });

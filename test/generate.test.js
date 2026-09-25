@@ -345,8 +345,8 @@ describe('Phase 2 generation pipeline', () => {
   async function sevenChapterStore() {
     const store = await createdStore({ legacy: true });
     const arc = activePlan();
-    arc.estimatedEpisodes = 8;
-    arc.episodes = [1, 2, 3, 4, 5, 6, 7, 8].map((index) => ({ ...arc.episodes[0], index, chapter: index, title: `${index}화`, beat: '윤재가 은빛열쇠 를 되찾는다. 보상에 붙는 세금' }));
+    arc.estimatedEpisodes = 9;
+    arc.episodes = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => ({ ...arc.episodes[0], index, chapter: index, title: `${index}화`, beat: '윤재가 은빛열쇠 를 되찾는다. 보상에 붙는 세금' }));
     await store.saveArcPlan('tax-tower', arc);
     for (let chapter = 1; chapter <= 7; chapter += 1) {
       const summary = chapter === 1 ? '윤재는 은빛열쇠 하나를 창구에 맡겼다. OLD_MEMORY_TOKEN'
@@ -419,6 +419,19 @@ describe('Phase 2 generation pipeline', () => {
     const { result } = await draftPrompt(store, 1);
     assert.equal(result.contextAudit.contextOverflow.memory, 'context_overflow');
     assert.ok(result.contextAudit.contextOverflow.context.actualTokens > 18000);
+  });
+
+  it('tells the writer which characters are recorded dead and which hooks are still open', async () => {
+    const store = await sevenChapterStore();
+    const eighth = emptyDelta(8);
+    eighth.mutableChanges = [{ characterId: 'hero', vitalStatus: 'dead', status: '탑에서 추락' }];
+    eighth.hookChanges = [{ id: 'key-owner', text: '은빛열쇠 주인은 ACTIVE_HOOK_TOKEN', plantedAtChapter: 3, phase: 'paid' }];
+    await runCommit({ store, workId: 'tax-tower', chapter: 8, prose: '윤재가 떨어졌다.', summary: '윤재가 탑에서 떨어졌다.', providers: createHostRelay({}), delta: eighth });
+    const { prompt } = await draftPrompt(store, 9);
+    assert.match(prompt, /"characterStates":\s*\{\s*"hero":\s*\{[^}]*"vitalStatus":\s*"dead"/);
+    assert.match(prompt, /회상·기억·언급으로만 나오는 인물은 넣지 않는다/);
+    const { context } = await buildContext({ store, workId: 'tax-tower', chapter: 9 });
+    assert.doesNotMatch(context.split('## 미해결 떡밥')[1] ?? '', /ACTIVE_HOOK_TOKEN/, '회수된 떡밥은 미해결 목록에 없다');
   });
 
   it('opens chapter one without a continuity window or older memory', async () => {
