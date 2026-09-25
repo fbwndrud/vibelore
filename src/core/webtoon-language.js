@@ -47,6 +47,8 @@ export function webtoonLanguageDirective(source) {
 }
 
 const RTL_SCRIPTS = new Set(['Arab', 'Hebr', 'Thaa', 'Syrc', 'Nkoo', 'Adlm', 'Rohg']);
+/** Image models default to a left-to-right page even when the balloons read right to left, so an RTL reader meets a reply before the line it answers. */
+const RTL_PAGE_ORDER = ' The whole page reads right to left: rows of panels run top to bottom, and panels within a row run right to left. Inside a panel, the first line spoken sits at the right or top, and each later line sits to its left or below.';
 
 /** Image models draw the lettering themselves; name the exact language, script and direction instead of hoping they infer it. */
 export function sceneLetteringLine(source) {
@@ -54,8 +56,8 @@ export function sceneLetteringLine(source) {
   const script = new Intl.Locale(tag).maximize().script;
   const language = new Intl.DisplayNames(['en'], { type: 'language' }).of(tag);
   const scriptName = new Intl.DisplayNames(['en'], { type: 'script' }).of(script);
-  const direction = RTL_SCRIPTS.has(script) ? 'right-to-left' : 'left-to-right';
-  return `All quoted text is in ${language} (${tag}), written in ${scriptName} script (ISO 15924 ${script}). Letter it in that script exactly as quoted, reading ${direction} inside each balloon.`;
+  const rtl = RTL_SCRIPTS.has(script);
+  return `All quoted text is in ${language} (${tag}), written in ${scriptName} script (ISO 15924 ${script}). Letter it in that script exactly as quoted, reading ${rtl ? 'right-to-left' : 'left-to-right'} inside each balloon.${rtl ? RTL_PAGE_ORDER : ''}`;
 }
 
 const questions = {
