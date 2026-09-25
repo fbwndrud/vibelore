@@ -15,14 +15,25 @@
     get(k, d) { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
   };
-  const dur = (s) => s == null ? '–' : s < 60 ? `${s}초` : s < 3600 ? `${Math.floor(s / 60)}분 ${s % 60 ? (s % 60) + '초' : ''}`.trim() : `${Math.floor(s / 3600)}시간 ${Math.round((s % 3600) / 60)}분`;
-  const CHAR = { c1: '리아', c2: '도윤', c3: '보리', c4: '마렌' };
+  const T = window.T || ((s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : s));
+  const EN = !!(window.I18N && I18N.lang === 'en');
+  const dur = (s) => s == null ? '–' : s < 60 ? T('{n}초', { n: s }) : s < 3600 ? (s % 60 ? T('{m}분 {s}초', { m: Math.floor(s / 60), s: s % 60 }) : T('{m}분', { m: Math.floor(s / 60) })) : T('{h}시간 {m}분', { h: Math.floor(s / 3600), m: Math.round((s % 3600) / 60) });
+  const CHAR = EN ? { c1: 'Lia', c2: 'Doyun', c3: 'Bori', c4: 'Maren' } : { c1: '리아', c2: '도윤', c3: '보리', c4: '마렌' };
+  // 작품 본문·AI가 한국어로 쓴 기록은 번역하지 않고 lang="ko"로 표시한다
+  const ko = (tag, attrs, ...kids) => el(tag, Object.assign({ lang: 'ko' }, attrs || {}), ...kids);
 
   let P = null; let D = null; let C = null; let KO = {};
-  const tr = (key, en) => (KO[key] || en || '');
+  // 영어 UI는 AI가 영어로 남긴 원문을, 한국어 UI는 번역(process.json ko)을 쓴다
+  const tr = (key, en) => (EN ? (en || KO[key] || '') : (KO[key] || en || ''));
   // 내부 식별자를 사람이 읽는 말로: 리아(c1) → 리아, c2 → 도윤, text-3 → “대사”
   let TEXTS = {};
-  const human = (s) => String(s || '')
+  const humanEn = (s) => String(s || '')
+    .replace(/\b(c[1-4])\s?\((Lia|Doyun|Bori|Maren)\)/g, '$2')
+    .replace(/(Lia|Doyun|Bori|Maren)\s?\((c[1-4])\)/g, '$1')
+    .replace(/\b(c[1-4])\b/g, (m) => CHAR[m] || m)
+    .replace(/\btext-[A-Za-z0-9-]+/g, (m) => TEXTS[m] ? `“${TEXTS[m].text}”` : m)
+    .replace(/\bch-\d+-p-(\d+)/g, '¶$1');
+  const human = (s) => EN ? humanEn(s) : String(s || '')
     .replace(/(리아|도윤|보리|마렌)\s?\((c[1-4])\)/g, '$1')
     .replace(/\b(c[1-4])\s?\((리아|도윤|보리|마렌)\)/g, (m, c) => CHAR[c])
     .replace(/\b(c[1-4])\b/g, (m) => CHAR[m] || m)
@@ -51,7 +62,7 @@
     TELEGRAPHED_TURN: '전환이 미리 들킴', UNPAID_PROMISE: '약속한 장면이 빠짐', VOICE_MISMATCH: '인물 말투 불일치', VOICE_RANGE_NARROW: '말투의 폭이 좁음',
     VOICE_SAMPLE_COPIED: '예시 문장을 거의 그대로 사용',
   };
-  const codeLabel = (c) => { const v = CODE[c]; return Array.isArray(v) ? v[0] : (v || c); };
+  const codeLabel = (c) => { const v = CODE[c]; return T(Array.isArray(v) ? v[0] : (v || c)); };
   const REVIEWER = {
     'coherence-judge': ['논리 검토', '사건의 인과·설정 사실이 앞뒤가 맞는지'],
     'editorial-quality': ['편집 검토', '장면의 힘·속뜻·대가·전환이 살아 있는지'],
@@ -104,12 +115,12 @@
       const steps = el('div', { class: 'steps' });
       lane.steps.forEach((s, i) => {
         steps.append(el('button', { class: 'step', type: 'button', onclick: () => goStep(s.go) },
-          el('span', { class: 'n' }, `${i + 1}`, s.who.map((w) => el('i', { class: 'who ' + w, title: { ai: 'AI 판단', rule: '규칙 검사', human: '사람 결정', img: '이미지 모델' }[w] }))),
-          el('span', { class: 't' }, s.t),
-          el('span', { class: 'd' }, s.d),
-          s.loop ? el('span', { class: 'loop' }, '↺ ' + s.loop) : null));
+          el('span', { class: 'n' }, `${i + 1}`, s.who.map((w) => el('i', { class: 'who ' + w, title: T({ ai: 'AI 판단', rule: '규칙 검사', human: '사람 결정', img: '이미지 모델' }[w]) }))),
+          el('span', { class: 't' }, T(s.t)),
+          el('span', { class: 'd' }, T(s.d)),
+          s.loop ? el('span', { class: 'loop' }, '↺ ' + T(s.loop)) : null));
       });
-      box.append(el('div', { class: 'lane' }, el('div', { class: 'lane-h' }, el('b', null, lane.title), el('span', null, lane.sub)), steps));
+      box.append(el('div', { class: 'lane' }, el('div', { class: 'lane-h' }, el('b', null, T(lane.title)), el('span', null, T(lane.sub))), steps));
     }
   }
   function goStep(go) {
@@ -137,13 +148,13 @@
     const facts = D.episodes.reduce((a, e) => a + e.scenes.reduce((b, s) => b + (s.plan.facts || []).length, 0), 0);
     const pass = D.episodes.reduce((a, e) => a + e.passCount, 0);
     const items = [
-      [P.novel.length + '화', '소설 워크플로'],
-      [reviewsN + '건', '비평가 지적'],
-      [P.novel.filter((n) => n.attempts.length > 1).length + '화', '규칙 위반으로 수정'],
-      [scenes + '장면', '웹툰 장면 워크플로'],
-      [facts + '개', 'AI가 원문에서 뽑은 사실'],
-      [redesign + '회', '사전 검증이 막아 재설계'],
-      [`${pass}/${scenes}`, '그림 검토 통과'],
+      [T('{n}화', { n: P.novel.length }), T('소설 워크플로')],
+      [T('{n}건', { n: reviewsN }), T('비평가 지적')],
+      [T('{n}화', { n: P.novel.filter((n) => n.attempts.length > 1).length }), T('규칙 위반으로 수정')],
+      [T('{n}장면', { n: scenes }), T('웹툰 장면 워크플로')],
+      [T('{n}개', { n: facts }), T('AI가 원문에서 뽑은 사실')],
+      [T('{n}회', { n: redesign }), T('사전 검증이 막아 재설계')],
+      [`${pass}/${scenes}`, T('그림 검토 통과')],
     ];
     const box = $('#pstats'); box.innerHTML = '';
     for (const [b, s] of items) box.append(el('div', { class: 'pstat' }, el('b', null, b), el('span', null, s)));
@@ -154,51 +165,51 @@
     const w = P.work; const pr = w.profile; const c = pr.contract || {};
     const body = $('#design-body'); body.innerHTML = '';
     body.append(el('div', { class: 'cols' },
-      el('div', { class: 'box' }, el('h3', null, '독자에게 한 약속'), el('p', { class: 'big' }, c.readerPromise),
-        el('div', { class: 'why' }, el('b', null, '왜 이 시점인가 '), c.viewpointReason)),
-      el('div', { class: 'box' }, el('h3', null, '작품 프로필'),
+      el('div', { class: 'box' }, el('h3', null, T('독자에게 한 약속')), ko('p', { class: 'big' }, c.readerPromise),
+        el('div', { class: 'why' }, el('b', null, T('왜 이 시점인가 ')), ko('span', null, c.viewpointReason))),
+      el('div', { class: 'box' }, el('h3', null, T('작품 프로필')),
         el('dl', { class: 'dl' },
-          el('dt', null, '장르'), el('dd', null, pr.genre),
-          el('dt', null, '톤'), el('dd', null, (pr.tones || []).join(' · ')),
-          el('dt', null, '주제'), el('dd', null, (pr.themes || []).join(' · ')),
-          el('dt', null, '시점·분량'), el('dd', null, `${pr.format?.pov || ''} · 화당 약 ${pr.format?.chapterChars || '?'}자`),
-          el('dt', null, '첫 화 압력'), el('dd', null, c.openingPressure),
-          el('dt', null, '설명 규칙'), el('dd', null, c.expositionPolicy),
-          el('dt', null, '문장 규칙'), el('dd', null, c.registerPolicy)))));
+          el('dt', null, T('장르')), ko('dd', null, pr.genre),
+          el('dt', null, T('톤')), ko('dd', null, (pr.tones || []).join(' · ')),
+          el('dt', null, T('주제')), ko('dd', null, (pr.themes || []).join(' · ')),
+          el('dt', null, T('시점·분량')), el('dd', null, ko('span', null, pr.format?.pov || ''), ' · ', T('화당 약 {n}자', { n: pr.format?.chapterChars || '?' })),
+          el('dt', null, T('첫 화 압력')), ko('dd', null, c.openingPressure),
+          el('dt', null, T('설명 규칙')), ko('dd', null, c.expositionPolicy),
+          el('dt', null, T('문장 규칙')), ko('dd', null, c.registerPolicy)))));
     // 아크
     const arcs = el('div', { class: 'arcs', id: 'design-arcs' });
     for (const a of w.arcs) {
       const eps = el('div', { class: 'arc-eps' });
       for (const e of a.episodes) {
-        eps.append(el('div', { class: 'arc-ep' }, el('b', null, `${e.chapter}화`),
-          el('div', null, el('div', null, el('b', { style: 'font-size:14px' }, e.title || '')),
-            e.beat ? el('div', null, el('span', { class: 'lb' }, '사건'), e.beat) : null,
-            e.turn ? el('div', null, el('span', { class: 'lb' }, '전환'), e.turn) : null,
-            e.readerExpectation ? el('div', { class: 'muted' }, el('span', { class: 'lb' }, '독자 예상'), e.readerExpectation) : null)));
+        eps.append(el('div', { class: 'arc-ep' }, el('b', null, T('{n}화', { n: e.chapter })),
+          el('div', null, el('div', null, ko('b', { style: 'font-size:14px' }, e.title || '')),
+            e.beat ? el('div', null, el('span', { class: 'lb' }, T('사건')), ko('span', null, e.beat)) : null,
+            e.turn ? el('div', null, el('span', { class: 'lb' }, T('전환')), ko('span', null, e.turn)) : null,
+            e.readerExpectation ? el('div', { class: 'muted' }, el('span', { class: 'lb' }, T('독자 예상')), ko('span', null, e.readerExpectation)) : null)));
       }
       const mis = (a.misconception || [])[0];
       arcs.append(el('div', { class: 'box' },
-        el('h3', null, `아크 ${a.n} · ${a.status === 'completed' ? '완료' : '진행 중'}${a.quality ? ' · 설계 점수 ' + a.quality : ''}`),
-        el('p', { class: 'big' }, `「${a.title}」`), el('p', null, a.promise),
-        mis ? el('div', { class: 'why' }, el('b', null, '독자가 잘못 믿게 둘 것 '), mis.readerBelief, el('br'), el('span', { class: 'muted' }, '숨은 진짜 이유: ' + (mis.hiddenCausality || ''))) : null,
+        el('h3', null, T('아크 {n}', { n: a.n }) + ' · ' + T(a.status === 'completed' ? '완료' : '진행 중') + (a.quality ? ' · ' + T('설계 점수 {n}', { n: a.quality }) : '')),
+        ko('p', { class: 'big' }, `「${a.title}」`), ko('p', null, a.promise),
+        mis ? el('div', { class: 'why' }, el('b', null, T('독자가 잘못 믿게 둘 것 ')), ko('span', null, mis.readerBelief), el('br'), el('span', { class: 'muted' }, T('숨은 진짜 이유: '), ko('span', null, mis.hiddenCausality || ''))) : null,
         eps));
     }
-    body.append(el('h3', { class: 'small muted', style: 'margin:22px 0 10px;letter-spacing:.12em' }, '아크 설계'), arcs);
+    body.append(el('h3', { class: 'small muted', style: 'margin:22px 0 10px;letter-spacing:.12em' }, T('아크 설계')), arcs);
     // 아크 검토
     for (const r of w.arcReviews || []) {
       const fl = el('div', { class: 'flist' });
       for (const f of r.findings || []) fl.append(finding(f));
       body.append(el('details', { class: 'box more', style: 'margin-top:16px' },
-        el('summary', null, `아크 ${r.arcNumber} 종료 후 검토 · 점수 ${r.score} · 지적 ${(r.findings || []).length}건 (3화 집필 직후)`),
-        el('p', { class: 'note', style: 'margin:8px 0' }, '1~3화를 이어 읽었을 때 반복되는 모양을 짚은 기록입니다. 자동 수정 사유가 아니라 다음 아크 설계 참고용입니다.'), fl));
+        el('summary', null, T('아크 {n} 종료 후 검토 · 점수 {score} · 지적 {k}건 (3화 집필 직후)', { n: r.arcNumber, score: r.score, k: (r.findings || []).length })),
+        el('p', { class: 'note', style: 'margin:8px 0' }, T('1~3화를 이어 읽었을 때 반복되는 모양을 짚은 기록입니다. 자동 수정 사유가 아니라 다음 아크 설계 참고용입니다.')), fl));
     }
     // 웹툰 인터뷰
     const pickIds = ['W02', 'W04', 'W07', 'W08', 'W09', 'W12'];
     const ul = el('dl', { class: 'dl' });
     const lbl = { W02: '원작 보존', W04: '작화', W07: '대사·내면', W08: '정보 공개', W09: '부상·소품', W12: '위임 범위' };
-    for (const d of w.webtoonDecisions.filter((x) => pickIds.includes(x.id))) ul.append(el('dt', null, lbl[d.id]), el('dd', null, d.value));
-    body.append(el('div', { class: 'box', id: 'design-webtoon', style: 'margin-top:16px' }, el('h3', null, '웹툰 각색 인터뷰에서 정한 것'),
-      el('p', { class: 'note' }, '각색을 시작하기 전 사람이 답한 항목입니다. 이후 모든 장면 계획과 검증이 이 원칙을 기준으로 삼습니다.'), ul));
+    for (const d of w.webtoonDecisions.filter((x) => pickIds.includes(x.id))) ul.append(el('dt', null, T(lbl[d.id])), ko('dd', null, d.value));
+    body.append(el('div', { class: 'box', id: 'design-webtoon', style: 'margin-top:16px' }, el('h3', null, T('웹툰 각색 인터뷰에서 정한 것')),
+      el('p', { class: 'note' }, T('각색을 시작하기 전 사람이 답한 항목입니다. 이후 모든 장면 계획과 검증이 이 원칙을 기준으로 삼습니다.')), ul));
   }
 
   /* ---------- 회차 ---------- */
@@ -213,9 +224,9 @@
     const box = $('#ptabs'); box.innerHTML = '';
     for (const ch of chapters()) {
       const e = epInfo(ch);
-      const small = state.lane === 'webtoon' ? (e.webtoon ? e.host : '웹툰 준비 중') : (e.novelHost || '');
+      const small = state.lane === 'webtoon' ? (e.webtoon ? e.host : T('웹툰 준비 중')) : (e.novelHost || '');
       box.append(el('button', { class: 'eptab' + (ch === state.ep ? ' active' : ''), role: 'tab', 'aria-selected': String(ch === state.ep), onclick: () => { state.ep = ch; state.scene = 's1'; renderEpisode(); writeHash(); } },
-        el('span', null, `${ch}화`), el('small', null, small)));
+        el('span', null, T('{n}화', { n: ch })), el('small', null, small)));
     }
     for (const b of document.querySelectorAll('#lane-seg button')) b.classList.toggle('active', b.dataset.lane === state.lane);
   }
@@ -229,8 +240,8 @@
     const who = f.characterId ? `${CHAR[f.characterId] || f.characterId} · ` : '';
     return el('div', { class: 'fitem' },
       el('div', { class: 'fh' }, el('b', null, who + codeLabel(f.code)), el('code', null, f.code || ''),
-        f.confidence != null ? el('span', { class: 'tg' }, `확신 ${Math.round(f.confidence * 100)}%`) : null),
-      el('p', null, f.message), f.evidence ? el('q', null, f.evidence) : null);
+        f.confidence != null ? el('span', { class: 'tg' }, T('확신 {n}%', { n: Math.round(f.confidence * 100) })) : null),
+      ko('p', null, f.message), f.evidence ? ko('q', null, f.evidence) : null);
   }
 
   /* ----- 소설 ----- */
@@ -244,48 +255,48 @@
   }
   function renderNovel(body) {
     const n = P.novel.find((x) => x.chapter === state.ep); const e = epInfo(state.ep);
-    if (!n) { body.append(el('p', { class: 'note' }, '이 회차의 소설 워크플로 기록이 없습니다.')); return; }
+    if (!n) { body.append(el('p', { class: 'note' }, T('이 회차의 소설 워크플로 기록이 없습니다.'))); return; }
     const total = n.steps.reduce((a, s) => a + (s.sec || 0), 0);
     // 헤더
     body.append(el('div', { class: 'box' },
-      el('h3', null, `${n.chapter}화 · ${e.novelHost} · ${e.novelModel} · ${n.autonomy === 'auto' ? '자동 모드' : '승인 모드'}`),
-      el('p', { class: 'big' }, `「${n.plan.title}」`), el('p', null, n.summary)));
+      el('h3', null, `${T('{n}화', { n: n.chapter })} · ${e.novelHost} · ${e.novelModel} · ${T(n.autonomy === 'auto' ? '자동 모드' : '승인 모드')}`),
+      ko('p', { class: 'big' }, `「${n.plan.title}」`), ko('p', null, n.summary)));
     // 타임라인
     const tl = el('div', { class: 'tl' });
-    for (const s of n.steps) tl.append(el('span', { class: stepKind(s.op), style: `flex:${Math.max(s.sec, total / 80)}`, title: `${s.label}${s.attempt > 1 ? ' (수정본)' : ''} · ${dur(s.sec)}` }, s.sec / total > 0.07 ? s.label : ''));
+    for (const s of n.steps) tl.append(el('span', { class: stepKind(s.op), style: `flex:${Math.max(s.sec, total / 80)}`, title: `${T(s.label)}${s.attempt > 1 ? T(' (수정본)') : ''} · ${dur(s.sec)}` }, s.sec / total > 0.07 ? T(s.label) : ''));
     const list = el('div', { class: 'tl-list' });
-    for (const s of n.steps) list.append(el('div', null, el('span', null, s.label + (s.attempt > 1 ? ' · 수정본' : '')), el('em', null, dur(s.sec))));
-    body.append(el('div', { class: 'box', id: 'nv-timeline', style: 'margin-top:16px' }, el('h3', null, `워크플로 타임라인 · 모델 작업 합계 ${dur(total)}`), tl, list,
-      el('p', { class: 'note' }, '각 칸은 서버가 모델에게 일을 맡긴 단계입니다. 초고 뒤 검사·검토는 순서대로 모두 거쳐야 하며 건너뛸 수 없습니다.')));
+    for (const s of n.steps) list.append(el('div', null, el('span', null, T(s.label) + (s.attempt > 1 ? T(' · 수정본') : '')), el('em', null, dur(s.sec))));
+    body.append(el('div', { class: 'box', id: 'nv-timeline', style: 'margin-top:16px' }, el('h3', null, T('워크플로 타임라인 · 모델 작업 합계 {d}', { d: dur(total) })), tl, list,
+      el('p', { class: 'note' }, T('각 칸은 서버가 모델에게 일을 맡긴 단계입니다. 초고 뒤 검사·검토는 순서대로 모두 거쳐야 하며 건너뛸 수 없습니다.'))));
     // 계획
     const pl = n.plan;
     const sc = el('div', { class: 'flist' });
-    for (const s of pl.scenes || []) sc.append(el('div', { class: 'fitem' }, el('div', { class: 'fh' }, el('b', null, `장면 ${s.order} · ${s.location || ''}`)),
-      el('p', null, s.situation), s.choice ? el('p', null, el('span', { class: 'muted' }, '선택/장애 · '), s.choice) : null, s.change ? el('p', null, el('span', { class: 'muted' }, '바뀌는 것 · '), s.change) : null));
+    for (const s of pl.scenes || []) sc.append(el('div', { class: 'fitem' }, el('div', { class: 'fh' }, el('b', null, T('장면 {n}', { n: s.order }) + ' · ', ko('bdi', null, s.location || ''))),
+      ko('p', null, s.situation), s.choice ? el('p', null, el('span', { class: 'muted' }, T('선택/장애 · ')), ko('span', null, s.choice)) : null, s.change ? el('p', null, el('span', { class: 'muted' }, T('바뀌는 것 · ')), ko('span', null, s.change)) : null));
     body.append(el('div', { class: 'cols', id: 'nv-plan', style: 'margin-top:16px' },
-      el('div', { class: 'box' }, el('h3', null, '화별 계획 — 쓰기 전에 AI가 정한 것'),
+      el('div', { class: 'box' }, el('h3', null, T('화별 계획 — 쓰기 전에 AI가 정한 것')),
         el('dl', { class: 'dl' },
-          el('dt', null, '이번 화 전제'), el('dd', null, pl.premise),
-          el('dt', null, '독자가 예상할 것'), el('dd', null, pl.likelyOutcome),
-          el('dt', null, '실제 전환'), el('dd', null, pl.turn),
-          el('dt', null, '해결이 남길 대가'), el('dd', null, [pl.cost?.immediate, pl.cost?.deferred].filter(Boolean).join(' / ')),
-          el('dt', null, '지급할 보상'), el('dd', null, pl.payoff),
-          el('dt', null, '다음 화 질문'), el('dd', null, pl.nextQuestion),
-          pl.arcBeat ? [el('dt', null, '인물 변화'), el('dd', null, pl.arcBeat)] : null),
-        el('div', { class: 'why' }, el('b', null, '포인트 '), '독자가 예상할 결과를 먼저 적어 두고, 그와 다른 전환과 대가를 설계합니다. 비평 단계는 본문이 이 계획을 실제로 지급했는지를 대조합니다.')),
-      el('div', { class: 'box' }, el('h3', null, `계획한 장면 ${(pl.scenes || []).length}개`), sc)));
+          el('dt', null, T('이번 화 전제')), ko('dd', null, pl.premise),
+          el('dt', null, T('독자가 예상할 것')), ko('dd', null, pl.likelyOutcome),
+          el('dt', null, T('실제 전환')), ko('dd', null, pl.turn),
+          el('dt', null, T('해결이 남길 대가')), ko('dd', null, [pl.cost?.immediate, pl.cost?.deferred].filter(Boolean).join(' / ')),
+          el('dt', null, T('지급할 보상')), ko('dd', null, pl.payoff),
+          el('dt', null, T('다음 화 질문')), ko('dd', null, pl.nextQuestion),
+          pl.arcBeat ? [el('dt', null, T('인물 변화')), ko('dd', null, pl.arcBeat)] : null),
+        el('div', { class: 'why' }, el('b', null, T('포인트 ')), T('독자가 예상할 결과를 먼저 적어 두고, 그와 다른 전환과 대가를 설계합니다. 비평 단계는 본문이 이 계획을 실제로 지급했는지를 대조합니다.'))),
+      el('div', { class: 'box' }, el('h3', null, T('계획한 장면 {n}개', { n: (pl.scenes || []).length })), sc)));
     // 규칙 검사·수정
     renderGate(body, n);
     // 비평가
-    const rv = el('div', { class: 'box', id: 'nv-reviews', style: 'margin-top:16px' }, el('h3', null, '비평가 검토 — 원고를 읽은 AI의 지적'),
-      el('p', { class: 'note' }, '비평은 기본적으로 참고(advisory)입니다. 작가의 의도일 수 있어 자동 수정 사유가 되지 않고, 확정 설정 위반·분량 같은 규칙 위반만 수정을 강제합니다.'));
+    const rv = el('div', { class: 'box', id: 'nv-reviews', style: 'margin-top:16px' }, el('h3', null, T('비평가 검토 — 원고를 읽은 AI의 지적')),
+      el('p', { class: 'note' }, T('비평은 기본적으로 참고(advisory)입니다. 작가의 의도일 수 있어 자동 수정 사유가 되지 않고, 확정 설정 위반·분량 같은 규칙 위반만 수정을 강제합니다.')));
     const attempts = [...new Set(n.reviews.map((r) => r.attempt))];
     for (const at of attempts) {
-      if (attempts.length > 1) rv.append(el('h4', null, at === 1 ? '첫 원고에 대한 검토' : '수정본에 대한 검토'));
+      if (attempts.length > 1) rv.append(el('h4', null, T(at === 1 ? '첫 원고에 대한 검토' : '수정본에 대한 검토')));
       for (const r of n.reviews.filter((x) => x.attempt === at)) {
         const [name, what] = REVIEWER[r.step] || [r.step, ''];
         const g = el('details', { class: 'rv-group', open: r.findings.length && at === attempts[attempts.length - 1] ? '' : null },
-          el('summary', null, name, el('span', { class: 'cnt' }, r.findings.length ? `지적 ${r.findings.length}건` : '지적 없음'), el('span', { class: 'cnt' }, '· ' + what)));
+          el('summary', null, T(name), el('span', { class: 'cnt' }, r.findings.length ? T('지적 {n}건', { n: r.findings.length }) : T('지적 없음')), el('span', { class: 'cnt' }, '· ' + T(what))));
         const fl = el('div', { class: 'flist' });
         for (const f of r.findings) fl.append(finding(f));
         if (r.findings.length) g.append(fl);
@@ -298,49 +309,49 @@
     for (const i of rc.influence || []) {
       const p = i.proof || {};
       inf.append(el('div', { class: 'fitem' },
-        el('div', { class: 'fh' }, el('b', null, `${CHAR[i.characterId] || i.characterId}의 선택을 AI가 읽은 방식`)),
-        i.anchor ? el('q', null, i.anchor) : null,
-        el('p', null, i.interpretation),
-        p.chosen ? el('p', null, el('span', { class: 'muted' }, '고른 것 · '), p.chosen) : null,
-        (p.alternativesAvailable || []).length ? el('p', null, el('span', { class: 'muted' }, '고를 수 있었던 다른 길 · '), p.alternativesAvailable.join(' / ')) : null,
-        p.costPaid ? el('p', null, el('span', { class: 'muted' }, '치른 대가 · '), p.costPaid) : null,
-        (p.competingHypotheses || []).length ? el('p', null, el('span', { class: 'muted' }, '다르게 읽힐 가능성 · '), p.competingHypotheses.join(' / ')) : null,
-        i.nextChoiceBias ? el('p', null, el('span', { class: 'muted' }, '다음 선택에 줄 영향 · '), i.nextChoiceBias) : null));
+        el('div', { class: 'fh' }, el('b', null, T('{name}의 선택을 AI가 읽은 방식', { name: CHAR[i.characterId] || i.characterId }))),
+        i.anchor ? ko('q', null, i.anchor) : null,
+        ko('p', null, i.interpretation),
+        p.chosen ? el('p', null, el('span', { class: 'muted' }, T('고른 것 · ')), ko('span', null, p.chosen)) : null,
+        (p.alternativesAvailable || []).length ? el('p', null, el('span', { class: 'muted' }, T('고를 수 있었던 다른 길 · ')), ko('span', null, p.alternativesAvailable.join(' / '))) : null,
+        p.costPaid ? el('p', null, el('span', { class: 'muted' }, T('치른 대가 · ')), ko('span', null, p.costPaid)) : null,
+        (p.competingHypotheses || []).length ? el('p', null, el('span', { class: 'muted' }, T('다르게 읽힐 가능성 · ')), ko('span', null, p.competingHypotheses.join(' / '))) : null,
+        i.nextChoiceBias ? el('p', null, el('span', { class: 'muted' }, T('다음 선택에 줄 영향 · ')), ko('span', null, i.nextChoiceBias)) : null));
     }
     const hooks = el('div', { class: 'tags' });
-    for (const h of rc.hooks || []) hooks.append(el('span', { class: 'tg' + (h.phase === 'planted' ? ' warn' : '') }, `${h.phase === 'planted' ? '새 떡밥' : h.phase === 'resolved' ? '회수' : '진행'} · ${h.text}`));
+    for (const h of rc.hooks || []) hooks.append(el('span', { class: 'tg' + (h.phase === 'planted' ? ' warn' : '') }, T(h.phase === 'planted' ? '새 떡밥' : h.phase === 'resolved' ? '회수' : '진행') + ' · ', ko('bdi', null, h.text)));
     const sco = n.scores || {};
     body.append(el('div', { class: 'cols', id: 'nv-commit', style: 'margin-top:16px' },
-      el('div', { class: 'box' }, el('h3', null, '커밋과 다음 화 판단'),
-        el('div', { class: 'tags' }, el('span', { class: 'tg ok' }, `규칙 위반 ${sco.hard ?? 0}`), el('span', { class: 'tg' }, `문장 리듬 ${sco.prosody ?? '–'}`), el('span', { class: 'tg' }, `논리 ${sco.coherence ?? '–'}`), el('span', { class: 'tg' }, `${sco.chars ?? '–'}자`)),
-        el('p', null, el('b', null, { advance_episode: '→ 아크 안에서 다음 화로', complete_arc: '→ 이 화로 아크 완료', extend_arc: '→ 아크 연장' }[n.boundary.decision] || n.boundary.decision)),
-        el('p', { class: 'small' }, n.boundary.reason),
-        el('h4', null, '정본에 기록된 떡밥 상태'), hooks),
-      el('div', { class: 'box' }, el('h3', null, '인물 해석 — 검사 영수증에 남은 판단'),
-        el('p', { class: 'note' }, 'AI는 인물이 한 선택을 “다른 길도 있었는데 대가를 치르고 이것을 골랐다”는 증거로만 성격에 반영합니다. 반대 해석도 함께 남깁니다.'), inf)));
+      el('div', { class: 'box' }, el('h3', null, T('커밋과 다음 화 판단')),
+        el('div', { class: 'tags' }, el('span', { class: 'tg ok' }, T('규칙 위반 {n}', { n: sco.hard ?? 0 })), el('span', { class: 'tg' }, T('문장 리듬 {n}', { n: sco.prosody ?? '–' })), el('span', { class: 'tg' }, T('논리 {n}', { n: sco.coherence ?? '–' })), el('span', { class: 'tg' }, T('{n}자', { n: sco.chars ?? '–' }))),
+        el('p', null, el('b', null, T({ advance_episode: '→ 아크 안에서 다음 화로', complete_arc: '→ 이 화로 아크 완료', extend_arc: '→ 아크 연장' }[n.boundary.decision] || n.boundary.decision))),
+        ko('p', { class: 'small' }, n.boundary.reason),
+        el('h4', null, T('정본에 기록된 떡밥 상태')), hooks),
+      el('div', { class: 'box' }, el('h3', null, T('인물 해석 — 검사 영수증에 남은 판단')),
+        el('p', { class: 'note' }, T('AI는 인물이 한 선택을 “다른 길도 있었는데 대가를 치르고 이것을 골랐다”는 증거로만 성격에 반영합니다. 반대 해석도 함께 남깁니다.')), inf)));
   }
 
   function renderGate(body, n) {
-    const box = el('div', { class: 'box', id: 'nv-gate', style: 'margin-top:16px' }, el('h3', null, '규칙 검사와 수정'));
+    const box = el('div', { class: 'box', id: 'nv-gate', style: 'margin-top:16px' }, el('h3', null, T('규칙 검사와 수정')));
     const pols = n.policies || {};
     const first = pols[1] || pols['1'] || { blocking: [], advisory: [] };
     const blocking = first.blocking || [];
     if (!blocking.length) {
-      box.append(el('p', null, el('span', { class: 'tg ok' }, '첫 원고 통과'), ' 확정 설정 충돌·분량 미달 같은 규칙 위반이 없어 수정 없이 커밋 단계로 갔습니다.'));
+      box.append(el('p', null, el('span', { class: 'tg ok' }, T('첫 원고 통과')), T(' 확정 설정 충돌·분량 미달 같은 규칙 위반이 없어 수정 없이 커밋 단계로 갔습니다.')));
     } else {
       const a1 = n.attempts.find((a) => a.attempt === 1) || {}; const a2 = n.attempts.find((a) => a.attempt === 2) || {};
       box.append(el('div', { class: 'redesign' },
-        el('div', { class: 'rh' }, '첫 원고가 규칙 검사에서 막혔습니다'),
+        el('div', { class: 'rh' }, T('첫 원고가 규칙 검사에서 막혔습니다')),
         el('div', { class: 'tags' }, blocking.map((c) => el('span', { class: 'tg red' }, `${codeLabel(c)} (${c})`))),
-        el('p', { class: 'small' }, `첫 원고 ${a1.chars}자, 확정 설정 충돌 ${a1.hard ?? '?'}건. 서버가 커밋을 거부하고 같은 워크플로 안에서 “필요한 최소 수정”을 요청했습니다.`),
-        el('div', { class: 'arrow-row' }, el('span', { class: 'tg warn' }, `1차 ${a1.chars}자 · 위반 ${a1.hard}`), el('span', { class: 'ar' }, '→ 수정 →'), el('span', { class: 'tg ok' }, `2차 ${a2.chars}자 · 위반 ${a2.hard}`)),
-        a2.preservation ? el('p', { class: 'small' }, `수정본은 원래 문단 ${a2.preservation.sourceParagraphs}개 중 ${a2.preservation.unchangedParagraphs}개(${Math.round(a2.preservation.unchangedParagraphRatio * 100)}%)를 그대로 두고, 글자 기준 ${Math.round(a2.preservation.charChangeRatio * 100)}%만 바꿨습니다. 다시 쓰기가 아니라 고치기인지 서버가 따로 확인합니다.`) : null));
-      if (a1.prose && a2.prose) box.append(el('h4', null, '무엇이 바뀌었나 — 첫 원고와 수정본 비교'), el('div', { class: 'diff-legend' }, el('span', null, '+ 새로 쓴 문단'), el('span', null, '− 지운 문단'), el('span', null, '± 문단 안에서 고친 단어'), el('span', null, '회색 = 그대로 둔 문단')), diffView(a1.prose, a2.prose));
+        el('p', { class: 'small' }, T('첫 원고 {c}자, 확정 설정 충돌 {h}건. 서버가 커밋을 거부하고 같은 워크플로 안에서 “필요한 최소 수정”을 요청했습니다.', { c: a1.chars, h: a1.hard ?? '?' })),
+        el('div', { class: 'arrow-row' }, el('span', { class: 'tg warn' }, T('1차 {c}자 · 위반 {h}', { c: a1.chars, h: a1.hard })), el('span', { class: 'ar' }, T('→ 수정 →')), el('span', { class: 'tg ok' }, T('2차 {c}자 · 위반 {h}', { c: a2.chars, h: a2.hard }))),
+        a2.preservation ? el('p', { class: 'small' }, T('수정본은 원래 문단 {src}개 중 {keep}개({pct}%)를 그대로 두고, 글자 기준 {chg}%만 바꿨습니다. 다시 쓰기가 아니라 고치기인지 서버가 따로 확인합니다.', { src: a2.preservation.sourceParagraphs, keep: a2.preservation.unchangedParagraphs, pct: Math.round(a2.preservation.unchangedParagraphRatio * 100), chg: Math.round(a2.preservation.charChangeRatio * 100) })) : null));
+      if (a1.prose && a2.prose) box.append(el('h4', null, T('무엇이 바뀌었나 — 첫 원고와 수정본 비교')), el('div', { class: 'diff-legend' }, el('span', null, T('+ 새로 쓴 문단')), el('span', null, T('− 지운 문단')), el('span', null, T('± 문단 안에서 고친 단어')), el('span', null, T('회색 = 그대로 둔 문단'))), diffView(a1.prose, a2.prose));
     }
     const adv = first.advisory || [];
     if (adv.length) {
-      box.append(el('h4', null, `규칙 검사가 남긴 참고 신호 ${adv.length}개`),
-        el('p', { class: 'note' }, '모델 없이 코드가 세는 신호입니다. 기록만 하고 커밋을 막지 않습니다.'),
+      box.append(el('h4', null, T('규칙 검사가 남긴 참고 신호 {n}개', { n: adv.length })),
+        el('p', { class: 'note' }, T('모델 없이 코드가 세는 신호입니다. 기록만 하고 커밋을 막지 않습니다.')),
         el('div', { class: 'tags' }, adv.map((c) => el('span', { class: 'tg', title: c }, codeLabel(c)))));
     }
     body.append(box);
@@ -353,13 +364,13 @@
     const ops = []; let i = 0; let j = 0;
     while (i < m && j < n) { if (A[i] === B[j]) { ops.push(['same', A[i]]); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) ops.push(['del', A[i++]]); else ops.push(['add', B[j++]]); }
     while (i < m) ops.push(['del', A[i++]]); while (j < n) ops.push(['add', B[j++]]);
-    const box = el('div', { class: 'diff' });
+    const box = el('div', { class: 'diff', lang: 'ko' });
     let run = [];
     const flush = () => {
       if (!run.length) return;
       if (run.length <= 2) run.forEach((t) => box.append(el('p', { class: 'same' }, t)));
       else {
-        const hidden = run.slice(); const btn = el('button', { class: 'fold', type: 'button' }, `변경 없는 문단 ${hidden.length}개 펼치기`);
+        const hidden = run.slice(); const btn = el('button', { class: 'fold', type: 'button', lang: EN ? 'en' : 'ko' }, T('변경 없는 문단 {n}개 펼치기', { n: hidden.length }));
         btn.addEventListener('click', () => { const frag = document.createDocumentFragment(); hidden.forEach((t) => frag.append(el('p', { class: 'same' }, t))); btn.replaceWith(frag); });
         box.append(btn);
       }
@@ -399,22 +410,22 @@
   function renderWebtoon(body) {
     const e = D.episodes.find((x) => x.chapter === state.ep); const w = P.webtoon.find((x) => x.chapter === state.ep);
     if (!e || !w) {
-      body.append(el('div', { class: 'box' }, el('h3', null, `${state.ep}화 웹툰`), el('p', null, '이 화의 웹툰은 아직 제작 중이라 공개 전입니다. 소설 쓰기 기록은 위의 “① 소설 쓰기”에서 볼 수 있습니다.')));
+      body.append(el('div', { class: 'box' }, el('h3', null, T('{n}화 웹툰', { n: state.ep })), el('p', null, T('이 화의 웹툰은 아직 제작 중이라 공개 전입니다. 소설 쓰기 기록은 위의 “① 소설 쓰기”에서 볼 수 있습니다.'))));
       return;
     }
     const redesigns = w.scenes.reduce((a, s) => a + (s.redesigns || 0), 0);
     body.append(el('div', { class: 'box' },
-      el('h3', null, `${e.chapter}화 · 각색 ${e.host} · ${e.model}${e.effort ? ' · ' + e.effort : ''} · 이미지 ${D.imageModel}`),
-      el('p', null, `${e.sceneCount}장면 ${e.panelTotal}칸. 사전 검증이 막아 계획을 다시 짠 횟수 ${redesigns}회${w.blockedRuns.length ? `, 연출 지시 문제로 통째로 멈춘 장면 워크플로 ${w.blockedRuns.length}개` : ''}. 그림 검토 통과 ${e.passCount}/${e.sceneCount}.`),
-      el('p', { class: 'note' }, '장면을 고르면 그 장면이 원문에서 그림이 되기까지 7단계를 순서대로 보여 줍니다. 오른쪽 숫자 배지는 재설계 횟수입니다.')));
-    const strip = el('div', { class: 'strip', role: 'tablist', 'aria-label': '장면' });
+      el('h3', null, T('{ch}화 · 각색 {host} · {model}', { ch: e.chapter, host: e.host, model: e.model }) + (e.effort ? ' · ' + e.effort : '') + ' · ' + T('이미지 {m}', { m: D.imageModel })),
+      el('p', null, T('{scenes}장면 {panels}칸. 사전 검증이 막아 계획을 다시 짠 횟수 {r}회', { scenes: e.sceneCount, panels: e.panelTotal, r: redesigns }) + (w.blockedRuns.length ? T(', 연출 지시 문제로 통째로 멈춘 장면 워크플로 {n}개', { n: w.blockedRuns.length }) : '') + T('. 그림 검토 통과 {pass}/{scenes}.', { pass: e.passCount, scenes: e.sceneCount })),
+      el('p', { class: 'note' }, T('장면을 고르면 그 장면이 원문에서 그림이 되기까지 7단계를 순서대로 보여 줍니다. 오른쪽 숫자 배지는 재설계 횟수입니다.'))));
+    const strip = el('div', { class: 'strip', role: 'tablist', 'aria-label': T('장면') });
     for (const s of e.scenes) {
       const ps = w.scenes.find((x) => x.id === s.id) || {};
       strip.append(el('button', { class: 'thumb' + (s.id === state.scene ? ' active' : ''), type: 'button', role: 'tab', 'aria-selected': String(s.id === state.scene), onclick: () => { state.scene = s.id; renderEpisode(); writeHash(); } },
-        el('span', { class: 'im' }, el('img', { src: s.image, alt: `장면 ${s.n}`, loading: 'lazy' }),
-          el('span', { class: 'mk ' + (s.verdict === 'pass' ? 'pass' : 'revise') }, s.verdict === 'pass' ? '통과' : '수정 필요'),
-          ps.redesigns ? el('span', { class: 'rd', title: '사전 검증 재설계' }, `↺${ps.redesigns}`) : null),
-        el('span', { class: 'cap' }, `${s.n}. ${s.title}`)));
+        el('span', { class: 'im' }, el('img', { src: s.image, alt: T('장면 {n}', { n: s.n }), loading: 'lazy' }),
+          el('span', { class: 'mk ' + (s.verdict === 'pass' ? 'pass' : 'revise') }, T(s.verdict === 'pass' ? '통과' : '수정 필요')),
+          ps.redesigns ? el('span', { class: 'rd', title: T('사전 검증 재설계') }, `↺${ps.redesigns}`) : null),
+        el('span', { class: 'cap' }, `${s.n}. `, ko('bdi', null, s.title))));
     }
     body.append(strip);
     const s = e.scenes.find((x) => x.id === state.scene) || e.scenes[0];
@@ -424,19 +435,21 @@
 
   function srcChip(id, units) {
     const short = id.replace(/^ch-\d+-p-/, 'p');
-    return el('button', { class: 'src', type: 'button', 'data-src': id, title: '원문 보기', onclick: (ev) => showPop(ev.currentTarget, id, units) }, short);
+    return el('button', { class: 'src', type: 'button', 'data-src': id, title: T('원문 보기'), onclick: (ev) => showPop(ev.currentTarget, id, units) }, short);
   }
   function showPop(anchor, id, units) {
     const pop = $('#pop'); const u = units[id];
     if (!pop.classList.contains('hidden') && pop.dataset.id === id) { pop.classList.add('hidden'); return; }
     pop.innerHTML = ''; pop.dataset.id = id;
-    pop.append(el('small', null, `원문 ${id.replace(/^ch-(\d+)-p-/, '$1화 문단 ')}`), u || '(이 장면 밖의 문단)');
+    const mm = id.match(/^ch-(\d+)-p-(\d+)/);
+    pop.append(el('small', null, mm ? T('원문 {ch}화 문단 {p}', { ch: mm[1], p: mm[2] }) : id), u ? ko('span', null, u) : T('(이 장면 밖의 문단)'));
     pop.classList.remove('hidden');
     const r = anchor.getBoundingClientRect(); const pw = Math.min(360, window.innerWidth - 24);
     pop.style.left = Math.max(12, Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - pw - 12)) + 'px';
     pop.style.top = (window.scrollY + r.bottom + 6) + 'px';
   }
-  const withEn = (ko, en) => (ko && en && ko !== en) ? el('details', { class: 'more' }, el('summary', null, '영어 원문'), el('div', { class: 'en' }, en)) : null;
+  // 한국어 UI에서만 번역 아래에 영어 원문을 접어 둔다(영어 UI는 원문이 본문)
+  const withEn = (k, en) => (!EN && k && en && k !== en) ? el('details', { class: 'more' }, el('summary', null, T('영어 원문')), el('div', { class: 'en', lang: 'en' }, en)) : null;
 
   function sceneDetail(e, s, ps, w) {
     const k = `e${e.chapter}.${s.id}`;
@@ -448,87 +461,87 @@
     const st = (n, title, sub, kids, cls) => stepper.append(el('div', { class: 'st' + (cls ? ' ' + cls : ''), id: 'st-' + n }, el('div', { class: 'num' }, n), el('div', { class: 'body' }, el('div', { class: 'sh' }, el('b', null, title), sub ? el('span', null, sub) : null), kids)));
 
     // 1 장면 나누기
-    const paras = el('div', { class: 'diff' }); for (const u of s.units) paras.append(el('p', null, el('span', { class: 'src', style: 'margin-right:8px;cursor:default' }, u.id.replace(/^ch-\d+-p-/, 'p')), u.text));
-    st(1, '장면 나누기', `원문 문단 p${s.pFrom}–${s.pTo} · ${s.units.length}개`, [
-      el('p', { class: 'small' }, el('span', { class: 'muted' }, 'AI가 이 묶음을 한 장면으로 본 이유 · '), trh(k + '.seg', ps.segmentNote)),
+    const paras = el('div', { class: 'diff' }); for (const u of s.units) paras.append(el('p', null, el('span', { class: 'src', style: 'margin-right:8px;cursor:default' }, u.id.replace(/^ch-\d+-p-/, 'p')), ko('span', null, u.text)));
+    st(1, T('장면 나누기'), T('원문 문단 p{a}–{b} · {n}개', { a: s.pFrom, b: s.pTo, n: s.units.length }), [
+      el('p', { class: 'small' }, el('span', { class: 'muted' }, T('AI가 이 묶음을 한 장면으로 본 이유 · ')), trh(k + '.seg', ps.segmentNote)),
       withEn(KO[k + '.seg'], ps.segmentNote),
-      el('details', { class: 'more' }, el('summary', null, '이 장면의 소설 원문 펼치기'), paras)]);
+      el('details', { class: 'more' }, el('summary', null, T('이 장면의 소설 원문 펼치기')), paras)]);
 
     // 2 사실 추출
     const facts = el('ul', { class: 'facts' });
     for (const f of pl.facts || []) facts.append(el('li', null, el('span', null, (f.sourceIds || []).map((id) => srcChip(id, units))), el('span', null, trh(`${k}.fact.${f.id}`, f.statement))));
-    st(2, '원문에서 사실 뽑기', `${(pl.facts || []).length}개 · 각 사실은 근거 문단에 묶임`, [
-      el('p', { class: 'note' }, '그림에 들어갈 모든 것은 먼저 “원문이 확정한 사실”로 적고, 근거 문단 번호를 붙입니다. 번호를 누르면 원문이 보입니다.'), facts]);
+    st(2, T('원문에서 사실 뽑기'), T('{n}개 · 각 사실은 근거 문단에 묶임', { n: (pl.facts || []).length }), [
+      el('p', { class: 'note' }, T('그림에 들어갈 모든 것은 먼저 “원문이 확정한 사실”로 적고, 근거 문단 번호를 붙입니다. 번호를 누르면 원문이 보입니다.')), facts]);
 
     // 3 의도와 비트
     const beats = el('div', { class: 'beats' });
     for (const b of pl.beats || []) {
       const ln = el('div', { class: 'ln' });
-      for (const tid of b.textIds || []) { const t = texts[tid]; if (t) ln.append(el('div', { class: 'line' }, el('small', null, `${t.kind === 'caption' ? '자막' : t.kind === 'dialogue' ? '대사' : t.kind}${t.speaker && t.speaker !== 'narrator' ? ' · ' + (CHAR[t.speaker] || t.speaker) : ''}`), t.text)); }
+      for (const tid of b.textIds || []) { const t = texts[tid]; if (t) ln.append(el('div', { class: 'line' }, el('small', null, `${t.kind === 'caption' ? T('자막') : t.kind === 'dialogue' ? T('대사') : t.kind}${t.speaker && t.speaker !== 'narrator' ? ' · ' + (CHAR[t.speaker] || t.speaker) : ''}`), ko('span', null, t.text))); }
       beats.append(el('div', { class: 'beat' }, el('div', null, (b.sourceIds || []).map((id) => srcChip(id, units)), ' ', trh(`${k}.beat.${b.id}`, b.action), (b.textIds || []).length ? ln : null)));
     }
-    st(3, '연출 의도와 비트', `비트 ${(pl.beats || []).length}개 · 글자 ${(pl.texts || []).length}줄`, [
-      el('div', { class: 'why' }, el('b', null, '이 장면의 의도 '), trh(k + '.intent', pl.intent)), withEn(KO[k + '.intent'], pl.intent),
-      el('p', { class: 'note' }, '비트는 “보여 줄 순간”입니다. 대사·자막은 원문 문장을 그대로 가져와 해당 비트에 붙입니다. 원문에 없는 대사는 만들지 않습니다.'), beats]);
+    st(3, T('연출 의도와 비트'), T('비트 {b}개 · 글자 {t}줄', { b: (pl.beats || []).length, t: (pl.texts || []).length }), [
+      el('div', { class: 'why' }, el('b', null, T('이 장면의 의도 ')), trh(k + '.intent', pl.intent)), withEn(KO[k + '.intent'], pl.intent),
+      el('p', { class: 'note' }, T('비트는 “보여 줄 순간”입니다. 대사·자막은 원문 문장을 그대로 가져와 해당 비트에 붙입니다. 원문에 없는 대사는 만들지 않습니다.')), beats]);
 
     // 4 불확실성
     const unc = el('ol', { class: 'unc' });
     (pl.uncertainties || []).forEach((u, i) => unc.append(el('li', null, trh(`${k}.unc.${i}`, u))));
-    st(4, 'AI가 확신하지 못한 것', `${(pl.uncertainties || []).length}개 · 스스로 적은 한계`, [
-      el('p', { class: 'note' }, '원문이 명시하지 않아 추론으로 채운 부분을 AI가 따로 적어 둡니다. 확정 사실과 섞이지 않게 하려는 장치입니다.'), unc]);
+    st(4, T('AI가 확신하지 못한 것'), T('{n}개 · 스스로 적은 한계', { n: (pl.uncertainties || []).length }), [
+      el('p', { class: 'note' }, T('원문이 명시하지 않아 추론으로 채운 부분을 AI가 따로 적어 둡니다. 확정 사실과 섞이지 않게 하려는 장치입니다.')), unc]);
 
     // 5 사전 검증
     const pf = el('div', { class: 'checks' });
     for (const c of ps.preflight || []) {
       const [nm, q] = CHECK[c.name] || [c.name, ''];
-      pf.append(el('div', { class: 'chk' + (c.passed ? '' : ' fail') }, el('div', { class: 'ch' }, el('b', null, nm), el('span', { class: 'tg ' + (c.passed ? 'ok' : 'warn') }, c.passed ? '통과' : '막힘')),
-        el('p', { class: 'muted small' }, q), el('details', { class: 'more' }, el('summary', null, '검증자의 근거'), el('p', { class: 'small', style: 'margin-top:6px;line-height:1.7' }, trh(`${k}.pf.${c.name}`, c.evidence)), withEn(KO[`${k}.pf.${c.name}`], c.evidence))));
+      pf.append(el('div', { class: 'chk' + (c.passed ? '' : ' fail') }, el('div', { class: 'ch' }, el('b', null, T(nm)), el('span', { class: 'tg ' + (c.passed ? 'ok' : 'warn') }, T(c.passed ? '통과' : '막힘'))),
+        el('p', { class: 'muted small' }, T(q)), el('details', { class: 'more' }, el('summary', null, T('검증자의 근거')), el('p', { class: 'small', style: 'margin-top:6px;line-height:1.7' }, trh(`${k}.pf.${c.name}`, c.evidence)), withEn(KO[`${k}.pf.${c.name}`], c.evidence))));
     }
-    const kids5 = [el('p', { class: 'note' }, '이미지 모델을 부르기 전에, 다른 AI 호출이 계획을 원문과 대조합니다. 하나라도 막히면 그리지 않고 계획을 다시 짭니다. 그림을 그린 뒤에야 원문과 어긋난 걸 발견하는 일을 줄이기 위한 관문입니다.')];
+    const kids5 = [el('p', { class: 'note' }, T('이미지 모델을 부르기 전에, 다른 AI 호출이 계획을 원문과 대조합니다. 하나라도 막히면 그리지 않고 계획을 다시 짭니다. 그림을 그린 뒤에야 원문과 어긋난 걸 발견하는 일을 줄이기 위한 관문입니다.'))];
     if (ps.redesigns) {
-      const bb = el('div', { class: 'redesign' }, el('div', { class: 'rh' }, `첫 계획이 막혀 ${ps.redesigns}번 재설계했습니다`));
+      const bb = el('div', { class: 'redesign' }, el('div', { class: 'rh' }, T('첫 계획이 막혀 {n}번 재설계했습니다', { n: ps.redesigns })));
       for (const c of ps.blockedBefore || []) {
         const [nm] = CHECK[c.name] || [c.name];
-        bb.append(el('div', null, el('span', { class: 'tg red' }, `${nm} 막힘`), el('p', { class: 'small', style: 'margin:6px 0 0;line-height:1.7' }, trh(`${k}.blk.${c.name}`, c.evidence)), withEn(KO[`${k}.blk.${c.name}`], c.evidence)));
+        bb.append(el('div', null, el('span', { class: 'tg red' }, T('{name} 막힘', { name: T(nm) })), el('p', { class: 'small', style: 'margin:6px 0 0;line-height:1.7' }, trh(`${k}.blk.${c.name}`, c.evidence)), withEn(KO[`${k}.blk.${c.name}`], c.evidence)));
       }
-      if ((ps.panelHistory || []).length > 1) bb.append(el('div', { class: 'arrow-row' }, el('span', { class: 'muted small' }, '칸 수 변화'), ps.panelHistory.map((p, i) => [i ? el('span', { class: 'ar' }, '→') : null, el('span', { class: 'tg' + (i === ps.panelHistory.length - 1 ? ' ok' : '') }, `${p}칸`)])));
-      bb.append(el('p', { class: 'note' }, (ps.blockedBefore || []).length ? '마지막으로 막혔던 계획의 사유입니다. 재설계한 계획이 아래 4항목을 모두 통과한 뒤에야 그림을 그렸습니다.' : '재설계 기록은 남았지만 막힌 사유 원문은 워크플로에 보존되지 않았습니다.'));
+      if ((ps.panelHistory || []).length > 1) bb.append(el('div', { class: 'arrow-row' }, el('span', { class: 'muted small' }, T('칸 수 변화')), ps.panelHistory.map((p, i) => [i ? el('span', { class: 'ar' }, '→') : null, el('span', { class: 'tg' + (i === ps.panelHistory.length - 1 ? ' ok' : '') }, T('{n}칸', { n: p }))])));
+      bb.append(el('p', { class: 'note' }, T((ps.blockedBefore || []).length ? '마지막으로 막혔던 계획의 사유입니다. 재설계한 계획이 아래 4항목을 모두 통과한 뒤에야 그림을 그렸습니다.' : '재설계 기록은 남았지만 막힌 사유 원문은 워크플로에 보존되지 않았습니다.')));
       kids5.push(bb);
     }
-    if ((ps.rejections || []).length) kids5.push(el('p', { class: 'note' }, '형식 반려: ' + ps.rejections.map((r) => REJECT_KO[r] || r).join(' · ') + ' — 서버가 규격에 맞지 않는 응답을 받아들이지 않고 다시 요청한 기록입니다.'));
+    if ((ps.rejections || []).length) kids5.push(el('p', { class: 'note' }, T('형식 반려: ') + ps.rejections.map((r) => T(REJECT_KO[r] || r)).join(' · ') + T(' — 서버가 규격에 맞지 않는 응답을 받아들이지 않고 다시 요청한 기록입니다.')));
     kids5.push(pf);
     const pfOk = (ps.preflight || []).every((c) => c.passed);
-    st(5, '사전 검증', `${ps.preflightRounds || 1}회 실행${ps.redesigns ? ` · 재설계 ${ps.redesigns}회` : ''}`, kids5, ps.redesigns ? 'warn' : (pfOk ? 'ok' : ''));
+    st(5, T('사전 검증'), T('{n}회 실행', { n: ps.preflightRounds || 1 }) + (ps.redesigns ? T(' · 재설계 {n}회', { n: ps.redesigns }) : ''), kids5, ps.redesigns ? 'warn' : (pfOk ? 'ok' : ''));
 
     // 6 이미지
-    const mom = el('ol', { class: 'unc' });
+    const mom = el('ol', { class: 'unc', lang: 'en' });
     for (const m of (s.brief || {}).moments || []) mom.append(el('li', null, m.action));
-    st(6, '이미지 생성', `${s.panelCount}칸 · ${s.timings?.imageS ? s.timings.imageS + '초' : ''}${s.imageUsd ? ' · $' + s.imageUsd.toFixed(2) : ''}`, [
-      el('p', { class: 'small' }, `검증을 통과한 계획을 이미지 모델용 브리프로 바꿔 한 번 호출합니다. 칸 수는 계획 단계에서 AI가 정했고(${s.panelCount}칸), 말풍선·자막 글자도 그림 안에 함께 그립니다.`),
-      el('details', { class: 'more' }, el('summary', null, `이미지 모델에 넘긴 순간 ${((s.brief || {}).moments || []).length}개와 화풍 지시(영어 원문)`), el('div', { class: 'en' }, (s.brief || {}).style || ''), mom)]);
+    st(6, T('이미지 생성'), T('{n}칸', { n: s.panelCount }) + ' · ' + (s.timings?.imageS ? T('{n}초', { n: s.timings.imageS }) : '') + (s.imageUsd ? ' · $' + s.imageUsd.toFixed(2) : ''), [
+      el('p', { class: 'small' }, T('검증을 통과한 계획을 이미지 모델용 브리프로 바꿔 한 번 호출합니다. 칸 수는 계획 단계에서 AI가 정했고({n}칸), 말풍선·자막 글자도 그림 안에 함께 그립니다.', { n: s.panelCount })),
+      el('details', { class: 'more' }, el('summary', null, T('이미지 모델에 넘긴 순간 {n}개와 화풍 지시(영어 원문)', { n: ((s.brief || {}).moments || []).length })), el('div', { class: 'en', lang: 'en' }, (s.brief || {}).style || ''), mom)]);
 
     // 7 검토
     const fl = el('div', { class: 'flist' });
-    for (const f of s.findings || []) fl.append(el('div', { class: 'fitem' }, el('div', { class: 'fh' }, el('span', { class: 'fl ' + (f.severity === 'blocking' ? 'b' : 'a') }, f.severity === 'blocking' ? '차단' : '참고'), el('b', null, f.layerLabel || '')), el('p', null, f.ko || f.en), withEn(f.ko, f.en)));
-    const obs = el('table', { class: 'obs' }, el('tr', null, el('th', null, '계획한 글자'), el('th', null, '그림에서 읽힌 글자'), el('th', null, '판정')));
+    for (const f of s.findings || []) fl.append(el('div', { class: 'fitem' }, el('div', { class: 'fh' }, el('span', { class: 'fl ' + (f.severity === 'blocking' ? 'b' : 'a') }, T(f.severity === 'blocking' ? '차단' : '참고')), el('b', null, T(f.layerLabel || ''))), el('p', { lang: EN && f.en ? 'en' : 'ko' }, EN ? (f.en || f.ko) : (f.ko || f.en)), withEn(f.ko, f.en)));
+    const obs = el('table', { class: 'obs' }, el('tr', null, el('th', null, T('계획한 글자')), el('th', null, T('그림에서 읽힌 글자')), el('th', null, T('판정'))));
     for (const o of (s.review || {}).textObservations || []) {
       const t = texts[o.id] || {};
       const bad = !o.readable || !o.speakerCorrect || (t.text && o.observedText && t.text !== o.observedText);
-      obs.append(el('tr', null, el('td', { class: 't' }, t.text || o.id), el('td', { class: 't' + (bad ? ' bad' : '') }, o.observedText || '(안 보임)'),
-        el('td', null, !o.readable ? '못 읽음' : !o.speakerCorrect ? '화자 틀림' : (t.text && o.observedText && t.text !== o.observedText) ? '글자 다름' : '일치')));
+      obs.append(el('tr', null, el('td', { class: 't', lang: 'ko' }, t.text || o.id), el('td', { class: 't' + (bad ? ' bad' : ''), lang: o.observedText ? 'ko' : null }, o.observedText || T('(안 보임)')),
+        el('td', null, T(!o.readable ? '못 읽음' : !o.speakerCorrect ? '화자 틀림' : (t.text && o.observedText && t.text !== o.observedText) ? '글자 다름' : '일치'))));
     }
-    st(7, '그림 검토', `차단 ${s.blocking} · 참고 ${s.advisory} · 글자 ${s.textsOk}/${s.textsTotal} 일치`, [
-      el('p', { class: 'note' }, '다른 AI 호출이 완성 이미지를 실제로 열어 계획·원문과 대조합니다. 차단이 하나라도 있으면 “수정 필요”로 판정하지만, 이 공개본은 재생성 없이 첫 결과를 그대로 싣습니다.'),
-      (s.findings || []).length ? fl : el('p', null, el('span', { class: 'tg ok' }, '지적 없음')),
-      el('details', { class: 'more' }, el('summary', null, `글자 대조표 (${(s.review || {}).textObservations?.length || 0}줄)`), obs)], s.verdict === 'pass' ? 'ok' : 'warn');
+    st(7, T('그림 검토'), T('차단 {b} · 참고 {a} · 글자 {ok}/{total} 일치', { b: s.blocking, a: s.advisory, ok: s.textsOk, total: s.textsTotal }), [
+      el('p', { class: 'note' }, T('다른 AI 호출이 완성 이미지를 실제로 열어 계획·원문과 대조합니다. 차단이 하나라도 있으면 “수정 필요”로 판정하지만, 이 공개본은 재생성 없이 첫 결과를 그대로 싣습니다.')),
+      (s.findings || []).length ? fl : el('p', null, el('span', { class: 'tg ok' }, T('지적 없음'))),
+      el('details', { class: 'more' }, el('summary', null, T('글자 대조표 ({n}줄)', { n: (s.review || {}).textObservations?.length || 0 })), obs)], s.verdict === 'pass' ? 'ok' : 'warn');
 
     // side
     const tb = el('div', { class: 'tbar' }); const tmax = Math.max(1, ...(ps.timings || []).map((t) => t.sec));
-    for (const t of ps.timings || []) tb.append(el('div', { class: 'r' }, el('span', null, STEP_KO[t.step] || t.step), el('i', { class: t.step.includes('preflight') ? 'pf' : t.step.includes('review') ? 'rv' : '', style: `width:${Math.max(4, (t.sec / tmax) * 100)}%` }), el('em', null, dur(t.sec))));
+    for (const t of ps.timings || []) tb.append(el('div', { class: 'r' }, el('span', null, T(STEP_KO[t.step] || t.step)), el('i', { class: t.step.includes('preflight') ? 'pf' : t.step.includes('review') ? 'rv' : '', style: `width:${Math.max(4, (t.sec / tmax) * 100)}%` }), el('em', null, dur(t.sec))));
     const side = el('aside', { class: 'side' },
-      el('img', { src: s.image, alt: `${e.chapter}화 장면 ${s.n} ${s.title}` }),
-      el('div', { class: 'meta' }, el('b', null, `${s.n}. ${s.title}`), el('br'), `판정 ${s.verdict === 'pass' ? '통과' : '수정 필요'} · ${s.panelCount}칸 · `, el('a', { href: `read.html#ep${e.chapter}/${s.id}` }, '작품 읽기에서 보기')),
-      (ps.timings || []).length ? el('div', { class: 'box', style: 'padding:12px 14px' }, el('h3', null, '단계별 소요 시간'), tb) : null);
+      el('img', { src: s.image, alt: T('{ch}화 장면 {n} {title}', { ch: e.chapter, n: s.n, title: s.title }) }),
+      el('div', { class: 'meta' }, el('b', null, `${s.n}. `, ko('bdi', null, s.title)), el('br'), T('판정 {v}', { v: T(s.verdict === 'pass' ? '통과' : '수정 필요') }) + ' · ' + T('{n}칸', { n: s.panelCount }) + ' · ', el('a', { href: `read.html#ep${e.chapter}/${s.id}` }, T('작품 읽기에서 보기'))),
+      (ps.timings || []).length ? el('div', { class: 'box', style: 'padding:12px 14px' }, el('h3', null, T('단계별 소요 시간')), tb) : null);
     return el('div', { class: 'scene-detail' }, stepper, side);
   }
 
@@ -549,11 +562,11 @@
     ];
     const g = el('div', { class: 'box' }, el('div', { class: 'chg' }, items.map((i) => {
       const raw = (P.directionChanges || []).find((x) => x.chapter === i.c && x.scene === i.s);
-      return [el('div', { class: 'when' }, el('b', null, `${i.c}화 ${i.s}`), raw ? raw.at.slice(0, 16).replace('T', ' ') + ' UTC' : ''),
-        el('div', null, el('b', null, i.t), el('p', { style: 'margin:4px 0 0' }, i.d),
-          raw && raw.old ? el('details', { class: 'more' }, el('summary', null, '바뀐 지시 원문(영어)'), el('div', { class: 'en' }, '이전: ' + raw.old + '\n\n이후: ' + raw.new)) : null)];
+      return [el('div', { class: 'when' }, el('b', null, `${T('{n}화', { n: i.c })} ${T(i.s)}`), raw ? raw.at.slice(0, 16).replace('T', ' ') + ' UTC' : ''),
+        el('div', null, el('b', null, T(i.t)), el('p', { style: 'margin:4px 0 0' }, T(i.d)),
+          raw && raw.old ? el('details', { class: 'more' }, el('summary', null, T('바뀐 지시 원문(영어)')), el('div', { class: 'en' }, T('이전: '), el('span', { lang: 'en' }, raw.old), '\n\n', T('이후: '), el('span', { lang: 'en' }, raw.new))) : null)];
     })));
-    box.append(g, el('p', { class: 'note', style: 'margin-top:10px' }, '이 밖의 판단(장면 분할, 계획, 검증, 검토 판정)은 모두 AI가 내렸습니다. 일부 장면의 이미지 재호출은 실행 환경 오류로 그림이 아예 나오지 않은 경우뿐이며, 사람이 여러 결과 중 고르거나 마음에 들지 않아 다시 뽑은 적은 없습니다.'));
+    box.append(g, el('p', { class: 'note', style: 'margin-top:10px' }, T('이 밖의 판단(장면 분할, 계획, 검증, 검토 판정)은 모두 AI가 내렸습니다. 일부 장면의 이미지 재호출은 실행 환경 오류로 그림이 아예 나오지 않은 경우뿐이며, 사람이 여러 결과 중 고르거나 마음에 들지 않아 다시 뽑은 적은 없습니다.')));
   }
 
   /* ---------- 떡밥·설정 추적 ---------- */
@@ -561,37 +574,37 @@
   const HORIZON = { next: '다음 화 안', soon: '곧', arc: '이 아크 안', long: '장기' };
   function renderHooks() {
     const H = P.hooks; const box = $('#hooks-body'); box.innerHTML = '';
-    if (!H || !H.hooks.length) { box.append(el('p', { class: 'note' }, '떡밥 기록이 없습니다.')); return; }
+    if (!H || !H.hooks.length) { box.append(el('p', { class: 'note' }, T('떡밥 기록이 없습니다.'))); return; }
     const chs = H.chapters;
     const paid = H.hooks.filter((h) => h.closedAt).length;
     const parked = H.hooks.filter((h) => !h.closedAt && Object.values(h.events).slice(-1)[0] === 'parked').length;
     box.append(el('div', { class: 'tags', style: 'margin-bottom:12px' },
-      el('span', { class: 'tg' }, `떡밥 ${H.hooks.length}개`), el('span', { class: 'tg ok' }, `회수 ${paid}`),
-      el('span', { class: 'tg warn' }, `진행 중 ${H.hooks.length - paid - parked}`), el('span', { class: 'tg' }, `보류 ${parked}`)));
+      el('span', { class: 'tg' }, T('떡밥 {n}개', { n: H.hooks.length })), el('span', { class: 'tg ok' }, T('회수 {n}', { n: paid })),
+      el('span', { class: 'tg warn' }, T('진행 중 {n}', { n: H.hooks.length - paid - parked })), el('span', { class: 'tg' }, T('보류 {n}', { n: parked }))));
     const grid = el('div', { class: 'hgrid', style: `grid-template-columns:minmax(220px,2.4fr) repeat(${chs.length},minmax(58px,1fr))` });
-    grid.append(el('div', { class: 'hh' }, '떡밥'), ...chs.map((c) => el('div', { class: 'hh c' }, `${c}화`)));
+    grid.append(el('div', { class: 'hh' }, T('떡밥')), ...chs.map((c) => el('div', { class: 'hh c' }, T('{n}화', { n: c }))));
     for (const h of H.hooks) {
-      grid.append(el('div', { class: 'hn' }, el('span', null, h.text), el('small', null, `${h.planted}화에 심음 · 목표 ${HORIZON[h.horizon] || h.horizon || '–'}${h.closedAt ? ` · ${h.closedAt}화 회수` : ''}`)));
+      grid.append(el('div', { class: 'hn' }, ko('span', null, h.text), el('small', null, T('{n}화에 심음', { n: h.planted }) + ' · ' + T('목표 {h}', { h: T(HORIZON[h.horizon] || h.horizon || '–') }) + (h.closedAt ? ' · ' + T('{n}화 회수', { n: h.closedAt }) : ''))));
       for (const c of chs) {
         const ph = h.events[c] || h.events[String(c)];
         const alive = c > h.planted && (!h.closedAt || c < h.closedAt);
-        if (ph) { const [lb, cls] = PHASE[ph] || [ph, '']; grid.append(el('div', { class: 'hc ' + cls, title: `${c}화 · ${lb}` }, el('span', null, lb))); }
-        else grid.append(el('div', { class: 'hc' + (alive ? ' h-idle' : ''), title: alive ? `${c}화 · 언급 없음(열린 채 유지)` : '' }, alive ? el('i') : null));
+        if (ph) { const [lb0, cls] = PHASE[ph] || [ph, '']; const lb = T(lb0); grid.append(el('div', { class: 'hc ' + cls, title: `${T('{n}화', { n: c })} · ${lb}` }, el('span', null, lb))); }
+        else grid.append(el('div', { class: 'hc' + (alive ? ' h-idle' : ''), title: alive ? `${T('{n}화', { n: c })} · ${T('언급 없음(열린 채 유지)')}` : '' }, alive ? el('i') : null));
       }
     }
     box.append(el('div', { class: 'box hbox' }, grid,
       el('div', { class: 'legend2', style: 'margin-top:12px' },
-        el('span', null, el('i', { class: 'hsw h-plant' }), '심음'), el('span', null, el('i', { class: 'hsw h-adv' }), '진행'),
-        el('span', null, el('i', { class: 'hsw h-paid' }), '회수'), el('span', null, el('i', { class: 'hsw h-park' }), '보류'),
-        el('span', null, el('i', { class: 'hsw h-line' }), '열린 채 그 화에선 언급 없음')),
-      el('p', { class: 'note', style: 'margin-top:8px' }, 'AI는 매 화를 커밋할 때 이 화에서 어떤 떡밥을 심고 움직이고 회수했는지 영수증에 적습니다. 다음 화를 계획할 때 이 목록을 다시 읽기 때문에, 오래 열린 떡밥이 잊히지 않습니다. 목표 시점은 떡밥을 심을 때 AI가 정한 회수 예정입니다.')));
+        el('span', null, el('i', { class: 'hsw h-plant' }), T('심음')), el('span', null, el('i', { class: 'hsw h-adv' }), T('진행')),
+        el('span', null, el('i', { class: 'hsw h-paid' }), T('회수')), el('span', null, el('i', { class: 'hsw h-park' }), T('보류')),
+        el('span', null, el('i', { class: 'hsw h-line' }), T('열린 채 그 화에선 언급 없음'))),
+      el('p', { class: 'note', style: 'margin-top:8px' }, T('AI는 매 화를 커밋할 때 이 화에서 어떤 떡밥을 심고 움직이고 회수했는지 영수증에 적습니다. 다음 화를 계획할 때 이 목록을 다시 읽기 때문에, 오래 열린 떡밥이 잊히지 않습니다. 목표 시점은 떡밥을 심을 때 AI가 정한 회수 예정입니다.'))));
     // 인물 관계 변화
     const rels = el('div', { class: 'flist' });
-    for (const r of H.relationships) rels.append(el('div', { class: 'fitem' }, el('div', { class: 'fh' }, el('b', null, `${r.chapter}화 · ${CHAR[r.from] || r.from || ''}${r.from ? ' → ' : ''}${CHAR[r.to] || r.to}`), el('span', { class: 'tg' }, r.kind)), el('p', null, r.state)));
-    const facts = H.facts.map((f) => `${f.chapter}화 ${f.knownFactsAdded}개`).join(' · ');
+    for (const r of H.relationships) rels.append(el('div', { class: 'fitem' }, el('div', { class: 'fh' }, el('b', null, `${T('{n}화', { n: r.chapter })} · ${CHAR[r.from] || r.from || ''}${r.from ? ' → ' : ''}${CHAR[r.to] || r.to}`), el('span', { class: 'tg', lang: /[가-힣]/.test(r.kind) ? 'ko' : null }, r.kind)), ko('p', null, r.state)));
+    const facts = H.facts.map((f) => T('{ch}화 {n}개', { ch: f.chapter, n: f.knownFactsAdded })).join(' · ');
     box.append(el('details', { class: 'box more', style: 'margin-top:12px' },
-      el('summary', null, `인물 관계 변화 ${H.relationships.length}건 · 인물이 새로 알게 된 사실 (${facts})`),
-      el('p', { class: 'note', style: 'margin:8px 0' }, '관계는 누가 누구를 어떻게 보게 됐는지, 사실은 각 인물이 그 화에서 알게 된 것의 개수입니다. 다음 화에서 인물이 모르는 걸 아는 것처럼 말하지 않게 하는 기준이 됩니다.'), rels));
+      el('summary', null, T('인물 관계 변화 {n}건 · 인물이 새로 알게 된 사실 ({facts})', { n: H.relationships.length, facts })),
+      el('p', { class: 'note', style: 'margin:8px 0' }, T('관계는 누가 누구를 어떻게 보게 됐는지, 사실은 각 인물이 그 화에서 알게 된 것의 개수입니다. 다음 화에서 인물이 모르는 걸 아는 것처럼 말하지 않게 하는 기준이 됩니다.')), rels));
   }
 
   /* ---------- 해시 ---------- */
@@ -614,6 +627,6 @@
     else if (location.hash.length > 1) { const t = document.getElementById(location.hash.slice(1)); if (t) setTimeout(() => t.scrollIntoView({ behavior: 'instant' }), 60); }
     window.addEventListener('hashchange', () => { if (readHash()) { renderEpisode(); $('#episode').scrollIntoView(); } });
   }).catch((err) => {
-    $('#ep-body').append(el('p', { class: 'note' }, '데이터를 불러오지 못했습니다: ' + err.message));
+    $('#ep-body').append(el('p', { class: 'note' }, T('데이터를 불러오지 못했습니다: ') + err.message));
   });
 })();

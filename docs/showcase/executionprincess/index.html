@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../i18n.js?v=1"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>처형 1분 전의 황녀 · vibelore 제작 예시</title>
 <meta name="description" content="누명을 쓰고 처형당한 황녀가 칼날이 떨어지기 1분 전으로 돌아온다. GPT-6 Sol이 설계·집필·각색한 로맨스 판타지 회귀 복수극 소설과 장면 웹툰.">
@@ -15,8 +16,8 @@
 <header class="hub-hero">
   <div class="hub-copy">
     <div class="kicker">VIBELORE 제작 예시 · GPT-6 SOL</div>
-    <h1>처형 1분 전의 황녀<span class="min">D-1:00</span></h1>
-    <p class="lede">북부 군량 독살의 누명을 쓰고 목이 잘린 황녀 아델리아. 눈을 뜨니 다시 단두대 위, 모래시계에는 1분이 남았다. 도망칠 길은 없다. 필요한 건 칼을 멈추게 할 문장 하나. 판결문과 증거 목록의 날짜가 이틀 어긋나 있다. <b>“카르단 베르크!”</b></p>
+    <h1 lang="ko">처형 1분 전의 황녀<span class="min">D-1:00</span></h1>
+    <p class="lede" data-i18n="ex.hub.lede1">북부 군량 독살의 누명을 쓰고 목이 잘린 황녀 아델리아. 눈을 뜨니 다시 단두대 위, 모래시계에는 1분이 남았다. 도망칠 길은 없다. 필요한 건 칼을 멈추게 할 문장 하나. 판결문과 증거 목록의 날짜가 이틀 어긋나 있다. <b>“카르단 베르크!”</b></p>
     <p class="lede" style="font-size:14px">처형장에서 연회장, 무도회장으로 무대를 옮기며 벌이는 로맨스 판타지 회귀 복수극. 작품 설계부터 소설 집필, 웹툰 각색·연출까지 GPT-6 Sol(gpt-6-sol)이 맡았고, 그림은 OpenAI 이미지 API(gpt-image-2.5-sunburst)로 그렸습니다. 인물·나라·사건은 모두 허구입니다.</p>
     <div class="hub-stats" id="hub-stats"></div>
   </div>
@@ -44,18 +45,19 @@
       <span class="go">작품 목록 →</span>
     </a>
   </div>
-  <p class="hub-note">모든 웹툰 장면은 자동 재생성 없이 장면당 한 번 생성한 첫 결과와 검토 판정을 그대로 공개합니다. 그림 검토는 제작을 조율한 Claude Opus 5.5가 했습니다. 각색 모델(GPT-6 Sol)과는 다른 모델이지만 독립 평가는 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a></p>
+  <p class="hub-note" data-i18n="ex.hub.note">모든 웹툰 장면은 자동 재생성 없이 장면당 한 번 생성한 첫 결과와 검토 판정을 그대로 공개합니다. 그림 검토는 제작을 조율한 Claude Opus 5.5가 했습니다. 각색 모델(GPT-6 Sol)과는 다른 모델이지만 독립 평가는 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a></p>
 </main>
-<script src="site.js?v=2"></script>
+<script src="site.js?v=3"></script>
 <script>
 (function () {
   fetch('data.json').then((r) => r.json()).then((d) => {
     const eps = d.episodes; const scenes = eps.reduce((a, e) => a + e.sceneCount, 0); const panels = eps.reduce((a, e) => a + e.panelTotal, 0);
     const box = document.getElementById('hub-stats');
-    for (const [b, s] of [[`${eps.length}화`, '소설'], [`${eps.length}화 · ${scenes}장면`, '웹툰'], [`${panels}칸`, '그림']]) {
+    const T = window.T || ((s) => s);
+    for (const [b, s] of [[T('{n}화', { n: eps.length }), T('소설')], [T('{n}화', { n: eps.length }) + ' · ' + T('{n}장면', { n: scenes }), T('웹툰')], [T('{n}칸', { n: panels }), T('그림')]]) {
       const x = document.createElement('div'); x.className = 'hs'; x.innerHTML = '<b></b><span></span>'; x.firstChild.textContent = b; x.lastChild.textContent = s; box.append(x);
     }
-    const s1 = eps[0].scenes[8]; const img = document.createElement('img'); img.src = s1.image; img.alt = `1화 장면 ${s1.n} ${s1.title}`; document.getElementById('hub-cover').append(img);
+    const s1 = eps[0].scenes[8]; const img = document.createElement('img'); img.src = s1.image; img.alt = T('1화 장면 {n} {title}', { n: s1.n, title: s1.title }); document.getElementById('hub-cover').append(img);
   });
 })();
 </script>

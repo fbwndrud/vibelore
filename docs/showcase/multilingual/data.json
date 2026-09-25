@@ -1,0 +1,2881 @@
+{
+ "builtAt": "2026-09-25T11:20:57+00:00",
+ "builtBy": "tmp/showcase-multilingual/build-multilingual.py",
+ "novelModel": "claude-sonnet-5",
+ "novelEvidence": [
+  "acceptance-52e5aee-sonnet5",
+  "acceptance-6a24561-sonnet5",
+  "acceptance-9b507c4-sonnet5",
+  "acceptance-9edfae6-sonnet5"
+ ],
+ "webtoonRun": {
+  "id": "webtoon-samples-3207b83",
+  "head": "3207b83",
+  "generatedAt": "2026-09-25T08:42:34+00:00",
+  "server": "vibelore @ 3207b83, MCP stdio",
+  "hostModel": "claude-opus-5-5 via Claude Code CLI 2.1.280 (claude -p, effort high, no tools, fresh process per request)",
+  "imageModel": "gpt-image-2.5-sunburst via OpenAI API (bundled image_gen.py; scene: edit, quality high, 1024x1536, png, --no-augment; cast reference reused from the 52e5aee run, not regenerated or billed)",
+  "direction": "Finished full-color vertical webtoon page with clean ink lines, soft cel shading and natural lighting; a neutral modern webtoon look. Preserve the original dialogue and captions verbatim in the work language and script, and generate all lettering inside the image. The artist chooses panel count, sizes, cameras and a natural reading layout; prefer fewer, larger, clearly legible panels over many small ones. Keep character identity, clothing and props consistent with the references. Preserve the source events and timing; distinguish uncertain geography from confirmed facts and never invent mechanics the source does not state.",
+  "panelCount": "auto",
+  "policy": "one scene image per language, first result as-is; the tool's automatic re-plan after a failed image review was not continued",
+  "reviewer": "orchestrating Claude Code session (claude-opus-5-5) viewed each image and zoomed every balloon; same model as the host, not an independent evaluation",
+  "totals": {
+   "hostUsd": 4.3,
+   "imageUsd": 0.46,
+   "imageUsdMeasuredBucketTotal": 0.4585,
+   "totalUsd": 4.76,
+   "estimateBeforeRun": {
+    "expectedUsd": 5.0,
+    "upperUsd": 13,
+    "threshold": 15,
+    "decision": "expected ~$5 < $15 cap; upper assumes two auto-redesigns per language before the image"
+   }
+  },
+  "passCount": 4,
+  "langCount": 8
+ },
+ "webtoonBefore": {
+  "id": "webtoon-samples-52e5aee",
+  "head": "52e5aee",
+  "generatedAt": "2026-09-25T08:09:15+00:00",
+  "server": "vibelore 0.4.0 @ 52e5aee, MCP stdio",
+  "hostModel": "claude-opus-5-5 via Claude Code CLI 2.1.280 (claude -p, effort high, no tools, fresh process per request)",
+  "imageModel": "gpt-image-2.5-sunburst via OpenAI API (bundled image_gen.py; scene: edit, quality high, 1024x1536, png, --no-augment; cast reference: generate, quality medium)",
+  "direction": "Finished full-color vertical webtoon page with clean ink lines, soft cel shading and natural lighting; a neutral modern webtoon look. Preserve the original dialogue and captions verbatim in the work language and script, and generate all lettering inside the image. The artist chooses panel count, sizes, cameras and a natural reading layout; prefer fewer, larger, clearly legible panels over many small ones. Keep character identity, clothing and props consistent with the references. Preserve the source events and timing; distinguish uncertain geography from confirmed facts and never invent mechanics the source does not state.",
+  "panelCount": "auto",
+  "policy": "one scene image per language, first result as-is; the tool's automatic re-plan after a failed image review was not continued",
+  "reviewer": "orchestrating Claude Code session (claude-opus-5-5) viewed each image and zoomed every balloon; same model as the host, not an independent evaluation",
+  "totals": {
+   "hostUsd": 5.51,
+   "imageUsd": 0.55,
+   "imageUsdMeasuredBucketTotal": 0.5464,
+   "totalUsd": 6.05,
+   "estimateBeforeRun": {
+    "expectedUsd": 10.5,
+    "upperUsd": 25,
+    "threshold": 25,
+    "decision": "expected ~$10.5 < $25 -> proceed; upper bound needs every language to hit maximum redesigns"
+   }
+  },
+  "passCount": 1,
+  "langCount": 8
+ },
+ "languages": [
+  {
+   "code": "ko",
+   "native": "한국어",
+   "dir": "ltr",
+   "novel": {
+    "evidence": "acceptance-9b507c4-sonnet5/ko",
+    "sourceHead": "9b507c4",
+    "model": "claude-sonnet-5",
+    "status": "committed",
+    "committed": true,
+    "loreWritePasses": 11,
+    "reviseRequests": 0,
+    "modelRequests": 18,
+    "wallMinutes": 39,
+    "languageAudit": "pass",
+    "qualityRetries": {
+     "01-profile": 0,
+     "03-spine": 5,
+     "04-writer": 0,
+     "05-arc": 0
+    },
+    "workTitle": "다시 켜는 항구의 여름",
+    "premise": "서른아홉 살 등대지기 윤서는 조수표를 읽고 점검 순서를 짜는 데 능하다. 그러나 자신이 모든 일을 직접 확인해야만 안전하다고 믿는다. 마흔두 살 배 수리공 도하는 여름 축제 전에 옛 항구의 안쪽 선착장부터 열자고 제안한다. 그의 목표는 빈 창고에 공동 수리장을 마련하고 첫 견습생을 고용하는 것이다. 윤서는 항구 전체를 점검하기 전에는 배 한 척도 들일 수 없다며 반대한다.",
+    "chapterTitle": "닫힌 물길",
+    "chapterChars": 1529,
+    "excerpt": [
+     "윤서는 조수표의 숫자 위에 손끝을 얹었다. 오늘 물때는 오전 열 시부터 오후 한 시까지 셋. 그 세 시간 안에 수심이 가장 얕아지고 유속이 가장 느려진다. 배를 대기에도, 사람이 물에 발을 담그고 계류 고리를 만지기에도 그 창이 전부였다.",
+     "안쪽 선착장 첫 널빤지부터 발끝으로 눌러보았다. 삐걱, 단단한 소리. 두 번째는 손등으로 두드리자 둔탁하게 먹먹한 소리가 돌아왔다. 물기를 먹고 속부터 물러진 나무였다. 윤서는 허리춤 수첩에 X 표시를 하고 다음 널빤지로 옮겨갔다. 세 번째, 네 번째. 계류 고리는 손으로 쥐고 흔들어 뼈대가 우는 소리를 들었다. 헐거운 것은 소리가 길게 남았다.",
+     "\"여기까진 나도 봤어요.\" 도하가 목재 더미 옆에서 밧줄 끝을 손끝으로 훑고 있었다. 매듭 하나를 풀었다 다시 감으며 걸린 방향을 확인하는 손이었다. \"이 자루매듭, 풀리는 쪽이 바다 쪽이에요. 밀물에 저절로 풀렸을 거고요.\"",
+     "\"다음 구역은요.\" 윤서는 수첩에서 눈을 떼지 않았다.",
+     "\"바깥 잔교.\" 도하가 손목시계를 슬쩍 보았다. \"그런데 그 전에, 열한 시에 회관 앞에서 소은 씨랑 명수 씨 만나기로 했잖아요. 구역 나누기로 한 거.\"",
+     "\"아직 안쪽도 다 못 봤어요.\""
+    ]
+   },
+   "webtoon": {
+    "image": "img/ko.webp",
+    "imageBytes": 232916,
+    "width": 1000,
+    "height": 1500,
+    "workflowId": "wt-eb12654b-3a80-40ea-982d-0126e8d8d9fb",
+    "sceneTitle": "안쪽 선착장의 닫힌 공구함",
+    "sceneNote": "Yunseo's methodical solo inspection of the inner dock turns tense when Doha urges her to delegate sections, and she refuses by slamming her toolbox shut, silencing him.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8",
+     "ch-1-p-9",
+     "ch-1-p-10",
+     "ch-1-p-11"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": true,
+    "toolStatus": "completed",
+    "textsTotal": 13,
+    "textsVerbatim": 13,
+    "nonVerbatim": [],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every balloon. Seven panels: boot pressing a plank with the narration box and creak sfx; Yunseo writing an X on her notebook page; Doha at the piling retying the rope knot; Yunseo with notebook and Doha checking his watch; Yunseo and Doha with rope; Yunseo close with a loose fist over the planks; toolbox latch with the slam sfx and Doha's hand on the rope. All 13 quoted texts are present in Hangul, each once, verbatim; the physical X is drawn on the notebook page. Every balloon has a single tail to the planned speaker (text-11 is chained under Doha's text-10). No name tags or invented words.",
+    "letteringSummary": "Hangul, all 13 lines verbatim, single tails to the right speakers. Physical X drawn on the notebook page.",
+    "changeVsBefore": "Gone: double tail on the meeting-reminder balloon (the speaker-ambiguity defect). New: none.",
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "오늘 물때는 오전 열 시부터 오후 한 시까지 셋.",
+      "observed": "오늘 물때는 오전 열 시부터 오후 한 시까지 셋.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 narration box top left; exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "sfx",
+      "speaker": "narrator",
+      "planned": "삐걱",
+      "observed": "삐걱",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 sfx by the boot."
+     },
+     {
+      "id": "text-3",
+      "kind": "physical",
+      "speaker": "c1",
+      "planned": "X",
+      "observed": "X",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 X drawn on the notebook page Yunseo is writing on; no balloon."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "여기까진 나도 봤어요.",
+      "observed": "여기까진 나도 봤어요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 left balloon, tail to Doha."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "이 자루매듭, 풀리는 쪽이 바다 쪽이에요. 밀물에 저절로 풀렸을 거고요.",
+      "observed": "이 자루매듭, 풀리는 쪽이 바다 쪽이에요. 밀물에 저절로 풀렸을 거고요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 right balloon, tail to Doha; exact."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "다음 구역은요.",
+      "observed": "다음 구역은요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 left balloon, tail to Yunseo."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "바깥 잔교.",
+      "observed": "바깥 잔교.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 small balloon, tail to Doha."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "그런데 그 전에, 열한 시에 회관 앞에서 소은 씨랑 명수 씨 만나기로 했잖아요. 구역 나누기로 한 거.",
+      "observed": "그런데 그 전에, 열한 시에 회관 앞에서 소은 씨랑 명수 씨 만나기로 했잖아요. 구역 나누기로 한 거.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 right balloon, single tail to Doha; exact."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "아직 안쪽도 다 못 봤어요.",
+      "observed": "아직 안쪽도 다 못 봤어요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 left balloon, tail to Yunseo."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "그러니까요.",
+      "observed": "그러니까요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 balloon, tail to Doha."
+     },
+     {
+      "id": "text-11",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "다 보고 나눠주면, 그때는 축제 코앞이에요. 오늘 소은 씨한테 안쪽 남쪽 두 칸만 먼저 맡기고, 명수 씨한테는 계류 고리 수리를. 나머지는 당신이 계속 보면 되잖아요.",
+      "observed": "다 보고 나눠주면, 그때는 축제 코앞이에요. 오늘 소은 씨한테 안쪽 남쪽 두 칸만 먼저 맡기고, 명수 씨한테는 계류 고리 수리를. 나머지는 당신이 계속 보면 되잖아요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 large balloon chained under text-10 (Doha); exact."
+     },
+     {
+      "id": "text-12",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "내가 확인하지 않은 곳에는 사람을 세울 수 없어요.",
+      "observed": "내가 확인하지 않은 곳에는 사람을 세울 수 없어요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 balloon, tail to Yunseo; exact."
+     },
+     {
+      "id": "text-13",
+      "kind": "sfx",
+      "speaker": "narrator",
+      "planned": "쾅",
+      "observed": "쾅",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 sfx over the water as the toolbox shuts."
+     }
+    ],
+    "seconds": 157,
+    "hostUsd": 0.569,
+    "imageUsd": 0.058
+   },
+   "webtoonBefore": {
+    "image": "img/ko-52e5aee.webp",
+    "imageBytes": 111932,
+    "width": 640,
+    "height": 960,
+    "workflowId": "wt-e8f23957-8d3f-41dd-be45-4a0ce19eef21",
+    "sceneTitle": "안쪽 선착장의 닫힌 공구함",
+    "sceneNote": "Yunseo's methodical solo inspection of the inner dock turns tense when Doha urges her to delegate sections, and she refuses by slamming her toolbox shut, silencing him.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8",
+     "ch-1-p-9",
+     "ch-1-p-10",
+     "ch-1-p-11"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 12,
+    "textsVerbatim": 12,
+    "nonVerbatim": [],
+    "speakerProblems": [
+     "text-7"
+    ],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "Panel 3: the text-7 balloon (Doha's reminder about the eleven o'clock meeting) has two tails, the left one to Doha and a right one pointing at the crouched Yunseo, so the speaker is ambiguous."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Panel 5: Yunseo's hand is flat on the planks rather than a fist frozen in midair above the next plank (moment 5)."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536). Seven panels: wide top panel (boot pressing a plank, sfx and narration box), three full-width panels (Doha by the lumber pile with rope / Yunseo with notebook; Doha checking his watch / Yunseo crouched; Doha close with rope, Yunseo back of head), and a bottom row of three (Yunseo close with hand on the planks, toolbox latch with sfx, Doha silent with rope). All 12 quoted texts are present in Hangul, each once, verbatim; no invented words, no name tags. Reading order top-to-bottom, left-to-right is clear. One speaker defect: the text-7 balloon has a second tail pointing right toward Yunseo in addition to its left tail toward Doha. Moment 5 asked for Yunseo's fist frozen in midair above the plank; the image shows her hand resting on the planks.",
+    "letteringSummary": "Hangul, all 12 lines verbatim. text-7 balloon has a second tail pointing at Yunseo (speaker ambiguity).",
+    "changeVsBefore": null,
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "오늘 물때는 오전 열 시부터 오후 한 시까지 셋.",
+      "observed": "오늘 물때는 오전 열 시부터 오후 한 시까지 셋.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Rectangular narration box top right of panel 1, exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "sfx",
+      "speaker": "narrator",
+      "planned": "삐걱",
+      "observed": "삐걱",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Hand-lettered sfx next to the boot on the plank in panel 1."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "여기까진 나도 봤어요.",
+      "observed": "여기까진 나도 봤어요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 balloon, tail to Doha on the left."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "이 자루매듭, 풀리는 쪽이 바다 쪽이에요. 밀물에 저절로 풀렸을 거고요.",
+      "observed": "이 자루매듭, 풀리는 쪽이 바다 쪽이에요. 밀물에 저절로 풀렸을 거고요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 second balloon chained to text-3, attached toward Doha; three lines, exact."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "다음 구역은요.",
+      "observed": "다음 구역은요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 right balloon, tail to Yunseo with the notebook."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "바깥 잔교.",
+      "observed": "바깥 잔교.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 top-left balloon, tail to Doha."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "그런데 그 전에, 열한 시에 회관 앞에서 소은 씨랑 명수 씨 만나기로 했잖아요. 구역 나누기로 한 거.",
+      "observed": "그런데 그 전에, 열한 시에 회관 앞에서 소은 씨랑 명수 씨 만나기로 했잖아요. 구역 나누기로 한 거.",
+      "readable": true,
+      "speakerCorrect": false,
+      "flag": true,
+      "evidence": "Panel 3 large balloon, text exact, but it has a left tail to Doha AND a right tail pointing at Yunseo."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "아직 안쪽도 다 못 봤어요.",
+      "observed": "아직 안쪽도 다 못 봤어요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 right balloon, tail to the crouched Yunseo."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "그러니까요.",
+      "observed": "그러니까요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 small balloon, tail to Doha."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "다 보고 나눠주면, 그때는 축제 코앞이에요. 오늘 소은 씨한테 안쪽 남쪽 두 칸만 먼저 맡기고, 명수 씨한테는 계류 고리 수리를. 나머지는 당신이 계속 보면 되잖아요.",
+      "observed": "다 보고 나눠주면, 그때는 축제 코앞이에요. 오늘 소은 씨한테 안쪽 남쪽 두 칸만 먼저 맡기고, 명수 씨한테는 계류 고리 수리를. 나머지는 당신이 계속 보면 되잖아요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 large balloon, four lines, tail to Doha; exact."
+     },
+     {
+      "id": "text-11",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "내가 확인하지 않은 곳에는 사람을 세울 수 없어요.",
+      "observed": "내가 확인하지 않은 곳에는 사람을 세울 수 없어요.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 balloon, tail to Yunseo (close-up); exact."
+     },
+     {
+      "id": "text-12",
+      "kind": "sfx",
+      "speaker": "narrator",
+      "planned": "쾅",
+      "observed": "쾅",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 sfx on the toolbox as the latch closes."
+     }
+    ],
+    "seconds": 296,
+    "hostUsd": 0.644,
+    "imageUsd": 0.068
+   }
+  },
+  {
+   "code": "en",
+   "native": "English",
+   "dir": "ltr",
+   "novel": {
+    "evidence": "acceptance-6a24561-sonnet5/en",
+    "sourceHead": "6a24561",
+    "model": "claude-sonnet-5",
+    "status": "committed",
+    "committed": true,
+    "loreWritePasses": 11,
+    "reviseRequests": 0,
+    "modelRequests": 18,
+    "wallMinutes": 37,
+    "languageAudit": "pass",
+    "qualityRetries": {
+     "01-profile": 0,
+     "03-spine": 2,
+     "04-writer": 0,
+     "05-arc": 0
+    },
+    "workTitle": "The Harbor Before Summer",
+    "premise": "Adult lighthouse keeper Mara Vale wants to reopen the old harbor before the summer lantern festival. She excels at maintaining equipment and turning complicated jobs into workable checklists, but mistakenly believes that accepting help means surrendering responsibility. Adult boat repairer Ellis Reed wants the reopening to establish a permanent repair berth where he can train an apprentice. He opposes Mara’s plan to spend their limited materials restoring the main landing when a smaller quay could welcome boats sooner.",
+    "chapterTitle": "The Stubborn Landing",
+    "chapterChars": 3017,
+    "excerpt": [
+     "The tide had pulled the harbor back far enough that Mara could see the wreck of it plainly: the main landing's outer third gone to splinters, decking curled up like old bark, three pilings leaning at angles no piling should hold. She and Ellis rowed the dinghy along the line of it slowly, oars shipped, letting the current do the work while she pressed her thumb into a split board and felt it give under the pressure.",
+     "\"Six planks here,\" she said. \"Maybe eight. Depends what's under the waterline once we get a proper look.\""
+    ]
+   },
+   "webtoon": {
+    "image": "img/en.webp",
+    "imageBytes": 273708,
+    "width": 1000,
+    "height": 1500,
+    "workflowId": "wt-0956fc28-81b7-4388-99c0-c29da4a16339",
+    "sceneTitle": "Low Tide at the Broken Landing",
+    "sceneNote": "Inspecting the storm-wrecked harbor from the dinghy, Ellis proposes opening the intact quay first, and Mara shuts the idea down, committing to rebuild the main landing first.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": true,
+    "toolStatus": "completed",
+    "textsTotal": 10,
+    "textsVerbatim": 9,
+    "nonVerbatim": [
+     "text-7"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [],
+    "reviewEvidence": "Opened the actual image (1024x1536). Seven panels: wide low-tide wreck with the narration box, Mara pressing a split board from the dinghy beside Ellis; Mara counting planks; Ellis's palm on a piling; Mara and Ellis by the sheltered quay; Mara facing the wrecked landing; Ellis's palm on the next post; Mara's hand chalking an X on a piling. All ten quoted texts are exact English, each once; text-7 now reads 'yet,' with no Markdown asterisks. Tails match the planned speakers; no name tags or extra words.",
+    "letteringSummary": "Latin, all 10 lines verbatim; text-7 lettered \"yet,\" without asterisks and accepted by the tool.",
+    "changeVsBefore": "Gone: literal Markdown asterisks. New: none.",
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "The tide had pulled the harbor back far enough that Mara could see the wreck of it plainly",
+      "observed": "The tide had pulled the harbor back far enough that Mara could see the wreck of it plainly",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 caption box top left; exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Six planks here,",
+      "observed": "Six planks here,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 upper balloon, tail to Mara."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Maybe eight. Depends what's under the waterline once we get a proper look.",
+      "observed": "Maybe eight. Depends what's under the waterline once we get a proper look.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 lower balloon, tail to Mara."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "This one's dead. Not rot — the storm snapped the anchor bolt clean.",
+      "observed": "This one's dead. Not rot — the storm snapped the anchor bolt clean.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 balloon, tail to Ellis."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "That one's fine,",
+      "observed": "That one's fine,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 top balloon chained to text-6 (Mara)."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "We don't need to spend anything there.",
+      "observed": "We don't need to spend anything there.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 balloon, tail to Mara."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "We don't need to spend anything there *yet*,",
+      "observed": "We don't need to spend anything there yet,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 4 right upper balloon, tail to Ellis; 'yet' plain, no asterisks."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "People need somewhere to arrive. They don't need the whole harbor at once.",
+      "observed": "People need somewhere to arrive. They don't need the whole harbor at once.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 right lower balloon, tail to Ellis."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "The main landing goes first. That's not up for a vote, Ellis.",
+      "observed": "The main landing goes first. That's not up for a vote, Ellis.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 balloon, tail to Mara."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "I'm not voting. I'm telling you what the boats will need the day they show up.",
+      "observed": "I'm not voting. I'm telling you what the boats will need the day they show up.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 balloon, tail to Ellis."
+     }
+    ],
+    "seconds": 134,
+    "hostUsd": 0.467,
+    "imageUsd": 0.057
+   },
+   "webtoonBefore": {
+    "image": "img/en-52e5aee.webp",
+    "imageBytes": 120090,
+    "width": 640,
+    "height": 960,
+    "workflowId": "wt-04504041-7cc3-4b38-b51c-a1cef4b7e108",
+    "sceneTitle": "Low Tide at the Broken Landing",
+    "sceneNote": "Inspecting the storm-wrecked harbor from the dinghy, Ellis proposes opening the intact quay first, and Mara shuts the idea down, committing to rebuild the main landing first.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8"
+    ],
+    "panelsPlanned": 6,
+    "panelsSeen": 6,
+    "pass": true,
+    "toolStatus": "completed",
+    "textsTotal": 9,
+    "textsVerbatim": 9,
+    "nonVerbatim": [],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "advisory",
+      "evidence": "text-6 is lettered with literal asterisks (*yet*) because the source prose uses Markdown emphasis; it matches the quoted text but reads as raw markup."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536). Six panels in three rows of two: Mara (grey-streaked dark hair) and Ellis in the dinghy by the splintered landing; Ellis's palm on a piling with a sheared bolt; Mara looking at the stone quay with Ellis from behind; Ellis explaining; Mara facing the wrecked landing while Ellis rests a hand on a post; close-up of Mara lifting chalk from a piling with a fresh chalk X. All nine quoted lines are present in English, each once, verbatim including the literal asterisks around yet that the source carries; no invented words, no name tags. Tails point to the correct speakers; reading order is clear left-to-right, top-to-bottom.",
+    "letteringSummary": "Latin, all 9 lines verbatim, speakers correct. text-6 shows the source Markdown asterisks (*yet*) literally.",
+    "changeVsBefore": null,
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Six planks here,",
+      "observed": "Six planks here,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 top balloon, chained to text-2; tail to Mara."
+     },
+     {
+      "id": "text-2",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Maybe eight. Depends what's under the waterline once we get a proper look.",
+      "observed": "Maybe eight. Depends what's under the waterline once we get a proper look.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 second balloon, tail down to Mara."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "This one's dead. Not rot — the storm snapped the anchor bolt clean.",
+      "observed": "This one's dead. Not rot — the storm snapped the anchor bolt clean.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 balloon, tail to Ellis at the piling."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "That one's fine,",
+      "observed": "That one's fine,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 top balloon chained to text-5, tail to Mara."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "We don't need to spend anything there.",
+      "observed": "We don't need to spend anything there.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 second balloon, tail to Mara."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "We don't need to spend anything there *yet*,",
+      "observed": "We don't need to spend anything there *yet*,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 top balloon, includes the literal asterisks, chained to text-7 with the tail to Ellis."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "People need somewhere to arrive. They don't need the whole harbor at once.",
+      "observed": "People need somewhere to arrive. They don't need the whole harbor at once.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 second balloon, tail to Ellis."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "The main landing goes first. That's not up for a vote, Ellis.",
+      "observed": "The main landing goes first. That's not up for a vote, Ellis.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 left balloon, tail to Mara."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "I'm not voting. I'm telling you what the boats will need the day they show up.",
+      "observed": "I'm not voting. I'm telling you what the boats will need the day they show up.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 right balloon, tail to Ellis."
+     }
+    ],
+    "seconds": 294,
+    "hostUsd": 0.578,
+    "imageUsd": 0.068
+   }
+  },
+  {
+   "code": "ja",
+   "native": "日本語",
+   "dir": "ltr",
+   "novel": {
+    "evidence": "acceptance-9edfae6-sonnet5/ja",
+    "sourceHead": "9edfae6",
+    "model": "claude-sonnet-5",
+    "status": "committed",
+    "committed": true,
+    "loreWritePasses": 17,
+    "reviseRequests": 1,
+    "modelRequests": 31,
+    "wallMinutes": 38,
+    "languageAudit": "pass",
+    "qualityRetries": {
+     "01-profile": 1,
+     "03-spine": 0,
+     "04-writer": 0,
+     "05-arc": 1
+    },
+    "workTitle": "夏灯りの港をひらく",
+    "premise": "海辺の町で暮らす灯台守の千尋は三十八歳。潮位の記録と設備の点検が得意だが、「安全を守るには、自分ですべて確かめなければならない」と思い込んでいる。夏祭りに向けて閉鎖中の旧港を再開したい千尋に対し、四十二歳の船修理職人・律は、使う桟橋を一つに絞る案を出す。律には、港の空き作業場で若者向けの船修理教室を開くという、自分自身の目標がある。",
+    "chapterTitle": "閉じた桟橋",
+    "chapterChars": 1664,
+    "excerpt": [
+     "夜明け前、旧港の水面はまだ墨色をしていた。千尋は手こぎ舟の艪をゆっくり漕ぎ、桟橋の下を覗き込んでは板を一枚ずつ踏んで軋みを確かめていく。潮位ノートを膝に広げ、干潮の時刻を指でなぞりながら、浅瀬の位置を頭の中で描く。舟の進路を声に出さず手だけで示し、少し大きく迂回させた。板を踏むたび、古い木の匂いと潮の匂いが混じって立ちのぼる。",
+     "ひびの浅い板には印をつけず、深いものには赤いチョークで線を引いた。手のひらで木肌を撫で、湿り気の残り具合を確かめてから、また次へ進む。まだ十枚以上残っている。舟が波にゆらぎ、体が少し傾いだ。",
+     "「おはよう」",
+     "律の声がして、彼の舟が横に並んだ。エプロンの上から羽織った上着に、朝露が光っている。",
+     "「もう始めてたのか。手伝うよ」",
+     "千尋は板から顔を上げず、赤チョークを握り直した。",
+     "「大丈夫。自分で確かめないと」",
+     "律は肩をすくめ、それ以上は言わずに自分の舟を少し離した。艪の音だけが港に響いた。",
+     "日が高くなるにつれ、印のついた板は増えていった。千尋は板を踏み、割れ目に指を這わせ、潮位ノートの数字と照らし合わせる。三日前より二センチ沈んでいる箇所を見つけると、迷わず線を引いた。律が「この桟橋は使えるよ」と声をかけた場所でも、千尋はノートを開いて過去の破損記録と照らし合わせてから、ようやく小さくうなずいた。"
+    ]
+   },
+   "webtoon": {
+    "image": "img/ja.webp",
+    "imageBytes": 180524,
+    "width": 1000,
+    "height": 1500,
+    "workflowId": "wt-e19bfe99-9678-47ac-ad06-0b35e35c169c",
+    "sceneTitle": "夜明けの桟橋点検",
+    "sceneNote": "Chihiro inspects the old pier alone at dawn, and when Ritsu offers help she refuses, so he quietly draws his boat away.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8"
+    ],
+    "panelsPlanned": 6,
+    "panelsSeen": 6,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 5,
+    "textsVerbatim": 4,
+    "nonVerbatim": [
+     "text-5"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "text-5 caption: first character drawn as a boat-radical kanji resembling 艫, not 艪 as quoted."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Panel 4: Ritsu has no jacket over his apron (moment 4 mentions dew on the jacket)."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every caption. Six panels in three rows of two: Chihiro in her rowboat under the pier with the notebook; her red chalk line on the cracked board with the first caption; the boat rocking; Ritsu alongside, smiling; Chihiro chalking without turning; the two boats apart with the last caption. Four of five quoted texts are exact Japanese. The last caption's first kanji is again a boat-radical glyph whose right component resembles 盧 (reads as 艫), not 艪. The notebook shows no pseudo-writing (its pages are hidden). Tails go to Ritsu for texts 2-3 and to Chihiro for text-4. Ritsu wears a T-shirt and overalls, no jacket.",
+    "letteringSummary": "Japanese, 4/5 verbatim. text-5 first kanji again drawn as 艫 instead of 艪.",
+    "changeVsBefore": "Recurred: 艪 drawn as 艫. Gone: notebook pseudo-writing (page not shown).",
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "まだ十枚以上残っている。",
+      "observed": "まだ十枚以上残っている。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 caption box; exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "おはよう",
+      "observed": "おはよう",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 upper balloon, tail to Ritsu."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "もう始めてたのか。手伝うよ",
+      "observed": "もう始めてたのか。手伝うよ",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 lower balloon, two lines, tail up to Ritsu."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "大丈夫。自分で確かめないと",
+      "observed": "大丈夫。自分で確かめないと",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 balloon, two lines, tail to Chihiro."
+     },
+     {
+      "id": "text-5",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "艪の音だけが港に響いた。",
+      "observed": "艫の音だけが港に響いた。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 6 caption box; zoomed: first glyph is 舟 + a 盧-like component, not 艪; rest exact."
+     }
+    ],
+    "seconds": 126,
+    "hostUsd": 0.439,
+    "imageUsd": 0.057
+   },
+   "webtoonBefore": {
+    "image": "img/ja-52e5aee.webp",
+    "imageBytes": 91644,
+    "width": 640,
+    "height": 960,
+    "workflowId": "wt-8b6daf7f-81b1-4e74-8e3c-012a9c0a33ff",
+    "sceneTitle": "夜明けの桟橋点検",
+    "sceneNote": "Chihiro inspects the old pier alone at dawn, and when Ritsu offers help she refuses, so he quietly draws his boat away.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8"
+    ],
+    "panelsPlanned": 6,
+    "panelsSeen": 6,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 6,
+    "textsVerbatim": 5,
+    "nonVerbatim": [
+     "text-6"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "text-6 caption: first character is lettered as a boat-radical kanji resembling 艫, not 艪 as quoted, so the caption is not verbatim."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Panel 2: the tide notebook shows ruled pseudo-writing (illegible, no readable words)."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Panel 4: Ritsu has no jacket over his apron/overalls (moment 4 mentions dew on the jacket)."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every caption. Six panels: wide predawn harbor with Chihiro sculling beside the pier; Chihiro tracing the tide notebook; close on her red chalk line across a cracked board; Ritsu's boat alongside while Chihiro keeps working; close on Chihiro answering with chalk in hand; the two boats apart at dawn. Five of six quoted texts are exact Japanese. The last caption's first kanji is wrong: the image shows a boat-radical character whose right component resembles 盧 (reads as 艫 'stern') instead of 艪 'oar'. The tide notebook pages carry illegible ruled scribbles but no readable words. No name tags. Tails for text-3/4 end at Ritsu, text-5 at Chihiro. Ritsu wears a T-shirt and overalls; the plan's jacket over the apron is not drawn.",
+    "letteringSummary": "Japanese, 5/6 verbatim. text-6 first kanji drawn as 艫 (stern) instead of 艪 (oar). Notebook has illegible pseudo-writing.",
+    "changeVsBefore": null,
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "夜明け前、旧港の水面はまだ墨色をしていた。",
+      "observed": "夜明け前、旧港の水面はまだ墨色をしていた。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 caption box top left; zoomed, exact including 墨色."
+     },
+     {
+      "id": "text-2",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "まだ十枚以上残っている。",
+      "observed": "まだ十枚以上残っている。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 caption box top right; exact."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "おはよう",
+      "observed": "おはよう",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 upper balloon, tail to Ritsu."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "もう始めてたのか。手伝うよ",
+      "observed": "もう始めてたのか。手伝うよ",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 lower balloon, two lines, tail to Ritsu."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "大丈夫。自分で確かめないと",
+      "observed": "大丈夫。自分で確かめないと",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 balloon, two lines, tail to Chihiro."
+     },
+     {
+      "id": "text-6",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "艪の音だけが港に響いた。",
+      "observed": "艫の音だけが港に響いた。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 6 caption box; zoomed: first glyph is 舟 + a 盧-like component (艫), not 艪; the rest is exact."
+     }
+    ],
+    "seconds": 294,
+    "hostUsd": 0.573,
+    "imageUsd": 0.068
+   }
+  },
+  {
+   "code": "zh-Hant",
+   "native": "繁體中文",
+   "dir": "ltr",
+   "novel": {
+    "evidence": "acceptance-52e5aee-sonnet5/zh-Hant",
+    "sourceHead": "52e5aee",
+    "model": "claude-sonnet-5",
+    "status": "committed",
+    "committed": true,
+    "loreWritePasses": 16,
+    "reviseRequests": 1,
+    "modelRequests": 30,
+    "wallMinutes": 46,
+    "languageAudit": "pass",
+    "qualityRetries": {
+     "01-profile": 0,
+     "03-spine": 0,
+     "04-writer": 0,
+     "05-arc": 0
+    },
+    "workTitle": "港口亮燈以前",
+    "premise": "三十八歲的燈塔管理員林澄擅長判讀潮汐、安排巡檢，卻誤以為只要計畫足夠周密，就不必聽取別人的意見。夏日祭將近，她想趕在開幕前重開封閉多年的舊港；四十一歲的修船師傅周禾則堅持先修好公共下水坡道。他另有目標：成立修船學徒班，讓島上的年輕人不必離鄉才能學手藝。",
+    "chapterTitle": "被搬走的木料",
+    "chapterChars": 1659,
+    "excerpt": [
+     "天還沒全亮，海面泛著一層灰藍的光。林澄站在坡道邊，潮汐表攤在掌心，鉛筆圈起的退潮時間只剩不到二十分鐘。她把時間又核對一遍，才把表合起，插回腰間。",
+     "她昨夜就吩咐工人，把原本堆在坡道兩側、準備補強斜面的松木，全數移去搭建迎賓碼頭的踏板——退潮窗口只有一次，木料早一步定位，才趕得上祭典。地上只留下周禾上週用墨線量好的印子，一道一道，像一句還沒說完的話。",
+     "腳步聲從坡道口傳來，林澄抬頭，看見周禾走在前面，阿海跟在後面，手裡還提著工具袋。周禾的腳步在空地前停了一下，蹲下身，手掌貼著地上的墨線抹了一下，指尖沾了些木屑——是今早才新鋸下來的。他抬起頭，視線落在林澄身上，沒有說話。",
+     "「木料呢。」周禾說，不是問句，是陳述。",
+     "林澄闔上圖紙夾，走近兩步。「我借去搭迎賓碼頭的踏板，數量我都記了，坡道完工前一定補回去。」她語速平穩，像在報一組數字。",
+     "「坡道現在不能用。」周禾說。",
+     "「今天退潮窗口從六點四十到八點零五，一共八十五分鐘，我算過了，物資船進舊港來回綽綽有餘，不會耽誤你補料。」林澄把潮汐表翻開一頁，指腹沿著刻度滑過，停在一個用鉛筆圈起的時間點。「過了八點零五，水位會回漲到卡住船底，今天就沒有第二次機會。」",
+     "周禾看著她，沒有立刻回話。他站起身，拍掉手上的木屑，眼神落在遠處那艘已經裝滿祭典物資的小船上，箱子堆得比船舷還高一些。",
+     "「你問過誰要用這條坡道嗎？」他終於問。"
+    ]
+   },
+   "webtoon": {
+    "image": "img/zh-Hant.webp",
+    "imageBytes": 209792,
+    "width": 1000,
+    "height": 1500,
+    "workflowId": "wt-3ec09ed5-997c-4249-9f01-dd795cd1b323",
+    "sceneTitle": "坡道上消失的木料",
+    "sceneNote": "At the dawn slipway, Zhou He finds the timber gone, and his quiet question about who she asked leaves Lin Cheng unable to answer with her tide table, so she walks off to the boat with the conflict unresolved.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8",
+     "ch-1-p-9",
+     "ch-1-p-10",
+     "ch-1-p-11",
+     "ch-1-p-12",
+     "ch-1-p-13"
+    ],
+    "panelsPlanned": 8,
+    "panelsSeen": 8,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 13,
+    "textsVerbatim": 11,
+    "nonVerbatim": [
+     "text-10",
+     "text-13"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "text-10: the comma after 之前 is fused into the 前 glyph; text-13: an extra apostrophe-like stroke after 港, so neither line is verbatim."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Several balloons show a small stray dot next to the full stop (texts 6, 7, 8, 11, 12, 13); the characters themselves are correct."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Tide table pages show illegible scribbles and a pencil circle but no readable digits or words."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every balloon and the tide table. Eight panels: Lin Cheng reading her tide table with the three narration boxes; Zhou He crouched on the ink lines with Ah-hai behind; Zhou asking and Lin answering; Zhou and Lin over the tide table; Zhou standing, facing the crate-laden boat; Zhou's question and Lin's answer; Zhou very quiet facing Lin; Lin walking to the boat with Ah-hai glancing back. All 13 texts are Traditional Chinese with the right characters and the right speakers. The tide table now has only a blank ruled grid, illegible scribbles and a pencil circle, with no digits. Punctuation artifacts: in text-10 the full-width comma after 之前 is fused into 前, and in text-13 an extra apostrophe-like stroke follows the comma after 港. Several full stops (texts 6, 7, 8, 11, 12, 13) carry a small stray dot.",
+    "letteringSummary": "Traditional Chinese, correct characters and speakers; no digits on the tide table. Punctuation glitches: comma fused into 前 (text-10), stray stroke after the comma after 港 (text-13), stray dots by several full stops.",
+    "changeVsBefore": "Gone: invented tide-table digits and circled 6:40. New: punctuation glitches in text-10 and text-13.",
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "天還沒全亮，海面泛著一層灰藍的光。",
+      "observed": "天還沒全亮，海面泛著一層灰藍的光。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 first caption box; exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "鉛筆圈起的退潮時間只剩不到二十分鐘",
+      "observed": "鉛筆圈起的退潮時間只剩不到二十分鐘",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 second caption box; exact."
+     },
+     {
+      "id": "text-3",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "地上只留下周禾上週用墨線量好的印子，一道一道，像一句還沒說完的話。",
+      "observed": "地上只留下周禾上週用墨線量好的印子，一道一道，像一句還沒說完的話。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 third caption box; exact."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "木料呢。",
+      "observed": "木料呢。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 small balloon, tail to the crouched Zhou He."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "我借去搭迎賓碼頭的踏板，數量我都記了，坡道完工前一定補回去。",
+      "observed": "我借去搭迎賓碼頭的踏板，數量我都記了，坡道完工前一定補回去。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 balloon, tail to Lin Cheng; exact."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "坡道現在不能用。",
+      "observed": "坡道現在不能用。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 left balloon, tail to Zhou He; stray dot beside the full stop."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "今天退潮窗口從六點四十到八點零五，一共八十五分鐘，我算過了，物資船進舊港來回綽綽有餘，不會耽誤你補料。",
+      "observed": "今天退潮窗口從六點四十到八點零五，一共八十五分鐘，我算過了，物資船進舊港來回綽綽有餘，不會耽誤你補料。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 middle balloon, tail to Lin Cheng; stray dot beside the full stop."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "過了八點零五，水位會回漲到卡住船底，今天就沒有第二次機會。",
+      "observed": "過了八點零五，水位會回漲到卡住船底，今天就沒有第二次機會。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 right balloon, tail to Lin Cheng; stray dot beside the full stop."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "你問過誰要用這條坡道嗎？",
+      "observed": "你問過誰要用這條坡道嗎？",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 upper balloon, tail to Zhou He."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "工期表上寫得清楚，坡道完工日在祭典之前，我沒有耽誤你。",
+      "observed": "工期表上寫得清楚，坡道完工日在祭典之前我沒有耽誤你。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 6 lower balloon, tail to Lin Cheng; the comma after 之前 is fused into 前."
+     },
+     {
+      "id": "text-11",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "我沒問你耽不耽誤我。",
+      "observed": "我沒問你耽不耽誤我。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 upper balloon (Zhou He); stray dot beside the full stop."
+     },
+     {
+      "id": "text-12",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "我問你,問過誰了。",
+      "observed": "我問你,問過誰了。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 lower balloon (Zhou He); half-width comma as in source; stray mark beside the full stop."
+     },
+     {
+      "id": "text-13",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "時間在走,先送物資進港,回頭再說坡道的事。",
+      "observed": "時間在走,先送物資進港,'回頭再說坡道的事。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 8 balloon, tail to Lin Cheng; extra apostrophe-like stroke after the comma following 港."
+     }
+    ],
+    "seconds": 173,
+    "hostUsd": 0.582,
+    "imageUsd": 0.058
+   },
+   "webtoonBefore": {
+    "image": "img/zh-Hant-52e5aee.webp",
+    "imageBytes": 94858,
+    "width": 640,
+    "height": 960,
+    "workflowId": "wt-568da946-a19c-4356-b01b-3d04d1ec326c",
+    "sceneTitle": "坡道上消失的木料",
+    "sceneNote": "At the dawn slipway, Zhou He finds the timber gone, and his quiet question about who she asked leaves Lin Cheng unable to answer with her tide table, so she walks off to the boat with the conflict unresolved.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8",
+     "ch-1-p-9",
+     "ch-1-p-10",
+     "ch-1-p-11",
+     "ch-1-p-12",
+     "ch-1-p-13"
+    ],
+    "panelsPlanned": 8,
+    "panelsSeen": 8,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 12,
+    "textsVerbatim": 12,
+    "nonVerbatim": [],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "Panels 1 and 4: the tide table shows invented lettering, a red-circled 6:40 and rows of digit-like entries; only quoted texts may be lettered and props should stay abstract."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every balloon. Eight panels: tide table in Lin Cheng's hand over the ink-ruled bare slipway with two narration boxes; Zhou He crouching on the ink lines, looking up at Lin Cheng, A-hai behind with the tool bag; Zhou He crouched and Lin Cheng answering; Lin Cheng pointing at the circled time; Zhou He standing with the crate-laden boat behind; Lin Cheng answering; Zhou He very quiet over her shoulder; Lin Cheng and A-hai walking toward the supply boat. All 12 quoted texts are present in Traditional Chinese, each once and verbatim, including the half-width commas the source uses in text-11 and text-12. Tails match the planned speakers. Invented lettering: the tide table pages (panels 1 and 4) are filled with small digit-like entries and a red-circled 6:40, which is not a quoted text.",
+    "letteringSummary": "Traditional Chinese, all 12 verbatim, speakers correct. Invented lettering: tide table with digits and a circled 6:40 (panels 1, 4).",
+    "changeVsBefore": null,
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "鉛筆圈起的退潮時間只剩不到二十分鐘",
+      "observed": "鉛筆圈起的退潮時間只剩不到二十分鐘",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 caption box top left; zoomed, exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "地上只留下周禾上週用墨線量好的印子，一道一道，像一句還沒說完的話。",
+      "observed": "地上只留下周禾上週用墨線量好的印子，一道一道，像一句還沒說完的話。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 caption box bottom right, three lines; exact."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "木料呢。",
+      "observed": "木料呢。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 top-left balloon, tail to the crouching Zhou He."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "我借去搭迎賓碼頭的踏板，數量我都記了，坡道完工前一定補回去。",
+      "observed": "我借去搭迎賓碼頭的踏板，數量我都記了，坡道完工前一定補回去。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 middle balloon, tail right to Lin Cheng; exact."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "坡道現在不能用。",
+      "observed": "坡道現在不能用。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 lower balloon, tail up to Zhou He."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "今天退潮窗口從六點四十到八點零五，一共八十五分鐘，我算過了，物資船進舊港來回綽綽有餘，不會耽誤你補料。",
+      "observed": "今天退潮窗口從六點四十到八點零五，一共八十五分鐘，我算過了，物資船進舊港來回綽綽有餘，不會耽誤你補料。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 top balloon, four lines, tail to Lin Cheng; exact."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "過了八點零五，水位會回漲到卡住船底，今天就沒有第二次機會。",
+      "observed": "過了八點零五，水位會回漲到卡住船底，今天就沒有第二次機會。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 lower-right balloon, tail toward Lin Cheng's pointing hand; exact."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "你問過誰要用這條坡道嗎？",
+      "observed": "你問過誰要用這條坡道嗎？",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 balloon, tail to Zhou He; full-width question mark."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "工期表上寫得清楚，坡道完工日在祭典之前，我沒有耽誤你。",
+      "observed": "工期表上寫得清楚，坡道完工日在祭典之前，我沒有耽誤你。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 balloon, tail to Lin Cheng; exact."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "我沒問你耽不耽誤我。",
+      "observed": "我沒問你耽不耽誤我。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 upper balloon, tail up to Zhou He."
+     },
+     {
+      "id": "text-11",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "我問你,問過誰了。",
+      "observed": "我問你,問過誰了。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 lower balloon chained to text-10 (Zhou He); half-width comma as in source."
+     },
+     {
+      "id": "text-12",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "時間在走,先送物資進港,回頭再說坡道的事。",
+      "observed": "時間在走,先送物資進港,回頭再說坡道的事。",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 8 balloon, tail to Lin Cheng walking; half-width comma as in source."
+     }
+    ],
+    "seconds": 319,
+    "hostUsd": 0.667,
+    "imageUsd": 0.069
+   }
+  },
+  {
+   "code": "es",
+   "native": "Español",
+   "dir": "ltr",
+   "novel": {
+    "evidence": "acceptance-9b507c4-sonnet5/es",
+    "sourceHead": "9b507c4",
+    "model": "claude-sonnet-5",
+    "status": "committed",
+    "committed": true,
+    "loreWritePasses": 11,
+    "reviseRequests": 0,
+    "modelRequests": 18,
+    "wallMinutes": 33,
+    "languageAudit": "pass",
+    "qualityRetries": {
+     "01-profile": 0,
+     "03-spine": 1,
+     "04-writer": 0,
+     "05-arc": 1
+    },
+    "workTitle": "El puerto de las pequeñas mareas",
+    "premise": "Una aventura amable en tres capítulos cortos, con acciones concretas y diálogos ágiles, ambientada en una localidad costera actual.",
+    "chapterTitle": "Una cuerda entre dos planes",
+    "chapterChars": 2984,
+    "excerpt": [
+     "La rampa norte olía a pintura fresca y a mar bajo la marea baja. Inés caminaba con la libreta cerrada contra el pecho, contando pasos, mientras a su espalda la cola de vecinos crecía junto a la valla: querían saber dónde amarrarían sus barcas para la fiesta del verano.",
+     "—Aquí, la lancha de los Soler. Aquí, las de recreo —dijo, señalando el suelo con la punta de la bota, sin mirar atrás.",
+     "Bajó el peso sobre el tablón que cerraba el tramo junto a la baliza, la rampa por donde las barcas bajan hasta el agua. El sonido volvió hueco, como si pisara un tambor mojado. …"
+    ]
+   },
+   "webtoon": {
+    "image": "img/es.webp",
+    "imageBytes": 222218,
+    "width": 1000,
+    "height": 1500,
+    "workflowId": "wt-1a03a044-198d-4e54-8b60-1039fc094895",
+    "sceneTitle": "El tablón hueco de la rampa norte",
+    "sceneNote": "Ines finds the ramp plank rotten, and Clara warns that the small pontoon's mooring line could snap. Ines closes the ramp section, leaves the pontoon out of her notebook, and publicly promises room for every boat, which puts tension between her and Clara.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8",
+     "ch-1-p-9",
+     "ch-1-p-10",
+     "ch-1-p-11",
+     "ch-1-p-12"
+    ],
+    "panelsPlanned": 8,
+    "panelsSeen": 8,
+    "pass": true,
+    "toolStatus": "completed",
+    "textsTotal": 9,
+    "textsVerbatim": 9,
+    "nonVerbatim": [],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed the balloons. Eight panels in four rows of two: Ines pointing along the painted ramp with the neighbours at the fence and the narration box; her boot on the dipping plank by the green-and-white beacon; Clara crouched with the screwdriver in the plank and Ines above; Clara explaining the pontoon line to Ines; Ines facing the queue; the notebook with an X and the handwritten note; Ines calling to the crowd; Clara walking away past the relieved neighbours. All nine quoted texts are exact Spanish, including accents, the period after Soler and the inverted exclamation mark. The physical note is handwritten on the notebook page. Tails match the planned speakers; no name tags or extra words.",
+    "letteringSummary": "Latin, all 9 verbatim including the period after Soler; physical note on the notebook page.",
+    "changeVsBefore": "Gone: comma for the period after Soler. New: none.",
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "La rampa norte olía a pintura fresca y a mar bajo la marea baja.",
+      "observed": "La rampa norte olía a pintura fresca y a mar bajo la marea baja.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 caption box bottom left; exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Aquí, la lancha de los Soler. Aquí, las de recreo",
+      "observed": "Aquí, la lancha de los Soler. Aquí, las de recreo",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 balloon, tail to Ines; zoomed: period after Soler."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "La pintura no sostiene a nadie",
+      "observed": "La pintura no sostiene a nadie",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 left balloon, tail to Clara."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Ya lo veo.",
+      "observed": "Ya lo veo.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 right balloon, tail to Ines."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "Esto no es solo aquí. La amarra del pontón pequeño está deshilachada de tanto roce con el pilote. Si la fiesta trae más peso del habitual, se parte.",
+      "observed": "Esto no es solo aquí. La amarra del pontón pequeño está deshilachada de tanto roce con el pilote. Si la fiesta trae más peso del habitual, se parte.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 balloon, tail to Clara; exact."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Esa amarra puede esperar. Cierro esto primero.",
+      "observed": "Esa amarra puede esperar. Cierro esto primero.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 balloon, tail to Ines."
+     },
+     {
+      "id": "text-7",
+      "kind": "physical",
+      "speaker": "c1",
+      "planned": "tres días, prioridad",
+      "observed": "tres días, prioridad",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 handwritten on the notebook page next to the X; no balloon."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "¡Habrá sitio para todas las barcas de la fiesta!",
+      "observed": "¡Habrá sitio para todas las barcas de la fiesta!",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 left balloon, tail to Ines."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Solo cerramos este tramo mientras lo arreglamos.",
+      "observed": "Solo cerramos este tramo mientras lo arreglamos.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 right balloon, tail to Ines."
+     }
+    ],
+    "seconds": 146,
+    "hostUsd": 0.528,
+    "imageUsd": 0.058
+   },
+   "webtoonBefore": {
+    "image": "img/es-52e5aee.webp",
+    "imageBytes": 113622,
+    "width": 640,
+    "height": 960,
+    "workflowId": "wt-2cd3f7c7-3cab-4e66-9c6d-350087b75447",
+    "sceneTitle": "El tablón hueco de la rampa norte",
+    "sceneNote": "Ines finds the ramp plank rotten, and Clara warns that the small pontoon's mooring line could snap. Ines closes the ramp section, leaves the pontoon out of her notebook, and publicly promises room for every boat, which puts tension between her and Clara.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8",
+     "ch-1-p-9",
+     "ch-1-p-10",
+     "ch-1-p-11",
+     "ch-1-p-12"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 9,
+    "textsVerbatim": 8,
+    "nonVerbatim": [
+     "text-1"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "text-1 balloon reads 'Aquí, la lancha de los Soler, Aquí, las de recreo' with a comma where the quoted text has a period after Soler, so it is not verbatim."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed the balloons. Seven full-width panels: Ines (grey hair, vest, notebook) pointing along the painted north ramp with the neighbours at the fence behind; her boot pressing the plank by the green-and-white beacon with the narration box; Clara crouched driving a screwdriver into the plank below Ines's boots; Ines and Clara exchange with the fence queue behind; Ines writing the X and note in her notebook; Ines calling to the relieved queue; Clara walking away down the pontoon with the screwdriver. Eight of nine quoted texts are exact Spanish including accents and inverted exclamation mark; the physical note is handwritten on the notebook page. text-1 changes one character: the period after Soler is lettered as a comma. Tails match the planned speakers; no name tags or extra words.",
+    "letteringSummary": "Latin, 8/9 verbatim. text-1 has a comma for the period after Soler. The physical note is written on the notebook as planned.",
+    "changeVsBefore": null,
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Aquí, la lancha de los Soler. Aquí, las de recreo",
+      "observed": "Aquí, la lancha de los Soler, Aquí, las de recreo",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 1 balloon, tail to Ines; zoomed: comma instead of the period after Soler."
+     },
+     {
+      "id": "text-2",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "El sonido volvió hueco, como si pisara un tambor mojado.",
+      "observed": "El sonido volvió hueco, como si pisara un tambor mojado.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 caption box top right; exact."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "La pintura no sostiene a nadie",
+      "observed": "La pintura no sostiene a nadie",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 balloon, tail to the crouching Clara."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Ya lo veo.",
+      "observed": "Ya lo veo.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 small balloon, tail to Ines."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "Esto no es solo aquí. La amarra del pontón pequeño está deshilachada de tanto roce con el pilote. Si la fiesta trae más peso del habitual, se parte.",
+      "observed": "Esto no es solo aquí. La amarra del pontón pequeño está deshilachada de tanto roce con el pilote. Si la fiesta trae más peso del habitual, se parte.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 large balloon, tail to Clara; exact including pontón and deshilachada."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Esa amarra puede esperar. Cierro esto primero.",
+      "observed": "Esa amarra puede esperar. Cierro esto primero.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 lower balloon, tail to Ines."
+     },
+     {
+      "id": "text-7",
+      "kind": "physical",
+      "speaker": "c1",
+      "planned": "tres días, prioridad",
+      "observed": "tres días, prioridad",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 handwritten on the notebook page beside the X, written by Ines's hand."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "¡Habrá sitio para todas las barcas de la fiesta!",
+      "observed": "¡Habrá sitio para todas las barcas de la fiesta!",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 upper balloon, tail to Ines; inverted exclamation mark present."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Solo cerramos este tramo mientras lo arreglamos.",
+      "observed": "Solo cerramos este tramo mientras lo arreglamos.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 lower balloon, tail to Ines."
+     }
+    ],
+    "seconds": 316,
+    "hostUsd": 0.657,
+    "imageUsd": 0.069
+   }
+  },
+  {
+   "code": "fr",
+   "native": "Français",
+   "dir": "ltr",
+   "novel": {
+    "evidence": "acceptance-9edfae6-sonnet5/fr",
+    "sourceHead": "9edfae6",
+    "model": "claude-sonnet-5",
+    "status": "committed",
+    "committed": true,
+    "loreWritePasses": 11,
+    "reviseRequests": 0,
+    "modelRequests": 18,
+    "wallMinutes": 28,
+    "languageAudit": "pass",
+    "qualityRetries": {
+     "01-profile": 1,
+     "03-spine": 0,
+     "04-writer": 0,
+     "05-arc": 0
+    },
+    "workTitle": "Le port des jours clairs",
+    "premise": "À trente-neuf ans, Élise veille sur le phare de Belle-Anse. Méthodique et habile pour entretenir les mécanismes, elle sait repérer une poulie usée ou organiser un chantier avec peu de moyens. Mais elle croit qu’être responsable signifie décider seule : demander de l’aide lui semble un aveu d’incompétence. Pour rouvrir le vieux port avant la fête d’été, elle veut imposer un accès unique et déplacer tous les bateaux vers le quai nord.",
+    "chapterTitle": "Le passage barré",
+    "chapterChars": 2288,
+    "excerpt": [
+     "Élise tira sur la chaîne jusqu'à ce que le maillon claque contre l'anneau scellé dans la pierre du quai nord. Le métal froid mordait ses paumes. Un seul passage, celui qui longeait la capitainerie, pour tous les visiteurs de la fête. Elle recula d'un pas, satisfaite.",
+     "Deux riverains attendaient. — Vous marquerez le sentier avec des fanions, dit-elle à l'un. — Prévenez les commerçants du quai sud qu'ils passeront par là aussi. Personne ne discuta. Personne ne fut consulté non plus, mais elle n'y songea pas.",
+     "Le camion de Théo s'arrêta net devant la chaîne. …"
+    ]
+   },
+   "webtoon": {
+    "image": "img/fr.webp",
+    "imageBytes": 232336,
+    "width": 1000,
+    "height": 1500,
+    "workflowId": "wt-f48bff88-6155-4aab-bee7-d815b0359113",
+    "sceneTitle": "La chaîne du quai nord",
+    "sceneNote": "Elise's chain closes the north quay to everyone but festival visitors, stranding Theo's delivery truck and pulling Malik into open confrontation once the stakes for the apprentice's boat come out.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": true,
+    "toolStatus": "completed",
+    "textsTotal": 13,
+    "textsVerbatim": 13,
+    "nonVerbatim": [],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "advisory",
+      "evidence": "Panel 4: the text-7 balloon has no tail; it is stacked under Elise's text-6 balloon, so it still reads as Elise."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed the balloons. Seven panels: Elise hauling the chain to the iron ring with the narration box; Elise pointing out the passage to two residents with the second narration box; Theo in the cab checking his watch; Elise at the chain facing the truck with Theo in the cab; Malik in the workshop doorway with resin-coated hands; Elise gripping the chain; Malik speaking across the chain with the truck behind. All 13 quoted texts are exact French with accents; text-5 now reads 'de Malik'. Tails match the planned speakers. text-7 has no tail but sits directly under Elise's text-6 balloon and reads as her continuation. No name tags or extra words.",
+    "letteringSummary": "Latin, all 13 verbatim (\"de Malik\"). text-7 balloon has no tail but stacks under Elise's.",
+    "changeVsBefore": "Gone: \"dee Malik\" and the stray extra tail. New: one tail-less balloon (advisory).",
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "Un seul passage, celui qui longeait la capitainerie, pour tous les visiteurs de la fête.",
+      "observed": "Un seul passage, celui qui longeait la capitainerie, pour tous les visiteurs de la fête.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 caption box; exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Vous marquerez le sentier avec des fanions,",
+      "observed": "Vous marquerez le sentier avec des fanions,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 left balloon, tail to Elise."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Prévenez les commerçants du quai sud qu'ils passeront par là aussi.",
+      "observed": "Prévenez les commerçants du quai sud qu'ils passeront par là aussi.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 right balloon, tail to Elise."
+     },
+     {
+      "id": "text-4",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "Personne ne discuta. Personne ne fut consulté non plus",
+      "observed": "Personne ne discuta. Personne ne fut consulté non plus",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 caption box bottom right; exact."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c3",
+      "planned": "Je dois livrer les pièces de Malik. Trois arrêts après celui-ci, je ne peux pas attendre.",
+      "observed": "Je dois livrer les pièces de Malik. Trois arrêts après celui-ci, je ne peux pas attendre.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 balloon, tail to Theo; zoomed: 'de Malik'."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Le sentier des visiteurs suffit,",
+      "observed": "Le sentier des visiteurs suffit,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 upper balloon, tail to Elise."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Vous ferez le tour.",
+      "observed": "Vous ferez le tour.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 middle balloon without a tail, stacked under Elise's balloon."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c3",
+      "planned": "Un camion, sur ce sentier ?",
+      "observed": "Un camion, sur ce sentier ?",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 right balloon, tail to Theo in the cab."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "Tu as prévu le trajet des visiteurs,",
+      "observed": "Tu as prévu le trajet des visiteurs,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 upper balloon, tail to Malik."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "mais pas celui des gens qui travaillent ici.",
+      "observed": "mais pas celui des gens qui travaillent ici.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 lower balloon, tail toward Malik."
+     },
+     {
+      "id": "text-11",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Le détour suffit,",
+      "observed": "Le détour suffit,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 upper balloon, tail to Elise."
+     },
+     {
+      "id": "text-12",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Il n'y a pas besoin d'autre chose.",
+      "observed": "Il n'y a pas besoin d'autre chose.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 lower balloon, tail to Elise."
+     },
+     {
+      "id": "text-13",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "Ces pièces, c'est la coque de l'apprentie de Solène. Sans elles, pas de barque à l'eau pour la fête.",
+      "observed": "Ces pièces, c'est la coque de l'apprentie de Solène. Sans elles, pas de barque à l'eau pour la fête.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 balloon, tail to Malik; exact."
+     }
+    ],
+    "seconds": 135,
+    "hostUsd": 0.479,
+    "imageUsd": 0.057
+   },
+   "webtoonBefore": {
+    "image": "img/fr-52e5aee.webp",
+    "imageBytes": 111840,
+    "width": 640,
+    "height": 960,
+    "workflowId": "wt-07c449eb-1302-46fb-9627-0e9999e5c5fe",
+    "sceneTitle": "La chaîne du quai nord",
+    "sceneNote": "Elise's chain closes the north quay to everyone but festival visitors, stranding Theo's delivery truck and pulling Malik into open confrontation once the stakes for the apprentice's boat come out.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 13,
+    "textsVerbatim": 12,
+    "nonVerbatim": [
+     "text-5"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "text-5 is lettered 'Je dois livrer les pièces dee Malik...' with an extra e, so it is not verbatim."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Panel 4: the text-6 balloon has a small extra tail pointing right toward Theo's cab; its chained balloon text-7 points to Elise, so attribution still reads as Elise."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed the balloons. Seven panels: Elise behind the chain pulled to an iron ring by the harbor office with the narration box; Elise pointing along the passage to two residents with the second narration box; Theo in the truck cab checking his watch; Elise with a hand on the chain at Theo's window; Malik in the workshop doorway with resin-covered hands; Elise gripping the chain; Malik speaking with Theo's truck idling behind. Twelve of thirteen quoted texts are exact French with accents. text-5 has a doubled letter: 'dee Malik' for 'de Malik'. Tails match the planned speakers; the text-6 balloon also carries a short stray tail pointing right toward the cab, but it is chained to text-7 whose tail goes to Elise. No name tags or extra words.",
+    "letteringSummary": "Latin, 12/13 verbatim. text-5 reads \"dee Malik\". Stray extra tail on text-6 (still reads as Elise).",
+    "changeVsBefore": null,
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "Un seul passage, celui qui longeait la capitainerie, pour tous les visiteurs de la fête.",
+      "observed": "Un seul passage, celui qui longeait la capitainerie, pour tous les visiteurs de la fête.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 caption box top left; exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Vous marquerez le sentier avec des fanions,",
+      "observed": "Vous marquerez le sentier avec des fanions,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 left balloon, tail to Elise."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Prévenez les commerçants du quai sud qu'ils passeront par là aussi.",
+      "observed": "Prévenez les commerçants du quai sud qu'ils passeront par là aussi.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 chained balloon from Elise's; exact."
+     },
+     {
+      "id": "text-4",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "Personne ne discuta. Personne ne fut consulté non plus, mais elle n'y songea pas.",
+      "observed": "Personne ne discuta. Personne ne fut consulté non plus, mais elle n'y songea pas.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 caption box bottom left; exact."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c3",
+      "planned": "Je dois livrer les pièces de Malik. Trois arrêts après celui-ci, je ne peux pas attendre.",
+      "observed": "Je dois livrer les pièces dee Malik. Trois arrêts après celui-ci, je ne peux pas attendre.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 3 balloon, tail to Theo; zoomed: 'dee' instead of 'de'."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Le sentier des visiteurs suffit,",
+      "observed": "Le sentier des visiteurs suffit,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 left balloon chained to text-7 (Elise); a short extra tail points right."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Vous ferez le tour.",
+      "observed": "Vous ferez le tour.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 balloon, tail down to Elise."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c3",
+      "planned": "Un camion, sur ce sentier ?",
+      "observed": "Un camion, sur ce sentier ?",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 right balloon, tail to Theo in the cab; space before the question mark as quoted."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "Tu as prévu le trajet des visiteurs,",
+      "observed": "Tu as prévu le trajet des visiteurs,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 upper balloon, chained to text-10 whose tail goes to Malik."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "mais pas celui des gens qui travaillent ici.",
+      "observed": "mais pas celui des gens qui travaillent ici.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 second balloon, tail to Malik."
+     },
+     {
+      "id": "text-11",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Le détour suffit,",
+      "observed": "Le détour suffit,",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 upper balloon, chained to text-12 (Elise)."
+     },
+     {
+      "id": "text-12",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "Il n'y a pas besoin d'autre chose.",
+      "observed": "Il n'y a pas besoin d'autre chose.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 lower balloon, tail to Elise."
+     },
+     {
+      "id": "text-13",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "Ces pièces, c'est la coque de l'apprentie de Solène. Sans elles, pas de barque à l'eau pour la fête.",
+      "observed": "Ces pièces, c'est la coque de l'apprentie de Solène. Sans elles, pas de barque à l'eau pour la fête.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 balloon, tail to Malik; exact."
+     }
+    ],
+    "seconds": 294,
+    "hostUsd": 0.702,
+    "imageUsd": 0.068
+   }
+  },
+  {
+   "code": "ar",
+   "native": "العربية",
+   "dir": "rtl",
+   "novel": {
+    "evidence": "acceptance-52e5aee-sonnet5/ar",
+    "sourceHead": "52e5aee",
+    "model": "claude-sonnet-5",
+    "status": "committed",
+    "committed": true,
+    "loreWritePasses": 11,
+    "reviseRequests": 0,
+    "modelRequests": 18,
+    "wallMinutes": 35,
+    "languageAudit": "pass",
+    "qualityRetries": {
+     "01-profile": 0,
+     "03-spine": 1,
+     "04-writer": 0,
+     "05-arc": 0
+    },
+    "workTitle": "المرفأ الذي اتسع للجميع",
+    "premise": "في بلدة ساحلية هادئة، يستعد السكان لمهرجان الصيف، لكن المرفأ القديم مغلق بسبب ألواح رصيف متآكلة ومدخله المزدحم بالعوامات التالفة. تتولى سلمى، حارسة المنارة البالغة من العمر اثنين وأربعين عامًا، تنسيق إعادة فتحه مع نادر، مصلح القوارب البالغ من العمر ستة وثلاثين عامًا. تجيد سلمى فحص المعدات وترتيب الأعمال بحسب خطورتها، لكنها تعتقد أن طلب المساعدة يفقدها ثقة الناس. أما نادر فيريد إنشاء ورشة لتعليم إصلاح القوارب، ويحتاج إلى إقناع جمعية المرفأ بمنحه المستودع المهجور قبل أن يؤجره المجلس للتخزين.",
+    "chapterTitle": "ألواح تحت الأقدام",
+    "chapterChars": 2170,
+    "excerpt": [
+     "انحنت سلمى فوق اللوح الثالث عشر من الرصيف وغرزت طرف الخطاف المعدني في حافته الرطبة. غاص المعدن بسهولة مريبة، وسال منه غبار رمادي ناعم بدل رقاق صلب. رفعت رأسها، دقّت اللوح بكعب حذائها المطاطي مرتين، وأصغت للصدى الخافت. أخرجت قطعة الطباشير ورسمت دائرة حول الدعامة، ثم خطت للأمام وكررت الفحص على المجاورة. غاص الخطاف فيها أيضًا دون مقاومة تقريبًا.",
+     "\"اثنتان.\" قالتها لنفسها أكثر مما قالتها لنادر، الواقف عند طرف الرصيف قرب عربته المحمّلة بالأخشاب.",
+     "رفع حاجبيه ونظر إلى الدائرتين الطباشيريتين المتباعدتين بضعة أمتار فقط. \"الجزء الشمالي سليم إذن. …"
+    ]
+   },
+   "webtoon": {
+    "image": "img/ar.webp",
+    "imageBytes": 199812,
+    "width": 1000,
+    "height": 1500,
+    "workflowId": "wt-3872b7c7-045c-4761-8f2f-ddb567c6aad0",
+    "sceneTitle": "الدعامتان المتآكلتان",
+    "sceneNote": "Salma finds two rotten supports, rejects Nader's plan to open the sound half, and at dusk secretly moves the barriers to seal the whole pier without telling him.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 8,
+    "textsVerbatim": 4,
+    "nonVerbatim": [
+     "text-2",
+     "text-3",
+     "text-5",
+     "text-6"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "right-to-left inside balloons; balloon/panel placement left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "Bottom row: moment 6 (Nader at the cart) is on the left and moment 7 (Salma at dusk) is on the right, reversing the order for right-to-left page reading; the top row is correctly right-to-left."
+     },
+     {
+      "severity": "blocking",
+      "evidence": "Arabic diacritic errors: text-2 loses the shadda in وننظّم; text-5 has يفرَق for يفرّق and وأخر for وآخر; text-6 has an extra fatha on the qaf (مغلقَاً)."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every balloon. Seven panels: top row (right) Salma's hook in the crumbling board with gray dust, (left) Salma at the second chalk circle saying her count with Nader by his cart; Nader's proposal; Salma refusing (top) and Nader's rope offer (right, lower); Salma arms folded with her two lines; bottom row (left) Nader rearranging the cart, (right) Salma at dusk setting the second barrier with both captions. All text is Arabic script, set right-to-left in each balloon; the dialogue is drawn without quote marks, as the plan now asks. The top row follows right-to-left panel order, but the bottom row does not: the dusk panel (moment 7) is on the right and Nader's shrug (moment 6) on the left, so a right-to-left reader sees the dusk before the shrug. In panel 4, Salma's line sits higher than Nader's reply, so it is read first. Lettering errors: text-2 drops the shadda on وننظّم; text-5 draws يفرَق (fatha, no shadda) and وأخر (hamza instead of madda); text-6 adds a fatha on the qaf before the tanween-on-alif (مغلقَاً). text-3's رصيفاً is the tanween-on-alif spelling, which the tool now accepts.",
+    "letteringSummary": "Arabic, RTL inside balloons, no quote marks; tanween-on-alif accepted. Top row right-to-left, bottom row still left-to-right. Diacritics: shadda lost (text-2), يفرَق and وأخر (text-5), extra fatha (text-6).",
+    "changeVsBefore": "Gone: quote-mark mismatch; tanween variant now equal; panel-4 exchange now reads in order. Partly recurred: LTR placement in the bottom row. Recurred: diacritic errors (different words).",
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "اثنتان.",
+      "observed": "اثنتان.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Top-left panel balloon, tail to Salma."
+     },
+     {
+      "id": "text-2",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "الجزء الشمالي سليم إذن. لماذا لا نفتحه الآن وننظّم دخول القوارب الصغيرة منه، بينما تُصلحين هاتين؟",
+      "observed": "الجزء الشمالي سليم إذن. لماذا لا نفتحه الآن وننظم دخول القوارب الصغيرة منه، بينما تُصلحين هاتين؟",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 3 balloon, tail to Nader; shadda missing on وننظم."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "لن أفتح رصيفًا نصفه مكسور.",
+      "observed": "لن أفتح رصيفاً نصفه مكسور.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 4 upper balloon, tail to Salma; tanween written on the alif."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "لن يمر أحد على النصف المكسور. سأضع الحبل بنفسي.",
+      "observed": "لن يمر أحد على النصف المكسور. سأضع الحبل بنفسي.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 4 lower-right balloon, tail to Nader."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "إن مرّ طفل يركض خلف كرة، لن يفرّق بين نصف وآخر.",
+      "observed": "إن مرّ طفل يركض خلف كرة، لن يفرَق بين نصف وأخر.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 5 upper balloon, tail to Salma; fatha instead of shadda on the ra, hamza-alif instead of madda-alif."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "سيبقى مغلقًا حتى أنتهي.",
+      "observed": "سيبقى مغلقَاً حتى أنتهي.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 5 lower balloon, tail to Salma; extra fatha on the qaf."
+     },
+     {
+      "id": "text-7",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "في الغسق",
+      "observed": "في الغسق",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Dusk panel caption box top right."
+     },
+     {
+      "id": "text-8",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "لم تترك ورقة، ولم تتصل به.",
+      "observed": "لم تترك ورقة، ولم تتصل به.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Dusk panel caption box bottom right; exact."
+     }
+    ],
+    "seconds": 168,
+    "hostUsd": 0.571,
+    "imageUsd": 0.058
+   },
+   "webtoonBefore": {
+    "image": "img/ar-52e5aee.webp",
+    "imageBytes": 101714,
+    "width": 640,
+    "height": 960,
+    "workflowId": "wt-3a092d82-77ba-468d-9ea0-6b82cd9db3e6",
+    "sceneTitle": "الدعامتان المتآكلتان",
+    "sceneNote": "Salma finds two rotten supports, rejects Nader's plan to open the sound half, and at dusk secretly moves the barriers to seal the whole pier without telling him.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 7,
+    "textsVerbatim": 1,
+    "nonVerbatim": [
+     "text-1",
+     "text-2",
+     "text-3",
+     "text-4",
+     "text-5",
+     "text-6"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "right-to-left inside balloons; balloon/panel placement left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "Panel 4: Salma's line (text-3) is placed left of Nader's reply (text-4); in right-to-left page reading the reply is read first, reversing the exchange."
+     },
+     {
+      "severity": "blocking",
+      "evidence": "text-3 drops the tanween on رصيفًا and text-5 moves the shadda of يفرّق to the qaf, so the lettering differs from the quoted text."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Texts 1-6 were planned with the ASCII double quotes of the prose; the image letters the dialogue without them, which is the natural balloon form. text-6 writes مغلقاً with the tanween on the alif, a conventional variant of مغلقًا."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every balloon. Seven panels: Salma crouched driving the hook into a crumbling plank; Salma at a second plank with a chalk circle behind her while Nader stands by his lumber cart; Nader, hand open, speaking to the bowed Salma with two chalk circles on the planks; Salma answering and Nader replying; Salma arms folded giving her final word; Nader turning back to straighten the lumber; Salma alone at dusk setting the second striped barrier with the narration box. Everything is lettered in Arabic script, each line set right-to-left inside its balloon with the final period at the left end. Differences from the quoted texts: the ASCII double quotes carried in texts 1-6 are not drawn; text-3 drops the tanween on رصيفًا (drawn رصيفا); text-5 puts the shadda on the qaf and a fatha on the ra in يفرّق (drawn يفرَقّ); text-6 writes the tanween on the alif (مغلقاً, the common orthographic variant of مغلقًا). Speakers are correct. Balloon and panel placement follow left-to-right order: in panel 4 Salma's line is on the left and Nader's reply on the right, so a right-to-left reader meets the reply first, and panels 5-6 sit left-to-right. No name tags or invented words; barriers carry stripes only.",
+    "letteringSummary": "Arabic script, RTL inside balloons. ASCII quotes from the plan not drawn; tanween dropped (text-3), shadda moved (text-5), tanween-on-alif variant (text-6). Balloon/panel placement is LTR, so panel 4 reads reply-first for an RTL reader.",
+    "changeVsBefore": null,
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "\"اثنتان.\"",
+      "observed": "اثنتان.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 2 balloon, tail to Salma; exact apart from the omitted ASCII quotes."
+     },
+     {
+      "id": "text-2",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "\"الجزء الشمالي سليم إذن. لماذا لا نفتحه الآن وننظّم دخول القوارب الصغيرة منه، بينما تُصلحين هاتين؟\"",
+      "observed": "الجزء الشمالي سليم إذن. لماذا لا نفتحه الآن وننظّم دخول القوارب الصغيرة منه، بينما تُصلحين هاتين؟",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 3 balloon, three lines right-to-left, tail to Nader; exact apart from the omitted quotes."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "\"لن أفتح رصيفًا نصفه مكسور.\"",
+      "observed": "لن أفتح رصيفا نصفه مكسور.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 4 left balloon, tail to Salma; tanween missing on رصيفا, quotes omitted."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "\"لن يمر أحد على النصف المكسور. سأضع الحبل بنفسي.\"",
+      "observed": "لن يمر أحد على النصف المكسور. سأضع الحبل بنفسي.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 4 right balloon, tail to Nader; exact apart from the omitted quotes."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "\"إن مرّ طفل يركض خلف كرة، لن يفرّق بين نصف وآخر.\"",
+      "observed": "إن مرّ طفل يركض خلف كرة، لن يفرَقّ بين نصف وآخر.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 5 upper balloon, tail to Salma; shadda drawn on the qaf with a fatha on the ra; quotes omitted."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "\"سيبقى مغلقًا حتى أنتهي.\"",
+      "observed": "سيبقى مغلقاً حتى أنتهي.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 5 lower balloon, tail to Salma; tanween on the alif; quotes omitted."
+     },
+     {
+      "id": "text-7",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "لم تترك ورقة، ولم تتصل به.",
+      "observed": "لم تترك ورقة، ولم تتصل به.",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 caption box top right; exact."
+     }
+    ],
+    "seconds": 289,
+    "hostUsd": 0.666,
+    "imageUsd": 0.068
+   }
+  },
+  {
+   "code": "th",
+   "native": "ไทย",
+   "dir": "ltr",
+   "novel": {
+    "evidence": "acceptance-52e5aee-sonnet5/th",
+    "sourceHead": "52e5aee",
+    "model": "claude-sonnet-5",
+    "status": "committed",
+    "committed": true,
+    "loreWritePasses": 11,
+    "reviseRequests": 0,
+    "modelRequests": 19,
+    "wallMinutes": 56,
+    "languageAudit": "pass",
+    "qualityRetries": {
+     "01-profile": 0,
+     "03-spine": 2,
+     "04-writer": 0,
+     "05-arc": 0
+    },
+    "workTitle": "แสงไฟเหนือท่าเรือฤดูร้อน",
+    "premise": "นิยายผจญภัยอบอุ่นสามบท ณ หมู่บ้านริมทะเล เมธ ผู้ดูแลประภาคารวัยสี่สิบสองปี ต้องร่วมมือกับริน ช่างซ่อมเรือวัยสามสิบหกปี เพื่อเปิดท่าเรือเก่าให้ทันเทศกาลฤดูร้อน เมธเชี่ยวชาญการตรวจอุปกรณ์และวางแผนงานอย่างรอบคอบ แต่เชื่อผิดว่าความปลอดภัยเกิดขึ้นได้ต่อเมื่อเขาตัดสินใจทุกอย่างเพียงคนเดียว ส่วนรินต้องการเปิดอู่ฝึกงานสำหรับคนในหมู่บ้าน และหวังใช้เรือที่เธอซ่อมรับส่งผู้ร่วมเทศกาลเป็นผลงานชิ้นแรก",
+    "chapterTitle": "กุญแจที่ยังไม่ปล่อย",
+    "chapterChars": 2149,
+    "excerpt": [
+     "ท่าเรือฝั่งตะวันออกยังเงียบเมื่อเมธเดินลงไปบนโป๊ะไม้เก่า มือขวากำกุญแจโรงเครื่องมือแน่นกว่าที่ควร กุญแจดอกนี้เปิดห้องเก็บสิ่ว ค้อน เชือกใหม่ และไม้สำรองทั้งหมดของท่าเรือ ทุกคนต้องขอยืมของจากในนั้นตามคิวที่วางไว้ล่วงหน้า แต่กุญแจมีอยู่ดอกเดียว และดอกนั้นอยู่ในมือเขาเสมอ",
+     "เขาก้มลงเคาะไม้แผ่นแรกด้วยด้ามไม้ค้อนเล็ก เสียงแน่นทึบ ผ่านได้ เคาะแผ่นถัดไป เสียงเปลี่ยนเป็นกลวง เขาถอยเท้าก่อนที่ปลายรองเท้าจะจมลงไปในไม้ยวบใต้ฝ่าเท้า จดตำแหน่งลงในสมุดด้วยลายมือตัวเอง แผ่นที่เจ็ด ผุ ต้องเปลี่ยนก่อนเทศกาล",
+     "\"ตรงนี้ให้ทีมฉันซ่อมก่อนได้ไหม\" รินถามจากปลายทางเดินขึ้นโป๊ะ เธอยืนอยู่กับลุงสมานและปาน …"
+    ]
+   },
+   "webtoon": {
+    "image": "img/th.webp",
+    "imageBytes": 296046,
+    "width": 1000,
+    "height": 1500,
+    "workflowId": "wt-9700b75b-6373-4595-812d-d289d9420c94",
+    "sceneTitle": "กุญแจดอกเดียวบนโป๊ะตะวันออก",
+    "sceneNote": "Rin asks to split the dock repair so her team can fix the loose mooring ring before the tide rises, but Meth grips the only tool-shed key and refuses, returning to his solo plank checks while the team is left waiting.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 12,
+    "textsVerbatim": 10,
+    "nonVerbatim": [
+     "text-2",
+     "text-7"
+    ],
+    "speakerProblems": [],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "text-2 caption reads ...และดอกนันอยู่ในมือเขาเสมอ (missing mai tho on นั้น); text-7 reads รอฉันตรวจใด้ครบก่อน (ใด้ for ให้), so neither is verbatim."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Panel 1: the key clenched in Meth's right hand is not visible."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every balloon, caption and the notebook. Seven full-width panels: Meth walking onto the pontoon with two narration boxes; Meth crouched writing, with the third caption and the note handwritten on the notebook page; Rin calling out with Saman (planks) and Pan (rope); the loose mooring ring with Meth's fist around the key; Meth answering Rin's group; Rin with Saman and Pan; Meth tapping the plank with a hammer. The physical note is lettered on the notebook page with no balloon. Ten of twelve texts are exact Thai. text-2 drops the mai tho on นั้น (drawn นัน), and text-7 has ใด้ where ให้ is quoted. Tails match the planned speakers. In panel 1 the key is not visible in Meth's hand.",
+    "letteringSummary": "Thai, 10/12 verbatim; physical note on the notebook page. text-2 นัน for นั้น, text-7 ใด้ for ให้.",
+    "changeVsBefore": "Gone: notebook note drawn as a speech balloon. New: two tone-mark or vowel errors (text-2, text-7).",
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "ท่าเรือฝั่งตะวันออกยังเงียบ",
+      "observed": "ท่าเรือฝั่งตะวันออกยังเงียบ",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 upper caption box; exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "แต่กุญแจมีอยู่ดอกเดียว และดอกนั้นอยู่ในมือเขาเสมอ",
+      "observed": "แต่กุญแจมีอยู่ดอกเดียว และดอกนันอยู่ในมือเขาเสมอ",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 1 lower caption box; zoomed: นัน without the mai tho."
+     },
+     {
+      "id": "text-3",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "เสียงเปลี่ยนเป็นกลวง",
+      "observed": "เสียงเปลี่ยนเป็นกลวง",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 caption box; exact."
+     },
+     {
+      "id": "text-4",
+      "kind": "physical",
+      "speaker": "c1",
+      "planned": "แผ่นที่เจ็ด ผุ ต้องเปลี่ยนก่อนเทศกาล",
+      "observed": "แผ่นที่เจ็ด ผุ ต้องเปลี่ยนก่อนเทศกาล",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 2 handwritten on the notebook page; no balloon."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "ตรงนี้ให้ทีมฉันซ่อมก่อนได้ไหม",
+      "observed": "ตรงนี้ให้ทีมฉันซ่อมก่อนได้ไหม",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 upper balloon, tail to Rin."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "ห่วงผูกเรือใต้จุดนี้หลวมมานานแล้ว ถ้าน้ำขึ้นเมื่อไรจะลงไปดูไม่ได้อีก",
+      "observed": "ห่วงผูกเรือใต้จุดนี้หลวมมานานแล้ว ถ้าน้ำขึ้นเมื่อไรจะลงไปดูไม่ได้อีก",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 lower balloon, tail to Rin; exact."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "รอฉันตรวจให้ครบก่อน",
+      "observed": "รอฉันตรวจใด้ครบก่อน",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": true,
+      "evidence": "Panel 5 upper balloon, tail to Meth; ใด้ instead of ให้."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "จุดที่แปด เก้า สิบ ยังไม่ได้ดู ถ้าเปิดโรงเครื่องมือตอนนี้ อาจมีใครหยิบของผิดชุด",
+      "observed": "จุดที่แปด เก้า สิบ ยังไม่ได้ดู ถ้าเปิดโรงเครื่องมือตอนนี้ อาจมีใครหยิบของผิดชุด",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 lower balloon, tail to Meth; exact."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "เราแยกกันดูได้",
+      "observed": "เราแยกกันดูได้",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 left balloon, tail to Rin."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "ลุงสมานเช็คไม้ต่อจากแผ่นเจ็ด ปานช่วยจับเชือก ฉันลงไปดูห่วงเอง",
+      "observed": "ลุงสมานเช็คไม้ต่อจากแผ่นเจ็ด ปานช่วยจับเชือก ฉันลงไปดูห่วงเอง",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 right upper balloon, tail to Rin."
+     },
+     {
+      "id": "text-11",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "ถ้าทุกคนต้องรอคุณคนเดียว เราจะซ่อมทันได้อย่างไร",
+      "observed": "ถ้าทุกคนต้องรอคุณคนเดียว เราจะซ่อมทันได้อย่างไร",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 right lower balloon, tail to Rin."
+     },
+     {
+      "id": "text-12",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "อย่างน้อยฉันก็รู้ว่าไม่มีใครหยิบของผิด",
+      "observed": "อย่างน้อยฉันก็รู้ว่าไม่มีใครหยิบของผิด",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 balloon, tail to Meth; exact."
+     }
+    ],
+    "seconds": 160,
+    "hostUsd": 0.669,
+    "imageUsd": 0.058
+   },
+   "webtoonBefore": {
+    "image": "img/th-52e5aee.webp",
+    "imageBytes": 123310,
+    "width": 640,
+    "height": 960,
+    "workflowId": "wt-c84f5d68-6bec-481f-aa96-e6507e5f8cdb",
+    "sceneTitle": "กุญแจดอกเดียวบนโป๊ะตะวันออก",
+    "sceneNote": "Rin asks to split the dock repair so her team can fix the loose mooring ring before the tide rises, but Meth grips the only tool-shed key and refuses, returning to his solo plank checks while the team is left waiting.",
+    "unitIds": [
+     "ch-1-p-1",
+     "ch-1-p-2",
+     "ch-1-p-3",
+     "ch-1-p-4",
+     "ch-1-p-5",
+     "ch-1-p-6",
+     "ch-1-p-7",
+     "ch-1-p-8"
+    ],
+    "panelsPlanned": 7,
+    "panelsSeen": 7,
+    "pass": false,
+    "toolStatus": "stopped:review_failed_auto_revision_not_continued",
+    "textsTotal": 10,
+    "textsVerbatim": 10,
+    "nonVerbatim": [],
+    "speakerProblems": [
+     "text-2"
+    ],
+    "scriptCorrect": true,
+    "readingDirection": "left-to-right",
+    "findings": [
+     {
+      "severity": "blocking",
+      "evidence": "text-2 (physical note Meth writes in his notebook) is drawn as a speech balloon with a tail to Meth; the notebook page is blank, so the written note becomes spoken dialogue."
+     },
+     {
+      "severity": "advisory",
+      "evidence": "Panel 1: Meth holds the key in his left hand; the brief asks for his right fist clenched around it."
+     }
+    ],
+    "reviewEvidence": "Opened the actual image (1024x1536) and zoomed every balloon. Seven panels: Meth stepping onto the east pontoon with the narration box; Meth crouched writing in his notebook; Rin with Uncle Saman (planks) and Pan (rope) at the walkway end; the loose iron mooring ring in the water with Meth's fist around the key; Meth answering; Rin with Saman and Pan; Meth tapping board eight with a small hammer. All ten quoted texts are exact Thai with correct tone marks and vowels. text-2 is a physical note in the plan (written in the notebook) but it is lettered as a speech balloon with a tail to Meth while the notebook page stays blank, so the note reads as spoken dialogue. Other tails match the planned speakers. In panel 1 the key is in Meth's left hand, not his right fist. No name tags or invented words.",
+    "letteringSummary": "Thai, all 10 verbatim with correct marks. text-2 (a physical notebook note) drawn as a speech balloon for Meth.",
+    "changeVsBefore": null,
+    "lines": [
+     {
+      "id": "text-1",
+      "kind": "caption",
+      "speaker": "narrator",
+      "planned": "กุญแจมีอยู่ดอกเดียว และดอกนั้นอยู่ในมือเขาเสมอ",
+      "observed": "กุญแจมีอยู่ดอกเดียว และดอกนั้นอยู่ในมือเขาเสมอ",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 1 caption box top right; zoomed, exact."
+     },
+     {
+      "id": "text-2",
+      "kind": "physical",
+      "speaker": "c1",
+      "planned": "แผ่นที่เจ็ด ผุ ต้องเปลี่ยนก่อนเทศกาล",
+      "observed": "แผ่นที่เจ็ด ผุ ต้องเปลี่ยนก่อนเทศกาล",
+      "readable": true,
+      "speakerCorrect": false,
+      "flag": true,
+      "evidence": "Panel 2 speech balloon with a tail to Meth; text exact, but a physical notebook note is shown as speech."
+     },
+     {
+      "id": "text-3",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "ตรงนี้ให้ทีมฉันซ่อมก่อนได้ไหม",
+      "observed": "ตรงนี้ให้ทีมฉันซ่อมก่อนได้ไหม",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 upper balloon, tail to Rin."
+     },
+     {
+      "id": "text-4",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "ห่วงผูกเรือใต้จุดนี้หลวมมานานแล้ว ถ้าน้ำขึ้นเมื่อไรจะลงไปดูไม่ได้อีก",
+      "observed": "ห่วงผูกเรือใต้จุดนี้หลวมมานานแล้ว ถ้าน้ำขึ้นเมื่อไรจะลงไปดูไม่ได้อีก",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 3 lower balloon, tail up to Rin; exact."
+     },
+     {
+      "id": "text-5",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "รอฉันตรวจให้ครบก่อน",
+      "observed": "รอฉันตรวจให้ครบก่อน",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 upper balloon, tail to Meth."
+     },
+     {
+      "id": "text-6",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "จุดที่แปด เก้า สิบ ยังไม่ได้ดู ถ้าเปิดโรงเครื่องมือตอนนี้ อาจมีใครหยิบของผิดชุด",
+      "observed": "จุดที่แปด เก้า สิบ ยังไม่ได้ดู ถ้าเปิดโรงเครื่องมือตอนนี้ อาจมีใครหยิบของผิดชุด",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 5 lower balloon, tail to Meth; exact."
+     },
+     {
+      "id": "text-7",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "เราแยกกันดูได้",
+      "observed": "เราแยกกันดูได้",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 top balloon, tail to Rin."
+     },
+     {
+      "id": "text-8",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "ลุงสมานเช็คไม้ต่อจากแผ่นเจ็ด ปานช่วยจับเชือก ฉันลงไปดูห่วงเอง",
+      "observed": "ลุงสมานเช็คไม้ต่อจากแผ่นเจ็ด ปานช่วยจับเชือก ฉันลงไปดูห่วงเอง",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 middle balloon, chained under Rin's; exact."
+     },
+     {
+      "id": "text-9",
+      "kind": "dialogue",
+      "speaker": "c2",
+      "planned": "ถ้าทุกคนต้องรอคุณคนเดียว เราจะซ่อมทันได้อย่างไร",
+      "observed": "ถ้าทุกคนต้องรอคุณคนเดียว เราจะซ่อมทันได้อย่างไร",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 6 lower balloon chained to text-8 (Rin); exact."
+     },
+     {
+      "id": "text-10",
+      "kind": "dialogue",
+      "speaker": "c1",
+      "planned": "อย่างน้อยฉันก็รู้ว่าไม่มีใครหยิบของผิด",
+      "observed": "อย่างน้อยฉันก็รู้ว่าไม่มีใครหยิบของผิด",
+      "readable": true,
+      "speakerCorrect": true,
+      "flag": false,
+      "evidence": "Panel 7 balloon, tail to Meth; exact."
+     }
+    ],
+    "seconds": 335,
+    "hostUsd": 1.02,
+    "imageUsd": 0.069
+   }
+  }
+ ]
+}

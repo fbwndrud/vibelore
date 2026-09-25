@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../i18n.js?v=1"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>처형 1분 전의 황녀 · 작품 읽기</title>
 <meta name="description" content="칼날이 떨어지기 1분 전으로 돌아온 황녀의 회귀 복수극. GPT-6 Sol이 설계·집필·각색한 소설과 장면 웹툰 1~3화. 첫 결과와 검토 판정을 그대로 공개합니다.">
@@ -12,7 +13,7 @@
 </head>
 <body data-page="read" class="reader-page">
 <header class="topbar">
-  <a class="brand" href="./">처형 1분 전의 황녀</a>
+  <a class="brand" href="./" lang="ko">처형 1분 전의 황녀</a>
   <div class="grow eptabs" id="eptabs"></div>
   <div class="seg" role="group" aria-label="보기 방식">
     <button data-mode="webtoon">웹툰</button>
@@ -25,7 +26,7 @@
 <section class="ephead">
   <div class="lead">
     <div class="kicker" id="kicker">EPISODE</div>
-    <h1 id="eptitle">…</h1>
+    <h1 id="eptitle" lang="ko">…</h1>
     <p id="eplead"></p>
   </div>
   <div class="chips">
@@ -44,14 +45,14 @@
       <span id="prose-label">소설 원문</span>
       <span class="sizes">글자 크기 <button data-size="s">가</button><button data-size="m">가</button><button data-size="l">가</button></span>
     </div>
-    <div class="prose" id="prose"></div>
+    <div class="prose" id="prose" lang="ko"></div>
   </aside>
 </main>
 
 <div class="sheet" id="sheet">
   <div class="grab"></div>
   <div class="sh"><span id="sheet-label">원문 보기</span><button id="sheet-toggle">위로 펼치기</button></div>
-  <div class="body" id="sheet-body"></div>
+  <div class="body" id="sheet-body" lang="ko"></div>
   <div class="mtools"><button data-mode="webtoon">웹툰</button><button data-mode="novel">소설</button><button class="metatog" id="meta-toggle-m" type="button" aria-pressed="false">제작 정보</button></div>
 </div>
 
@@ -61,11 +62,11 @@
 </dialog>
 
 <footer class="site">
-  소설 설계·집필과 웹툰 각색·연출은 GPT-6 Sol(gpt-6-sol, OpenAI Responses API)이, 그림은 OpenAI 이미지 API(gpt-image-2.5-sunburst)가 만들었습니다. 작품 속 인물·나라·사건은 모두 허구입니다.<br>
-  그림 검토는 제작을 조율한 Claude Opus 5.5가 했습니다. 각색 모델과 다른 모델이지만 독립 평가는 아닙니다. 판정이 “수정 필요”여도 재생성 없이 첫 결과를 그대로 실었습니다.<br>
-  빌드 <span id="built"></span> · 데이터 <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
+  <span data-i18n="ep.read.footer">  소설 설계·집필과 웹툰 각색·연출은 GPT-6 Sol(gpt-6-sol, OpenAI Responses API)이, 그림은 OpenAI 이미지 API(gpt-image-2.5-sunburst)가 만들었습니다. 작품 속 인물·나라·사건은 모두 허구입니다.<br>
+  그림 검토는 제작을 조율한 Claude Opus 5.5가 했습니다. 각색 모델과 다른 모델이지만 독립 평가는 아닙니다. 판정이 “수정 필요”여도 재생성 없이 첫 결과를 그대로 실었습니다.</span><br>
+  <span data-i18n="common.builtData">빌드</span> <span id="built"></span> · <span data-i18n="common.data">데이터</span> <a href="data.json">data.json</a> · <span data-i18n="common.madeWith">제작 도구</span> <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
 </footer>
-<script src="site.js?v=2"></script>
-<script src="app.js?v=9"></script>
+<script src="site.js?v=3"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

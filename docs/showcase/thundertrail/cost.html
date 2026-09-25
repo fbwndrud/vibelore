@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="../i18n.js?v=1"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>길 위의 번개 · 비용과 시간</title>
 <meta name="description" content="소설과 웹툰을 만드는 데 든 토큰, 시간, 비용을 회차·단계별로. 실측과 추정을 구분하고, 예상 비용 계산기를 제공합니다.">
@@ -15,7 +16,7 @@
 <section class="phero">
   <div class="kicker">비용·시간</div>
   <h1>토큰, 시간, 비용이 얼마나 들었나</h1>
-  <p>모든 수치는 모델 호출 기록에서 그대로 모았습니다. 표마다 <span class="kind k-real">실측</span> <span class="kind k-list">정가 환산</span> <span class="kind k-est">추정</span> <span class="kind k-none">기록 없음</span>을 붙여 어디까지가 확실한 숫자인지 구분합니다.</p>
+  <p data-i18n="tt.cost.lede">모든 수치는 모델 호출 기록에서 그대로 모았습니다. 표마다 <span class="kind k-real">실측</span> <span class="kind k-list">정가 환산</span> <span class="kind k-est">추정</span> <span class="kind k-none">기록 없음</span>을 붙여 어디까지가 확실한 숫자인지 구분합니다.</p>
   <div class="caveats" id="caveats"></div>
 </section>
 
@@ -53,11 +54,11 @@
   </section>
 </main>
 
-<footer class="site">
+<footer class="site" data-i18n="tt.cost.footer">
   토큰 구분: <b>새 입력</b>은 캐시 없이 처음 읽은 입력, <b>캐시 쓰기</b>는 다음 호출을 위해 캐시에 저장한 입력, <b>캐시 읽기</b>는 캐시에서 싸게 다시 읽은 입력, <b>출력</b>은 모델이 쓴 답(내부 추론 포함)입니다. 공급자마다 단가가 달라 같은 토큰 수라도 비용이 다릅니다.<br>
   데이터 <a href="costs.json">costs.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
 </footer>
-<script src="site.js?v=1"></script>
-<script src="cost.js?v=5"></script>
+<script src="site.js?v=2"></script>
+<script src="cost.js?v=6"></script>
 </body>
 </html>
