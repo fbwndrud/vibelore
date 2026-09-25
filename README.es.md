@@ -56,7 +56,7 @@ Basta con decir esto en el chat del host.
 > Escribe el siguiente capítulo. Enséñamelo cuando termines y confírmalo cuando lo apruebe.
 
 ```text
-Entrevista ─▶ Plan de arco ─▶ Plan de capítulo ─▶ Borrador ─▶ Comprobación de ajustes/cronología ─▶ Revisión ─▶ Aprobación ─▶ Commit
+Entrevista ─▶ Plan de arco ─▶ Plan de capítulo ─▶ Borrador ─▶ Comprobación de ambientación/cronología ─▶ Revisión ─▶ Aprobación ─▶ Commit
   (1 vez)      (aprobar)        (automático)                  violaciones hard corregidas           advisory     usuario       Markdown
 ```
 
@@ -139,7 +139,7 @@ sin preguntar». Si te atascas, consulta la [guía de inicio](docs/GETTING_START
 - **Diseño de arcos.** Primero obtiene tu aprobación para una promesa de 3 a 20 capítulos con sucesos, presiones y giros esbozados, y rellena automáticamente los planes por capítulo al escribir.
 - **Comprobación y corrección en cada capítulo.** Contrasta el borrador con los personajes, las formas de tratamiento, el punto de vista, la cronología y los presagios, y corrige automáticamente hasta 3 veces si choca con hechos establecidos. Las observaciones de gusto, como el estilo o el ritmo, quedan solo como advisory.
 - **Referencia de estilo.** Si marcas como ancla de estilo un capítulo que te guste, los siguientes siguen su textura.
-- **Reescritura y vuelta atrás.** Reescribe un capítulo anterior sin tocar los ajustes, o devuelve toda la obra al punto de un capítulo concreto.
+- **Reescritura y vuelta atrás.** Reescribe un capítulo anterior sin tocar la ambientación, o devuelve toda la obra al punto de un capítulo concreto.
 - **Adaptación a webtoon.** Toma el estado del original, confirma la dirección de la adaptación, el estilo de dibujo y el número de viñetas, y termina cada escena como una sola imagen vertical, diálogos incluidos.
 
 **Lo que no hace.** Una GUI web (el chat del host es la interfaz), llamadas a API de pago desde el propio servidor MCP (las API de imagen
@@ -150,11 +150,11 @@ edición simultánea o multiinquilino, ni división automática en PNG/JPEG para
 
 | Lo que quieres | Dile esto al host |
 |---|---|
-| No me gusta el capítulo 1; rehacerlo sin tocar los ajustes | «Reescribe el capítulo 1 [en esta dirección]» → comprobación → aprobación |
+| No me gusta el capítulo 1; rehacerlo sin tocar la ambientación | «Reescribe el capítulo 1 [en esta dirección]» → comprobación → aprobación |
 | Escribí hasta el capítulo 3 pero quiero corregir el 2 | Reescribir el capítulo 2 → aprobar → «recalcula el estado posterior» → pedir la recomprobación del capítulo 3 si hace falta |
 | Quiero volver todo al punto del capítulo 5 | «Vuelve atrás hasta el capítulo 5» |
 | El estilo de este capítulo es justo el que quiero | «Aprueba el capítulo 3 como referencia de estilo. Motivo: los diálogos son cortos y secos» |
-| He editado a mano un archivo de ajustes | «Revisa los cambios» → te indica el alcance del impacto y el siguiente paso |
+| He editado a mano un archivo de ambientación | «Revisa los cambios» → te indica el alcance del impacto y el siguiente paso |
 | Quiero ver por qué se escribió así | «Enséñame la evidencia de revisión y la petición de escritura real de este capítulo» |
 | Quiero convertir una novela existente en webtoon | «Adapta el capítulo 1 a webtoon. Pregúntame primero por la dirección de producción» |
 | Quiero redibujar una escena del webtoon | «Redibuja esta escena del capítulo 1 [así]» |
@@ -190,7 +190,7 @@ No es una herramienta que escriba la novela por ti a partir de un conjunto de re
 y se responsabiliza solo de la memoria, la causalidad, la coherencia, la aprobación y la recuperación, que son lo que suele romperse en una obra larga.
 
 - **Primero el contrato de lectura.** No un nombre de género, sino ritmo, dificultad, emoción, recompensa y tabúes, y esa promesa se cumple en cada capítulo.
-- **La causalidad gana a la decoración.** En lugar de añadir ajustes, hace que acciones, reacciones y consecuencias se encadenen, y construye los personajes por acumulación de decisiones, no por explicación.
+- **La causalidad gana a la decoración.** En lugar de añadir ambientación, hace que acciones, reacciones y consecuencias se encadenen, y construye los personajes por acumulación de decisiones, no por explicación.
 - **La última palabra es de la persona.** El manuscrito en Markdown es el canon, y un advisory no es una orden de corrección automática.
 
 | Parte | Se encarga de |
@@ -204,7 +204,7 @@ Para la dirección general, consulta la [filosofía](docs/PHILOSOPHY.en.md); par
 
 ## Géneros compatibles
 
-Hay 25 presets de género, y cada uno sigue elementos de ajuste distintos (cronología, conocimiento de la regresión, estado de las relaciones, sistema
+Hay 25 presets de género, y cada uno sigue elementos de ambientación distintos (cronología, conocimiento de la regresión, estado de las relaciones, sistema
 de poderes, etc.).
 
 `Cazador regresor` `Villana isekai` `Fantasía de academia` `Regresión de casa noble` `Venganza del desterrado` `Thriller de misterio` `Acción`
@@ -212,7 +212,7 @@ de poderes, etc.).
 `Cultivo` `Xianxia` `Xuanhuan` `Núcleo de mazmorra` `Fantasía romántica` `Ciencia ficción` `Terror` `Vida cotidiana reconfortante` `Urbano contemporáneo` `Otros`
 
 También funcionan géneros que no están en la lista y géneros mixtos. La entrevista descompone el género en tono, subgénero y motor narrativo para crear
-el perfil de la obra, y la comprobación de ajustes usa el preset más cercano.
+el perfil de la obra, y la comprobación de ambientación usa el preset más cercano.
 
 ## Idioma de la obra
 
@@ -233,7 +233,7 @@ escribir una obra en japonés mientras conversas en coreano.
 - El idioma no se puede cambiar después de crear la foundation. Pasar un valor distinto del idioma guardado se rechaza con
   `LANGUAGE_CONTRACT_CONFLICT` en lugar de sobrescribirlo en silencio.
 - En cada capítulo se comprueba que el texto, el resumen y el plan estén escritos en el idioma de la obra, y los invariantes semánticos como
-  el punto de vista, el registro de personajes y los ajustes del mundo los examina el mismo revisor sea cual sea el idioma.
+  el punto de vista, el registro de personajes y la ambientación del mundo la examina el mismo revisor sea cual sea el idioma.
 - Los webtoons también siguen el idioma de la obra. Los diálogos no se traducen: entran en la imagen como texto original en el idioma de la obra,
   y el prompt de imagen indica el idioma, la escritura y la dirección de lectura (de derecha a izquierda en árabe).
 
@@ -245,11 +245,11 @@ argumentos, consulta [Idioma de la obra y unidades de extensión](docs/TOOLS.en.
 
 ```text
 my-novel/
-├── world/         ajustes del mundo — puedes editarlos
-├── characters/    ajustes de personajes — puedes editarlos
+├── world/         ambientación del mundo — puedes editarla
+├── characters/    fichas de personajes — puedes editarlas
 ├── chapters/      texto — puedes editarlo
 ├── summaries/     resúmenes por capítulo
-├── webtoon/       ajustes, adaptaciones y másteres SVG/HTML de webtoon aprobados
+├── webtoon/       ambientación, adaptaciones y másteres SVG/HTML de webtoon aprobados
 └── .vibelore/     registros de comprobación, instantáneas de recuperación — no los toques
 ```
 
@@ -286,7 +286,7 @@ No. Los flujos de trabajo se guardan, así que con «continúa» se reanuda en e
 </details>
 
 <details>
-<summary>¿Puedo editar a mano los ajustes o el texto?</summary>
+<summary>¿Puedo editar a mano la ambientación o el texto?</summary>
 
 Sí. `world/`, `characters/` y `chapters/` están para que las personas los editen. Después de editar, di «revisa los cambios» y te indicará el alcance del impacto y el siguiente paso.
 </details>
@@ -294,7 +294,7 @@ Sí. `world/`, `characters/` y `chapters/` están para que las personas los edit
 <details>
 <summary>¿Y si lo que detectó el revisor es en realidad un giro que yo quería?</summary>
 
-Una violación hard es un choque con hechos establecidos, así que se corrige; si de verdad es un giro, cambia primero el archivo de ajustes. Una violación soft puede ser intención del autor, así que la IA no la corrige automáticamente y te pregunta.
+Una violación hard es un choque con hechos establecidos, así que se corrige; si de verdad es un giro, cambia primero el archivo de ambientación. Una violación soft puede ser intención del autor, así que la IA no la corrige automáticamente y te pregunta.
 </details>
 
 <details>

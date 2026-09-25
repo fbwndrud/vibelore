@@ -56,7 +56,7 @@ Il suffit de dire ceci dans le chat de l'hôte.
 > Écris l'épisode suivant. Montre-le-moi une fois fini, et valide-le quand je l'approuve.
 
 ```text
-Entretien ─▶ Plan d'arc ─▶ Plan d'épisode ─▶ Brouillon ─▶ Vérif. réglages/chronologie ─▶ Revue ─▶ Approbation ─▶ Commit
+Entretien ─▶ Plan d'arc ─▶ Plan d'épisode ─▶ Brouillon ─▶ Vérif. univers/chronologie ─▶ Revue ─▶ Approbation ─▶ Commit
  (1 fois)    (approuver)    (auto)                       violations hard corrigées      advisory  utilisateur     Markdown
 ```
 
@@ -139,7 +139,7 @@ sans me demander ». En cas de blocage, consultez le [guide de démarrage](docs/
 - **Conception des arcs.** Il fait d'abord approuver une promesse sur 3 à 20 épisodes avec des événements, pressions et retournements esquissés, et remplit automatiquement les plans par épisode au moment de l'écriture.
 - **Vérification et correction à chaque épisode.** Il confronte le brouillon aux personnages, aux formes d'adresse, au point de vue, à la chronologie et aux indices semés, et corrige automatiquement jusqu'à 3 fois en cas de conflit avec des faits établis. Les remarques de goût, comme le style ou le rythme, restent de simples advisory.
 - **Référence de style.** Désignez un épisode qui vous plaît comme ancre de style, et les suivants en suivent la texture.
-- **Réécriture et retour en arrière.** Réécrivez un épisode antérieur sans toucher aux réglages, ou ramenez toute l'œuvre au point d'un épisode donné.
+- **Réécriture et retour en arrière.** Réécrivez un épisode antérieur sans toucher à l'univers, ou ramenez toute l'œuvre au point d'un épisode donné.
 - **Adaptation en webtoon.** Il reprend l'état de l'original, confirme la direction de l'adaptation, le style graphique et le nombre de cases, puis termine chaque scène en une seule image verticale, dialogues compris.
 
 **Ce qu'il ne fait pas.** Une interface web (le chat de l'hôte sert d'interface), des appels d'API payants par le serveur MCP lui-même (les API d'image
@@ -150,11 +150,11 @@ l'édition simultanée ou le multi-locataire, ni le découpage automatique en PN
 
 | Ce que vous voulez | Dites ceci à l'hôte |
 |---|---|
-| L'épisode 1 ne me plaît pas ; le refaire sans toucher aux réglages | « Réécris l'épisode 1 [dans cette direction] » → vérification → approbation |
+| L'épisode 1 ne me plaît pas ; le refaire sans toucher à l'univers | « Réécris l'épisode 1 [dans cette direction] » → vérification → approbation |
 | J'ai écrit jusqu'à l'épisode 3 mais je veux corriger le 2 | Réécrire l'épisode 2 → approuver → « recalcule l'état suivant » → demander la revérification de l'épisode 3 si besoin |
 | Je veux tout ramener au point de l'épisode 5 | « Reviens en arrière jusqu'à l'épisode 5 » |
 | Le style de cet épisode est parfait, je veux garder ça | « Approuve l'épisode 3 comme référence de style. Raison : les dialogues sont courts et secs » |
-| J'ai modifié un fichier de réglages à la main | « Vérifie les changements » → il indique la portée de l'impact et la suite à donner |
+| J'ai modifié un fichier d'univers à la main | « Vérifie les changements » → il indique la portée de l'impact et la suite à donner |
 | Je veux voir pourquoi c'est écrit ainsi | « Montre-moi les éléments de revue et la vraie requête d'écriture de cet épisode » |
 | Je veux faire un webtoon d'un roman existant | « Adapte l'épisode 1 en webtoon. Demande-moi d'abord la direction de production » |
 | Je veux redessiner une scène du webtoon | « Redessine cette scène de l'épisode 1 [ainsi] » |
@@ -190,7 +190,7 @@ Ce n'est pas un outil qui écrit le roman à votre place à partir d'un jeu de r
 et ne prend en charge que la mémoire, la causalité, la cohérence, l'approbation et la reprise, qui cèdent facilement dans une œuvre longue.
 
 - **Le contrat de lecture d'abord.** Pas un nom de genre, mais le rythme, la difficulté, l'émotion, la récompense et les tabous, et cette promesse est tenue à chaque épisode.
-- **La causalité l'emporte sur la décoration.** Plutôt que d'ajouter des réglages, il fait s'enchaîner actions, réactions et conséquences, et construit les personnages par l'accumulation de leurs choix, pas par des explications.
+- **La causalité l'emporte sur la décoration.** Plutôt que d'ajouter des éléments d'univers, il fait s'enchaîner actions, réactions et conséquences, et construit les personnages par l'accumulation de leurs choix, pas par des explications.
 - **Le dernier mot revient à l'humain.** Le manuscrit Markdown est le canon, et un advisory n'est pas un ordre de correction automatique.
 
 | Acteur | Rôle |
@@ -204,7 +204,7 @@ Pour l'orientation générale, voir la [philosophie](docs/PHILOSOPHY.en.md) ; po
 
 ## Genres pris en charge
 
-Il existe 25 presets de genre, et chaque preset suit des éléments de réglage différents (chronologie, savoir issu de la régression, état des relations, système
+Il existe 25 presets de genre, et chaque preset suit des éléments d'univers différents (chronologie, savoir issu de la régression, état des relations, système
 de pouvoirs, etc.).
 
 `Chasseur régressé` `Méchante isekai` `Fantasy d'académie` `Régression de maison noble` `Vengeance du banni` `Thriller à énigme` `Action`
@@ -212,7 +212,7 @@ de pouvoirs, etc.).
 `Cultivation` `Xianxia` `Xuanhuan` `Cœur de donjon` `Fantasy romantique` `SF` `Horreur` `Tranche de vie réconfortante` `Urbain contemporain` `Autre`
 
 Les genres absents de la liste et les genres mixtes fonctionnent aussi. L'entretien décompose le genre en ton, sous-genre et moteur narratif pour établir
-le profil de l'œuvre, et la vérification des réglages utilise le preset le plus proche.
+le profil de l'œuvre, et la vérification de l'univers utilise le preset le plus proche.
 
 ## Langue de l'œuvre
 
@@ -233,7 +233,7 @@ Les œuvres existantes sans clé de langue sont un `ko` implicite. La langue de 
 - La langue ne peut plus changer une fois la foundation créée. Une valeur différente de la langue enregistrée est refusée avec
   `LANGUAGE_CONTRACT_CONFLICT` au lieu d'être écrasée en silence.
 - À chaque épisode, on vérifie que le texte, le résumé et le plan sont écrits dans la langue de l'œuvre, et les invariants sémantiques comme
-  le point de vue, l'enregistrement des personnages et les réglages de l'univers sont examinés par le même vérificateur quelle que soit la langue.
+  le point de vue, l'enregistrement des personnages et le cadre de l'univers sont examinés par le même vérificateur quelle que soit la langue.
 - Les webtoons suivent aussi la langue de l'œuvre. Les dialogues ne sont pas traduits : ils entrent dans l'image en texte original dans la langue de l'œuvre,
   et le prompt d'image précise la langue, l'écriture et le sens de lecture (de droite à gauche pour l'arabe).
 
@@ -245,11 +245,11 @@ arguments, voir [Langue de l'œuvre et unités de longueur](docs/TOOLS.en.md#wor
 
 ```text
 my-novel/
-├── world/         réglages de l'univers — vous pouvez les modifier
-├── characters/    réglages des personnages — vous pouvez les modifier
+├── world/         cadre de l'univers — vous pouvez le modifier
+├── characters/    fiches des personnages — vous pouvez les modifier
 ├── chapters/      texte — vous pouvez le modifier
 ├── summaries/     résumés par épisode
-├── webtoon/       réglages, adaptations et masters SVG/HTML de webtoon approuvés
+├── webtoon/       cadre, adaptations et masters SVG/HTML de webtoon approuvés
 └── .vibelore/     journaux de vérification, instantanés de reprise — n'y touchez pas
 ```
 
@@ -286,7 +286,7 @@ Non. Les workflows sont enregistrés : « continue » reprend au même endroit. 
 </details>
 
 <details>
-<summary>Puis-je modifier les réglages ou le texte à la main ?</summary>
+<summary>Puis-je modifier l'univers ou le texte à la main ?</summary>
 
 Oui. `world/`, `characters/` et `chapters/` sont faits pour être modifiés par des humains. Après modification, dites « vérifie les changements » et il indiquera la portée de l'impact et la suite à donner.
 </details>
@@ -294,7 +294,7 @@ Oui. `world/`, `characters/` et `chapters/` sont faits pour être modifiés par 
 <details>
 <summary>Et si ce que le vérificateur a relevé est en fait un rebondissement voulu ?</summary>
 
-Une violation hard est un conflit avec des faits établis, elle est donc corrigée ; s'il s'agit vraiment d'un rebondissement, modifiez d'abord le fichier de réglages. Une violation soft peut relever de l'intention de l'auteur : l'IA ne la corrige pas automatiquement et vous pose la question.
+Une violation hard est un conflit avec des faits établis, elle est donc corrigée ; s'il s'agit vraiment d'un rebondissement, modifiez d'abord le fichier d'univers. Une violation soft peut relever de l'intention de l'auteur : l'IA ne la corrige pas automatiquement et vous pose la question.
 </details>
 
 <details>

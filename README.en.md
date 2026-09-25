@@ -139,7 +139,7 @@ without asking". If you get stuck, see [Getting started](docs/GETTING_STARTED.en
 - **Arc design.** It gets approval first for a 3-20 chapter promise and thin events, pressures and turns, and fills in the per-chapter plans automatically at writing time.
 - **Checks and revision every chapter.** It compares the draft against characters, forms of address, point of view, timeline and foreshadowing, and revises automatically up to 3 times when it conflicts with established facts. Taste comments such as style or rhythm stay advisory only.
 - **Style reference.** Mark a chapter you like as the style anchor, and later chapters follow its texture.
-- **Rewrites and rollbacks.** Rewrite an earlier chapter with the settings kept as they are, or roll the whole work back to a given chapter.
+- **Rewrites and rollbacks.** Rewrite an earlier chapter with the story setting kept as it is, or roll the whole work back to a given chapter.
 - **Webtoon adaptation.** It takes the source state, confirms the adaptation direction, art style and panel count, then finishes each scene as one vertical image, dialogue included.
 
 **What it doesn't do.** A web GUI (the host chat is the interface), paid API calls by the MCP server itself (the host runs image APIs),
@@ -150,11 +150,11 @@ concurrent editing or multi-tenancy, and automatic splitting into PNG/JPEG for p
 
 | What you want | Say this to the host |
 |---|---|
-| I don't like chapter 1; redo it with the settings kept | "Rewrite chapter 1 [in this direction]" → check → approve |
+| I don't like chapter 1; redo it with the story setting kept | "Rewrite chapter 1 [in this direction]" → check → approve |
 | I wrote up to chapter 3 but want to fix chapter 2 | Rewrite chapter 2 → approve → "recompute the later state" → ask for chapter 3 to be re-checked if needed |
 | I want to roll everything back to chapter 5 | "Roll back to chapter 5" |
 | This chapter's style is just right; keep it like this | "Approve chapter 3 as the style reference. Reason: the dialogue is short and dry" |
-| I edited a settings file by hand | "Check the changes" → it tells you the scope of impact and what to do next |
+| I edited a story-setting file by hand | "Check the changes" → it tells you the scope of impact and what to do next |
 | I want to see why it was written this way | "Show me the review evidence and the actual writing request for this chapter" |
 | I want to turn an existing novel into a webtoon | "Adapt chapter 1 into a webtoon. Ask me about the production direction first" |
 | I want to redraw a webtoon scene | "Redraw this scene of chapter 1 [like this]" |
@@ -190,7 +190,7 @@ It is not a tool that writes the novel for you from a set of rules. It first agr
 and takes responsibility only for the memory, causality, consistency, approval and recovery that easily break down in a long work.
 
 - **The reading contract comes first.** Not a genre name but pace, difficulty, emotion, reward and taboos are settled, and that promise is kept every chapter.
-- **Causality beats decoration.** Rather than adding settings, it makes actions, reactions and consequences connect, and builds characters from accumulated choices, not explanation.
+- **Causality beats decoration.** Rather than adding more setting details, it makes actions, reactions and consequences connect, and builds characters from accumulated choices, not explanation.
 - **The human has final authority.** The Markdown manuscript is canon, and an advisory is not an order to revise automatically.
 
 | Party | Responsibility |
@@ -212,7 +212,7 @@ system, etc.).
 `Cultivation` `Xianxia` `Xuanhuan` `Dungeon core` `Romance fantasy` `SF` `Horror` `Cozy healing` `Modern urban` `Other`
 
 Genres not on the list and mixed genres work too. The interview breaks the genre down into tone, subgenre and story engine to make
-the work profile, and the settings check uses the closest preset.
+the work profile, and the setting check uses the closest preset.
 
 ## Work language
 
@@ -286,7 +286,7 @@ No. Workflows are saved, so "continue" resumes from the same point. Only manuscr
 </details>
 
 <details>
-<summary>Can I edit the settings or prose by hand?</summary>
+<summary>Can I edit the story setting or prose by hand?</summary>
 
 Yes. `world/`, `characters/` and `chapters/` are there for people to edit. After editing, say "check the changes" and it tells you the scope of impact and what to do next.
 </details>
@@ -294,7 +294,7 @@ Yes. `world/`, `characters/` and `chapters/` are there for people to edit. After
 <details>
 <summary>What if what the checker caught is actually a twist I intended?</summary>
 
-A hard violation is a conflict with established facts, so it gets fixed; if it really is a twist, change the settings file first. A soft violation may be the author's intent, so the AI doesn't fix it automatically and asks you.
+A hard violation is a conflict with established facts, so it gets fixed; if it really is a twist, change the setting file first. A soft violation may be the author's intent, so the AI doesn't fix it automatically and asks you.
 </details>
 
 <details>
