@@ -343,7 +343,7 @@ const TOOLS = [
   {
     name: 'lore_resume',
     description:
-      'status=needs_model 로 중단된 작업을 이어받는다. requests 의 각 질문에 답한 텍스트를 answers 에 { id: 답변 } 형태로 넘기면 중단 지점부터 계속한다. 답을 하나도 넘기지 않으면 결정론 결과만으로 마무리한다.',
+      'status=needs_model 로 중단된 작업을 이어받는다. requests 의 각 질문에 답한 텍스트를 answers 에 { id: 답변 } 형태로 넘기면 중단 지점부터 계속한다. 빈 answers는 작업을 끝내지 않고 같은 requests를 다시 돌려준다. 답을 멈추면 needs_model 응답의 deterministicResult가 유일한 결과이며 lore_write workflow는 awaiting_model로 멈춰 있다.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -356,7 +356,7 @@ const TOOLS = [
   },
   {
     name: 'lore_write',
-    description: '다음 화의 계획 확인부터 원본 초고 프롬프트, 의미·논리 검사, 최대 3회 수정, 검사 영수증, 승인·커밋까지 순서대로 실행하는 기본 집필 도구다.',
+    description: '다음 화의 계획 확인부터 원본 초고 프롬프트, 의미·논리 검사(최대 3회, 그 사이 최소 수정 최대 2회), 검사 영수증, 승인·커밋까지 순서대로 실행하는 기본 집필 도구다.',
     inputSchema: {
       type: 'object', properties: {
         ...projectArg,
@@ -406,14 +406,14 @@ const TOOLS = [
   },
   {
     name: 'lore_webtoon_scene',
-    description: '기본 웹툰 제작 경로. 작품 언어로 장면 통합 제작. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토. 컷 배치와 카메라는 이미지 모델에 맡긴다. 기존 승인 API 선택과 인물·배경 참조를 재사용하며, 선택이 없는 작품은 start에서 needs_image_choice로 과금 선택을 사용자에게 확인한다. 기존 컷별 workflow는 변경하지 않는다. needs_model은 lore_resume으로 답하고 needs_scene_image일 때만 호스트가 API를 실행한다.',
+    description: '기본 웹툰 제작 경로. 작품 언어로 장면 통합 제작. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토. 컷 배치와 카메라는 이미지 모델에 맡긴다. 승인된 API 선택은 재사용하고 인물·배경 참조(references, 필수)는 start마다 전달한다. 선택이 없는 작품은 start에서 needs_image_choice로 과금 선택을 사용자에게 확인한다. 기존 컷별 workflow는 변경하지 않는다. needs_model은 lore_resume으로 답하고 needs_scene_image일 때만 호스트가 API를 실행한다.',
     inputSchema: { type: 'object', properties: { ...projectArg, workflowId: { type: 'string' }, revision: { type: 'integer' },
       action: { type: 'string', enum: ['start', 'revise', 'retry'] }, sourceChapters: { type: 'array', items: { type: 'integer' } },
       panelCount: { anyOf: [{ type: 'integer', minimum: SCENE_PANEL_LIMITS.min, maximum: SCENE_PANEL_LIMITS.max }, { type: 'string', enum: ['auto'] }], description: `사용자가 선택한 정확한 칸 수(${SCENE_PANEL_LIMITS.min}~${SCENE_PANEL_LIMITS.max}) 또는 "auto". auto는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 다시 고른다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성 경고가 warnings에 실린다. start에서 누락하면 needs_interview. 칸 크기와 배치는 AI가 선택.` },
       previousWorkflowId: { type: 'string', description: '이어지는 직전 장면 workflow. 실제 이미지·설계·검토 결과를 상속해 연속성을 검증하며 이전 검토 판정은 그대로 보존.' },
       sourceUnitIds: { type: 'array', items: { type: 'string' }, description: '고정된 원작 문단 ID. 생략 시 선택 회차 전체. 한 이미지에 담을 장면 범위로 지정한다.' },
-      direction: { type: 'string', description: '사용자가 확정한 작화·문자·판면/배치 재량을 영어로 전달(대사는 작품 언어 원문 그대로 이미지에 들어간다). 기존 API 선택 필요.' },
-      references: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'path', 'hash', 'description'] } },
+      direction: { type: 'string', description: '사용자가 확정한 작화·문자·판면/배치 재량을 영어로 전달(대사는 작품 언어 원문 그대로 이미지에 들어간다).' },
+      references: { type: 'array', description: 'start 필수. 사용자가 지정한 인물·배경 참조 이미지 1개 이상(직전 장면 포함 최대 16개). description은 영어, id에 previous-scene은 쓸 수 없다.', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'path', 'hash', 'description'] } },
       autoRevisions: { type: 'integer', minimum: 0, maximum: SCENE_AUTO_REVISIONS.max, description: `start 전용. 생성 전 검증 또는 이미지 검토가 불합격이면 관측 결함을 feedback으로 자동 재설계하는 횟수(기본 ${SCENE_AUTO_REVISIONS.default}). 재설계마다 새 이미지 요청이 나가며 실패한 시도는 attempts에 남는다. 0이면 기존처럼 scene_needs_revision에서 멈춘다.` },
       feedback: { type: 'string' }, asset: { type: 'object', properties: { path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object' } }, required: ['path', 'inputHash', 'provenance'] },
       imageModel: { type: 'string', enum: ['gpt-image-2', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'], description: '확정된 API 선택이 없는 작품의 start에서 제안할 OpenAI API 모델. 기본 2.5 Sunburst.' },
@@ -422,12 +422,12 @@ const TOOLS = [
   },
   {
     name: 'lore_webtoon_plan',
-    description: '[deprecated] 새 작업은 lore_webtoon_scene을 사용한다. 진행 중인 컷별 작업의 인터뷰·각색 이어가기 전용. 소설 원작을 고정한 뒤 만화 제작 인터뷰·방향 승인·각색·콘티 검토를 이어간다. 새 작업은 W04 작화, W15 문자 표현, W16 판면을 먼저 사용자에게 필수 질문한다. auto도 이 선택을 대신하지 않는다. 페이지형은 needs_format_support로 대기하며 세로형으로 자동 대체하지 않는다. needs_interview는 사용자 질문, needs_model은 lore_resume 모델 응답이다.',
+    description: '[deprecated] 새 작업은 lore_webtoon_scene을 사용한다. 진행 중인 컷별 작업의 인터뷰·각색 이어가기 전용. 소설 원작을 고정한 뒤 만화 제작 인터뷰·방향 승인·각색·콘티 검토를 이어간다. 새 컷별 작업 시작과 종료된 작업의 newWorkflow는 WEBTOON_PANEL_PATH_DEPRECATED로 거부된다. 페이지형은 needs_format_support로 대기하며 세로형으로 자동 대체하지 않는다. needs_interview는 사용자 질문, needs_model은 lore_resume 모델 응답이다.',
     inputSchema: { type: 'object', properties: { ...projectArg,
       workflowId: { type: 'string' }, revision: { type: 'integer' }, mode: { type: 'string', enum: ['review', 'auto'] },
       sourceChapters: { type: 'array', items: { type: 'integer' } }, episode: { type: 'integer' }, maxShots: { type: 'integer' },
-      segmented: { type: 'boolean', description: '새 작업에서 분할 제작을 사용한다. 공통 지침/회차 개요 → 장면당 최대6컷 각색 → 인접 컷 포함 부분 검토 → 전체 흐름 검토. 조판도 장면별 분할. 기존 작업은 자동 변경하지 않는다.' },
-      imageModel: { type: 'string', enum: ['gpt-image-2', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'], description: '새 작업의 요청 모델. 기본 2.5 Sunburst. 실제 호스트 모델 선택 불가 시 생성은 needs_image_runtime에서 대기한다.' },
+      segmented: { type: 'boolean', description: '이미 시작된 컷별 작업의 분할 제작 여부(시작 때 정해지며 바꿀 수 없다). 공통 지침/회차 개요 → 장면당 최대6컷 각색 → 인접 컷 포함 부분 검토 → 전체 흐름 검토. 조판도 장면별 분할.' },
+      imageModel: { type: 'string', enum: ['gpt-image-2', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'], description: '진행 중인 컷별 작업의 현재 요청 모델과 같아야 한다(변경은 lore_webtoon_render에서). 이 경로로 새 작업은 시작할 수 없다.' },
       direction: { type: 'string' }, feedback: { type: 'string' }, responses: { type: 'object', additionalProperties: { type: 'string' }, description: '사용자 선택만 전달. W04는 자유 작화 설명, W15는 standard|soft|minimal 또는 지원 설정 JSON 문자열, W16은 scroll|page-ltr|page-rtl. 자유로운 원답은 feedback으로 전달해 근거를 보존하며 정리한다. 기본 선택 표시나 무응답을 승인으로 만들지 않는다.' },
       retry: { type: 'boolean' }, newWorkflow: { type: 'boolean' }, adoptEdits: { type: 'boolean' },
     }, required: ['workId'] },
@@ -705,7 +705,7 @@ async function handle(msg) {
         serverInfo: SERVER_INFO,
         instructions:
           'vibelore 는 소설의 설정 일관성과 집필 순서를 지키는 도구입니다. 기본 집필은 lore_write 하나로 시작하세요. ' +
-          '회차 계획, 원본 초고 프롬프트, 의미·논리 검사, 최대 3회 수정, 승인과 커밋을 영속 워크플로가 순서대로 실행합니다. ' +
+          '회차 계획, 원본 초고 프롬프트, 의미·논리 검사(최대 3회, 그 사이 수정 최대 2회), 승인과 커밋을 영속 워크플로가 순서대로 실행합니다. ' +
           '웹툰화는 webtoon-discovery-interview 스킬로 장면 경로 입력을 정한 뒤 lore_webtoon_scene으로 제작합니다. lore_webtoon_plan 컷별 경로는 deprecated입니다. needs_model은 lore_resume으로 답합니다. 웹툰 조회는 lane=webtoon을 사용합니다.',
       });
     }

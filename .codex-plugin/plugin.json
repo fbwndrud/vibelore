@@ -1,7 +1,7 @@
 {
   "name": "vibelore-plugin",
   "version": "0.4.0",
-  "description": "Write consistent fiction and adapt existing novels into vertical webtoons with storyboards, lettering, and approvals through a local MCP server.",
+  "description": "Write consistent fiction and adapt existing novels into webtoon scenes, one image per scene with dialogue in the work language, through a local MCP server.",
   "author": {
     "name": "JoungKyoungLyoo",
     "url": "https://github.com/fbwndrud"
@@ -14,14 +14,15 @@
     "web-novel",
     "webtoon",
     "continuity",
-    "mcp"
+    "mcp",
+    "multilingual"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Vibelore",
     "shortDescription": "Write fiction and adapt novels into webtoons",
-    "longDescription": "Plan and write consistent fiction, then adapt existing novels into vertical webtoons through visual-direction interviews, editorial selection, user-approved rough storyboards, image requests, lettering, and separately approved SVG/HTML masters. Image generation requires a capable host.",
+    "longDescription": "Plan and write consistent fiction with continuity checks and approvals, then adapt existing novels into webtoon scenes. You choose the source range, art style, reference images, panel count and an OpenAI image model; each scene gets English direction, a pre-generation check, one image with the dialogue lettered verbatim in the work language, and a review of the actual image, with automatic re-planning on failure. Image generation uses the OpenAI image API, called by the host, with separate billing.",
     "developerName": "JoungKyoungLyoo",
     "category": "Productivity",
     "capabilities": [
@@ -34,7 +35,7 @@
       "새 웹소설의 방향을 인터뷰부터 함께 정해 줘.",
       "현재 작품의 다음 화를 검토 가능한 방식으로 써 줘.",
       "작품의 인물과 아크 일관성을 점검해 줘.",
-      "기존 소설을 세로형 웹툰으로 각색하고 싶어. 작화·문자·판면 선택부터 물어봐 줘."
+      "기존 소설을 웹툰으로 각색하고 싶어. 원작 범위·화풍·참조 그림·칸 수·이미지 모델부터 물어봐 줘."
     ],
     "brandColor": "#9F3A38"
   }

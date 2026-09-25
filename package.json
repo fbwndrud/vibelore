@@ -2,7 +2,16 @@
   "name": "vibelore",
   "version": "0.4.0",
   "type": "module",
-  "description": "Local novel-writing and webtoon-adaptation plugin with continuity checks, storyboards, lettering, and approval workflows.",
+  "description": "Local MCP server for writing consistent serial fiction with continuity checks and approval workflows, then adapting chapters into webtoon scenes: one image per scene with dialogue in the work language, pre-generation checks and visual review.",
+  "keywords": [
+    "fiction",
+    "novel-writing",
+    "web-novel",
+    "webtoon",
+    "continuity",
+    "mcp",
+    "multilingual"
+  ],
   "files": [
     ".codex-plugin/",
     ".mcp.json",
