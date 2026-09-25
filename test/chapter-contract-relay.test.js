@@ -153,3 +153,43 @@ test('a failed semantic verdict becomes a hard violation that the workflow revis
  const wf=await store.loadWorkflow(workId);
  assert.equal((await loadValidationSession(store,workId,`workflow-${wf.workflowId}`)).failures,1);
 });
+
+// 2026-09-25 ar·zh-Hant·th 표본: hard 위반으로 필수 검증이 실패해 revise 를 요청한 뒤 lore_resume 하면
+// 고치지 않은 옛 원고를 다시 판정했다. 그 재판정이 예산 한 번을 쓰고, 통과하면 수정본을 버린 채 옛 원고가 커밋됐다.
+// 재개는 revise 답을 적용하고 수정본만 판정한다.
+test('resuming a pending mandatory repair validates the revised prose, never the unchanged failed draft',async()=>{
+ const store=await qualityStore();const insertion='조용히 손을 내렸다.';
+ let failed=false;const judged=[];let reviseAnswered=false;const afterRevise=[];
+ const invoke=async(previous)=>{
+  const run=previous?.runId?await loadRun(store.rootDir,previous.runId):null;const answers={...run?.answers};
+  for(const req of previous?.requests??[]){
+   const shaped={step:req.step,messages:[{role:'system',content:req.system},{role:'user',content:req.user}]};
+   const text=`${req.system}\n${req.user}`;
+   if(reviseAnswered&&['continuity-extract','continuity-check','language-contract','chapter-summary'].includes(req.step))afterRevise.push({step:req.step,revised:text.includes(insertion)});
+   if(req.step==='continuity-check'){
+    const wf=await store.loadWorkflow(workId);const session=await loadValidationSession(store,workId,`workflow-${wf.workflowId}`);
+    judged.push({revised:text.includes(insertion),failuresBefore:session.failures});
+    if(!failed){failed=true;
+     const hash=text.match(/contextHash: ([a-f0-9]{64})/)[1];const ids=text.match(/판정한다: ([A-Z_, ]+)\./)[1].split(', ');
+     const prose=text.split('## 본문\n')[1].split('\n\n## ')[0];const quote=prose.split('\n')[0].slice(0,12);
+     answers[req.id]=JSON.stringify({violations:[],semanticValidation:{contextHash:hash,verdicts:Object.fromEntries(ids.map(id=>[id,id==='POV'?'fail':'pass'])),
+      evidence:[{invariantId:'POV',fieldPath:'prose',quote,reason:'서술자가 선언된 시점을 벗어나 다른 인물의 속마음을 직접 서술한다.'}]}});
+     continue;}
+   }
+   if(req.step==='revise')reviseAnswered=true;
+   answers[req.id]=req.step==='revise'?JSON.stringify({replacements:[],insertions:[{afterParagraph:1,text:insertion}]}):(contractResponse(shaped)?.text??outputs[req.step]??'{}');
+  }
+  return runRelayedTool({store,toolName:'lore_write',args:run?.args??{workId,autonomy:'auto'},run,answers,
+   providerForTool:(_name,seed)=>createPreflightRelay(seed),executeTool:(store,_name,args,providers)=>runWriteWorkflow({store,...args,providers})});
+ };
+ let result=await invoke();const steps=[];
+ for(let n=0;n<20&&result.status==='needs_model';n++){steps.push(result.requests.map(r=>r.step));result=await invoke(result);}
+ assert.equal(result.status,'completed',JSON.stringify(result));
+ const reviseAt=steps.findIndex(s=>s.includes('revise'));assert.ok(reviseAt>0);
+ // After the revise answer no judge request may carry the unchanged draft.
+ assert.deepEqual(judged,[{revised:false,failuresBefore:0},{revised:true,failuresBefore:1}]);
+ assert.ok(afterRevise.length>=2,JSON.stringify(afterRevise));assert.ok(afterRevise.every(r=>r.revised),JSON.stringify(afterRevise));
+ const wf=await store.loadWorkflow(workId);
+ assert.equal((await loadValidationSession(store,workId,`workflow-${wf.workflowId}`)).failures,1);
+ assert.match((await store.loadArtifact(workId,1)).prose,new RegExp(insertion));
+});

@@ -455,6 +455,38 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   const judgeBoundary = (prose, relay = providers) => runNarrativeBoundary({
     arcPlan, episodePlan, chapter, prose, providers: relay, kit, workContract, language: workContract.language,
   });
+  // The repair of a judged failure: the revise answer replaces the draft. The
+  // failed judgment already spent its attempt, so a resume must not judge the
+  // unchanged draft again (2026-09-25 ar, zh-Hant and th samples: that
+  // re-judgment spent an attempt, and when it passed the revision was thrown
+  // away and the unrevised draft was committed).
+  async function applyMandatoryRepair() {
+    const { violations } = workflow.pendingRepair;
+    const revised = await runReviseTool({ store, workId, chapter, prose: current.prose, castManifestRaw: current.castManifestRaw, violations, providers });
+    if (pending(providers)) {
+      await transition(store, workflow, 'awaiting_model', { operation: 'mandatory_repair' });
+      return false;
+    }
+    const sourceProse = current.prose;
+    current = manifestFrom(revised.prose);
+    revisionPreservation = evaluateRevisionPreservation({ sourceProse, candidateProse: current.prose, violations });
+    workflow.revisionPreservation = revisionPreservation;
+    workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
+    delete workflow.pendingRepair;
+    await store.saveWorkflow(workId, workflow);
+    return true;
+  }
+  if (workflow.pendingRepair) {
+    const session = await loadValidationSession(store, workId, `workflow-${workflow.workflowId}`);
+    const resumable = workflow.operation === 'mandatory_repair' && !retryValidation
+      && workflow.pendingRepair.proseHash === proseHash(current.prose)
+      && session?.status === 'validation_incomplete' && session.epoch === workflow.pendingRepair.validationEpoch;
+    if (!resumable) { delete workflow.pendingRepair; await store.saveWorkflow(workId, workflow); }
+    else {
+      providers.shareContext?.({ id: 'chapter-prose', label: kit.phrases.common.chapterProseLabel(chapter), text: current.prose });
+      if (!await applyMandatoryRepair()) return { preview: true, workflowId: workflow.workflowId, chapter };
+    }
+  }
   let attempt = 1;
   for (; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const normalizedProse = normalizeWebnovelLayout(
@@ -509,17 +541,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       }
       const repairable = (check.violations ?? []).filter(v => v.severity === 'hard');
       if (repairable.length) {
-        const revised = await runReviseTool({ store, workId, chapter, prose: current.prose, castManifestRaw: current.castManifestRaw, violations: repairable, providers });
-        if (pending(providers)) {
-          await transition(store, workflow, 'awaiting_model', { operation: 'mandatory_repair' });
-          return { preview: true, workflowId: workflow.workflowId, chapter };
-        }
-        const sourceProse = current.prose;
-        current = manifestFrom(revised.prose);
-        revisionPreservation = evaluateRevisionPreservation({ sourceProse, candidateProse: current.prose, violations: repairable });
-        workflow.revisionPreservation = revisionPreservation;
-        workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
-        await store.saveWorkflow(workId, workflow);
+        workflow.pendingRepair = { proseHash: proseHash(current.prose), validationEpoch: check.validationEpoch, violations: repairable };
+        if (!await applyMandatoryRepair()) return { preview: true, workflowId: workflow.workflowId, chapter };
       }
       // One persistent validation budget covers every actual failed judge response.
       // Pending host requests never consume it; the same prepared draft is resumed.
