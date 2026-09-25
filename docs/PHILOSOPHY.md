@@ -1,5 +1,7 @@
 # vibelore의 방향과 철학
 
+한국어 | [English](PHILOSOPHY.en.md)
+
 ## 한 문장
 
 vibelore는 소설을 대신 쓰는 규칙 모음이 아니라, **사용자가 원하는 독서 경험을 먼저 합의하고

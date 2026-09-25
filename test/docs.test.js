@@ -5,7 +5,8 @@ import { dirname, relative, resolve, sep } from 'node:path';
 import test from 'node:test';
 
 const documents = [
-  'README.md', 'HOSTS.md', 'docs/README.md', 'docs/PHILOSOPHY.md', 'docs/GETTING_STARTED.md',
+  'README.md', 'README.en.md', 'README.ja.md', 'README.es.md', 'README.fr.md', 'README.zh-Hant.md',
+  'README.th.md', 'README.ar.md', 'HOSTS.md', 'HOSTS.en.md', 'docs/README.md', 'docs/PHILOSOPHY.md', 'docs/GETTING_STARTED.md',
   'docs/MODELS.md', 'docs/MCP.md', 'docs/TOOLS.md', 'docs/ARCHITECTURE.md', 'docs/OPERATIONS.md',
   'docs/WEBTOON.md', 'docs/TROUBLESHOOTING.md', 'docs/reference/WEBTOON_WORKFLOW.md',
   'AGENTS.md', 'hosts/codex/AGENTS.md', 'CONTRIBUTING.md', 'SECURITY.md',

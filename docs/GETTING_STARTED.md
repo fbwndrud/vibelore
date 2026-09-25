@@ -1,5 +1,7 @@
 # 시작 안내
 
+한국어 | [English](GETTING_STARTED.en.md)
+
 vibelore는 따로 여는 앱이 아닙니다. 평소 쓰는 AI 코딩 도구(Claude Code, Codex, Grok CLI)에
 붙여 쓰는 도구입니다. 채팅창에 “다음 화를 써 줘”라고 말하면, AI가 vibelore를 불러 설정을
 확인하고 검사하면서 소설을 씁니다.

@@ -1,5 +1,7 @@
 # 운영과 복구
 
+한국어 | [English](OPERATIONS.en.md)
+
 호스트 AI·연동 개발자를 위한 상세 절차입니다. 일반 사용자는 먼저
 [문제 해결과 백업](TROUBLESHOOTING.md)의 요청 예시를 이용하세요.
 

@@ -1,5 +1,7 @@
 # vibelore MCP 사용 및 설계
 
+한국어 | [English](MCP.en.md)
+
 호스트·연동 개발자를 위한 프로토콜 참조입니다. 사용자 요청부터 결과 저장까지의 전체 구조는
 [아키텍처](ARCHITECTURE.md), 실제 시작 방법은 [시작 안내](GETTING_STARTED.md)를 보세요.
 

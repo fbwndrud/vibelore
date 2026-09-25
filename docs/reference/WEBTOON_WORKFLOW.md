@@ -1,5 +1,7 @@
 # 웹툰 실행 규약 — 호스트·연동 개발자용
 
+한국어 | [English](WEBTOON_WORKFLOW.en.md)
+
 ## 기본 경로: 장면 통합 제작
 
 새 웹툰 작업은 `lore_webtoon_scene`을 기본으로 사용한다. 러프 없이 장면 전체와 문자를 함께 생성한다.

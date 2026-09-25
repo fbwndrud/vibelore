@@ -1,5 +1,7 @@
 # MCP 도구 레퍼런스
 
+한국어 | [English](TOOLS.en.md)
+
 호스트 AI와 직접 연동하는 사용자를 위한 호출 참조입니다. 일반 사용자는 인자를 직접 작성할
 필요 없이 [시작 안내](GETTING_STARTED.md)와 [웹툰 만들기](WEBTOON.md)를 따라 요청하세요.
 
