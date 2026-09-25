@@ -1,5 +1,5 @@
 {
- "builtAt": "2026-09-25T08:49:35+00:00",
+ "builtAt": "2026-09-25T11:20:57+00:00",
  "builtBy": "tmp/showcase-multilingual/build-multilingual.py",
  "novelModel": "claude-sonnet-5",
  "novelEvidence": [
@@ -12,7 +12,7 @@
   "id": "webtoon-samples-3207b83",
   "head": "3207b83",
   "generatedAt": "2026-09-25T08:42:34+00:00",
-  "server": "vibelore @ 3207b83 (worktree /Users/lyoojk/vibelore-acceptance/3207b83), MCP stdio",
+  "server": "vibelore @ 3207b83, MCP stdio",
   "hostModel": "claude-opus-5-5 via Claude Code CLI 2.1.280 (claude -p, effort high, no tools, fresh process per request)",
   "imageModel": "gpt-image-2.5-sunburst via OpenAI API (bundled image_gen.py; scene: edit, quality high, 1024x1536, png, --no-augment; cast reference reused from the 52e5aee run, not regenerated or billed)",
   "direction": "Finished full-color vertical webtoon page with clean ink lines, soft cel shading and natural lighting; a neutral modern webtoon look. Preserve the original dialogue and captions verbatim in the work language and script, and generate all lettering inside the image. The artist chooses panel count, sizes, cameras and a natural reading layout; prefer fewer, larger, clearly legible panels over many small ones. Keep character identity, clothing and props consistent with the references. Preserve the source events and timing; distinguish uncertain geography from confirmed facts and never invent mechanics the source does not state.",
@@ -38,7 +38,7 @@
   "id": "webtoon-samples-52e5aee",
   "head": "52e5aee",
   "generatedAt": "2026-09-25T08:09:15+00:00",
-  "server": "vibelore 0.4.0 @ 52e5aee (worktree /Users/lyoojk/vibelore-acceptance/52e5aee), MCP stdio",
+  "server": "vibelore 0.4.0 @ 52e5aee, MCP stdio",
   "hostModel": "claude-opus-5-5 via Claude Code CLI 2.1.280 (claude -p, effort high, no tools, fresh process per request)",
   "imageModel": "gpt-image-2.5-sunburst via OpenAI API (bundled image_gen.py; scene: edit, quality high, 1024x1536, png, --no-augment; cast reference: generate, quality medium)",
   "direction": "Finished full-color vertical webtoon page with clean ink lines, soft cel shading and natural lighting; a neutral modern webtoon look. Preserve the original dialogue and captions verbatim in the work language and script, and generate all lettering inside the image. The artist chooses panel count, sizes, cameras and a natural reading layout; prefer fewer, larger, clearly legible panels over many small ones. Keep character identity, clothing and props consistent with the references. Preserve the source events and timing; distinguish uncertain geography from confirmed facts and never invent mechanics the source does not state.",
