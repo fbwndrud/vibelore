@@ -9,6 +9,20 @@
   language, script and reading direction (including right-to-left for `ar`).
 - Lettering comparison between the plan and the observed image text is NFC
   normalized, and the reviewer transcribes observed text in the drawn script.
+- Right-to-left scene prompts (such as `ar`) also state the page reading
+  order: rows top to bottom, panels within a row right to left, and the first
+  spoken line at the right or top. Left-to-right prompts are unchanged.
+- Scene lettering drops the prose's enclosing dialogue quotation marks (any
+  script) and Markdown emphasis markers and keeps the inner words verbatim.
+  The image prompt, the plan-vs-source check and the review-vs-plan check
+  all use the same normalization.
+- The lettering match accepts both standard placements of Arabic tanween
+  al-fath (on the final alif or on the letter before it). Other diacritic
+  differences still fail.
+- Physical in-scene writing (plan text kind `physical`) is lettered on its
+  paper, sign or screen, never in a balloon, and the scene planner is told the
+  five text kinds. Scene image prompts in every language, including `ko`, now
+  also forbid invented numbers, notes, tables, charts and signage.
 - Scene direction fields must be Latin-script English regardless of the work
   language.
 - Scene user-facing messages (questions, warnings, notices) are `ko` or `en`
