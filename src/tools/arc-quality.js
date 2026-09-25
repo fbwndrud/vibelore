@@ -1,3 +1,5 @@
+import { asKit } from '../prompts/index.js';
+
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const DIMENSIONS = ['premisePressure', 'causalEscalation', 'expectationRenewal', 'characterAgency', 'oppositionAdaptation', 'payoffSurprise', 'serialMomentum'];
 const TARGETED_CODES = new Set(['CHARACTER_ARC_RUSH', 'UNSUPPORTED_RELATIONSHIP_SHIFT', 'SOCIAL_CONSEQUENCE_RESET']);
@@ -42,6 +44,28 @@ export function deterministicArcViolations(plan) {
 
 const CHARACTER_ARC_ORDER = ['wound', 'attempt', 'collapse', 'companion', 'self-choice', 'echo'];
 
+/**
+ * 같은 회차에 감정 비트를 둘 이상 둔 원시 응답. 정규화는 회차당 첫 비트만 남기므로
+ * 모델이 wound(1)·attempt(2)·collapse(2)·companion(3) 처럼 쓰면 저장된 비트는
+ * attempt→companion 으로 단계를 건너뛴 것처럼 보인다(2026-09-14 en 표본). 정규화 전에
+ * 원인을 그대로 말해 호스트 feedback 이 실제 문제를 가리키게 한다.
+ */
+export function characterArcBeatCollisions(rawCharacterArcs, count) {
+  const violations = [];
+  for (const raw of Array.isArray(rawCharacterArcs) ? rawCharacterArcs.slice(0, 2) : []) {
+    const seen = new Map();
+    for (const item of Array.isArray(raw?.beats) ? raw.beats : []) {
+      const episodeIndex = Number(item?.episodeIndex);
+      if (!Number.isInteger(episodeIndex) || episodeIndex < 1 || episodeIndex > count) continue;
+      seen.set(episodeIndex, (seen.get(episodeIndex) ?? 0) + 1);
+    }
+    for (const [episodeIndex, n] of seen) {
+      if (n > 1) violations.push({ code: 'CHARACTER_ARC_MULTIPLE_BEATS_PER_EPISODE', message: `${raw?.characterId ?? '?'}의 ${episodeIndex}화에 감정 비트가 ${n}개다. 회차당 비트는 하나만 두고, 한 단계는 여러 회차에 걸쳐도 된다.` });
+    }
+  }
+  return violations;
+}
+
 function targetedFinding(value) {
   const confidence = Number(value?.confidence);
   const code = String(value?.code ?? '');
@@ -56,11 +80,16 @@ function parse(raw) {
   catch { return null; }
 }
 
-export async function runArcQuality({ foundation, plan, providers }) {
-  const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'arc-quality', messages: [
-    { role: 'system', content: '당신은 한국 상업 웹소설의 블라인드 아크 심사자다. 필드가 채워졌는지가 아니라 독자가 매 화 세운 가설이 갱신되는지, 해결이 다음 갈등의 원인이 되는지, 중심 인물이 자기 욕구로 선택해 결과를 바꾸는지, 상대가 성공을 학습해 적응하는지, 심은 단서가 예상 밖이지만 납득 가능한 방식으로 회수되는지 평가한다. 모든 인물이 매 화 충돌하거나 자기 논점을 주장할 필요는 없다. 조용한 반응, 합의, 부재도 장면에 맞으면 정상이다. 사건명만 바꾼 동일 공식, 주인공의 연속 정답, 비용 없는 장기 보상, 마지막에 새 위험만 붙이는 훅을 엄격히 감점한다. 관계 점검은 별도 조건부 관찰이다. 계획에 명시적인 관계·말투 변화가 있거나, 한 인물이 다른 인물의 안전·지위·신뢰를 크게 훼손하는 사건이 있을 때만 applicable=true로 평가한다. 해당 사건이 없으면 관계 문제를 억지로 만들지 않는다. 조건부 관찰은 일곱 평균 점수와 verdict에 반영하지 않는다. 결과 사건을 대신 쓰지 말고 설계의 생성 가능성을 심사한다. 순수 JSON만 출력한다.' },
-    { role: 'user', content: `작품 세계·인물:\n${JSON.stringify({ title: foundation.title, genre: foundation.genre, worldFacts: foundation.worldFacts, characters: foundation.characters.map((c) => ({ id: c.id, name: c.canonicalName, contradiction: c.contradiction, description: c.description })) })}\n\n검사할 아크:\n${JSON.stringify(plan)}\n\n각 dimensions는 0~100이며 score는 일곱 차원의 산술평균이다. targetedReview는 명시적 관계 변화나 중대한 관계 사건이 있을 때만 적용하고, 단계 진행의 행동 근거 또는 사건 뒤 태도·책임·거리 변화가 계획에 남는지 본다. JSON: {"score":0,"dimensions":{"premisePressure":0,"causalEscalation":0,"expectationRenewal":0,"characterAgency":0,"oppositionAdaptation":0,"payoffSurprise":0,"serialMomentum":0},"verdict":"pass|revise","findings":[{"dimension":"premisePressure|causalEscalation|expectationRenewal|characterAgency|oppositionAdaptation|payoffSurprise|serialMomentum","code":"GENERIC_PREMISE|EPISODE_RESET|STATIC_EXPECTATION|PASSIVE_CHARACTER|PASSIVE_OPPOSITION|TELEGRAPHED_PAYOFF|WEAK_SERIAL_PULL","message":"구체적 문제와 아크 수준 수정 방향"}],"targetedReview":{"applicable":false,"findings":[{"code":"CHARACTER_ARC_RUSH|UNSUPPORTED_RELATIONSHIP_SHIFT|SOCIAL_CONSEQUENCE_RESET","message":"구체적 문제와 최소 아크 수정 방향","evidence":"문제가 드러나는 화와 계획 문구","confidence":0.0}]}}` },
-  ] });
+/**
+ * @param {{ kit?: object|null }} input `kit` 이 없으면 foundation 의 저장된 언어로,
+ *   그것도 없으면 구작의 암묵적 ko 계열로 해석한다.
+ */
+export async function runArcQuality({ foundation, plan, providers, kit: kitSource }) {
+  const kit = asKit(kitSource ?? { foundation });
+  const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'arc-quality', messages: kit.messages('arc-quality', {
+    foundationJson: JSON.stringify({ title: foundation.title, genre: foundation.genre, worldFacts: foundation.worldFacts, characters: foundation.characters.map((c) => ({ id: c.id, name: c.canonicalName, contradiction: c.contradiction, description: c.description })) }),
+    planJson: JSON.stringify(plan),
+  }) });
   if ((providers.pending?.length ?? 0) > 0) return null;
   const obj = parse(response.text);
   if (!obj) throw new Error('아크 품질 심사 JSON을 해석할 수 없습니다.');

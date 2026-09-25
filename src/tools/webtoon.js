@@ -718,7 +718,7 @@ async function accept(repo, workflow) {
   workflow.applyingApproval = null;
 }
 
-export async function runWebtoonTool({ store, toolName, args, providers, run = null }) {
+export async function runWebtoonTool({ store, toolName, args, providers, run = null, blockNewPanelWorkflows = false }) {
   if (!safeId(args.workId)) throw new Error('INVALID_WORK_ID');
   if (args.segmented !== undefined && (typeof args.segmented !== 'boolean' || toolName !== 'lore_webtoon_plan')) throw new Error('INVALID_SEGMENTED_OPTION');
   if (args.imageModel !== undefined || args.imageExecution !== undefined) imagePolicyFor(args.imageModel, args.imageExecution);
@@ -739,6 +739,7 @@ export async function runWebtoonTool({ store, toolName, args, providers, run = n
     }
     if (toolName === 'lore_webtoon_plan' && (!workflow || (args.newWorkflow && terminal(workflow)))) {
       if (args.workflowId && !workflow) throw new Error('WEBTOON_WORKFLOW_NOT_FOUND');
+      if (blockNewPanelWorkflows) throw new Error('WEBTOON_PANEL_PATH_DEPRECATED: The per-panel path is deprecated. Start new webtoon work with lore_webtoon_scene; existing panel workflows can still be read and finished.');
       const scope = { episode: args.episode ?? 1, maxShots: args.maxShots ?? 40 };
       if (!Number.isSafeInteger(scope.episode) || scope.episode < 1 || !Number.isSafeInteger(scope.maxShots) || scope.maxShots < 1 || scope.maxShots > 120) throw new Error('INVALID_PRODUCTION_SCOPE');
       const source = await resolveWebtoonSource(store, args.workId, args.sourceChapters);

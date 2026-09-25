@@ -8,8 +8,15 @@
  *   3. (확장 hook) mid-summary / arc-summary — 본 PR 미포함, 후속.
  *
  * Budget 초과 시 oldest 순으로 trim. token estimate = chars / 2 (한국어 근사).
+ * `input.promptFamily` 가 'multilingual' 이면 스크립트 인지 tokenUnits() 를 쓰고,
+ * 미지정·'ko' 는 기존 chars / 2 그대로다(ko 프롬프트 byte-identical).
  * 실 tokenizer 도입은 후속.
+ *
+ * 이 token 근사는 **분량 계약과 무관한 컨텍스트 예산**이다. 작품 분량 목표는
+ * `language-policy` 의 `length` 계약과 측정 정책이 소유하며 둘을 섞지 않는다.
  */
+import { pickByFamily } from './prompt-language.js';
+import { budgetEstimator } from './token-units.js';
 /** 한국어 prose 의 거친 token 추정. 정확도 보단 ratio 비교용. */
 export function approxTokens(text) {
     return Math.ceil(text.length / 2);
@@ -25,6 +32,7 @@ function envBudget() {
 }
 export async function buildSlidingWindow(input) {
     const tokenBudget = input.tokenBudget ?? envBudget();
+    const estimate = budgetEstimator(input.promptFamily, approxTokens);
     const windowSize = Math.max(0, input.recentSummaryWindow ?? DEFAULT_WINDOW);
     const summaries = windowSize > 0 && input.currentChapter > 1
         ? await input.state.loadRecentChapterSummaries(input.workId, input.currentChapter, windowSize)
@@ -38,7 +46,7 @@ export async function buildSlidingWindow(input) {
     const kept = [];
     let usedTokens = 0;
     for (const s of sortedNewestFirst) {
-        const t = approxTokens(s.summary) + 8; // small header overhead
+        const t = estimate(s.summary) + 8; // small header overhead
         if (usedTokens + t > tokenBudget)
             break;
         kept.push(s);
@@ -56,22 +64,41 @@ export async function buildSlidingWindow(input) {
 /**
  * Render sliding window for prompt insertion. Stable format — draft.ts 가
  * buildUserPrompt 안에 그대로 삽입.
+ *
+ * `context` 는 선택 인자다(구형 호출 = ko 계열, byte-identical). 요약 본문
+ * (`s.summary`)·sceneTags·plotBeat 는 작품 데이터/기계 값이라 계열과 무관하게
+ * 그대로 싣고, 섹션 라벨과 fallback 문구만 계열별로 고른다.
  */
-export function renderSlidingWindow(window) {
+export function renderSlidingWindow(window, context) {
+    const labels = context === undefined || context === null
+        ? LABELS_KO
+        : pickByFamily(context, { ko: LABELS_KO, multilingual: LABELS_EN });
     if (window.recentSummaries.length === 0) {
-        return '(이전 화 요약 없음 — 1화 또는 신규 작품)';
+        return labels.empty;
     }
     // oldest-first 로 reverse 해 reader 가 시간 순서로 읽음.
     const ordered = [...window.recentSummaries].sort((a, b) => a.chapterNumber - b.chapterNumber);
     const lines = [];
-    lines.push(`## 최근 ${ordered.length} 화 요약 (sliding window, budget ${window.tokenBudget}t, used ~${window.estimatedTokens}t)`);
+    lines.push(labels.heading(ordered.length, window));
     if (window.trimmedCount > 0) {
-        lines.push(`(token budget 으로 더 오래된 ${window.trimmedCount} 화 요약 생략)`);
+        lines.push(labels.trimmed(window.trimmedCount));
     }
     for (const s of ordered) {
         const tags = s.sceneTags?.length ? ` [${s.sceneTags.join(',')}]` : '';
         const beat = s.plotBeat ? ` (beat=${s.plotBeat})` : '';
-        lines.push(`- 화 ${s.chapterNumber}${beat}${tags}: ${s.summary}`);
+        lines.push(`${labels.entryPrefix}${s.chapterNumber}${beat}${tags}: ${s.summary}`);
     }
     return lines.join('\n');
 }
+const LABELS_KO = {
+    empty: '(이전 화 요약 없음 — 1화 또는 신규 작품)',
+    heading: (count, window) => `## 최근 ${count} 화 요약 (sliding window, budget ${window.tokenBudget}t, used ~${window.estimatedTokens}t)`,
+    trimmed: (count) => `(token budget 으로 더 오래된 ${count} 화 요약 생략)`,
+    entryPrefix: '- 화 ',
+};
+const LABELS_EN = {
+    empty: '(No previous chapter summaries — first chapter or a new work.)',
+    heading: (count, window) => `## Recent ${count} chapter summaries (sliding window, budget ${window.tokenBudget}t, used ~${window.estimatedTokens}t)`,
+    trimmed: (count) => `(${count} older chapter summaries omitted for the context token budget.)`,
+    entryPrefix: '- Chapter ',
+};

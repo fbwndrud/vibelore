@@ -26,6 +26,19 @@ describe('NarrativeContract', () => {
     assert.ok(result.trace.examplesExcluded.some((item) => item.reason === 'example-count'));
   });
 
+  it('names the chapter viewpoint character from the plan so the draft and the local revise both hear it', () => {
+    const profile = { narrativeContract: { readerPromise: '약속' }, tones: [] };
+    const names = { c1: '이네스', c2: '클라라' };
+    const withViewpoint = compileDraftContract({ profile, identity: {}, episodePlan: { premise: '항구', povCharacter: 'c2' }, characterNames: names });
+    assert.match(withViewpoint.writerText, /- 이번 화 시점 인물: 클라라 — 첫 문단을 포함한/);
+    const otherViewpoint = compileDraftContract({ profile, identity: {}, episodePlan: { premise: '항구', povCharacter: 'c1' }, characterNames: names });
+    assert.notEqual(withViewpoint.trace.digest, otherViewpoint.trace.digest);
+    const unnamed = compileDraftContract({ profile, identity: {}, episodePlan: { premise: '항구', povCharacter: 'c2' } });
+    assert.match(unnamed.writerText, /시점 인물: c2/);
+    const none = compileDraftContract({ profile, identity: {}, episodePlan: { premise: '항구' } });
+    assert.doesNotMatch(none.writerText, /시점 인물/);
+  });
+
   it('compiles legacy planning objects into a stable bounded v2 contract', () => {
     const input = {
       profile: { revision: 3, tones: ['긴장', '건조'], format: { pov: '3인칭 제한' }, storyEngines: ['전술적 역전'], readabilityContract: { surfaceEase: 'easy', conceptPacing: 'slow', inferenceLoad: 'explicit', complexityRamp: 'onboarding-first' } },

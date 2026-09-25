@@ -136,12 +136,27 @@ describe('working tree and experience generations', () => {
     const root = await mkdtemp(join(tmpdir(), 'vibelore-sync-apply-'));
     const store = new MarkdownStateStore(root);
     await store.saveFoundation({ workId: 'work', genre: 'fantasy', worldFacts: [], characters: [], intrinsicChanges: [], genreProfile: { invariants: [] } });
+    await store.saveStoryProfile('work', { status: 'active', format: { length: { unit: 'legacyCodeUnits', target: 10 } } });
     const delta = { chapterNumber: 1, appearedCharacterIds: [], mutableChanges: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], trackedEntityOps: [], entityOps: [], lexiconAdditions: [] };
     const providers = {
       get pending() { return []; },
       async complete(request) {
+        const content = request.messages.map((item) => item.content).join('\n');
+        const contextHash = content.match(/contextHash: ([a-f0-9]{64})/)?.[1];
         if (request.step === 'chapter-summary') return { text: '{"summary":"손수정 요약","plotBeat":"opening","sceneTags":[],"povCharacter":null}' };
-        return { text: '{}' };
+        if (request.step === 'chapter-title') return { text: '{"title":"손수정 화"}' };
+        if (request.step === 'continuity-extract') return { text: JSON.stringify({
+          newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], trackedEntityOps: [],
+          noInfluenceReason: '지속되는 상태 변화가 없는 장면이다.', extractionValidation: { contextHash },
+        }) };
+        if (request.step === 'continuity-check') {
+          const ids = content.match(/판정한다: ([A-Z_, ]+)\./)?.[1]?.split(', ') ?? [];
+          return { text: JSON.stringify({ semanticValidation: { contextHash, verdicts: Object.fromEntries(ids.map(id => [id, 'pass'])), evidence: [] } }) };
+        }
+        if (request.step === 'language-contract') return { text: JSON.stringify({
+          language: 'ko', artifactHash: content.match(/artifactHash: ([a-f0-9]{64})/)?.[1], verdict: 'pass', evidence: [], allowedExceptions: [],
+        }) };
+        throw new Error(`Unexpected model request ${request.step}`);
       },
     };
     const committed = await runCommit({ store, workId: 'work', chapter: 1, prose: '원본 본문이다.', summary: '원본 요약', delta, providers });
@@ -155,6 +170,9 @@ describe('working tree and experience generations', () => {
     assert.notEqual(applied.publication.head, committed.publication.head);
     assert.match((await store.loadArtifact('work', 1)).prose, /직접 고친/);
     assert.equal((await detectWorkingTreeDrift({ store, sourceHead: applied.publication.head })).status, 'clean');
+    const setting = await readFile(join(root, 'world', 'setting.md'), 'utf8');
+    assert.doesNotMatch(setting, /^language:/m);
+    assert.equal(Object.hasOwn(await store.loadFoundation('work'), 'language'), false);
     await assert.rejects(
       runSyncStatus({ store, workId: 'work', action: 'apply', approvalId: validated.approvalId, providers }),
       /미사용 sync approvalId/,

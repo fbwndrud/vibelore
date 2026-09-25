@@ -1,5 +1,7 @@
 # vibelore MCP 사용 및 설계
 
+한국어 | [English](MCP.en.md)
+
 호스트·연동 개발자를 위한 프로토콜 참조입니다. 사용자 요청부터 결과 저장까지의 전체 구조는
 [아키텍처](ARCHITECTURE.md), 실제 시작 방법은 [시작 안내](GETTING_STARTED.md)를 보세요.
 
@@ -70,26 +72,27 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 ## 도구 표면
 
-기본 서버는 설계, 통합 집필, 웹툰 제작, 승인, 복구처럼 완결된 사용자 흐름 29개를 노출합니다.
+기본 서버는 설계, 통합 집필, 웹툰 제작, 승인, 복구처럼 완결된 사용자 흐름 30개를 노출합니다.
 `lore_context`, `lore_draft`, `lore_check`, `lore_commit` 같은 단계별 원시 도구는 정상
 집필 순서를 우회할 수 있어 기본 목록에서 제외됩니다.
 
 엔진 디버깅이나 호환성 검증이 필요한 개발 환경에서만 서버 프로세스에
-`VIBELORE_MCP_SURFACE=advanced`를 설정하면 전체 42개 도구를 노출합니다. 작품 집필용
+`VIBELORE_MCP_SURFACE=advanced`를 설정하면 전체 43개 도구를 노출합니다. 작품 집필용
 설정에는 이 값을 넣지 않습니다.
 
 ## 공통 입력과 응답
 
-웹툰은 `lore_webtoon_plan`으로 인터뷰·각색, `lore_webtoon_render`로 이미지 job·러프·조판,
-`lore_webtoon_decide`로 현재 ID에 결합된 승인을 처리합니다. 러프 없이 장면 전체를 한 장으로
-만드는 별도 경로는 `lore_webtoon_scene`입니다. `needs_interview`는 사용자 답,
-`needs_model`은 호스트 모델 답을 뜻하며 후자는 기존 `lore_resume`을 공유합니다.
+웹툰은 `lore_webtoon_scene`으로 러프 없이 장면 전체를 대사까지 한 장으로 생성합니다.
+`lore_webtoon_plan`(인터뷰·각색), `lore_webtoon_render`(이미지 job·러프·조판),
+`lore_webtoon_decide`(현재 ID에 결합된 승인)는 [deprecated]이며 이미 시작된 컷별 작업을
+이어갈 때만 씁니다. `needs_interview`는 사용자 답, `needs_model`은 호스트 모델 답을 뜻하며
+후자는 기존 `lore_resume`을 공유합니다.
 
 조회에는 `lore_workflow_status/history(lane="webtoon", workflowId="wt-...")`를 사용합니다.
 lane 생략은 소설 조회입니다. 재개 계약은 [웹툰 상태표](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를
-따릅니다. `needs_images`는 생성 완료가 아닌 요청서이며 이미지 실행은 호스트가 담당합니다.
-웹툰도 공통 입력 검증·작품 단위 잠금·중단된 소설 복구 처리를 거친 뒤 실행합니다.
-독립 이미지 작업은 병렬 실행할 수 있으나 저장 변경은 직렬화됩니다.
+따릅니다. 기본 경로의 `needs_scene_image`(작업 1개)와 컷별 경로의 `needs_images`는 생성 완료가 아닌
+요청서이며 이미지 실행은 호스트가 담당합니다. 웹툰도 공통 입력 검증·작품 단위 잠금·중단된 소설 복구
+처리를 거친 뒤 실행합니다. 컷별 경로의 독립 이미지 작업은 병렬 실행할 수 있으나 저장 변경은 직렬화됩니다.
 
 | 인자 | 형식 | 의미 |
 |---|---|---|
@@ -142,7 +145,9 @@ sequenceDiagram
 (`{ provider, modelId }`), `reasoningEffort`가 추가됩니다. 이 값은 호스트가 요청을 어느
 모델과 생각 수준으로 처리할지 정하는 힌트이며, vibelore가 직접 모델을 호출하지는 않습니다.
 
-빈 `answers`는 모델 판단을 포기한다는 뜻입니다. 결정론 결과로 끝나며 `degraded: true`가 표시됩니다.
+빈 `answers`는 작업을 끝내지 않습니다. 같은 요청이 `needs_model`로 다시 돌아오므로 빈 답으로 재시도하지 마세요.
+답을 멈추면 소설·설계 도구는 `needs_model` 응답의 `deterministicResult`가 유일한 결과이며(웹툰 응답에는 없음), `lore_write`에서는 멈춘 workflow 식별 정보뿐이고 워크플로는
+`awaiting_model`로 멈춰 있습니다.
 
 ## 작품 수명주기
 

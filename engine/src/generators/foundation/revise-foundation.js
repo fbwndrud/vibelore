@@ -27,7 +27,13 @@
  */
 import { registerCharacter, } from '../../continuity/foundation.js';
 import { normalizeDramaticModel, normalizeIdentityIntrinsic } from '../../continuity/character-design.js';
-import { REVISE_FOUNDATION_SYSTEM, buildReviseFoundationUserPrompt, } from '../text/prompts/revise-foundation.js';
+import { languageSystemLines, resolveStepPromptLanguage } from '../../core/prompt-language.js';
+import {
+    checkFoundationApproval,
+    isExplicitFoundationNewContract,
+} from '../text/foundation-validation.js';
+import { withGateContext } from '../text/chapter-validation.js';
+import { buildReviseFoundationUserPrompt, reviseFoundationSystemFor, } from '../text/prompts/revise-foundation.js';
 function asString(v, fallback = '') {
     return typeof v === 'string' ? v : fallback;
 }
@@ -242,11 +248,19 @@ export async function reviseFoundation(input) {
         throw new Error('reviseFoundation: feedback is empty');
     }
     const { current } = input;
-    const language = input.language ?? 'ko';
+    // 다국어 Phase 2A — 계약이 원천이고 함께 온 language 는 확인용이다. 저장된
+    // Foundation 이 생성 시점 계약(`workContract`/`language`)을 들고 있으면 그것을
+    // 쓰고, 아무것도 없으면 구형 ko 해석이라 프롬프트가 기존과 동일하다.
+    const promptLanguage = resolveStepPromptLanguage({
+        promptLanguage: input.promptLanguage,
+        foundation: current,
+        workContract: input.workContract ?? null,
+        language: input.language ?? null,
+    });
     const userPrompt = buildReviseFoundationUserPrompt({
         feedback,
         genre: current.genre,
-        language,
+        promptLanguage,
         worldFacts: current.worldFacts.map((wf) => ({ id: wf.id, statement: wf.statement })),
         characters: current.characters.map((c) => ({
             id: c.id,
@@ -262,7 +276,14 @@ export async function reviseFoundation(input) {
         model: input.model,
         step: 'revise-foundation',
         messages: [
-            { role: 'system', content: REVISE_FOUNDATION_SYSTEM },
+            {
+                role: 'system',
+                content: [
+                    reviseFoundationSystemFor(promptLanguage),
+                    // 토대 수정은 회차 산출물이 아니다 — 분량 목표 줄은 뺀다.
+                    ...languageSystemLines(promptLanguage, { includeChapterLength: false }),
+                ].join(' '),
+            },
             { role: 'user', content: userPrompt },
         ],
         jsonMode: true,
@@ -350,5 +371,34 @@ export async function reviseFoundation(input) {
         existingIds.add(character.id);
         autoNewSeq += 1;
     }
-    return { foundation };
+    const result = { foundation };
+    const gateCtx = withGateContext({
+        workId: current.workId,
+        providers: input.providers,
+        model: input.model,
+        validationEpoch: input.validationEpoch,
+        validationReceipt: input.validationReceipt,
+        workflowId: input.workflowId,
+        runId: input.runId,
+        workContract: input.workContract,
+        language: input.language,
+    }, input);
+    if (!isExplicitFoundationNewContract(gateCtx, { ...input, foundation: current }))
+        return result;
+    const revision = (typeof current.revision === 'number' ? current.revision : 0) + 1;
+    const checked = await checkFoundationApproval(gateCtx, {
+        foundation,
+        revision,
+        promptLanguage,
+        workContract: input.workContract,
+        language: input.language,
+        planSource: { kind: 'foundation-revise', workId: current.workId, revision, feedback },
+        validationReceipt: input.validationReceipt,
+        languageCompliance: input.languageCompliance,
+    });
+    return {
+        foundation: checked.foundation,
+        canonicalApprovalArtifact: checked.canonicalApprovalArtifact,
+        validationReceipt: checked.validationReceipt,
+    };
 }

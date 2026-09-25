@@ -23,7 +23,8 @@ function harness(candidates) {
   const providers = {
     async complete({ step, messages }) {
       if (step !== 'writer-skill') throw new Error('audition judge reached');
-      prompts.push(messages[1].content);
+      // Both prompt families state the minimums; the Korean family keeps them in the system message.
+      prompts.push(messages.map((message) => message.content).join('\n'));
       return { text: JSON.stringify({ candidates }) };
     },
   };

@@ -1,3 +1,4 @@
+import { legacyWorkFixture } from './fixtures/legacy-work.js';
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -17,7 +18,7 @@ const emptyDelta = (chapterNumber) => ({ chapterNumber, appearedCharacterIds: []
 
 async function storeWithWork() {
   const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-resilience-')));
-  await runInit({ store, workId: 'memory-work', genre: 'other', povMode: '3인칭제한', targetChapters: 20, worldFacts: ['해원은 강등권 프로 축구팀이다.'] });
+  await legacyWorkFixture({ store, workId: 'memory-work', genre: 'other', povMode: '3인칭제한', targetChapters: 20, worldFacts: ['해원은 강등권 프로 축구팀이다.'] });
   return store;
 }
 

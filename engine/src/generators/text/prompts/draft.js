@@ -12,7 +12,14 @@
  * JSON body of shape `{ "cast": [{ "characterId": "...", "addressTermsUsed": ["..."] }] }`.
  * Any character that speaks or has agency in the chapter MUST be listed; the
  * structural continuity layer relies on this being complete.
+ *
+ * 실행 경로 주의: 실제 본문 생성은 `steps/draft.js` 의 자체 builder 가 한다. 이
+ * 모듈은 공개 export 표면(`prompts/index.js`)이며 `DRAFT_FEWSHOT*` 만 steps 가
+ * import 한다. 다국어 Phase 2A 에서 이 공개 표면도 계열이 둘이 됐다.
  */
+import {
+    formatLengthTarget, pickByFamily, promptFamilyCaptureContext, resolvePromptLanguageContext,
+} from '../../../core/prompt-language.js';
 export const DRAFT_SYSTEM = [
     '당신은 한국어 웹소설 작가이다.',
     '제공된 Foundation 요약·이전 회차 상태(StoryState N-1)·이번 회차 plan 을 바탕으로 본문을 집필한다.',
@@ -35,6 +42,41 @@ export const DRAFT_SYSTEM = [
     'cast 에는 본문에 등장(대사 또는 행동 주체)한 모든 캐릭터를 빠짐없이 기재. addressTermsUsed 는 해당 캐릭터가 본문에서 다른 인물을 부른 호칭만 기록.',
     '본문은 마크다운 헤더/번호 없이 순수 산문. 코드 블록 사용 금지.',
 ].join(' ');
+/**
+ * 다국어 계열. ko 규칙의 번역이 아니라 같은 작법 의도를 영어 집필 지시로 쓴 별도
+ * 계열이며, 모바일 웹소설 고유 규칙(대사 독립 문단·문단 밀도 상한)은 목표 언어의
+ * 산문 관습으로 바꿔 말한다. sentinel 문법·JSON 키는 기계 계약이라 동일하다.
+ */
+export const DRAFT_SYSTEM_MULTILINGUAL = [
+    'You are a serial-fiction novelist writing in the target work language.',
+    'Write the chapter from the Foundation summary, the previous chapter state (StoryState N-1) and this chapter\'s plan.',
+    'Rules:',
+    '1) Character intrinsics (gender, ageBand, role, coreAppearance) must match the Foundation exactly. Never change hair colour, gender or role on your own.',
+    '2) Forms of address follow the AddressMap in the StoryState first. If you introduce a new one, introduce it inside the prose with a natural occasion.',
+    '3) Any open or progressing hook the plan asks you to advance must move at least one step forward.',
+    '4) The plan\'s events and closing beat must be reached in the prose. The length target sets the minimum breathing room; do not compress a scene whose tension, sensation and choices are alive. Cut only when the author states an upper bound.',
+    '5) Append the cast-manifest sentinel block at the end, with exactly one blank line between the prose and it.',
+    '6) Whichever of plan.tension\'s ticking / stake / escalation slots are filled must appear in the prose — realise time or outside pressure (ticking), what the protagonist can lose (stake) and the growing threat (escalation) as scene, not explanation. Ignore empty slots.',
+    '7) Let emotion land through action, sensation and dialogue first; a short, plain naming of a feeling is fine where the scene needs it.',
+    '8) Connect world information to the present choice and its consequence. The first time a core concept appears, make its surface meaning clear once.',
+    '9) Place dialogue and paragraphs by the prose conventions of the target language. Inline speech attribution and dialogue inside a narrative paragraph are both fine; do not import another market\'s layout rules.',
+    '10) Use a one-sentence paragraph only for a moment you mean to emphasise. Easy prose is not prose chopped into fragments — it is prose where the reader never loses cause and effect.',
+    '11) In a dialogue scene, let the reader understand what each character wants right now and the surface meaning of each line first. Not every line is foreshadowing, negotiation or a report; allow ordinary reaction and silence.',
+    'Sentinel format:',
+    '⟦vle:cast-manifest⟧',
+    '{ "cast": [ { "characterId": "c1", "addressTermsUsed": ["young master"] } ] }',
+    '⟦/vle:cast-manifest⟧',
+    'List every character who appears in the prose (speaking or acting) in cast. Use Foundation ids verbatim; do not translate ids, JSON keys or the sentinel tag. addressTermsUsed records only the terms that character used for other characters, in the target work language exactly as they appear in the prose.',
+    'Plain prose only — no markdown headings or numbering, no code blocks.',
+].join(' ');
+/** 이번 호출에 쓸 공개 draft system. 계약이 없으면 구형 ko 문자열 그대로다. */
+export function draftSystemFor(context) {
+    return pickByFamily(context, { ko: DRAFT_SYSTEM, multilingual: DRAFT_SYSTEM_MULTILINGUAL });
+}
+/** ADR-0006 promptManifest 수집용 계열 정적 표면(공개 표면). */
+export function publicDraftSystemStatic(family) {
+    return draftSystemFor(promptFamilyCaptureContext(family));
+}
 /**
  * EPIC #364 S4 (#368) — few-shot exemplar. plan §3.2.
  *
@@ -60,28 +102,88 @@ export const DRAFT_FEWSHOT = [
     '"밥은 먹었어?" 어머니가 묻자 그는 식탁의 빈 그릇 두 개를 한참 바라보았다. "응." 젓가락을 들었다가 다시 내려놓았다. 국은 이미 식어 기름이 굳어 있었다.',
     '(위는 \'상실·공허\'를 설명 없이 정물과 동작으로 전달했다 — 빈 그릇·식은 국·멈칫하는 손.)',
 ].join('\n');
-export function buildDraftUserPrompt(input) {
-    return [
-        `## 회차 번호`,
-        String(input.chapterNumber),
-        ``,
-        `## 언어`,
-        input.language,
-        ``,
-        `## 기준 분량 (하한 참고용)`,
-        String(input.targetWordCount),
-        ``,
-        `## Foundation 요약`,
-        JSON.stringify(input.foundation, null, 2),
-        ``,
-        `## 이전 상태 요약 (StoryState N-1)`,
-        JSON.stringify(input.prevState, null, 2),
-        ``,
-        `## 이번 회차 plan`,
-        JSON.stringify(input.plan, null, 2),
-        ``,
-        `## 출력`,
+/**
+ * 다국어 계열 exemplar. ko 의 한국어 예시를 그대로 쓰지 않는다. 예시 산문은 기법을
+ * 보여주기 위한 영어이며, **본문은 목표 언어로 쓴다**는 것을 예시 앞에서 명시해
+ * 예시 언어가 출력 언어를 끌고 가지 않게 한다. `steps/draft.js` 가 import 한다.
+ */
+export const DRAFT_FEWSHOT_MULTILINGUAL = [
+    'The illustrations below are written in English only to show the technique. Write the chapter itself in the target work language, using that language\'s own idiom, punctuation and dialogue conventions. Do not imitate the English wording. Apply this density only where a moment needs it.',
+    '',
+    '[Example 1]',
+    'He put his hand on the door handle and did not turn it. His palm was cold and wet and the handle slipped. Inside, a chair leg scraped the floor. He held his breath and took one step back.',
+    '(Fear, carried without the word — the tremor, the cold sweat, the retreat.)',
+    '',
+    '[Example 2]',
+    '"Have you eaten?" his mother asked. He looked for a long moment at the two empty bowls on the table. "Yes." He picked up his chopsticks and set them down again. The soup had gone cold, the fat set hard on top.',
+    '(Loss and emptiness, delivered through still objects and small motion — the empty bowls, the cold soup, the hand that stops.)',
+].join('\n');
+const PUBLIC_DRAFT_LABELS_KO = {
+    chapterNumber: '## 회차 번호',
+    language: '## 언어',
+    lengthHeading: '## 기준 분량 (하한 참고용)',
+    foundation: '## Foundation 요약',
+    prevState: '## 이전 상태 요약 (StoryState N-1)',
+    plan: '## 이번 회차 plan',
+    output: '## 출력',
+    outputLines: [
         '본문(순수 산문) + 빈 줄 1개 + cast-manifest sentinel 블록.',
         '본문 외 어떤 헤더·메타 설명도 출력하지 말 것.',
+    ],
+};
+const PUBLIC_DRAFT_LABELS_EN = {
+    chapterNumber: '## Chapter number',
+    language: '## Target work language (BCP 47)',
+    lengthHeading: '## Length target (a floor, for reference)',
+    foundation: '## Foundation summary',
+    prevState: '## Previous state summary (StoryState N-1)',
+    plan: '## Plan for this chapter',
+    output: '## Output',
+    outputLines: [
+        'The chapter prose (plain prose) + one blank line + the cast-manifest sentinel block.',
+        'Output nothing but the prose — no headings, no meta commentary.',
+    ],
+};
+/**
+ * 공개 draft user 프롬프트의 언어 컨텍스트. 구형 `targetWordCount` 는 이름 그대로
+ * `legacyCodeUnits` 목표이며, 호출자가 적지 않았으면 중복 지정으로 보지 않는다.
+ */
+function publicDraftContext(input) {
+    if (input.promptLanguage)
+        return resolvePromptLanguageContext(input.promptLanguage);
+    const hasLegacyTarget = input.targetWordCount !== undefined && input.targetWordCount !== null;
+    return resolvePromptLanguageContext({
+        workContract: input.workContract ?? null,
+        language: input.language ?? null,
+        length: input.length ?? null,
+        legacyLength: hasLegacyTarget ? { chapterWordCount: input.targetWordCount } : null,
+    });
+}
+export function buildDraftUserPrompt(input) {
+    const ctx = publicDraftContext(input);
+    const labels = pickByFamily(ctx, { ko: PUBLIC_DRAFT_LABELS_KO, multilingual: PUBLIC_DRAFT_LABELS_EN });
+    return [
+        labels.chapterNumber,
+        String(input.chapterNumber),
+        ``,
+        labels.language,
+        // 검증된 계약 태그만 적는다.
+        ctx.language,
+        ``,
+        labels.lengthHeading,
+        // 계약 단위를 함께 말한다(구형 ko legacyCodeUnits 는 숫자만 — 기존과 동일).
+        formatLengthTarget(ctx),
+        ``,
+        labels.foundation,
+        JSON.stringify(input.foundation, null, 2),
+        ``,
+        labels.prevState,
+        JSON.stringify(input.prevState, null, 2),
+        ``,
+        labels.plan,
+        JSON.stringify(input.plan, null, 2),
+        ``,
+        labels.output,
+        ...labels.outputLines,
     ].join('\n');
 }

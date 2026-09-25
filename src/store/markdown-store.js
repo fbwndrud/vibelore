@@ -26,6 +26,18 @@ import { dirname, join } from 'node:path';
 import {
   bulletSection, formatDocument, parseDocument, readBullets, readSection, section,
 } from '../md/frontmatter.js';
+import {
+  CANONICAL_FORMAT_ERROR_CODES, CANONICAL_FORMAT_KEYS, CanonicalFormatError,
+  CHARACTER_SECTION_KEYS, SETTING_SECTION_KEYS, SUMMARY_SECTION_KEYS,
+  allOwnedHeadings, assertCanonicalSections, formatKeysToWrite, headingsFor, resolveDocumentFormat,
+} from './canonical-format.js';
+import { CANONICAL_FORMAT_VERSION_LEGACY_KO, CANONICAL_FORMAT_VERSION_MULTILINGUAL, normalizeLanguageTag } from '../../engine/src/core/language-policy.js';
+
+/** 비교 전용 정규화. 태그가 깨졌으면 원문 그대로 비교해 오류를 숨기지 않는다. */
+function comparableLanguage(value) {
+  try { return normalizeLanguageTag(value).tag; }
+  catch { return String(value); }
+}
 
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
 
@@ -67,8 +79,8 @@ const CHARACTER_KEYS = new Set([
   'id', 'name', 'aliases', 'role', 'gender', 'ageBand', 'birthOrder', 'appearance',
   'species', 'form', 'genderLabel', 'acceptedPronouns', 'acceptedGenderedTerms',
   'forbiddenGenderedTerms', 'registeredAtChapter',
+  ...CANONICAL_FORMAT_KEYS,
 ]);
-const CHARACTER_SECTIONS = ['모순', '설명', '극적 모델', '말투 프로필'];
 
 function jsonSection(heading, value) {
   if (!value || typeof value !== 'object') return '';
@@ -82,7 +94,8 @@ function readJsonSection(body, heading) {
   try { return JSON.parse(json); } catch { return undefined; }
 }
 
-function characterToDoc(character, existingText) {
+function characterToDoc(character, existingText, { version, formatKeys }) {
+  const heading = headingsFor(version);
   const intrinsic = character.intrinsic ?? {};
   const owned = {
     id: character.id,
@@ -111,14 +124,18 @@ function characterToDoc(character, existingText) {
   for (const [k, v] of Object.entries(prior.data)) {
     if (!CHARACTER_KEYS.has(k)) foreign[k] = v;
   }
+  // 버전 2 의 소유 표제는 내용이 비어도 생성한다. 버전 1 은 기존 동작을 그대로 둔다.
+  const alwaysEmit = version === CANONICAL_FORMAT_VERSION_MULTILINGUAL;
+  const dramaticModel = character.dramaticModel ?? readJsonSection(prior.body, heading.dramaticModel);
+  const speechProfile = character.speechProfile ?? readJsonSection(prior.body, heading.speechProfile);
   const body = [
-    section('모순', character.contradiction ?? readSection(prior.body, '모순') ?? ''),
-    section('설명', character.description ?? readSection(prior.body, '설명') ?? ''),
-    jsonSection('극적 모델', character.dramaticModel ?? readJsonSection(prior.body, '극적 모델')),
-    jsonSection('말투 프로필', character.speechProfile ?? readJsonSection(prior.body, '말투 프로필')),
-    preserveForeignSections(prior.body, CHARACTER_SECTIONS),
+    section(heading.contradiction, character.contradiction ?? readSection(prior.body, heading.contradiction) ?? ''),
+    section(heading.description, character.description ?? readSection(prior.body, heading.description) ?? ''),
+    jsonSection(heading.dramaticModel, dramaticModel) || (alwaysEmit ? section(heading.dramaticModel, '') : ''),
+    jsonSection(heading.speechProfile, speechProfile) || (alwaysEmit ? section(heading.speechProfile, '') : ''),
+    preserveForeignSections(prior.body, allOwnedHeadings(CHARACTER_SECTION_KEYS)),
   ].filter((s) => s.trim() !== '').join('\n');
-  return formatDocument({ ...owned, ...foreign }, body);
+  return formatDocument({ ...owned, ...formatKeys, ...foreign }, body);
 }
 
 /** Everything under a `##` heading the store does not own, verbatim. */
@@ -134,7 +151,8 @@ function preserveForeignSections(body, ownedHeadings) {
   return out.join('\n').trim();
 }
 
-function docToCharacter(text, extra) {
+function docToCharacter(text, extra, { version }) {
+  const heading = headingsFor(version);
   const { data, body } = parseDocument(text);
   const appearance = Array.isArray(data.appearance)
     ? data.appearance.map(String)
@@ -142,10 +160,10 @@ function docToCharacter(text, extra) {
   const aliases = Array.isArray(data.aliases)
     ? data.aliases.map(String)
     : (data.aliases === undefined || data.aliases === '' ? [] : [String(data.aliases)]);
-  const contradiction = readSection(body, '모순') ?? '';
-  const description = readSection(body, '설명') ?? '';
-  const dramaticModel = readJsonSection(body, '극적 모델') ?? extra?.dramaticModel;
-  const speechProfile = readJsonSection(body, '말투 프로필') ?? extra?.speechProfile;
+  const contradiction = readSection(body, heading.contradiction) ?? '';
+  const description = readSection(body, heading.description) ?? '';
+  const dramaticModel = readJsonSection(body, heading.dramaticModel) ?? extra?.dramaticModel;
+  const speechProfile = readJsonSection(body, heading.speechProfile) ?? extra?.speechProfile;
   return {
     ...(extra ?? {}),
     id: String(data.id),
@@ -414,6 +432,28 @@ export class MarkdownStateStore {
     return readJsonOrNull(this.sidecar('check-receipts', `${checkId}.json`));
   }
 
+  async loadApprovalValidation(workId, key) {
+    assertSafeId('workId', workId);
+    assertSafeId('approval validation key', key);
+    return readJsonOrNull(this.sidecar('approval-validation', workId, `${key}.json`));
+  }
+
+  async saveApprovalValidation(workId, key, state) {
+    assertSafeId('workId', workId);
+    assertSafeId('approval validation key', key);
+    await writeJson(this.sidecar('approval-validation', workId, `${key}.json`), state);
+  }
+
+  async saveValidationState(workId, state) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('validation-state', `${workId}.json`), state);
+  }
+
+  async loadValidationState(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('validation-state', `${workId}.json`));
+  }
+
   async saveContextTrace(workId, trace) {
     assertSafeId('workId', workId);
     await writeJson(this.sidecar('context-traces', `${trace.chapter}.json`), trace);
@@ -434,16 +474,63 @@ export class MarkdownStateStore {
     return (await readJsonOrNull(this.sidecar('revision-candidates', `${workflowId}.json`))) ?? [];
   }
 
+  // -- accepted creation record ---------------------------------------------
+  /**
+   * 수락된 생성 계약. 최초 발행 전에도 언어·정본 형식의 손수정을 막는 원천이며
+   * 한 번 기록되면 바뀌지 않는다.
+   */
+  async loadAcceptedCreation(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('accepted-creation.json'));
+  }
+
+  async saveAcceptedCreation(workId, record) {
+    assertSafeId('workId', workId);
+    const existing = await this.loadAcceptedCreation(workId);
+    if (existing) {
+      const same = existing.language === record.language
+        && Number(existing.canonicalFormatVersion) === Number(record.canonicalFormatVersion)
+        && existing.length?.unit === record.length?.unit
+        && Number(existing.length?.target) === Number(record.length?.target);
+      if (!same) {
+        throw new CanonicalFormatError(CANONICAL_FORMAT_ERROR_CODES.CREATION_RECORD_IMMUTABLE, {
+          workId,
+          stored: { language: existing.language, canonicalFormatVersion: existing.canonicalFormatVersion, length: existing.length ?? null },
+          requested: { language: record.language, canonicalFormatVersion: record.canonicalFormatVersion, length: record.length ?? null },
+        });
+      }
+      return existing;
+    }
+    await writeJson(this.sidecar('accepted-creation.json'), record);
+    return record;
+  }
+
+  /** 이 작품 문서들이 따라야 하는 형식 계약. 기록이 없으면 null(구작). */
+  async loadCanonicalContract(workId) {
+    const record = await this.loadAcceptedCreation(workId);
+    if (!record) return null;
+    return {
+      language: String(record.language),
+      canonicalFormatVersion: Number(record.canonicalFormatVersion),
+    };
+  }
+
   // -- Foundation -----------------------------------------------------------
   async loadFoundation(workId) {
     assertSafeId('workId', workId);
     const settingText = await readTextOrNull(this.settingPath);
     if (settingText === null) return null;
     const { data, body } = parseDocument(settingText);
+    const contract = await this.loadCanonicalContract(workId);
+    const format = resolveDocumentFormat({ data, contract, doc: 'world/setting.md' });
+    const heading = headingsFor(format.canonicalFormatVersion);
+    assertCanonicalSections({
+      body, version: format.canonicalFormatVersion, keys: SETTING_SECTION_KEYS, doc: 'world/setting.md',
+    });
     const extra = (await readJsonOrNull(this.sidecar('foundation.json'))) ?? {};
 
     const worldFactMeta = new Map(Object.entries(extra.worldFactMeta ?? {}));
-    const worldFacts = readBullets(body, '세계 사실').map((line, i) => {
+    const worldFacts = readBullets(body, heading.worldFacts).map((line, i) => {
       const m = FACT_LINE.exec(line);
       const id = m?.groups?.id?.trim() ?? `w${i + 1}`;
       const statement = (m?.groups?.statement ?? line).trim();
@@ -459,7 +546,13 @@ export class MarkdownStateStore {
       const text = await readTextOrNull(join(this.charactersDir, name));
       if (text === null) continue;
       const id = name.replace(/\.md$/, '');
-      characters.push(docToCharacter(text, characterExtras[id]));
+      const doc = `characters/${name}`;
+      const parsed = parseDocument(text);
+      const charFormat = resolveDocumentFormat({ data: parsed.data, contract, doc });
+      assertCanonicalSections({
+        body: parsed.body, version: charFormat.canonicalFormatVersion, keys: CHARACTER_SECTION_KEYS, doc,
+      });
+      characters.push(docToCharacter(text, characterExtras[id], { version: charFormat.canonicalFormatVersion }));
     }
 
     return {
@@ -468,6 +561,10 @@ export class MarkdownStateStore {
       genre: String(data.genre ?? extra.rest?.genre ?? ''),
       worldFacts,
       characters,
+      // 키가 없던 구작에는 키를 만들어 주지 않는다. 실행 해석은 호출자가
+      // language-policy 로 결정한다.
+      ...(format.languageKeyPresent ? { language: format.language } : {}),
+      ...(format.formatVersionKeyPresent ? { canonicalFormatVersion: format.canonicalFormatVersion } : {}),
       intrinsicChanges: extra.intrinsicChanges ?? [],
       genreProfile: extra.genreProfile,
       ...(data.povMode !== undefined ? { povMode: data.povMode } : {}),
@@ -478,16 +575,73 @@ export class MarkdownStateStore {
 
   async saveFoundation(foundation) {
     assertSafeId('workId', foundation.workId);
+    const record = await this.loadCanonicalContract(foundation.workId);
+    // 호출자가 명시한 메타데이터가 수락된 생성 기록과 다르면 조용히 기록 쪽으로
+    // 바꿔 쓰지 않고 쓰기 전에 거부한다. 메타데이터가 아예 없는 구작 입력은 다른
+    // 경우이며 키의 부재를 그대로 보존한다.
+    if (record) {
+      if (foundation.language != null && comparableLanguage(foundation.language) !== record.language) {
+        throw new CanonicalFormatError(CANONICAL_FORMAT_ERROR_CODES.WORK_LANGUAGE_IMMUTABLE, {
+          workId: foundation.workId, scope: 'foundation-input',
+          expected: record.language, requested: String(foundation.language),
+        });
+      }
+      if (foundation.canonicalFormatVersion != null
+        && Number(foundation.canonicalFormatVersion) !== record.canonicalFormatVersion) {
+        throw new CanonicalFormatError(CANONICAL_FORMAT_ERROR_CODES.CANONICAL_FORMAT_CONTRACT_MISMATCH, {
+          workId: foundation.workId, scope: 'foundation-input',
+          expected: record.canonicalFormatVersion, requested: Number(foundation.canonicalFormatVersion),
+        });
+      }
+    }
+    // 생성 기록이 없는 작품에서도 이번 계약으로 **새로** 만드는 문서에는 언어와
+    // 형식 버전을 기록한다. 이미 있는 문서의 키 부재는 그대로 보존한다.
+    const newDocContract = record
+      ?? (foundation.language != null && foundation.canonicalFormatVersion != null
+        ? { language: String(foundation.language), canonicalFormatVersion: Number(foundation.canonicalFormatVersion) }
+        : null);
+
     const prior = await readTextOrNull(this.settingPath);
     const priorDoc = prior ? parseDocument(prior) : { data: {}, body: '' };
-    const owned = new Set(['workId', 'genre', 'povMode', 'worldEra', 'fanficSource']);
+    const settingFormat = prior
+      ? resolveDocumentFormat({ data: priorDoc.data, contract: record, doc: 'world/setting.md' })
+      : { canonicalFormatVersion: newDocContract?.canonicalFormatVersion ?? 1 };
+    const settingHeading = headingsFor(settingFormat.canonicalFormatVersion);
+    // 뒤쪽 인물 문서에서 충돌이 나 앞 문서만 바뀌는 일이 없도록, 쓰기 전에 문서
+    // 집합 전체를 먼저 검증한다.
+    assertCanonicalSections({
+      body: priorDoc.body, version: settingFormat.canonicalFormatVersion, keys: SETTING_SECTION_KEYS, doc: 'world/setting.md',
+    });
+    const characterPlans = [];
+    for (const c of foundation.characters ?? []) {
+      assertSafeId('character id', c.id);
+      const doc = `characters/${c.id}.md`;
+      const existing = await readTextOrNull(this.characterPath(c.id));
+      const parsed = existing ? parseDocument(existing) : { data: {}, body: '' };
+      const format = existing
+        ? resolveDocumentFormat({ data: parsed.data, contract: record, doc })
+        : { canonicalFormatVersion: newDocContract?.canonicalFormatVersion ?? 1 };
+      assertCanonicalSections({
+        body: parsed.body, version: format.canonicalFormatVersion, keys: CHARACTER_SECTION_KEYS, doc,
+      });
+      characterPlans.push({
+        character: c,
+        existing,
+        version: format.canonicalFormatVersion,
+        formatKeys: formatKeysToWrite({
+          priorData: parsed.data, exists: Boolean(existing), contract: existing ? record : newDocContract,
+        }),
+      });
+    }
+
+    const owned = new Set(['workId', 'genre', 'povMode', 'worldEra', 'fanficSource', ...CANONICAL_FORMAT_KEYS]);
     const foreignKeys = Object.fromEntries(
       Object.entries(priorDoc.data).filter(([k]) => !owned.has(k)),
     );
 
     const body = [
-      bulletSection('세계 사실', (foundation.worldFacts ?? []).map((f) => `(${f.id}) ${f.statement}`)),
-      preserveForeignSections(priorDoc.body, ['세계 사실']),
+      bulletSection(settingHeading.worldFacts, (foundation.worldFacts ?? []).map((f) => `(${f.id}) ${f.statement}`)),
+      preserveForeignSections(priorDoc.body, allOwnedHeadings(SETTING_SECTION_KEYS)),
     ].filter((s) => s.trim() !== '').join('\n');
 
     await writeAtomic(this.settingPath, formatDocument({
@@ -496,14 +650,13 @@ export class MarkdownStateStore {
       ...(foundation.povMode !== undefined ? { povMode: foundation.povMode } : {}),
       ...(foundation.worldEra !== undefined ? { worldEra: foundation.worldEra } : {}),
       ...(foundation.fanficSource !== undefined ? { fanficSource: foundation.fanficSource } : {}),
+      ...formatKeysToWrite({ priorData: priorDoc.data, exists: Boolean(prior), contract: prior ? record : newDocContract }),
       ...foreignKeys,
     }, body));
 
     const characterExtras = {};
-    for (const c of foundation.characters ?? []) {
-      assertSafeId('character id', c.id);
-      const existing = await readTextOrNull(this.characterPath(c.id));
-      await writeAtomic(this.characterPath(c.id), characterToDoc(c, existing));
+    for (const { character: c, existing, version, formatKeys } of characterPlans) {
+      await writeAtomic(this.characterPath(c.id), characterToDoc(c, existing, { version, formatKeys }));
       // Anything the markdown projection cannot express is kept beside it, so a
       // round trip is lossless even for fields this store has never seen.
       const { id, canonicalName, aliases, registeredAtChapter, intrinsic, contradiction, description, dramaticModel, speechProfile, ...rest } = c;
@@ -518,7 +671,7 @@ export class MarkdownStateStore {
     }
 
     const { workId, genre, worldFacts, characters, intrinsicChanges, genreProfile,
-      povMode, worldEra, fanficSource, ...rest } = foundation;
+      povMode, worldEra, fanficSource, language, canonicalFormatVersion, ...rest } = foundation;
     await writeJson(this.sidecar('foundation.json'), {
       genreProfile,
       intrinsicChanges: intrinsicChanges ?? [],
@@ -573,9 +726,12 @@ export class MarkdownStateStore {
   async saveChapterSummary(record) {
     assertSafeId('workId', record.workId);
     const { summary, workId, chapterNumber, ...meta } = record;
+    // 요약 표제도 작품의 정본 형식 버전을 따른다(v1 한국어 / v2 영문). 기록이 없는 구작은 v1.
+    const contract = await this.loadCanonicalContract(workId);
+    const heading = headingsFor(contract?.canonicalFormatVersion ?? CANONICAL_FORMAT_VERSION_LEGACY_KO).summary;
     await writeAtomic(this.summaryPath(chapterNumber), formatDocument(
       { workId, chapter: chapterNumber },
-      section('요약', summary ?? ''),
+      section(heading, summary ?? ''),
     ));
     if (Object.keys(meta).length > 0) {
       await writeJson(this.sidecar('summaries', `${chapterNumber}.json`), meta);
@@ -592,7 +748,8 @@ export class MarkdownStateStore {
       ...meta,
       workId: String(data.workId ?? workId),
       chapterNumber: Number(data.chapter ?? chapterNumber),
-      summary: readSection(body, '요약') ?? body.trim(),
+      // 두 표제를 모두 읽는다. 0.4.0 초기에 v2 작품에 한국어 표제로 쓴 요약도 그대로 읽힌다.
+      summary: allOwnedHeadings(SUMMARY_SECTION_KEYS).map((heading) => readSection(body, heading)).find((value) => value != null) ?? body.trim(),
     };
   }
 

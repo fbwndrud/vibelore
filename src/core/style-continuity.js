@@ -1,3 +1,5 @@
+import { asKit } from '../prompts/index.js';
+
 const sentenceLengths = (text) => [...String(text ?? '').matchAll(/[^.!?。…]+[.!?。…]+/g)]
   .map((match) => match[0].trim().length)
   .filter(Boolean);
@@ -90,15 +92,16 @@ export function buildStyleAnchor({ workId, chapters, reason = '', revision = 1, 
   };
 }
 
-export function renderStyleAnchor(anchor) {
+export function renderStyleAnchor(anchor, kitSource) {
   if (!anchor || anchor.status !== 'active') return '';
+  const t = asKit(kitSource).phrases.writer;
   const baseline = anchor.baseline ?? {};
   return [
-    '## 승인된 작품 문체 기준',
-    `기준 화: ${(anchor.sourceChapters ?? []).join(', ')}화`,
-    ...(anchor.reason ? [`사용자가 이 원고를 선호한 이유: ${anchor.reason}`] : []),
-    `호흡 참고: 1,000자당 문단 약 ${baseline.paragraphsPer1k ?? 0}개, 문단 중앙값 약 ${baseline.medianParagraphChars ?? 0}자, 문장 중앙값 약 ${baseline.medianSentenceChars ?? 0}자. 수치를 맞추기보다 아래 정본 예시의 독서 호흡을 유지한다.`,
-    ...(anchor.excerpts ?? []).map((excerpt) => `### ${excerpt.chapter}화 정본 예시\n${excerpt.text}`),
+    t.styleAnchorHeading,
+    t.styleAnchorSources((anchor.sourceChapters ?? []).join(', ')),
+    ...(anchor.reason ? [t.styleAnchorReason(anchor.reason)] : []),
+    t.styleAnchorBaseline(baseline),
+    ...(anchor.excerpts ?? []).map((excerpt) => t.styleAnchorExcerpt(excerpt.chapter, excerpt.text)),
   ].join('\n\n');
 }
 
@@ -115,12 +118,40 @@ function lcsCount(left, right) {
   return row[right.length];
 }
 
+// Paragraphs that the violations' own evidence quotes point at. A repair is
+// allowed to rewrite those; the preservation floor applies to the rest. With
+// a whole-chapter ratio a five-paragraph Arabic chapter failed at 60% after
+// the revise replaced exactly the two paragraphs its SEMANTIC_POV evidence
+// cited (2026-09-15 ar sample, REVISION_PRESERVATION_FAILED).
+function targetedParagraphIndexes(sourceParagraphs, violations) {
+  const squash = (value) => String(value).replace(/\s+/g, ' ').trim();
+  const quotes = [];
+  for (const violation of violations) {
+    for (const item of Array.isArray(violation?.evidence) ? violation.evidence : []) {
+      if (typeof item?.quote === 'string' && item.quote.trim()) quotes.push(squash(item.quote));
+    }
+    if (typeof violation?.quote === 'string' && violation.quote.trim()) quotes.push(squash(violation.quote));
+  }
+  const targeted = new Set();
+  const squashed = sourceParagraphs.map(squash);
+  for (const quote of quotes) {
+    squashed.forEach((paragraph, index) => {
+      if (paragraph.includes(quote) || (paragraph.length >= 20 && quote.includes(paragraph))) targeted.add(index);
+    });
+  }
+  return targeted;
+}
+
 export function evaluateRevisionPreservation({ sourceProse, candidateProse, violations = [] }) {
   const source = proseStyleFingerprint(sourceProse);
   const candidate = proseStyleFingerprint(candidateProse);
   const sourceParagraphs = paragraphsOf(sourceProse);
   const candidateParagraphs = paragraphsOf(candidateProse);
   const unchangedParagraphs = lcsCount(sourceParagraphs, candidateParagraphs);
+  const targeted = targetedParagraphIndexes(sourceParagraphs, violations);
+  const candidateSet = new Set(candidateParagraphs);
+  const untargeted = sourceParagraphs.filter((_, index) => !targeted.has(index));
+  const untargetedUnchanged = untargeted.filter((paragraph) => candidateSet.has(paragraph)).length;
   const lengthExpansion = violations.some((violation) => violation.code === 'QUALITY_GATE_LENGTH');
   const formatRepair = violations.some((violation) => String(violation.code ?? '').startsWith('WEBNOVEL_'));
   const minimumUnchangedRatio = lengthExpansion ? 0.65 : (formatRepair ? 0.5 : 0.75);
@@ -132,6 +163,8 @@ export function evaluateRevisionPreservation({ sourceProse, candidateProse, viol
     paragraphDensityDelta: rounded(candidate.paragraphsPer1k - source.paragraphsPer1k, 1),
     softLineBreakDelta: candidate.softLineBreaks - source.softLineBreaks,
     charChangeRatio: rounded(Math.abs(candidate.chars - source.chars) / Math.max(1, source.chars)),
+    targetedParagraphs: targeted.size,
+    untargetedUnchangedRatio: rounded(untargetedUnchanged / Math.max(1, untargeted.length)),
   };
   const found = [];
   if (metrics.softLineBreakDelta >= 12 && candidate.softLineBreaks >= 20) {
@@ -141,8 +174,9 @@ export function evaluateRevisionPreservation({ sourceProse, candidateProse, viol
   if (!lengthExpansion && Math.abs(metrics.paragraphDensityDelta) > densityLimit) {
     found.push({ severity: 'hard', code: 'REVISION_RHYTHM_DRIFT', message: `수정 범위를 넘어 문단 호흡이 달라졌다: 1,000자당 문단 ${source.paragraphsPer1k}→${candidate.paragraphsPer1k}.`, evidence: metrics });
   }
-  if (metrics.unchangedParagraphRatio < minimumUnchangedRatio) {
-    found.push({ severity: 'hard', code: 'REVISION_SCOPE_DRIFT', message: `원문 보존 문단 비율 ${Math.round(metrics.unchangedParagraphRatio * 100)}%가 허용 하한 ${Math.round(minimumUnchangedRatio * 100)}%보다 낮다.`, evidence: metrics });
+  const scopeRatio = targeted.size > 0 ? metrics.untargetedUnchangedRatio : metrics.unchangedParagraphRatio;
+  if (scopeRatio < minimumUnchangedRatio) {
+    found.push({ severity: 'hard', code: 'REVISION_SCOPE_DRIFT', message: `원문 보존 문단 비율 ${Math.round(scopeRatio * 100)}%${targeted.size ? `(위반 근거가 가리킨 ${targeted.size}개 문단 제외)` : ''}가 허용 하한 ${Math.round(minimumUnchangedRatio * 100)}%보다 낮다.`, evidence: metrics });
   }
   return { passed: found.length === 0, violations: found, metrics, source, candidate };
 }

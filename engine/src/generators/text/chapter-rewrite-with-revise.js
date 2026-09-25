@@ -25,7 +25,9 @@
 import { EMPTY_SCENE, renderEntityContext, resolveEntityContext } from '../../core/entity-context.js';
 import { scanEntityMentions } from '../../core/mention-scan.js';
 import { emptyStoryState } from '../../continuity/story-state.js';
+import { resolveWorkPromptLanguage } from '../../core/prompt-language.js';
 import { runBoundedCommitLoop, } from './chapter-write-with-revise.js';
+import { withGateContext } from './chapter-validation.js';
 import { runRewrite } from './steps/rewrite.js';
 /**
  * Bounded rewrite: `runRewrite` once, then the shared commit/revise loop.
@@ -39,11 +41,20 @@ import { runRewrite } from './steps/rewrite.js';
  * reports the unsuccessful rewrite). Throws a plain Error if the foundation is missing.
  */
 export async function performChapterRewriteBounded(ctx, input, opts = {}) {
+    ctx = withGateContext(ctx, input);
     const { chapterNumber, previousProse, intentSummary } = input;
     const foundation = await ctx.state.loadFoundation(ctx.workId);
     if (!foundation) {
         throw new Error(`ChapterRewrite: foundation not found for work ${ctx.workId}`);
     }
+    // 다국어 Phase 2A — 다시쓰기와 이어지는 수정/commit 이 같은 계약을 본다. 원천은
+    // 저장된 Foundation 메타데이터이며 호출 인자는 확인용이다.
+    const promptLanguage = resolveWorkPromptLanguage({
+        foundation,
+        workContract: ctx.workContract ?? null,
+        language: ctx.language ?? null,
+        length: ctx.length ?? null,
+    });
     // prevState = StoryState committed after chapter N-1. This is the continuity
     // anchor — we read it but never mutate it. chapter 1 has no predecessor.
     let prevState;
@@ -80,8 +91,9 @@ export async function performChapterRewriteBounded(ctx, input, opts = {}) {
                     const ctxRes = resolveEntityContext({
                         scene: { ...EMPTY_SCENE, additionalRefs: mention.mentionedIds },
                         snapshots,
+                        promptFamily: promptLanguage.promptFamily,
                     });
-                    entityContextRender = renderEntityContext(ctxRes);
+                    entityContextRender = renderEntityContext(ctxRes, promptLanguage);
                     ctx.log.info('chapter-rewrite:mention-activated', {
                         workId: ctx.workId,
                         chapterNumber,
@@ -111,16 +123,21 @@ export async function performChapterRewriteBounded(ctx, input, opts = {}) {
         entityContextRender,
         providers: ctx.providers,
         model: ctx.model,
+        promptLanguage,
+        dialogueBreakMode: ctx.dialogueBreakMode ?? null,
     });
     // 2. Shared bounded commit/revise loop — identical semantics to chapter-write.
-    return runBoundedCommitLoop(ctx, {
+    return runBoundedCommitLoop(withGateContext(ctx, input), {
         initialProse: prose,
         foundation,
         prevState,
         chapterNumber,
-        // No chapter-plan for rewrite — the quality gate's coherence judge runs
-        // without a plan reference (plan-less path, same as legacy chapter-write).
-        plan: undefined,
+        // Rewrite has no chapter-plan. New-contract planSourceHash is bound to
+        // the actual rewrite intent/source prose, never a fabricated id.
+        plan: intentSummary ?? previousProse,
         logPrefix: 'chapter-rewrite-bounded',
+        title: input.title,
+        summary: input.summary,
+        sensitiveMode: input.sensitiveMode,
     }, opts);
 }

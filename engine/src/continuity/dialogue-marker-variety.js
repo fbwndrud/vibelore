@@ -25,7 +25,11 @@ export const KO_SPEECH_TAGS = [
     '맞장구쳤다', '맞받았다', '응수했다', '대꾸했다', '응대했다', '읊었다',
     '내질렀다', '뇌까렸다', '뇌었다', '꼬집어 말했다',
 ];
+import { skipKoLexical } from './checker-registry.js';
 export function scanDialogueMarkerVariety(input) {
+    const skipped = skipKoLexical(input, 'scanDialogueMarkerVariety');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber } = input;
     if (!prose || prose.trim().length === 0) {
         return {

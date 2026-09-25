@@ -1,6 +1,7 @@
 import { runPatternAnalysis } from './story-experience.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { saveExperienceLedgerForHead } from '../core/experience-ledger.js';
+import { resolveWorkKit } from '../prompts/index.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 export const MIN_ARC_REVIEW_DIMENSION = 60;
@@ -28,7 +29,7 @@ export function arcReviewCheckpoint(arcPlan, chapter) {
   return index > 0 && index % 5 === 0 ? 'checkpoint' : null;
 }
 
-export async function runArcReview({ store, workId, arcPlan, chapter, prose, patternEntry, patternEntries, providers }) {
+export async function runArcReview({ store, workId, arcPlan, chapter, prose, patternEntry, patternEntries, providers, kit: kitSource }) {
   const checkpoint = arcReviewCheckpoint(arcPlan, chapter);
   if (!checkpoint) return null;
   const priorSummaries = (await store.loadRecentChapterSummaries(workId, chapter, arcPlan.estimatedEpisodes ?? 20))
@@ -43,23 +44,18 @@ export async function runArcReview({ store, workId, arcPlan, chapter, prose, pat
       return artifact?.prose ? { chapter: item.chapterNumber, prose: String(artifact.prose).slice(0, 14000) } : null;
     }))).filter(Boolean)
     : [];
+  const kit = await resolveWorkKit({ store, workId, kit: kitSource });
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'arc-review',
-    messages: [
-      { role: 'system', content: '당신은 한국 상업 웹소설의 아크 단위 편집자다. 개별 화의 문장 완성도가 아니라 여러 화를 연속으로 읽을 때의 보상 간격, 선택과 장면의 기능적 반복, 감정 온도 변화, 증거와 결말 이미지의 다양성, 다음 결제를 만드는 추진력을 평가한다. PatternLedger의 표현이 달라도 기능이 같으면 반복으로 본다. 반대로 장르의 핵심 쾌감이 반복되더라도 방법·대가·관계 결과가 달라지면 변주로 인정한다. 관계 점검은 별도의 조건부 관찰이다. 표본 안에 명시적인 관계·말투 변화가 있거나 한 인물이 다른 인물의 안전·지위·신뢰를 크게 훼손한 사건이 있을 때만 applicable=true로 평가한다. 해당 사건이 없으면 관계 문제를 만들지 않으며, 조건부 관찰은 일곱 평균 점수에 섞지 않는다. 순수 JSON만 출력한다.' },
-      { role: 'user', content: [
-        `아크: ${arcPlan.arcNumber} / ${arcPlan.title}`, `체크포인트: ${checkpoint} / ${chapter}화`,
-        `아크 독자 약속: ${arcPlan.promise}`, `최소 지급 약속: ${arcPlan.readerContract?.minimumPayoff ?? ''}`,
-        `개인 아크 약속과 과거 근거: ${JSON.stringify(arcPlan.characterArcs ?? [])}`,
-        '', '이전 화 요약:', JSON.stringify(priorSummaries.map((item) => ({ chapter: item.chapterNumber, summary: item.summary }))),
-        '', '정규화된 PatternLedger:', JSON.stringify(patterns), '',
-        '관계 인과 표본(직전 최대 2화 원문):', JSON.stringify(priorProse), '', '현재 화 본문:', String(prose).slice(0, 14000), '',
-        '각 dimensions를 0~100으로 채점한다. findings는 누적 진단인지, 현재 화를 고치면 개선 가능한지를 scope로 구분한다.',
-        'targetedReview는 단계 진행의 행동 근거와 중대한 관계 사건 뒤 태도·책임·거리 변화가 후속 장면에 남는지만 본다.',
-        'final 체크포인트에서만 characterOutcomes를 채운다. 계획된 개인 아크 인물만 평가하며, resolved는 약속의 변화가 비용 있는 행동으로 증명됨, complicated는 변화와 반작용이 모두 남음, dormant는 약속을 판단할 행동 증거가 부족함이다. evidence에는 실제 화수와 행동을 적고 remainingPressure에는 다음 아크에 남은 질문만 적는다.',
-        'JSON: {"score":0,"dimensions":{"payoffCadence":0,"patternVariety":0,"moralChoiceVariety":0,"emotionalTemperatureRange":0,"evidenceVariety":0,"endingVariety":0,"commercialMomentum":0},"findings":[{"dimension":"payoffCadence|patternVariety|moralChoiceVariety|emotionalTemperatureRange|evidenceVariety|endingVariety|commercialMomentum","code":"PAYOFF_DROUGHT|PATTERN_FAMILY_REPETITION|MORAL_CHOICE_REPETITION|SCENE_TEMPERATURE_FLAT|EVIDENCE_FAMILY_REPETITION|ENDING_IMAGE_REPETITION|COMMERCIAL_MOMENT_MISSING","scope":"arc|current_chapter","message":"연속 독서 근거와 최소 수정 방향"}],"targetedReview":{"applicable":false,"findings":[{"code":"CHARACTER_ARC_RUSH|UNSUPPORTED_RELATIONSHIP_SHIFT|SOCIAL_CONSEQUENCE_RESET","message":"문제와 최소 수정 방향","evidence":"화수와 본문의 짧고 구체적인 근거","confidence":0.0}]},"characterOutcomes":[{"characterId":"계획된 인물 id","status":"resolved|complicated|dormant","evidence":"화수와 비용 있는 행동","remainingPressure":"남은 질문 또는 빈 문자열"}]}',
-      ].join('\n') },
-    ],
+    messages: kit.messages('arc-review', {
+      arcNumber: arcPlan.arcNumber, arcTitle: arcPlan.title, checkpoint, chapter,
+      promise: arcPlan.promise, minimumPayoff: arcPlan.readerContract?.minimumPayoff ?? '',
+      characterArcsJson: JSON.stringify(arcPlan.characterArcs ?? []),
+      priorSummariesJson: JSON.stringify(priorSummaries.map((item) => ({ chapter: item.chapterNumber, summary: item.summary }))),
+      patternsJson: JSON.stringify(patterns),
+      priorProseJson: JSON.stringify(priorProse),
+      prose: String(prose).slice(0, 14000),
+    }),
   });
   const obj = parse(response.text);
   const dimensions = obj?.dimensions && typeof obj.dimensions === 'object' ? obj.dimensions : {};
@@ -114,6 +110,7 @@ export function arcReviewAdvisories(review, chapter) {
 }
 
 export async function runStoredArcReview({ store, workId, throughChapter, providers }) {
+  const kit = await resolveWorkKit({ store, workId });
   const arcPlan = await store.loadArcPlan(workId);
   if (!arcPlan) throw new Error('평가할 아크 계획이 없습니다.');
   const chapters = await store.listChapters();
@@ -125,7 +122,7 @@ export async function runStoredArcReview({ store, workId, throughChapter, provid
   for (const episode of arcPlan.episodes.filter((item) => item.chapter <= chapter)) {
     const artifact = await store.loadArtifact(workId, episode.chapter);
     if (!artifact?.prose) throw new Error(`${episode.chapter}화 본문을 찾을 수 없습니다.`);
-    refreshed.push(await runPatternAnalysis({ chapter: episode.chapter, prose: artifact.prose, providers }));
+    refreshed.push(await runPatternAnalysis({ chapter: episode.chapter, prose: artifact.prose, providers, kit }));
     if ((providers.pending?.length ?? 0) > 0) {
       return {
         preview: true, operation: 'arc_review_pattern_backfill', chapter,
@@ -136,7 +133,7 @@ export async function runStoredArcReview({ store, workId, throughChapter, provid
   const currentArtifact = await store.loadArtifact(workId, chapter);
   const review = await runArcReview({
     store, workId, arcPlan, chapter, prose: currentArtifact.prose,
-    patternEntry: refreshed.find((entry) => entry.chapter === chapter), patternEntries: refreshed, providers,
+    patternEntry: refreshed.find((entry) => entry.chapter === chapter), patternEntries: refreshed, providers, kit,
   });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'arc_review_backfill', chapter };
 

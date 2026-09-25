@@ -15,10 +15,15 @@ import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
 import { runCommit } from '../src/tools/commit.js';
+import { runWebtoonTool } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { rollbackToSnapshot } from '../src/tools/snapshots.js';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { qualityStore, outputs as qualityOutputs, workId as qualityWorkId } from './fixtures/quality-workflow.js';
+import { approvalResponse } from './fixtures/approval-response.js';
+import { contractResponse } from './fixtures/contract-response.js';
+import { SYNTHETIC_LONG_PROSE } from './fixtures/synthetic-prose.js';
+import { runCheck } from '../src/tools/check.js';
 
 const SERVER = fileURLToPath(new URL('../src/server.js', import.meta.url));
 
@@ -62,6 +67,34 @@ function session(messages, { timeoutMs = 20000, surface = 'advanced' } = {}) {
 const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0' } } };
 const call = (id, name, args) => ({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } });
 const payload = (msg) => JSON.parse(msg.result.content[0].text);
+const proofAnswer = request => {
+  const full = { step: request.step, messages: [
+    { role: 'system', content: request.system ?? '' }, { role: 'user', content: request.user ?? '' },
+  ] };
+  return contractResponse(full)?.text ?? approvalResponse(full)?.text;
+};
+async function initializeWork(args, extra = {}) {
+  let replies = await session([init, call(2, 'lore_init', { ...args, ...extra })]);
+  let result = payload(replies.get(2));
+  for (let attempt = 0; result.status === 'needs_model' && attempt < 5; attempt++) {
+    const answers = Object.fromEntries(result.requests.map(request => {
+      const answer = proofAnswer(request);
+      assert.ok(answer, `Unexpected initialization request: ${request.step}`);
+      return [request.id, answer];
+    }));
+    replies = await session([init, call(2, 'lore_resume', { project: args.project, runId: result.runId, answers })]);
+    assert.equal(replies.get(2).result.isError, undefined);
+    result = payload(replies.get(2));
+  }
+  assert.equal(result.status, 'ok', JSON.stringify(result));
+  return result;
+}
+async function legacyWork(args, statement) {
+  const store = new MarkdownStateStore(args.project);
+  await store.saveFoundation({ workId: args.workId, genre: 'action', povMode: '3인칭제한',
+    targetChapters: 40, worldFacts: [{ id: 'wf-1', statement, registeredAtChapter: 1 }],
+    characters: [], genreProfile: { invariants: [], dialogueRatioRange: [0, 1] } });
+}
 
 describe('MCP surface', () => {
   for (const failedReview of [false, true]) {
@@ -84,7 +117,7 @@ describe('MCP surface', () => {
             assert.match(request.user, /지도는 배웠다/);
           }
           answers[request.id] = failedReview && request.step === 'editorial-quality'
-            ? '{malformed' : qualityOutputs[request.step] ?? '{}';
+            ? '{malformed' : proofAnswer(request) ?? qualityOutputs[request.step] ?? '{}';
         }
         result = await invoke('lore_resume', { runId: result.runId, answers });
       }
@@ -124,7 +157,7 @@ describe('MCP surface', () => {
       const answers = {};
       for (const request of result.requests) {
         seen[request.step] = { stage: request.stage, model: request.model, reasoningEffort: request.reasoningEffort };
-        answers[request.id] = qualityOutputs[request.step] ?? '{}';
+        answers[request.id] = proofAnswer(request) ?? qualityOutputs[request.step] ?? '{}';
       }
       result = await invoke('lore_resume', { runId: result.runId, answers });
     }
@@ -141,7 +174,7 @@ describe('MCP surface', () => {
       const answers = {};
       for (const request of result.requests) {
         seen[request.step] = { stage: request.stage, model: request.model, reasoningEffort: request.reasoningEffort };
-        answers[request.id] = qualityOutputs[request.step] ?? '{}';
+        answers[request.id] = proofAnswer(request) ?? qualityOutputs[request.step] ?? '{}';
       }
       result = await invoke('lore_resume', { runId: result.runId, answers });
     }
@@ -235,7 +268,9 @@ describe('MCP surface', () => {
       assert.equal(replies.get(2).result.isError, undefined, JSON.stringify(replies.get(2)));
       return payload(replies.get(2));
     };
-    const first = await invoke('lore_webtoon_plan', { imageModel: 'gpt-image-2' });
+    const blocked = (await session([init, call(2, 'lore_webtoon_plan', { ...args, imageModel: 'gpt-image-2' })], { surface: 'public' })).get(2);
+    assert.match(JSON.stringify(blocked), /WEBTOON_PANEL_PATH_DEPRECATED/);
+    const first = await runWebtoonTool({ store, toolName: 'lore_webtoon_plan', args: { workId: webtoonWorkId, imageModel: 'gpt-image-2' }, providers: createHostRelay() });
     assert.equal(first.status, 'needs_interview');
     const profile = await invoke('lore_webtoon_plan', { workflowId: first.workflowId, responses: webtoonAnswers });
     let result = await invoke('lore_webtoon_decide', { workflowId: first.workflowId, approvalId: profile.approvalId, action: 'approve' });
@@ -339,9 +374,9 @@ describe('MCP surface', () => {
 
   it('exposes the integrated writer and reports missing setup instead of drafting out of order', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'vibelore-mcp-workflow-'));
+    await initializeWork({ project: dir, workId: 'ordered' }, { genre: 'litrpg', worldFacts: ['죽음은 영구적이다.'] });
     const out = await session([
       init,
-      call(2, 'lore_init', { project: dir, workId: 'ordered', genre: 'litrpg', worldFacts: ['죽음은 영구적이다.'] }),
       call(3, 'lore_write', { project: dir, workId: 'ordered', autonomy: 'guided' }),
     ]);
     const result = payload(out.get(3));
@@ -352,19 +387,20 @@ describe('MCP surface', () => {
   it('runs init -> context -> check end to end over the protocol', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'vibelore-mcp-'));
     const args = { project: dir, workId: 'tower' };
+    const initialized = await initializeWork(args, { genre: 'action', targetChapters: 40, worldFacts: ['검은 탑은 백 년째 아무도 오르지 못했다.'] });
     const out = await session([
       init,
-      call(2, 'lore_init', { ...args, genre: 'action', targetChapters: 40, worldFacts: ['검은 탑은 백 년째 아무도 오르지 못했다.'] }),
       call(3, 'lore_context', { ...args, chapter: 1 }),
       call(4, 'lore_check', { ...args, chapter: 1, prose: '리엘은 탑을 올려다보았다.\n\n바람이 불었다.', deterministicOnly: true }),
       call(5, 'lore_status', args),
     ]);
-    assert.equal(payload(out.get(2)).adopted, false);
+    assert.equal(initialized.adopted, false);
     assert.match(payload(out.get(3)).context, /검은 탑은 백 년째/);
     const check = payload(out.get(4));
     assert.equal(check.status, 'ok');
     assert.equal(check.deterministicOnly, true);
     assert.equal(typeof check.prosody.score, 'number');
+    assert.equal(check.checkId, undefined, 'deterministic preview cannot authorize publication');
     assert.equal(payload(out.get(5)).nextChapter, 1);
     assert.equal(payload(out.get(5)).runtime.contractVersion, 'readability-v1');
   });
@@ -372,9 +408,9 @@ describe('MCP surface', () => {
   it('parks a run when it needs the model, and resumes it after a restart', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'vibelore-mcp-'));
     const args = { project: dir, workId: 'tower' };
+    await legacyWork(args, '탑이 있다.');
     const first = await session([
       init,
-      call(2, 'lore_init', { ...args, genre: 'action', worldFacts: ['탑이 있다.'] }),
       call(3, 'lore_check', { ...args, chapter: 1, prose: '리엘은 탑을 보았다. 문은 잠겨 있었다.' }),
     ]);
     const parked = payload(first.get(3));
@@ -460,13 +496,13 @@ describe('MCP surface', () => {
       '만료 뒤에는 이전 단계를 되묻지 않고 미완 단계부터 재개해야 한다');
   });
 
-  it('automatically summarizes a commit and carries it into the next chapter', async () => {
+  it('preserves legacy automatic commit summaries and carries them into the next chapter', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'vibelore-mcp-'));
     const args = { project: dir, workId: 'tower' };
+    await legacyWork(args, '탑의 문은 백 년째 잠겨 있다.');
     const prose = '리엘은 탑의 잠긴 문 앞에서 오늘 반드시 들어가겠다고 선언했다. 문은 대답 대신 더 굳게 잠겼다.';
     const first = await session([
       init,
-      call(2, 'lore_init', { ...args, genre: 'action', worldFacts: ['탑의 문은 백 년째 잠겨 있다.'] }),
       call(3, 'lore_commit', { ...args, chapter: 1, prose }),
     ]);
     const parked = payload(first.get(3));
@@ -497,7 +533,14 @@ describe('MCP surface', () => {
 for (const interrupted of [false, true]) {
   it(`restores status, context and the next writing workflow through MCP (interrupted=${interrupted})`, async () => {
     const store = await qualityStore();
-    for (const chapter of [1, 2]) await runCommit({ store, workId: qualityWorkId, chapter, prose: `${chapter}번째 문을 열었다.`, summary: `${chapter}번째 문.`, providers: createHostRelay({}), delta: { chapterNumber: chapter, appearedCharacterIds: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], mutableChanges: [], trackedEntityOps: [] } });
+    // The work has an explicit language contract, so each chapter is checked for a receipt before commit.
+    const checker = { pending: [], async complete(req) { return contractResponse(req) ?? { text: qualityOutputs[req.step] ?? '{}' }; } };
+    for (const chapter of [1, 2]) {
+      const chapterInput = { store, workId: qualityWorkId, chapter, prose: `${chapter}번째 문을 열었다.\n\n${SYNTHETIC_LONG_PROSE}`, castManifestRaw: '', providers: checker };
+      const checked = await runCheck({ ...chapterInput, issueReceipt: true });
+      assert.equal(checked.validationComplete, true, JSON.stringify(checked));
+      await runCommit({ ...chapterInput, checkId: checked.checkId });
+    }
     const args = { project: store.rootDir, workId: qualityWorkId };
     if (interrupted) await assert.rejects(rollbackToSnapshot({ store, workId: qualityWorkId, chapter: 1, failAt: 'after:chapters' }), /injected/);
     else {

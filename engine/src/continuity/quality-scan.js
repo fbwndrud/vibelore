@@ -13,6 +13,7 @@
  *   - N10 simile sparsity / overuse: simile-marker density extremes
  *     (`SIMILE_TOO_SPARSE` / `SIMILE_OVERUSE`).
  */
+import { skipKoLexical } from './checker-registry.js';
 // thresholds tuned for Korean web-novel pacing
 const SHOW_NOT_TELL_RATIO_MIN = 0.3; // simile / emotion-verb ratio
 const EMOTION_OVERTELL_DENSITY_MAX = 0.02; // first-person+emotion co-occur / wordCount
@@ -21,6 +22,9 @@ const SIMILE_DENSITY_MIN = 0.002;
 const SIMILE_DENSITY_MAX = 0.04;
 const FIRST_PERSON_MARKERS = ['나는', '내가', '나의', '나를', '내'];
 export function scanQuality(input) {
+    const skipped = skipKoLexical(input, 'scanQuality');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber, emotionLexicon, simileLexicon, onomatopoeiaLexicon } = input;
     if (!prose || prose.length === 0)
         return { violations: [] };

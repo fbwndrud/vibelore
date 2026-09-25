@@ -2,23 +2,58 @@
  * P4b (#516, Epic #511) — entity mention scan (NovelAI Lorebook activation-key
  * 패턴).
  *
- * ADR-0004 의 entity context 는 chapter-plan 의 scene declaration 에만 의존한다
- * — plan LLM 이 entity 를 declare 하지 않으면 직전 화 본문에 실제로 등장한
- * entity 도 prompt 에서 빠진다 (모순 위험: "불 마법사" entity 가 빠진 채 얼음
- * 마법사로 재집필되는 류). 이 모듈은 본문 텍스트에서 entity 의
- * canonicalName/aliases 멘션을 감지해 activation 후보 id 를 돌려준다.
+ * Matching (Phase 2B):
+ *   - Hangul (Unicode Script=Hangul, including Jamo) in the term: substring so
+ *     particles attach. NFD jamo names + attached 은 still match.
+ *   - Han/Hiragana/Katakana: substring. 1-character terms stay excluded
+ *     (minTermLength=2). Short-name overlap is observed, not NER.
+ *   - Other letters: Unicode letter/number/mark boundaries so "Ann" does not
+ *     fire inside "banner", "anniversary", or "Ann\u0301a". Case-insensitive.
+ *   - Mixed Hangul/Latin or CJK/Latin aliases use the Hangul/CJK substring
+ *     path with Unicode case folding (`iu`).
+ *   - retired/destroyed entity 는 활성 후보에서 제외.
  *
- * 정밀도 노트:
- *   - 한국어는 \b word-boundary 가 없어 substring 매치를 쓴다 ("카엘은" ⊃
- *     "카엘"). 영문 이름도 동일 규칙 (대소문자 무시).
- *   - 1글자 term 은 과매치라 기본 제외 (minTermLength=2).
- *   - retired/destroyed entity 는 활성 후보에서 제외 — resolveEntityContext
- *     의 status filter 와 동일 기준.
- *
- * 성능: 엔티티 수십 개 × term 수 개 가정. term 별 indexOf 1-pass 로 충분
- * (plan reader-edit-customization §4 P4).
+ * This is an activation-key heuristic, not exhaustive registration coverage.
  */
 const DEFAULT_MIN_TERM_LENGTH = 2;
+const HANGUL_RE = /\p{Script=Hangul}/u;
+const CJK_RE = /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}/u;
+const WORD_CONSTITUENT = '[\\p{L}\\p{N}\\p{M}]';
+
+function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function termScript(term) {
+    if (HANGUL_RE.test(term))
+        return 'hangul';
+    if (CJK_RE.test(term))
+        return 'cjk';
+    return 'bounded';
+}
+
+function caseInsensitiveContains(text, term) {
+    return new RegExp(escapeRegex(term), 'iu').test(text);
+}
+
+/**
+ * Whether `term` occurs in `text` under the mention-scan matching rules.
+ * Shared with destroyed-entity mention so case/boundary policy stays one place.
+ */
+export function termOccursInText(text, term, options = {}) {
+    const minLen = options.minTermLength ?? DEFAULT_MIN_TERM_LENGTH;
+    if (typeof text !== 'string' || typeof term !== 'string')
+        return false;
+    const trimmed = term.trim();
+    if (trimmed.length < minLen)
+        return false;
+    const script = termScript(trimmed);
+    if (script === 'hangul' || script === 'cjk')
+        return caseInsensitiveContains(text, trimmed);
+    const pattern = new RegExp(`(?<!${WORD_CONSTITUENT})${escapeRegex(trimmed)}(?!${WORD_CONSTITUENT})`, 'iu');
+    return pattern.test(text);
+}
+
 /** 텍스트에서 entity 멘션을 감지한다. 텍스트/스냅샷이 비면 빈 결과. */
 export function scanEntityMentions(input) {
     const minLen = input.minTermLength ?? DEFAULT_MIN_TERM_LENGTH;
@@ -27,18 +62,14 @@ export function scanEntityMentions(input) {
     if (input.text.length === 0 || input.snapshots.length === 0) {
         return { mentionedIds, matchedTerms };
     }
-    const haystack = input.text.toLowerCase();
     for (const snapshot of input.snapshots) {
         if (snapshot.status === 'retired' || snapshot.status === 'destroyed')
             continue;
         const terms = [snapshot.canonicalName, ...snapshot.aliases];
         for (const term of terms) {
-            const trimmed = term.trim();
-            if (trimmed.length < minLen)
-                continue;
-            if (haystack.includes(trimmed.toLowerCase())) {
+            if (termOccursInText(input.text, term, { minTermLength: minLen })) {
                 mentionedIds.push(snapshot.entityId);
-                matchedTerms[snapshot.entityId] = trimmed;
+                matchedTerms[snapshot.entityId] = term.trim();
                 break;
             }
         }

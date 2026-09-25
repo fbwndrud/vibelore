@@ -1,11 +1,15 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
+import { asKit, promptKit } from '../prompts/index.js';
+import { resolveWorkLanguage } from '../core/work-language.js';
+
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const parse = (raw) => { try { return JSON.parse(String(raw).replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim()); } catch { return null; } };
 const text = (v, max = 800) => String(v ?? '').trim().slice(0, max);
 const list = (v, max = 8) => Array.isArray(v) ? v.map((x) => text(x, 500)).filter(Boolean).slice(0, max) : [];
 
-function normalizeCandidate(raw, index) {
+function normalizeCandidate(raw, index, kit) {
   return {
-    id: text(raw?.id || `writer-${index + 1}`, 80), name: text(raw?.name || `작가 후보 ${index + 1}`, 120),
+    id: text(raw?.id || `writer-${index + 1}`, 80), name: text(raw?.name || kit.phrases.writer.candidateName(index + 1), 120),
     aestheticThesis: text(raw?.aestheticThesis), coreAttention: list(raw?.coreAttention, 6),
     sceneTransformations: list(raw?.sceneTransformations, 8), withholdingInstinct: list(raw?.withholdingInstinct, 5),
     payoffInstinct: list(raw?.payoffInstinct, 5), antiFixation: list(raw?.antiFixation, 8),
@@ -35,37 +39,46 @@ export function writerSkillViolations(skill) {
   return violations;
 }
 
-export async function runWriterSkill({ store, workId, mode = 'review', feedback = '', providers }) {
+export async function runWriterSkill({ store, workId, mode = 'review', feedback = '', providers, retryValidation = false }) {
   const foundation = await store.loadFoundation(workId); const spine = await store.loadStorySpine(workId); const profile = await store.loadStoryProfile(workId);
   if (!foundation || !spine || spine.status !== 'active') throw new Error('승인된 세계·인물·StorySpine이 필요합니다.');
-  const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'writer-skill', messages: [
-    { role: 'system', content: '당신은 실제 작가의 문체를 모사하지 않고 깊은 창작 판단 체계를 설계한다. 장면 레시피를 작가 개성으로 포장하지 않는다. AuthorCraft에는 여러 사건에서도 같은 결과를 강요하지 않는 판단·생략·대사·자기배반 원칙을 둔다. StoryDramaturgy에는 이 작품만의 서로 다른 갈등 원천, 확대 법칙, 주인공의 반복 오류, 적대자의 적응을 둔다. 해결 절차나 고정된 반전 순서는 금지한다. audition은 동일한 첫 위기를 500~800자 산문으로 시연한다. 순수 JSON만 출력한다.' },
-    { role: 'user', content: `작품: ${JSON.stringify({ title: foundation.title, brief: foundation.brief, genre: profile?.genreLabel, worldFacts: foundation.worldFacts.map((f) => f.statement), characters: foundation.characters.map((c) => ({ id:c.id,name:c.canonicalName,contradiction:c.contradiction })), spine })}\n피드백: ${feedback || '(없음)'}\n서로 다른 후보 정확히 3개. 각 후보는 coreAttention 2개 이상, sceneTransformations 3개 이상, antiFixation 2개 이상, discoverySpaces 1개 이상, authorCraft.judgments 3개 이상, authorCraft.selfBetrayal 1개 이상, storyDramaturgy.conflictSources 2개 이상을 채운다. JSON: {"candidates":[{"id":"","name":"","aestheticThesis":"","coreAttention":[""],"sceneTransformations":[""],"withholdingInstinct":[""],"payoffInstinct":[""],"antiFixation":[""],"discoverySpaces":["정답이 아니라 열린 질문"],"authorCraft":{"judgments":[""],"omissions":[""],"dialogueConduct":[""],"selfBetrayal":[""]},"storyDramaturgy":{"conflictSources":[""],"escalationLaws":[""],"protagonistError":"","oppositionAdaptation":[""]},"audition":"500~800자 산문"}]}` },
-  ] });
+  const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
+  const kit = promptKit({ contract: workLanguage.contract });
+  const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'writer-skill', messages: kit.messages('writer-skill', {
+    workJson: JSON.stringify({ title: foundation.title, brief: foundation.brief, genre: profile?.genreLabel, worldFacts: foundation.worldFacts.map((f) => f.statement), characters: foundation.characters.map((c) => ({ id:c.id,name:c.canonicalName,contradiction:c.contradiction })), spine }),
+    feedback: feedback || kit.phrases.common.noneParen,
+  }) });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'writer-skill' };
-  const obj = parse(response.text); const candidates = (obj?.candidates ?? []).map(normalizeCandidate);
+  const obj = parse(response.text); const candidates = (obj?.candidates ?? []).map((raw, index) => normalizeCandidate(raw, index, kit));
   if (candidates.length !== 3) throw new Error(`WriterSkill은 유효한 후보 3개가 필요합니다. 받은 후보 ${candidates.length}개.`);
   const invalid = candidates.map((c) => ({ name: c.name, violations: writerSkillViolations(c) })).filter((c) => c.violations.length);
   if (invalid.length) throw new Error(`WriterSkill은 유효한 후보 3개가 필요합니다. ${invalid.map((c) => `${c.name}: ${c.violations.map((v) => v.message).join(' ')}`).join(' / ')}`);
-  const judged = await providers.complete({ model: MODEL, jsonMode: true, step: 'writer-skill-audition', messages: [
-    { role: 'system', content: '한국 상업 웹소설의 블라인드 작가 오디션 심사자다. 설정 준수보다 첫 문단의 견인, 장면 속 정보, 대사 서브텍스트, 예측 불가능한 인물 선택, 여러 화로 변주 가능한 판단 습관을 평가한다. 한 가지 틱을 반복할 후보와 추상 조언뿐인 후보를 탈락시킨다. 순수 JSON만 출력한다.' },
-    { role: 'user', content: `후보: ${JSON.stringify(candidates.map((c) => ({ id:c.id, audition:c.audition, skill:{ aestheticThesis:c.aestheticThesis, coreAttention:c.coreAttention, sceneTransformations:c.sceneTransformations, antiFixation:c.antiFixation } })))}\nJSON: {"winnerId":"","scores":[{"id":"","scenePower":0,"subtext":0,"characterAgency":0,"range":0,"antiFixation":0,"reason":""}]}` },
-  ] });
+  const judged = await providers.complete({ model: MODEL, jsonMode: true, step: 'writer-skill-audition', messages: kit.messages('writer-skill-audition', {
+    candidatesJson: JSON.stringify(candidates.map((c) => ({ id:c.id, audition:c.audition, skill:{ aestheticThesis:c.aestheticThesis, coreAttention:c.coreAttention, sceneTransformations:c.sceneTransformations, antiFixation:c.antiFixation } }))),
+  }) });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'writer-skill-audition' };
   const verdict = parse(judged.text); const winner = candidates.find((c) => c.id === verdict?.winnerId);
   if (!winner) throw new Error('WriterSkill 오디션이 유효한 우승 후보를 선택하지 못했습니다.');
   const skill = { ...winner, workId, status: mode === 'auto' ? 'active' : 'pending', selectedCandidate: winner.id, auditionScores: verdict.scores ?? [], candidates, revision: 1, createdAt: new Date().toISOString() };
+  const approval = await gateApprovalActivation({ store, workId, kind: 'writer', value: skill, providers, resolution: workLanguage, structuralErrors: writerSkillViolations(skill), retryValidation });
+  if (!approval.ok) return { ...approval, candidate: skill };
   await store.saveWriterSkill(workId, skill); return { skill, candidates, needsApproval: skill.status === 'pending' };
 }
 
-export async function runWriterSkillDecide({ store, workId, action }) {
+export async function runWriterSkillDecide({ store, workId, action, providers, retryValidation = false }) {
   const skill = await store.loadWriterSkill(workId); if (!skill) throw new Error('검토할 WriterSkill이 없습니다.');
   const status = action === 'approve' ? 'active' : action === 'reject' ? 'rejected' : null; if (!status) throw new Error('action은 approve 또는 reject여야 합니다.');
-  const next = { ...skill, status }; await store.saveWriterSkill(workId, next); return { approved: status === 'active', skill: next };
+  const next = { ...skill, status };
+  if (status === 'active') {
+    const approval = await gateApprovalActivation({ store, workId, kind: 'writer', value: next, providers, consumeOnly: true, structuralErrors: writerSkillViolations(next), retryValidation });
+    if (!approval.ok) return { ...approval, approved: false };
+  }
+  await store.saveWriterSkill(workId, next); return { approved: status === 'active', skill: next };
 }
 export async function runWriterSkillStatus({ store, workId }) { const skill = await store.loadWriterSkill(workId); return skill ? { planned:true, skill } : { planned:false }; }
 
-export function createDifferenceContract({ skill, episodePlan, chapter, recentPatterns = [] }) {
+export function createDifferenceContract({ skill, episodePlan, chapter, recentPatterns = [], kit: kitSource }) {
+  const t = asKit(kitSource).phrases.writer;
   const recent = recentPatterns.slice(-3).filter(Boolean);
   const usedSolutions = recent.map((p) => typeof p === 'string' ? p : p.solutionPattern).filter(Boolean);
   const usedMethods = recent.map((p) => typeof p === 'object' ? p.protagonistMethod : '').filter(Boolean);
@@ -73,50 +86,53 @@ export function createDifferenceContract({ skill, episodePlan, chapter, recentPa
   const sources = skill?.storyDramaturgy?.conflictSources ?? [];
   return {
     previousSolutionShapes: [...new Set(usedSolutions)].slice(-3),
-    forbiddenRepeat: usedSolutions.slice(-2).join(' → ') || '직전 화와 같은 발견·해결 순서',
+    forbiddenRepeat: usedSolutions.slice(-2).join(' → ') || t.differenceForbiddenFallback,
     episodeEngine: sources.length ? sources[(chapter - 1) % sources.length] : episodePlan.scenePressure?.incompatibleGoods?.join(' vs ') || episodePlan.premise,
-    protagonistMustMisread: skill?.storyDramaturgy?.protagonistError || '주인공의 전문성이 적어도 한 가지를 놓친다',
-    agencyOwnerConstraint: owners.length ? `${owners.at(-1)} 이외의 인물이 독립 선택으로 전환을 만든다` : '주인공 이외 인물의 독립 선택이 장면을 바꾼다',
+    protagonistMustMisread: skill?.storyDramaturgy?.protagonistError || t.differenceMisreadFallback,
+    agencyOwnerConstraint: owners.length ? t.differenceAgencyOwner(owners.at(-1)) : t.differenceAgencyFallback,
     methodToAvoid: usedMethods.at(-1) || '',
-    expectationBefore: episodePlan.readerExpectation?.likelyOutcome || episodePlan.entryState?.activeQuestion || '장면에서 형성',
-    expectationAfter: episodePlan.turn?.brokenBelief || episodePlan.costCreatedByResolution?.immediate || '기존 해석이 불충분해진다',
+    expectationBefore: episodePlan.readerExpectation?.likelyOutcome || episodePlan.entryState?.activeQuestion || t.differenceExpectationBefore,
+    expectationAfter: episodePlan.turn?.brokenBelief || episodePlan.costCreatedByResolution?.immediate || t.differenceExpectationAfter,
   };
 }
 
-export function compileWriterPacket({ skill, episodePlan, chapter, recentPatterns = [] }) {
+export function compileWriterPacket({ skill, episodePlan, chapter, recentPatterns = [], kit: kitSource }) {
   if (!skill || skill.status !== 'active') return '';
+  const kit = asKit(kitSource);
+  const t = kit.phrases.writer;
   const rotate = (values, count, offset) => Array.from({ length: Math.min(count, values.length) }, (_, i) => values[(offset + i) % values.length]);
   const craft = skill.authorCraft ?? {};
   const attention = rotate(craft.judgments?.length ? craft.judgments : skill.coreAttention, 2, (chapter - 1) * 2);
   const transforms = rotate(craft.omissions?.length ? craft.omissions : skill.sceneTransformations, 1, chapter - 1);
   const anti = rotate(skill.antiFixation, 1, chapter - 1);
   const freedom = rotate(skill.discoverySpaces, 1, chapter - 1);
-  const contract = createDifferenceContract({ skill, episodePlan, chapter, recentPatterns });
+  const contract = createDifferenceContract({ skill, episodePlan, chapter, recentPatterns, kit });
   return [
-    '## 이번 화 Writer Packet',
-    `- 독자의 기존 예상: ${contract.expectationBefore}`,
-    `- 이번 화 뒤 달라질 해석: ${contract.expectationAfter}`,
-    `- 충돌하는 가치: ${episodePlan.scenePressure?.incompatibleGoods?.join(' vs ') || '인물 욕망 두 개'}`,
-    `- 불완전한 시도: ${episodePlan.turn?.brokenBelief || episodePlan.premise}`,
-    `- 지급할 결과: ${episodePlan.payoff?.promisePaid || '작은 결과 하나'}`,
-    `- 해결이 만드는 비용: ${episodePlan.costCreatedByResolution?.immediate || episodePlan.costCreatedByResolution?.deferred || '새 비용 하나'}`,
-    episodePlan.characterArcBeats?.length ? `- 이번 화 인물 변화: ${episodePlan.characterArcBeats.map((b) => `${b.characterId}=${b.beat}(${b.note})`).join('; ')}` : '',
-    '- 이번 화에 활성화할 작가적 판단:', ...attention.map((v) => `  - ${v}`), ...transforms.map((v) => `  - ${v}`),
-    `- 이번 화 사건 원천: ${contract.episodeEngine}`,
-    `- 주인공이 놓쳐야 하는 것: ${contract.protagonistMustMisread}`,
-    `- 전환의 소유자: ${contract.agencyOwnerConstraint}`,
-    `- 금지된 해결 반복: ${contract.forbiddenRepeat}`,
-    contract.methodToAvoid ? `- 직전 주인공 방식도 재사용 금지: ${contract.methodToAvoid}` : '',
-    `- 이번 화의 고착 방지: ${anti[0] || '같은 해결 순서를 반복하지 않는다'}`,
-    `- 자기 장기 배반: ${rotate(craft.selfBetrayal ?? [], 1, chapter - 1)[0] || '익숙한 장기가 예상되는 순간 그 장기의 부작용을 드러낸다'}`,
-    `- 작가에게 남기는 자유: ${freedom[0] || '정확한 행동과 대사는 장면에서 발견한다'}`,
-    '- 위 결과를 설명하지 말고 장면에서 발견하라. 전체 아크의 정답을 요약하지 마라.',
+    t.packetHeading,
+    t.expectationBefore(contract.expectationBefore),
+    t.expectationAfter(contract.expectationAfter),
+    t.conflictingValues(episodePlan.scenePressure?.incompatibleGoods?.join(' vs ') || t.conflictingValuesFallback),
+    t.incompleteAttempt(episodePlan.turn?.brokenBelief || episodePlan.premise),
+    t.payoff(episodePlan.payoff?.promisePaid || t.payoffFallback),
+    t.resolutionCost(episodePlan.costCreatedByResolution?.immediate || episodePlan.costCreatedByResolution?.deferred || t.resolutionCostFallback),
+    episodePlan.characterArcBeats?.length ? t.characterChange(episodePlan.characterArcBeats.map((b) => `${b.characterId}=${b.beat}(${b.note})`).join('; ')) : '',
+    t.craftHeading, ...attention.map((v) => `  - ${v}`), ...transforms.map((v) => `  - ${v}`),
+    t.episodeEngine(contract.episodeEngine),
+    t.mustMisread(contract.protagonistMustMisread),
+    t.turnOwner(contract.agencyOwnerConstraint),
+    t.forbiddenRepeat(contract.forbiddenRepeat),
+    contract.methodToAvoid ? t.methodToAvoid(contract.methodToAvoid) : '',
+    t.antiFixation(anti[0] || t.antiFixationFallback),
+    t.selfBetrayal(rotate(craft.selfBetrayal ?? [], 1, chapter - 1)[0] || t.selfBetrayalFallback),
+    t.freedom(freedom[0] || t.freedomFallback),
+    t.packetFooter,
   ].filter(Boolean).join('\n');
 }
 
 /** WriterSkill-only projection. Episode obligations belong to WriterEpisodePacket. */
-export function compileAuthorCraftPacket({ skill, episodePlan, chapter, recentPatterns = [] }) {
+export function compileAuthorCraftPacket({ skill, episodePlan, chapter, recentPatterns = [], kit: kitSource }) {
   if (!skill || skill.status !== 'active') return '';
+  const t = asKit(kitSource).phrases.writer;
   const rotate = (values, count, offset) => Array.from({ length: Math.min(count, values?.length ?? 0) }, (_, i) => values[(offset + i) % values.length]);
   const craft = skill.authorCraft ?? {};
   const attention = rotate(craft.judgments?.length ? craft.judgments : skill.coreAttention, 2, (chapter - 1) * 2);
@@ -127,11 +143,11 @@ export function compileAuthorCraftPacket({ skill, episodePlan, chapter, recentPa
     .map((pattern) => typeof pattern === 'string' ? pattern : pattern?.solutionPattern)
     .filter(Boolean);
   return [
-    '## 이번 화 Author Craft Packet',
-    '- 이번 화에 활성화할 작가적 판단:', ...attention.map((value) => `  - ${value}`), ...transforms.map((value) => `  - ${value}`),
-    repeatedSolutions.length ? `- 직전 해결 형태를 그대로 반복하지 않는다: ${repeatedSolutions.join(' → ')}` : '',
-    `- 이번 화의 고착 방지: ${anti[0] || '같은 해결 순서를 반복하지 않는다'}`,
-    `- 작가에게 남기는 자유: ${freedom[0] || '정확한 행동과 대사는 장면에서 발견한다'}`,
-    '- 이것은 모든 항목을 장면마다 증명할 체크리스트가 아니다. 회차의 즉시 목표와 결과를 해치지 않는 범위에서 필요한 판단만 사용한다.',
+    t.craftPacketHeading,
+    t.craftHeading, ...attention.map((value) => `  - ${value}`), ...transforms.map((value) => `  - ${value}`),
+    repeatedSolutions.length ? t.repeatedSolutions(repeatedSolutions.join(' → ')) : '',
+    t.antiFixation(anti[0] || t.antiFixationFallback),
+    t.freedom(freedom[0] || t.freedomFallback),
+    t.craftPacketFooter,
   ].filter(Boolean).join('\n');
 }

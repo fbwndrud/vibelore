@@ -17,7 +17,38 @@
  * T3.4) plug in via the `TextGeneratorSteps` constructor argument; defaults
  * are throwing stubs so the shell is testable now but cannot accidentally run
  * a half-implemented pipeline in prod.
+ *
+ * 다국어 Phase 2A — 이 어댑터는 언어 계약을 **정하지 않고** 잃지도 않는다.
+ * 호출자가 적은 `language`/`workContract`/`length`(+구형 `chapterWordCount`)를
+ * 그대로 단계에 전달하고, 서로 어긋나면 단계까지 내려가기 전에 여기서 거부한다.
+ * 적지 않은 속성은 `undefined` 로 주입하지 않고 **아예 빼서** 내려보낸다 —
+ * 하위 단계가 "명시 여부"로 구형/신규 동작을 가르기 때문이다.
  */
+import { resolvePromptLanguageContext } from '../../core/prompt-language.js';
+/** 실제로 적힌 속성만 골라 넘긴다(없는 키는 주입하지 않는다). */
+function forwardPresent(input, keys) {
+    const out = {};
+    for (const key of keys) {
+        if (input[key] !== undefined)
+            out[key] = input[key];
+    }
+    return out;
+}
+/**
+ * 어댑터 경계에서 언어·분량 인자의 정합성만 확인한다. 계약을 만들어 하위로
+ * 내려보내지 않는다 — 단계가 자기 규칙(구형 기본값 등)으로 다시 해석해야 한다.
+ */
+function assertLanguageInput(input, { legacyLengthKey = null } = {}) {
+    const hasLegacy = legacyLengthKey !== null && input[legacyLengthKey] !== undefined && input[legacyLengthKey] !== null;
+    if (input.workContract === undefined && input.language === undefined && input.length === undefined && !hasLegacy)
+        return;
+    resolvePromptLanguageContext({
+        workContract: input.workContract ?? null,
+        language: input.language ?? null,
+        length: input.length ?? null,
+        legacyLength: hasLegacy ? { chapterWordCount: input[legacyLengthKey] } : null,
+    });
+}
 export function defaultTextGeneratorSteps() {
     return {
         worldbuild() {
@@ -89,23 +120,40 @@ export class TextGenerator {
                 if (input.kind !== 'book-create') {
                     throw new Error(`TextGenerator.run: plan.kind=book-create but input.kind=${input.kind}`);
                 }
-                const { foundation } = await this.steps.worldbuild(ctx, {
+                assertLanguageInput(input, { legacyLengthKey: 'chapterWordCount' });
+                const created = await this.steps.worldbuild({
+                    ...ctx,
+                    ...forwardPresent(input, ['validationEpoch', 'validationReceipt', 'workflowId', 'runId', 'workContract', 'language', 'length']),
+                }, {
                     title: input.title,
                     genre: input.genre,
                     brief: input.brief,
-                    language: input.language,
                     targetChapters: input.targetChapters,
-                    chapterWordCount: input.chapterWordCount,
+                    // 명시된 것만 넘긴다 — 구형 입력이 새 키를 얻지 않는다.
+                    ...forwardPresent(input, [
+                        'language', 'chapterWordCount', 'workContract', 'length',
+                        'validationEpoch', 'validationReceipt', 'workflowId', 'runId',
+                        'canonicalApprovalArtifact', 'languageCompliance',
+                    ]),
                     ...(input.povMode ? { povMode: input.povMode } : {}),
                 });
-                return { kind: 'book-create', foundation };
+                return { kind: 'book-create', ...created };
             }
             case 'chapter-write': {
                 if (input.kind !== 'chapter-write') {
                     throw new Error(`TextGenerator.run: plan.kind=chapter-write but input.kind=${input.kind}`);
                 }
-                const { artifact } = await this.steps.writeChapter(ctx, {
+                assertLanguageInput(input, { legacyLengthKey: 'targetWordCount' });
+                const { artifact } = await this.steps.writeChapter({
+                    ...ctx,
+                    ...forwardPresent(input, ['validationEpoch', 'validationReceipt', 'workflowId', 'runId', 'workContract', 'language', 'length']),
+                }, {
                     chapterNumber: input.chapterNumber,
+                    ...forwardPresent(input, [
+                        'language', 'targetWordCount', 'workContract', 'length',
+                        'title', 'summary', 'canonicalArtifact', 'validationReceipt',
+                        'validationEpoch', 'workflowId', 'runId',
+                    ]),
                 });
                 return { kind: 'chapter-write', artifact };
             }
@@ -113,8 +161,17 @@ export class TextGenerator {
                 if (input.kind !== 'chapter-rewrite') {
                     throw new Error(`TextGenerator.run: plan.kind=chapter-rewrite but input.kind=${input.kind}`);
                 }
-                const { artifacts } = await this.steps.rewriteFromChapter(ctx, {
+                assertLanguageInput(input);
+                const { artifacts } = await this.steps.rewriteFromChapter({
+                    ...ctx,
+                    ...forwardPresent(input, ['validationEpoch', 'validationReceipt', 'workflowId', 'runId', 'workContract', 'language', 'length']),
+                }, {
                     fromChapter: input.fromChapter,
+                    ...forwardPresent(input, [
+                        'language', 'workContract', 'length',
+                        'title', 'summary', 'canonicalArtifact', 'validationReceipt',
+                        'validationEpoch', 'workflowId', 'runId',
+                    ]),
                 });
                 return { kind: 'chapter-rewrite', artifacts };
             }

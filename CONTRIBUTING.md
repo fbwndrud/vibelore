@@ -28,7 +28,7 @@ The engine and MCP test suites run independently and together in CI.
 Webtoon changes must preserve novel canonical files and approval boundaries.
 Use small synthetic manuscripts and images; exercise new workflows through
 actual MCP stdio as well as the individual tools. Keep legacy fixtures explicitly
-named and test mandatory rough approval on the current policy. Fixture reviews
+named, and for the deprecated per-panel path test mandatory rough approval on the current policy. Fixture reviews
 test orchestration, not visual quality. Verify the package includes the webtoon
 skill, linked documentation, bundled font and its OFL notice with
 `npm pack --dry-run --json`. Private episodes and generated art do not belong here.

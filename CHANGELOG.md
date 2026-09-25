@@ -1,5 +1,159 @@
 # Changelog
 
+## 0.4.0 — 2026-09-24
+
+- Integrate novel work language (BCP 47) support end to end, with an
+  8-language regression sample (`ko`, `en`, `ja`, `zh-Hant`, `es`, `ar`, `fr`,
+  `th`) covering novel writing and the scene webtoon flow.
+- Scene webtoons inherit the work's language; the image prompt names the
+  language, script and reading direction (including right-to-left for `ar`).
+- Lettering comparison between the plan and the observed image text is NFC
+  normalized, and the reviewer transcribes observed text in the drawn script.
+- Right-to-left scene prompts (such as `ar`) also state the page reading
+  order: rows top to bottom, panels within a row right to left, and the first
+  spoken line at the right or top. Left-to-right prompts are unchanged.
+- Scene lettering drops a matched dialogue quotation pair (any script) that
+  wraps the whole line and Markdown emphasis around a word or phrase, and
+  keeps the inner words verbatim; lone or inner quote marks, apostrophes and
+  censor asterisks (`f*ck`, `시*`) stay. The image prompt and the
+  plan-vs-source check use the same normalization; review accepts a drawn
+  wrapping quote pair but fails literally drawn emphasis markers.
+- The lettering match accepts both standard placements of Arabic tanween
+  al-fath (on the final alif or on the letter before it). Other diacritic
+  differences still fail.
+- Physical in-scene writing (plan text kind `physical`) is lettered on its
+  paper, sign or screen, never in a balloon, and the scene planner is told the
+  five text kinds. Scene image prompts in every language, including `ko`, now
+  also forbid invented numbers, notes, tables, charts and signage.
+- Scene direction fields must be Latin-script English regardless of the work
+  language.
+- Scene user-facing messages (questions, warnings, notices) are `ko` or `en`
+  by work language.
+- Deprecate the `lore_webtoon_plan` per-panel path: new MCP workflow starts on
+  that path are blocked with `WEBTOON_PANEL_PATH_DEPRECATED`, directing
+  callers to `lore_webtoon_scene`.
+- Episode-plan repair instructions follow the work-language prompt family
+  instead of a fixed language.
+- Restore the advisory story-profile check on the `lore_write` contract-check
+  path.
+- Closing-arc chapters get the cliffhanger advisory again on the contract
+  check path (the arc position is passed to the detectors).
+- The approval language gate classifies the cast-design `intrinsic.genderLabel`
+  as work-language text, so `lore_create` no longer ends in `clean_fail
+  INCOMPLETE_LANGUAGE_EVIDENCE` after every reviewer answer passed. A generated
+  `intrinsic.ageBand` ("early twenties") is now reviewed as work-language text
+  instead of being exempt as an enum; only the `unknown` default stays machine.
+  A new test derives the fields from the live generator prompt schemas.
+- Review-mode StoryProfiles no longer fail the language gate for every non-`ko`
+  work because of a fixed English "Reading difficulty" question. The model now
+  writes that open question in the work language like the others, and it is
+  reviewed as generated text. When the model omits it, the host inserts its
+  static `ko`/`en` question, which is bound to the approval hash but is not a
+  work-language artifact.
+- Chapter summaries (`summaries/NNN.md`) use the canonical format heading:
+  v1 works keep `## 요약`, v2 (non-`ko`) works write `## Summary`. Reading
+  accepts both headings, so summaries already written with `## 요약` in a v2
+  work still load.
+- Relayed requests (`needs_model`) carry the execution note, JSON note and
+  shared-prefix markers in the work's prompt family: `ko` works keep the
+  Korean text byte for byte, other works get English, so a Korean note no
+  longer pulls a non-`ko` answer into Korean. The shared chapter-prose label
+  follows the family too.
+- Non-`ko` StoryProfiles no longer get English host defaults ("Design question
+  N", "web serial", the reader-legibility and register-policy guidance) in
+  work-language fields when the model omits them. The multilingual prompt asks
+  for those values in the work language; if one is still missing it is stored
+  empty and the runtime prompt guidance falls back to the static instruction.
+  `ko` defaults are unchanged.
+- Fix the writing-context token budget (`src/tools/context.js`) to estimate
+  non-`ko` works with the script-aware `tokenUnits()` estimator instead of a
+  flat `chars / 2`, which overcounted sparse scripts like English by roughly
+  2x and could throw a false `context_overflow` on a legitimately sized
+  English chapter while `ko` passed. `ko` works keep the exact 0.3.10
+  `chars / 2` estimate, byte for byte, including on mixed Hangul/ASCII/JSON
+  content. The `context_overflow` error text now follows the work's `ko`/`en`
+  prompt family and no longer implies an automatic scene split or re-plan
+  that the product does not perform.
+- Non-`ko` works also use `tokenUnits()` for the staged-entity budget, the
+  recent-summary sliding window and optional memory selection, so English and
+  other Latin-script works are no longer trimmed at about half the material a
+  `ko` work of the same content gets. The `used ~Nt` numbers in those prompt
+  headings change for non-`ko` works. `ko` works, and engine callers that
+  name no prompt family, keep the exact 0.3.10 `/ 2` estimates, so the same
+  entities, summaries and memories are selected with the same headings.
+  `tokenUnits()` now has a single implementation in the engine, and the plugin
+  re-exports it.
+- Fix the `lore_write` post-review quality-gate revise cap. It held only
+  within one call: the attempt counter restarted on every resume, so a host
+  resuming after each round trip could get unlimited quality revisions. The
+  workflow now stores how many quality revisions it applied. Across resumes
+  it allows two revisions and then ends in `clean_fail`, the same as one
+  uninterrupted call. A new user round refills the budget:
+  `lore_decide(action="request_revision")`, or `retryValidation` on a
+  `clean_fail` draft. The mandatory-validation budget is unchanged.
+- The staged-entity and recent-summary sections of the writing context now use
+  English labels in non-`ko` works, for example `## Entities on stage this
+  chapter` and `## Recent N chapter summaries`. Like every other heading in the
+  prompt, they follow the prompt family (canonical files such as the stored
+  summaries keep the v1/v2 format rule). `ko` works keep the Korean labels byte
+  for byte.
+
+### Existing Korean works: what changes in `lore_write`
+
+Korean (`ko`) works keep the Korean prompt family, but every chapter now goes
+through the same contract validation gate as other languages.
+
+- **Validation gate and receipts.** Each chapter is checked against the live
+  work contract (plans, profile, language, published HEAD). A passing check
+  issues a validation receipt bound to that identity, and commit consumes it.
+  A plan or contract change after the check makes the receipt stale instead of
+  committing it.
+- **Persistent validation budget.** Extraction and semantic validation share a
+  three-attempt budget per validation epoch that survives resumes. A model
+  transport failure returns `provider_error` without spending the budget, and
+  the next `lore_write` resumes.
+- **`clean_fail` and `retryValidation`.** When the budget runs out the draft is
+  kept. A bare `lore_write` returns the same `clean_fail` without calling a
+  model; `lore_write(retryValidation=true)` re-checks the kept draft in a new
+  epoch.
+- **Re-validation instead of redrafting.** When only canon, plans or the
+  contract changed after the check (an arc or episode plan edit,
+  `STALE_WORK_CONTRACT`, or a hand edit published with `lore_sync`),
+  `lore_write` (bare or with `retryValidation=true`) re-validates the same kept
+  prose under the current contract instead of drafting again.
+  - It covers a `clean_fail` draft, a guided draft waiting for approval, and a
+    `ready_to_commit` draft whose auto-commit failed.
+  - The old receipt and approval are void. The re-check issues a fresh receipt
+    with a fresh three-attempt budget (also for a `clean_fail` that had spent
+    its budget), repairs hard violations within that budget, then asks for
+    approval (`guided`) or commits (`auto`) as usual.
+  - A draft that was waiting for the user's decision stays `guided` even when
+    the call asks for `auto`; the fresh receipt goes through `lore_decide`.
+  - A pending `lore_decide(action="request_revision")` feedback is carried
+    over: the new workflow applies that revision to the kept draft under the
+    current contract.
+  - `lore_write` drafts the chapter again only with a new `instruction`, or
+    when the kept draft no longer exists.
+  - The check runs in a new workflow. The old one stays in the history as
+    `clean_fail`, marked `workflow_superseded` (`mode`: `revalidate`,
+    `revise` or `redraft`); the new one records the inherited prose as
+    `inheritedDraft.proseHash`. If nothing changed, `lore_write` returns the
+    kept draft without calling a model.
+- **`lore_workflow_inspect` can show the kept draft.** With `detail="full"` it
+  returns the kept or parked draft prose as `draftProse`; the default
+  `detail="summary"` leaves it out.
+- **New checks.** Each chapter gets a language-compliance request and a
+  generated title, and the detector plan adds `scanStyle`,
+  `scanSentenceStats`, `scanEntityMentions`, and, where they apply,
+  `scanWorldGroupConflict` and `scanFanficLeak`. Soft and advisory findings
+  still never block a commit.
+- **One more host round trip.** A chapter now takes 5 host model round trips
+  instead of 4: draft; extraction with the independent reviews; the semantic
+  continuity check; the chapter title, summary and narrative boundary together
+  (they read the same final prose); then the language-compliance proof. The
+  extra pass is the language-compliance proof, which checks the generated
+  title and summary and so has to come after them.
+
 ## 0.3.10 — 2026-09-24
 
 - Support Node.js 26: `engines` is now `^22.13.0 || ^24.0.0 || ^26.0.0` and CI

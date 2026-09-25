@@ -28,6 +28,7 @@ import { lexicons } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
 import { episodePlanReviewView } from '../core/episode-plan-view.js';
 import { createHash, randomUUID } from 'node:crypto';
+import { runContractCheck, shouldUseContractCheck } from './check-contract.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 
@@ -39,7 +40,16 @@ function safely(label, fn) {
 
 const SEVERITY_RANK = { hard: 0, soft: 1, info: 2 };
 
-export async function runCheck({ store, workId, chapter, prose, castManifestRaw, providers, targetChapters, dialogueBreakMode = 'strict', includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = false }) {
+export async function runCheck({ store, workId, chapter, prose, title, summary, castManifestRaw, providers, targetChapters, dialogueBreakMode = 'strict', includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = false, forceContract = false, workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, metadataCompanion = null }) {
+  const gated = await shouldUseContractCheck({ store, workId, chapter, forceContract });
+  if (gated.gated) {
+    return runContractCheck({
+      store, workId, chapter, prose, title, summary, castManifestRaw, providers,
+      includeSemanticContinuity, includeProfileCheck, requireInfluenceObservation, issueReceipt,
+      workflowId, retryValidation, dialogueBreakMode, allowWorkingTreeDrift, validationScope, targetChapters, metadataCompanion,
+    });
+  }
+
   const foundation = await store.loadFoundation(workId);
   if (!foundation) throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
 
@@ -86,7 +96,7 @@ export async function runCheck({ store, workId, chapter, prose, castManifestRaw,
 
   const prosody = safely('prosody', () => runProsodyScan(prose));
   const quality = safely('quality-gate', () => evaluateChapterQuality({
-    prosodyScore: prosody.score ?? 0,
+    prosodyScore: prosody.score ?? null,
     coherenceScore: null,
   }));
 

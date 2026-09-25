@@ -9,29 +9,50 @@
  * Korean web-novel typical: mean 20-40 chars, std-dev 10-20. Thresholds
  * tuned for that range.
  */
+import { promptFamilyFrom } from './checker-registry.js';
 // Tuned for Korean web-novel typical distribution.
 const MIN_SENTENCES_FOR_SCAN = 10;
 const STDEV_MONOTONY_MAX = 6; // very tight distribution
 const STDEV_CHAOS_MIN = 30; // very erratic distribution
+
+function computeLengthStats(sentences) {
+    if (sentences.length === 0)
+        return { sentenceCount: 0, meanLength: 0, stdev: 0 };
+    const lengths = sentences.map((s) => s.length);
+    const mean = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+    const variance = lengths.reduce((acc, l) => acc + (l - mean) ** 2, 0) / lengths.length;
+    return { sentenceCount: sentences.length, meanLength: mean, stdev: Math.sqrt(variance) };
+}
+
 export function scanSentenceStats(input) {
     const { prose, chapterNumber } = input;
+    const family = promptFamilyFrom(input);
     if (!prose || prose.trim().length === 0) {
         return {
             violations: [],
             stats: { sentenceCount: 0, meanLength: 0, stdev: 0 },
+            ...(family ? { status: 'passed' } : {}),
         };
     }
-    const sentences = splitSentences(prose);
+    const sentences = splitSentences(prose, { allowNoSpaceTerminator: family === 'multilingual' });
+    const stats = computeLengthStats(sentences);
+    if (family === 'multilingual') {
+        return {
+            violations: [],
+            stats,
+            status: 'skipped',
+            skipReason: 'ko_rhythm_threshold_not_applied',
+            invariantCoverage: 'not_applicable',
+            score: null,
+        };
+    }
     if (sentences.length < MIN_SENTENCES_FOR_SCAN) {
         return {
             violations: [],
             stats: { sentenceCount: sentences.length, meanLength: 0, stdev: 0 },
         };
     }
-    const lengths = sentences.map((s) => s.length);
-    const mean = lengths.reduce((a, b) => a + b, 0) / lengths.length;
-    const variance = lengths.reduce((acc, l) => acc + (l - mean) ** 2, 0) / lengths.length;
-    const stdev = Math.sqrt(variance);
+    const { meanLength: mean, stdev } = stats;
     const violations = [];
     if (stdev < STDEV_MONOTONY_MAX) {
         violations.push({
@@ -59,10 +80,12 @@ export function scanSentenceStats(input) {
  * whitespace OR newline boundaries. Quoted dialogue lines counted as
  * sentences too (split on closing quote + whitespace).
  */
-function splitSentences(prose) {
-    const rough = prose
-        .split(/(?<=[.!?。…])\s+|\n+/)
+function splitSentences(prose, { allowNoSpaceTerminator = false } = {}) {
+    const splitter = allowNoSpaceTerminator
+        ? /(?<=[.!?。…！？])\s*|\n+/
+        : /(?<=[.!?。…])\s+|\n+/;
+    return prose
+        .split(splitter)
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
-    return rough;
 }

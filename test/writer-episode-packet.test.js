@@ -72,6 +72,19 @@ describe('Writer Episode Packet Compiler', () => {
     assert.ok(other.value.writerText.includes('- 한겸: attempt — 이전 단계'));
   });
 
+  it('names the planned viewpoint character so the writer narrates from it, and hashes it', () => {
+    const plan = { ...activePlan(), povCharacter: 'seo-yura' };
+    const input = { episodePlan: plan, arcEpisode: { chapter: 6 }, characterNames: { 'seo-yura': '서유라', 'han-gyeom': '한겸' } };
+    const withViewpoint = compileWriterEpisodePacket(input);
+    assert.equal(withViewpoint.ok, true);
+    assert.match(withViewpoint.value.writerText, /- 이번 화 시점 인물: 서유라 — 첫 문장부터/);
+    assert.ok(withViewpoint.value.trace.includedFields.includes('povCharacter'));
+    const otherViewpoint = compileWriterEpisodePacket({ ...input, episodePlan: { ...plan, povCharacter: 'han-gyeom' } });
+    assert.notEqual(withViewpoint.value.trace.obligationHash, otherViewpoint.value.trace.obligationHash);
+    const noViewpoint = compileWriterEpisodePacket({ ...input, episodePlan: { ...plan, povCharacter: null } });
+    assert.doesNotMatch(noViewpoint.value.writerText, /시점 인물/);
+  });
+
   it('fails closed instead of trimming mandatory obligations when the packet budget is too small', () => {
     const result = compileWriterEpisodePacket({ episodePlan: activePlan(), arcEpisode: { chapter: 6 }, budget: { maxTokens: 20 } });
     assert.equal(result.ok, false);

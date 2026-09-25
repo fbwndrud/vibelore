@@ -1,5 +1,7 @@
 # 아키텍처 — 요청부터 저장까지
 
+한국어 | [English](ARCHITECTURE.en.md)
+
 vibelore는 AI와 작품 파일 사이에서 **제작 순서, 검사, 승인과 저장**을 관리하는 로컬 MCP 서버입니다.
 사용자는 연결한 AI의 채팅창에서 요청하고 결과를 확인합니다. AI가 글과 그림을 만들며,
 vibelore는 어떤 원작·설정·사용자 선택으로 작업했는지를 기록합니다.
@@ -13,12 +15,12 @@ vibelore는 어떤 원작·설정·사용자 선택으로 작업했는지를 기
 flowchart TB
     U["사용자 · 요청과 승인"] <--> H["연결한 AI · 채팅과 도구 실행"]
     H <--> V["vibelore MCP · 작업 순서와 상태 관리"]
-    H <--> G["이미지 생성 도구 또는 선택한 이미지 API"]
+    H <--> G["사용자가 고른 OpenAI 이미지 API"]
     V <--> N["소설 제작 · 설계 → 집필 → 검사"]
-    V <--> W["웹툰 제작 · 각색 → 러프 → 작화 반입 → 조판"]
+    V <--> W["웹툰 제작 · 각색 → 영어 연출 → 생성 전 검증 → 장면 이미지 → 시각 검토"]
     N <--> C["원작 파일 · 세계관 / 인물 / 원고"]
     C -->|"선택한 원작 판본을 복사해 고정"| W
-    W --> O["웹툰 파일 · 대본 / 기준 이미지 / SVG·HTML"]
+    W --> O["장면 이미지 · scene.html · 계획/검토 JSON (.vibelore/webtoon)"]
     N <--> S["로컬 기록 · 진행 / 검토 / 승인 / 복구"]
     W <--> S
 ```
@@ -73,6 +75,30 @@ flowchart LR
 세계·인물 자료와 해당 화의 상태를 고정해 각색에 사용합니다.
 현재 설정 문서와 과거 장면의 상태가 다를 수 있으므로 AI가 해당 시점의 원고와 함께 판단합니다.
 
+### 기본 경로: 장면 통합 (`lore_webtoon_scene`)
+
+새 웹툰 작업은 러프나 컷별 작화 없이 장면 전체를 대사까지 한 장으로 생성합니다.
+
+```mermaid
+flowchart TD
+    S["고정한 원작 판본"] --> I["방향·참조·칸 수·이미지 모델 확인"]
+    I --> D["장면 각색 · 영어 연출"]
+    D --> C["생성 전 검증 · 원작 충실성·공간/물리·인과·정보 부담"]
+    C --> J["문자 포함 장면 이미지 요청"]
+    J --> H["호스트가 참조를 첨부해 이미지 생성"]
+    H --> V2["실제 시각 검토 · 문구·화자·읽기 순서"]
+    V2 --> O["웹툰 이미지·계획·검토 JSON 저장"]
+```
+
+생성 전 검증이나 시각 검토가 불합격이면 정해 둔 자동 재설계 횟수 안에서 서버가 원인을
+feedback으로 삼아 다시 설계·검증·생성합니다. 이어지는 장면은 `previousWorkflowId`로 직전
+장면의 실제 이미지·검토 결과를 상속합니다.
+
+### 컷별 경로 (deprecated)
+
+`lore_webtoon_plan`/`render`/`decide`로 시작하던 러프 승인 방식은 deprecated이며, 새 작업
+시작은 거절됩니다. 아래는 이미 시작된 컷별 작업에만 적용됩니다.
+
 ```mermaid
 flowchart TD
     S["고정한 원작 판본"] --> I["표현 방향 인터뷰"]
@@ -93,7 +119,7 @@ flowchart TD
 기본 검토 모드의 흐름입니다. 기존 작품의 유효한 모델 선택과 기준 이미지는 재사용할 수
 있습니다. 새 회차의 사용자 러프 승인은 자동 진행을 요청해도 필요합니다.
 
-### 각색과 검토를 나누는 이유
+### 각색과 검토를 나누는 이유 (컷별 경로 · deprecated)
 
 인터뷰 스킬은 장면별 제작을 요청합니다. 먼저 회차 전체의 방향과 장면 배정을 만들고,
 최대 6컷의 작은 묶음에 관련 원문과 앞뒤 문맥을 전달합니다. 부분 검토 후에는 전체 흐름을
@@ -102,7 +128,7 @@ flowchart TD
 이 분할은 모델에게 전달하는 작업 크기를 제한하는 장치입니다. 장면의 인과와 대사가
 실제로 자연스러운지는 검토와 사용자 확인에 남습니다.
 
-### 연속성과 병렬 작업
+### 연속성과 병렬 작업 (컷별 경로 · deprecated)
 
 | 컷 연결 | 이미지 입력 | 실행 순서 |
 |---|---|---|
@@ -117,7 +143,10 @@ flowchart TD
 새 구도로 그려도 실제 앞뒤 이미지의 연결 검토는 필요합니다. 앞 그림이 바뀌면 그 그림을
 참조하는 컷과 연결 검토를 다시 확인합니다. 모든 컷을 무조건 다시 그리지는 않습니다.
 
-### 그림과 문자 합성
+### 그림과 문자 합성 (컷별 경로 · deprecated)
+
+기본 경로는 대사·글자를 이미지 생성 자체에 포함하고 시각 검토에서 문구·화자·읽기 순서를
+확인합니다. 아래 별도 조판(레터링) 합성은 컷별 경로에만 있습니다.
 
 대사·속생각·설명·효과음은 그림과 분리해 관리합니다. 호스트 AI가 실제 그림에서 화자 위치,
 소리 발생점, 얼굴과 동작을 가리지 않을 영역을 읽습니다. vibelore는 그 정보를 바탕으로
@@ -163,8 +192,8 @@ sequenceDiagram
 ├── characters/     원작 인물 설정
 ├── chapters/       승인된 소설 원고
 ├── summaries/      화별 요약
-├── webtoon/        승인한 웹툰 방향·대본·기준 이미지·완성본
-└── .vibelore/      진행 상태·후보·검사·승인 기록·복구 자료
+├── webtoon/        컷별 경로(deprecated)의 승인한 방향·대본·기준 이미지·완성본
+└── .vibelore/      진행 상태·후보·검사·승인 기록·복구 자료, 장면 웹툰 결과(webtoon/candidates/)
 ```
 
 웹툰을 승인해도 소설의 원고와 확정 상태를 덮어쓰지 않습니다. 소설을 과거 시점으로
@@ -185,9 +214,10 @@ sequenceDiagram
 | MCP 도구와 입력·응답 경계 | [서버](../src/server.js) |
 | 소설 집필 단계·검토·승인 | [집필 워크플로](../src/tools/workflow.js) |
 | 소설 정본 조회와 저장 | [정본 읽기](../src/core/canon-repository.js), [출판 단위](../src/core/publication-unit.js), [파일 저장소](../src/store/markdown-store.js) |
-| 웹툰 단계·승인과 별도 기록 | [웹툰 도구](../src/tools/webtoon.js), [웹툰 저장소](../src/store/webtoon-store.js) |
-| 장면 분할·구도·선행 이미지 의존성 | [장면 분할](../src/core/webtoon-segments.js), [러프 승인](../src/core/webtoon-storyboard.js), [연속성](../src/core/webtoon-continuity.js) |
-| 생성 요청과 문자 합성 | [이미지 요청](../src/core/webtoon-images.js), [문자 역할](../src/core/webtoon-text.js), [조판](../src/core/webtoon-lettering.js), [최종 화면](../src/core/webtoon-board.js) |
+| 웹툰 기본 경로(장면 통합) | [웹툰 장면 도구](../src/tools/webtoon-scene.js), [장면 코어](../src/core/webtoon-scene.js), [웹툰 저장소](../src/store/webtoon-store.js) |
+| 웹툰 컷별 경로(deprecated) 단계·승인과 별도 기록 | [웹툰 도구](../src/tools/webtoon.js), [웹툰 저장소](../src/store/webtoon-store.js) |
+| 컷별 경로의 장면 분할·구도·선행 이미지 의존성 | [장면 분할](../src/core/webtoon-segments.js), [러프 승인](../src/core/webtoon-storyboard.js), [연속성](../src/core/webtoon-continuity.js) |
+| 컷별 경로의 생성 요청과 문자 합성 | [이미지 요청](../src/core/webtoon-images.js), [문자 역할](../src/core/webtoon-text.js), [조판](../src/core/webtoon-lettering.js), [최종 화면](../src/core/webtoon-board.js) |
 
 도구 인자는 [MCP 도구 레퍼런스](TOOLS.md), 웹툰 반입·승인 계약은
 [호스트 실행 규약](reference/WEBTOON_WORKFLOW.md), 장애 대응은

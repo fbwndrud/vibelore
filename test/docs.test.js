@@ -5,11 +5,12 @@ import { dirname, relative, resolve, sep } from 'node:path';
 import test from 'node:test';
 
 const documents = [
-  'README.md', 'HOSTS.md', 'docs/README.md', 'docs/PHILOSOPHY.md', 'docs/GETTING_STARTED.md',
+  'README.md', 'README.en.md', 'README.ja.md', 'README.es.md', 'README.fr.md', 'README.zh-Hant.md',
+  'README.th.md', 'README.ar.md', 'HOSTS.md', 'HOSTS.en.md', 'docs/README.md', 'docs/PHILOSOPHY.md', 'docs/GETTING_STARTED.md',
   'docs/MODELS.md', 'docs/MCP.md', 'docs/TOOLS.md', 'docs/ARCHITECTURE.md', 'docs/OPERATIONS.md',
   'docs/WEBTOON.md', 'docs/TROUBLESHOOTING.md', 'docs/reference/WEBTOON_WORKFLOW.md',
   'AGENTS.md', 'hosts/codex/AGENTS.md', 'CONTRIBUTING.md', 'SECURITY.md',
-  'skills/webtoon-discovery-interview/SKILL.md',
+  'skills/story-discovery-interview/SKILL.md', 'skills/webtoon-discovery-interview/SKILL.md',
   'skills/webtoon-discovery-interview/references/editorial-selection.md',
   'skills/webtoon-discovery-interview/references/codex-images.md', 'src/assets/fonts/README.md',
 ];
@@ -19,6 +20,7 @@ async function markdownFiles(directory) {
   const groups = await Promise.all(entries.map(entry => {
     const path = `${directory}/${entry.name}`;
     if (path === 'docs/showcase') return []; // GitHub Pages site, not part of the npm package
+    if (path === 'docs/research' || path === 'docs/superpowers') return []; // internal records, not shipped
     return entry.isDirectory() ? markdownFiles(path) : entry.name.endsWith('.md') ? [path] : [];
   }));
   return groups.flat();
@@ -74,11 +76,13 @@ test('distributed Markdown links stay inside the packaged files', async () => {
 
 test('tool reference names every public and advanced MCP tool', async () => {
   const server = await readFile('src/server.js', 'utf8');
-  const reference = await readFile('docs/TOOLS.md', 'utf8');
   const names = [...server.matchAll(/name: '(lore_[a-z_]+)'/g)].map((match) => match[1]);
   assert.equal(names.length, 43);
   assert.equal(new Set(names).size, names.length);
-  for (const name of names) assert.match(reference, new RegExp(`\\b${name}\\b`), `${name} is undocumented`);
+  for (const file of ['docs/TOOLS.md', 'docs/TOOLS.en.md']) {
+    const reference = await readFile(file, 'utf8');
+    for (const name of names) assert.match(reference, new RegExp(`\\b${name}\\b`), `${file}: ${name} is undocumented`);
+  }
 });
 
 test('Codex plugin manifest points to a portable local MCP entrypoint', async () => {

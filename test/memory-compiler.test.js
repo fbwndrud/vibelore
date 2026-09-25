@@ -45,3 +45,47 @@ test('stale or incomplete execution context is rejected', () => {
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'stale_snapshot');
 });
+
+// -- family-gated budget estimate -------------------------------------------
+// ko (and no family) keeps the exact 52e5aee flat code-point / 2 estimate so
+// the same memories are selected; multilingual uses script-aware tokenUnits().
+const mixedKo = (n, seed) => {
+  const u = `- (${seed}) 등대지기는 수리공이 도착하기 전에 널빤지를 세었다. "status": "active", "tags": ["harbor", "council"], see docs/notes.md. `;
+  return u.repeat(Math.ceil(n / u.length)).slice(0, n);
+};
+const latin = (n, seed) => {
+  const u = `(${seed}) The keeper counts planks before the repairman arrives; harbor council "status": "active". `;
+  return u.repeat(Math.ceil(n / u.length)).slice(0, n);
+};
+const legacyTokens = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
+const memoryInput = (text, extra = {}) => ({
+  budget: { maxTokens: 3000, reservedTokens: 500 }, query: 'harbor council 등대지기',
+  mandatory: [{ id: 'm', text: text(900, 99) }],
+  candidates: Array.from({ length: 10 }, (_, i) => ({ id: `c${i}`, text: text(700, i), priority: i })),
+  ...extra,
+});
+
+for (const promptFamily of [undefined, 'ko']) {
+  test(`ko memory selection is identical to 52e5aee (promptFamily=${String(promptFamily)})`, async () => {
+    const { tokenUnits } = await import('../src/core/token-units.js');
+    const result = compileMemory(context, memoryInput(mixedKo, promptFamily === undefined ? {} : { promptFamily }));
+    assert.equal(result.ok, true);
+    // golden values recorded at 52e5aee
+    assert.deepEqual(result.value.lineage.selectedIds, ['c9', 'c8', 'c7', 'c6', 'c5']);
+    assert.deepEqual(result.value.usage, { maxTokens: 3000, reservedTokens: 500, mandatoryTokens: 450, discretionaryTokens: 1750, remainingTokens: 300 });
+    assert.equal(result.value.usage.mandatoryTokens, legacyTokens(mixedKo(900, 99)));
+    assert.ok(tokenUnits(mixedKo(900, 99)) < legacyTokens(mixedKo(900, 99)), 'fixture must be mixed enough for tokenUnits() to diverge');
+  });
+}
+
+test('an en work selects more optional memory under the same budget', () => {
+  const old = compileMemory(context, memoryInput(latin));
+  const now = compileMemory(context, memoryInput(latin, { promptFamily: 'multilingual' }));
+  assert.equal(old.value.discretionary.length, 5);
+  assert.equal(now.value.discretionary.length, 10);
+  assert.ok(now.value.usage.mandatoryTokens < old.value.usage.mandatoryTokens);
+});
+
+test('an unknown prompt family is rejected, not silently treated as ko', () => {
+  assert.throws(() => compileMemory(context, memoryInput(latin, { promptFamily: 'en' })));
+});

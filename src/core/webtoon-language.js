@@ -46,6 +46,20 @@ export function webtoonLanguageDirective(source) {
   return `Target work language (BCP 47): ${language}. Write generated titles, dialogue, thoughts, captions, sound effects, physical writing, plans and review explanations in this language. Preserve JSON keys, IDs, enum values and user/source quotations. Approved scoped exceptions are supplied in languageContract.allowedLanguageExceptions; do not invent exceptions or translate the novel because the conversation language differs. Schema examples are not output text. Return only JSON.`;
 }
 
+const RTL_SCRIPTS = new Set(['Arab', 'Hebr', 'Thaa', 'Syrc', 'Nkoo', 'Adlm', 'Rohg']);
+/** Image models default to a left-to-right page even when the balloons read right to left, so an RTL reader meets a reply before the line it answers. */
+const RTL_PAGE_ORDER = ' The whole page reads right to left: rows of panels run top to bottom, and panels within a row run right to left. Inside a panel, the first line spoken sits at the right or top, and each later line sits to its left or below.';
+
+/** Image models draw the lettering themselves; name the exact language, script and direction instead of hoping they infer it. */
+export function sceneLetteringLine(source) {
+  const tag = webtoonLanguage(source);
+  const script = new Intl.Locale(tag).maximize().script;
+  const language = new Intl.DisplayNames(['en'], { type: 'language' }).of(tag);
+  const scriptName = new Intl.DisplayNames(['en'], { type: 'script' }).of(script);
+  const rtl = RTL_SCRIPTS.has(script);
+  return `All quoted text is in ${language} (${tag}), written in ${scriptName} script (ISO 15924 ${script}). Letter it in that script exactly as quoted, reading ${rtl ? 'right-to-left' : 'left-to-right'} inside each balloon.${rtl ? RTL_PAGE_ORDER : ''}`;
+}
+
 const questions = {
   W01: ['Purpose and audience', 'Who is this comic for, and is the goal a sample, pitch or serial episode?'],
   W02: ['Adaptation scope', 'Which events, relationships and lines must remain? What may be compressed, omitted or reordered?'],

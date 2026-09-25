@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
-import { runInit } from '../src/tools/init.js';
+import { legacyWorkFixture } from './fixtures/legacy-work.js';
 import { runCommit, runStatus } from '../src/tools/commit.js';
 import { rollbackToSnapshot, resumePendingRollback } from '../src/tools/snapshots.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
@@ -19,7 +19,7 @@ async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'vibelore-rollback-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const store = new MarkdownStateStore(root);
-  await runInit({ store, workId, genre: 'other', worldFacts: ['문은 열쇠로 열린다.'] });
+  await legacyWorkFixture({ store, workId, genre: 'other', worldFacts: ['문은 열쇠로 열린다.'] });
   for (const chapter of [1, 2]) await runCommit({ store, workId, chapter, prose: `${chapter}번째 문을 열었다.`, summary: `${chapter}번째 문.`, delta: delta(chapter), providers: createHostRelay({}) });
   return store;
 }

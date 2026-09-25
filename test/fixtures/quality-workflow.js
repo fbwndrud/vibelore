@@ -1,3 +1,4 @@
+import { approvalFixtureProvider } from './approval-response.js';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -18,7 +19,7 @@ export const outputs = {
 
 export async function qualityStore() {
   const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-quality-')));
-  await runInit({ store, workId, genre: 'litrpg', povMode: '3인칭제한', worldFacts: ['탑은 세금을 걷는다.'] });
+  await runInit({ providers: approvalFixtureProvider(), store, workId, genre: 'litrpg', povMode: '3인칭제한', worldFacts: ['탑은 세금을 걷는다.'] });
   const foundation = await store.loadFoundation(workId);
   await store.saveFoundation({ ...foundation, characters: [{ id: 'hero', canonicalName: '윤재', aliases: [], registeredAtChapter: 1,
     intrinsic: { gender: 'male', ageBand: '20대', role: '주인공', coreAppearance: [] }, mutable: { status: 'alive', knownFacts: ['지도 확대는 이미 배웠다.'] } }] });

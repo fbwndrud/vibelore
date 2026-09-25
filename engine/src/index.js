@@ -67,3 +67,13 @@ export { performChapterRewriteBounded } from './generators/text/chapter-rewrite-
 // Host moderation gates can reuse the SAME
 // scan the engine's own chapter-write step runs, instead of a second ad-hoc list.
 export { DefaultSensitiveLexicon, scanSensitive, KO_SENSITIVE_SEED } from './continuity/sensitive-lexicon.js';
+// 다국어 Phase 1 — 작품 언어/분량 계약. MCP 도구·프롬프트 selector·검사기(2B)가
+// 같은 정책 결정과 측정 계약을 공유하기 위한 공개 표면.
+export { LANGUAGE_POLICY_SCHEMA_VERSION, LANGUAGE_DIRECTIVE_VERSION, MEASUREMENT_POLICY_VERSION, FORMAT_POLICY_VERSION, CHECKER_POLICY_VERSION, PROMPT_FAMILY_KO, PROMPT_FAMILY_MULTILINGUAL, PROMPT_FAMILIES, LENGTH_UNITS, DEFAULT_LENGTH_TARGET, LEGACY_LENGTH_FIELDS, IMPLICIT_LEGACY_LANGUAGE, GRAPHEME_MEASUREMENT_LOCALE, CANONICAL_FORMAT_VERSION_LEGACY_KO, CANONICAL_FORMAT_VERSION_MULTILINGUAL, LANGUAGE_EXCEPTION_KINDS, LANGUAGE_ERROR_CODES, LENGTH_MEASUREMENT_CONTRACT, LanguagePolicyError, normalizeLanguageTag, inspectLanguageTag, identifyLanguage, promptFamilyFor, resolveCreationLanguage, resolveExistingWorkLanguage, defaultLengthFor, resolveLengthContract, resolveMeasurementPolicy, isWordMeasurementSupported, computeMeasurementPolicyHash, validateLengthMeasurementResult, resolveCanonicalFormatVersion, normalizeLanguageExceptions, buildLanguageContract, canonicalizeLanguageContract, computeLanguageContractHash, buildLanguageDirective, } from './core/language-policy.js';
+
+// Shared multilingual validation surfaces for adapters and consume-only publication.
+export { countLength, truncateLength, publishedProse } from './core/length-measure.js';
+export { describeCheckerPlan, runDetector, aggregateCheckerCoverage, CHECKER_IDS, REQUIRED_INVARIANTS } from './continuity/checker-registry.js';
+export { canonicalArtifact, canonicalApprovalArtifact, computeArtifactHash, evaluateLanguageCompliance, evaluateInvariantCoverage, buildValidationReceipt, validateValidationReceipt, buildApprovalBinding, validateApprovalBinding, ValidationContractError, VALIDATION_ERROR_CODES } from './core/validation-contract.js';
+export { computeExtractionContextHash, computeContinuityContextHash, requiredSemanticInvariantIds } from './continuity/continuity-check.js';
+export { prepareChapterPublication, checkChapterPublication, consumeChapterPublication } from './generators/text/chapter-validation.js';

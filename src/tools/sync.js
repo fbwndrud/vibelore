@@ -1,14 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { captureWorkingTreeFingerprint, detectWorkingTreeDrift, fingerprintWorkingTree } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
+import { assertCurrentChapterReceipt, invalidateValidationSession, loadValidationSession } from '../core/validation-context.js';
+import { computeArtifactHash } from '../core/validation-gate.js';
 import { assertProseIntegrity } from './prose-integrity.js';
 import { runCheck } from './check.js';
 import { runCommit } from './commit.js';
 
 const CHAPTER_PATH = /^chapters\/(\d+)\.md$/;
-const MODEL = { provider: 'host', modelId: 'host-agent' };
 const proseHash = (prose) => `sha256:${createHash('sha256').update(String(prose)).digest('hex')}`;
 const pending = (providers) => (providers?.pending?.length ?? 0) > 0;
 const stable = (value) => Array.isArray(value) ? value.map(stable)
@@ -88,18 +88,30 @@ export async function runSyncStatus({ store, workId, action = 'inspect', approva
     if (inspected.classification !== 'latest_chapter_review_required') return inspected;
     const chapter = inspected.chapterCandidates[0].chapter;
     const artifact = await store.loadArtifact(workId, chapter);
-    const check = await runCheck({ store, workId, chapter, prose: artifact.prose, providers });
-    if (pending(providers)) return { preview: true, operation: 'sync_check', chapter };
-    if (check.counts.hard > 0) return { status: 'blocked', chapter, violations: check.violations };
-    const summaryResult = await runChapterSummary({
-      prose: artifact.prose, chapterNumber: chapter, writerModel: MODEL, summaryModel: MODEL, providers,
+    const validationScope = `sync-${chapter}`;
+    const check = await runCheck({
+      store, workId, chapter, prose: artifact.prose, title: artifact.title, providers,
+      forceContract: true, issueReceipt: true, allowWorkingTreeDrift: true, validationScope,
     });
-    if (pending(providers)) return { preview: true, operation: 'sync_summary', chapter };
+    if (pending(providers) || check.preview) return { preview: true, operation: 'sync_check', chapter };
+    if (!check.validationComplete || !check.checkId || !check.artifact || check.counts?.hard > 0) {
+      return { status: check.status === 'clean_fail' ? 'clean_fail' : 'blocked', chapter,
+        code: check.code ?? 'VALIDATION_INCOMPLETE', violations: check.violations ?? [],
+        validationAttempts: check.validationAttempts, languageCompliance: check.languageCompliance,
+        coverage: check.coverage };
+    }
+    const receipt = await store.loadCheckReceipt(workId, check.checkId);
+    const session = await loadValidationSession(store, workId, validationScope);
+    await assertCurrentChapterReceipt({ store, workId, chapter, receipt, artifact: check.artifact,
+      allowWorkingTreeDrift: true, validationScope });
     const fingerprint = await fingerprintWorkingTree(store.rootDir);
     const candidate = {
-      schemaVersion: 1, approvalId: `sync-${randomUUID().replace(/-/g, '').slice(0, 16)}`,
-      workId, chapter, sourceHead: inspected.sourceHead, workingTreeDigest: fingerprint.digest,
-      proseHash: proseHash(artifact.prose), delta: check.delta, summary: summaryResult.summary,
+      schemaVersion: 2, approvalId: `sync-${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+      workId, chapter, sourceHead: receipt.sourceHead, workingTreeDigest: fingerprint.digest,
+      proseHash: proseHash(artifact.prose), artifact: check.artifact,
+      artifactHash: computeArtifactHash(check.artifact), checkId: receipt.checkId,
+      validationScope, validationEpoch: session.epoch, planSourceHash: receipt.planSourceHash,
+      contractHash: receipt.contractHash, stale: false,
       advisories: check.violations.filter((item) => item.severity !== 'hard'),
       validatedAt: new Date().toISOString(), consumedAt: null,
     };
@@ -113,36 +125,50 @@ export async function runSyncStatus({ store, workId, action = 'inspect', approva
   if (action === 'apply') {
     const candidate = await store.loadSyncCandidate(workId);
     if (!candidate || candidate.consumedAt || candidate.approvalId !== approvalId) throw new Error('유효한 미사용 sync approvalId가 없습니다.');
-    const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
-    const publication = await publicationUnit.readPublished();
-    if (!publication.ok) throw new Error(`CORRUPT_PUBLICATION: ${publication.error.code}`);
-    if (publication.value?.head !== candidate.sourceHead) throw new Error('STALE_SYNC_HEAD: 검증 이후 Published HEAD가 변경됐습니다.');
-    const fingerprint = await fingerprintWorkingTree(store.rootDir);
-    const artifact = await store.loadArtifact(workId, candidate.chapter);
-    if (fingerprint.digest !== candidate.workingTreeDigest || proseHash(artifact?.prose) !== candidate.proseHash) {
-      throw new Error('STALE_SYNC_CANDIDATE: 검증 이후 Markdown이 변경됐습니다.');
+    if (candidate.schemaVersion !== 2 || candidate.stale || !candidate.checkId || !candidate.artifact) {
+      throw new Error('STALE_SYNC_CANDIDATE: 새로운 검사 영수증으로 다시 검증해야 합니다.');
     }
-    const priorExperience = await loadCurrentExperienceLedger({ store, workId });
-    const receipt = {
-      checkId: `sync-check-${randomUUID().replace(/-/g, '').slice(0, 12)}`,
-      workId, chapter: candidate.chapter, proseHash: candidate.proseHash, verdict: 'passed',
-      delta: candidate.delta, hardViolations: 0, checkedAt: candidate.validatedAt, consumedAt: null,
-      source: 'working_tree_sync',
-    };
-    await store.saveCheckReceipt(workId, receipt);
-    const result = await runCommit({
-      store, workId, chapter: candidate.chapter, prose: artifact.prose,
-      title: artifact.title, summary: candidate.summary, delta: candidate.delta,
-      checkId: receipt.checkId, providers,
-    });
+    let result;
+    let priorExperience;
+    try {
+      const publication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
+      if (!publication.ok) throw new Error(`CORRUPT_PUBLICATION: ${publication.error.code}`);
+      if (publication.value?.head !== candidate.sourceHead) throw new Error('STALE_SYNC_HEAD: 검증 이후 Published HEAD가 변경됐습니다.');
+      const fingerprint = await fingerprintWorkingTree(store.rootDir);
+      const artifact = await store.loadArtifact(workId, candidate.chapter);
+      if (fingerprint.digest !== candidate.workingTreeDigest || proseHash(artifact?.prose) !== candidate.proseHash
+          || computeArtifactHash(candidate.artifact) !== candidate.artifactHash) {
+        throw new Error('STALE_SYNC_CANDIDATE: 검증 이후 Markdown 또는 검사 묶음이 변경됐습니다.');
+      }
+      const receipt = await store.loadCheckReceipt(workId, candidate.checkId);
+      if (!receipt || receipt.validationEpoch !== candidate.validationEpoch)
+        throw new Error('STALE_SYNC_CANDIDATE: 검사 영수증이 없거나 세대가 다릅니다.');
+      await assertCurrentChapterReceipt({ store, workId, chapter: candidate.chapter, receipt,
+        artifact: candidate.artifact, allowWorkingTreeDrift: true, validationScope: candidate.validationScope });
+      priorExperience = await loadCurrentExperienceLedger({ store, workId });
+      // Complete checked fields go straight to the consume-only publication port.
+      result = await runCommit({
+        store, workId, chapter: candidate.chapter, prose: candidate.artifact.prose,
+        title: candidate.artifact.title, summary: candidate.artifact.summary,
+        delta: candidate.artifact.semanticDelta, castManifestRaw: candidate.artifact.castManifestRaw,
+        checkId: candidate.checkId, allowWorkingTreeDrift: true, validationScope: candidate.validationScope,
+        providers: { async complete() { throw new Error('SYNC_APPLY_MODEL_FORBIDDEN'); } },
+      });
+    } catch (error) {
+      candidate.stale = true;
+      candidate.staleReason = error.code ?? error.message;
+      candidate.staleAt = new Date().toISOString();
+      await store.saveSyncCandidate(workId, candidate);
+      const session = await loadValidationSession(store, workId, candidate.validationScope);
+      if (session) await invalidateValidationSession(store, workId, candidate.validationScope, session, 'STALE_SYNC_CANDIDATE');
+      throw error;
+    }
     await saveExperienceLedgerForHead({
       store, workId, sourceHead: result.publication.head,
       entries: priorExperience.entries.filter((entry) => entry.chapter !== candidate.chapter),
       criticVersion: priorExperience.criticVersion ?? null,
     });
-    receipt.consumedAt = new Date().toISOString();
-    await store.saveCheckReceipt(workId, receipt);
-    candidate.consumedAt = receipt.consumedAt;
+    candidate.consumedAt = new Date().toISOString();
     candidate.publishedHead = result.publication.head;
     await store.saveSyncCandidate(workId, candidate);
     return { status: 'completed', chapter: candidate.chapter, publication: result.publication, advisories: candidate.advisories };

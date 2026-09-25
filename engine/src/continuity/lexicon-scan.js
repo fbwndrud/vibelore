@@ -6,6 +6,7 @@
  * These checks do not claim to detect every possible narrative contradiction.
  */
 import { effectiveIntrinsic } from './character.js';
+import { skipKoLexical } from './checker-registry.js';
 /**
  * Layer-1 lexicon scan. See module-level doc for design rationale.
  *
@@ -16,6 +17,9 @@ import { effectiveIntrinsic } from './character.js';
  *     (attribution is uncertain without a parser).
  */
 export function scanLexicon(input) {
+    const skipped = skipKoLexical(input, 'scanLexicon');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber, foundation, lexicon, hints } = input;
     if (!prose || prose.length === 0) {
         return { violations: [] };

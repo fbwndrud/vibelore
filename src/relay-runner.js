@@ -1,5 +1,7 @@
 import { HOST_EXECUTION_NOTE, layoutRelayRequests } from './core/relay-prompt-layout.js';
 import { dropRun, newRunId, saveRun } from './runs.js';
+import { resolveWorkLanguage } from './core/work-language.js';
+import { promptFamilyFor } from '../engine/src/core/language-policy.js';
 
 const TERMINAL_WORKFLOW_STAGES = new Set(['completed', 'rejected', 'clean_fail']);
 
@@ -9,6 +11,23 @@ const TERMINAL_WORKFLOW_STAGES = new Set(['completed', 'rejected', 'clean_fail']
  * request otherwise try to read project files and hit turn limits.
  */
 export { HOST_EXECUTION_NOTE };
+
+/**
+ * The prompt family of the work behind a relayed tool call, so the relay scaffolding
+ * matches the requests it wraps. The family is fixed per work, which keeps the shared
+ * prompt prefix stable within one work. A store that cannot resolve a language (no
+ * work yet, a fake store) falls back to the requested language, then to legacy `ko`.
+ */
+async function relayPromptFamily(store, args) {
+  const requested = args?.language ?? null;
+  try {
+    if (args?.workId) return (await resolveWorkLanguage({ store, workId: args.workId, requested })).promptFamily;
+  } catch { /* fall through */ }
+  try {
+    if (requested) return promptFamilyFor(requested);
+  } catch { /* fall through */ }
+  return 'ko';
+}
 
 /**
  * Owns host-model relay parking/resume. MCP server code should stay a thin
@@ -28,12 +47,16 @@ export async function runRelayedTool({
   }
 
   let effectiveAnswers = answers ?? {};
+  let existingWorkflow = null;
   if (toolName === 'lore_write') {
     const workflow = await store.loadWorkflow(args.workId);
+    existingWorkflow = workflow;
     effectiveAnswers = { ...(workflow?.relayAnswers ?? {}), ...effectiveAnswers };
   }
 
   const relay = providerForTool(toolName, effectiveAnswers);
+  const invocationId = run?.id ?? (args.retryValidation ? null : existingWorkflow?.pendingRunId) ?? newRunId();
+  relay.validationContext = { runId: invocationId };
   const result = await executeTool(store, toolName, args, relay);
   const pending = relay.pending ?? [];
 
@@ -56,7 +79,7 @@ export async function runRelayedTool({
   }
 
   const saved = await saveRun(store.rootDir, {
-    id: run?.id ?? newRunId(),
+    id: invocationId,
     tool: toolName,
     args,
     answers: effectiveAnswers,
@@ -74,7 +97,7 @@ export async function runRelayedTool({
   return {
     status: 'needs_model',
     runId: saved.id,
-    requests: layoutRelayRequests(pending, relay.sharedContexts ?? []),
+    requests: layoutRelayRequests(pending, relay.sharedContexts ?? [], { promptFamily: await relayPromptFamily(store, args) }),
     instruction:
       '각 request 의 system 과 user 를 그대로 읽고 답을 만든 뒤, lore_resume 에 { runId, answers: { <request id>: "<답변>" } } 로 넘기세요. ' +
       'jsonMode=true 인 요청은 코드블록 없이 순수 JSON 으로만 답해야 합니다. 답을 넘기지 않으면 아래 결정론 결과가 최종입니다. ' +

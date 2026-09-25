@@ -1,3 +1,4 @@
+import { gateApprovalActivation } from '../core/approval-language-gate.js';
 /**
  * lore_init -- lay out a project directory, or adopt one that already exists.
  *
@@ -10,12 +11,16 @@ import { join } from 'node:path';
 import { createFoundation } from '../../engine/src/continuity/foundation.js';
 import { createGenreProfileRegistry } from '../../engine/src/continuity/genre-profile.js';
 import { ENGINE_GENRES } from '../../engine/src/continuity/genre-profile.js';
+import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-language.js';
 
 const registry = createGenreProfileRegistry();
 
-export async function runInit({ store, workId, genre, povMode, targetChapters, worldFacts }) {
+export async function runInit({ store, workId, genre, povMode, targetChapters, worldFacts, language = null, providers, retryValidation = false }) {
   const existing = await store.loadFoundation(workId);
   if (existing) {
+    // 인수인계는 조회다. 명시 언어는 저장된 계약과의 일치 확인이며, 다르면
+    // WORK_LANGUAGE_IMMUTABLE 로 거부하고 파일은 그대로 둔다.
+    const adopted = await resolveWorkLanguage({ store, workId, requested: language, foundation: existing });
     return {
       adopted: true,
       workId: existing.workId,
@@ -23,6 +28,9 @@ export async function runInit({ store, workId, genre, povMode, targetChapters, w
       characters: existing.characters.length,
       worldFacts: existing.worldFacts.length,
       chapters: await store.listChapters(),
+      language: adopted.language,
+      implicitLanguage: adopted.implicitLegacy,
+      canonicalFormatVersion: adopted.canonicalFormatVersion,
       message: '기존 작품을 그대로 사용합니다. 덮어쓰지 않았습니다.',
     };
   }
@@ -32,6 +40,10 @@ export async function runInit({ store, workId, genre, povMode, targetChapters, w
       `알 수 없는 장르 "${genre}". 사용 가능: ${ENGINE_GENRES.join(', ')}`,
     );
   }
+
+  // 프로필이 있으면 그 revision 이 원천이며, 승인되지 않은 revision 의 언어로
+  // 작품을 만들지 않는다.
+  const resolution = await resolveWorkLanguage({ store, workId, requested: language, requireApprovedProfile: true });
 
   let foundation = createFoundation({
     workId,
@@ -49,7 +61,16 @@ export async function runInit({ store, workId, genre, povMode, targetChapters, w
     };
   }
 
-  await store.saveFoundation(foundation);
+  const approval = await gateApprovalActivation({ store, workId, kind: 'foundation', value: { ...foundation, language: resolution.language, canonicalFormatVersion: resolution.canonicalFormatVersion }, resolution, providers, retryValidation });
+  if (!approval.ok) return { ...approval, adopted: false, created: false };
+  await store.saveAcceptedCreation(workId, buildAcceptedCreationRecord({
+    workId, resolution, profile: resolution.profile,
+  }));
+  await store.saveFoundation({
+    ...foundation,
+    language: resolution.language,
+    canonicalFormatVersion: resolution.canonicalFormatVersion,
+  });
   for (const dir of ['chapters', 'summaries', 'characters']) {
     await mkdir(join(store.rootDir, dir), { recursive: true });
   }
@@ -58,6 +79,9 @@ export async function runInit({ store, workId, genre, povMode, targetChapters, w
     adopted: false,
     workId,
     genre,
+    language: resolution.language,
+    canonicalFormatVersion: resolution.canonicalFormatVersion,
+    length: { unit: resolution.length.unit, target: resolution.length.target },
     created: ['world/setting.md', 'characters/', 'chapters/', 'summaries/', '.vibelore/'],
     message: '세계관을 world/setting.md 에 적고, 인물은 characters/<id>.md 로 추가하세요. 직접 손으로 고쳐도 됩니다.',
   };

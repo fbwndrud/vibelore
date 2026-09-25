@@ -14,8 +14,12 @@ const QUOTE_PAIRS = [
     ['「', '」'],
     ['『', '』'],
 ];
+import { skipKoLexical } from './checker-registry.js';
 const MIN_LINES_FOR_SCAN = 6;
 export function scanDialogueRatio(input) {
+    const skipped = skipKoLexical(input, 'scanDialogueRatio');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber, genreProfile } = input;
     if (!prose || prose.trim().length === 0) {
         return {

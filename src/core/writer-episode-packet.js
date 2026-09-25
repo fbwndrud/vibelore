@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
+import { tokenUnits } from './token-units.js';
+
+import { asKit } from '../prompts/index.js';
 
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 const list = (value) => Array.isArray(value) ? value.map(clean).filter(Boolean) : [];
-const tokenUnits = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
 // Ceiling for the compiled packet, not a prose length. Generous on purpose: the
 // packet only carries this episode's plan, the arc beat and a capped residue, so
 // it does not grow with chapter count; the ceiling exists to compress a verbose
@@ -20,7 +22,13 @@ function digest(value) {
   return `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 }
 
-export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterNames = {}, prevState, readabilityContract, budget = {} } = {}) {
+/**
+ * @param {{ kit?: object|null }} input `kit` 이 없으면 구작의 암묵적 ko 계열이다.
+ *   작가에게 주는 의무·자유 문구만 계열을 따르고 계획 값은 작품 언어 그대로 둔다.
+ */
+export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterNames = {}, prevState, readabilityContract, budget = {}, kit: kitSource } = {}) {
+  const kit = asKit(kitSource);
+  const t = kit.phrases.packet;
   if (!episodePlan || episodePlan.status !== 'active') {
     return { ok: false, error: { code: 'EPISODE_PLAN_INACTIVE', message: '승인된 EpisodePlan이 필요합니다.' } };
   }
@@ -43,7 +51,12 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
   const firstScene = episodePlan.scenes?.[0] ?? {};
   const lastScene = episodePlan.scenes?.at(-1) ?? {};
   const ownerId = derived('scenePressure.choiceOwner', episodePlan.scenePressure?.choiceOwner, episodePlan.povCharacter || episodePlan.cast?.[0], episodePlan.povCharacter ? 'povCharacter' : 'cast.0');
-  const owner = (characterNames[ownerId] ?? ownerId) || '선택 주체';
+  const owner = (characterNames[ownerId] ?? ownerId) || t.ownerFallback;
+  // The plan's povCharacter is the one viewpoint this chapter narrates from. The
+  // reviewer already judges POV against it; the writer has to hear it too
+  // (2026-09-18 es sample: chapter 2 planned on Clara opened inside Inés three times).
+  const viewpointId = clean(episodePlan.povCharacter);
+  const viewpointName = viewpointId ? (characterNames[viewpointId] ?? viewpointId) : '';
   let goods = list(episodePlan.scenePressure?.incompatibleGoods);
   if (goods.length < 2) {
     goods = [...new Set((episodePlan.scenes ?? []).map((scene) => clean(scene.obstacle || scene.choice)).filter(Boolean))].slice(0, 2);
@@ -58,7 +71,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
   const exitState = derived('exitValue.specificFutureValue', episodePlan.exitValue?.specificFutureValue, episodePlan.closingState || lastScene.outcome, episodePlan.closingState ? 'closingState' : 'scenes.last.outcome');
   const bridgeSituation = immediateWant || activeQuestion;
   const readerBridge = derived('readerBridge', episodePlan.readerBridge,
-    [bridgeSituation, tickingLoss ? `실패 시 손실: ${tickingLoss}` : '', `결과 증거: ${payoffProof || payoffPromise}`].filter(Boolean).join(' / '),
+    [bridgeSituation, tickingLoss ? kit.phrases.packet.bridgeLoss(tickingLoss) : '', kit.phrases.packet.bridgeProof(payoffProof || payoffPromise)].filter(Boolean).join(' / '),
     'entryState+payoff');
   const foreground = new Set(list(episodePlan.foregroundCharacters).length
     ? list(episodePlan.foregroundCharacters)
@@ -70,6 +83,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
   const includedFields = [
     'premise', 'openingState', 'closingState', 'entryState.activeQuestion', 'entryState.protagonistImmediateWant', 'entryState.tickingLoss',
     'scenePressure.choiceOwner',
+    ...(viewpointId ? ['povCharacter'] : []),
     ...scenes.flatMap((_, index) => [`scenes.${index}.situation`, `scenes.${index}.choice`, `scenes.${index}.change`]),
     'payoff.promisePaid', 'payoff.proofOnPage', 'costCreatedByResolution.immediate', 'costCreatedByResolution.deferred',
     'exitValue.closedQuestion', 'exitValue.nextQuestion', 'exitValue.specificFutureValue', 'readerBridge', 'reveals', 'withheld',
@@ -81,6 +95,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
     arcCurrent: arcEpisode ? { goal: clean(arcEpisode.goal || arcEpisode.beat), pressure: clean(arcEpisode.conflict || arcEpisode.pressure), cost: clean(arcEpisode.cost), hook: clean(arcEpisode.hook || arcEpisode.carry) } : null,
     entry: { premise: clean(episodePlan.premise), openingState: clean(episodePlan.openingState), activeQuestion, want: immediateWant, tickingLoss },
     pressure: { choiceOwner: ownerId, incompatibleGoods: goods, deadline: clean(episodePlan.scenePressure?.decisionDeadline) },
+    viewpoint: { characterId: viewpointId },
     causalTurns: scenes,
     payoff: { promise: payoffPromise, proof: payoffProof },
     cost: { immediate: immediateCost, deferred: clean(episodePlan.costCreatedByResolution?.deferred), payer: clean(episodePlan.costCreatedByResolution?.payer) },
@@ -124,70 +139,65 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
   let renderedExitState = obligations.exit.state;
   if (renderedExitState && renderedExitState === obligations.payoff.promise) {
     mergedFields.push({ field: 'exitValue.specificFutureValue', mergedInto: 'payoff.promisePaid' });
-    renderedExitState = '위 지급 결과가 종료 상태로 확정됨';
+    renderedExitState = t.mergedExitState;
   }
   // A plan that answers "what state do we exit in" with the next question
   // verbatim would print the same sentence twice and spend packet budget on it.
-  const exitLine = renderedExitState && renderedExitState === obligations.exit.nextQuestion
-    ? (mergedFields.push({ field: 'exitValue.specificFutureValue', mergedInto: 'exitValue.nextQuestion' }), renderedExitState)
-    : `${renderedExitState} / ${obligations.exit.nextQuestion}`;
+  const exitMerged = Boolean(renderedExitState) && renderedExitState === obligations.exit.nextQuestion;
+  if (exitMerged) mergedFields.push({ field: 'exitValue.specificFutureValue', mergedInto: 'exitValue.nextQuestion' });
   // Residue from the previous chapter that names the same beat this episode
-  // carries is already covered by the "이번 화 변화" line.
+  // carries is already covered by the character-change line.
   const carriedResidue = arcResidue.filter((item) => !obligations.characterChanges.some((change) => change.characterId === item.characterId && change.beat === item.beat));
+  const none = kit.phrases.common.none;
   const protectedTruths = [
     ...(obligations.knowledgeGuards.withhold.length
-      ? obligations.knowledgeGuards.withhold.map((item) => `아직 숨김: ${item}`)
+      ? obligations.knowledgeGuards.withhold.map((item) => t.withheld(item))
       : []),
-    obligations.payoff.proof ? `결과는 설명이 아니라 화면 증거로 확인되어야 함: ${obligations.payoff.proof}` : '',
+    obligations.payoff.proof ? t.payoffProof(obligations.payoff.proof) : '',
   ].filter(Boolean);
   const characterCarry = [
     ...obligations.characterChanges
       .filter((item) => foreground.has(item.characterId))
-      .map((item) => `${characterNames[item.characterId] ?? item.characterId}: 이번 화 변화=${item.beat}${item.note ? ` — ${item.note}` : ''}`),
-    ...relationshipResidue.map((item) => `${characterNames[item.to] ?? item.to}: ${item.kind} — ${item.state}`),
-    ...carriedResidue.map((item) => `${characterNames[item.characterId] ?? item.characterId}: ${item.beat}${item.note ? ` — ${item.note}` : ''}`),
+      .map((item) => t.characterChange(characterNames[item.characterId] ?? item.characterId, item.beat, item.note)),
+    ...relationshipResidue.map((item) => t.relationshipResidue(characterNames[item.to] ?? item.to, item.kind, item.state)),
+    ...carriedResidue.map((item) => t.arcResidue(characterNames[item.characterId] ?? item.characterId, item.beat, item.note)),
   ];
-  const discoverySpace = [
-    '장면 순서와 해결 장소',
-    '정확한 대사와 미세 행동',
-    '인물이 선택을 결심하는 순간의 감각과 오판',
-    '마지막 이미지와 다음 질문의 표현 방식',
-    '의무를 바꾸지 않는 현장 디테일',
-  ];
+  const discoverySpace = [...t.discoverySpace];
   const hardBeatLines = [];
   if (scenes.length <= 2) {
-    hardBeatLines.push(...scenes.map((scene) => `- ${scene.situation} → ${scene.choice} → ${scene.change}`));
+    hardBeatLines.push(...scenes.map((scene) => t.beat(scene.situation, scene.choice, scene.change)));
   }
   else {
-    hardBeatLines.push(`- 시작 압력: ${scenes[0].situation}`);
-    hardBeatLines.push(`- 도착 전환: ${lastScene.change || obligations.payoff.promise}`);
+    hardBeatLines.push(t.openingPressure(scenes[0].situation));
+    hardBeatLines.push(t.arrivalTurn(lastScene.change || obligations.payoff.promise));
   }
   const writerText = [
-    '## Reader Contract',
-    `- 전문 설정을 몰라도 붙잡을 즉시 상황과 결과: ${obligations.readerBridge}`,
-    `- 읽기 난도: ${obligations.readerLoad.surfaceEase} / 추론 부담=${obligations.readerLoad.inferenceLoad} / 단계=${obligations.readerLoad.phase}`,
-    obligations.readerLoad.newConcepts.length ? `- 이번 화의 새 핵심 개념: ${obligations.readerLoad.newConcepts.join(', ')}` : '- 이번 화는 새 핵심 개념을 의무적으로 추가하지 않는다.',
-    '- 대사는 독자가 먼저 본 구체적 상황과 욕구 위에서 시작한다. 표면 뜻을 이해한 뒤에만 서브텍스트를 남긴다.',
-    '', '## Episode Core',
-    `- 즉시 목표: ${owner} — ${obligations.entry.want || obligations.entry.activeQuestion}`,
-    `- 눈앞의 장애물: ${obligations.entry.tickingLoss || obligations.arcCurrent?.pressure || scenes[0]?.situation}`,
-    goods.length >= 2 ? `- 실제 선택 압박: ${goods[0]} / ${goods[1]}` : '',
-    `- 지급할 결과: ${obligations.payoff.promise}`,
-    obligations.cost.immediate || obligations.cost.deferred ? `- 남는 비용: ${obligations.cost.immediate || obligations.cost.deferred}` : '',
-    `- 마지막 상태와 다음 질문: ${exitLine}`,
-    ...(characterCarry.length ? ['', '## Character Carry', ...characterCarry.map((item) => `- ${item}`), '- 이전 관계를 설명하지 말고 현재 말투·거리·망설임 중 필요한 한 곳에만 반영한다.'] : []),
-    ...(protectedTruths.length ? ['', '## Protected Truths', ...protectedTruths.map((item) => `- ${item}`)] : []),
+    t.readerContractHeading,
+    t.readerBridge(obligations.readerBridge),
+    t.readerLoad(obligations.readerLoad.surfaceEase, obligations.readerLoad.inferenceLoad, obligations.readerLoad.phase),
+    obligations.readerLoad.newConcepts.length ? t.newConcepts(obligations.readerLoad.newConcepts.join(', ')) : t.noNewConcepts,
+    t.dialogueRule,
+    '', t.episodeCoreHeading,
+    viewpointId ? t.viewpointCharacter(viewpointName) : '',
+    t.immediateGoal(owner, obligations.entry.want || obligations.entry.activeQuestion),
+    t.obstacle(obligations.entry.tickingLoss || obligations.arcCurrent?.pressure || scenes[0]?.situation),
+    goods.length >= 2 ? t.choicePressure(goods[0], goods[1]) : '',
+    t.payoff(obligations.payoff.promise),
+    obligations.cost.immediate || obligations.cost.deferred ? t.remainingCost(obligations.cost.immediate || obligations.cost.deferred) : '',
+    exitMerged ? t.exitStateOnly(renderedExitState) : t.exitState(renderedExitState, obligations.exit.nextQuestion),
+    ...(characterCarry.length ? ['', t.characterCarryHeading, ...characterCarry.map((item) => `- ${item}`), t.characterCarryFooter] : []),
+    ...(protectedTruths.length ? ['', t.protectedTruthsHeading, ...protectedTruths.map((item) => `- ${item}`)] : []),
     ...(obligations.voiceTargets.length ? [
-      '', '## Voice Targets',
-      ...obligations.voiceTargets.map((item) => `- ${characterNames[item.characterId] ?? item.characterId}${item.sceneOrder ? `@${item.sceneOrder}` : ''}: 압력=${item.pressure || '없음'} / 겉목적=${item.surfaceIntent || '없음'} / 숨은목적=${item.hiddenIntent || '없음'} / 예시="${item.sampleLine || '없음'}" / 서술필터=${item.narrationFilter || '없음'}`),
-      '- 예시는 복붙하거나 모두 소화할 체크리스트가 아니다. 해당 인물이 장면 압력을 실제로 받을 때만 말투와 목적을 새 대사로 재현한다.',
+      '', t.voiceTargetsHeading,
+      ...obligations.voiceTargets.map((item) => t.voiceTarget(characterNames[item.characterId] ?? item.characterId, item.sceneOrder, item.pressure || none, item.surfaceIntent || none, item.hiddenIntent || none, item.sampleLine || none, item.narrationFilter || none)),
+      t.voiceTargetFooter,
     ] : []),
-    '', '## Minimal Beats',
+    '', t.minimalBeatsHeading,
     ...hardBeatLines,
-    '', '## Writer Freedom',
+    '', t.writerFreedomHeading,
     ...discoverySpace.map((item) => `- ${item}`),
-    '- 전면 인물이 아닌 등장인물은 논점을 증명할 필요가 없고, 평범하게 반응하거나 침묵할 수 있다.',
-    '- 위 목적지를 향해 가되 장면 순서·해결 방식·대사 결은 본문 안에서 발견한다.',
+    t.backgroundFreedom,
+    t.writerFreedomFooter,
   ].filter((line) => line !== '').join('\n');
   const usedTokens = tokenUnits(writerText);
   if (usedTokens > maxTokens) {

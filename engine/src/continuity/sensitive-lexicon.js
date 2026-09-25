@@ -7,6 +7,7 @@
  * Layer-1 emits structured violations; downstream policy can decide
  * HARD vs SOFT per category × mode.
  */
+import { skipKoLexical } from './checker-registry.js';
 export class DefaultSensitiveLexicon {
     entries;
     byCategoryMap;
@@ -48,6 +49,9 @@ function hasUnguardedOccurrence(prose, term, notFollowedBy) {
     }
 }
 export function scanSensitive(input) {
+    const skipped = skipKoLexical(input, 'scanSensitive');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber, lexicon, mode } = input;
     if (!prose || prose.length === 0)
         return { violations: [] };

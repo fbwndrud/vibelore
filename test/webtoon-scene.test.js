@@ -9,9 +9,22 @@ import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { readWebtoonWorkflow } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
-import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS } from '../src/core/webtoon-scene.js';
+import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering } from '../src/core/webtoon-scene.js';
 
 const plan = scenePlan, preflight = scenePreflight, setup = sceneSetup;
+
+test('scene direction must be Latin-script English for every work language', () => {
+  for (const ok of ['She waits at the door.', 'Panel 3: 2 figures, 50% shadow — calm.', 'Yun\'s café scene.']) assert.equal(isEnglish(ok), true, ok);
+  for (const bad of ['윤이 문 앞에 선다.', 'ユンが扉の前に立つ。', '尹停在門前。', 'ยุนหยุดหน้าประตู', 'يون تقف أمام الباب', 'She says 안녕 at the door.', '', '   ']) assert.equal(isEnglish(bad), false, bad);
+});
+
+test('scene image prompt carries the work language line', async () => {
+  const { store, args } = await setup({ language: 'ja', prose: 'ユンは閉じた扉の前で立ち止まった。\n\n「中にいますか?」' });
+  const r = await runWebtoonSceneTool({ store, args, providers: provider() });
+  assert.equal(r.jobs.length, 1);
+  assert.match(r.jobs[0].prompt, /All quoted text is in Japanese \(ja\)/);
+});
+
 function provider({ blocking = false, visual = true } = {}) {
   return { provenance: { kind: 'fixture' }, async complete(r) {
     const d = JSON.parse(r.messages.at(-1).content); let answer;
@@ -329,4 +342,46 @@ test('a new work confirms the API image selection inside the scene tool before a
   const saved = JSON.parse(await readFile(repo.path('image-selection.json'), 'utf8'));
   assert.equal(saved.selection.id, proposed.imageChoice.id); assert.equal(saved.selection.userAnswer, '유료 API 사용 승인');
   assert.equal(saved.selection.policyHash, digest(saved.policy));
+});
+
+test('the image-choice notice and next action carry the work language: English work has no Hangul, Korean work keeps it', async () => {
+  const en = await setup({ language: 'en', prose: 'Yun stopped at the closed door.\n\n"Is anyone inside?"' });
+  await writeFile(en.repo.path('image-selection.json'), '{}');
+  const enProposed = await runWebtoonSceneTool({ store: en.store, args: en.args, providers: { complete() { throw new Error('Must not call model'); } } });
+  assert.equal(enProposed.status, 'needs_image_choice');
+  assert.doesNotMatch(enProposed.imageChoice.notice, /[가-힣]/u);
+  assert.doesNotMatch(enProposed.nextAction, /[가-힣]/u);
+
+  const ko = await setup();
+  await writeFile(ko.repo.path('image-selection.json'), '{}');
+  const koProposed = await runWebtoonSceneTool({ store: ko.store, args: ko.args, providers: { complete() { throw new Error('Must not call model'); } } });
+  assert.equal(koProposed.status, 'needs_image_choice');
+  assert.match(koProposed.imageChoice.notice, /별도 OpenAI API 과금/);
+  assert.match(koProposed.nextAction, /confirmImageChoice ID와 원답 feedback/);
+});
+
+test('lettering comparison ignores whitespace and Unicode composition only', () => {
+  assert.equal(sameLettering('윤이 문 앞에'.normalize('NFD'), '윤이 문 앞에'), true);
+  assert.equal(sameLettering('Ça  va ?'.normalize('NFD'), 'Ça va ?'), true);
+  assert.equal(sameLettering('ca va ?', 'Ça va ?'), false);
+  assert.equal(sameLettering('中にいますか', '中にいますか?'), false);
+});
+
+test('verbatim check accepts decomposed plan text for composed source prose', () => {
+  const units = [{ id: 'u1', text: '윤이 닫힌 문 앞에 멈췄다.' }];
+  const p = plan(units);
+  p.texts[0].text = units[0].text.normalize('NFD');
+  assert.doesNotThrow(() => validateScenePlan(p, units));
+});
+
+test('non-Korean works get English scene chrome and Korean works keep Korean', async () => {
+  const en = await setup({ language: 'en', prose: 'Yun stopped at the closed door.\n\n"Is anyone inside?"' });
+  const asked = await runWebtoonSceneTool({ store: en.store, args: { ...en.args, panelCount: undefined }, providers: provider() });
+  assert.equal(asked.status, 'needs_interview');
+  assert.doesNotMatch(JSON.stringify(asked), /[가-힣]/u);
+  const two = await runWebtoonSceneTool({ store: en.store, args: { ...en.args, panelCount: 2 }, providers: provider() });
+  assert.doesNotMatch(JSON.stringify(two.warnings ?? []), /[가-힣]/u);
+  const ko = await setup();
+  const koAsked = await runWebtoonSceneTool({ store: ko.store, args: { ...ko.args, panelCount: undefined }, providers: provider() });
+  assert.match(koAsked.questions[0].question, /몇 칸/);
 });

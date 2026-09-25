@@ -1,3 +1,5 @@
+import { asKit } from '../prompts/index.js';
+
 const asArray = (value) => Array.isArray(value) ? value : [];
 const text = (value, max = 500) => String(value ?? '').trim().slice(0, max);
 
@@ -89,20 +91,22 @@ export function compileCharacterArcSeeds({
     .map(({ _rank, ...seed }) => seed);
 }
 
-export function renderCharacterArcSeeds(seeds) {
-  if (!asArray(seeds).length) return '(누적된 인물 서사 근거 없음)';
+export function renderCharacterArcSeeds(seeds, kitSource) {
+  const kit = asKit(kitSource);
+  const t = kit.phrases.arc;
+  if (!asArray(seeds).length) return t.seedsEmpty;
   return asArray(seeds).map((seed) => {
     const evidence = asArray(seed.evidence).map((item) => {
-      const location = [item.chapter ? `${item.chapter}화` : '', item.anchor].filter(Boolean).join('/');
+      const location = [item.chapter ? kit.phrases.common.chapterSuffix(item.chapter) : '', item.anchor].filter(Boolean).join('/');
       return `${location ? `${location}: ` : ''}${item.observation}${item.eventId ? ` [${item.eventId}]` : ''}`;
     });
     return [
-      `- ${seed.characterId}/${seed.canonicalName} (${seed.status})`,
-      seed.unresolvedPressure ? `  남은 압력: ${seed.unresolvedPressure}` : '',
-      seed.previousArc?.promise ? `  이전 개인 아크: ${seed.previousArc.promise} / 마지막 단계=${seed.previousArc.lastBeat ?? '없음'}${seed.previousArc.outcomeEvidence ? ` / 관찰=${seed.previousArc.outcomeEvidence}` : ''}` : '',
-      seed.currentAgenda?.goal ? `  현재 목표: ${seed.currentAgenda.goal}${seed.currentAgenda.nextAction ? ` / 다음 행동=${seed.currentAgenda.nextAction}` : ''}` : '',
-      ...evidence.map((item) => `  근거: ${item}`),
-      ...asArray(seed.relationshipResidue).map((item) => `  관계 잔여: ${item.direction} / ${item.belief}`),
+      t.seedHeading(seed.characterId, seed.canonicalName, seed.status),
+      seed.unresolvedPressure ? t.seedPressure(seed.unresolvedPressure) : '',
+      seed.previousArc?.promise ? t.seedPreviousArc(seed.previousArc.promise, seed.previousArc.lastBeat ?? kit.phrases.common.none, seed.previousArc.outcomeEvidence) : '',
+      seed.currentAgenda?.goal ? t.seedAgenda(seed.currentAgenda.goal, seed.currentAgenda.nextAction) : '',
+      ...evidence.map((item) => t.seedEvidence(item)),
+      ...asArray(seed.relationshipResidue).map((item) => t.seedRelationship(item.direction, item.belief)),
     ].filter(Boolean).join('\n');
   }).join('\n').slice(0, 7000);
 }

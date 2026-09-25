@@ -9,6 +9,7 @@
  * 결정적 휴리스틱 — 의미론 충돌 검출은 layer-2 LLM 의 일이고, 여기는
  * 누락 / 명백한 부정만 잡는다. Phase 12+ 외전 epic 의 entry-floor.
  */
+import { skipKoLexical } from './checker-registry.js';
 const NEGATION_MARKERS = [
     '아니다', '아니었다', '없다', '없었다', '존재하지 않', '아닌',
     '거짓이다', '거짓이었다', '틀렸다', '틀리다', '없는', '아닌',
@@ -22,6 +23,20 @@ const KO_STOPWORDS = new Set([
 ]);
 const KO_PARTICLES = /(은|는|이|가|을|를|에|에서|와|과|로|으로|도|만|부터|까지|의|에게|께|한테|이여|이라|이라고)$/;
 export function scanWorldGroupConflict(input) {
+    if (input.language != null || input.workContract != null || input.promptFamily != null) {
+        if (!input.foundation?.worldGroup) {
+            return {
+                violations: [],
+                status: 'skipped',
+                skipReason: 'no_world_group',
+                invariantCoverage: 'not_applicable',
+                requiresSemantic: false,
+            };
+        }
+    }
+    const skipped = skipKoLexical(input, 'scanWorldGroupConflict');
+    if (skipped)
+        return skipped;
     const { prose, chapterNumber, foundation } = input;
     if (!prose || prose.length === 0)
         return { violations: [] };

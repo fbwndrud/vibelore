@@ -1,19 +1,25 @@
 # 운영과 복구
 
+한국어 | [English](OPERATIONS.en.md)
+
 호스트 AI·연동 개발자를 위한 상세 절차입니다. 일반 사용자는 먼저
 [문제 해결과 백업](TROUBLESHOOTING.md)의 요청 예시를 이용하세요.
 
 ## 웹툰 작업 재개·수정
 
 웹툰은 `lore_workflow_status(lane="webtoon",workflowId="wt-...")`로 현재 단계를 읽습니다.
-미완료 모델 요청은 실제 요청 ID로 `lore_resume`, 사용자 질문은 같은 workflow의
-`lore_webtoon_plan(responses=...)`, 승인은 현재 `lore_webtoon_decide(approvalId=...)`로 답합니다.
-세부 상태와 반입 계약은 [웹툰 안내](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를 따릅니다.
+기본 경로(`lore_webtoon_scene`)에서 미완료 모델 요청은 실제 요청 ID로 `lore_resume`,
+검증·검토 불합격은 관측 결함을 `feedback`으로 담아 `action="revise"`로 재개합니다.
 
-조판 실패는 render의 `retry=true`로 재개합니다. 조판만 고치려면 `lettering`,
-구도 러프는 `storyboard`, 사건·대사·컷 구성은 `adaptation`으로 수정 범위를 구분합니다.
+컷별 경로(`lore_webtoon_plan`/`render`/`decide`, deprecated)는 이미 시작된 작업만 다음처럼
+이어갑니다. 사용자 질문은 같은 workflow의 `lore_webtoon_plan(responses=...)`, 승인은 현재
+`lore_webtoon_decide(approvalId=...)`로 답합니다. 조판 실패는 render의 `retry=true`로
+재개합니다. 조판만 고치려면 `lettering`, 구도 러프는 `storyboard`, 사건·대사·컷 구성은
+`adaptation`으로 수정 범위를 구분합니다.
+
+세부 상태와 반입 계약은 [웹툰 안내](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를 따릅니다.
 실제 이미지를 못 열었다면 미완료 근거를 남기며, `.vibelore/`를 고쳐 승인을 우회하지 않습니다.
-`webtoon/` 손수정은 diff와 의도를 확인한 뒤 `adoptEdits=true`로 재검토합니다.
+(컷별 경로) `webtoon/` 손수정은 diff와 의도를 확인한 뒤 `adoptEdits=true`로 재검토합니다. 장면 경로는 `webtoon/`에 쓰지 않습니다.
 소설 rollback은 웹툰 회차의 되돌리기 도구가 아닙니다. 원작 판본과 후보·승인 이력은 별개로 보존합니다.
 소설을 되돌려도 웹툰 상태·publication과 그 작업에 연결된 모델 감사·대기 요청은 유지합니다.
 중단된 rollback 재개에서도 같은 경계를 지키며 이전 소설의 승인·대기 요청은 복원하지 않습니다.
@@ -54,10 +60,10 @@ flowchart TD
 |---|---|---|
 | `needs_model` | 호스트 모델 작업 대기 | request별 답을 만들어 `lore_resume` |
 | `CRITIC_INCOMPLETE` | 필수 검토 실패·불완전 응답·시간 초과 | 보존된 원고와 검토 기록을 보여주고 `lore_decide`로 승인·수정 요청·보류 |
-| `clean_fail` | 최대 3회 수정 후 필수 gate 실패 | inspect로 위반 확인, 방향을 좁혀 새 실행 |
+| `clean_fail` | 검사 3회(그 사이 수정 최대 2회) 또는 검사 예산 3회 후 필수 gate 실패 | inspect로 위반 확인(`detail="full"`이면 `draftProse` 포함), 같은 원고 재검사는 `retryValidation=true`, 계획·계약 수정이나 `lore_sync` 뒤에는 `lore_write`가 같은 원고를 재검사, 새 초고는 좁힌 `instruction`으로 `lore_write` |
 | 활성 ArcPlan 없음 | 본문보다 아크가 먼저 필요 | `lore_arc_plan(review)` 후 승인 |
 | profile/spine/skill 없음 | 작품 설계 단계 누락 | 해당 status 확인 후 누락 단계 생성 |
-| stale HEAD 또는 identity | 실행 중 정본·계획 변경 | 기존 결과 폐기, 최신 상태에서 재시작 |
+| stale HEAD 또는 identity | 실행 중 정본·계획 변경 | 기존 영수증·승인 폐기, 보존 원고를 최신 계약으로 재검사(`lore_write`) |
 | `CONTEXT_BUDGET_EXCEEDED` | 필수 계획·정본이 입력 예산 초과 | 중복 정본 정리 또는 정책 예산 조정 |
 | `CANON_MEMORY_CONFLICT` | 검색 기억과 정본 불일치 | 검색 투영 재생성, 정본 확인 |
 | `UNSAFE_MEMORY_CLAIM` | 잘못된 schema·제어 문자·지시문 | claim 격리, 원천 데이터 수정 |
@@ -70,16 +76,19 @@ flowchart TD
 flowchart LR
     N[needs_model] --> A{모델 답을 만들 것인가?}
     A -->|예| R[lore_resume + answers]
-    A -->|아니오| D[lore_resume + 빈 answers]
+    A -->|아니오| D[답을 멈추고 사용자에게 보고]
     R --> N2{추가 요청?}
     N2 -->|예| R
     N2 -->|아니오| C[완료 결과]
-    D --> G[degraded 결과]
+    D --> G[deterministicResult만 남고 workflow는 awaiting_model]
 ```
 
-`lore_write`는 의존 관계가 없는 요청을 한 왕복에 묶어 반환합니다. 시도마다 대체로
+`lore_write`는 의존 관계가 없는 요청을 한 왕복에 묶어 반환합니다. 초고 뒤 시도마다 대체로
 ①추출·프로필 검사·독립 검토 묶음 → ②의미 연속성 검사(추출 결과 필요)와 아크 검토 →
-③경계 판정·요약의 세 왕복이며, 한 응답의 `requests`는 서로 독립이므로 병렬로 답하고
+③제목·요약·경계 판정(같은 최종 본문을 읽음) → ④언어 준수 증명(제목·요약을 검사하므로 그다음)의
+네 왕복이며, 화 계획과 초고를 더하면 수정이 없는 화는 6왕복입니다. 작품 정체성(story identity)이 아직
+없으면(보통 1화) 그 왕복이, 1화는 pilot contract 왕복이 더해질 수 있습니다. 계획에 제목이 있으면 ③에서 제목 요청이
+빠질 뿐 왕복 수는 같습니다. 한 응답의 `requests`는 서로 독립이므로 병렬로 답하고
 모든 답을 한 번의 `lore_resume`에 넘깁니다. 이 묶음들은 이번 화 본문을 공통 자료 블록으로
 앞에 두므로([프롬프트 캐시](#프롬프트-캐시와-warm-first)), 요청마다 새 프로세스나 API 호출로
 답하는 호스트는 `promptCache.warmFirst=true`인 요청을 먼저 보내고 첫 출력이 시작된 뒤
@@ -89,9 +98,15 @@ flowchart LR
 요청으로 문장을 줄인 계획을 한 번 받고, 그래도 초과하면 계획 단계에서
 `EPISODE_PACKET_OVERFLOW`로 멈춥니다.
 
-빈 답변의 degraded 경로는 일부 소설 도구의 동작입니다. 웹툰 모델 요청은 빈 답변으로
-완료되지 않고 대기를 유지합니다. 일반 재개에서는 실제 요청에 답하며 검토 생략 수단으로
-사용하지 않습니다.
+언어 준수 증명이 실패하면(`OUTPUT_LANGUAGE_MISMATCH`) 근거가 저장되고 다음 시도에 수정 왕복이
+더해집니다. 본문에 근거가 있으면 hard 위반으로 필수 수정(revise)을, 제목·요약에 근거가 있으면
+`chapter-language-repair`를 먼저 요청한 뒤 언어 준수 증명을 다시 받습니다. `semanticDelta`에 근거가 있으면
+추출과 의미 검사를 다시 합니다. 실패마다 검사 3회 중 1회를 쓰며, 다음 검사 요청에는 이전 근거가 함께 실립니다.
+
+빈 `answers`는 소설·웹툰 어느 쪽에서도 작업을 끝내지 않고 같은 요청을 다시 돌려줍니다. 답을 멈추면
+소설·설계 도구는 `needs_model` 응답의 `deterministicResult`가 유일한 결과입니다. `lore_write`에서는 멈춘
+workflow 식별 정보(`preview`, `workflowId`, `chapter`)뿐이며 워크플로는 `awaiting_model`로 남습니다. 웹툰 응답에는
+`deterministicResult`가 없고 같은 단계에서 대기하며, 지금까지의 결과는 `lore_workflow_status(lane="webtoon")`로 봅니다. 일반 재개에서는 실제 요청에 답하며 검토 생략 수단으로 사용하지 않습니다.
 
 호스트가 request의 `system`과 `user`를 바꾸지 않고 답을 생성해야 합니다. 답 ID를 임의로
 새로 만들지 않습니다.
@@ -100,10 +115,37 @@ flowchart LR
 
 `clean_fail`은 저장 실패가 아니라 품질 gate가 정식 커밋을 막은 상태입니다.
 
-1. `lore_workflow_inspect`로 hard violation과 점수를 확인합니다.
+`clean_fail` 원고는 workflow에 보존됩니다. 인자 없이 `lore_write`를 다시 부르면 모델을
+호출하지 않고 같은 `clean_fail`을 돌려줍니다.
+
+1. `lore_workflow_inspect`로 hard violation과 점수를 확인합니다. 보존 원고는
+   `detail="full"`일 때 `draftProse`로 함께 옵니다.
 2. 분량, 정본 충돌, 아크 의무 누락 중 원인을 분리합니다.
-3. 사용자 의도가 바뀌지 않았다면 좁은 `instruction`으로 재시도합니다.
-4. 아크 자체가 문제라면 원고를 억지로 고치지 말고 아크 계획을 다시 검토합니다.
+3. 원고와 계약을 그대로 두고 검사만 다시 받으려면 `lore_write(retryValidation=true)`를 씁니다.
+   새 검사 epoch와 3회 예산으로 같은 원고를 검사합니다. 계획·계약이 바뀌었다면 4와 같이 동작합니다.
+4. 아크나 회차 계획을 고쳤거나, 손수정을 `lore_sync`로 발행했거나(`WORKING_TREE_DRIFT` 뒤),
+   `STALE_WORK_CONTRACT`를 받았다면 `lore_write`를 다시 부릅니다(`retryValidation`은 있어도
+   없어도 됩니다). 새 초고 없이 같은 원고를 현재 정본·계약으로 다시 검사합니다.
+   - `clean_fail` 원고, 승인 대기 중인 guided 원고, 자동 커밋이 실패한 `ready_to_commit`
+     원고에 모두 적용됩니다.
+   - 이전 영수증과 승인은 무효입니다. 새 영수증과 새 3회 예산으로 검사하며(예산을 소진한
+     `clean_fail`도 새 예산을 받습니다), hard 위반은 예산 안에서 최소 수정합니다.
+   - 통과하면 `guided`는 다시 승인을 묻고 `auto`는 커밋합니다. 단, 사용자 승인을 기다리던
+     원고는 호출이 `auto`여도 `guided`로 유지되어 `lore_decide`를 거칩니다.
+   - `lore_decide(action="request_revision")`로 요청한 수정이 남아 있었다면 그 피드백을
+     새 workflow가 이어받아 보존 원고에 적용한 뒤 검사합니다.
+5. 사용자 의도가 바뀌었다면 좁힌 새 `instruction`으로 `lore_write`를 부릅니다. 새
+   `instruction`이 있거나 보존 원고가 없을 때만 같은 화를 새 workflow에서 처음부터 다시 씁니다.
+6. 아크 자체가 문제라면 원고를 억지로 고치지 말고 아크 계획을 다시 검토한 뒤 4를 따릅니다.
+
+아무것도 바뀌지 않았다면 인자 없는 `lore_write`는 모델을 부르지 않고 보존 원고를 그대로
+돌려줍니다.
+
+재검사·수정 이어받기·새 초고는 모두 새 workflow에서 진행하며 이전 workflow를 지우지 않습니다.
+이전 workflow는 `clean_fail`로 남고 이벤트 기록에 `workflow_superseded`(`mode`: `revalidate`,
+`revise` 또는 `redraft`)가 붙습니다. 새 workflow의 `supersedes`가 이전 ID를 가리키고, 원고를
+물려받았다면 `inheritedDraft.proseHash`가 그 원고를 가리키므로
+`lore_workflow_history(workflowId=...)`로 두 시도를 모두 감사할 수 있습니다.
 
 ## 앞 화 수정
 
@@ -250,6 +292,10 @@ MCP 표면을 바꾸면 다음을 함께 갱신합니다.
 | `system` | 실행 조건 한 줄. 묶음 안의 모든 요청이 같습니다 |
 | `user` 앞부분 | `[공통 자료 시작 · chapter-prose · sha256:…]`부터 `[공통 자료 끝 · chapter-prose]`까지. 바이트 단위로 같습니다 |
 | `user` 뒷부분 | `[이번 요청 역할]`(원래 `system`), `[이번 요청 자료]`(원래 `user`, 본문 자리는 공통 자료 참조 표기), JSON 조건 |
+
+실행 조건과 표지는 작품의 프롬프트 계열을 따릅니다. `ko` 작품은 위 한국어 표지 그대로이고, 다른 언어 작품은
+`[Shared material start · …]`, `[Role for this request]`, `[Material for this request]` 같은 영어 표지를 씁니다.
+계열은 작품마다 고정이라 한 작품 안에서 공통 접두부는 바이트 단위로 같습니다.
 
 요청에 추가되는 `promptCache` 힌트:
 

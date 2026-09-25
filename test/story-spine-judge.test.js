@@ -38,7 +38,7 @@ describe('StorySpine quality judge', () => {
     const h = harness(dims(88));
     const result = await runStorySpine({ store: h.store, workId: 'w', providers: h.providers });
     assert.equal(result.spine.quality.verdict, 'passed');
-    assert.match(h.judgeMessages[0][1].content, /0~100/);
+    assert.match(h.judgeMessages[0].map((message) => message.content).join('\n'), /0~100/);
   });
 
   it('rejects a 1~5 scale answer as a scale error instead of a quality failure', async () => {

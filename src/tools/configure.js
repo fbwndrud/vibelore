@@ -1,4 +1,5 @@
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract } from '../core/narrative-contract.js';
+import { resolveWorkLanguage } from '../core/work-language.js';
 import { episodeForChapter } from './arc.js';
 
 export async function runConfigureStatus({ store, workId }) {
@@ -15,8 +16,23 @@ export async function runConfigureStatus({ store, workId }) {
   ].filter(Boolean);
   const contract = profile || identity || writerSkill
     ? compileNarrativeContract({ profile, identity, writerSkill }) : null;
+  // 표시 전용이다. 구형 문서의 언어/형식 키를 조회 때문에 새로 쓰지 않는다.
+  const workLanguage = await resolveWorkLanguage({ store, workId, foundation, profile });
   return {
     status: missing.length ? 'incomplete' : 'ready', missing,
+    language: {
+      tag: workLanguage.language,
+      promptFamily: workLanguage.promptFamily,
+      source: workLanguage.languageSource,
+      implicit: workLanguage.implicitLegacy,
+      canonicalFormatVersion: workLanguage.canonicalFormatVersion,
+      contractHash: workLanguage.contractHash,
+    },
+    length: {
+      unit: workLanguage.length.unit,
+      target: workLanguage.length.target,
+      source: workLanguage.length.source,
+    },
     narrativeContract: contract,
     storySpine: storySpine ? { status: storySpine.status, revision: storySpine.revision ?? null, dramaticQuestion: storySpine.dramaticQuestion ?? null } : null,
     arcIntent: compileArcIntent(arcPlan),

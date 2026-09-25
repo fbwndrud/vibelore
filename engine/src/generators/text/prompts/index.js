@@ -12,8 +12,33 @@
  *
  * Each module exports a `*_SYSTEM` string constant plus a
  * `build*UserPrompt(input)` pure builder. No I/O, no provider calls.
+ *
+ * 다국어 Phase 2A — 기존 이름은 **한국어 계열 값 그대로** 유지되고, 계열 선택은
+ * 새 이름으로만 얹는다(`*_MULTILINGUAL` 상수 + `*SystemFor(context)` 선택자 +
+ * `public*SystemStatic(family)` 캡처). 기존 호출자는 바뀐 것이 없다.
  */
-export { WORLDBUILD_SYSTEM, buildWorldbuildUserPrompt, } from './worldbuild.js';
-export { CAST_DESIGN_SYSTEM, buildCastDesignUserPrompt, castDesignInputFrom, } from './cast-design.js';
-export { DRAFT_SYSTEM, DRAFT_FEWSHOT, buildDraftUserPrompt, } from './draft.js';
-export { REVISE_SYSTEM, buildReviseUserPrompt, } from './revise.js';
+export {
+    WORLDBUILD_SYSTEM, WORLDBUILD_SYSTEM_MULTILINGUAL, buildWorldbuildUserPrompt,
+    publicWorldbuildSystemStatic, worldbuildSystemFor,
+} from './worldbuild.js';
+export {
+    CAST_DESIGN_SYSTEM, CAST_DESIGN_SYSTEM_MULTILINGUAL, buildCastDesignUserPrompt, castDesignInputFrom,
+    castDesignSystemFor, publicCastDesignSystemStatic,
+} from './cast-design.js';
+export {
+    DRAFT_SYSTEM, DRAFT_SYSTEM_MULTILINGUAL, DRAFT_FEWSHOT, DRAFT_FEWSHOT_MULTILINGUAL,
+    buildDraftUserPrompt, draftSystemFor, publicDraftSystemStatic,
+} from './draft.js';
+export {
+    REVISE_SYSTEM, REVISE_SYSTEM_MULTILINGUAL, REVISE_PATCH_SYSTEM, REVISE_PATCH_SYSTEM_MULTILINGUAL,
+    buildReviseUserPrompt, buildRevisePatchUserPrompt, reviseSystemFor, reviseSystemStatic,
+    revisePatchSystemStatic,
+} from './revise.js';
+export {
+    REWRITE_SYSTEM, REWRITE_SYSTEM_MULTILINGUAL, buildRewriteUserPrompt, rewriteSystemFor,
+    rewriteSystemStatic,
+} from './rewrite.js';
+export {
+    REVISE_FOUNDATION_SYSTEM, REVISE_FOUNDATION_SYSTEM_MULTILINGUAL, buildReviseFoundationUserPrompt,
+    reviseFoundationSystemFor, reviseFoundationSystemStatic,
+} from './revise-foundation.js';
