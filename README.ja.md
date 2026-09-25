@@ -2,279 +2,317 @@
 
 [한국어](README.md) | [English](README.en.md) | 日本語 | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
 
-長編小説の設定、人物の状態、アーク、検査の順序を守るローカル MCP サーバーです。
+**AIでWeb小説を書き、その小説をウェブトゥーンにするローカルツール。数百話を重ねても設定は崩れません。**
 
-- 本文は接続された AI ホストが書きます。
-- `world/`、`characters/`、`chapters/` が人が編集する正本です。
-- 別途 API キーやビルドは必要ありません。
-- 基本の執筆は `lore_write` ひとつから始めます。
+*Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into a vertical webtoon. Local, Markdown, no extra API keys for writing.*
+
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
+[![Showcase](https://img.shields.io/badge/showcase-3%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+
+Claude Code、Codex、Grok CLI などの AI コーディングツールに MCP サーバーとしてつないで使います。本文と絵はその AI が作り、
+vibelore は世界観・人物・伏線・時系列を記憶し、毎話チェックし、承認されるまでは何も確定しません。
+
+<table>
+<tr>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="『処刑1分前の皇女』第1話 シーン9"></a><br><sub>『処刑1分前の皇女』 · ロマンスファンタジー回帰復讐劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="『判決LIVE』第1話 シーン6"></a><br><sub>『判決LIVE』 · サイバーレッカー・スリラー</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="『道の上の稲妻』第1話 シーン1"></a><br><sub>『道の上の稲妻』 · ファンタジー・ロードアクション</sub></td>
+</tr>
+</table>
+
+どれも vibelore で書いた小説をウェブトゥーンにした実際の結果です。作品ごとに別の AI が作りました。
+
+- **[処刑1分前の皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**：設計から小説、ウェブトゥーン化まで GPT-6 Sol が担当しました。
+- **[判決LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**：小説とウェブトゥーン化は Claude Opus 5.5、絵は Codex が担当しました。
+- **[道の上の稲妻](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**：Codex・Claude・Grok が同じ小説をそれぞれ脚色しました。[モデル比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)もあります。
+
+うまくいったシーンだけを選んだわけではありません。レビューで落ちたシーン、プロンプト、コストまで[作品一覧](https://fbwndrud.github.io/vibelore/showcase/)でそのまま見られます。ショーケースの作品とサイトは韓国語です。
+
+---
+
+## AI に長編をそのまま任せると
+
+**❌ vibelore なし**
+
+- 10話あたりから呼び方が変わり、死んだ人物がまた話し、能力のルールがこっそり変わります。
+- 3話で仕込んだ伏線を AI も自分も忘れます。
+- セッションが切れると「これまでのあらすじ」を貼り直すところから始まります。
+- ウェブトゥーンにするには、コマ構成・キャラクターの外見・セリフの配置を毎回一から説明します。
+
+**✅ vibelore と一緒なら**
+
+- 世界・人物・本文は Markdown の正本として残り、毎話の草稿をその正本と照合して **hard 違反は直し、soft 違反は確認します。**
+- 作品全体 → アーク → 話の順に計画し、承認したものだけが次の話の制約になります。
+- 中断した作業は同じ場所から再開し、チェックを通った原稿だけがコミットされ、話単位で巻き戻せます。
 - 作品の言語は `language` 引数ひとつで決め、韓国語以外の言語でも同じ流れを使います。
+- 原作の人物と状態をそのまま引き継いで脚色し、方向性を確認したあとシーンをセリフまで一枚で生成するウェブトゥーン制作フローが付いてきます。
 
-```mermaid
-flowchart LR
-    H[Claude Code / Codex / Grok] <-->|MCP stdio| V[vibelore]
-    V --> C[正本の読み込み]
-    C --> P[計画とコンテキスト]
-    P --> D[初稿]
-    D --> Q[検査と修正]
-    Q --> A{承認}
-    A -->|承認| M[アトミックなコミット]
-    A -->|修正依頼| Q
+## 30秒デモ
+
+ホストのチャット欄にこう言うだけです。
+
+> 次の話を書いて。書き終えたら見せて、私が承認したら確定して。
+
+```text
+作品インタビュー ─▶ アーク計画 ─▶ 話の計画 ─▶ 草稿 ─▶ 設定・時系列チェック ─▶ レビュー ─▶ 承認 ─▶ コミット
+    (1回)          (承認)       (自動)            hard 違反は修正       advisory     ユーザー    Markdown
+```
+
+原稿とレビューの根拠が届いたら「承認」または「この部分を直してもう一度」と答えます。`auto` モードはチェックと
+レビューを通れば自動でコミットします。ウェブトゥーンも一文で足ります。
+
+> 第1話をウェブトゥーンにして。制作の方向性から聞いて。
+
+```text
+脚色の方向 ─▶ シーンごとの英語演出 ─▶ 生成前検証 ─▶ セリフ入りシーン画像 ─▶ 実際の視覚レビュー
+  (承認)          (自動)           hard 遮断      ホストが生成             完成版
 ```
 
 ## インストール
 
-要件: Node.js 22.13 以上（22.x）または 24.x。ビルドも依存関係のインストールも不要です。
-
-いちばん簡単なのは、使っている AI コーディングツール（Claude Code、Codex、Grok CLI）にリポジトリの
-アドレスを渡して頼むことです。
+使っている AI コーディングツール（Claude Code、Codex、Grok CLI）にリポジトリのアドレスを渡して頼むだけです。
 
 > https://github.com/fbwndrud/vibelore を取得して MCP サーバーとして登録して。
 
+必要なのは Node.js 22.13 以上（22.x）、24.x または 26.x だけです。ビルドも依存関係のインストールもありません。
 登録が終わったら AI ツールを一度再起動してください。
 
-リポジトリを取得せずに npm パッケージ [`vibelore`](https://www.npmjs.com/package/vibelore) で MCP サーバーを実行する場合:
+<details>
+<summary>npm で登録するには</summary>
+
+リポジトリを取得せず、npm パッケージ [`vibelore`](https://www.npmjs.com/package/vibelore) で MCP サーバーを実行します。
 
 ```bash
 claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
 ```
 
 Codex は `command = "npx"`、`args = ["-y", "vibelore"]`、Grok CLI は `grok mcp add vibelore -- npx -y vibelore` です。
-バージョンを固定するには `vibelore@0.4.0` のように書きます。npm 経路は MCP サーバーだけを登録するため、
-インタビュースキルは下のリポジトリ方式か Codex プラグインでインストールします。
+Windows では `npx` の前に `cmd /c` を付けます（`"command":"cmd","args":["/c","npx","-y","vibelore"]`）。
+特定のバージョンに固定するには `vibelore@<バージョン>` のように書きます。npm の方法は MCP サーバーだけを登録するので、インタビュースキルは
+下のリポジトリ方式か Codex プラグインでインストールします。
+</details>
 
-リポジトリを取得して直接登録する場合:
+<details>
+<summary>リポジトリを取得して直接登録するには</summary>
 
 ```bash
 git clone https://github.com/fbwndrud/vibelore.git
+```
+
+Claude Code:
+
+```bash
 claude mcp add-json vibelore '{"command":"node","args":["/absolute/path/to/vibelore/src/server.js"]}' --scope project
 ```
 
-このリポジトリは Codex プラグイン（`.codex-plugin/plugin.json`）でもあります。プラグインとしてインストールすると、
-作品発見インタビューのスキルと MCP サーバーが一緒に読み込まれます。Claude Code 用スキルは `hosts/claude/skills/` にあります。
+Codex（`~/.codex/config.toml`）:
 
-サーバーは stdio を使用します。ターミナルから直接実行するプログラムではありません。まず Claude
-Code、Codex、または Grok に MCP サーバーとして登録してから、そのホストに自然言語で執筆を依頼します。
-登録と最初の呼び出しは[はじめに](docs/GETTING_STARTED.md)に従ってください。
+```toml
+[mcp_servers.vibelore]
+command = "node"
+args = ["/absolute/path/to/vibelore/src/server.js"]
+startup_timeout_sec = 30
+tool_timeout_sec = 6000
+```
 
-## 対応環境とプロバイダー
-
-デフォルトの経路では、vibelore がモデル提供各社の API を直接呼び出すことはありません。MCP を実行する
-ホストの現在のモデルが初稿、計画、批評の要求に応答します。そのため別途 API キーは不要で、
-モデルと思考レベルも vibelore ではなくホストのセッションで選択します。
-
-| 実行経路 | モデル応答経路 | 状態 |
-|---|---|---|
-| Codex アプリ・CLI | Codex セッションのモデル | 執筆の往復全体を確認済み |
-| Claude Code | Claude Code セッションのモデル | 執筆の往復全体を確認済み |
-| Grok CLI | Grok セッションのモデル | 執筆の往復全体を確認済み |
-| Ollama・LM Studio・llama.cpp | OpenAI 互換 `/chat/completions` | オプション機能、互換性経路 |
-
-OpenAI、Anthropic、Google、xAI の API キーを vibelore に渡して直接呼び出す方式は現在
-サポートしていません。ローカルモデルは `VIBELORE_LOCAL_BASE_URL` と `VIBELORE_LOCAL_MODEL` を
-両方指定した場合にのみ、ホストのモデルの代わりに使用します。このアダプターは認証と思考レベルの受け渡しを
-サポートしていないため、信頼できるローカルエンドポイントでのみ使用してください。
+Grok CLI:
 
 ```bash
-VIBELORE_LOCAL_BASE_URL=http://127.0.0.1:11434/v1 \
-VIBELORE_LOCAL_MODEL=qwen3:14b \
-node /absolute/path/to/vibelore/src/server.js
+grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 ```
 
-ホストごとの登録方法と実際に確認したバージョンは [HOSTS.md](HOSTS.md) に記録しています。
+Claude Code 用のスキルは `hosts/claude/skills/` にあり、このリポジトリは Codex プラグイン（`.codex-plugin/plugin.json`）としてもインストールできます。
+</details>
 
-## 推奨モデルと思考レベル
+インストールしたら最初の作品を始めてみましょう。書きたい物語を一、二文で伝えれば十分です。
 
-以下は 2026-09-05 時点の vibelore 運用推奨値です。文学的な品質を保証する順位では
-なく、長い指示を維持しながら計画・初稿・検査を一つのセッションで実行するための出発点です。
-アカウントとホストに表示されるモデルのみ使用できます。
+> 新しい小説を始めたい。深夜バスで乗客の後悔を聞く運転手の話だよ。作品インタビューから始めて。
 
-| ホスト | 品質優先 | バランス型 | 既定の思考レベル |
-|---|---|---|---|
-| Codex | `gpt-6-astra` | `gpt-5.6-sol` | `high` |
-| Claude Code | `opus` (`Claude Opus 5`) | `sonnet` (`Claude Sonnet 5`) | `high` |
-| Grok CLI | `grok-4.6` | `grok-4.6` | `high` |
-| ローカル OpenAI 互換 | 韓国語の長文・JSON 応答を検証済みのモデル | 該当なし | サーバー側で調整不可 |
+インタビューは結果を変える好みだけを一度に4〜5個ずつ尋ねます。飛ばしたいときは「聞かずに自動で」と
+言えば大丈夫です。行き詰まったら[スタートガイド](docs/GETTING_STARTED.en.md)を見てください。
 
-- 作品発見インタビュー、全体ストーリー、最初のアーク設計: `high`。設定と因果が特に複雑な場合にのみ
-  `xhigh` を検討します。
-- `lore_write` で話を計画・執筆・検査する場合: `high` を既定値として推奨します。
-- 状態の照会、承認、簡単な手直し: `medium` または `low` でも十分です。
-- `max` は通常の執筆の既定値としては推奨しません。コストと待ち時間が増え、作品を
-  不必要に複雑にする可能性があるため、失敗の原因が思考量の不足だと確認された場合にのみ使います。
+## 何をしてくれるか
 
-vibelore は現在、段階ごとにモデルや思考レベルを切り替えません。一つの作業で始めた
-プロフィール・アーク・本文は、同じ強力なモデルと `high` レベルで仕上げるほうが一貫性の面で有利です。
-モデル提供各社の現在の名称とサポート範囲は [OpenAI モデル案内](https://developers.openai.com/api/docs/guides/latest-model)、
-[Claude モデルの状態](https://docs.anthropic.com/en/docs/about-claude/model-deprecations)、
-[Grok reasoning 案内](https://docs.x.ai/developers/model-capabilities/text/reasoning)で確認してください。
+- **作品インタビュー。** ジャンル名の代わりに速度・難度・情緒・報酬・タブーを尋ねて読書契約（StoryProfile）を作り、世界観と人物を自動生成します。
+- **アーク設計。** 3〜20話単位の約束と薄い出来事・圧力・転換を先に承認してもらい、話ごとの計画は執筆時に自動で埋めます。
+- **毎話のチェックと修正。** 草稿を人物・呼び方・視点・時系列・伏線と照合し、確定した事実と衝突すれば最大3回まで自動修正します。文体やリズムのような好みの指摘は advisory としてだけ残します。
+- **文体の基準。** 気に入った話を文体アンカーに指定すると、以降の話がその質感に沿います。
+- **書き直しと巻き戻し。** 前の話を設定はそのままに書き直したり、特定の話の時点まで作品全体をロールバックしたりします。
+- **ウェブトゥーン化。** 原作の状態を引き継ぎ、脚色の方向・画風・コマ数を確認したうえで、シーンをセリフまで一枚の縦長画像に仕上げます。
 
-## 1分で分かる使い方
+**しないこと。** Web GUI（ホストのチャット欄がインターフェース）、MCP サーバー自体による有料 API 呼び出し（画像 API は
+ホストが実行）、後続話の自動再チェック（2話を直したら3話の再チェックは自分で依頼）、文学的品質の保証、
+同時編集・マルチテナント、プラットフォーム向け PNG/JPEG の自動分割。
 
-### 新しい作品
+## よくある作業
 
-```mermaid
-flowchart TD
-    I[作品発見インタビュー] --> P[lore_profile]
-    P --> PA[lore_profile_decide]
-    PA --> C[lore_create]
-    C --> S[lore_story_plan]
-    S --> SA[lore_story_decide]
-    SA --> W[lore_writer_skill]
-    W --> WA[lore_writer_decide]
-    WA --> R[lore_arc_plan]
-    R --> RA[lore_arc_decide]
-    RA --> X[lore_write]
-```
+| やりたいこと | ホストにこう言う |
+|---|---|
+| 1話が気に入らない、設定はそのままでやり直したい | 「1話を［こんな方向］で書き直して」→ チェック → 承認 |
+| 3話まで書いたが2話を直したい | 2話を書き直す → 承認 → 「以降の状態を再計算して」→ 必要なら3話の再チェックを依頼 |
+| 5話の時点まで全部戻したい | 「5話の時点までロールバックして」 |
+| この話の文体がぴったり、今後もこうしたい | 「3話を文体の基準として承認して。理由：セリフが短く乾いているから」 |
+| 設定ファイルを手で直した | 「変更点を確認して」→ 影響範囲と次にやることを教えてくれる |
+| なぜこう書いたのか根拠を見たい | 「今回の話のレビュー根拠と実際の執筆リクエストを見せて」 |
+| 既存の小説をウェブトゥーンにしたい | 「1話をウェブトゥーンに脚色して。制作の方向性から聞いて」 |
+| ウェブトゥーンのシーンを描き直したい | 「1話のこのシーンを［こう］描き直して」 |
 
-ホストに次のように依頼します。
+修正・再開・バックアップは[トラブルシューティングとバックアップ](docs/TROUBLESHOOTING.en.md)を見てください。
 
-> `/absolute/path/to/my-novel` に `night_bus` という作品を作りたいです。深夜バスで他人の後悔を聞く運転手の物語です。作品発見インタビューから進めてください。
+## ウェブトゥーンはどう作るか
 
-`story-discovery-interview` スキルは、結果を左右する好みを 1 ラウンドに 4〜5 個ずつ尋ね、回答を
-`lore_profile` に蓄積します。確認を省略したい場合は「自動で」または「聞かずに」と明示します。
-そうでなければ、プロフィール、全体ストーリー、作家スキル、アークは承認後に有効化されます。
-テーマの深さと読みにくさは別の軸です。表面的な文の難度、新しい概念の導入速度、推論の負担、
-序盤の複雑さの上げ方は、作品発見インタビューで個別に確認します。
+<table>
+<tr>
+<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="『道の上の稲妻』第1話 シーン4"></td>
+<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="『道の上の稲妻』第2話 シーン6"></td>
+<td valign="top">
 
-### 次の話
+すでに書いた小説をそのままウェブトゥーンにします。人物の外見、世界観、その話までの状況は原作から引き継ぐので、説明し直す必要はありません。
 
-> `night_bus` の次の話を guided モードで書いてください。
+1. **方向を決める。** 画風、吹き出し・文字の表現、縦スクロールかどうか、コマ数を尋ねます。
+2. **基準の絵。** 人物と場所の基準画を先に描いて確認してもらいます。以降のすべてのシーンがこの絵に従います。
+3. **シーンの脚色。** 原作の範囲を決め、英語の演出指示を作って生成前検証を行います。
+4. **完成。** シーン全体をセリフまで一枚の縦長画像として描き、実際の絵をレビューします。上の制作例はこの方式です。
 
-`lore_write` が計画、初稿、決定論的検査、critic レビュー一式、検査レシートの発行まで実行します。`guided` は advisory と最終原稿を提示したうえで `lore_decide` の承認を待ちます。`auto` は不変条件の検査に合格し、critic が正常に完了した場合にのみ自動コミットします。レビューが失敗したり応答が不完全な場合は原稿を保存し、`CRITIC_INCOMPLETE` とともに承認待ちに切り替えます。文体・変化・密度のような advisory だけで原稿を自動的に書き直すことはありません。
+コマごとにラフを先に承認してもらう方式は deprecated で、すでに進行中の作業だけを続けます。
+</td>
+</tr>
+</table>
 
-気に入った正本の 1〜3 話を `lore_style_anchor(action="approve")` で指定すると、以降の初稿と修正が
-同じ作品文体の基準を使用します。基準から大きく外れた新しい初稿は自動的に書き直さず
-レビュー対象に回し、修正は元の段落を保持する限定的なパッチとして適用されます。
-基準を承認する際に `reason` に気に入った理由を書いておくと、正本の例とともに以降の執筆に伝えられます。
+絵は AI ツールの画像機能か画像 API で描きます。有料 API を使うときは先に確認を取り、小説の承認とウェブトゥーンの承認は別々に行います。
+詳しい手順は[ウェブトゥーン制作ガイド](docs/WEBTOON.en.md)を見てください。
 
-```mermaid
-stateDiagram-v2
-    [*] --> Planning
-    Planning --> Drafting
-    Drafting --> Checking
-    Checking --> Revising: 必須 gate 失敗
-    Revising --> Checking: 最大 3 回
-    Checking --> AwaitingApproval: guided 合格
-    Checking --> AwaitingApproval: auto レビュー失敗または文体基準からの逸脱
-    Checking --> Committing: auto 合格
-    AwaitingApproval --> Committing: approve
-    AwaitingApproval --> Revising: request_revision + feedback
-    Committing --> [*]
-    Checking --> CleanFail: 修正回数の上限超過
-```
+## なぜ vibelore か
 
-### 好みの反映とレビュー記録
+ルールの寄せ集めで小説を代わりに書くツールではありません。読書体験を先に合意し、AI の創作力は生かしつつ、
+長編で崩れやすい記憶・因果・一貫性・承認・復旧だけを受け持ちます。
 
-承認した読者との約束、トーン、人物の描写方法、執筆方針を実際の初稿要求に伝えます。
-その話で参照する文体の例は最大 2 つを選択し、選択・除外の理由を記録します。
-重要な入力が予算を超えた場合、黙って削除せずエラーとして知らせます。
+- **読書契約が先。** ジャンル名ではなく速度・難度・情緒・報酬・タブーを決め、その約束を毎話守ります。
+- **因果が装飾に勝つ。** 設定を増やすより行動・反応・結果がつながるようにし、人物は説明ではなく選択の積み重ねで作ります。
+- **最終権限は人にある。** Markdown 原稿が正本であり、advisory は自動修正の命令ではありません。
 
-レビューの総合点が高くても、具体的な指摘と根拠は保持します。レビュー完了は面白さを保証するものではなく、
-同じホストが書いてレビューした結果は自己レビューです。文脈の独立性が確認できない場合は、その状態も記録します。
+| 主体 | 担うこと |
+|---|---|
+| ユーザー | 望む読書体験、重要な好み、最終承認 |
+| ホスト AI | アイデアの判断、シーン構成、散文・セリフ・絵の生成、意味の批評 |
+| vibelore | 正本・計画の受け渡し、順序の保証、衝突チェック、レビュー根拠の記録、コミットと復旧 |
+| Markdown 正本 | 世界・人物・本文・要約の最終的な事実 |
 
-ホストに「今回の話のレビュー根拠と実際の執筆要求を見せてください」と依頼できます。
-`lore_workflow_history` で履歴を照会し、`includeModelExchanges=true` を指定すると、
-照会したイベントに紐づく実際の初稿・レビュー要求と応答も確認できます。原稿と作品契約のハッシュ、
-実行ソースの識別値、レビューの出所、完了・失敗の状態を併せて追跡できます。
-記録はローカルに保存され、自動的に外部へ公開されることはありません。
+全体の方向性は[哲学](docs/PHILOSOPHY.en.md)、構造は[アーキテクチャ](docs/ARCHITECTURE.en.md)を見てください。
 
-詳しい方法は[レビュー応答と監査](docs/OPERATIONS.md#검토-응답과-감사)を参照してください。
+## 対応ジャンル
 
-### ウェブトゥーン化
+25個のジャンルプリセットがあり、プリセットごとに追跡する設定項目（時系列、回帰の知識、関係の状態、能力
+体系など）が異なります。
 
-> `night_bus` の1話をウェブトゥーンにして。制作の方向から聞いて。
+`回帰ハンター` `悪役令嬢・異世界` `アカデミーファンタジー` `家門回帰` `追放復讐` `推理スリラー` `アクション`
+`コメディ` `歴史` `LitRPG` `配信 LitRPG` `成長もの` `システム・アポカリプス` `塔の攻略` `異世界`
+`修練` `仙侠` `玄幻` `ダンジョンコア` `ロマンスファンタジー` `SF` `ホラー` `日常ヒーリング` `現代都市` `その他`
 
-書き上げた話を、人物・世界観・その話までの状況を原作から引き継いで脚色するので、改めて説明する必要は
-ありません。`lore_webtoon_scene` はまず画風、文字表現、縦スクロール、コマ数を尋ね、人物と場所の基準画を
-確認します。その後、場面全体を台詞まで含めて1枚の縦長画像として描き、実際の画像を検討します。文字は作品の
-言語に従います。コマごとにラフを承認する以前の方式は deprecated で、進行中の作業だけを続けます。画像は
-ホストの画像ツールまたは画像 API で描きます。有料 API は確認後にだけ使い、小説の承認とウェブトゥーンの承認は
-別々に行います。詳しくは[ウェブトゥーン制作ガイド](docs/WEBTOON.md)を参照してください。
+リストにないジャンルや複合ジャンルでも大丈夫です。インタビューがジャンルをトーン・サブジャンル・物語の原動力に分解して
+作品プロフィールにし、設定チェックは最も近いプリセットを使います。
 
 ## 作品の言語
 
 作品をどの言語で書くかは、`lore_profile`、`lore_init`、`lore_create`、`lore_write` が受け取る
-`language` オプション引数で決めます。ユーザーが執筆言語を自然言語で伝えると、ホストが BCP 47
-タグ(`ja`、`pt-BR`、`zh-Hant` など)に正規化して渡し、言語を選ばない場合は引数を省略します。
-言語キーのない既存の作品は暗黙的に `ko` です。会話の言語と作品の言語は別なので、韓国語で
-会話しながら日本語の作品を書くことができます。
+`language` という任意の引数で決めます。ユーザーが執筆言語を自然な言葉で伝えると、ホストが BCP 47
+タグ（`ja`、`pt-BR`、`zh-Hant` など）に正規化して渡し、言語を選ばなければ引数を省きます。
+言語キーのない既存の作品は暗黙の `ko` です。会話の言語と作品の言語は別なので、韓国語で
+会話しながら日本語の作品を書けます。
 
-> `/absolute/path/to/my-novel` に `harbor_summer` という作品を作りたいです。本文はスペイン語で書いてください。
+> `/absolute/path/to/my-novel` に `harbor_summer` という作品を作りたい。本文はスペイン語で書いて。
 
-- プロンプトは 2 系統です。`ko` は韓国語特化の指示文を、それ以外の言語(英語を含む)は英語の共通
+- プロンプトは二系統です。`ko` は韓国語に特化した指示文を、それ以外の言語（英語を含む）は英語の共通
   指示文に目標言語を組み合わせた系統を使います。本文、タイトル、要約、世界・人物の説明、計画とレビューの
-  説明値は目標言語に従い、JSON キー・enum・ID のような機械が読む値は翻訳しません。
-- 分量は言語に合った単位で測ります。韓国語は従来の文字数、それ以外の言語は書記素(grapheme)
+  説明値は目標言語に従い、JSON のキー・enum・ID のような機械が読む値は翻訳しません。
+- 分量は言語に合った単位で測ります。韓国語は従来の文字数、それ以外の言語は書記素（grapheme）
   または単語数で、アラビア語・ヘブライ語のように結合文字の多い文字体系や、分かち書きのないタイ語も
   同じ契約の中で扱います。
-- 言語は foundation を作成した後に変更できません。保存された言語と異なる値を渡すと、黙って
-  上書きせず `LANGUAGE_CONTRACT_CONFLICT` で拒否します。
-- 話ごとに本文・要約・計画が作品の言語で書かれているかを検査し、視点・人物登録・世界設定のような
-  意味の不変条件は言語に関係なく同じ検査者が確認します。
+- 言語は foundation を作ったあとは変えられません。保存された言語と違う値を渡すと、黙って
+  上書きせずに `LANGUAGE_CONTRACT_CONFLICT` で拒否します。
+- 話ごとに本文・要約・計画が作品の言語で書かれたかをチェックし、視点・人物の登録・世界設定のような
+  意味の不変条件は言語に関係なく同じチェッカーが見ます。
+- ウェブトゥーンも作品の言語に従います。セリフは翻訳せず作品の言語の原文のまま画像に入り、
+  画像プロンプトに言語・文字体系・読む方向（アラビア語は右から左）を明示します。
 
-実際に Claude Sonnet 5 でプロフィールから 2 話の承認と最終的な言語監査までの全体の流れを確認した言語は、
-英語、スペイン語、日本語、フランス語、韓国語、アラビア語、繁体字中国語、タイ語です。引数契約の
-詳細は[作品の言語と分量の単位](docs/TOOLS.md#작품-언어와-분량-단위)を参照してください。
+実際の Claude Sonnet 5 で、プロフィールから2話の承認と最終的な言語監査までの全体の流れを確認した言語は
+英語、スペイン語、日本語、フランス語、韓国語、アラビア語、繁体字中国語、タイ語です。引数の契約の
+詳細は[作品の言語と分量の単位](docs/TOOLS.en.md#work-language-and-length-units)を参照してください。
 
-## 正本と機械状態
+## ファイルはどこに
 
 ```text
 my-novel/
-├── world/                 世界設定の正本
-├── characters/            人物の正本
-├── chapters/              本文の正本
-├── summaries/             話ごとの要約
-└── .vibelore/             ワークフロー・検査・検索投影・復旧データ
+├── world/         世界設定 — 直接直してかまいません
+├── characters/    人物設定 — 直接直してかまいません
+├── chapters/      本文 — 直接直してかまいません
+├── summaries/     話ごとの要約
+├── webtoon/       承認済みのウェブトゥーン設定・脚色・SVG/HTML マスター
+└── .vibelore/     チェック記録・復旧スナップショット — 触らないでください
 ```
 
-`world/`、`characters/`、`chapters/` は直接編集しても構いません。`.vibelore/` は直接編集しないでください。
+原稿と制作記録は自分のコンピューターに残ります。接続したホストやモデルのサービスには、リクエストに必要な原稿と
+参照画像が送られることがあります。境界は[セキュリティガイド](SECURITY.md)にあります。
+原稿の著作権は作者にあり、このリポジトリのライセンスは適用されません。
 
-```mermaid
-flowchart TB
-    subgraph Canon[人が編集する正本]
-      W[world/]
-      C[characters/]
-      H[chapters/]
-      S[summaries/]
-    end
-    subgraph Projection[再生成または検証可能な内部状態]
-      WF[workflows]
-      CR[check receipts]
-      CT[context traces]
-      DB[memory.db]
-      SS[snapshots]
-    end
-    Canon --> Projection
-    Projection -. 正本を置き換えない .-> Canon
-```
+## モデルとコスト
 
-## 安全装置
+- **小説**はホストのセッションで選んだモデルがそのまま書きます。別途の API キーはありません。レビュー段階だけを軽いモデルに任せる段階別ヒントを使えますが、確定した事実を抽出する段階は基準モデルのままです。
+- **ウェブトゥーンの画像**には生成できるホストのツールか画像 API が必要で、API の経路には別途キーと課金がかかります。確認した選択は作品ごとに保存し、勝手に変えません。
+- **ローカルのテキストモデル**は、OpenAI 互換のエンドポイントを環境変数でつなげられます。
 
-- アクティブなアークなしに本文から書き始めることはありません。
-- 検査した本文の hash とコミットする本文の hash が異なる場合は拒否します。
-- 前の話を書き直した場合は `lore_refold` で以降の状態を再計算します。
-- コミットごとに snapshot を作成し、`lore_rollback` で復元できます。
-- リモート API キーがない場合はホストの AI を使用します。
-- 検索メモリと機械状態は正本を補助するだけで、正本を上書きしません。
+詳しい設定は[モデル設定](docs/MODELS.en.md)を見てください。
 
-## ドキュメント
+## よくある質問
 
-- [ドキュメント地図](docs/README.md): 必要なドキュメントを状況別に探す
-- [方向性と哲学](docs/PHILOSOPHY.md): 何を担い、何をモデルと作家に委ねるか
-- [はじめに](docs/GETTING_STARTED.md): インストール、登録、最初の作品、次の話
-- [MCP 契約](docs/MCP.md): プロトコル、応答、モデルの再開、ワークフロー
-- [ツールリファレンス](docs/TOOLS.md): 基本 26 個のツールと高度なメンテナンスツールの実際の契約
-- [アーキテクチャ](docs/ARCHITECTURE.md): 正本、状態機械、入力 compiler、コミット
-- [運用と復旧](docs/OPERATIONS.md): 状態確認、失敗時の対応、rewrite/refold/rollback
-- [ホスト別インストール](HOSTS.md): Claude Code、Codex CLI、Grok CLI の検証記録
+<details>
+<summary>GUI はありますか？</summary>
 
-## テスト
+ありません。Claude Code、Codex、Grok CLI のチャット欄がインターフェースで、結果は Markdown ファイルと縦長の SVG/HTML で出てきます。
+</details>
 
-```bash
-npm test
-npm run test:engine
-npm run test:all
-```
+<details>
+<summary>別にお金はかかりますか？</summary>
 
-依存関係のインストールやビルドは必要ありません。
+小説の執筆はホストのサブスクリプション・クレジットの範囲で動きます。vibelore がモデルを直接呼び出すことはありません。ウェブトゥーンの画像にはホストの画像ツールか画像 API が必要で、API の経路はそのアカウントの課金に従います。
+</details>
+
+<details>
+<summary>途中で止まったら最初からやり直しですか？</summary>
+
+いいえ。ワークフローが保存されるので「続けて」で同じ場所から再開します。チェックを通った原稿だけがコミットされ、話単位のスナップショットで巻き戻せます。[トラブルシューティング](docs/TROUBLESHOOTING.en.md#work-stopped-midway)を見てください。
+</details>
+
+<details>
+<summary>設定や本文を手で直してもいいですか？</summary>
+
+大丈夫です。`world/`、`characters/`、`chapters/` は人が直すためのファイルです。直したあと「変更点を確認して」と言えば、影響範囲と次にやることを教えてくれます。
+</details>
+
+<details>
+<summary>チェッカーが捕まえたものが、実は意図したどんでん返しだったら？</summary>
+
+hard 違反は確定した事実との衝突なので直しますが、本当にどんでん返しなら先に設定ファイルを変えれば済みます。soft 違反は作者の意図かもしれないので、AI が自動で直さずユーザーに尋ねます。
+</details>
+
+<details>
+<summary>韓国語以外の言語でも書けますか？</summary>
+
+書けます。執筆言語は作品プロフィールで決め、インタビューはユーザーが使う言語で進めます。ガイド文書は韓国語の原文と英語版（`*.en.md`）があります。上の[作品の言語](#作品の言語)を見てください。
+</details>
+
+## さらに読む
+
+ドキュメントのリンク先は英語版です。韓国語の原文は同じ名前の `.md` ファイルにあります。
+
+- [スタートガイド](docs/GETTING_STARTED.en.md) — 登録、最初の作品、次の話、行き詰まったとき
+- [ウェブトゥーン制作](docs/WEBTOON.en.md) — 脚色の方向、必須の選択、シーン統合制作と承認
+- [トラブルシューティングとバックアップ](docs/TROUBLESHOOTING.en.md) — 作業の再開、手直し、巻き戻し、ファイルの保管
+- [モデル設定](docs/MODELS.en.md) — テキスト・画像モデルの選択、コストの経路、ローカルモデル
+- [ツールリファレンス](docs/TOOLS.en.md) — ホストが呼び出すツールの全契約
+- [アーキテクチャ](docs/ARCHITECTURE.en.md) — 小説・ウェブトゥーン制作の構造、AI とサーバーの役割、保存の境界
+- [全ドキュメント](docs/README.en.md) · [ホスト別の検証記録](HOSTS.en.md) · [コントリビュート](CONTRIBUTING.md) · [セキュリティ](SECURITY.md)
+
+Apache-2.0。原稿と絵の権利は作った人にあります。

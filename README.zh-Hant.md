@@ -2,275 +2,317 @@
 
 [한국어](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | 繁體中文 | [ไทย](README.th.md) | [العربية](README.ar.md)
 
-這是一個本機 MCP 伺服器，負責維護長篇小說的設定、人物狀態、故事弧與檢查順序。
+**用 AI 寫網路小說，再把小說做成網漫的本機工具。連載數百話，設定也不會崩壞。**
 
-- 正文由連接的 AI 主機撰寫。
-- `world/`、`characters/`、`chapters/` 是由人手修改的正典。
-- 不需要額外的 API 金鑰或建置步驟。
-- 基本寫作只需從 `lore_write` 一個工具開始。
-- 作品語言由單一 `language` 參數決定，韓語以外的語言也走同一套流程。
+*Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into a vertical webtoon. Local, Markdown, no extra API keys for writing.*
 
-```mermaid
-flowchart LR
-    H[Claude Code / Codex / Grok] <-->|MCP stdio| V[vibelore]
-    V --> C[讀取正典]
-    C --> P[計畫與上下文]
-    P --> D[初稿]
-    D --> Q[檢查與修訂]
-    Q --> A{核准}
-    A -->|核准| M[原子式提交]
-    A -->|要求修訂| Q
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
+[![Showcase](https://img.shields.io/badge/showcase-3%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+
+把它以 MCP 伺服器的形式接到 Claude Code、Codex、Grok CLI 等 AI 程式設計工具上使用。正文與圖畫由那個 AI 產生，
+vibelore 負責記住世界觀、人物、伏筆與時間線，每一話都做檢查，在你核准之前什麼都不會定案。
+
+<table>
+<tr>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="《處刑前一分鐘的皇女》第1話 場景9"></a><br><sub>《處刑前一分鐘的皇女》 · 浪漫奇幻回歸復仇劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="《判決 LIVE》第1話 場景6"></a><br><sub>《判決 LIVE》 · 網路公審驚悚劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="《路上的閃電》第1話 場景1"></a><br><sub>《路上的閃電》 · 奇幻公路動作</sub></td>
+</tr>
+</table>
+
+全都是把用 vibelore 寫的小說改編成網漫的實際成果。每部作品由不同的 AI 製作。
+
+- **[處刑前一分鐘的皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**：從設計、小說到網漫改編，全由 GPT-6 Sol 負責。
+- **[判決 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**：小說與網漫改編由 Claude Opus 5.5 負責，圖畫由 Codex 繪製。
+- **[路上的閃電](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**：Codex、Claude、Grok 各自改編了同一部小說。另有[模型比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)。
+
+我們沒有只挑成功的場景。審查沒通過的場景、提示詞，甚至成本，都能在[作品列表](https://fbwndrud.github.io/vibelore/showcase/)中原樣查看。展示作品與網站為韓文。
+
+---
+
+## 如果直接把長篇交給 AI
+
+**❌ 沒有 vibelore**
+
+- 大約從第10話開始，稱呼改變、死去的人物又開口說話、能力規則悄悄變了。
+- 第3話埋下的伏筆，AI 和你都忘了。
+- 工作階段一中斷，就得從重新貼上「前情提要」開始。
+- 要改成網漫時，每次都得從頭說明分格構成、角色外貌與對白位置。
+
+**✅ 有 vibelore**
+
+- 世界、人物與正文以 Markdown 正典保存，每一話的草稿都與正典比對：**hard 違規會修正，soft 違規會詢問你。**
+- 依作品整體 → 篇章弧 → 單話的順序規劃，只有你核准的內容才會成為下一話的約束。
+- 中斷的工作從原處繼續，只有通過檢查的稿件才會提交，並可逐話回溯。
+- 作品語言只用一個 `language` 參數決定，韓語以外的語言也走同樣的流程。
+- 附帶網漫製作流程：直接沿用原作的人物與狀態進行改編，確認方向後，把每個場景連同對白生成為一張圖。
+
+## 30 秒示範
+
+在主機的聊天框這樣說就行。
+
+> 寫下一話。寫完給我看，我核准後再定案。
+
+```text
+作品訪談 ─▶ 篇章弧規劃 ─▶ 單話規劃 ─▶ 初稿 ─▶ 設定・時間線檢查 ─▶ 審查 ─▶ 核准 ─▶ 提交
+ (1次)       (核准)       (自動)            hard 違規會修正      advisory   使用者    Markdown
+```
+
+稿件與審查依據送到後，回答「核准」或「這部分改一下再來」即可。`auto` 模式在通過檢查與審查後
+會自動提交。網漫也只要一句話。
+
+> 把第1話做成網漫。先問我製作方向。
+
+```text
+改編方向 ─▶ 各場景英文演出 ─▶ 生成前驗證 ─▶ 含對白的場景圖 ─▶ 實際視覺審查
+ (核准)        (自動)          hard 阻擋      由主機生成        完成版
 ```
 
 ## 安裝
 
-需求：Node.js 22.13 以上（22.x）或 24.x。不需要建置，也不需要安裝相依套件。
+把儲存庫位址交給你使用的 AI 程式設計工具（Claude Code、Codex、Grok CLI）並請它幫忙即可。
 
-最簡單的方法是把儲存庫網址交給你使用的 AI 程式工具（Claude Code、Codex、Grok CLI）並提出請求。
+> 下載 https://github.com/fbwndrud/vibelore 並註冊為 MCP 伺服器。
 
-> 請取得 https://github.com/fbwndrud/vibelore 並註冊為 MCP 伺服器。
+只需要 Node.js 22.13 以上（22.x）、24.x 或 26.x。沒有建置，也不必安裝相依套件。
+註冊完成後，請重新啟動 AI 工具一次。
 
-註冊完成後，請重新啟動一次 AI 工具。
+<details>
+<summary>用 npm 註冊</summary>
 
-若不取得儲存庫，而是用 npm 套件 [`vibelore`](https://www.npmjs.com/package/vibelore) 執行 MCP 伺服器：
+不下載儲存庫，改用 npm 套件 [`vibelore`](https://www.npmjs.com/package/vibelore) 執行 MCP 伺服器。
 
 ```bash
 claude mcp add-json vibelore '{"command":"npx","args":["-y","vibelore"]}' --scope project
 ```
 
-Codex 使用 `command = "npx"`、`args = ["-y", "vibelore"]`，Grok CLI 使用 `grok mcp add vibelore -- npx -y vibelore`。
-要固定版本時，請寫成 `vibelore@0.4.0`。npm 途徑只註冊 MCP 伺服器，訪談技能請以下方的儲存庫方式或 Codex 外掛安裝。
+Codex 為 `command = "npx"`、`args = ["-y", "vibelore"]`，Grok CLI 為 `grok mcp add vibelore -- npx -y vibelore`。
+在 Windows 上，請在 `npx` 前加上 `cmd /c`（`"command":"cmd","args":["/c","npx","-y","vibelore"]`）。
+若要固定特定版本，請寫成 `vibelore@<版本>`。npm 方式只註冊 MCP 伺服器，因此訪談技能請用
+下方的儲存庫方式或 Codex 外掛安裝。
+</details>
 
-取得儲存庫並直接註冊：
+<details>
+<summary>下載儲存庫並自行註冊</summary>
 
 ```bash
 git clone https://github.com/fbwndrud/vibelore.git
+```
+
+Claude Code：
+
+```bash
 claude mcp add-json vibelore '{"command":"node","args":["/absolute/path/to/vibelore/src/server.js"]}' --scope project
 ```
 
-此儲存庫也是 Codex 外掛（`.codex-plugin/plugin.json`）。以外掛方式安裝時，作品探索訪談技能與 MCP 伺服器會一起載入。
-Claude Code 用的技能位於 `hosts/claude/skills/`。
+Codex（`~/.codex/config.toml`）：
 
-伺服器使用 stdio，並不是直接在終端機中執行的程式。請先將它註冊為 Claude
-Code、Codex 或 Grok 的 MCP 伺服器，再以自然語言向該主機提出寫作請求。
-註冊與第一次呼叫請依照[入門指南](docs/GETTING_STARTED.md)操作。
+```toml
+[mcp_servers.vibelore]
+command = "node"
+args = ["/absolute/path/to/vibelore/src/server.js"]
+startup_timeout_sec = 30
+tool_timeout_sec = 6000
+```
 
-## 支援環境與供應商
-
-在預設路徑下，vibelore 不會直接呼叫模型公司的 API。執行 MCP 的主機目前使用的模型
-會回應初稿、計畫與評論請求。因此不需要額外的 API 金鑰，模型與思考等級也是在主機
-工作階段中選擇，而非由 vibelore 決定。
-
-| 執行路徑 | 模型回應路徑 | 狀態 |
-|---|---|---|
-| Codex 應用程式・CLI | Codex 工作階段模型 | 已確認完整寫作往返 |
-| Claude Code | Claude Code 工作階段模型 | 已確認完整寫作往返 |
-| Grok CLI | Grok 工作階段模型 | 已確認完整寫作往返 |
-| Ollama・LM Studio・llama.cpp | OpenAI 相容 `/chat/completions` | 選用功能，相容性路徑 |
-
-目前不支援將 OpenAI、Anthropic、Google、xAI 的 API 金鑰放進 vibelore 直接呼叫的方式。
-只有同時指定 `VIBELORE_LOCAL_BASE_URL` 與 `VIBELORE_LOCAL_MODEL` 時，才會以本機模型
-取代主機模型。此配接器不支援驗證與思考等級傳遞，因此只應在可信任的本機端點上使用。
+Grok CLI：
 
 ```bash
-VIBELORE_LOCAL_BASE_URL=http://127.0.0.1:11434/v1 \
-VIBELORE_LOCAL_MODEL=qwen3:14b \
-node /absolute/path/to/vibelore/src/server.js
+grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 ```
 
-各主機的註冊方式與實際驗證版本記錄於 [HOSTS.md](HOSTS.md)。
+Claude Code 用的技能在 `hosts/claude/skills/`，本儲存庫也可以作為 Codex 外掛（`.codex-plugin/plugin.json`）安裝。
+</details>
 
-## 建議模型與思考等級
+安裝好後就開始第一部作品吧。用一兩句話說出想寫的故事即可。
 
-以下是截至 2026-09-05 的 vibelore 運作建議值。這不是保證文學品質的排名，而是為了
-在維持長指令的同時，於單一工作階段內完成計畫、初稿與檢查的起點。
-只能使用帳戶與主機中顯示的模型。
+> 我想開始寫一部新小說。是一個在深夜公車上聆聽乘客悔恨的司機的故事。先從作品訪談開始。
 
-| 主機 | 品質優先 | 平衡型 | 預設思考等級 |
-|---|---|---|---|
-| Codex | `gpt-6-astra` | `gpt-5.6-sol` | `high` |
-| Claude Code | `opus`（`Claude Opus 5`） | `sonnet`（`Claude Sonnet 5`） | `high` |
-| Grok CLI | `grok-4.6` | `grok-4.6` | `high` |
-| 本機 OpenAI 相容 | 已驗證韓語長文・JSON 回應的模型 | 不適用 | 無法在伺服器端調整 |
+訪談只會詢問會改變結果的偏好，每次 4～5 個。想跳過就說「不用問，自動決定」
+即可。遇到困難時請看[入門指南](docs/GETTING_STARTED.en.md)。
 
-- 作品探索訪談、整體故事、第一個故事弧設計：`high`。只有在設定與因果特別複雜時
-  才考慮 `xhigh`。
-- 以 `lore_write` 計畫、撰寫與檢查章節時：建議以 `high` 為預設值。
-- 狀態查詢、核准、簡單潤飾：`medium` 或 `low` 已經足夠。
-- 不建議把 `max` 當作一般寫作的預設值。它會增加成本與等待時間，還可能讓作品變得
-  不必要地複雜，因此只在確認失敗原因是思考量不足時才使用。
+## 它能做什麼
 
-vibelore 目前不會按階段切換模型或思考等級。同一個作業中開始的設定檔、故事弧與正文，
-以相同的強力模型和 `high` 等級完成，對一致性更有利。
-模型供應商的最新名稱與支援範圍請參考 [OpenAI 模型指南](https://developers.openai.com/api/docs/guides/latest-model)、
-[Claude 模型狀態](https://docs.anthropic.com/en/docs/about-claude/model-deprecations)、
-[Grok reasoning 指南](https://docs.x.ai/developers/model-capabilities/text/reasoning)。
+- **作品訪談。** 不問類型名稱，而是詢問節奏、難度、情緒、回報與禁忌，建立閱讀契約（StoryProfile），並自動生成世界觀與人物。
+- **篇章弧設計。** 先請你核准以 3～20 話為單位的承諾，以及簡要的事件、壓力與轉折；各話計畫則在寫作時自動補上。
+- **每話檢查與修正。** 將草稿與人物、稱呼、視角、時間線、伏筆比對，與既定事實衝突時最多自動修正 3 次。文體、節奏等偏好類意見只留作 advisory。
+- **文體基準。** 把喜歡的一話指定為文體錨點，之後各話就會依循那種質感。
+- **重寫與回溯。** 保留設定重寫前面某一話，或把整部作品回溯到特定一話的時間點。
+- **網漫改編。** 沿用原作狀態，確認改編方向、畫風與格數後，把每個場景連同對白完成為一張直式圖片。
 
-## 一分鐘上手
+**不做的事。** 網頁 GUI（主機聊天框就是介面）、由 MCP 伺服器本身呼叫付費 API（圖片 API
+由主機執行）、自動重新檢查後續話數（改了第2話，第3話的重新檢查要自己要求）、文學品質保證、
+同時編輯與多租戶、針對平台的 PNG/JPEG 自動切割。
 
-### 新作品
+## 常見操作
 
-```mermaid
-flowchart TD
-    I[作品探索訪談] --> P[lore_profile]
-    P --> PA[lore_profile_decide]
-    PA --> C[lore_create]
-    C --> S[lore_story_plan]
-    S --> SA[lore_story_decide]
-    SA --> W[lore_writer_skill]
-    W --> WA[lore_writer_decide]
-    WA --> R[lore_arc_plan]
-    R --> RA[lore_arc_decide]
-    RA --> X[lore_write]
-```
+| 想做的事 | 這樣對主機說 |
+|---|---|
+| 不滿意第1話，想保留設定重來 | 「把第1話照〔這個方向〕重寫」→ 檢查 → 核准 |
+| 寫到第3話了，但想改第2話 | 重寫第2話 → 核准 →「重新計算之後的狀態」→ 需要時要求重新檢查第3話 |
+| 想全部回到第5話的時間點 | 「回溯到第5話的時間點」 |
+| 這一話的文體剛剛好，以後就這樣 | 「把第3話核准為文體基準。理由：對白短而冷淡」 |
+| 我手動改了設定檔 | 「確認變更」→ 告訴你影響範圍與下一步 |
+| 想看為什麼這樣寫的依據 | 「給我看這一話的審查依據和實際寫作請求」 |
+| 想把既有小說做成網漫 | 「把第1話改編成網漫。先問我製作方向」 |
+| 想重畫網漫的某個場景 | 「把第1話的這個場景〔這樣〕重畫」 |
 
-向主機這樣提出請求即可。
+修正、繼續與備份請看[疑難排解與備份](docs/TROUBLESHOOTING.en.md)。
 
-> 我想在 `/absolute/path/to/my-novel` 建立一部叫 `night_bus` 的作品。故事講的是一位在深夜公車上聆聽陌生人悔恨的司機。請從作品探索訪談開始進行。
+## 網漫怎麼做
 
-`story-discovery-interview` 技能每一輪會詢問 4～5 個會改變結果的偏好，並將答案
-累積到 `lore_profile`。若要略過審核，請明確說出「自動進行」或「不要問我」。
-否則設定檔、整體故事、作者技能與故事弧都會在核准後才啟用。
-主題的深度與閱讀難度是兩個獨立的軸。表層句子的難度、新概念出現的速度、推理負擔、
-以及前期複雜度上升的方式，會在作品探索訪談中分別確認。
+<table>
+<tr>
+<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="《路上的閃電》第1話 場景4"></td>
+<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="《路上的閃電》第2話 場景6"></td>
+<td valign="top">
 
-### 下一章
+把已經寫好的小說原樣做成網漫。人物外貌、世界觀和到那一話為止的情況都從原作沿用，不必重新說明。
 
-> 請用 guided 模式寫 `night_bus` 的下一章。
+1. **決定方向。** 詢問畫風、對白框與文字的呈現、是否直式捲動，以及格數。
+2. **基準圖。** 先畫出人物與地點的基準圖請你確認。之後所有場景都依循這些圖。
+3. **場景改編。** 決定原作範圍，撰寫英文演出指示，並進行生成前驗證。
+4. **完成。** 把整個場景連同對白畫成一張直式圖片，並審查實際的圖。上面的製作範例都是這種方式。
 
-`lore_write` 會執行計畫、初稿、確定性檢查、critic 審核組合，直到核發檢查收據為止。`guided` 會先呈現 advisory 與最終稿，再等待 `lore_decide` 核准。`auto` 只有在通過不變式檢查且 critic 正常完成時才會自動提交。若審核失敗或回應不完整，會保留稿件並以 `CRITIC_INCOMPLETE` 轉為等待核准。不會僅憑文體・變化・密度等 advisory 就自動重寫稿件。
+先逐格核准草圖的方式已 deprecated，只用於繼續已在進行中的工作。
+</td>
+</tr>
+</table>
 
-以 `lore_style_anchor(action="approve")` 指定 1～3 章你喜歡的正典章節後，之後的初稿與修訂
-都會使用同一套作品文體基準。明顯偏離基準的新初稿不會被自動重寫，而是轉為審核對象；
-修訂則以保留原文段落的受限補丁方式套用。
-核准基準時，若在 `reason` 寫下喜歡的理由，會連同正典範例一起傳遞給之後的寫作。
+圖畫用 AI 工具的圖片功能或圖片 API 繪製。使用付費 API 時會先徵求確認，小說核准與網漫核准分開進行。
+詳細步驟請看[網漫製作指南](docs/WEBTOON.en.md)。
 
-```mermaid
-stateDiagram-v2
-    [*] --> Planning
-    Planning --> Drafting
-    Drafting --> Checking
-    Checking --> Revising: 必要 gate 失敗
-    Revising --> Checking: 最多 3 次
-    Checking --> AwaitingApproval: guided 通過
-    Checking --> AwaitingApproval: auto 審核失敗或偏離文體基準
-    Checking --> Committing: auto 通過
-    AwaitingApproval --> Committing: approve
-    AwaitingApproval --> Revising: request_revision + feedback
-    Committing --> [*]
-    Checking --> CleanFail: 超過修訂上限
-```
+## 為什麼是 vibelore
 
-### 反映偏好與審核記錄
+它不是用一堆規則代替你寫小說的工具。它先就閱讀體驗達成共識，保留 AI 的創作能力，
+只負責長篇中容易崩壞的記憶、因果、一致性、核准與復原。
 
-已核准的讀者承諾、語調、人物的敘述方式與寫作方向，都會傳遞到實際的初稿請求中。
-該章要參考的文體範例最多選擇兩個，並記錄選入・排除的理由。
-核心輸入若超出預算，不會默默刪除，而是以錯誤通知。
+- **閱讀契約優先。** 不是類型名稱，而是決定節奏、難度、情緒、回報與禁忌，並在每一話守住這個承諾。
+- **因果勝過裝飾。** 與其增加設定，不如讓行動、反應與結果環環相扣；人物靠選擇的累積塑造，而不是靠說明。
+- **最終權限在人。** Markdown 稿件就是正典，advisory 不是自動修正的命令。
 
-即使審核總分很高，具體的指摘與依據也會保留。審核完成並不保證有趣，
-由同一主機撰寫並審核的結果屬於自我審核。若無法確認上下文的獨立性，也會記錄該狀態。
+| 主體 | 負責的事 |
+|---|---|
+| 使用者 | 想要的閱讀體驗、重要偏好、最終核准 |
+| 主機 AI | 判斷構想、構成場景、生成散文・對白・圖畫、語意評論 |
+| vibelore | 傳遞正典與計畫、保證順序、衝突檢查、記錄審查依據、提交與復原 |
+| Markdown 正典 | 世界、人物、正文、摘要的最終事實 |
 
-你可以向主機請求「讓我看看這一章的審核依據與實際寫作請求」。
-以 `lore_workflow_history` 查詢歷程，並指定 `includeModelExchanges=true`，
-就能一併查看與查詢到的事件相連的實際初稿・審核請求與回應。稿件與作品契約的雜湊、
-執行來源識別值、審核出處以及完成・失敗狀態都可以一起追蹤。
-記錄儲存在本機，不會自動對外公開。
+整體方向請看[理念](docs/PHILOSOPHY.en.md)，結構請看[架構](docs/ARCHITECTURE.en.md)。
 
-詳細方法請參考[審核回應與稽核](docs/OPERATIONS.md#검토-응답과-감사)。
+## 支援類型
 
-### 改編為網漫
+共有 25 種類型預設，每種預設追蹤的設定項目（時間線、回歸知識、關係狀態、能力
+體系等）各不相同。
 
-> 把 `night_bus` 第 1 話改編成網漫。先問我製作方向。
+`回歸獵人` `惡役千金異世界` `學院奇幻` `家門回歸` `流放復仇` `推理驚悚` `動作`
+`喜劇` `歷史` `LitRPG` `直播 LitRPG` `成長流` `系統末日` `爬塔` `異世界`
+`修煉` `仙俠` `玄幻` `地下城核心` `浪漫奇幻` `SF` `恐怖` `日常療癒` `現代都市` `其他`
 
-已寫好的章節會從原作承接人物、世界觀與到該話為止的狀態進行改編，不必重新說明。`lore_webtoon_scene`
-會先詢問畫風、文字表現、直向捲動與分格數，並確認人物與場景的基準圖。接著將整個場景連同台詞畫成一張
-直向圖片，並檢視實際畫面。文字依照作品語言。先逐格核准草稿的舊流程已 deprecated，只用於延續進行中的
-作業。圖片由主機的圖片工具或圖片 API 繪製；付費 API 只在確認後使用，小說核准與網漫核准分開進行。
-詳情請見[網漫製作指南](docs/WEBTOON.md)。
+列表中沒有的類型或混合類型也可以。訪談會把類型拆解成調性、子類型與故事動力，做成
+作品檔案，設定檢查則使用最接近的預設。
 
 ## 作品語言
 
-作品要以哪種語言撰寫，由 `lore_profile`、`lore_init`、`lore_create`、`lore_write` 接受的
-`language` 選用參數決定。使用者以自然語言說明寫作語言後，主機會正規化為 BCP 47
-標籤（`ja`、`pt-BR`、`zh-Hant` 等）傳入；未選擇語言時則省略該參數。
-沒有語言鍵的既有作品隱含為 `ko`。對話語言與作品語言彼此獨立，因此可以一邊用韓語
-對話，一邊撰寫日語作品。
+作品用哪種語言寫，由 `lore_profile`、`lore_init`、`lore_create`、`lore_write` 接受的
+`language` 選用參數決定。使用者用自然語言說出寫作語言時，主機會將其正規化為 BCP 47
+標籤（`ja`、`pt-BR`、`zh-Hant` 等）傳入；沒有選擇語言時就省略此參數。
+沒有語言鍵的既有作品視為隱含的 `ko`。對話語言與作品語言彼此獨立，因此可以一邊用韓語
+對話，一邊寫日語作品。
 
-> 我想在 `/absolute/path/to/my-novel` 建立一部叫 `harbor_summer` 的作品。正文請用西班牙語寫。
+> 我想在 `/absolute/path/to/my-novel` 建立一部名為 `harbor_summer` 的作品。正文請用西班牙語寫。
 
-- 提示詞分為兩個系列。`ko` 使用韓語專用指令，其他語言（含英語）則使用英語共通
-  指令結合目標語言的系列。正文、標題、摘要、世界・人物描述、計畫與審核的
-  說明值都遵循目標語言，而 JSON 鍵・enum・ID 這類機器讀取的值不會翻譯。
-- 篇幅以符合該語言的單位計算。韓語沿用既有的字數，其他語言則以字位（grapheme）
-  或單字數計算；阿拉伯語・希伯來語這類結合字元較多的文字系統，以及沒有空格分詞的泰語，
-  也在同一契約內處理。
-- 語言在建立 foundation 之後不可更改。傳入與已儲存語言不同的值時，不會靜默覆寫，
-  而是以 `LANGUAGE_CONTRACT_CONFLICT` 拒絕。
-- 每一章都會檢查正文・摘要・計畫是否以作品語言撰寫；視角・人物登錄・世界設定這類
-  語意不變式則不分語言，由同一個檢查者負責。
+- 提示詞分為兩個系列。`ko` 使用韓語專用的指示，其他語言（包括英語）則使用英文共通
+  指示加上目標語言的系列。正文、標題、摘要、世界與人物說明、計畫與審查的
+  說明值都依循目標語言，而 JSON 鍵、enum、ID 等機器讀取的值不翻譯。
+- 分量以適合該語言的單位計算。韓語沿用既有的字數，其他語言則用字素（grapheme）
+  或詞數；阿拉伯語、希伯來語這類結合字元多的文字系統，以及詞與詞之間不空格的泰語，
+  都在同一份契約中處理。
+- 建立 foundation 之後就不能更改語言。傳入與已儲存語言不同的值時，不會悄悄
+  覆寫，而是以 `LANGUAGE_CONTRACT_CONFLICT` 拒絕。
+- 每一話都會檢查正文、摘要與計畫是否以作品語言撰寫；視角、人物登錄、世界設定等
+  語意不變條件，無論語言為何都由同一個檢查者審視。
+- 網漫也依循作品語言。對白不翻譯，以作品語言的原文直接放進圖片，
+  圖片提示詞中會明示語言、文字系統與閱讀方向（阿拉伯語為由右至左）。
 
-已以實際的 Claude Sonnet 5 從設定檔到第 2 章核准與最終語言稽核驗證完整流程的語言有
-英語、西班牙語、日語、法語、韓語、阿拉伯語、繁體中文與泰語。參數契約的
-細節請參考[作品語言與篇幅單位](docs/TOOLS.md#작품-언어와-분량-단위)。
+以實際的 Claude Sonnet 5 從檔案建立一路確認到第2話核准與最終語言稽核的語言有
+英語、西班牙語、日語、法語、韓語、阿拉伯語、繁體中文、泰語。參數契約的
+細節請參考[作品語言與分量單位](docs/TOOLS.en.md#work-language-and-length-units)。
 
-## 正典與機器狀態
+## 檔案在哪裡
 
 ```text
 my-novel/
-├── world/                 世界設定正典
-├── characters/            人物正典
-├── chapters/              本文正典
-├── summaries/             各章摘要
-└── .vibelore/             工作流程、檢查、搜尋投影與復原資料
+├── world/         世界設定 — 可以直接修改
+├── characters/    人物設定 — 可以直接修改
+├── chapters/      正文 — 可以直接修改
+├── summaries/     各話摘要
+├── webtoon/       已核准的網漫設定・改編・SVG/HTML 母版
+└── .vibelore/     檢查紀錄・復原快照 — 請勿動它
 ```
 
-`world/`、`characters/`、`chapters/` 可以直接修改。請不要直接修改 `.vibelore/`。
+稿件與製作紀錄都留在你的電腦上。請求所需的稿件與參考圖片可能會傳送到連接的主機與模型服務。
+界線請看[安全指南](SECURITY.md)。
+稿件的著作權屬於作者，本儲存庫的授權不適用於稿件。
 
-```mermaid
-flowchart TB
-    subgraph Canon[由人手編輯的正典]
-      W[world/]
-      C[characters/]
-      H[chapters/]
-      S[summaries/]
-    end
-    subgraph Projection[可重新產生或驗證的內部狀態]
-      WF[workflows]
-      CR[check receipts]
-      CT[context traces]
-      DB[memory.db]
-      SS[snapshots]
-    end
-    Canon --> Projection
-    Projection -. 不取代正典 .-> Canon
-```
+## 模型與費用
 
-## 安全機制
+- **小說**直接由你在主機工作階段中選擇的模型撰寫，不需要另外的 API 金鑰。可以使用只把審查階段交給較輕量模型的分階段提示；抽取既定事實的階段仍維持基準模型。
+- **網漫圖片**需要能生成圖片的主機工具或圖片 API，API 路徑另有金鑰與計費。確認過的選擇按作品儲存，不會擅自更改。
+- **本機文字模型**可以透過環境變數連接到相容 OpenAI 的端點。
 
-- 沒有啟用中的故事弧時，不會先寫正文。
-- 檢查過的正文 hash 與要提交的正文 hash 不一致時會拒絕。
-- 重寫前面的章節後，會以 `lore_refold` 重新計算之後的狀態。
-- 每次提交都會建立 snapshot，可用 `lore_rollback` 復原。
-- 沒有遠端 API 金鑰時，使用主機 AI。
-- 檢索記憶與機器狀態只是輔助正典，不會覆寫正典。
+詳細設定請看[模型設定](docs/MODELS.en.md)。
 
-## 文件
+## 常見問題
 
-- [文件地圖](docs/README.md)：依情境找到需要的文件
-- [方向與理念](docs/PHILOSOPHY.md)：哪些由本工具負責，哪些交給模型與作者
-- [入門指南](docs/GETTING_STARTED.md)：安裝、註冊、第一部作品、下一章
-- [MCP 契約](docs/MCP.md)：協定、回應、模型續接、工作流程
-- [工具參考](docs/TOOLS.md)：基本 26 個工具與進階維護工具的實際契約
-- [架構](docs/ARCHITECTURE.md)：正典、狀態機、輸入 compiler、提交
-- [運作與復原](docs/OPERATIONS.md)：狀態確認、失敗處理、rewrite/refold/rollback
-- [各主機安裝](HOSTS.md)：Claude Code、Codex CLI、Grok CLI 驗證記錄
+<details>
+<summary>有 GUI 嗎？</summary>
 
-## 測試
+沒有。Claude Code、Codex、Grok CLI 的聊天框就是介面，結果以 Markdown 檔案與直式 SVG/HTML 產出。
+</details>
 
-```bash
-npm test
-npm run test:engine
-npm run test:all
-```
+<details>
+<summary>需要另外付費嗎？</summary>
 
-不需要安裝相依套件或建置。
+小說寫作在主機的訂閱或點數範圍內運作，vibelore 不會直接呼叫模型。網漫圖片需要主機的圖片工具或圖片 API，API 路徑依該帳號的計費方式收費。
+</details>
+
+<details>
+<summary>中途停下來就要從頭再來嗎？</summary>
+
+不用。工作流程會被儲存，說「繼續」就能從原處恢復。只有通過檢查的稿件才會提交，也能用各話快照回溯。請看[疑難排解](docs/TROUBLESHOOTING.en.md#work-stopped-midway)。
+</details>
+
+<details>
+<summary>可以手動修改設定或正文嗎？</summary>
+
+可以。`world/`、`characters/`、`chapters/` 本來就是給人修改的檔案。改完後說「確認變更」，就會告訴你影響範圍與下一步。
+</details>
+
+<details>
+<summary>檢查器抓到的其實是我刻意安排的反轉怎麼辦？</summary>
+
+hard 違規是與既定事實的衝突，所以會修正；若真的是反轉，先修改設定檔即可。soft 違規可能是作者的意圖，因此 AI 不會自動修正，而是詢問你。
+</details>
+
+<details>
+<summary>可以用韓語以外的語言寫嗎？</summary>
+
+可以。寫作語言在作品檔案中決定，訪談則以你使用的語言進行。說明文件有韓文原文與英文版（`*.en.md`）。請看上方的[作品語言](#作品語言)。
+</details>
+
+## 延伸閱讀
+
+文件連結指向英文版。韓文原文位於同名的 `.md` 檔案。
+
+- [入門指南](docs/GETTING_STARTED.en.md) — 註冊、第一部作品、下一話、卡住時
+- [網漫製作](docs/WEBTOON.en.md) — 改編方向、必選項目、整場景製作與核准
+- [疑難排解與備份](docs/TROUBLESHOOTING.en.md) — 恢復工作、手動修改、回溯、保存檔案
+- [模型設定](docs/MODELS.en.md) — 文字與圖片模型的選擇、費用路徑、本機模型
+- [工具參考](docs/TOOLS.en.md) — 主機呼叫的工具完整契約
+- [架構](docs/ARCHITECTURE.en.md) — 小說與網漫的製作結構、AI 與伺服器的角色、儲存界線
+- [全部文件](docs/README.en.md) · [各主機驗證紀錄](HOSTS.en.md) · [貢獻](CONTRIBUTING.md) · [安全](SECURITY.md)
+
+Apache-2.0。稿件與圖畫的權利屬於創作者。
