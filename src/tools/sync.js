@@ -67,13 +67,15 @@ async function inspectSync({ store, workId }) {
   let nextAction = '변경 파일을 직접 덮어쓰지 않습니다. 변경 유형을 검토하세요.';
   if (designChanges.length) {
     classification = 'design_review_required';
-    nextAction = '세계·인물 변경은 이후 계획과 원고에 영향을 주므로 재검증·영향 분석 후 별도 발행해야 합니다.';
+    nextAction = chapterCandidates.length || unknownChanges.length
+      ? '세계·인물 변경과 원고 변경이 섞여 있습니다. 원고 변경을 되돌리거나 따로 처리한 뒤 lore_sync action=validate로 세계·인물 변경을 검토하세요.'
+      : '세계·인물 변경입니다. lore_sync action=validate로 바뀐 항목과 영향을 받는 계획을 확인한 뒤, 같은 approvalId로 action=apply 하면 반영합니다. 이미 발행된 화는 다시 검사하지 않습니다.';
   } else if (chapterCandidates.length === 1 && chapterCandidates[0].chapter === lastChapter && chapterCandidates[0].parseStatus === 'valid') {
     classification = 'latest_chapter_review_required';
     nextAction = '마지막 화 손수정본을 검사 영수증과 함께 다시 커밋해야 합니다. 자동 승인하지 않습니다.';
   } else if (chapterCandidates.length) {
     classification = 'rewrite_refold_required';
-    nextAction = '이전 화 손수정은 해당 화 재검사·재커밋 후 lore_refold가 필요합니다.';
+    nextAction = '이전 화 손수정은 아직 기본 도구로 반영할 수 없습니다. 이 파일을 발행본 내용으로 되돌린 뒤 집필을 이어 가세요. 설정 자체를 바꾸려면 world/·characters/ 수정을 lore_sync로 반영할 수 있습니다.';
   }
   return {
     status: 'needs_review', sourceHead: publication.value.head, changed: drift.changed,
@@ -81,10 +83,123 @@ async function inspectSync({ store, workId }) {
   };
 }
 
+const byId = (items) => new Map((items ?? []).map((item) => [item.id, item]));
+const same = (left, right) => JSON.stringify(stable(left)) === JSON.stringify(stable(right));
+const foundationHash = (foundation) => `sha256:${createHash('sha256').update(JSON.stringify(stable(foundation))).digest('hex')}`;
+
+/** What changed between the published Foundation and the edited Markdown. */
+function diffFoundation(before, after) {
+  const facts = { added: [], removed: [], changed: [] };
+  const oldFacts = byId(before?.worldFacts);
+  const newFacts = byId(after?.worldFacts);
+  for (const [id, fact] of newFacts) {
+    if (!oldFacts.has(id)) facts.added.push({ id, after: fact.statement });
+    else if (oldFacts.get(id).statement !== fact.statement) facts.changed.push({ id, before: oldFacts.get(id).statement, after: fact.statement });
+  }
+  for (const [id, fact] of oldFacts) if (!newFacts.has(id)) facts.removed.push({ id, before: fact.statement });
+  const characters = { added: [], removed: [], changed: [] };
+  const oldCast = byId(before?.characters);
+  const newCast = byId(after?.characters);
+  for (const [id, character] of newCast) {
+    const previous = oldCast.get(id);
+    if (!previous) { characters.added.push({ id, name: character.canonicalName }); continue; }
+    const fields = [...new Set([...Object.keys(previous), ...Object.keys(character)])].filter((key) => !same(previous[key], character[key])).sort();
+    if (fields.length) characters.changed.push({ id, name: character.canonicalName, fields });
+  }
+  for (const [id, character] of oldCast) if (!newCast.has(id)) characters.removed.push({ id, name: character.canonicalName });
+  return { worldFacts: facts, characters };
+}
+
+/** Published plans that mention a changed or removed fact or character. */
+function designImpact(tree, diff) {
+  const terms = [
+    ...diff.worldFacts.changed.flatMap((item) => [item.id, item.before]),
+    ...diff.worldFacts.removed.flatMap((item) => [item.id, item.before]),
+    ...diff.characters.changed.flatMap((item) => [item.id, item.name]),
+    ...diff.characters.removed.flatMap((item) => [item.id, item.name]),
+  ].filter((term) => typeof term === 'string' && term.length >= 2);
+  const plans = tree?.plans ?? {};
+  const entries = [
+    ...['storyProfile', 'storySpine', 'writerSkill', 'arcPlan'].map((key) => [key, plans[key]]),
+    ...Object.entries(plans.episodePlans ?? {}).map(([chapter, plan]) => [`episodePlans.${chapter}`, plan]),
+  ].filter(([, plan]) => plan);
+  return {
+    plans: entries.flatMap(([plan, value]) => {
+      const text = JSON.stringify(value);
+      const mentions = [...new Set(terms.filter((term) => text.includes(term)))];
+      return mentions.length ? [{ plan, mentions }] : [];
+    }),
+    publishedChapters: Object.keys(tree?.chapters ?? {}).length,
+  };
+}
+
+async function validateDesign({ store, workId, inspected }) {
+  if (inspected.chapterCandidates.length || inspected.unknownChanges.length) {
+    return { status: 'blocked', code: 'MIXED_WORKING_TREE_CHANGES', changed: inspected.changed, nextAction: inspected.nextAction };
+  }
+  const publication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
+  if (!publication.ok) throw new Error(`CORRUPT_PUBLICATION: ${publication.error.code}`);
+  let working;
+  try { working = await store.loadFoundation(workId); }
+  catch (error) { return { status: 'blocked', code: 'FOUNDATION_PARSE_FAILED', reason: error.message, changed: inspected.designChanges }; }
+  const designDiff = diffFoundation(publication.value.tree?.foundation, working);
+  const impact = designImpact(publication.value.tree, designDiff);
+  const fingerprint = await fingerprintWorkingTree(store.rootDir);
+  const candidate = {
+    schemaVersion: 2, kind: 'design', approvalId: `sync-${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+    workId, sourceHead: publication.value.head, workingTreeDigest: fingerprint.digest,
+    foundationHash: foundationHash(working), designDiff, impact, stale: false,
+    validatedAt: new Date().toISOString(), consumedAt: null,
+  };
+  await store.saveSyncCandidate(workId, candidate);
+  return {
+    status: 'awaiting_approval', approvalId: candidate.approvalId, changed: inspected.designChanges, designDiff, impact,
+    nextAction: impact.plans.length
+      ? '영향을 받는 계획을 확인하세요. 같은 approvalId로 lore_sync action=apply 하면 세계·인물 변경을 정본에 반영합니다. 계획은 자동으로 고치지 않습니다.'
+      : '같은 approvalId로 lore_sync action=apply 하면 세계·인물 변경을 정본에 반영합니다.',
+  };
+}
+
+async function applyDesign({ store, workId, candidate }) {
+  const unit = createPublicationUnit({ rootDir: store.rootDir });
+  const current = await unit.readPublished();
+  if (!current.ok) throw new Error(`CORRUPT_PUBLICATION: ${current.error.code}`);
+  if (current.value?.head !== candidate.sourceHead) throw new Error('STALE_SYNC_HEAD: 검증 이후 Published HEAD가 변경됐습니다.');
+  const fingerprint = await fingerprintWorkingTree(store.rootDir);
+  const working = await store.loadFoundation(workId);
+  if (fingerprint.digest !== candidate.workingTreeDigest || foundationHash(working) !== candidate.foundationHash) {
+    throw new Error('STALE_SYNC_CANDIDATE: 검증 이후 세계·인물 파일이 변경됐습니다.');
+  }
+  const priorExperience = await loadCurrentExperienceLedger({ store, workId });
+  const token = await unit.issueFencingToken();
+  if (!token.ok) throw new Error(`정사 fencing token을 발급할 수 없습니다: ${token.error.code}`);
+  const chapters = Object.keys(current.value.tree?.chapters ?? {}).map(Number);
+  const through = chapters.length ? Math.max(...chapters) : 0;
+  const result = await unit.publish({
+    context: {
+      snapshotId: candidate.sourceHead, expectedHead: candidate.sourceHead, storyTimeScope: { worldline: 'main', through },
+      publicationOrder: Math.max(1, through), transactionTime: new Date().toISOString(), policyRevision: 'vibelore-1',
+      semanticGeneration: 'vibelore-1', fencingToken: token.value.fencingToken,
+    },
+    candidate: {
+      tree: { foundation: working },
+      projections: current.value.projections ?? {}, impactClosure: [{ id: 'foundation', dependencyKind: 'design', status: 'satisfied' }],
+    },
+  });
+  if (!result.ok) throw new Error(`세계·인물 변경 발행 실패: ${result.error.code}`);
+  await saveExperienceLedgerForHead({
+    store, workId, sourceHead: result.value.head, entries: priorExperience.entries, criticVersion: priorExperience.criticVersion ?? null,
+  });
+  // The approved edit is the new baseline.
+  await captureWorkingTreeFingerprint({ store, sourceHead: result.value.head });
+  return result.value;
+}
+
 export async function runSyncStatus({ store, workId, action = 'inspect', approvalId, providers }) {
   if (action === 'inspect') return inspectSync({ store, workId });
   if (action === 'validate') {
     const inspected = await inspectSync({ store, workId });
+    if (inspected.classification === 'design_review_required') return validateDesign({ store, workId, inspected });
     if (inspected.classification !== 'latest_chapter_review_required') return inspected;
     const chapter = inspected.chapterCandidates[0].chapter;
     const artifact = await store.loadArtifact(workId, chapter);
@@ -125,6 +240,19 @@ export async function runSyncStatus({ store, workId, action = 'inspect', approva
   if (action === 'apply') {
     const candidate = await store.loadSyncCandidate(workId);
     if (!candidate || candidate.consumedAt || candidate.approvalId !== approvalId) throw new Error('유효한 미사용 sync approvalId가 없습니다.');
+    if (candidate.kind === 'design') {
+      if (candidate.stale) throw new Error('STALE_SYNC_CANDIDATE: 다시 검토해야 합니다.');
+      let published;
+      try { published = await applyDesign({ store, workId, candidate }); }
+      catch (error) {
+        Object.assign(candidate, { stale: true, staleReason: error.message, staleAt: new Date().toISOString() });
+        await store.saveSyncCandidate(workId, candidate);
+        throw error;
+      }
+      Object.assign(candidate, { consumedAt: new Date().toISOString(), publishedHead: published.head });
+      await store.saveSyncCandidate(workId, candidate);
+      return { status: 'completed', kind: 'design', publication: published, designDiff: candidate.designDiff, impact: candidate.impact };
+    }
     if (candidate.schemaVersion !== 2 || candidate.stale || !candidate.checkId || !candidate.artifact) {
       throw new Error('STALE_SYNC_CANDIDATE: 새로운 검사 영수증으로 다시 검증해야 합니다.');
     }

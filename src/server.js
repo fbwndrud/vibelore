@@ -151,7 +151,7 @@ const TOOLS = [
   },
   {
     name: 'lore_sync',
-    description: 'Published HEAD 이후 사람이 수정한 Markdown을 감지한다. 마지막 화는 validate 후 approvalId로 재발행하며, 이전 화와 설계 변경은 영향 분석 없이 자동 적용하지 않는다.',
+    description: 'Published HEAD 이후 사람이 수정한 Markdown을 감지한다. 공백만 바뀐 편집은 무시한다. 마지막 화 손수정은 validate(재검사) 후 approvalId로 재발행하고, world/·characters/ 변경은 validate로 바뀐 항목과 영향을 받는 계획을 보여 준 뒤 approvalId로 반영한다. 이전 화 손수정은 아직 반영하지 않는다.',
     inputSchema: { type: 'object', properties: { ...projectArg, action: { type: 'string', enum: ['inspect', 'validate', 'apply'] }, approvalId: { type: 'string' } }, required: ['workId'] },
   },
   {

@@ -48,6 +48,17 @@
   and `lore_refold` apply the check, rejected entries surface as a soft
   `ADDRESS_ENTRY_REJECTED` advisory, and a refold clears entries an earlier
   extractor wrote with speaker and target swapped.
+- Edits to `world/` or `characters/` no longer stall writing with no way out.
+  `lore_sync action=validate` shows which world facts and characters changed
+  and which published plans mention them, and `action=apply` with that
+  approval id publishes the edited Foundation without a model call. Plans are
+  not rewritten and published chapters are not re-checked; the approval goes
+  stale if the files change after validation.
+- Default-surface guidance no longer points to advanced-only tools:
+  `lore_status`, the writing context and `lore_sync` now name `lore_write`
+  (which creates the chapter plan) instead of `lore_episode_plan`,
+  `lore_episode_decide` or `lore_refold`. An edit to an earlier chapter is
+  reported as not yet supported by the default tools.
 - A hand edit that only changes whitespace or line breaks in `world/`,
   `characters/` or `chapters/` no longer counts as working-tree drift, so it
   neither blocks `lore_write` nor triggers a model re-check. Fingerprints now

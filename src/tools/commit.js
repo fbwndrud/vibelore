@@ -370,7 +370,7 @@ export async function runStatus({ store, workId }) {
     episodePlan: nextDetailedEpisode ? {
       status: nextDetailedEpisode.status, chapter: nextDetailedEpisode.chapter, title: nextDetailedEpisode.title,
       scenes: nextDetailedEpisode.scenes?.length ?? 0,
-    } : { status: 'missing', chapter: last + 1, instruction: 'lore_episode_plan으로 현재 아크 비트를 상세화하세요.' },
+    } : { status: 'missing', chapter: last + 1, instruction: 'lore_write를 호출하면 현재 아크 비트로 이 화의 계획을 자동으로 만듭니다.' },
     workingTree,
     runtime: runtimeVersion(),
   };
