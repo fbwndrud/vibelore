@@ -67,6 +67,12 @@
   entities, summaries and memories are selected with the same headings.
   `tokenUnits()` now has a single implementation in the engine, and the plugin
   re-exports it.
+- Fix the `lore_write` post-review quality-gate revise cap. It held only
+  within one call: the attempt counter restarted on every resume, so a host
+  resuming after each round trip could get unlimited quality revisions. The
+  workflow now stores how many quality revisions it applied. Across resumes
+  it allows two revisions and then ends in `clean_fail`, the same as one
+  uninterrupted call. The mandatory-validation budget is unchanged.
 
 ### Existing Korean works: what changes in `lore_write`
 

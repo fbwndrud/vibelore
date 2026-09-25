@@ -660,10 +660,15 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       };
     }
     if (!shouldRevise) break;
-    if (attempt === MAX_ATTEMPTS) {
+    // `attempt` restarts at 1 on every resume, and a relayed host resumes after
+    // each round trip with the latest revision as the draft. The applied
+    // quality revisions are counted on the workflow so the cap holds across
+    // resumes (otherwise a gate that keeps blocking revises without limit).
+    const qualityAttempt = Math.max(attempt, (workflow.qualityRevisions ?? 0) + 1);
+    if (qualityAttempt >= MAX_ATTEMPTS) {
       const best = chooseBestRevision(revisionCandidates);
-      await transition(store, workflow, 'clean_fail', { operation: 'quality_gate', attempt, failure: { violations, coherence, editorial, bestCandidate: publicRevisionCandidate(best) } });
-      return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, attempts: attempt, violations, coherence, editorial, characterFidelity, bestCandidate: publicRevisionCandidate(best) };
+      await transition(store, workflow, 'clean_fail', { operation: 'quality_gate', attempt: qualityAttempt, failure: { violations, coherence, editorial, bestCandidate: publicRevisionCandidate(best) } });
+      return { status: 'clean_fail', workflowId: workflow.workflowId, chapter, attempts: qualityAttempt, violations, coherence, editorial, characterFidelity, bestCandidate: publicRevisionCandidate(best) };
     }
     const best = chooseBestRevision(revisionCandidates);
     const revisionBase = best ?? candidate;
@@ -681,6 +686,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     }
     current = manifestFrom(revised.prose);
     workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
+    // Saved with the new draft: a resume replays from this draft, so the
+    // cached revise answer that produced it is never counted twice.
+    workflow.qualityRevisions = (workflow.qualityRevisions ?? 0) + 1;
     await store.saveWorkflow(workId, workflow);
     revisionPreservation = evaluateRevisionPreservation({
       sourceProse: revisionBase.prose,
