@@ -170,6 +170,10 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     base.delta = state.extracted.delta;
     base.extractionValidation = state.extracted.extractionValidation;
     base.unregisteredNamed = state.extracted.unregisteredNamed ?? [];
+    for (const entry of state.extracted.rejectedAddressEntries ?? []) {
+      base.violations.push({ severity: 'soft', code: 'ADDRESS_ENTRY_REJECTED', chapterNumber: chapter, characterId: entry.speakerId,
+        message: `Address entry ${entry.speakerId}->${entry.targetId} "${entry.term}" was not recorded (${entry.reason}).` });
+    }
     if (!includeSemanticContinuity) return fail('VALIDATION_INCOMPLETE');
     const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan, lexicon: lexiconsForLanguage(workContract.language).honorific,
       // The reviewer judges POV against the profile's viewpoint design, not only

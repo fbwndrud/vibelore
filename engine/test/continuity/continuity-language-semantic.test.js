@@ -418,7 +418,7 @@ describe('extractDelta extractionValidation', () => {
         expect(result.delta.mutableChanges).toEqual([{ characterId: 'c1', status: 'wounded' }]);
     });
     it('valid nonempty records with every required key remain completed', async () => {
-        const input = extractInput({ workContract: EN_CONTRACT });
+        const input = extractInput({ workContract: EN_CONTRACT, prose: `${PROSE} "Yes, sir."` });
         const hash = computeExtractionContextHash(input);
         const cap = capturing(completeEmptyExtraction(hash, {
             newAddressEntries: [{ speakerId: 'c1', targetId: 'c1', term: 'sir', register: 'formal' }],

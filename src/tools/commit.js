@@ -8,7 +8,7 @@
  * writer who has looked at the finding and decided it is wrong -- their
  * judgement beats the engine's, but it should cost a deliberate keystroke.
  */
-import { extractDelta } from '../../engine/src/continuity/continuity-check.js';
+import { extractDelta, supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { reduceStoryState, emptyStoryState } from '../../engine/src/continuity/story-state.js';
 import { applyEntityOps } from './entities.js';
 import { advanceArcAfterCommit } from './arc.js';
@@ -116,13 +116,15 @@ export async function runCommit({
   }
 
   const prev = (await canonicalStore.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
-  const delta = contractCommit
+  let delta = contractCommit
     ? (contractArtifact.semanticDelta ?? checkReceipt.delta)
     : (presetDelta ?? checkReceipt?.delta ?? (await extractDelta({
       prose, chapterNumber: chapter, foundation, providers, model: MODEL, prevState: prev,
       castManifestRaw: castManifestRaw ?? '',
     })).delta);
 
+  // Preset and legacy deltas get the same address check the extractor applies.
+  delta = { ...delta, newAddressEntries: supportedAddressEntries(delta.newAddressEntries, foundation, prose).entries };
   const next = reduceStoryState(prev, delta);
 
   let entities = await canonicalStore.loadEntitySnapshots(workId);

@@ -520,6 +520,18 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal((await runStatus({ store, workId: 'tax-tower' })).arc.status, 'completed');
   });
 
+  it('commits only address entries the chapter prose supports', async () => {
+    const store = await createdStore({ legacy: true });
+    const delta = emptyDelta(1);
+    delta.newAddressEntries = [
+      { speakerId: 'hero', targetId: 'hero', term: '체납자', register: 'formal' },
+      { speakerId: 'hero', targetId: 'hero', term: '없는호칭', register: 'formal' },
+    ];
+    await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '"체납자, 앞으로." 윤재가 중얼거렸다.', summary: '윤재가 섰다.', providers: createHostRelay({}), delta });
+    const state = await store.loadStoryState('tax-tower', 1);
+    assert.deepEqual(Object.values(state.addressMap.entries).map((entry) => entry.term), ['체납자']);
+  });
+
   it('supports an OpenAI-compatible local model endpoint', async () => {
     let request;
     const local = createLocalOpenAIProvider({ baseUrl: 'http://127.0.0.1:11434/v1/', model: 'local-model', fetchImpl: async (url, init) => {

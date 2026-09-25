@@ -961,6 +961,7 @@ export async function extractDelta(input) {
         explicit: requireHash, contextHash, resolveId,
     });
     resolveCharacterIds(delta, resolveId);
+    const rejectedAddressEntries = filterAddressEntries(delta, input.foundation, input.prose);
     let extraction;
     if (validated.ok)
         extraction = extractionValidationResult('completed', contextHash);
@@ -968,7 +969,36 @@ export async function extractDelta(input) {
         extraction = extractionValidationResult('invalid', contextHash, validated.code);
     else
         extraction = extractionValidationResult('error', contextHash, sawThrow ? 'provider_error' : 'malformed');
-    return { delta, manifest, unregisteredNamed, unregisteredNamedScan, extractionValidation: extraction };
+    return { delta, manifest, unregisteredNamed, unregisteredNamedScan, rejectedAddressEntries, extractionValidation: extraction };
+}
+/**
+ * Keep only address entries the prose can support: the term must occur in the
+ * chapter text and must not contain the name or alias of a character other
+ * than the target. An extractor that swaps speaker and target otherwise writes
+ * a wrong term into the canonical address map (thundertrail chapters 2–7
+ * stored c1->c2 "마렌 씨", a term for c4). Rejected entries are returned so the
+ * caller can surface them.
+ */
+export function supportedAddressEntries(entries, foundation, prose) {
+    const text = String(prose ?? '').normalize('NFC');
+    const names = (foundation?.characters ?? []).flatMap((character) => [character.canonicalName, ...(character.aliases ?? [])]
+        .filter((name) => typeof name === 'string' && [...name.trim()].length >= 2)
+        .map((name) => ({ id: character.id, name: name.trim().normalize('NFC') })));
+    const rejected = [];
+    const supported = (entries ?? []).filter((entry) => {
+        const term = String(entry.term ?? '').normalize('NFC');
+        const other = names.find((item) => item.id !== entry.targetId && term.includes(item.name));
+        const reason = other ? 'names-other-character' : !text.includes(term) ? 'not-in-prose' : null;
+        if (reason)
+            rejected.push({ ...entry, reason, ...(other ? { namedCharacterId: other.id } : {}) });
+        return !reason;
+    });
+    return { entries: supported, rejected };
+}
+function filterAddressEntries(delta, foundation, prose) {
+    const { entries, rejected } = supportedAddressEntries(delta.newAddressEntries, foundation, prose);
+    delta.newAddressEntries = entries;
+    return rejected;
 }
 // Exported for ADR-0006 promptManifest collection.
 export const CONTINUITY_CHECK_SYSTEM = [

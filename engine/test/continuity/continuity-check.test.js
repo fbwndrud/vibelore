@@ -174,7 +174,7 @@ describe('extractDelta', () => {
             cast: [{ characterId: 'c1', addressTermsUsed: ['도련님'] }],
         });
         const result = await extractDelta({
-            prose: '이세종이 편지를 펼쳤다.',
+            prose: '"도련님, 편지입니다." 이세종이 편지를 펼쳤다.',
             castManifestRaw: manifestRaw,
             chapterNumber: 2,
             foundation,
@@ -561,5 +561,28 @@ describe('continuityCheck character presence', () => {
         delta.mutableChanges = [{ characterId: 'c2', vitalStatus: 'alive' }];
         const result = await check(delta);
         expect(result.violations.some((v) => v.code === 'DEAD_CHARACTER_ON_STAGE')).toBe(false);
+    });
+});
+describe('extractDelta address entries', () => {
+    it('rejects an address term that is absent from the prose or names a different character', async () => {
+        const providers = createProviderRegistry([makeMockAdapter({ default: JSON.stringify({
+                newAddressEntries: [
+                    { speakerId: 'c1', targetId: 'c2', term: '마렌 씨', register: 'formal' },
+                    { speakerId: 'c4', targetId: 'c2', term: '리아', register: 'intimate' },
+                    { speakerId: 'c1', targetId: 'c2', term: '대장님', register: 'formal' },
+                    { speakerId: 'c1', targetId: 'c2', term: '도윤', register: 'intimate' },
+                    { speakerId: 'c1', targetId: 'c4', term: '마렌 씨', register: 'formal' },
+                ],
+            }) })]);
+        const foundation = makeFoundation({ characters: [femaleChar('c1', '리아'), maleChar('c2', '도윤'), femaleChar('c4', '마렌')] });
+        const result = await extractDelta({
+            prose: '"도윤, 근거는 여기 있어." 리아가 말했다. "마렌 씨도 봤잖아요."', castManifestRaw: '', chapterNumber: 3,
+            foundation, prevState: emptyStoryState('work-test'), providers, model: MODEL,
+        });
+        expect(result.delta.newAddressEntries).toEqual([
+            { speakerId: 'c1', targetId: 'c2', term: '도윤', register: 'intimate' },
+            { speakerId: 'c1', targetId: 'c4', term: '마렌 씨', register: 'formal' },
+        ]);
+        expect(result.rejectedAddressEntries.map((entry) => entry.reason)).toEqual(['names-other-character', 'names-other-character', 'not-in-prose']);
     });
 });

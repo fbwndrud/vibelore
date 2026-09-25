@@ -36,3 +36,20 @@ test('contract check shows the extractor known entities and flags a destroyed on
   const mention = result.violations.find((violation) => violation.code === 'DESTROYED_ENTITY_MENTION');
   assert.equal(mention?.severity, 'soft');
 });
+
+test('contract check surfaces an address entry the extractor could not support', async () => {
+  const store = await qualityStore();
+  const foundation = await store.loadFoundation(workId);
+  const [first] = foundation.characters;
+  const provider = { pending: [], async complete(req) {
+    const answer = contractResponse(req);
+    if (req.step !== 'continuity-extract' || !answer) return answer ?? { text: '{}' };
+    const parsed = JSON.parse(answer.text);
+    parsed.newAddressEntries = [{ speakerId: first.id, targetId: first.id, term: 'NOT_IN_PROSE_TERM', register: 'formal' }];
+    return { text: JSON.stringify(parsed) };
+  } };
+  const result = await runContractCheck({ store, workId, chapter: 1, prose: SYNTHETIC_LONG_PROSE, title: '첫 문', providers: provider, issueReceipt: false });
+  const warning = result.violations.find((violation) => violation.code === 'ADDRESS_ENTRY_REJECTED');
+  assert.equal(warning?.severity, 'soft', JSON.stringify(result.violations.map((v) => v.code)));
+  assert.deepEqual(result.delta?.newAddressEntries ?? [], []);
+});

@@ -42,6 +42,12 @@
 - The extractor and the semantic checker see active hook text and phase,
   character states and recent tracked records, not only ids. The writing
   context lists only open hooks under unresolved hooks.
+- Address entries are recorded only when the chapter prose supports them:
+  the term must occur in the prose and must not contain another registered
+  character's name or alias. The extractor, `lore_commit` with a preset delta
+  and `lore_refold` apply the check, rejected entries surface as a soft
+  `ADDRESS_ENTRY_REJECTED` advisory, and a refold clears entries an earlier
+  extractor wrote with speaker and target swapped.
 - An oversized assembled writing context no longer stops `lore_write`,
   `lore_rewrite` or the character review. Those paths record the overflow in
   the context trace and the draft audit (`contextOverflow`) and continue,

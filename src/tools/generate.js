@@ -25,6 +25,7 @@ import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-l
 import { promptKit } from '../prompts/index.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
 import { renderContinuity } from '../core/draft-input-compiler.js';
+import { supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract, compileDraftContract, renderNarrativeContract } from '../core/narrative-contract.js';
 import { loadCurrentExperienceLedger } from '../core/experience-ledger.js';
@@ -434,7 +435,12 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
   for (const chapter of chapters) {
     const artifact = await canonicalStore.loadArtifact(workId, chapter);
     if (!artifact?.delta) throw new Error(`${chapter}화 델타가 없어 재접기할 수 없습니다.`);
-    state = reduceStoryState(state, artifact.delta);
+    // Replaying applies today's address check, so a refold also clears
+    // entries an earlier extractor wrote without prose support.
+    state = reduceStoryState(state, {
+      ...artifact.delta,
+      newAddressEntries: supportedAddressEntries(artifact.delta.newAddressEntries, foundation, artifact.prose).entries,
+    });
     if (artifact.delta.entityOps?.length) {
       entities = applyEntityOps(entities, artifact.delta.entityOps, chapter).snapshots;
     }

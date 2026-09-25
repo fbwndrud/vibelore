@@ -215,7 +215,7 @@ describe('performChapterWrite', () => {
     });
     it('chapter > 1 with prevState present → reduces from it and persists StoryState(N)', async () => {
         const providers = stubRegistry({
-            draft: GOOD_DRAFT_RAW,
+            draft: GOOD_DRAFT_RAW.replace('"드디어 시작이군."', '"주군, 드디어 시작이군."'),
             extractDelta: JSON.stringify({
                 newAddressEntries: [
                     { speakerId: 'c1', targetId: 'c1', term: '주군', register: 'subordinate' },
