@@ -882,7 +882,7 @@ I18N.add({
   '1. vibelore MCP 서버 연결': '1. Connect the vibelore MCP server',
   '호스트 CLI(Codex / Claude Code / Grok)에 stdio MCP로 등록합니다.': 'Register it as a stdio MCP server in your host CLI (Codex / Claude Code / Grok).',
   '2. 소설 한 회차': '2. One novel episode',
-  '회차 계획 → 초고 → 의미·논리 검사 → 최대 3회 수정 → 승인. 호스트가 바뀌어도 순서는 같습니다.': 'Episode plan → draft → semantic and logic checks → up to 3 revisions → approval. The order is the same whatever the host.',
+  '회차 계획 → 초고 → 의미·논리 검사(최대 3회) → 필요한 수정(최대 2회) → 승인. 호스트가 바뀌어도 순서는 같습니다.': 'Episode plan → draft → semantic and logic checks (up to 3) → needed revisions (up to 2) → approval. The order is the same whatever the host.',
   '3. 장면 웹툰 한 장면': '3. One webtoon scene',
   '원문 단락 범위를 주면 각색 → 사전 검증 → 이미지 1회 → 시각 검토. 칸 수 auto = 3~12칸.': 'Give a range of source paragraphs: adaptation → preflight → one image call → visual review. Panel count auto = 3–12 panels.',
   'tt.cmp.pre1': 'git clone https://github.com/fbwndrud/vibelore\ncd vibelore &amp;&amp; npm install\n# per-host registration: see docs/HOSTS.md\nclaude mcp add vibelore -- node src/server.js',

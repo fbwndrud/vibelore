@@ -60,7 +60,7 @@
 cd vibelore && npm install
 # 호스트별 등록은 docs/HOSTS.md 참고
 claude mcp add vibelore -- node src/server.js</pre></div>
-      <div><b>2. 소설 한 회차</b>회차 계획 → 초고 → 의미·논리 검사 → 최대 3회 수정 → 승인. 호스트가 바뀌어도 순서는 같습니다.<pre data-i18n="tt.cmp.pre2">lore_write { workId, chapter: 1 }
+      <div><b>2. 소설 한 회차</b>회차 계획 → 초고 → 의미·논리 검사(최대 3회) → 필요한 수정(최대 2회) → 승인. 호스트가 바뀌어도 순서는 같습니다.<pre data-i18n="tt.cmp.pre2">lore_write { workId, chapter: 1 }
 # needs_model 이 오면 lore_resume 으로 답변</pre></div>
       <div><b>3. 장면 웹툰 한 장면</b>원문 단락 범위를 주면 각색 → 사전 검증 → 이미지 1회 → 시각 검토. 칸 수 auto = 3~12칸.<pre data-i18n="tt.cmp.pre3">lore_webtoon_scene {
   action: "start", workId, sourceChapters: [1],
