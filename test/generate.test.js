@@ -394,6 +394,22 @@ describe('Phase 2 generation pipeline', () => {
     assert.ok(result.contextAudit.olderMemoryRefs.length <= 8);
   });
 
+  it('gives a whole-chapter rewrite the same continuity window and older memory as a draft', async () => {
+    const store = await sevenChapterStore();
+    let rewriteRequest;
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      if (req.step === 'rewrite') { rewriteRequest = req; return { text: '윤재가 다시 섰다.' }; }
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    await runRewriteTool({ store, workId: 'tax-tower', chapter: 7, intent: '열쇠를 되찾는 쪽으로 다시 쓴다.', providers: p });
+    const prompt = rewriteRequest.messages.map((message) => message.content).join('\n');
+    for (const chapter of [2, 3, 4, 5, 6]) assert.match(prompt, new RegExp(`- ${chapter}화: `));
+    assert.doesNotMatch(prompt, /RECENT_SUMMARY_7\b|FUTURE_HOOK_TOKEN/);
+    assert.match(prompt, /OLD_MEMORY_TOKEN/);
+  });
+
   it('opens chapter one without a continuity window or older memory', async () => {
     const { prompt } = await draftPrompt(await createdStore({ legacy: true }), 1);
     assert.doesNotMatch(prompt, /최근 회차 요약|오래된 관련 기억/);

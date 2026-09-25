@@ -114,6 +114,52 @@ function renderContinuityContext(genreLine, { summaries, olderMemory }, t) {
   return [t.continuityHeading, clean(genreLine), ...summaryLines, ...memoryLines].filter(Boolean).join('\n');
 }
 
+/**
+ * Render the continuity window (recent summaries, older memory) as canon data
+ * within a token budget. Shared by the draft compiler and the whole-chapter
+ * rewrite so both see the same window.
+ */
+export function renderContinuity({ genreLine, recentSummaries, olderMemory, maxContextTokens: maxTokens, kit: kitSource } = {}) {
+  const t = asKit(kitSource).phrases.draftInput;
+  const continuityExcluded = [];
+  const items = continuityItems({ recentSummaries, olderMemory }, continuityExcluded);
+  let text = renderContinuityContext(genreLine, items, t);
+  const maxContextTokens = Number.isFinite(maxTokens) ? maxTokens : Number.POSITIVE_INFINITY;
+  // Over budget, drop the lowest-ranked older memory first, then the oldest
+  // summary, then shorten the newest one, instead of refusing the draft. Only
+  // the genre line alone can still exceed the budget.
+  while (tokenUnits(text) > maxContextTokens && (items.olderMemory.length || items.summaries.length)) {
+    if (items.olderMemory.length) {
+      const removed = items.olderMemory.pop();
+      continuityExcluded.push({ kind: 'olderMemory', ref: removed.ref ?? null, reason: 'context-token-budget' });
+    } else if (items.summaries.length > 1) {
+      const removed = items.summaries.pop();
+      continuityExcluded.push({ kind: 'recentSummary', chapter: removed.chapter, reason: 'context-token-budget' });
+    } else {
+      const [last] = items.summaries;
+      const shorter = [...clean(last.text)].slice(0, Math.floor([...clean(last.text)].length * 0.8)).join('');
+      if (!continuityExcluded.some((item) => item.kind === 'recentSummary' && item.reason === 'truncated')) {
+        continuityExcluded.push({ kind: 'recentSummary', chapter: last.chapter, reason: 'truncated' });
+      }
+      if ([...shorter].length < 20) {
+        items.summaries.pop();
+        continuityExcluded.at(-1).reason = 'context-token-budget';
+      } else {
+        last.text = `${shorter}…`;
+      }
+    }
+    text = renderContinuityContext(genreLine, items, t);
+  }
+  return {
+    text,
+    trace: {
+      recentSummaryChapters: items.summaries.map((item) => item.chapter),
+      olderMemoryRefs: items.olderMemory.map((item) => `${item.scope}:${item.ref}`),
+      excluded: continuityExcluded,
+    },
+  };
+}
+
 function renderPlan({ episodeText, authorText, memoryText, supplementalText, castIds, locations, previousSceneTail, t }) {
   return [
     t.planHeading,
@@ -217,35 +263,8 @@ export function compileDraftInputs({
     includedTail = '';
     plan = renderPlan({ ...planInput, memoryText, previousSceneTail: includedTail, t });
   }
-  const continuityExcluded = [];
-  const items = continuityItems(continuity, continuityExcluded);
-  let slidingWindowRender = renderContinuityContext(continuity.genreLine, items, t);
-  const maxContextTokens = Number.isFinite(budget.maxContextTokens) ? budget.maxContextTokens : Number.POSITIVE_INFINITY;
-  // Over budget, drop the lowest-ranked older memory first, then the oldest
-  // summary, then shorten the newest one, instead of refusing the draft. Only
-  // the genre line alone can still exceed the budget.
-  while (tokenUnits(slidingWindowRender) > maxContextTokens && (items.olderMemory.length || items.summaries.length)) {
-    if (items.olderMemory.length) {
-      const removed = items.olderMemory.pop();
-      continuityExcluded.push({ kind: 'olderMemory', ref: removed.ref ?? null, reason: 'context-token-budget' });
-    } else if (items.summaries.length > 1) {
-      const removed = items.summaries.pop();
-      continuityExcluded.push({ kind: 'recentSummary', chapter: removed.chapter, reason: 'context-token-budget' });
-    } else {
-      const [last] = items.summaries;
-      const shorter = [...clean(last.text)].slice(0, Math.floor([...clean(last.text)].length * 0.8)).join('');
-      if (!continuityExcluded.some((item) => item.kind === 'recentSummary' && item.reason === 'truncated')) {
-        continuityExcluded.push({ kind: 'recentSummary', chapter: last.chapter, reason: 'truncated' });
-      }
-      if ([...shorter].length < 20) {
-        items.summaries.pop();
-        continuityExcluded.at(-1).reason = 'context-token-budget';
-      } else {
-        last.text = `${shorter}…`;
-      }
-    }
-    slidingWindowRender = renderContinuityContext(continuity.genreLine, items, t);
-  }
+  const continuityResult = renderContinuity({ ...continuity, maxContextTokens: budget.maxContextTokens, kit: kitSource });
+  const slidingWindowRender = continuityResult.text;
   const planTokens = tokenUnits(plan);
   const contextTokens = tokenUnits(slidingWindowRender);
   if (Number.isFinite(budget.maxPlanTokens) && planTokens > budget.maxPlanTokens) {
@@ -264,11 +283,7 @@ export function compileDraftInputs({
         identity: structuredClone(identity), memoryClaimsIncluded: includedMemoryClaims.length,
         memoryClaimIds: includedMemoryClaims.map((claim) => claim.claimId).filter(Boolean),
         memoryClaimsExcluded,
-        continuity: {
-          recentSummaryChapters: items.summaries.map((item) => item.chapter),
-          olderMemoryRefs: items.olderMemory.map((item) => `${item.scope}:${item.ref}`),
-          excluded: continuityExcluded,
-        },
+        continuity: continuityResult.trace,
         outputs: { planHash: digest(plan), slidingWindowHash: digest(slidingWindowRender) },
         sections: {
           episode: { originalTokens: tokenUnits(episode.writerText), includedTokens: tokenUnits(episode.writerText), truncated: false },

@@ -24,6 +24,7 @@ import { MCP_CONTRACT_VERSION } from '../core/runtime-version.js';
 import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-language.js';
 import { promptKit } from '../prompts/index.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
+import { renderContinuity } from '../core/draft-input-compiler.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract, compileDraftContract, renderNarrativeContract } from '../core/narrative-contract.js';
 import { loadCurrentExperienceLedger } from '../core/experience-ledger.js';
@@ -218,12 +219,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     continuity: {
       genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
       recentSummaries: chapter > 1 ? contextMeta.recentSummaryTexts : [],
-      // World facts, the planned cast and active hooks already reach the draft
-      // through Foundation and the previous state.
-      olderMemory: chapter > 1
-        ? contextMeta.olderMemory.filter((item) => !['fact', 'hook'].includes(item.scope)
-          && !(item.scope === 'character' && detailedPlan.cast.includes(item.ref))).slice(0, 8)
-        : [],
+      olderMemory: chapter > 1 ? writerOlderMemory(contextMeta.olderMemory, (item) => detailedPlan.cast.includes(item.ref)) : [],
       castIds: detailedPlan.cast,
       locations: detailedPlan.locations,
       previousSceneTail,
@@ -344,15 +340,34 @@ export async function runReviseTool({ store, workId, chapter, prose, castManifes
   return { chapter, prose: result.revisedProse, next: '수정본을 lore_check로 다시 검사하세요.' };
 }
 
+// World facts, characters already in the prompt's Foundation and active hooks
+// reach the writer elsewhere; older memory keeps what only retrieval can add.
+function writerOlderMemory(items, characterInFoundation) {
+  return items.filter((item) => !['fact', 'hook'].includes(item.scope)
+    && !(item.scope === 'character' && characterInFoundation(item))).slice(0, 8);
+}
+
 export async function runRewriteTool({ store, workId, chapter, intent, language = null, providers }) {
   const foundation = await store.loadFoundation(workId);
   const artifact = await store.loadArtifact(workId, chapter);
   if (!foundation || !artifact) throw new Error(`${chapter}화 원본 또는 작품 설정을 찾을 수 없습니다.`);
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });
   const prevState = (await store.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
+  // A whole-chapter rewrite replaces the chapter, so it needs the same window
+  // a draft of this chapter would get. Its Foundation carries every
+  // registered character.
+  const { meta: contextMeta } = chapter > 1 ? await buildContext({ store, workId, chapter }) : { meta: null };
+  const continuity = contextMeta ? renderContinuity({
+    genreLine: '',
+    recentSummaries: contextMeta.recentSummaryTexts,
+    olderMemory: writerOlderMemory(contextMeta.olderMemory, () => true),
+    maxContextTokens: 2000,
+    kit: promptKit({ contract: workLanguage.contract }),
+  }) : null;
   const result = await runRewrite({
     foundation: executionFoundation(foundation, workLanguage), prevState, chapterNumber: chapter,
     previousProse: artifact.prose, intentSummary: intent,
+    continuityRender: continuity?.text ?? '',
     ...engineLanguageArgs(workLanguage), model: MODEL, providers,
   });
   return { chapter, prose: result.prose, next: '다시 쓴 본문을 lore_check → lore_commit → lore_refold 순서로 반영하세요.' };

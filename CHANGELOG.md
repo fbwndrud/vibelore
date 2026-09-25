@@ -22,6 +22,8 @@
   `ja`, `zh-Hant`, `th`, `ar` and accented Latin works retrieve older memory,
   and a Korean word with a common particle also matches its stem (`수아가`
   and `수아는` meet at `수아`).
+- A whole-chapter rewrite (`lore_rewrite`) gets the same recent summaries and
+  older memory a draft of that chapter would get.
 - The memory index is rebuilt from an empty file, so a `memory.db` written by
   a Node build with a different SQLite (such as one with FTS5) or a damaged
   file no longer blocks context assembly.

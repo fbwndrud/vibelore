@@ -165,6 +165,9 @@ export function buildRewriteUserPrompt(input) {
     if (input.entityContextRender && input.entityContextRender.length > 0) {
         sections.push(input.entityContextRender, ``);
     }
+    if (input.continuityRender && input.continuityRender.length > 0) {
+        sections.push(input.continuityRender, ``);
+    }
     sections.push(labels.prevState, JSON.stringify(input.prevStateSummary, null, 2), ``, labels.original, input.previousProse, ``, labels.output, ...labels.outputLines);
     return sections.join('\n');
 }

@@ -105,6 +105,8 @@ export async function runRewrite(input) {
         prevStateSummary: buildPrevStateSummary(input.prevState),
         // P4b (#516) — 멘션 entity 섹션 (없으면 prompt 그대로).
         entityContextRender: input.entityContextRender,
+        // 최근 회차 요약·오래된 기억 (호스트가 렌더링; 없으면 prompt 그대로).
+        continuityRender: input.continuityRender,
     });
     const response = await input.providers.complete({
         model: input.model,
