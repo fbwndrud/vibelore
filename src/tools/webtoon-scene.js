@@ -8,7 +8,7 @@ import { webtoonMessage } from '../core/webtoon-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
-import { SCENE_SCHEMA, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, CONTINUITY_CHECKS,
+import { SCENE_SCHEMA, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, CONTINUITY_CHECKS,
   isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
@@ -92,7 +92,7 @@ async function drive(repo, w, providers) {
   if (w.stage === 'scene_generate') {
     const auto = scenePanelCountMode(w) === 'auto';
     const r = await modelTask(repo, w, 'webtoon-scene-plan',
-      'Adapt this source excerpt as ONE coherent comic scene. Combine editorial selection and staging in one brief. Write intent, facts, actions, staging and uncertainties in English; copy visible text verbatim in the source language. '
+      'Adapt this source excerpt as ONE coherent comic scene. Combine editorial selection and staging in one brief. Write intent, facts, actions, staging and uncertainties in English; copy visible text verbatim in the source language. ' + SCENE_TEXT_KIND_INSTRUCTION
       + (auto ? `panelCount is "auto": choose the panel count (integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max}) that this adaptation needs and return it as panelCount; choose again from scratch on every revision. `
         : 'Honor the user-selected panelCount ')
       + 'without making one beat equal one panel. Do not prescribe panel rectangles, coordinates or a camera per sentence. Identify only necessary spatial facts. Separate ambiguity from facts, never invent physics to fill a gap. Let the image artist choose composition. Preserve causality, character motivation and exact speaker identities. A beat is an event, not a panel. Do not reuse prior shot lists.',
