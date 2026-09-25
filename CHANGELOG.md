@@ -48,6 +48,11 @@
   and `lore_refold` apply the check, rejected entries surface as a soft
   `ADDRESS_ENTRY_REJECTED` advisory, and a refold clears entries an earlier
   extractor wrote with speaker and target swapped.
+- A hand edit that only changes whitespace or line breaks in `world/`,
+  `characters/` or `chapters/` no longer counts as working-tree drift, so it
+  neither blocks `lore_write` nor triggers a model re-check. Fingerprints now
+  also record a whitespace-free content digest; fingerprints captured before
+  this keep comparing raw bytes until the next capture.
 - An oversized assembled writing context no longer stops `lore_write`,
   `lore_rewrite` or the character review. Those paths record the overflow in
   the context trace and the draft audit (`contextOverflow`) and continue,
