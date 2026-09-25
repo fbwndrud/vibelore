@@ -22,6 +22,8 @@ For a feature development request, implement and verify this flow, but don't sta
 
 Talk with the user in the user's conversation language: a Korean-speaking user gets the questions, options, recommendations and
 summaries in natural Korean, an English-speaking user in English, and so on. These instructions are in English only for maintainability.
+Questions, options and notices the server returns in `needs_interview`, `warnings` and `imageChoice.notice` are already
+worded for `ko` or `en`; show them as returned rather than re-translating them.
 Webtoon dialogue is always the original text in the work language and is never translated.
 Check the work language with `lore_status` or the StoryProfile's `language`; if the key is missing, it is ko. The image
 prompt automatically states the language, script (ISO 15924) and reading direction, so don't create separate
@@ -84,7 +86,7 @@ webtoon preference.
 
 - For multilingual works, read [Work language contract and integration scope](../../docs/reference/WEBTOON_WORKFLOW.md#작품-언어-계약과-통합-범위). Convey explanations to the user in the conversation language, and keep the production text in the source language of `languageContract`. Submit selected values and IDs as they are. For a language contract error or an unsupported-lettering error, explain the supported scope and stop; don't work around it with an arbitrary translation.
 - For new work, read [Required choices: art, lettering, page format](../../docs/reference/WEBTOON_WORKFLOW.md#제작-전-필수-선택--작화문자판면) and ask W04/W15/W16 first. If an Ask tool is provided, show user-facing names and differences and take the choice. Ask about art and page format separately, and allow direct specification too. Announce the unsupported state of page formats before the choice. Don't promise unsupported lettering designs as if they were implemented.
-- Read `inherited` and the source material of each question's `inherited.documentIds`, and first separate "established facts / undecided visual elements / needs approval to change". Compare future states in the current documents with that chapter's manuscript and the state at the time. Don't re-create character names, personalities, relationships or world rules.
+- Read `inherited` and the source material of each question's `inherited.documentIds`, and first separate "established facts / undecided visual elements / needs approval to change" (ko: 확정 사실 / 미정 시각 요소 / 변경 시 승인 필요; use these exact labels with a Korean user). Compare future states in the current documents with that chapter's manuscript and the state at the time. Don't re-create character names, personalities, relationships or world rules.
 - All `questions` of `needs_interview` are the current round. Based on the inherited facts, show only the presentation not yet decided, with a number, the question, a recommendation and the difference between choices, and wait for the answer. Source facts don't replace the user's answer about webtoon preferences. Don't pass the questions on to the novel creation tools.
 - Pass answers to `lore_webtoon_plan` of the same `workflowId` as `responses: { <questionId>: <the user's own answer> }`. Pass a natural-language answer covering several questions as `feedback` so the model organizes it. The model doesn't choose preferences on the user's behalf.
 - A displayed recommendation or no answer is not an answer. While undecided items remain in `coverage`, continue the same interview. Pass corrections as a new answer to that question ID.

@@ -11,6 +11,13 @@ Before generating a new work, discover the work the user actually wants to read.
 
 Hold the whole interview in the language the user writes in: a Korean-speaking user gets every question, recommendation, example and summary in natural Korean, an English-speaking user gets them in English, and so on. These instructions are in English only for maintainability; they never set the conversation language. The work language (below) is a separate setting.
 
+For a Korean-speaking user or a `ko` work, use the exact Korean strings marked `ko:` in this skill instead of translating the English text yourself. They match the wording the server shows (`src/prompts/ko.js`), so the user sees one phrasing for each choice. Korean glossary for recurring terms:
+
+- reading contract — ko: 독서 계약
+- author's latitude — ko: 작가 재량
+- promise of the work — ko: 작품 약속
+- early frustration — ko: 고구마
+
 ## Start
 
 1. Check the profile for the same `workId` with `lore_profile_status`.
@@ -47,12 +54,14 @@ Don't ask about every area equally deeply. Focus questions on areas where the ch
 
 Don't treat thematic depth and difficulty of reading as the same thing. In a normal interview, check that the user chose these four.
 
-- Surface readability of sentences and scenes: easy, standard, dense
-- Pace of introducing new settings and system concepts: slow, standard, fast
-- Inference load of dialogue and causality: surface meaning explicit, balanced, subtext-driven
-- Complexity ramp: start easy early on, steady, dense from the start
+- Surface readability of sentences and scenes: easy, standard, dense (ko: 쉽게, 표준, 조밀하게)
+- Pace of introducing new settings and system concepts: slow, standard, fast (ko: 느리게, 표준, 빠르게)
+- Inference load of dialogue and causality: surface meaning explicit, balanced, subtext-driven (ko: 표면 뜻은 명확하게, 균형, 서브텍스트 중심)
+- Complexity ramp: start easy early on, steady, dense from the start (ko: 초반은 쉽게 시작, 일정하게, 처음부터 조밀하게)
 
-The recommended default is "easy to read + slow concept introduction + explicit surface meaning + complexity after the reader settles in". Apply these values without asking only when the user explicitly asked to proceed automatically without questions. Store reading difficulty as a lasting contract for the whole work; don't expand it into micro-rules such as per-chapter sentence length or proper noun counts.
+Ask it with the server's wording. ko question: “주제의 깊이와 별개로, 문장 난도·새 개념 투입 속도·독자가 추론할 양·초반 복잡성 상승 방식을 어떻게 할까요?” (title ko: 읽기 난도)
+
+The recommended default is "easy to read + slow concept introduction + explicit surface meaning + complexity after the reader settles in". ko: “권장은 ‘쉽게 읽히는 문장 + 느린 개념 투입 + 표면 뜻은 명확하게 + 초반은 익숙해진 뒤 복잡해짐’입니다. 주제적 깊이는 이와 별개로 높일 수 있습니다.” When summarizing the settled values, use the ko form “읽기 난도: … / 개념 속도: … / 추론 부담: … / 복잡성: …”. Apply these values without asking only when the user explicitly asked to proceed automatically without questions. Store reading difficulty as a lasting contract for the whole work; don't expand it into micro-rules such as per-chapter sentence length or proper noun counts.
 
 ## Work language
 
@@ -74,11 +83,13 @@ Blend the `designReview.openQuestions` returned by MCP naturally into the next r
 
 When the important open decisions are gone, show the following at once.
 
-- A one-sentence promise of the work
-- The settled key decisions
-- The author's latitude deliberately left open
-- The quality criteria for the first 10 chapters
-- A summary of the generated StoryProfile
+- A one-sentence promise of the work (ko: 한 문장의 작품 약속)
+- The settled key decisions (ko: 확정된 핵심 결정)
+- The author's latitude deliberately left open (ko: 의도적으로 열어 둔 작가 재량)
+- The quality criteria for the first 10 chapters (ko: 첫 10화 품질 평가 기준)
+- A summary of the generated StoryProfile (ko: 생성된 StoryProfile의 요약)
+
+For a Korean user, use the ko strings above as the section headings.
 
 Only then ask for StoryProfile approval. Before approval, don't move on to `lore_create`, StorySpine, WriterSkill or ArcPlan.
 
