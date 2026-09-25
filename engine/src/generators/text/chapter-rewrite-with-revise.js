@@ -91,6 +91,7 @@ export async function performChapterRewriteBounded(ctx, input, opts = {}) {
                     const ctxRes = resolveEntityContext({
                         scene: { ...EMPTY_SCENE, additionalRefs: mention.mentionedIds },
                         snapshots,
+                        promptFamily: promptLanguage.promptFamily,
                     });
                     entityContextRender = renderEntityContext(ctxRes, promptLanguage);
                     ctx.log.info('chapter-rewrite:mention-activated', {

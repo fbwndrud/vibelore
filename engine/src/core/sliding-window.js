@@ -8,12 +8,15 @@
  *   3. (확장 hook) mid-summary / arc-summary — 본 PR 미포함, 후속.
  *
  * Budget 초과 시 oldest 순으로 trim. token estimate = chars / 2 (한국어 근사).
+ * `input.promptFamily` 가 'multilingual' 이면 스크립트 인지 tokenUnits() 를 쓰고,
+ * 미지정·'ko' 는 기존 chars / 2 그대로다(ko 프롬프트 byte-identical).
  * 실 tokenizer 도입은 후속.
  *
  * 이 token 근사는 **분량 계약과 무관한 컨텍스트 예산**이다. 작품 분량 목표는
  * `language-policy` 의 `length` 계약과 측정 정책이 소유하며 둘을 섞지 않는다.
  */
 import { pickByFamily } from './prompt-language.js';
+import { budgetEstimator } from './token-units.js';
 /** 한국어 prose 의 거친 token 추정. 정확도 보단 ratio 비교용. */
 export function approxTokens(text) {
     return Math.ceil(text.length / 2);
@@ -29,6 +32,7 @@ function envBudget() {
 }
 export async function buildSlidingWindow(input) {
     const tokenBudget = input.tokenBudget ?? envBudget();
+    const estimate = budgetEstimator(input.promptFamily, approxTokens);
     const windowSize = Math.max(0, input.recentSummaryWindow ?? DEFAULT_WINDOW);
     const summaries = windowSize > 0 && input.currentChapter > 1
         ? await input.state.loadRecentChapterSummaries(input.workId, input.currentChapter, windowSize)
@@ -42,7 +46,7 @@ export async function buildSlidingWindow(input) {
     const kept = [];
     let usedTokens = 0;
     for (const s of sortedNewestFirst) {
-        const t = approxTokens(s.summary) + 8; // small header overhead
+        const t = estimate(s.summary) + 8; // small header overhead
         if (usedTokens + t > tokenBudget)
             break;
         kept.push(s);

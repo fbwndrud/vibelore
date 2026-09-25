@@ -58,6 +58,15 @@
   content. The `context_overflow` error text now follows the work's `ko`/`en`
   prompt family and no longer implies an automatic scene split or re-plan
   that the product does not perform.
+- Non-`ko` works also use `tokenUnits()` for the staged-entity budget, the
+  recent-summary sliding window and optional memory selection, so English and
+  other Latin-script works are no longer trimmed at about half the material a
+  `ko` work of the same content gets. The `used ~Nt` numbers in those prompt
+  headings change for non-`ko` works. `ko` works, and engine callers that
+  name no prompt family, keep the exact 0.3.10 `/ 2` estimates, so the same
+  entities, summaries and memories are selected with the same headings.
+  `tokenUnits()` now has a single implementation in the engine, and the plugin
+  re-exports it.
 
 ### Existing Korean works: what changes in `lore_write`
 

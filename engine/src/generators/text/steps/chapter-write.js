@@ -220,6 +220,7 @@ export async function draftPhase(ctx, input) {
                 workId: ctx.workId,
                 currentChapter: chapterNumber,
                 state: ctx.state,
+                promptFamily: promptLanguage.promptFamily,
             });
             slidingWindowRender = renderSlidingWindow(window, promptLanguage);
         }
@@ -271,7 +272,7 @@ export async function draftPhase(ctx, input) {
                     }
                 }
             }
-            const ctxRes = resolveEntityContext({ scene: effectiveScene, snapshots });
+            const ctxRes = resolveEntityContext({ scene: effectiveScene, snapshots, promptFamily: promptLanguage.promptFamily });
             entityContextRender = renderEntityContext(ctxRes, promptLanguage);
         }
     }

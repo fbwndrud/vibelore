@@ -9,6 +9,7 @@
  * inject. 100화 작품 token ~70% 감소가 목표.
  */
 import { pickByFamily } from './prompt-language.js';
+import { budgetEstimator } from './token-units.js';
 export const EMPTY_SCENE = {
     settings: [],
     characters: [],
@@ -24,13 +25,13 @@ function envBudget() {
     const n = Number(raw);
     return Number.isFinite(n) && n > 0 ? n : DEFAULT_BUDGET;
 }
-/** Rough char/2 estimate consistent with sliding-window.ts. */
+/** Rough char/2 estimate consistent with sliding-window.ts (ko / legacy). */
 function approxTokens(text) {
     return Math.ceil(text.length / 2);
 }
-function entityCost(e) {
+function entityCost(e, estimate) {
     const attrs = JSON.stringify(e.attrs);
-    return approxTokens(e.canonicalName) + approxTokens(attrs) + 8;
+    return estimate(e.canonicalName) + estimate(attrs) + 8;
 }
 function collectSceneIds(scene) {
     const out = [];
@@ -47,6 +48,9 @@ function collectSceneIds(scene) {
  */
 export function resolveEntityContext(input) {
     const tokenBudget = input.tokenBudget ?? envBudget();
+    // `promptFamily` 미지정·'ko' 는 기존 chars/2 그대로(ko 프롬프트 byte-identical),
+    // 'multilingual' 만 스크립트 인지 tokenUnits() 로 잰다.
+    const estimate = budgetEstimator(input.promptFamily, approxTokens);
     const scene = input.scene ?? EMPTY_SCENE;
     const requested = collectSceneIds(scene);
     if (requested.length === 0) {
@@ -86,7 +90,7 @@ export function resolveEntityContext(input) {
     const kept = [];
     let used = 0;
     for (const e of matched) {
-        const cost = entityCost(e);
+        const cost = entityCost(e, estimate);
         if (used + cost > tokenBudget)
             break;
         kept.push(e);

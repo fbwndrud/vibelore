@@ -98,11 +98,11 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });
 
-  const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store });
+  const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store, promptFamily: kit.family });
   const lastState = window.lastStoryState;
 
   const snapshots = await store.loadEntitySnapshots(workId);
-  const entity = resolveEntityContext({ snapshots, scene: scene ?? undefined });
+  const entity = resolveEntityContext({ snapshots, scene: scene ?? undefined, promptFamily: kit.family });
 
   const estimated = targetChapters ?? foundation.targetChapters ?? 0;
   const arcPlan = await store.loadArcPlan(workId);
@@ -130,7 +130,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     semanticGeneration: 1, fencingToken: published.value?.manifest?.fencingToken ?? 1,
   }, {
     scope: { chapter, entityIds: scene?.entityIds ?? [] }, budget: { maxTokens: 12000, reservedTokens: 3000 },
-    mandatory, candidates: memory.candidates, query: retrievalQuery,
+    mandatory, candidates: memory.candidates, query: retrievalQuery, promptFamily: kit.family,
     indexGeneration: `memory:${memory.documents}`, tokenizerRevision: 'unicode61-or-ko-basic-1', rankerRevision: memory.backend,
   });
   const t = kit.phrases.context;
@@ -204,9 +204,9 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   sections.push('', renderSlidingWindow(window));
 
   const context = sections.join('\n');
-  // ko 계열은 0.3.10 그대로 flat chars/2 를 쓴다(예산이 프롬프트 바이트에 반영되는
-  // 다른 지점 -- entity-context/sliding-window/memory-compiler -- 은 이 수정의
-  // 범위 밖이다). 그 외 계열만 스크립트 인지 tokenUnits() 로 추정한다.
+  // ko 계열은 0.3.10 그대로 flat chars/2 를 쓴다(entity-context/sliding-window/
+  // memory-compiler 예산도 kit.family 로 같은 규칙을 따른다). 그 외 계열만 스크립트
+  // 인지 tokenUnits() 로 추정한다.
   const actualTokens = kit.family === PROMPT_FAMILY_KO
     ? Math.max(1, Math.ceil([...context].length / 2))
     : tokenUnits(context);

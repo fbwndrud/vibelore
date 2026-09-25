@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
+import { budgetEstimator } from './token-units.js';
 
 const fail = (code, message, details = {}) => ({ ok: false, error: { code, message, ...details } });
-const tokens = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
+// ko(와 계열 미지정 구형 호출)는 기존 code point / 2 그대로, 다른 계열은 tokenUnits().
+const legacyTokens = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
 const terms = (value) => [...new Set(String(value ?? '').toLocaleLowerCase('ko').match(/[가-힣a-z0-9_]{2,}/g) ?? [])];
 const hash = (value) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
@@ -23,6 +25,7 @@ function score(candidate, queryTerms) {
 export function compileMemory(context, input) {
   const invalid = validateContext(context);
   if (invalid) return invalid;
+  const tokens = budgetEstimator(input?.promptFamily, legacyTokens);
   const budget = input?.budget ?? {};
   const maxTokens = Number(budget.maxTokens);
   const reservedTokens = Number(budget.reservedTokens ?? 0);

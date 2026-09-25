@@ -63,3 +63,8 @@ test('a long Spanish episode plan fits the default writer packet budget', () => 
   assert.ok(result.value.usage.usedTokens <= 1400);
   assert.ok([...result.value.writerText].length > 2800, 'the packet is longer than the old 2800-character ceiling');
 });
+
+test('the plugin re-exports the single engine implementation', async () => {
+  const engine = await import('../engine/src/core/token-units.js');
+  assert.equal(tokenUnits, engine.tokenUnits);
+});
