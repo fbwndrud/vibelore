@@ -25,8 +25,26 @@ const RETRY_FRAMING = /\b(previous|prior|last time|earlier|again|instead|wrong|m
 /** Direction fields are English for every work language: every letter must be Latin script (digits, punctuation and symbols pass). */
 export const isEnglish = value => nonempty(value) && [...value.matchAll(/\p{L}/gu)].every(([c]) => /\p{Script=Latin}/u.test(c));
 const nfc = s => s.normalize('NFC');
-/** Same visible lettering: only whitespace and Unicode composition may differ. */
-export const sameLettering = (observed, expected) => nfc(observed).replace(/\s/gu, '') === nfc(expected).replace(/\s/gu, '');
+/** Double-style dialogue marks of every script; a word never begins or ends with one, so either edge may drop it on its own. */
+const DIALOGUE_MARKS = '"\u201C\u201D\u201E\u201F\u00AB\u00BB\u2039\u203A\u300C\u300D\u300E\u300F\uFE41\uFE42\uFE43\uFE44\u301D\u301E\u301F\uFF02';
+const EDGE_MARKS = new RegExp(`^[${DIALOGUE_MARKS}\\s]+|[${DIALOGUE_MARKS}\\s]+$`, 'gu');
+/** Single-style marks double as apostrophes (boys’, 'Tis), so they are only dropped as an enclosing pair. */
+const SINGLE_PAIR = /^['\u2018\u201A\u201B]([\s\S]*\S)['\u2019\u2018]$/u;
+const EMPHASIS = [/(\*{1,3})(?=\S)([^*\n]*?\S)\1/gu, /(?<![\p{L}\p{N}_])(_{1,3})(?=\S)([^_\n]*?\S)\1(?![\p{L}\p{N}_])/gu];
+/**
+ * The words a balloon, caption or sign actually shows: the source's enclosing dialogue quotation marks and its Markdown
+ * emphasis markers are prose typography, not lettering. The inner text stays verbatim. Every verbatim check normalizes
+ * both of its sides with this, so it stays strict about the words.
+ */
+export function letteringText(value) {
+  let s = String(value), before;
+  do { before = s; for (const re of EMPHASIS) s = s.replace(re, '$2'); } while (s !== before);
+  do { before = s; s = s.replace(EDGE_MARKS, ''); const pair = SINGLE_PAIR.exec(s); if (pair) s = pair[1].trim(); } while (s !== before);
+  return s;
+}
+const lettered = s => nfc(letteringText(s));
+/** Same visible lettering: only whitespace, Unicode composition and the typography letteringText drops may differ. */
+export const sameLettering = (observed, expected) => lettered(observed).replace(/\s/gu, '') === lettered(expected).replace(/\s/gu, '');
 const unique = rows => new Set(rows.map(r => r.id)).size === rows.length && rows.every(r => safeId(r.id));
 const words = s => s.trim().split(/\s+/u).length;
 const needTextCoverage = (assigned, texts) => need(assigned.length === texts.length && new Set(assigned).size === assigned.length
@@ -52,7 +70,7 @@ export function validateScenePlan(plan, units, { resolvePanelCount = false } = {
   }
   for (const t of plan.texts) {
     need(['dialogue', 'thought', 'caption', 'sfx', 'physical'].includes(t.kind) && nonempty(t.speaker), 'INVALID_SCENE_TEXT_ROLE');
-    need(nonempty(t.text) && nfc(source.get(t.sourceId) ?? '').includes(nfc(t.text)), 'SCENE_TEXT_NOT_VERBATIM');
+    need(nonempty(t.text) && nonempty(letteringText(t.text)) && lettered(source.get(t.sourceId) ?? '').includes(lettered(t.text)), 'SCENE_TEXT_NOT_VERBATIM');
   }
   needTextCoverage(plan.beats.flatMap(b => { need(Array.isArray(b.textIds), 'INVALID_SCENE_TEXT_ASSIGNMENT'); return b.textIds; }), plan.texts);
   need(Array.isArray(plan.uncertainties) && plan.uncertainties.every(isEnglish), 'INVALID_SCENE_UNCERTAINTIES');
@@ -101,7 +119,7 @@ export function validateScenePreflight(review, w) {
 
 /** Positive emphasis only: the exact wanted lines and short wanted-result notes, with no mention of any earlier attempt. */
 function emphasis(w, brief) {
-  const lines = (brief.focusTextIds ?? []).map(id => `- ${JSON.stringify(w.scenePlan.texts.find(t => t.id === id).text)}`);
+  const lines = (brief.focusTextIds ?? []).map(id => `- ${JSON.stringify(letteringText(w.scenePlan.texts.find(t => t.id === id).text))}`);
   const notes = (brief.corrections ?? []).map(c => `- ${c}`);
   return (lines.length ? `Letter these lines with extra care, character by character, exactly as quoted:\n${lines.join('\n')}\n` : '')
     + (notes.length ? `Key points for this page:\n${notes.join('\n')}\n` : '');
@@ -110,7 +128,7 @@ function emphasis(w, brief) {
 /** The image model only sees the short brief, the exact texts and the reference roles — never the audit. */
 export function sceneImagePrompt(w) {
   const brief = validateSceneRenderBrief(w.preflight?.renderBrief, w);
-  const text = id => { const t = w.scenePlan.texts.find(t => t.id === id); return `\n   ${t.kind}, ${t.speaker}: ${JSON.stringify(t.text)}`; };
+  const text = id => { const t = w.scenePlan.texts.find(t => t.id === id); return `\n   ${t.kind}, ${t.speaker}: ${JSON.stringify(letteringText(t.text))}`; };
   return `Draw a finished color comic with EXACTLY ${w.panelCount} panels${scenePanelCountMode(w) === 'auto' ? ' (count fixed during adaptation)' : ''}. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
 Style: ${brief.style}
 Match the reference identities. ${w.previousScene ? 'The last image is the preceding page: continue its appearance and setting, not its events or layout.' : 'Reference sheets are for appearance, not page layout.'}
@@ -149,7 +167,7 @@ export function sceneRevisionFeedback(w) {
     for (const o of r.textObservations ?? []) {
       const t = w.scenePlan.texts.find(t => t.id === o.id);
       if (!t) continue;
-      if (o.observedText.replace(/\s/g, '') !== t.text.replace(/\s/g, '')) lines.push(`${t.id} must read ${JSON.stringify(t.text)} but the image showed ${JSON.stringify(o.observedText)}.`);
+      if (!sameLettering(o.observedText, t.text)) lines.push(`${t.id} must read ${JSON.stringify(letteringText(t.text))} but the image showed ${JSON.stringify(o.observedText)}.`);
       if (!o.readable) lines.push(`${t.id} was not readable.`);
       if (!o.speakerCorrect) lines.push(`${t.id} was not clearly spoken by ${t.speaker}.`);
     }
