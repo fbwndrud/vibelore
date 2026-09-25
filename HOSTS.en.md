@@ -77,9 +77,9 @@ its relative-path reference documents can break, so read the original inside the
 Actual drawing needs image generation, reference image attachment, local file storage, and viewing images and composites.
 The Codex execution contract follows the [image connection guide](skills/webtoon-discovery-interview/references/codex-images.md).
 For other hosts, check that they actually provide equivalent capabilities before running requests.
-If the chosen model can't be specified, it stops at `needs_image_runtime` and doesn't substitute a paid path automatically.
+The scene path calls only the OpenAI image API model the user chose and never substitutes another model. On the per-panel path (deprecated), if the chosen model can't be specified, it stops at `needs_image_runtime` and doesn't substitute a paid path automatically.
 
-This branch's regression tests check the MCP round trip, rough approval and final approval with synthetic images.
+This branch's regression tests check, with synthetic images, the scene path's MCP round trip, pre-generation check and image review, and the per-panel path's (deprecated) rough approval and final approval.
 The novel host live-call records at the top don't mean live image generation or aesthetic verification for webtoons.
 The complete flow and its constraints are in the [webtoon guide](docs/WEBTOON.en.md).
 
