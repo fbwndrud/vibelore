@@ -1,66 +1,68 @@
 ---
 name: novel
 description: >-
-  소설을 이어 쓸 때 쓰는 집필 루프. 사용자가 "다음 화 써줘", "N화 집필", "이어서 써",
-  "초고 검사해줘", "설정 안 깨지게 써줘" 처럼 말하거나, vibelore 프로젝트 디렉터리
-  (world/, characters/, chapters/ 가 있는 곳)에서 작업할 때 사용한다. lore_* 도구로
-  컨텍스트를 받아 쓰고, 검증하고, 커밋하는 순서를 지키게 한다.
+  The writing loop for continuing a novel. Use it when the user says things like
+  "다음 화 써줘", "N화 집필", "이어서 써", "초고 검사해줘", "설정 안 깨지게 써줘",
+  "write the next chapter", "continue the story", "check this draft", or when working
+  in a vibelore project directory (one with world/, characters/, chapters/). It keeps
+  the order of getting context through the lore_* tools, writing, validating and committing.
 ---
 
-# 소설 집필 루프
+# Novel writing loop
 
-`vibelore` MCP가 작품의 세계관·인물·연속성과 집필 순서를 함께 관리합니다. 기본 집필은
-통합 `lore_write` 워크플로를 사용하며 저수준 단계로 우회하지 않습니다.
+The `vibelore` MCP manages the work's world, characters, continuity and writing order together. Default writing
+uses the integrated `lore_write` workflow and does not bypass it with low-level steps.
 
-## 순서
+Talk with the user in the user's conversation language (Korean with a Korean-speaking user, English with an English-speaking
+user, and so on). These instructions are in English only for maintainability.
 
-1. **`lore_write`** — 기본은 `guided`, 사용자가 알아서 진행하라고 명시하면 `auto`.
-2. **`lore_resume`** — `needs_model` 요청에 답해 같은 워크플로를 이어갑니다. 한 응답의
-   `requests`는 서로 독립이므로 서브에이전트로 병렬 생성해도 되고, 모든 답을 한 번의
-   `lore_resume`에 함께 넘깁니다. 검토 묶음은 한 왕복에 여러 요청으로 옵니다.
-3. **`lore_decide`** — guided의 검사 완료 원고를 사용자에게 보여준 뒤 승인 또는 거절합니다.
-4. 진행 확인은 **`lore_workflow_status`**, 감사 이력은 **`lore_workflow_history`**를 씁니다.
+## Order
 
-워크플로가 화별 계획, 원본 draft prompt, 연속성 검사, coherence judge, 최대 3회 수정,
-검사 영수증, 요약과 커밋을 순서대로 실행합니다. 활성 워크플로의 화는 영수증 없이
-저수준 `lore_commit`으로 우회할 수 없습니다. 수정 3회를 소진하면 원고를 보존한 채 끝나며,
-자동으로 다시 시작하지 않습니다. 같은 원고로 검증을 다시 돌릴 때만 `retryValidation=true`를
-명시합니다.
+1. **`lore_write`** — `guided` by default; `auto` when the user explicitly says to go ahead on your own (“알아서”, "automatically").
+2. **`lore_resume`** — answer the `needs_model` requests and continue the same workflow. The `requests` in one answer
+   are independent of each other, so you may generate them in parallel with subagents, and pass all answers in one
+   `lore_resume`. Review bundles come as several requests in one round trip.
+3. **`lore_decide`** — show the checked guided manuscript to the user, then approve or reject.
+4. Check progress with **`lore_workflow_status`** and the audit history with **`lore_workflow_history`**.
 
-## 작품 언어
+The workflow runs the per-chapter plan, the original draft prompt, the continuity check, the coherence judge, up to 3 revisions,
+the check receipt, the summary and the commit in order. A chapter of an active workflow can't be bypassed with the low-level
+`lore_commit` without a receipt. When the 3 revisions are used up, it ends with the manuscript kept and
+doesn't restart automatically. State `retryValidation=true` only to run validation again on the same manuscript.
 
-사용자가 집필 언어를 밝히면 BCP 47 태그로 정규화해 `lore_profile`·`lore_init`·`lore_create`·
-`lore_write`의 선택 인자 `language`로 넘깁니다 — 일본어 → `ja`, 브라질 포르투갈어 → `pt-BR`,
-번체 중국어 → `zh-Hant`. 문자·지역 하위 태그는 그대로 둡니다. 사용자가 언어를 고르지
-않았으면 인자를 생략해 이미 정해진 언어를 그대로 씁니다. 기본값 `ko`를 임의로 채우지
-않습니다.
+## Work language
 
-대화 언어와 작품 언어는 별개입니다. 한국어로 대화하면서 다른 언어의 작품을 쓸 수 있습니다.
-본문·제목·요약·설정·인물 설명과 계획·검토의 설명 값은 작품 언어로 쓰고, JSON 키·enum 값·
-ID·경로·sentinel 태그는 번역하지 않습니다.
+If the user states the writing language, normalize it into a BCP 47 tag and pass it as the optional `language` argument of
+`lore_profile`, `lore_init`, `lore_create` and `lore_write` — Japanese → `ja`, Brazilian Portuguese → `pt-BR`,
+Traditional Chinese → `zh-Hant`. Keep script and region subtags as they are. If the user didn't choose a language,
+omit the argument so the language already set is used as is. Don't fill in the default `ko` on your own.
 
-생성 전 언어 변경은 새 프로필 revision을 만들어 다시 승인받는 경로뿐이고
-(`LANGUAGE_CONTRACT_CONFLICT`), 이미 만들어진 작품의 언어는 바꿀 수 없습니다
-(`WORK_LANGUAGE_IMMUTABLE`). 본문 언어를 덮어쓰지 말고 새 작품을 안내하세요.
+The conversation language and the work language are separate. You can write a work in another language while talking in Korean.
+Write the prose, titles, summaries, settings, character descriptions and the descriptive values of plans and reviews in the work language,
+and don't translate JSON keys, enum values, IDs, paths or sentinel tags.
 
-언어와 연속성은 필수 gate입니다. 통과하지 못한 원고는 `auto`든 사용자의 명시 승인이든
-승인·발행 대상이 아닙니다. 필수 gate를 통과한 뒤 critic만 실패하거나 불완전할 때 같은
-원고가 승인 대기로 보존됩니다.
+Before generation, the only way to change the language is to create a new profile revision and get it approved again
+(`LANGUAGE_CONTRACT_CONFLICT`); the language of a work already created can't be changed
+(`WORK_LANGUAGE_IMMUTABLE`). Don't overwrite the prose language; suggest a new work instead.
 
-## 판단이 필요한 지점
+Language and continuity are required gates. A manuscript that fails them is not eligible for approval or publication, whether by `auto`
+or by the user's explicit approval. Only when the required gates pass and just the critic fails or is incomplete is the same
+manuscript kept waiting for approval.
 
-**hard 위반과 soft 위반은 다릅니다.** hard 는 세계나 인물의 확정된 사실과 정면으로
-충돌하는 것 — 죽은 인물이 말을 하거나, 고정된 외형이 바뀌거나, 미등록 인물의 설정을
-바꾸려 한 경우입니다. 고치세요. soft 는 문체·운율·대사 비율처럼 취향이 섞이는
-지적입니다. 작가의 의도일 수 있으니, 고칠지 말지 사용자에게 물어보는 편이 낫습니다.
+## Points that need judgment
 
-**도구가 틀릴 수도 있습니다.** 검사기가 잡은 것이 실제로는 작가가 의도한 반전이라면,
-그렇게 말하고 사용자의 판단을 받으세요. 도구를 이기려고 본문을 망치지 마세요.
+**Hard and soft violations are different.** A hard violation directly conflicts with established facts about the world or
+characters — a dead character speaks, a fixed appearance changes, or the settings of an unregistered character
+are changed. Fix it. A soft violation is a comment mixed with taste, such as style, rhythm or dialogue ratio.
+It may be the author's intent, so it is better to ask the user whether to fix it.
 
-**설정을 바꿔야 한다면 본문이 아니라 파일을 고칩니다.** 인물의 확정 설정이 정말
-달라져야 한다면 `characters/<id>.md` 를 직접 수정하는 것이 맞습니다. 그 파일들은
-사람이 읽고 고치라고 마크다운으로 되어 있고, 손으로 고친 내용은 도구가 존중합니다.
+**The tool can be wrong.** If what the checker caught is actually a twist the author intended,
+say so and get the user's judgment. Don't ruin the prose to beat the tool.
 
-**모델 답변을 못 만들겠으면 그냥 넘기세요.** `lore_resume` 에 답을 하나도 넘기지
-않으면 결정론 검사 결과만으로 마무리됩니다. 그것도 호칭·시점·운율·구조 위반은 전부
-잡아 주는, 쓸모 있는 결과입니다.
+**If a setting has to change, fix the file, not the prose.** If a character's established setting really
+has to change, the right move is to edit `characters/<id>.md` directly. Those files are
+Markdown so people can read and edit them, and the tool respects hand edits.
+
+**If you can't produce model answers, just pass.** If you pass no answers to `lore_resume`,
+it finishes with the deterministic check results only. That is still a useful result that catches every
+form-of-address, point-of-view, rhythm and structure violation.

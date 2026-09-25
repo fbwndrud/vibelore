@@ -1,83 +1,87 @@
 ---
 name: story-discovery-interview
-description: 새 소설이나 웹소설을 처음 만들 때 취향, 독서 계약, 주인공, 핵심 장치, 초반 보상, 관계, 시점과 문체를 대화형으로 조사해 vibelore StoryProfile 브리프로 만든다. 작품 생성, 신작 구상, 소재 후보 선택처럼 아직 방향이 확정되지 않은 요청에 사용한다. 기존 작품의 다음 화 집필이나 사용자가 질문 없이 자동 진행을 명시한 요청에는 사용하지 않는다.
+description: Interview the user when creating a new novel or web novel (새 소설·웹소설, 신작 구상, 작품 생성, 소재 후보 선택) about taste, reading contract, protagonist, core device, early rewards, relationships, point of view and style, and turn the answers into a vibelore StoryProfile brief. Use it when the direction of a new work is not settled yet. Don't use it to write the next chapter of an existing work, or when the user explicitly asks to proceed automatically without questions (“알아서”, “자동으로”, “묻지 말고”, "automatically", "don't ask").
 ---
 
-# 작품 발견 인터뷰
+# Story discovery interview
 
-새 작품을 생성하기 전에 사용자가 실제로 읽고 싶은 작품을 발견한다. 질문 수가 아니라, 답에 따라 작품 설계가 달라질 중요한 선택이 모두 확정된 상태가 완료 기준이다.
+Before generating a new work, discover the work the user actually wants to read. The finish line is not a number of questions but the state in which every important choice whose answer would change the work's design has been settled.
 
-## 시작
+## Conversation language
 
-1. `lore_profile_status`로 같은 `workId`의 프로필을 확인한다.
-2. 활성 프로필이 있으면 인터뷰를 다시 시작하지 않고 변경 의도를 확인한다.
-3. pending 프로필이 있으면 기존 `settledDecisions`, `askedQuestionIds`, `openQuestions`에서 이어간다.
-4. 사용자가 “알아서”, “자동으로”, “묻지 말고”라고 명시했으면 인터뷰 대신 기존 auto 설계 경로를 사용한다.
+Hold the whole interview in the language the user writes in: a Korean-speaking user gets every question, recommendation, example and summary in natural Korean, an English-speaking user gets them in English, and so on. These instructions are in English only for maintainability; they never set the conversation language. The work language (below) is a separate setting.
 
-## 대화 방식
+## Start
 
-- 한 라운드에 서로 연관된 질문 4~5개만 묻는다. 각 질문에는 권장안과 그 선택이 독서 경험에 미치는 차이를 짧게 붙인다.
-- 사용자가 고르기 쉽게 2~4개의 구체적 예시를 제시하되 자유 답변도 받는다. 사용자의 표현을 정리할 수는 있지만 취향을 더 복잡한 설정으로 바꾸지 않는다.
-- 답변에서 새 선호나 모순이 드러나면 다음 라운드는 그 부분을 파고든다. 이미 답한 질문, 모델이 작품 설계 중 정할 이름이나 소품, 화별 미세 규칙은 묻지 않는다.
-- 막연한 찬반 대신 장면 결과를 묻는다. 예: “어두운 분위기인가?”보다 “1화가 끝났을 때 독자가 통쾌함과 불안 중 무엇을 더 크게 느껴야 하는가?”를 묻는다.
-- 초기 아이디어가 짧으면 보통 4~6라운드, 총 20~30개 판단이 생길 수 있다. 충분한 브리프라면 일찍 끝내고, 숫자를 채우려고 질문을 만들지 않는다.
+1. Check the profile for the same `workId` with `lore_profile_status`.
+2. If there is an active profile, don't restart the interview; confirm what the user wants to change.
+3. If there is a pending profile, continue from its existing `settledDecisions`, `askedQuestionIds` and `openQuestions`.
+4. If the user explicitly said “알아서”, “자동으로”, “묻지 말고” or the equivalent in their language ("decide for me", "automatically", "don't ask"), use the existing auto design path instead of the interview.
 
-## 조사 범위
+## How to converse
 
-다음 영역에서 아직 결과를 바꿀 미결정만 찾는다.
+- Ask only 4-5 related questions per round. Attach to each question a recommendation and a short note on how that choice changes the reading experience.
+- Offer 2-4 concrete examples so the choice is easy, but accept free answers too. You may tidy up the user's wording, but don't turn a preference into more complicated settings.
+- When an answer reveals a new preference or a contradiction, dig into it in the next round. Don't ask about questions already answered, names or props the model will decide during design, or per-chapter micro-rules.
+- Ask about scene outcomes rather than vague yes/no. For example, instead of "Is the mood dark?" ask "When chapter 1 ends, should the reader feel catharsis or unease more strongly?" (in Korean: “어두운 분위기인가?”보다 “1화가 끝났을 때 독자가 통쾌함과 불안 중 무엇을 더 크게 느껴야 하는가?”).
+- A short initial idea can typically take 4-6 rounds and produce 20-30 decisions in total. With a sufficient brief, finish early; don't invent questions to reach a number.
 
-- 독자가 반복해서 받게 될 핵심 쾌감과 작품의 깊이
-- 익숙한 장르 문법과 한두 개의 차별점
-- 주인공의 욕망, 유능함, 결핍, 도덕선과 주도성
-- 능력·회귀·빙의·세계 규칙의 효용, 한계와 오판 가능성
-- 1화의 압력, 첫 보상, 초반 고구마 허용치와 10화까지의 상승감
-- 세계관의 익숙함과 새 개념 예산, 설명을 장면으로 지급하는 방식, 사전 지식 없는 독자가 붙잡을 표면 의미
-- 시점 인물, 서술 거리, 독자와 주인공의 정보 차이
-- 핵심 조연의 독립 욕망, 관계 변화, 로맨스나 하렘의 강도
-- 대사의 결, 인물별 말하는 방식, 문장 리듬, 회차 분량과 줄바꿈, 수치·시각·전문어를 쓸 상황과 일상 표현의 기준
-- 피하고 싶은 소재, 감정선, 전개 공식과 비교 평가할 작품군
+## What to investigate
 
-전 영역을 똑같이 깊게 묻지 않는다. 선택이 초반 10화나 반복 엔진을 바꾸는 영역에 질문을 집중한다.
+Look only for open decisions in these areas that would still change the result.
 
-## 필수 읽기 난도 계약
+- The core pleasure the reader receives again and again, and the depth of the work
+- Familiar genre grammar and one or two points of difference
+- The protagonist's desire, competence, lack, moral line and agency
+- The usefulness, limits and possible misjudgment of abilities, regression, possession and world rules
+- Chapter 1's pressure, the first reward, the tolerance for early frustration (고구마) and the sense of rising through chapter 10
+- The familiarity of the world and the budget for new concepts, how exposition is paid out in scenes, and the surface meaning a reader without prior knowledge can hold on to
+- The point-of-view character, narrative distance, and the information gap between reader and protagonist
+- The key supporting cast's independent desires, relationship changes, and the intensity of romance or harem
+- The texture of dialogue, each character's way of speaking, sentence rhythm, chapter length and line breaks, and when to use figures, precise times and jargon versus everyday expressions
+- Material, emotional lines and plot formulas to avoid, and the group of works to compare against
 
-주제의 깊이와 글을 읽는 어려움을 같은 것으로 취급하지 않는다. 일반 인터뷰에서는 다음 네 가지를 사용자가 선택했는지 확인한다.
+Don't ask about every area equally deeply. Focus questions on areas where the choice changes the first 10 chapters or the repeating engine.
 
-- 문장과 장면의 표면 가독성: 쉽게, 표준, 조밀하게
-- 새 설정·시스템 개념을 넣는 속도: 느리게, 표준, 빠르게
-- 대사와 인과의 추론 부담: 표면 뜻은 명확하게, 균형, 서브텍스트 중심
-- 복잡성 상승: 초반은 쉽게 시작, 일정하게, 처음부터 조밀하게
+## Required reading-difficulty contract
 
-권장 기본값은 ‘쉽게 읽힘 + 느린 개념 투입 + 표면 뜻은 명확함 + 초반은 익숙해진 뒤 복잡해짐’이다. 사용자가 질문 없는 자동 진행을 명시했을 때만 이 값을 질문 없이 적용한다. 읽기 난도는 작품 전체의 지속 계약으로 저장하고, 화별 문장 길이나 고유명사 개수 같은 미세 규칙으로 늘리지 않는다.
+Don't treat thematic depth and difficulty of reading as the same thing. In a normal interview, check that the user chose these four.
 
-## 작품 언어
+- Surface readability of sentences and scenes: easy, standard, dense
+- Pace of introducing new settings and system concepts: slow, standard, fast
+- Inference load of dialogue and causality: surface meaning explicit, balanced, subtext-driven
+- Complexity ramp: start easy early on, steady, dense from the start
 
-인터뷰는 사용자가 쓰는 언어로 진행한다. 대화 언어와 작품을 쓸 언어는 별개다.
+The recommended default is "easy to read + slow concept introduction + explicit surface meaning + complexity after the reader settles in". Apply these values without asking only when the user explicitly asked to proceed automatically without questions. Store reading difficulty as a lasting contract for the whole work; don't expand it into micro-rules such as per-chapter sentence length or proper noun counts.
 
-사용자가 집필 언어를 밝히면 BCP 47 태그로 정규화해 `lore_profile`의 선택 인자 `language`로 넘긴다 — 일본어 → `ja`, 브라질 포르투갈어 → `pt-BR`, 번체 중국어 → `zh-Hant`. 밝히지 않았으면 인자를 생략해 이미 정해진 언어를 그대로 쓰고, 언어를 확인하는 질문을 새로 만들지 않는다. 이후 분명한 정정이 있으면 그 최신 값을 쓴다. 한 시점에 서로 다른 언어가 동시에 남아 어느 쪽인지 알 수 없을 때만 묻는다.
+## Work language
 
-언어 계약의 전체 규칙은 [작품 언어와 분량 단위](../../docs/TOOLS.md#작품-언어와-분량-단위)에 있다.
+The conversation language and the language the work is written in are separate.
 
-## MCP 연결
+If the user states the writing language, normalize it into a BCP 47 tag and pass it as the optional `language` argument of `lore_profile` — Japanese → `ja`, Brazilian Portuguese → `pt-BR`, Traditional Chinese → `zh-Hant`. If they didn't state it, omit the argument so the language already set is used as is, and don't invent a new question to confirm the language. If there is a clear correction later, use that latest value. Ask only when different languages remain at the same time and it is unclear which one is meant.
 
-각 라운드의 답을 하나의 명료한 `feedback`으로 정리해 `lore_profile(mode="review")`에 넘긴다.
-사용자의 브리프와 답변은 어떤 언어로 왔든 원래 표현 그대로 전부 전달한다. 요약해서 정보를
-버리거나, 한국어 표현으로 옮겨 적어 실제 선택을 바꾸지 않는다. 답이 특정 표현·문형과
-일치하지 않는다는 이유만으로 이미 답한 질문을 다시 묻지 않는다. 같은 질문을 다시 하는 근거는
-답이 실제로 비어 있거나 앞선 답과 모순될 때뿐이다.
+The full rules of the language contract are in [Work language and length units](../../docs/TOOLS.md#작품-언어와-분량-단위) (English: [TOOLS.en.md](../../docs/TOOLS.en.md#work-language-and-length-units)).
 
-MCP가 반환한 `designReview.openQuestions`는 다음 라운드에 자연스럽게 섞고, 정정된 답은 최신 의도를 우선한다고 명시한다.
+## MCP connection
 
-중요한 미결정이 사라지면 다음을 한 번에 보여준다.
+Organize each round's answers into one clear `feedback` and pass it to `lore_profile(mode="review")`.
+Pass the user's brief and answers in full, in their original wording, whatever language they came in. Don't drop information by
+summarizing, and don't rewrite them into Korean wording in a way that changes the actual choice. Don't ask a question again
+just because an answer doesn't match a particular expression or sentence pattern. The only grounds for asking the same question again
+are an answer that is actually empty or contradicts an earlier answer.
 
-- 한 문장의 작품 약속
-- 확정된 핵심 결정
-- 의도적으로 열어 둔 작가 재량
-- 첫 10화 품질 평가 기준
-- 생성된 StoryProfile의 요약
+Blend the `designReview.openQuestions` returned by MCP naturally into the next round, and state that a corrected answer takes precedence as the latest intent.
 
-그 뒤에만 StoryProfile 승인을 요청한다. 승인 전에는 `lore_create`, StorySpine, WriterSkill, ArcPlan으로 넘어가지 않는다.
+When the important open decisions are gone, show the following at once.
 
-## 경계
+- A one-sentence promise of the work
+- The settled key decisions
+- The author's latitude deliberately left open
+- The quality criteria for the first 10 chapters
+- A summary of the generated StoryProfile
 
-인터뷰 답변은 작품별 입력이다. 이를 모든 장르에 적용하는 전역 금지어, 회차마다 반복할 체크리스트, 세밀한 상태 머신으로 승격하지 않는다. 장르와 모델이 잘 판단할 영역은 작가 재량으로 남기고, MCP에는 장기적으로 재사용할 독서 계약과 설계 결정만 저장한다.
+Only then ask for StoryProfile approval. Before approval, don't move on to `lore_create`, StorySpine, WriterSkill or ArcPlan.
+
+## Boundaries
+
+Interview answers are input for this work. Don't promote them into global banned words for every genre, a checklist to repeat every chapter, or a detailed state machine. Leave to the author's latitude the areas the genre and the model judge well, and store in MCP only the reading contract and design decisions that will be reused over the long term.

@@ -1,13 +1,13 @@
-# 장면 선별과 각색 검토
+# Scene selection and adaptation review
 
-원작과 승인 방향, 이번 사용자 피드백을 읽고 다음 순서로 판단한다. 원작을 읽지 않은 독자가 무엇을 느끼고 이해해야 하는지가 기준이다.
+Read the source, the approved direction and this round's user feedback, and judge in the order below. The criterion is what a reader who hasn't read the source should feel and understand.
 
-1. 이번 화의 주된 경험 하나, 소수의 보조 경험, 그 경험을 위해 덜어낼 것을 제안한다. W03 답이 없으면 사용자의 취향으로 확정하지 않는다. 승인 계약과 다른 새 방향은 인터뷰로 돌아간다.
-2. 원문을 의미 있는 사건·감정 비트로 묶는다. `expand`는 충분히 펼침, `condense`는 핵심 증거로 압축, `omit`은 이번 화면에서 제외, `defer`는 회수 계획과 함께 공개를 미룸이다. `sourceIds`는 원작 전체의 편집 감사이며 문단당 그림 할당이 아니다.
-3. 비트마다 왜 필요한지, 독자 이해·감정의 변화, 실제로 보여야 할 증거와 생략 후에도 필요한 맥락의 전달 위치를 쓴다. 사소한 행동도 주인공성·여운·긴장을 주면 남긴다. 인기작의 선택을 모든 작품의 규칙으로 만들지 않는다.
-4. 선별된 비트만 컷으로 나눈다. 각 컷의 `beatIds`, `purpose`, `readerDelta`를 적고, 앞뒤의 동기·선택·행동·결과가 원작 설명 없이 읽히는지 본다. 반복 구도는 새 정보·감정·위험 또는 의도적 머묾으로 이유를 설명한다. `maxShots`는 상한이지 채울 목표가 아니다.
-5. `editorial.md`와 실제 계획을 함께 검토한다. 형식 검사는 누락·참조 충돌만 검증한다. 제외한 장면이 몰래 되살아났는지, 핵심 장면의 인과를 자르지는 않았는지, 감정 보상을 없애지는 않았는지는 실제 대본과 이후 합성본에서 확인한다. 재미를 자동 점수나 컷 수로 보증하지 않는다.
+1. Propose one main experience for this episode, a few secondary experiences, and what to cut for that experience. If there is no W03 answer, don't settle it as the user's preference. A new direction different from the approved contract goes back to the interview.
+2. Group the source text into meaningful event and emotion beats. `expand` unfolds fully, `condense` compresses to the key evidence, `omit` leaves it off this screen, and `defer` postpones disclosure with a plan to pay it off. `sourceIds` are an editorial audit of the whole source, not a per-paragraph picture assignment.
+3. For each beat, write why it is needed, the change in the reader's understanding or emotion, the evidence that actually has to be seen, and where the context still needed after an omission is delivered. Keep even small actions if they give protagonist agency, lingering feeling or tension. Don't turn a popular work's choices into rules for every work.
+4. Split only the selected beats into panels. Write each panel's `beatIds`, `purpose` and `readerDelta`, and check whether the motive, choice, action and result before and after read without the source's explanation. Explain a repeated composition by new information, emotion or risk, or by an intentional pause. `maxShots` is a cap, not a target to fill.
+5. Review `editorial.md` and the actual plan together. The format check only verifies omissions and reference conflicts. Whether an excluded scene quietly came back, whether the causality of a key scene was cut, and whether an emotional payoff was removed are checked in the actual script and later composites. Don't guarantee fun with an automatic score or a panel count.
 
-현재 계획·look·final 승인 대기에서 각색 자체를 고치려면 정확한 approval ID에 `lore_webtoon_decide(action="request_revision", revisionTarget={kind:"adaptation"}, feedback="주된 경험과 바꿀 선택")`를 보낸다. 구형 작업도 이 명시적 요청으로 선별 단계부터 재개한다. `shotIds`는 넣지 않는다. 이 경로는 그림·조판 승인 효력을 해제하지만 이전 후보 파일과 승인본은 보존한다. 새 계획 승인 전에는 이미지 생성을 진행하지 않는다.
+To fix the adaptation itself while waiting for the current plan, look or final approval, send `lore_webtoon_decide(action="request_revision", revisionTarget={kind:"adaptation"}, feedback="<the main experience and the choices to change>")` to the exact approval ID. Old jobs also resume from the selection stage with this explicit request. Don't include `shotIds`. This path releases the image and lettering approvals but keeps the earlier candidate files and approved versions. Don't proceed with image generation before the new plan is approved.
 
-적용 계약은 [장면 선별](../../../docs/reference/WEBTOON_WORKFLOW.md#장면-선별)을 참고한다. 비공개 제작 연구나 타 작품 이미지는 배포하지 않는다. 실제 작품을 참고할 때는 확인한 회차·관찰 범위를 밝히고 관찰과 작가 의도에 대한 추론을 구분한다.
+For the applicable contract, see [Scene selection](../../../docs/reference/WEBTOON_WORKFLOW.md#장면-선별). Don't distribute private production research or images of other works. When referring to real works, state the chapters checked and the scope observed, and separate observation from inference about the author's intent.
