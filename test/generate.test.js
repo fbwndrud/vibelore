@@ -342,6 +342,71 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal(result.contextAudit.draftInputTrace.identity.invocation, 'direct');
   });
 
+  async function sevenChapterStore() {
+    const store = await createdStore({ legacy: true });
+    const arc = activePlan();
+    arc.estimatedEpisodes = 8;
+    arc.episodes = [1, 2, 3, 4, 5, 6, 7, 8].map((index) => ({ ...arc.episodes[0], index, chapter: index, title: `${index}화`, beat: '윤재가 은빛열쇠 를 되찾는다. 보상에 붙는 세금' }));
+    await store.saveArcPlan('tax-tower', arc);
+    for (let chapter = 1; chapter <= 7; chapter += 1) {
+      const summary = chapter === 1 ? '윤재는 은빛열쇠 하나를 창구에 맡겼다. OLD_MEMORY_TOKEN'
+        : chapter === 2 ? '두 번째 고지서가 도착했다. UNMATCHED_SUMMARY_2'
+          : `윤재가 ${chapter}번째 고지서를 받았다. RECENT_SUMMARY_${chapter}`;
+      const delta = emptyDelta(chapter);
+      if (chapter === 3) delta.hookChanges = [{ id: 'key-owner', text: '은빛열쇠 주인은 ACTIVE_HOOK_TOKEN', plantedAtChapter: 3, phase: 'planted' }];
+      if (chapter === 7) delta.hookChanges = [{ id: 'key-late', text: '은빛열쇠 두 번째 FUTURE_HOOK_TOKEN', plantedAtChapter: 7, phase: 'planted' }];
+      await runCommit({
+        store, workId: 'tax-tower', chapter, prose: `윤재는 ${chapter}번째 고지서를 접었다.`,
+        summary, providers: createHostRelay({}), delta,
+      });
+    }
+    return store;
+  }
+
+  async function draftPrompt(store, chapter) {
+    await store.saveEpisodePlan('tax-tower', { ...activeEpisodePlan(), chapter, arcEpisodeIndex: chapter, title: '열쇠' });
+    let draftRequest;
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      if (req.step === 'draft') {
+        draftRequest = req;
+        return { text: '윤재가 창구 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧' };
+      }
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    const result = await runDraftTool({ store, workId: 'tax-tower', chapter, providers: p });
+    return { result, prompt: draftRequest.messages.map((message) => message.content).join('\n') };
+  }
+
+  it('drafts with the recent summary window and older retrieved memory, not only the previous tail', async () => {
+    const { result, prompt } = await draftPrompt(await sevenChapterStore(), 8);
+    for (const chapter of [3, 4, 5, 6, 7]) {
+      assert.equal(prompt.match(new RegExp(`RECENT_SUMMARY_${chapter}\\b`, 'g'))?.length, 1, `${chapter}화 요약은 창에서 한 번만 들어간다`);
+    }
+    assert.doesNotMatch(prompt, /UNMATCHED_SUMMARY_2/, 'a summary outside the window arrives only when retrieval selects it');
+    assert.match(prompt, /OLD_MEMORY_TOKEN/);
+    assert.deepEqual(result.contextAudit.recentSummaryChapters, [7, 6, 5, 4, 3]);
+    assert.deepEqual(result.contextAudit.draftInputTrace.continuity.excluded, []);
+    assert.equal(prompt.match(/ACTIVE_HOOK_TOKEN/g)?.length, 1, '활성 떡밥은 이전 상태에만 한 번 들어간다');
+    assert.equal(prompt.match(/탑의 시스템은 모든 보상에 세금을 매긴다/g)?.length, 1, '세계 사실은 Foundation에만 한 번 들어간다');
+    assert.doesNotMatch(prompt, /\[character:hero/, '이번 화 등장인물은 Foundation에 이미 있다');
+    assert.ok(result.contextAudit.olderMemoryRefs.length <= 8);
+  });
+
+  it('opens chapter one without a continuity window or older memory', async () => {
+    const { prompt } = await draftPrompt(await createdStore({ legacy: true }), 1);
+    assert.doesNotMatch(prompt, /최근 회차 요약|오래된 관련 기억/);
+  });
+
+  it('keeps the chapter being redrafted and later chapters out of retrieved memory', async () => {
+    const { result, prompt } = await draftPrompt(await sevenChapterStore(), 7);
+    assert.deepEqual(result.contextAudit.recentSummaryChapters, [6, 5, 4, 3, 2]);
+    assert.doesNotMatch(prompt, /RECENT_SUMMARY_7\b/);
+    assert.doesNotMatch(prompt, /FUTURE_HOOK_TOKEN/);
+    assert.match(prompt, /OLD_MEMORY_TOKEN/);
+  });
+
   it('rejects a draft result when its pinned plan source changes during generation', async () => {
     const store = await createdStore();
     const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {

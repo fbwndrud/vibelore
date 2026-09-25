@@ -79,14 +79,39 @@ function renderMemoryClaims(claims, t) {
   ].join('\n');
 }
 
-function renderContinuityContext(continuity, t) {
-  return [
-    t.continuityHeading,
-    clean(continuity.genreLine),
-    asArray(continuity.recentSummaries).length
-      ? t.recentEvents(continuity.recentSummaries.slice(0, 2).map(clean).join(' / '))
-      : '',
-  ].filter(Boolean).join('\n');
+const unsafeContinuityText = (value) => forbiddenControls.test(value) || reservedSyntax.test(value) || metaInstruction.test(value);
+
+// Summaries arrive newest-first (plain strings too); older memory arrives in
+// retrieval rank order. Both are canon material and are rendered as data, so
+// every rendered field is screened like a memory claim.
+function continuityItems(continuity, excluded) {
+  const readable = (item) => typeof item.text === 'string' && clean(item.text);
+  const safe = (item, fields, exclusion) => {
+    if (!fields.some((value) => unsafeContinuityText(String(value ?? '')))) return true;
+    excluded.push({ ...exclusion, reason: 'unsafe-content' });
+    return false;
+  };
+  const summaries = asArray(continuity.recentSummaries)
+    .map((item) => (typeof item === 'string' ? { chapter: null, text: item } : { chapter: item?.chapter ?? null, text: item?.text }))
+    .filter(readable)
+    .filter((item) => safe(item, [item.text], { kind: 'recentSummary', chapter: item.chapter }));
+  const olderMemory = asArray(continuity.olderMemory)
+    .map((item) => ({ scope: item?.scope, ref: item?.ref, chapter: item?.chapter ?? null, text: item?.text }))
+    .filter(readable)
+    .filter((item) => safe(item, [item.scope, item.ref, item.text], { kind: 'olderMemory', ref: item.ref ?? null }));
+  return { summaries, olderMemory };
+}
+
+function renderContinuityContext(genreLine, { summaries, olderMemory }, t) {
+  const structured = summaries.some((item) => item.chapter !== null);
+  const summaryLines = !summaries.length ? []
+    : structured
+      ? [t.recentEventsHeading, ...[...summaries].reverse().map((item) => t.recentEvent(item.chapter ?? '?', clean(item.text)))]
+      : [t.recentEvents(summaries.map((item) => clean(item.text)).join(' / '))];
+  const memoryLines = olderMemory.length
+    ? [t.olderMemoryHeading, ...olderMemory.map((item) => t.olderMemoryItem(clean(item.scope), clean(item.ref), item.chapter, clean(item.text)))]
+    : [];
+  return [t.continuityHeading, clean(genreLine), ...summaryLines, ...memoryLines].filter(Boolean).join('\n');
 }
 
 function renderPlan({ episodeText, authorText, memoryText, supplementalText, castIds, locations, previousSceneTail, t }) {
@@ -192,7 +217,35 @@ export function compileDraftInputs({
     includedTail = '';
     plan = renderPlan({ ...planInput, memoryText, previousSceneTail: includedTail, t });
   }
-  const slidingWindowRender = renderContinuityContext(continuity, t);
+  const continuityExcluded = [];
+  const items = continuityItems(continuity, continuityExcluded);
+  let slidingWindowRender = renderContinuityContext(continuity.genreLine, items, t);
+  const maxContextTokens = Number.isFinite(budget.maxContextTokens) ? budget.maxContextTokens : Number.POSITIVE_INFINITY;
+  // Over budget, drop the lowest-ranked older memory first, then the oldest
+  // summary, then shorten the newest one, instead of refusing the draft. Only
+  // the genre line alone can still exceed the budget.
+  while (tokenUnits(slidingWindowRender) > maxContextTokens && (items.olderMemory.length || items.summaries.length)) {
+    if (items.olderMemory.length) {
+      const removed = items.olderMemory.pop();
+      continuityExcluded.push({ kind: 'olderMemory', ref: removed.ref ?? null, reason: 'context-token-budget' });
+    } else if (items.summaries.length > 1) {
+      const removed = items.summaries.pop();
+      continuityExcluded.push({ kind: 'recentSummary', chapter: removed.chapter, reason: 'context-token-budget' });
+    } else {
+      const [last] = items.summaries;
+      const shorter = [...clean(last.text)].slice(0, Math.floor([...clean(last.text)].length * 0.8)).join('');
+      if (!continuityExcluded.some((item) => item.kind === 'recentSummary' && item.reason === 'truncated')) {
+        continuityExcluded.push({ kind: 'recentSummary', chapter: last.chapter, reason: 'truncated' });
+      }
+      if ([...shorter].length < 20) {
+        items.summaries.pop();
+        continuityExcluded.at(-1).reason = 'context-token-budget';
+      } else {
+        last.text = `${shorter}…`;
+      }
+    }
+    slidingWindowRender = renderContinuityContext(continuity.genreLine, items, t);
+  }
   const planTokens = tokenUnits(plan);
   const contextTokens = tokenUnits(slidingWindowRender);
   if (Number.isFinite(budget.maxPlanTokens) && planTokens > budget.maxPlanTokens) {
@@ -211,6 +264,11 @@ export function compileDraftInputs({
         identity: structuredClone(identity), memoryClaimsIncluded: includedMemoryClaims.length,
         memoryClaimIds: includedMemoryClaims.map((claim) => claim.claimId).filter(Boolean),
         memoryClaimsExcluded,
+        continuity: {
+          recentSummaryChapters: items.summaries.map((item) => item.chapter),
+          olderMemoryRefs: items.olderMemory.map((item) => `${item.scope}:${item.ref}`),
+          excluded: continuityExcluded,
+        },
         outputs: { planHash: digest(plan), slidingWindowHash: digest(slidingWindowRender) },
         sections: {
           episode: { originalTokens: tokenUnits(episode.writerText), includedTokens: tokenUnits(episode.writerText), truncated: false },

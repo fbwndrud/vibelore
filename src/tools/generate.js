@@ -217,8 +217,12 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     kit,
     continuity: {
       genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
-      recentSummaries: chapter > 1 && contextMeta.recentSummaries?.length
-        ? contextMeta.recentSummaries.slice(0, 2).map((summary) => summary.summary || summary)
+      recentSummaries: chapter > 1 ? contextMeta.recentSummaryTexts : [],
+      // World facts, the planned cast and active hooks already reach the draft
+      // through Foundation and the previous state.
+      olderMemory: chapter > 1
+        ? contextMeta.olderMemory.filter((item) => !['fact', 'hook'].includes(item.scope)
+          && !(item.scope === 'character' && detailedPlan.cast.includes(item.ref))).slice(0, 8)
         : [],
       castIds: detailedPlan.cast,
       locations: detailedPlan.locations,
@@ -280,6 +284,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     chapter, prose: result.raw, next: 'lore_check로 검사한 뒤 lore_commit 하세요.',
     contextAudit: {
       recentSummaries: contextMeta.recentSummaries,
+      recentSummaryChapters: result.compiled.trace.continuity.recentSummaryChapters,
+      olderMemoryRefs: result.compiled.trace.continuity.olderMemoryRefs,
       previousSceneChars: previousSceneTail.length,
       arcEpisodes: arcPlan.episodes.length,
       characterArcBeats: detailedPlan.characterArcBeats?.length ?? 0,

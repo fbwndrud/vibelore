@@ -125,6 +125,14 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   const published = store.publishedRevision ? { ok: true, value: store.publishedRevision } : { ok: true, value: null };
   const snapshotId = published.value?.head ?? 'legacy-working-tree';
   const memory = await retrieveMemory({ store, workId, query: retrievalQuery, currentChapter: chapter });
+  // Candidates get the same `scope:ref` ids as the mandatory set so facts and
+  // active hooks are not selected twice. The window already carries its
+  // summaries verbatim, and a redraft must not see canon from the chapter it
+  // replaces or later ones.
+  const windowChapters = new Set(window.recentSummaries.map((summary) => summary.chapterNumber));
+  const candidates = memory.candidates
+    .filter((item) => Number(item.chapter) < chapter && !(item.scope === 'summary' && windowChapters.has(Number(item.chapter))))
+    .map((item) => ({ ...item, id: `${item.scope}:${item.ref}` }));
   const mandatory = [
     ...foundation.worldFacts.map((fact) => ({ id: `fact:${fact.id}`, kind: 'world_fact', text: fact.statement, active: true })),
     ...(lastState?.hooks ?? []).filter(isHookActive).map((hook) => ({ id: `hook:${hook.id}`, kind: 'promise', text: hook.text ?? '', active: true })),
@@ -135,7 +143,8 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     semanticGeneration: 1, fencingToken: published.value?.manifest?.fencingToken ?? 1,
   }, {
     scope: { chapter, entityIds: scene?.entityIds ?? [] }, budget: { maxTokens: 12000, reservedTokens: 3000 },
-    mandatory, candidates: memory.candidates, query: retrievalQuery, promptFamily: kit.family,
+    mandatory, candidates: candidates,
+    query: retrievalQuery, promptFamily: kit.family,
     indexGeneration: `memory:${memory.documents}`, tokenizerRevision: 'unicode61-or-ko-basic-1', rankerRevision: memory.backend,
   });
   const t = kit.phrases.context;
@@ -237,6 +246,12 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
       worldFactCount: foundation.worldFacts.length,
       openHooks: lastState?.hooks?.length ?? 0,
       recentSummaries: window.recentSummaries.length,
+      // Newest-first text of the same window, and the older memory the
+      // compiler selected, so the draft sees what this context assembled.
+      recentSummaryTexts: window.recentSummaries.map((summary) => ({ chapter: summary.chapterNumber, text: summary.summary })),
+      olderMemory: compiledMemory.value.discretionary.map((item) => ({
+        scope: item.scope ?? item.kind, ref: item.ref ?? item.id, chapter: item.chapter ?? null, text: item.text,
+      })),
       trimmedSummaries: window.trimmedCount,
       arcPosition,
       missingEntityIds: entity.missingIds,

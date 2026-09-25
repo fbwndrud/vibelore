@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+- Fix: the draft prompt now receives the recent chapter summaries (the
+  sliding window, up to five chapters, oldest first). Before, `lore_write`
+  passed the summary count instead of the summaries, so the writer saw only
+  the previous chapter's closing scene and the carried state.
+- The draft prompt also receives older retrieved memory (summaries beyond the
+  window, entities and off-cast characters, up to eight items) as canon
+  material, not instructions. World facts, the planned cast and active hooks
+  are left out there because Foundation and the previous state already carry
+  them.
+- Retrieval no longer returns summaries already in the window, and a redraft
+  no longer sees canon registered in the chapter it replaces or later. The
+  `lore_context` memory section changes accordingly.
+- Over its continuity budget the draft drops the lowest-ranked memory, then
+  the oldest summaries, then shortens the newest summary instead of failing.
+  Continuity text with control characters, reserved markup or instruction-like
+  content is left out. Every omission is recorded in the draft trace.
+- Known gap: memory search terms cover Hangul and Latin letters only, so
+  `ja`, `zh-Hant`, `ar` and `th` works get recent summaries but no older
+  memory yet.
+
 ## 0.4.0 — 2026-09-24
 
 - Integrate novel work language (BCP 47) support end to end, with an
