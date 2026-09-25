@@ -410,6 +410,17 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(prompt, /OLD_MEMORY_TOKEN/);
   });
 
+  it('drafts past an oversized assembled context and records the overflow', async () => {
+    const store = await createdStore({ legacy: true });
+    const foundation = await store.loadFoundation('tax-tower');
+    const long = '탑의 세금 규칙은 층마다 다르고 창구는 밤에 닫힌다. '.repeat(50);
+    foundation.worldFacts = Array.from({ length: 60 }, (_, index) => ({ id: `big${index}`, statement: long, registeredAtChapter: 1 }));
+    await store.saveFoundation(foundation);
+    const { result } = await draftPrompt(store, 1);
+    assert.equal(result.contextAudit.contextOverflow.memory, 'context_overflow');
+    assert.ok(result.contextAudit.contextOverflow.context.actualTokens > 18000);
+  });
+
   it('opens chapter one without a continuity window or older memory', async () => {
     const { prompt } = await draftPrompt(await createdStore({ legacy: true }), 1);
     assert.doesNotMatch(prompt, /최근 회차 요약|오래된 관련 기억/);

@@ -170,7 +170,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const arcIntent = compileArcIntent(arcPlan);
   const episodeIntent = compileEpisodeIntent({ episodePlan: detailedPlan, arcEpisode, chapter });
   const pinnedPlanSourceHash = sourceDigest({ arcPlan, detailedPlan, storyProfile, storyIdentity, pilotContract, patternLedger, writerSkill, styleAnchor, narrativeContract, arcIntent, episodeIntent });
-  const { context, meta: contextMeta } = await buildContext({ store: draftStore, workId, chapter });
+  const { context, meta: contextMeta } = await buildContext({ store: draftStore, workId, chapter, onOverflow: 'report' });
   const planningArc = {
     arcNumber: arcPlan.arcNumber, title: arcPlan.title, promise: arcPlan.promise, type: arcPlan.type,
     currentChapterInArc: arcEpisode.index, estimatedEpisodes: arcPlan.estimatedEpisodes,
@@ -280,6 +280,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     chapter, prose: result.raw, next: 'lore_check로 검사한 뒤 lore_commit 하세요.',
     contextAudit: {
       recentSummaries: contextMeta.recentSummaries,
+      contextOverflow: contextMeta.overflow,
       recentSummaryChapters: result.compiled.trace.continuity.recentSummaryChapters,
       olderMemoryRefs: result.compiled.trace.continuity.olderMemoryRefs,
       previousSceneChars: previousSceneTail.length,
@@ -356,7 +357,7 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
   // A whole-chapter rewrite replaces the chapter, so it needs the same window
   // a draft of this chapter would get. Its Foundation carries every
   // registered character.
-  const { meta: contextMeta } = chapter > 1 ? await buildContext({ store, workId, chapter }) : { meta: null };
+  const { meta: contextMeta } = chapter > 1 ? await buildContext({ store, workId, chapter, onOverflow: 'report' }) : { meta: null };
   const continuity = contextMeta ? renderContinuity({
     genreLine: '',
     recentSummaries: contextMeta.recentSummaryTexts,

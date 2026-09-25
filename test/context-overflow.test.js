@@ -179,4 +179,21 @@ describe('writing-context token budget is script-aware (src/tools/context.js)', 
       },
     );
   });
+
+  it('report mode records an oversized context instead of stopping the writer', async () => {
+    const store = await newStore('ko-report');
+    await runInit({
+      store, workId: 'w', genre: 'other', povMode: '3인칭제한',
+      worldFacts: hangulFacts(60, 1300),
+      providers: approvalFixtureProvider(),
+    });
+    const { context, meta } = await buildContext({ store, workId: 'w', chapter: 1, onOverflow: 'report' });
+    assert.ok(context.length > 0);
+    assert.equal(meta.overflow.context.maxTokens, MAX_CONTEXT_TOKENS);
+    assert.ok(meta.overflow.context.actualTokens > MAX_CONTEXT_TOKENS);
+    assert.equal(meta.overflow.memory, 'context_overflow');
+    assert.deepEqual(meta.olderMemory, []);
+    const trace = await store.loadContextTrace('w', 1);
+    assert.deepEqual(trace.overflow, meta.overflow);
+  });
 });

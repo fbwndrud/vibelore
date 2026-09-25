@@ -86,7 +86,14 @@ function renderAddressMap(state, foundation, kit) {
     .join('\n');
 }
 
-export async function buildContext({ store, workId, chapter, scene, targetChapters }) {
+/**
+ * `onOverflow: 'throw'` (lore_context) refuses an oversized context. Writer
+ * and reviewer paths pass 'report': the draft does not send this string, so
+ * an oversized one is recorded in `meta.overflow` and the trace instead of
+ * stopping the chapter, and memory falls back to none when the mandatory set
+ * alone is over its budget.
+ */
+export async function buildContext({ store, workId, chapter, scene, targetChapters, onOverflow = 'throw' }) {
   const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
   store = await openCanonRepository({ store, publicationUnit });
   const foundation = await store.loadFoundation(workId);
@@ -150,7 +157,12 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     indexGeneration: `memory:${memory.documents}`, tokenizerRevision: SEARCH_TERMS_REVISION, rankerRevision: memory.backend,
   });
   const t = kit.phrases.context;
-  if (!compiledMemory.ok) throw new Error(`${compiledMemory.error.code}: ${t.mandatoryOverflow}`);
+  const overflow = { context: null, memory: null };
+  if (!compiledMemory.ok) {
+    if (onOverflow !== 'report') throw new Error(`${compiledMemory.error.code}: ${t.mandatoryOverflow}`);
+    overflow.memory = compiledMemory.error.code;
+  }
+  const memoryItems = compiledMemory.ok ? compiledMemory.value.discretionary : [];
 
   const sections = [
     t.heading(chapter, workId),
@@ -210,9 +222,9 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
 
   if (entity.injected.length > 0) sections.push('', renderEntityContext(entity, sectionLanguage));
 
-  if (compiledMemory.value.discretionary.length) {
+  if (memoryItems.length) {
     sections.push('', t.memoryHeading,
-      ...compiledMemory.value.discretionary.map((item) => t.memoryItem(item.scope ?? item.kind, item.ref ?? item.id, item.chapter, item.text)));
+      ...memoryItems.map((item) => t.memoryItem(item.scope ?? item.kind, item.ref ?? item.id, item.chapter, item.text)));
   }
   const debts = hookDebt(lastState?.hooks, chapter);
   if (debts.length) sections.push('', t.hookDebtHeading, ...debts.map((debt) => t.hookDebt(debt.id, debt.staleFor, debt.action)));
@@ -227,14 +239,16 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     ? Math.max(1, Math.ceil([...context].length / 2))
     : tokenUnits(context);
   if (actualTokens > MAX_CONTEXT_TOKENS) {
-    throw new Error(`context_overflow: ${t.contextOverflow(actualTokens, MAX_CONTEXT_TOKENS)}`);
+    if (onOverflow !== 'report') throw new Error(`context_overflow: ${t.contextOverflow(actualTokens, MAX_CONTEXT_TOKENS)}`);
+    overflow.context = { actualTokens, maxTokens: MAX_CONTEXT_TOKENS };
   }
   const contextHash = `sha256:${createHash('sha256').update(context).digest('hex')}`;
   const trace = {
     workId, chapter, compiledAt: new Date().toISOString(), query: retrievalQuery,
     protected: { worldFacts: foundation.worldFacts.map((f) => f.id), characters: visible.map((c) => c.id), arcEpisode: arcEpisode?.index ?? null, episodePlan: episodePlan?.revision ?? null },
     slidingWindow: { included: window.recentSummaries.map((summary) => summary.chapterNumber), trimmed: window.trimmedCount },
-    retrieval: { documents: memory.documents, candidates: memory.candidates, selected: memory.selected, compiled: compiledMemory.value }, hookDebt: debts,
+    retrieval: { documents: memory.documents, candidates: memory.candidates, selected: memory.selected, compiled: compiledMemory.ok ? compiledMemory.value : null }, hookDebt: debts,
+    overflow,
     contextChars: context.length, actualTokens, contextHash,
   };
   await store.saveContextTrace(workId, trace);
@@ -251,7 +265,8 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
       // Newest-first text of the same window, and the older memory the
       // compiler selected, so the draft sees what this context assembled.
       recentSummaryTexts: window.recentSummaries.map((summary) => ({ chapter: summary.chapterNumber, text: summary.summary })),
-      olderMemory: compiledMemory.value.discretionary.map((item) => ({
+      overflow,
+      olderMemory: memoryItems.map((item) => ({
         scope: item.scope ?? item.kind, ref: item.ref ?? item.id, chapter: item.chapter ?? null, text: item.text,
       })),
       trimmedSummaries: window.trimmedCount,

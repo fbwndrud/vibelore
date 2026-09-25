@@ -567,7 +567,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       plan: renderEpisodePlan(episodePlan, kit), writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
     }), { score: null, reason: null });
 
-    const { context: characterContext } = await buildContext({ store, workId, chapter });
+    const { context: characterContext } = await buildContext({ store, workId, chapter, onOverflow: 'report' });
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     const editorialContext = priorSummaries.map((item) => item.summary).join('\n');
     editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
