@@ -70,12 +70,12 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 ## 도구 표면
 
-기본 서버는 설계, 통합 집필, 웹툰 제작, 승인, 복구처럼 완결된 사용자 흐름 29개를 노출합니다.
+기본 서버는 설계, 통합 집필, 웹툰 제작, 승인, 복구처럼 완결된 사용자 흐름 30개를 노출합니다.
 `lore_context`, `lore_draft`, `lore_check`, `lore_commit` 같은 단계별 원시 도구는 정상
 집필 순서를 우회할 수 있어 기본 목록에서 제외됩니다.
 
 엔진 디버깅이나 호환성 검증이 필요한 개발 환경에서만 서버 프로세스에
-`VIBELORE_MCP_SURFACE=advanced`를 설정하면 전체 42개 도구를 노출합니다. 작품 집필용
+`VIBELORE_MCP_SURFACE=advanced`를 설정하면 전체 43개 도구를 노출합니다. 작품 집필용
 설정에는 이 값을 넣지 않습니다.
 
 ## 공통 입력과 응답
