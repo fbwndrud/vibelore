@@ -4,7 +4,7 @@
 
 **Un outil local pour écrire des romans web avec l'IA et les transformer en webtoons. L'univers tient bon même après des centaines d'épisodes.**
 
-*Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into a vertical webtoon. Local, Markdown, no extra API keys for writing.*
+*Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into webtoon scenes. Local, Markdown, no extra API keys for writing.*
 
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
@@ -47,7 +47,7 @@ Nous n'avons pas choisi que les scènes réussies. Les scènes recalées à la r
 - La planification suit l'ordre œuvre entière → arc → épisode, et seul ce que vous approuvez devient une contrainte pour l'épisode suivant.
 - Un travail interrompu reprend au même endroit, seuls les manuscrits qui passent les vérifications sont validés, et l'on peut revenir en arrière épisode par épisode.
 - La langue de l'œuvre se règle avec un seul argument `language`, et les langues autres que le coréen suivent le même flux.
-- Un flux de production de webtoon est inclus : il reprend tels quels les personnages et l'état de l'original, confirme la direction, puis génère chaque scène en une seule image, dialogues compris.
+- Un flux de production de webtoon est inclus : il reprend tels quels les personnages et l'état de l'original, fixe la portion de l'original, le style graphique, les références, le nombre de cases et le modèle d'image, puis génère chaque scène en une seule image, dialogues compris.
 
 ## Démo en 30 secondes
 
@@ -56,19 +56,29 @@ Il suffit de dire ceci dans le chat de l'hôte.
 > Écris l'épisode suivant. Montre-le-moi une fois fini, et valide-le quand je l'approuve.
 
 ```text
-Entretien ─▶ Plan d'arc ─▶ Plan d'épisode ─▶ Brouillon ─▶ Vérif. univers/chronologie ─▶ Revue ─▶ Approbation ─▶ Commit
- (1 fois)    (approuver)    (auto)                       violations hard corrigées      advisory  utilisateur     Markdown
+Entretien ─▶ Conception de l'œuvre ─▶ Plan d'arc ─▶ Plan d'épisode ─▶ Brouillon ─▶ Vérif. univers/chronologie/langue ─▶ Revue ─▶ Approbation ─▶ Commit
+ (1 fois)     (approuver)              (approuver)   (auto)                         violations hard corrigées            advisory utilisateur    Markdown
 ```
 
+La conception de l'œuvre regroupe la génération de l'univers et des personnages, l'approbation de l'histoire complète (StorySpine) et
+celle de la skill d'écrivain propre à l'œuvre (WriterSkill) ; l'écriture ne commence qu'ensuite. La vérification de la langue de l'œuvre s'applique à toutes les œuvres, y compris coréennes.
+
 Quand le manuscrit et les éléments de la revue arrivent, répondez « approuver » ou « corrige ce passage et recommence ». Le mode `auto` valide
-automatiquement si les vérifications et la revue passent. Pour un webtoon, une phrase suffit aussi.
+automatiquement quand les vérifications obligatoires passent et que la revue se termine normalement. Les advisory de la revue sont
+enregistrés sans bloquer le commit, et si la revue ne se termine pas, le brouillon repart en attente d'approbation. Pour un webtoon, une phrase suffit aussi.
 
 > Fais un webtoon de l'épisode 1. Demande-moi d'abord la direction de production.
 
 ```text
-Direction ─▶ Mise en scène en anglais ─▶ Vérif. avant génération ─▶ Image de scène avec dialogues ─▶ Revue visuelle réelle
-(approuver)   par scène (auto)            blocage hard               générée par l'hôte               résultat final
+Portion·style·références·cases·modèle d'image ─▶ Mise en scène ─▶ Vérif. avant génération ─▶ Image de scène avec dialogues ─▶ Revue de l'image
+ (vos choix)                                      (en anglais)     blocage hard               texte original, langue de l'œuvre échec : nouveau plan automatique
 ```
+
+Le nombre de cases est un entier (1-12) ou `auto`, et les références sont des fichiers d'image de personnages et de décors que vous fournissez.
+Le modèle d'image se choisit parmi les modèles de l'API OpenAI `gpt-image-2`, `gpt-image-2.5-sunburst` (par défaut) et
+`gpt-image-2.5-flare`, et c'est l'hôte qui l'appelle. Si la vérification avant génération ou la revue de l'image échoue, la scène est
+replanifiée à partir des défauts puis régénérée (2 fois par défaut, 3 au maximum, chaque fois un appel d'image payant). Le résultat est
+l'image de la scène plus `scene.html`, sous `.vibelore/webtoon/candidates/`.
 
 ## Installation
 
@@ -123,7 +133,7 @@ Grok CLI :
 grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 ```
 
-La skill pour Claude Code se trouve dans `hosts/claude/skills/`, et ce dépôt peut aussi s'installer comme plugin Codex (`.codex-plugin/plugin.json`).
+Pour Claude Code, la skill de la boucle d'écriture se trouve dans `hosts/claude/skills/novel/`, et les skills d'entretien sur l'œuvre et sur le webtoon dans `skills/story-discovery-interview/` et `skills/webtoon-discovery-interview/`. Copiez-les toutes sous `.claude/skills/`. Ce dépôt peut aussi s'installer comme plugin Codex (`.codex-plugin/plugin.json`).
 </details>
 
 Une fois l'installation faite, commencez votre première œuvre. Décrivez en une ou deux phrases l'histoire que vous voulez écrire.
@@ -137,21 +147,22 @@ sans me demander ». En cas de blocage, consultez le [guide de démarrage](docs/
 
 - **Entretien sur l'œuvre.** Au lieu d'un nom de genre, il interroge sur le rythme, la difficulté, l'émotion, la récompense et les tabous pour établir un contrat de lecture (StoryProfile), puis génère automatiquement l'univers et les personnages.
 - **Conception des arcs.** Il fait d'abord approuver une promesse sur 3 à 20 épisodes avec des événements, pressions et retournements esquissés, et remplit automatiquement les plans par épisode au moment de l'écriture.
-- **Vérification et correction à chaque épisode.** Il confronte le brouillon aux personnages, aux formes d'adresse, au point de vue, à la chronologie et aux indices semés, et corrige automatiquement jusqu'à 3 fois en cas de conflit avec des faits établis. Les remarques de goût, comme le style ou le rythme, restent de simples advisory.
+- **Vérification et correction à chaque épisode.** Il confronte le brouillon aux personnages, aux formes d'adresse, au point de vue, à la chronologie et aux indices semés, et en cas de conflit avec des faits établis, corrige et revérifie automatiquement (3 vérifications au plus, avec au plus 2 corrections entre elles). Les remarques de goût, comme le style ou le rythme, restent de simples advisory.
 - **Référence de style.** Désignez un épisode qui vous plaît comme ancre de style, et les suivants en suivent la texture.
-- **Réécriture et retour en arrière.** Réécrivez un épisode antérieur sans toucher à l'univers, ou ramenez toute l'œuvre au point d'un épisode donné.
-- **Adaptation en webtoon.** Il reprend l'état de l'original, confirme la direction de l'adaptation, le style graphique et le nombre de cases, puis termine chaque scène en une seule image verticale, dialogues compris.
+- **Retour en arrière.** Ramenez toute l'œuvre au point d'un épisode donné et réécrivez à partir du suivant (l'état antérieur est conservé pour pouvoir être restauré).
+- **Adaptation en webtoon.** Il reprend l'état de l'original, confirme la portion de l'original, le style graphique, les références, le nombre de cases et le modèle d'image, puis termine chaque scène en une seule image, dialogues compris.
 
 **Ce qu'il ne fait pas.** Une interface web (le chat de l'hôte sert d'interface), des appels d'API payants par le serveur MCP lui-même (les API d'image
-sont exécutées par l'hôte), la revérification automatique des épisodes suivants (si vous corrigez l'épisode 2, demandez vous-même la revérification du 3), une garantie de qualité littéraire,
+sont exécutées par l'hôte), la réécriture d'un épisode antérieur ou le recalcul de l'état suivant avec les outils par défaut (seuls les outils
+de reprise `lore_rewrite` et `lore_refold` de `VIBELORE_MCP_SURFACE=advanced` le font), une garantie de qualité littéraire,
 l'édition simultanée ou le multi-locataire, ni le découpage automatique en PNG/JPEG pour les plateformes.
 
 ## Tâches courantes
 
 | Ce que vous voulez | Dites ceci à l'hôte |
 |---|---|
-| L'épisode 1 ne me plaît pas ; le refaire sans toucher à l'univers | « Réécris l'épisode 1 [dans cette direction] » → vérification → approbation |
-| J'ai écrit jusqu'à l'épisode 3 mais je veux corriger le 2 | Réécrire l'épisode 2 → approuver → « recalcule l'état suivant » → demander la revérification de l'épisode 3 si besoin |
+| Le dernier épisode ne me plaît pas | Modifiez le manuscrit à la main, puis « Vérifie les changements » → vérification → approbation |
+| J'ai écrit jusqu'à l'épisode 3 mais je veux tout refaire à partir du 2 | « Reviens en arrière jusqu'à l'épisode 1 » → « Écris l'épisode suivant » |
 | Je veux tout ramener au point de l'épisode 5 | « Reviens en arrière jusqu'à l'épisode 5 » |
 | Le style de cet épisode est parfait, je veux garder ça | « Approuve l'épisode 3 comme référence de style. Raison : les dialogues sont courts et secs » |
 | J'ai modifié un fichier d'univers à la main | « Vérifie les changements » → il indique la portée de l'impact et la suite à donner |
@@ -171,17 +182,17 @@ Pour les corrections, la reprise et les sauvegardes, consultez [Dépannage et sa
 
 Il transforme tel quel en webtoon un roman déjà écrit. L'apparence des personnages, l'univers et la situation jusqu'à cet épisode viennent de l'original : inutile de les réexpliquer.
 
-1. **Fixer la direction.** Il demande le style graphique, le style des bulles et du lettrage, la lecture en défilement vertical ou non, et le nombre de cases.
-2. **Dessins de référence.** Il dessine d'abord les références des personnages et des lieux et vous les fait valider. Toutes les scènes suivantes suivent ces dessins.
-3. **Adaptation de la scène.** Il fixe la portion de l'original, rédige la mise en scène en anglais et passe la vérification avant génération.
-4. **Finition.** Il dessine chaque scène entière en une seule image verticale, dialogues compris, et relit l'image réelle. Les exemples ci-dessus ont été faits ainsi.
+1. **Portion de l'original et direction.** Il demande quel épisode et quels paragraphes adapter, le style graphique, le lettrage et la liberté de composition, puis résume le tout en mise en scène en anglais à valider.
+2. **Références.** Vous indiquez des fichiers d'image de référence des personnages et des décors (au moins un). Une scène qui en suit une autre utilise aussi l'image finie de la scène précédente.
+3. **Cases et modèle d'image.** Vous choisissez le nombre de cases (1-12 ou auto) et le modèle d'image avec son coût. Le choix du modèle est conservé par œuvre.
+4. **Finition.** Mise en scène → vérification avant génération → une image de scène avec les dialogues dessinés → revue de l'image réelle. En cas d'échec, il replanifie et redessine automatiquement (2 fois par défaut, 3 au maximum). Les exemples ci-dessus ont été faits ainsi.
 
 La méthode consistant à faire d'abord approuver des crayonnés case par case est deprecated et ne sert qu'à poursuivre les travaux déjà en cours.
 </td>
 </tr>
 </table>
 
-Les images sont dessinées avec la fonction image de l'outil IA ou avec une API d'image. Si une API payante est utilisée, votre accord est demandé d'abord, et l'approbation du roman et celle du webtoon sont distinctes.
+Les images sont dessinées par le modèle d'image OpenAI que vous choisissez (`gpt-image-2`, `gpt-image-2.5-sunburst` (par défaut) ou `gpt-image-2.5-flare`), que l'hôte appelle par l'API. Il faut une clé d'API et une facturation propres ; avant la première scène, on vous montre le modèle, le coût et ce qui est envoyé, et votre réponse fixe le choix pour l'œuvre. Les résultats du webtoon sont stockés à part du canon du roman et ne le modifient jamais.
 Pour le détail des étapes, consultez le [guide de production de webtoon](docs/WEBTOON.en.md).
 
 ## Pourquoi vibelore
@@ -216,8 +227,8 @@ le profil de l'œuvre, et la vérification de l'univers utilise le preset le plu
 
 ## Langue de l'œuvre
 
-La langue dans laquelle l'œuvre est écrite se règle avec l'argument facultatif `language` qu'acceptent `lore_profile`, `lore_init`,
-`lore_create` et `lore_write`. Quand l'utilisateur indique la langue d'écriture en langage naturel, l'hôte la normalise en étiquette BCP 47
+La langue dans laquelle l'œuvre est écrite se règle avec l'argument facultatif `language` qu'acceptent `lore_profile`, `lore_init`
+et `lore_create` (le `language` de `lore_write` vérifie seulement qu'il correspond à la langue enregistrée). Quand l'utilisateur indique la langue d'écriture en langage naturel, l'hôte la normalise en étiquette BCP 47
 (`ja`, `pt-BR`, `zh-Hant`, etc.) et la transmet ; si aucune langue n'est choisie, l'argument est omis.
 Les œuvres existantes sans clé de langue sont un `ko` implicite. La langue de la conversation et celle de l'œuvre sont indépendantes : on peut
 écrire une œuvre en japonais en conversant en coréen.
@@ -230,15 +241,16 @@ Les œuvres existantes sans clé de langue sont un `ko` implicite. La langue de 
 - La longueur se mesure dans une unité adaptée à la langue. Le coréen garde le décompte de caractères existant ; les autres langues utilisent les graphèmes
   ou les mots, et les écritures riches en caractères combinants comme l'arabe et l'hébreu, ou le thaï, qui ne sépare pas les mots par des espaces,
   sont traitées dans le même contrat.
-- La langue ne peut plus changer une fois la foundation créée. Une valeur différente de la langue enregistrée est refusée avec
-  `LANGUAGE_CONTRACT_CONFLICT` au lieu d'être écrasée en silence.
+- Avant la création de la foundation, on peut changer de langue en approuvant une nouvelle revision du profil, et une valeur différente
+  de la langue approuvée est refusée avec `LANGUAGE_CONTRACT_CONFLICT`. Une fois la foundation créée, la langue ne peut plus changer, et
+  une valeur différente est refusée avec `WORK_LANGUAGE_IMMUTABLE` au lieu d'être écrasée en silence.
 - À chaque épisode, on vérifie que le texte, le résumé et le plan sont écrits dans la langue de l'œuvre, et les invariants sémantiques comme
   le point de vue, l'enregistrement des personnages et le cadre de l'univers sont examinés par le même vérificateur quelle que soit la langue.
 - Les webtoons suivent aussi la langue de l'œuvre. Les dialogues ne sont pas traduits : ils entrent dans l'image en texte original dans la langue de l'œuvre,
   et le prompt d'image précise la langue, l'écriture et le sens de lecture (de droite à gauche pour l'arabe).
 
-Les langues vérifiées de bout en bout avec un vrai Claude Sonnet 5, du profil jusqu'à l'approbation de l'épisode 2 et l'audit linguistique final, sont
-l'anglais, l'espagnol, le japonais, le français, le coréen, l'arabe, le chinois traditionnel et le thaï. Pour le détail du contrat des
+L'écriture de romans et le flux de webtoon par scène ont été vérifiés sur un échantillon de recette en 8 langues : l'anglais, l'espagnol,
+le japonais, le français, le coréen, l'arabe, le chinois traditionnel et le thaï. Le modèle hôte de cet échantillon était Claude Sonnet 5. Pour le détail du contrat des
 arguments, voir [Langue de l'œuvre et unités de longueur](docs/TOOLS.en.md#work-language-and-length-units).
 
 ## Où sont les fichiers
@@ -249,8 +261,8 @@ my-novel/
 ├── characters/    fiches des personnages — vous pouvez les modifier
 ├── chapters/      texte — vous pouvez le modifier
 ├── summaries/     résumés par épisode
-├── webtoon/       cadre, adaptations et masters SVG/HTML de webtoon approuvés
-└── .vibelore/     journaux de vérification, instantanés de reprise — n'y touchez pas
+├── webtoon/       résultats approuvés et masters SVG/HTML du travail case par case (deprecated)
+└── .vibelore/     journaux de vérification, instantanés de reprise, résultats des scènes de webtoon (webtoon/candidates/) — n'y touchez pas
 ```
 
 Les manuscrits et les journaux de production restent sur votre ordinateur. Le manuscrit et les images de référence nécessaires à une requête peuvent être envoyés
@@ -259,8 +271,8 @@ Le droit d'auteur du manuscrit appartient à son auteur, et la licence de ce dé
 
 ## Modèles et coûts
 
-- **Le roman** est écrit par le modèle choisi dans la session de l'hôte, tel quel. Pas de clé d'API séparée. On peut utiliser des indications par étape qui confient seulement les étapes de revue à un modèle plus léger ; les étapes qui extraient les faits établis restent sur le modèle de base.
-- **Les images du webtoon** nécessitent un outil de l'hôte capable de générer des images ou une API d'image, et la voie API implique sa propre clé et sa propre facturation. Le choix confirmé est enregistré par œuvre et n'est jamais changé d'office.
+- **Le roman** est écrit par le modèle choisi dans la session de l'hôte, tel quel. Pas de clé d'API séparée. On peut donner des indications par étape qui confient les étapes de planification, de brouillon et de revue à un modèle plus léger (en relais par l'hôte ce sont des indications ; seul un modèle local change réellement) ; les étapes qui extraient les faits établis restent sur le modèle de base sauf réglage explicite.
+- **Les images du webtoon** viennent de l'API d'image OpenAI (`gpt-image-2`, `gpt-image-2.5-sunburst` (par défaut), `gpt-image-2.5-flare`), appelée par l'hôte, avec sa propre clé et sa propre facturation. Le modèle confirmé est enregistré par œuvre et n'est jamais changé ni remplacé d'office.
 - **Les modèles de texte locaux** peuvent être branchés par variables d'environnement sur un point de terminaison compatible OpenAI.
 
 Pour la configuration détaillée, voir [Réglages des modèles](docs/MODELS.en.md).
@@ -270,13 +282,13 @@ Pour la configuration détaillée, voir [Réglages des modèles](docs/MODELS.en.
 <details>
 <summary>Y a-t-il une interface graphique ?</summary>
 
-Non. Le chat de Claude Code, Codex ou Grok CLI sert d'interface, et les résultats sortent sous forme de fichiers Markdown et de SVG/HTML verticaux.
+Non. Le chat de Claude Code, Codex ou Grok CLI sert d'interface, et les résultats sortent sous forme de manuscrits Markdown et, pour les webtoons, d'une image PNG/JPEG par scène (lettrage compris) avec `scene.html`.
 </details>
 
 <details>
 <summary>Est-ce que cela coûte en plus ?</summary>
 
-L'écriture du roman tourne dans le cadre de l'abonnement ou des crédits de l'hôte. vibelore n'appelle aucun modèle directement. Les images du webtoon nécessitent l'outil d'image de l'hôte ou une API d'image, et la voie API suit la facturation de ce compte.
+L'écriture du roman tourne dans le cadre de l'abonnement ou des crédits de l'hôte. Par défaut, vibelore n'appelle aucun modèle directement (sauf si vous branchez un modèle local). Les images du webtoon viennent de l'API d'image OpenAI, appelée par l'hôte, et suivent la facturation de ce compte.
 </details>
 
 <details>
@@ -300,7 +312,7 @@ Une violation hard est un conflit avec des faits établis, elle est donc corrig�
 <details>
 <summary>Peut-on écrire dans d'autres langues que le coréen ?</summary>
 
-Oui. La langue d'écriture se règle dans le profil de l'œuvre, et l'entretien se déroule dans la langue que vous utilisez. Les guides existent en original coréen et en version anglaise (`*.en.md`). Voir [Langue de l'œuvre](#langue-de-lœuvre) plus haut.
+Oui. La langue d'écriture se règle à la création de l'œuvre (dans le profil ou avec `lore_create`/`lore_init`), et l'entretien se déroule dans la langue que vous utilisez. Les guides existent en original coréen et en version anglaise (`*.en.md`). Voir [Langue de l'œuvre](#langue-de-lœuvre) plus haut.
 </details>
 
 ## Pour aller plus loin
@@ -308,7 +320,7 @@ Oui. La langue d'écriture se règle dans le profil de l'œuvre, et l'entretien 
 Les liens vers la documentation mènent aux versions anglaises. L'original coréen se trouve dans le fichier `.md` du même nom.
 
 - [Guide de démarrage](docs/GETTING_STARTED.en.md) — enregistrement, première œuvre, épisode suivant, en cas de blocage
-- [Production de webtoon](docs/WEBTOON.en.md) — direction de l'adaptation, choix obligatoires, production par scène entière et approbation
+- [Production de webtoon](docs/WEBTOON.en.md) — portion de l'original et choix obligatoires, production par scène entière et revue
 - [Dépannage et sauvegardes](docs/TROUBLESHOOTING.en.md) — reprise du travail, retouches à la main, retour en arrière, conservation des fichiers
 - [Réglages des modèles](docs/MODELS.en.md) — choix des modèles de texte et d'image, voies de coût, modèles locaux
 - [Référence des outils](docs/TOOLS.en.md) — le contrat complet des outils appelés par l'hôte

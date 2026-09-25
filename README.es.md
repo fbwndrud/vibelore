@@ -4,7 +4,7 @@
 
 **Una herramienta local para escribir novelas web con IA y convertirlas en webtoons. El canon no se derrumba ni después de cientos de capítulos.**
 
-*Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into a vertical webtoon. Local, Markdown, no extra API keys for writing.*
+*Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into webtoon scenes. Local, Markdown, no extra API keys for writing.*
 
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
@@ -47,7 +47,7 @@ No elegimos solo las escenas que salieron bien. Las escenas que no pasaron la re
 - Se planifica en el orden obra completa → arco → capítulo, y solo lo que apruebas se convierte en restricción para el siguiente capítulo.
 - El trabajo interrumpido se reanuda en el mismo punto, solo se confirman los manuscritos que pasan las comprobaciones y puedes volver atrás capítulo a capítulo.
 - El idioma de la obra se fija con un único argumento `language`, y los idiomas distintos del coreano usan el mismo flujo.
-- Incluye un flujo de producción de webtoon que toma tal cual los personajes y el estado del original, confirma la dirección y genera cada escena en una sola imagen, diálogos incluidos.
+- Incluye un flujo de producción de webtoon que toma tal cual los personajes y el estado del original, fija el rango del original, el estilo de dibujo, el arte de referencia, el número de viñetas y el modelo de imagen, y genera cada escena en una sola imagen, diálogos incluidos.
 
 ## Demo de 30 segundos
 
@@ -56,19 +56,29 @@ Basta con decir esto en el chat del host.
 > Escribe el siguiente capítulo. Enséñamelo cuando termines y confírmalo cuando lo apruebe.
 
 ```text
-Entrevista ─▶ Plan de arco ─▶ Plan de capítulo ─▶ Borrador ─▶ Comprobación de ambientación/cronología ─▶ Revisión ─▶ Aprobación ─▶ Commit
-  (1 vez)      (aprobar)        (automático)                  violaciones hard corregidas           advisory     usuario       Markdown
+Entrevista ─▶ Diseño de la obra ─▶ Plan de arco ─▶ Plan de capítulo ─▶ Borrador ─▶ Comprobación de ambientación/cronología/idioma ─▶ Revisión ─▶ Aprobación ─▶ Commit
+ (1 vez)       (aprobar)            (aprobar)       (automático)                    violaciones hard corregidas                       advisory    usuario       Markdown
 ```
 
+El diseño de la obra consiste en generar el mundo y los personajes, aprobar la historia completa (StorySpine) y aprobar la
+skill de escritor propia de la obra (WriterSkill); la escritura solo empieza después. La comprobación del idioma de la obra se aplica a todas las obras, las coreanas incluidas.
+
 Cuando lleguen el manuscrito y la evidencia de la revisión, responde «aprobar» o «corrige esta parte y vuelve a intentarlo». El modo `auto` confirma
-automáticamente si pasa las comprobaciones y la revisión. Para un webtoon también basta una frase.
+automáticamente cuando pasan las comprobaciones obligatorias y la revisión termina con normalidad. Los advisory de la revisión se registran
+pero no bloquean el commit, y si la revisión no termina, el borrador vuelve a esperar aprobación. Para un webtoon también basta una frase.
 
 > Convierte el capítulo 1 en webtoon. Pregúntame primero por la dirección de producción.
 
 ```text
-Dirección ─▶ Dirección en inglés ─▶ Verificación previa ─▶ Imagen de escena con diálogo ─▶ Revisión visual real
-(aprobar)    por escena (auto)       bloqueo hard           la genera el host                 resultado final
+Rango·estilo·referencias·viñetas·modelo de imagen ─▶ Dirección de escena ─▶ Verificación previa ─▶ Imagen de escena con diálogo ─▶ Revisión de imagen
+ (tú eliges)                                          (en inglés)            bloqueo hard           diálogo literal, idioma de la obra si falla: replanificación automática
 ```
+
+El número de viñetas es un entero (1-12) o `auto`, y el arte de referencia son archivos de imagen de personajes y fondos que aportas tú.
+El modelo de imagen se elige entre los modelos de la API de OpenAI `gpt-image-2`, `gpt-image-2.5-sunburst` (predeterminado) y
+`gpt-image-2.5-flare`, y lo llama el host. Si la verificación previa o la revisión de imagen fallan, se vuelve a planificar a partir
+de los defectos y se genera de nuevo (2 veces por defecto, 3 como máximo, y cada vez es una llamada de imagen de pago). El resultado
+es la imagen de la escena más `scene.html`, en `.vibelore/webtoon/candidates/`.
 
 ## Instalación
 
@@ -123,7 +133,7 @@ Grok CLI:
 grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 ```
 
-La skill para Claude Code está en `hosts/claude/skills/`, y este repositorio también se puede instalar como plugin de Codex (`.codex-plugin/plugin.json`).
+Para Claude Code, la skill del bucle de escritura está en `hosts/claude/skills/novel/`, y las skills de entrevista de la obra y del webtoon están en `skills/story-discovery-interview/` y `skills/webtoon-discovery-interview/`. Cópialas todas en `.claude/skills/`. Este repositorio también se puede instalar como plugin de Codex (`.codex-plugin/plugin.json`).
 </details>
 
 Una vez instalado, empieza tu primera obra. Basta con contar en una o dos frases la historia que quieres escribir.
@@ -137,21 +147,22 @@ sin preguntar». Si te atascas, consulta la [guía de inicio](docs/GETTING_START
 
 - **Entrevista de la obra.** En lugar de un nombre de género, pregunta por el ritmo, la dificultad, la emoción, la recompensa y los tabúes para crear un contrato de lectura (StoryProfile), y genera automáticamente el mundo y los personajes.
 - **Diseño de arcos.** Primero obtiene tu aprobación para una promesa de 3 a 20 capítulos con sucesos, presiones y giros esbozados, y rellena automáticamente los planes por capítulo al escribir.
-- **Comprobación y corrección en cada capítulo.** Contrasta el borrador con los personajes, las formas de tratamiento, el punto de vista, la cronología y los presagios, y corrige automáticamente hasta 3 veces si choca con hechos establecidos. Las observaciones de gusto, como el estilo o el ritmo, quedan solo como advisory.
+- **Comprobación y corrección en cada capítulo.** Contrasta el borrador con los personajes, las formas de tratamiento, el punto de vista, la cronología y los presagios, y si choca con hechos establecidos, corrige y vuelve a comprobar automáticamente (como máximo 3 comprobaciones, con 2 correcciones como máximo entre ellas). Las observaciones de gusto, como el estilo o el ritmo, quedan solo como advisory.
 - **Referencia de estilo.** Si marcas como ancla de estilo un capítulo que te guste, los siguientes siguen su textura.
-- **Reescritura y vuelta atrás.** Reescribe un capítulo anterior sin tocar la ambientación, o devuelve toda la obra al punto de un capítulo concreto.
-- **Adaptación a webtoon.** Toma el estado del original, confirma la dirección de la adaptación, el estilo de dibujo y el número de viñetas, y termina cada escena como una sola imagen vertical, diálogos incluidos.
+- **Vuelta atrás.** Devuelve toda la obra al punto de un capítulo concreto y vuelve a escribir desde el siguiente (el estado previo se guarda para poder restaurarlo).
+- **Adaptación a webtoon.** Toma el estado del original, confirma el rango del original, el estilo de dibujo, el arte de referencia, el número de viñetas y el modelo de imagen, y termina cada escena como una sola imagen, diálogos incluidos.
 
 **Lo que no hace.** Una GUI web (el chat del host es la interfaz), llamadas a API de pago desde el propio servidor MCP (las API de imagen
-las ejecuta el host), recomprobación automática de los capítulos posteriores (si corriges el capítulo 2, pide tú la recomprobación del 3), garantías de calidad literaria,
+las ejecuta el host), reescribir un capítulo anterior o recalcular el estado posterior con las herramientas predeterminadas (solo lo hacen las herramientas
+de recuperación `lore_rewrite` y `lore_refold` con `VIBELORE_MCP_SURFACE=advanced`), garantías de calidad literaria,
 edición simultánea o multiinquilino, ni división automática en PNG/JPEG para plataformas.
 
 ## Tareas habituales
 
 | Lo que quieres | Dile esto al host |
 |---|---|
-| No me gusta el capítulo 1; rehacerlo sin tocar la ambientación | «Reescribe el capítulo 1 [en esta dirección]» → comprobación → aprobación |
-| Escribí hasta el capítulo 3 pero quiero corregir el 2 | Reescribir el capítulo 2 → aprobar → «recalcula el estado posterior» → pedir la recomprobación del capítulo 3 si hace falta |
+| No me gusta el último capítulo | Edita el manuscrito a mano y luego «Revisa los cambios» → comprobación → aprobación |
+| Escribí hasta el capítulo 3 pero quiero rehacerlo desde el 2 | «Vuelve atrás hasta el capítulo 1» → «Escribe el siguiente capítulo» |
 | Quiero volver todo al punto del capítulo 5 | «Vuelve atrás hasta el capítulo 5» |
 | El estilo de este capítulo es justo el que quiero | «Aprueba el capítulo 3 como referencia de estilo. Motivo: los diálogos son cortos y secos» |
 | He editado a mano un archivo de ambientación | «Revisa los cambios» → te indica el alcance del impacto y el siguiente paso |
@@ -171,17 +182,17 @@ Para correcciones, reanudación y copias de seguridad, consulta [Solución de pr
 
 Convierte tal cual en webtoon una novela que ya escribiste. El aspecto de los personajes, el mundo y la situación hasta ese capítulo se toman del original, así que no hace falta volver a explicarlos.
 
-1. **Fijar la dirección.** Pregunta por el estilo de dibujo, el estilo de bocadillos y rotulación, si se lee en scroll vertical y el número de viñetas.
-2. **Arte de referencia.** Primero dibuja el arte de referencia de personajes y lugares y te pide confirmación. Todas las escenas posteriores siguen ese arte.
-3. **Adaptación de la escena.** Fija el rango del original, redacta la dirección en inglés y pasa la verificación previa a la generación.
-4. **Final.** Dibuja cada escena completa como una sola imagen vertical, diálogos incluidos, y revisa la imagen real. Los ejemplos de arriba se hicieron así.
+1. **Rango del original y dirección.** Pregunta qué capítulo y párrafos adaptar, el estilo de dibujo, la rotulación y cuánta libertad de composición dar, y lo resume como dirección en inglés para que la confirmes.
+2. **Arte de referencia.** Indicas archivos de imagen de referencia de personajes y fondos (al menos uno). Una escena que continúa otra también usa la imagen terminada de la escena anterior.
+3. **Viñetas y modelo de imagen.** Eliges el número de viñetas (1-12 o auto) y el modelo de imagen con su coste. La elección del modelo se mantiene por obra.
+4. **Final.** Dirección de escena → verificación previa → una imagen de escena con los diálogos dibujados → revisión de la imagen real. Si falla, vuelve a planificar y dibuja de nuevo automáticamente (2 veces por defecto, 3 como máximo). Los ejemplos de arriba se hicieron así.
 
 El método de aprobar primero bocetos por viñeta está deprecated y solo continúa trabajos ya en curso.
 </td>
 </tr>
 </table>
 
-Las imágenes se dibujan con la función de imagen de la herramienta de IA o con una API de imagen. Si se usa una API de pago, primero se te consulta, y la aprobación de la novela y la del webtoon son independientes.
+Las imágenes las dibuja el modelo de imagen de OpenAI que elijas (`gpt-image-2`, `gpt-image-2.5-sunburst` (predeterminado) o `gpt-image-2.5-flare`), al que el host llama por la API. Requiere su propia clave de API y facturación; antes de la primera escena se te muestran el modelo, el coste y lo que se envía, y tu respuesta fija la elección para la obra. Los resultados del webtoon se guardan aparte del canon de la novela y nunca la modifican.
 Para los pasos detallados, consulta la [guía de producción de webtoon](docs/WEBTOON.en.md).
 
 ## Por qué vibelore
@@ -216,8 +227,8 @@ el perfil de la obra, y la comprobación de ambientación usa el preset más cer
 
 ## Idioma de la obra
 
-El idioma en que se escribe la obra se fija con el argumento opcional `language` que aceptan `lore_profile`, `lore_init`,
-`lore_create` y `lore_write`. Cuando el usuario indica el idioma de escritura en lenguaje natural, el host lo normaliza a una etiqueta BCP 47
+El idioma en que se escribe la obra se fija con el argumento opcional `language` que aceptan `lore_profile`, `lore_init`
+y `lore_create` (el `language` de `lore_write` solo confirma que coincide con el idioma guardado). Cuando el usuario indica el idioma de escritura en lenguaje natural, el host lo normaliza a una etiqueta BCP 47
 (`ja`, `pt-BR`, `zh-Hant`, etc.) y la pasa; si no se elige idioma, se omite el argumento.
 Las obras existentes sin clave de idioma son un `ko` implícito. El idioma de la conversación y el de la obra son independientes, así que puedes
 escribir una obra en japonés mientras conversas en coreano.
@@ -230,15 +241,16 @@ escribir una obra en japonés mientras conversas en coreano.
 - La extensión se mide en una unidad adecuada al idioma. El coreano usa el recuento de caracteres de siempre; los demás idiomas, grafemas
   o palabras, y los sistemas de escritura con muchos caracteres combinantes, como el árabe y el hebreo, o el tailandés, que no separa las palabras con espacios,
   se tratan dentro del mismo contrato.
-- El idioma no se puede cambiar después de crear la foundation. Pasar un valor distinto del idioma guardado se rechaza con
-  `LANGUAGE_CONTRACT_CONFLICT` en lugar de sobrescribirlo en silencio.
+- Antes de que exista la foundation, puedes cambiar el idioma aprobando una nueva revision del perfil, y un valor distinto del
+  idioma aprobado se rechaza con `LANGUAGE_CONTRACT_CONFLICT`. Después de crear la foundation ya no se puede cambiar, y un valor
+  distinto se rechaza con `WORK_LANGUAGE_IMMUTABLE` en lugar de sobrescribirlo en silencio.
 - En cada capítulo se comprueba que el texto, el resumen y el plan estén escritos en el idioma de la obra, y los invariantes semánticos como
   el punto de vista, el registro de personajes y la ambientación del mundo la examina el mismo revisor sea cual sea el idioma.
 - Los webtoons también siguen el idioma de la obra. Los diálogos no se traducen: entran en la imagen como texto original en el idioma de la obra,
   y el prompt de imagen indica el idioma, la escritura y la dirección de lectura (de derecha a izquierda en árabe).
 
-Los idiomas verificados de principio a fin con un Claude Sonnet 5 real, desde el perfil hasta la aprobación del capítulo 2 y la auditoría final de idioma, son
-inglés, español, japonés, francés, coreano, árabe, chino tradicional y tailandés. Para los detalles del contrato de
+La escritura de novelas y el flujo de webtoon por escena se comprobaron con una muestra de aceptación en 8 idiomas: inglés, español,
+japonés, francés, coreano, árabe, chino tradicional y tailandés. El modelo host de esa muestra fue Claude Sonnet 5. Para los detalles del contrato de
 argumentos, consulta [Idioma de la obra y unidades de extensión](docs/TOOLS.en.md#work-language-and-length-units).
 
 ## Dónde están los archivos
@@ -249,8 +261,8 @@ my-novel/
 ├── characters/    fichas de personajes — puedes editarlas
 ├── chapters/      texto — puedes editarlo
 ├── summaries/     resúmenes por capítulo
-├── webtoon/       ambientación, adaptaciones y másteres SVG/HTML de webtoon aprobados
-└── .vibelore/     registros de comprobación, instantáneas de recuperación — no los toques
+├── webtoon/       resultados aprobados y másteres SVG/HTML del trabajo por viñeta (deprecated)
+└── .vibelore/     registros de comprobación, instantáneas de recuperación, resultados de escenas de webtoon (webtoon/candidates/) — no los toques
 ```
 
 Los manuscritos y los registros de producción se quedan en tu ordenador. Al host y al servicio de modelos conectados se les pueden enviar el manuscrito y las
@@ -259,8 +271,8 @@ Los derechos de autor del manuscrito pertenecen a su autor, y la licencia de est
 
 ## Modelos y costes
 
-- **La novela** la escribe tal cual el modelo que elegiste en la sesión del host. No hay una clave de API aparte. Puedes usar indicaciones por etapa que asignan solo las etapas de revisión a un modelo más ligero; las etapas que extraen hechos establecidos se quedan con el modelo base.
-- **Las imágenes del webtoon** necesitan una herramienta del host capaz de generarlas o una API de imagen, y la vía API tiene su propia clave y facturación. La elección confirmada se guarda por obra y no se cambia por cuenta propia.
+- **La novela** la escribe tal cual el modelo que elegiste en la sesión del host. No hay una clave de API aparte. Puedes dar indicaciones por etapa que asignan las etapas de planificación, borrador y revisión a un modelo más ligero (en el relay del host son indicaciones; solo un modelo local cambia de verdad); las etapas que extraen hechos establecidos se quedan con el modelo base salvo que las fijes.
+- **Las imágenes del webtoon** salen de la API de imagen de OpenAI (`gpt-image-2`, `gpt-image-2.5-sunburst` (predeterminado), `gpt-image-2.5-flare`), a la que llama el host, con su propia clave y facturación. El modelo confirmado se guarda por obra y no se cambia ni se sustituye por cuenta propia.
 - **Los modelos de texto locales** se pueden conectar mediante variables de entorno a un endpoint compatible con OpenAI.
 
 Para la configuración detallada, consulta [Configuración de modelos](docs/MODELS.en.md).
@@ -270,13 +282,13 @@ Para la configuración detallada, consulta [Configuración de modelos](docs/MODE
 <details>
 <summary>¿Tiene GUI?</summary>
 
-No. El chat de Claude Code, Codex o Grok CLI es la interfaz, y los resultados salen como archivos Markdown y SVG/HTML verticales.
+No. El chat de Claude Code, Codex o Grok CLI es la interfaz, y los resultados salen como manuscritos Markdown y, para los webtoons, una imagen PNG/JPEG por escena (rotulación incluida) más `scene.html`.
 </details>
 
 <details>
 <summary>¿Cuesta dinero aparte?</summary>
 
-La escritura de la novela funciona dentro de la suscripción o los créditos del host. vibelore no llama directamente a ningún modelo. Las imágenes del webtoon necesitan la herramienta de imagen del host o una API de imagen, y la vía API sigue la facturación de esa cuenta.
+La escritura de la novela funciona dentro de la suscripción o los créditos del host. Con la configuración predeterminada, vibelore no llama directamente a ningún modelo (salvo que conectes un modelo local). Las imágenes del webtoon salen de la API de imagen de OpenAI, a la que llama el host, y siguen la facturación de esa cuenta.
 </details>
 
 <details>
@@ -300,7 +312,7 @@ Una violación hard es un choque con hechos establecidos, así que se corrige; s
 <details>
 <summary>¿Puedo escribir en idiomas distintos del coreano?</summary>
 
-Sí. El idioma de escritura se fija en el perfil de la obra, y la entrevista se hace en el idioma que uses. Las guías tienen el original en coreano y versiones en inglés (`*.en.md`). Consulta [Idioma de la obra](#idioma-de-la-obra) más arriba.
+Sí. El idioma de escritura se fija al crear la obra (en el perfil o con `lore_create`/`lore_init`), y la entrevista se hace en el idioma que uses. Las guías tienen el original en coreano y versiones en inglés (`*.en.md`). Consulta [Idioma de la obra](#idioma-de-la-obra) más arriba.
 </details>
 
 ## Más lecturas
@@ -308,7 +320,7 @@ Sí. El idioma de escritura se fija en el perfil de la obra, y la entrevista se 
 Los enlaces a la documentación llevan a las versiones en inglés. El original en coreano está en el archivo `.md` del mismo nombre.
 
 - [Guía de inicio](docs/GETTING_STARTED.en.md) — registro, primera obra, siguiente capítulo, cuando te atascas
-- [Producción de webtoon](docs/WEBTOON.en.md) — dirección de la adaptación, elecciones obligatorias, producción por escena completa y aprobación
+- [Producción de webtoon](docs/WEBTOON.en.md) — rango del original y elecciones obligatorias, producción por escena completa y revisión
 - [Solución de problemas y copias de seguridad](docs/TROUBLESHOOTING.en.md) — reanudar el trabajo, ediciones a mano, vuelta atrás, conservar archivos
 - [Configuración de modelos](docs/MODELS.en.md) — elección de modelos de texto e imagen, vías de coste, modelos locales
 - [Referencia de herramientas](docs/TOOLS.en.md) — el contrato completo de las herramientas que llama el host
