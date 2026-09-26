@@ -154,6 +154,9 @@
   audit records how many summaries the window trimmed and how many matching
   memories the budget left out (`contextAudit.memory`). `lore_context` still
   refuses an oversized context.
+- A guard test fixes what each per-chapter request carries before the prose:
+  no JSON input, the sections it judges from, and a size bound
+  (test/request-inputs.test.js).
 - A whole-chapter rewrite (`lore_rewrite`) gets the same recent summaries and
   older memory a draft of that chapter would get.
 - The memory index is rebuilt from an empty file, so a `memory.db` written by
