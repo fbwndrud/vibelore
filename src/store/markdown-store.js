@@ -224,6 +224,23 @@ export class MarkdownStateStore {
     await writeJson(this.sidecar('arcs', `${plan.arcNumber}.json`), plan);
   }
 
+  /** An archived arc plan by number (every saved arc is archived). */
+  async loadArcArchive(workId, arcNumber) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('arcs', `${Number(arcNumber)}.json`));
+  }
+
+  /** A completed arc's summary and the story so far after it. */
+  async loadArcSummary(workId, arcNumber) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('arc-summaries', `${Number(arcNumber)}.json`));
+  }
+
+  async saveArcSummary(workId, record) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('arc-summaries', `${Number(record.arcNumber)}.json`), record);
+  }
+
   // -- StoryProfile ---------------------------------------------------------
   async loadStoryProfile(workId) {
     assertSafeId('workId', workId);

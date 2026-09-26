@@ -43,7 +43,7 @@ const STEP_STAGE = {
   'continuity-check': 'quality', 'continuity-extract': 'quality', 'continuity-extract-repair': 'quality',
   'coherence-judge': 'review', 'editorial-quality': 'review', 'character-fidelity': 'review',
   'reader-hook': 'review', 'arc-review': 'review', 'pattern-ledger': 'quality',
-  'narrative-boundary': 'final', 'chapter-summary': 'final',
+  'narrative-boundary': 'final', 'chapter-summary': 'final', 'arc-summary': 'final',
   'influence-observation-repair': 'final', 'influence-observation-repair-retry': 'final',
 };
 

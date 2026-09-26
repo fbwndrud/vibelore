@@ -21,6 +21,7 @@ import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '..
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { renderSummaries } from '../core/prompt-sections.js';
+import { ensureArcSummaries } from './arc-summary.js';
 import { loadDisabledReviews } from '../core/review-policy.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
@@ -384,6 +385,14 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   if (pending(providers)) {
     await transition(store, workflow, 'awaiting_model', { operation: 'pilot_contract' });
     return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'pilot_contract' };
+  }
+
+  // A finished arc is condensed into the long memory before the next chapter
+  // is planned or drafted from it.
+  const arcSummaries = await ensureArcSummaries({ store, workId, arcPlan, providers, kit });
+  if (arcSummaries.pending) {
+    await transition(store, workflow, 'awaiting_model', { operation: 'arc_summary' });
+    return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'arc_summary' };
   }
 
   // Per-chapter planning is an internal stage, not a caller checklist item.

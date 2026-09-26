@@ -84,6 +84,16 @@ export const steps = {
     ].join('\n'),
   },
 
+  'arc-summary': {
+    system: '끝난 아크의 화 요약을 읽고 장기 연재를 이어 쓸 작가가 기억해야 할 줄거리를 정리한다. 일어난 사건과 결과, 인물 관계와 처지의 변화, 남은 약속만 쓴다. 평가나 해석, 다음 전개 제안은 쓰지 않는다. 순수 JSON만 출력한다.',
+    user: (c) => [
+      '지금까지 이야기(직전 아크까지):', c.storySoFar, '',
+      `끝난 아크: ${c.arcTitle}`, `아크 약속: ${c.arcPromise}`,
+      '이 아크의 화 요약 (오래된 화부터):', c.summariesText, '',
+      'JSON: {"arcSummary":"이 아크에서 일어난 일 800자 이내","storySoFar":"처음부터 이 아크 끝까지의 이야기 2000자 이내. 직전 지금까지 이야기를 줄여 이어 쓴다"}',
+    ].join('\n'),
+  },
+
   'episode-plan': {
     system: '당신은 승인된 아크 비트를 읽기 쉬운 상업 웹소설 회차 계획으로 확장한다. 이번 화의 즉시 목표, 눈앞의 장애물, 주인공의 선택, 달라진 결과만 먼저 고정한다. readerBridge에는 전문 설정 설명이 아니라 사전 지식 없는 독자가 붙잡을 생활적 상황과 결과를 한 문장으로 쓴다. 등장인물 전원을 활약시키거나 충돌시키지 않는다. foregroundCharacters는 실제로 선택 압력을 받는 중심 인물만 고르고, 나머지는 배경에서 반응하거나 침묵할 수 있다. characterAgendas, characterCollisions, revealContracts, episodeVoiceTargets는 해당 기능이 실제로 필요한 회차에서만 선택적으로 작성한다. agenda를 쓰면 모든 항목(goal, nextAction, deadline, resources, knowledge, misbelief, redLine, fallback)을 채우고, 채울 수 없으면 그 인물의 agenda를 생략한다. revealContract도 모든 항목(inducedHypothesis, actualCause, dualUseClues, concealment, recontextualizesSceneIds, triggeredByChoice, changes.actions과 changes.relationships·costs 중 하나 이상)을 채우며, recontextualizesSceneIds에는 앞선 장면을 chapter-<회차>-scene-<순번> 형식(순번은 그 회차 scenes의 1부터 시작하는 위치)으로 적고, 뒤집을 앞선 장면이 없으면 revealContract를 생략한다. 대사의 표면 뜻에 필요한 관찰이나 욕구를 대사보다 먼저 장면에 둔다. readerLoad가 onboarding이면 낯선 핵심 개념은 하나만 전면에 두고, expansion이면 이미 체험한 개념을 조합하며, focus이면 특정 개념 하나가 장면의 중심일 때만 복잡하게 다룬다. 아크의 열린 결과나 다음 화를 미리 소비하지 않는다. 장면은 2~4개의 흐름 단위로 제한하고 문장 연출은 작가에게 남긴다. 순수 JSON만 출력한다.',
     user: (c) => [
@@ -93,6 +103,7 @@ export const steps = {
       `수정 피드백: ${c.feedback}`, '이전 계획:', c.priorText, '',
       '세계 사실:', c.worldFactsText,
       '등장 가능 인물:', c.castText,
+      ...(c.longMemoryText ? [c.longMemoryText, ''] : []),
       '최근 요약 (오래된 화부터):', c.summariesText, '',
       c.stateText, '',
       '필수 JSON 스키마:',
@@ -578,6 +589,11 @@ export const phrases = {
     planAgenda: (name, goal, redLine, fallback) => `- ${name}의 의제: ${[goal, redLine && `넘지 않는 선 ${redLine}`, fallback && `차선책 ${fallback}`].filter(Boolean).join(' / ')}`,
     previousSummary: (chapter, text) => `직전 화 요약 (${chapter}화): ${text}`,
     sceneResult: (order, change) => `- 장면 ${order} 결과: ${change}`,
+    longMemoryHeading: '## 지난 이야기',
+    storySoFar: (text) => `지금까지 이야기: ${text}`,
+    arcSummaryLine: (n, title, text) => `- ${n}아크 「${title}」: ${text}`,
+    currentArcSoFar: (title, beats) => `현재 아크 「${title}」에서 지난 화: ${beats}`,
+    noStoryYet: '(아직 없음)',
     patternIds: (pairs) => `인물 ID (supportingAgency 키는 ID로 쓴다): ${pairs}`,
     patternPrevious: (rows) => `직전 회차에 쓴 범주 (같은 기능이면 같은 이름을, 다르면 다른 이름을 쓴다):\n${rows}`,
     patternPreviousRow: (chapter, fields) => `- ${chapter}화: ${fields}`,

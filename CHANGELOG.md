@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Long memory across arcs. When an arc is finished, the next `lore_write`
+  first asks one `arc-summary` request per unsummarized arc: from the
+  previous story so far and the arc's chapter summaries it returns an arc
+  summary (at most 800 characters) and the updated story so far (at most
+  2000). Works with finished arcs are summarized the same way. The chapter
+  plan and the draft read the latest story so far, the last two arc
+  summaries and the current arc's chapters so far, ahead of the five-chapter
+  summary window; this does not grow with the number of arcs. Stored in
+  `.vibelore/arc-summaries/`.
 - Per-chapter state inputs no longer grow with the length of the work.
   Each request lists what its focus text touches (the prose for extraction
   and the continuity check, the plan for the draft, the character review and

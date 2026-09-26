@@ -84,6 +84,16 @@ export const steps = {
     ].join('\n'),
   },
 
+  'arc-summary': {
+    system: 'Read the chapter summaries of a finished arc and set down the plot a writer continuing a long serial must remember: events and their results, changes in relationships and circumstances, promises still open. No evaluation, interpretation or suggestions for what comes next. Return JSON only.',
+    user: (c) => [
+      'Story so far (up to the previous arc):', c.storySoFar, '',
+      `Finished arc: ${c.arcTitle}`, `Arc promise: ${c.arcPromise}`,
+      'Chapter summaries of this arc (oldest first):', c.summariesText, '',
+      'JSON: {"arcSummary":"what happened in this arc, at most 800 characters","storySoFar":"the story from the start to the end of this arc, at most 2000 characters; condense the previous story so far and continue it"}',
+    ].join('\n'),
+  },
+
   'episode-plan': {
     system: 'You expand an approved arc beat into a readable commercial serial chapter plan. First fix only this chapter\'s immediate goal, the obstacle in front of the character, the protagonist\'s choice, and the changed result. In readerBridge write one sentence about the concrete, everyday situation and consequence a reader with no prior knowledge can hold on to, not an explanation of specialist setting. Do not give every character a moment or a conflict. Choose as foregroundCharacters only the central characters who actually face the pressure of a choice; the rest may react in the background or stay silent. Write characterAgendas, characterCollisions, revealContracts and episodeVoiceTargets only for the chapters that really need them, and fill every field of an agenda you do write (goal, nextAction, deadline, resources, knowledge, misbelief, redLine, fallback); omit the agenda rather than leave a field empty. A revealContract likewise needs every field filled (inducedHypothesis, actualCause, dualUseClues, concealment, recontextualizesSceneIds, triggeredByChoice, changes.actions and at least one of changes.relationships or changes.costs); recontextualizesSceneIds names earlier scenes as chapter-<n>-scene-<k> (k is the scene\'s 1-based position in that chapter), and when no earlier scene is recontextualised omit the revealContract. Put the observation or desire needed for the surface meaning of a line into the scene before the line is spoken. When readerLoad is onboarding keep only one unfamiliar core concept in the foreground; when it is expansion combine concepts the reader has already experienced; when it is focus go deep only if a single concept is the centre of the scene. Do not consume the arc\'s open outcomes or the next chapter in advance. Limit the chapter to two to four scene units and leave sentence-level staging to the writer. Output pure JSON only.',
     user: (c) => [
@@ -93,6 +103,7 @@ export const steps = {
       `Revision feedback: ${c.feedback}`, 'Previous plan:', c.priorText, '',
       'World facts:', c.worldFactsText,
       'Available characters:', c.castText,
+      ...(c.longMemoryText ? [c.longMemoryText, ''] : []),
       'Recent summaries (oldest first):', c.summariesText, '',
       c.stateText, '',
       'Required JSON schema:',
@@ -587,6 +598,11 @@ export const phrases = {
     planAgenda: (name, goal, redLine, fallback) => `- ${name}'s agenda: ${[goal, redLine && `line not crossed ${redLine}`, fallback && `fallback ${fallback}`].filter(Boolean).join(' / ')}`,
     previousSummary: (chapter, text) => `Previous chapter summary (ch. ${chapter}): ${text}`,
     sceneResult: (order, change) => `- Scene ${order} result: ${change}`,
+    longMemoryHeading: '## The story so far',
+    storySoFar: (text) => `Story so far: ${text}`,
+    arcSummaryLine: (n, title, text) => `- Arc ${n} "${title}": ${text}`,
+    currentArcSoFar: (title, beats) => `Current arc "${title}", chapters so far: ${beats}`,
+    noStoryYet: '(none yet)',
     patternIds: (pairs) => `Character IDs (key supportingAgency by ID): ${pairs}`,
     patternPrevious: (rows) => `Categories used in the previous chapters (reuse a name for the same function, use another for a different one):\n${rows}`,
     patternPreviousRow: (chapter, fields) => `- ch. ${chapter}: ${fields}`,

@@ -27,6 +27,7 @@ import { executePinnedDraft } from '../core/draft-execution.js';
 import { renderContinuity } from '../core/draft-input-compiler.js';
 import { namedCharacters, planningCast, renderCurrentState, renderWriterFoundation } from '../core/prompt-sections.js';
 import { loadDisabledDraftSections } from '../core/review-policy.js';
+import { renderLongMemory } from './arc-summary.js';
 import { supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract, compileDraftContract, renderNarrativeContract } from '../core/narrative-contract.js';
@@ -248,11 +249,14 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const observedCanonHead = currentPublication.value?.head ?? 'legacy-working-tree';
   if (observedCanonHead !== pinnedCanonHead) throw new Error(`STALE_DRAFT_IDENTITY: canonHead ${pinnedCanonHead} -> ${observedCanonHead}`);
   const foundationRender = renderWriterFoundation(executionSnapshot, detailedPlan.cast, chapter, kit);
-  const stateRender = chapter > 1
+  const currentStateRender = chapter > 1
     ? renderCurrentState(prevState, executionSnapshot, { cast: detailedPlan.cast, kit, mode: 'writer',
       focusText: [episodePacket.writerText, arcEpisode.beat, arcEpisode.pressure, detailedPlan.premise].filter(Boolean).join('\n'),
       hookIds: detailedPlan.hooksTouched ?? [] })
     : '';
+  // Long memory (finished arcs and this arc so far) leads the carried state.
+  const longMemory = await renderLongMemory({ store: draftStore, workId, arcPlan, chapter, kit });
+  const stateRender = [longMemory, currentStateRender].filter(Boolean).join('\n\n');
   const writerArc = { ...planningArc, summary: `${arcEpisode.beat || arcEpisode.goal} → 비용: ${arcEpisode.costCreatedByResolution || arcEpisode.cost || ''}` };
   const execution = await executePinnedDraft({
     resolvedInputs: {

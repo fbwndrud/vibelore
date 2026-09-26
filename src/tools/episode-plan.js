@@ -1,3 +1,4 @@
+import { renderLongMemory } from './arc-summary.js';
 import { planningCast, renderArcBeat, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { characterArcBeatsForEpisode, episodeForChapter } from './arc.js';
@@ -213,6 +214,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       worldFactsText: renderWorldFacts(foundation, kit) || kit.phrases.common.noneParen,
       castText: renderCastBrief(foundation, kit, { focusText: planFocus, chapter }),
       summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
+      longMemoryText: await renderLongMemory({ store, workId, arcPlan, chapter, kit }),
       stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'writer', focusText: planFocus, oldestHooks: 3 }) || kit.phrases.common.noneParen,
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
