@@ -34,7 +34,7 @@ export function characterFidelityContext({ foundation, chapter, episodePlan, pre
   return [
     plan,
     renderSceneCharacterPacket({ projection: dynamics, cast, pressure: episodePlan?.scenePressure?.decisionDeadline ?? '', episodePlan, kit }),
-    renderCurrentState(prevState, foundation, { cast, kit, mode: 'writer', focusText: plan }),
+    renderCurrentState(prevState, foundation, { cast, kit, mode: 'writer', focusText: plan, hookIds: episodePlan?.hooksTouched ?? [] }),
     previousSummary?.summary ? kit.phrases.sections.previousSummary(previousSummary.chapterNumber, previousSummary.summary) : '',
   ].filter(Boolean).join('\n\n');
 }

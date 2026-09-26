@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- Per-chapter state inputs no longer grow with the length of the work.
+  Each request lists what its focus text touches (the prose for extraction
+  and the continuity check, the plan for the draft, the character review and
+  the chapter plan) and counts the rest:
+  - open hooks the focus shares words with, the plan's `hooksTouched`, those
+    planted in the last three chapters and, for the chapter plan, the three
+    longest open ones; at most 12;
+  - tracked items the focus names first, then those the named characters
+    hold; at most 30 for extraction, 12 for writers;
+  - characters in the cast or named in the focus, plus writers see
+    characters lost in the last five chapters; address terms and
+    relationships between those;
+  - the continuity check lists Foundation characters on the page only
+    (evidence paths keep the Foundation index);
+  - the chapter plan's cast list gives full lines for the core cast, named
+    and recently registered characters and names only for up to 30 others.
+  A synthetic 300- and 1000-chapter work guards this
+  (test/long-run-inputs.test.js): the 1000-chapter render may be at most 20%
+  larger than the 300-chapter one and must keep every needle the prose or
+  plan touches. Thundertrail chapter 8 extraction: 13.5K to 9.5K characters.
+- `lore_rewrite` carries the planned cast and characters the intent or the
+  chapter names, not every registered character.
 - With the pattern review off, no placeholder entry is written to the
   experience ledger and repetition checks skip the chapter. A turned-off
   profile check is listed in the review audit (`review.disabled`).

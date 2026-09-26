@@ -156,7 +156,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   const kit = promptKit({ contract: workContract });
   const extractionInput = { prose: input.prose, chapterNumber: chapter, foundation, providers: wrapped, model: MODEL, prevState,
     castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language,
-    prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', entities }),
+    // Only what the prose touches (and the planned cast): the index does not grow with the work.
+    prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', entities, focusText: input.prose, cast: context.plans.episode?.cast ?? [], hookIds: context.plans.episode?.hooksTouched ?? [] }),
     ...(entities.length ? { entities } : {}) };
   try {
     if (!state.extracted) {
@@ -185,7 +186,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       ...(context.plans.profile?.povDesign ? { povDesign: context.plans.profile.povDesign } : {}),
       ...(typeof context.plans.episode?.povCharacter === 'string' && context.plans.episode.povCharacter ? { povCharacterId: context.plans.episode.povCharacter } : {}) };
     semanticInput.checkSections = renderCheckSections({ foundation, prevState, delta: semanticInput.delta, povDesign: semanticInput.povDesign ?? null,
-      povCharacterId: semanticInput.povCharacterId ?? null, kit });
+      povCharacterId: semanticInput.povCharacterId ?? null, kit, focusText: input.prose });
     if (!state.semantic) {
       const semantic = await continuityCheck(semanticInput);
       if (pending(wrapped)) return preview();

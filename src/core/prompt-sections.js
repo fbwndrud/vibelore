@@ -1,5 +1,6 @@
 import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { isHookActive, trackedRecordKey } from '../../engine/src/continuity/story-state.js';
+import { searchTerms } from './search-terms.js';
 
 /**
  * Shared text renderers for every model request that carries characters, world
@@ -114,6 +115,13 @@ const MODES = new Set(['writer', 'extract', 'check']);
 const WRITER_TRACKED_LIMIT = 12;
 const WRITER_RELATION_LIMIT = 6;
 const WRITER_KNOWN_FACTS = 3;
+const EXTRACT_TRACKED_LIMIT = 30;
+const EXTRACT_RELATION_LIMIT = 12;
+const HOOK_LIMIT = 12;
+const RECENT_HOOK_CHAPTERS = 3;
+const RECENT_LOSS_CHAPTERS = 5;
+const ENTITY_LIMIT = 20;
+const HOOK_MATCH_WEIGHT = 2;
 const HOLDER_FIELDS = ['holder', 'owner', 'user', 'holders', 'characterId', 'from', 'to'];
 
 function mentions(record, ids) {
@@ -127,27 +135,87 @@ function directed(relationship) {
   return from ? { from, to, kind: clean(relationship.kind), state: clean(relationship.state) } : null;
 }
 
+/** Characters whose name or alias appears in `text`, plus `cast`. */
+export function namedCharacters(foundation, text, cast = []) {
+  const named = new Set(asArray(cast));
+  const value = clean(text);
+  if (!value) return named;
+  for (const c of asArray(foundation?.characters)) {
+    if ([c.canonicalName, ...asArray(c.aliases)].some((n) => typeof n === 'string' && n.length >= 2 && value.includes(n))) named.add(c.id);
+  }
+  return named;
+}
+
+function textMatches(record, text) {
+  return Boolean(text) && Object.values(record.data ?? {}).some((value) => typeof value === 'string' && value.length >= 2 && value.length <= 40 && text.includes(value));
+}
+
 /**
- * The carried StoryState as text.
- * - `writer`: what bears on this chapter — cast states (and every dead or missing
- *   character), address terms within the cast, active threads, directed
- *   relationships touching the cast, tracked items the cast holds or the plan
- *   names, most recent first.
- * - `extract`: the whole index with exact keys and hook ids, so the extractor
- *   updates existing records instead of inventing new ones.
- * - `check`: current states and the whole address map.
+ * Open hooks that bear on the text: shared words weighing at least
+ * HOOK_MATCH_WEIGHT characters, or planted in the last few chapters. The rest
+ * are counted, not listed, so the list does not grow with the work.
  */
-export function renderCurrentState(state, foundation, { cast = [], kit, mode = 'writer', focusText = '', entities = [] } = {}) {
+function selectHooks(active, text, language, now, hookIds = new Set(), oldest = 0) {
+  const debt = new Set([...active].sort((a, b) => (a.plantedAtChapter ?? 0) - (b.plantedAtChapter ?? 0)).slice(0, oldest).map((hook) => hook.id));
+  const terms = new Set(searchTerms(text, language));
+  const scored = active.map((hook, index) => {
+    const weight = [...new Set(searchTerms(hook.text ?? '', language))].filter((term) => term.length >= 2 && terms.has(term))
+      .reduce((sum, term) => sum + term.length, 0);
+    const recent = Number.isFinite(now) && Number(hook.plantedAtChapter) >= now - RECENT_HOOK_CHAPTERS + 1;
+    const planned = hookIds.has(hook.id) || debt.has(hook.id);
+    return { hook, index, weight, recent, planned };
+  }).filter((item) => item.planned || item.weight >= HOOK_MATCH_WEIGHT || item.recent)
+    .sort((a, b) => Number(b.planned) - Number(a.planned) || b.weight - a.weight || (b.hook.plantedAtChapter ?? 0) - (a.hook.plantedAtChapter ?? 0) || a.index - b.index)
+    .slice(0, HOOK_LIMIT);
+  return { shown: scored.map((item) => item.hook), omitted: active.length - scored.length };
+}
+
+/**
+ * Tracked records the text names directly come first, then records held by a
+ * named character, most recent first, up to `limit`.
+ */
+function selectTracked(tracked, text, ids, limit) {
+  const ranked = tracked.map((record, index) => ({ record, index, direct: textMatches(record, text), held: mentions(record, ids) }))
+    .filter((item) => item.direct || item.held)
+    .sort((a, b) => Number(b.direct) - Number(a.direct) || (b.record.updatedChapter ?? 0) - (a.record.updatedChapter ?? 0) || b.index - a.index)
+    .slice(0, limit);
+  return { shown: ranked.map((item) => item.record), omitted: tracked.length - ranked.length };
+}
+
+/**
+ * The carried StoryState as text, limited to what bears on this chapter so
+ * that it does not grow with the length of the work. `focusText` is what the
+ * request is about (the plan for a writer, the prose for extraction and the
+ * check); characters named in it join `cast`.
+ * `hookIds` (the plan's touched hooks) and the `oldestHooks` longest-open ones
+ * (a planner's debt) are always listed.
+ * - `writer`: cast states, dead or missing characters the focus names or who
+ *   were lost in the last chapters, address terms within the cast, open
+ *   threads the focus touches or that were just planted, directed
+ *   relationships touching the cast, tracked items the cast holds or the
+ *   focus names.
+ * - `extract`: the same selection with exact keys and hook ids, so the
+ *   extractor updates existing records instead of inventing new ones.
+ * - `check`: states and address terms of the named characters.
+ * What is left out is counted, never silently dropped.
+ */
+export function renderCurrentState(state, foundation, { cast = [], kit, mode = 'writer', focusText = '', entities = [], hookIds = [], oldestHooks = 0 } = {}) {
   if (!MODES.has(mode)) throw new Error(`UNKNOWN_STATE_RENDER_MODE: ${mode}`);
   if (!state) return '';
   const t = kit.phrases.sections;
+  const focus = clean(focusText);
   const castIds = new Set(asArray(cast));
+  const named = namedCharacters(foundation, focus, cast);
+  const now = Number(state.chapterNumber);
   const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
   const lines = [t.currentStateHeading];
 
   const states = state.characterStates ?? {};
-  const people = Object.entries(states)
-    .filter(([id, value]) => mode !== 'writer' || castIds.has(id) || value?.vitalStatus === 'dead' || value?.vitalStatus === 'missing')
+  const lost = (value) => value?.vitalStatus === 'dead' || value?.vitalStatus === 'missing';
+  const wanted = ([id, value]) => named.has(id)
+    || (mode === 'writer' && lost(value) && Number(value?.sinceChapter) >= now - RECENT_LOSS_CHAPTERS + 1);
+  const entries = Object.entries(states);
+  const people = entries.filter(wanted)
     .map(([id, value]) => {
       const parts = [];
       if (value?.vitalStatus && t.vital[value.vitalStatus]) parts.push(t.vital[value.vitalStatus]);
@@ -157,11 +225,14 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
       if (mode === 'writer' && facts.length) parts.push(t.knownFacts(facts.join('; ')));
       return parts.length ? t.person(name(id), id, parts.join(' · ')) : '';
     }).filter(Boolean);
+  const peopleOmitted = entries.length - entries.filter(wanted).length;
   if (people.length) lines.push(t.peopleHeading, ...people);
+  if (peopleOmitted > 0) lines.push(t.omitted(peopleOmitted));
 
   const address = Object.entries(state.addressMap?.entries ?? {}).map(([key, entry]) => {
     const [speaker, target] = key.split('->');
-    if (mode === 'writer' && !(castIds.has(speaker) && castIds.has(target))) return '';
+    const within = mode === 'writer' ? castIds.has(speaker) && castIds.has(target) : named.has(speaker) && named.has(target);
+    if (!within) return '';
     return mode === 'extract'
       ? t.addressKeyed(key, name(speaker), name(target), entry.term, entry.sinceChapter)
       : t.address(name(speaker), name(target), entry.term, entry.sinceChapter);
@@ -169,41 +240,68 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
   if (address.length) lines.push(t.addressHeading, ...address);
 
   if (mode !== 'check') {
-    const hooks = asArray(state.hooks).filter(isHookActive).map((hook) => (mode === 'extract'
-      ? t.hookKeyed(hook.id, hook.phase, hook.plantedAtChapter, hook.text ?? '')
-      : t.hook(hook.text ?? hook.id, hook.phase)));
-    if (hooks.length) lines.push(t.hooksHeading, ...hooks);
+    const { shown: hooks, omitted: hooksOmitted } = selectHooks(asArray(state.hooks).filter(isHookActive), focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
+    if (hooks.length) {
+      lines.push(t.hooksHeading, ...hooks.map((hook) => (mode === 'extract'
+        ? t.hookKeyed(hook.id, hook.phase, hook.plantedAtChapter, hook.text ?? '')
+        : t.hook(hook.text ?? hook.id, hook.phase))));
+    }
+    if (hooksOmitted > 0) lines.push(t.omitted(hooksOmitted));
 
+    const relationIds = mode === 'extract' ? named : castIds;
     const relations = asArray(state.relationships).map(directed).filter(Boolean)
-      .filter((item) => mode === 'extract' || castIds.has(item.from) || castIds.has(item.to));
-    const shownRelations = mode === 'extract' ? relations : relations.slice(-WRITER_RELATION_LIMIT);
-    if (shownRelations.length) lines.push(t.relationsHeading, ...shownRelations.map((item) => t.relation(name(item.from), name(item.to), item.kind, item.state)));
+      .filter((item) => relationIds.has(item.from) || relationIds.has(item.to))
+      .slice(-(mode === 'extract' ? EXTRACT_RELATION_LIMIT : WRITER_RELATION_LIMIT));
+    if (relations.length) lines.push(t.relationsHeading, ...relations.map((item) => t.relation(name(item.from), name(item.to), item.kind, item.state)));
 
     const body = (data) => flatBody(data, (v) => String(name(v)));
     const tracked = asArray(state.trackedEntities);
     if (mode === 'extract') {
-      if (tracked.length) lines.push(t.trackedHeadingKeyed, ...tracked.map((record) => t.trackedKeyed(record.kind, trackedRecordKey(record.data) || '-', body(record.data).slice(0, 160))));
+      const { shown, omitted } = selectTracked(tracked, focus, named, EXTRACT_TRACKED_LIMIT);
+      if (shown.length) lines.push(t.trackedHeadingKeyed, ...shown.map((record) => t.trackedKeyed(record.kind, trackedRecordKey(record.data) || '-', body(record.data).slice(0, 160))));
+      if (omitted > 0) lines.push(t.omitted(omitted));
     } else {
-      const focus = clean(focusText);
-      const relevant = tracked.filter((record) => mentions(record, castIds)
-        || (focus && Object.values(record.data ?? {}).some((value) => typeof value === 'string' && value.length >= 2 && value.length <= 40 && focus.includes(value))))
-        .map((record, index) => ({ record, index }))
-        .sort((a, b) => (b.record.updatedChapter ?? 0) - (a.record.updatedChapter ?? 0) || b.index - a.index)
-        .slice(0, WRITER_TRACKED_LIMIT);
-      if (relevant.length) lines.push(t.trackedHeading, ...relevant.map(({ record }) => t.tracked(record.kind, body(record.data), record.updatedChapter)));
+      const { shown } = selectTracked(tracked, focus, castIds, WRITER_TRACKED_LIMIT);
+      if (shown.length) lines.push(t.trackedHeading, ...shown.map((record) => t.tracked(record.kind, body(record.data), record.updatedChapter)));
     }
   }
   if (mode === 'extract' && asArray(entities).length) {
-    lines.push(t.entitiesHeading, ...asArray(entities).map((e) => t.entity(e.kind, e.canonicalName ?? e.entityId, e.entityId, e.status)));
+    const relevant = asArray(entities).filter((e) => focus && [e.canonicalName, e.entityId].some((n) => typeof n === 'string' && n.length >= 2 && focus.includes(n)))
+      .slice(0, ENTITY_LIMIT);
+    if (relevant.length) lines.push(t.entitiesHeading, ...relevant.map((e) => t.entity(e.kind, e.canonicalName ?? e.entityId, e.entityId, e.status)));
   }
   return lines.length > 1 ? lines.join('\n') : '';
 }
 
-/** One line per character: id, role and contradiction — the planning cast list. */
-export function renderCastBrief(foundation, kit) {
+/**
+ * Who a chapter plan may draw on: the core cast registered at the start,
+ * characters the focus names and those registered in the last chapters.
+ */
+export function planningCast(foundation, { focusText = '', chapter = 0 } = {}) {
+  const named = namedCharacters(foundation, focusText);
+  return asArray(foundation?.characters).filter((c) => c.disabled !== true && (c.registeredAtChapter ?? 0) <= (chapter || Infinity))
+    .filter((c) => (c.registeredAtChapter ?? 1) <= 1 || named.has(c.id) || (chapter && (c.registeredAtChapter ?? 0) >= chapter - 10))
+    .map((c) => c.id);
+}
+
+const CAST_NAME_LIMIT = 30;
+
+/**
+ * The planning cast list: a line with role and contradiction for each
+ * character `planningCast` selects, then the other registered characters by
+ * name only, up to CAST_NAME_LIMIT, and a count of the rest.
+ */
+export function renderCastBrief(foundation, kit, { focusText = '', chapter = 0 } = {}) {
   const t = kit.phrases.sections;
-  return asArray(foundation?.characters).filter((c) => c.disabled !== true)
-    .map((c) => t.castBrief(c.canonicalName, c.id, c.intrinsic?.role, c.contradiction)).join('\n');
+  const all = asArray(foundation?.characters).filter((c) => c.disabled !== true);
+  const selected = new Set(planningCast(foundation, { focusText, chapter }));
+  const others = all.filter((c) => !selected.has(c.id));
+  const lines = all.filter((c) => selected.has(c.id)).map((c) => t.castBrief(c.canonicalName, c.id, c.intrinsic?.role, c.contradiction));
+  if (others.length) {
+    lines.push(t.castOthers(others.slice(-CAST_NAME_LIMIT).map((c) => `${c.canonicalName}(${c.id})`).join(', ')));
+    if (others.length > CAST_NAME_LIMIT) lines.push(t.omitted(others.length - CAST_NAME_LIMIT));
+  }
+  return lines.join('\n');
 }
 
 /** Chapter summaries oldest first, each labelled with its chapter. */
@@ -244,7 +342,7 @@ export function renderArcBeat(beat, kit) {
  * Foundation `mutable` is left out: the current place and condition come from
  * the state section.
  */
-export function renderCheckSections({ foundation, prevState, delta, povDesign = null, povCharacterId = null, kit }) {
+export function renderCheckSections({ foundation, prevState, delta, povDesign = null, povCharacterId = null, kit, focusText = '' }) {
   const t = kit.phrases.sections;
   const labels = kit.phrases.context.intrinsicLabels;
   const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
@@ -257,11 +355,19 @@ export function renderCheckSections({ foundation, prevState, delta, povDesign = 
     ...Object.entries(povDesign ?? {}).filter(([, v]) => typeof v === 'string' && v.trim()).map(([k, v]) => `povDesign.${k}=${v}`),
     povCharacterId ? `povCharacterId=${povCharacterId} (${name(povCharacterId)})` : '',
   ].filter(Boolean);
+  const onPage = namedCharacters(foundation, focusText, [
+    ...asArray(delta?.appearedCharacterIds), ...(povCharacterId ? [povCharacterId] : []),
+    ...asArray(delta?.mutableChanges).map((m) => m.characterId),
+    ...asArray(delta?.newAddressEntries).flatMap((a) => [a.speakerId, a.targetId]),
+  ].filter(Boolean));
   const foundationText = [
     t.checkPathNote,
     ...(pov.length ? [t.checkPov(pov.join(' · '))] : []),
-    ...asArray(foundation?.characters).map((c, i) => t.checkCharacter(`foundation.characters[${i}]`, c.canonicalName, c.id,
-      [intrinsicFields(c.intrinsic), asArray(c.aliases).length ? c.aliases.join(', ') : ''].filter(Boolean).join(' · '))),
+    // Only characters this chapter shows; the path keeps the Foundation index for evidence.
+    ...asArray(foundation?.characters).map((c, i) => (onPage.has(c.id)
+      ? t.checkCharacter(`foundation.characters[${i}]`, c.canonicalName, c.id,
+        [intrinsicFields(c.intrinsic), asArray(c.aliases).length ? c.aliases.join(', ') : ''].filter(Boolean).join(' · '))
+      : '')).filter(Boolean),
     ...asArray(foundation?.intrinsicChanges).map((e, i) => t.checkWorldFact(`foundation.intrinsicChanges[${i}]`, `${name(e.characterId)} ${e.field}: ${e.from} → ${e.to} (${e.atChapter})`)),
     ...asArray(foundation?.worldFacts).map((f, i) => t.checkWorldFact(`foundation.worldFacts[${i}]`, f.statement)),
   ].join('\n');
@@ -276,7 +382,7 @@ export function renderCheckSections({ foundation, prevState, delta, povDesign = 
   ];
   const invariants = asArray(foundation?.genreProfile?.invariants).map((inv) => t.invariant(inv.severity, `${inv.id}: ${inv.description}`));
   return {
-    prev: renderCurrentState(prevState, foundation, { kit, mode: 'check' }),
+    prev: renderCurrentState(prevState, foundation, { kit, mode: 'check', cast: [...onPage] }),
     foundation: foundationText,
     delta: deltaText.length ? deltaText.join('\n') : t.deltaEmpty,
     invariants: invariants.length ? invariants.join('\n') : '-',

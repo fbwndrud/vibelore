@@ -25,7 +25,7 @@ import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-l
 import { promptKit } from '../prompts/index.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
 import { renderContinuity } from '../core/draft-input-compiler.js';
-import { renderCurrentState, renderWriterFoundation } from '../core/prompt-sections.js';
+import { namedCharacters, planningCast, renderCurrentState, renderWriterFoundation } from '../core/prompt-sections.js';
 import { loadDisabledDraftSections } from '../core/review-policy.js';
 import { supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
@@ -249,7 +249,9 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   if (observedCanonHead !== pinnedCanonHead) throw new Error(`STALE_DRAFT_IDENTITY: canonHead ${pinnedCanonHead} -> ${observedCanonHead}`);
   const foundationRender = renderWriterFoundation(executionSnapshot, detailedPlan.cast, chapter, kit);
   const stateRender = chapter > 1
-    ? renderCurrentState(prevState, executionSnapshot, { cast: detailedPlan.cast, kit, mode: 'writer', focusText: episodePacket.writerText })
+    ? renderCurrentState(prevState, executionSnapshot, { cast: detailedPlan.cast, kit, mode: 'writer',
+      focusText: [episodePacket.writerText, arcEpisode.beat, arcEpisode.pressure, detailedPlan.premise].filter(Boolean).join('\n'),
+      hookIds: detailedPlan.hooksTouched ?? [] })
     : '';
   const writerArc = { ...planningArc, summary: `${arcEpisode.beat || arcEpisode.goal} → 비용: ${arcEpisode.costCreatedByResolution || arcEpisode.cost || ''}` };
   const execution = await executePinnedDraft({
@@ -383,9 +385,12 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
     kit: promptKit({ contract: workLanguage.contract }),
   }) : null;
   const kit = promptKit({ contract: workLanguage.contract });
-  // The author's intent may bring in any registered character, so the rewrite
-  // is not limited to the plan's cast.
-  const everyone = foundation.characters.filter((c) => c.disabled !== true && (c.registeredAtChapter ?? 0) <= chapter).map((c) => c.id);
+  // The author's intent may bring in any character it names, so the rewrite
+  // is not limited to the plan's cast; unnamed characters stay out so the
+  // input does not grow with the work.
+  const episodePlan = await store.loadEpisodePlan?.(workId, chapter);
+  const everyone = [...namedCharacters(foundation, `${intent ?? ''}\n${artifact.prose}`,
+    [...planningCast(foundation, { focusText: intent ?? '', chapter }), ...(episodePlan?.cast ?? [])])];
   const result = await runRewrite({
     foundation: executionFoundation(foundation, workLanguage), prevState, chapterNumber: chapter,
     foundationRender: renderWriterFoundation(foundation, everyone, chapter, kit),

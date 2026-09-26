@@ -547,6 +547,8 @@ export const phrases = {
     trackedKeyed: (kind, key, body) => `- [${kind}] \`${key}\` ${body}`,
     worldFactsHeading: '## 세계 사실',
     charactersHeading: '## 인물',
+    omitted: (n) => `  (이 요청과 관련 없는 ${n}건은 생략)`,
+    castOthers: (names) => `- 그 밖의 등록 인물: ${names}`,
     castBrief: (name, id, role, contradiction) => `- ${name} (${id})${role ? ` · ${role}` : ''}${contradiction ? ` — 모순: ${contradiction}` : ''}`,
     summary: (chapter, text) => `- ${chapter}화: ${text}`,
     arcCharacterBeat: (name, promise, beat, note) => `- ${name}: ${beat}${note ? ` — ${note}` : ''}${promise ? ` (아크 약속: ${promise})` : ''}`,

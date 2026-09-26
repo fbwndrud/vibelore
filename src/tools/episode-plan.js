@@ -1,4 +1,4 @@
-import { renderArcBeat, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
+import { planningCast, renderArcBeat, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { characterArcBeatsForEpisode, episodeForChapter } from './arc.js';
 import { renderStoryProfile } from './story-profile.js';
@@ -197,6 +197,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   const patternLedger = await store.loadPatternLedger(workId);
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });
+  // The arc beat, character beats and recent summaries decide who the plan may draw on.
+  const planFocus = [renderArcBeat(arcBeat, kit), renderCharacterArcBeats(characterArcBeatsForEpisode(arcPlan, arcBeat.index), foundation, kit), ...summaries.map((item) => item.summary ?? '')].join('\n');
   const planMessages = kit.messages('episode-plan', {
       profileRender: renderStoryProfile(storyProfile, kit),
       identityRender: renderStoryIdentity(identity, kit),
@@ -209,9 +211,9 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       feedback: feedback || kit.phrases.common.noneParen,
       priorText: prior ? renderEpisodePlan(prior, kit) || kit.phrases.common.noneParen : kit.phrases.common.noneParen,
       worldFactsText: renderWorldFacts(foundation, kit) || kit.phrases.common.noneParen,
-      castText: renderCastBrief(foundation, kit),
+      castText: renderCastBrief(foundation, kit, { focusText: planFocus, chapter }),
       summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
-      stateText: renderCurrentState(state, foundation, { cast: foundation.characters.map((c) => c.id), kit, mode: 'writer', focusText: renderArcBeat(arcBeat, kit) }) || kit.phrases.common.noneParen,
+      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'writer', focusText: planFocus, oldestHooks: 3 }) || kit.phrases.common.noneParen,
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };

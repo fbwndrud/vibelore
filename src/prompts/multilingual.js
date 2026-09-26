@@ -556,6 +556,8 @@ export const phrases = {
     trackedKeyed: (kind, key, body) => `- [${kind}] \`${key}\` ${body}`,
     worldFactsHeading: '## World facts',
     charactersHeading: '## Characters',
+    omitted: (n) => `  (${n} more not related to this request are left out)`,
+    castOthers: (names) => `- Other registered characters: ${names}`,
     castBrief: (name, id, role, contradiction) => `- ${name} (${id})${role ? ` · ${role}` : ''}${contradiction ? ` — contradiction: ${contradiction}` : ''}`,
     summary: (chapter, text) => `- ch. ${chapter}: ${text}`,
     arcCharacterBeat: (name, promise, beat, note) => `- ${name}: ${beat}${note ? ` — ${note}` : ''}${promise ? ` (arc promise: ${promise})` : ''}`,

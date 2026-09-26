@@ -66,7 +66,7 @@ test('world facts render as a text list', () => {
 });
 
 test('writer state keeps what bears on this chapter and drops resolved, undirected and unrelated records', () => {
-  const text = renderCurrentState(state, foundation, { cast: ['c1', 'c2', 'c4'], kit, mode: 'writer' });
+  const text = renderCurrentState(state, foundation, { cast: ['c1', 'c2', 'c4'], kit, mode: 'writer', focusText: '표식을 따라 간다' });
   assert.match(text, /리아 \(c1\).*거점 마당.*손목 부상 은폐/);
   assert.match(text, /도윤 \(c2\).*사망/);
   assert.match(text, /LATEST_FACT/);
@@ -82,13 +82,15 @@ test('writer state keeps what bears on this chapter and drops resolved, undirect
   assert.doesNotMatch(text, /[{}]/);
 });
 
-test('extract state lists every active hook and tracked key verbatim so records can be updated', () => {
-  const text = renderCurrentState(state, foundation, { cast: ['c1'], kit, mode: 'extract' });
+test('extract state lists the hooks, items and address terms the prose touches with their exact keys, and counts the rest', () => {
+  const prose = '도윤은 구겨진 쪽지를 폈다. 표식은 어디로 이어지나. 리아가 "마렌 씨" 하고 불렀다.';
+  const text = renderCurrentState(state, foundation, { cast: ['c1'], kit, mode: 'extract', focusText: prose });
   assert.match(text, /`mark`/);
   assert.match(text, /1화/);
-  assert.match(text, /`id:slip`/);
-  assert.match(text, /`name:UNRELATED_ITEM`/);
-  assert.match(text, /OFFSTAGE_TERM/, 'extraction sees the whole address map');
+  assert.match(text, /`id:slip`/, 'the item the prose names keeps its key');
+  assert.match(text, /`c2->c4`/, 'address terms between named characters');
+  assert.doesNotMatch(text, /UNRELATED_ITEM|OFFSTAGE_TERM/);
+  assert.match(text, /관련 없는 1건은 생략/);
   assert.doesNotMatch(text, /LATEST_FACT/, 'known-fact history is not re-sent to the extractor');
 });
 
