@@ -145,11 +145,15 @@
   neither blocks `lore_write` nor triggers a model re-check. Fingerprints now
   also record a whitespace-free content digest; fingerprints captured before
   this keep comparing raw bytes until the next capture.
-- An oversized assembled writing context no longer stops `lore_write`,
-  `lore_rewrite` or the character review. Those paths record the overflow in
-  the context trace and the draft audit (`contextOverflow`) and continue,
-  without older memory when the world facts and active hooks alone exceed
-  the memory budget. `lore_context` still refuses an oversized context.
+- Drafts and `lore_rewrite` no longer assemble the `lore_context` render to
+  take its summary window and older memory, so an oversized reference render
+  cannot stop `lore_write`. A dedicated selection
+  (`selectWriterContinuity`) retrieves older memory without counting world
+  facts and open hooks against the memory budget, since the draft already
+  carries them in its setting and state sections; it never refuses. The draft
+  audit records how many summaries the window trimmed and how many matching
+  memories the budget left out (`contextAudit.memory`). `lore_context` still
+  refuses an oversized context.
 - A whole-chapter rewrite (`lore_rewrite`) gets the same recent summaries and
   older memory a draft of that chapter would get.
 - The memory index is rebuilt from an empty file, so a `memory.db` written by

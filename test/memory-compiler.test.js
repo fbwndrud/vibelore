@@ -72,7 +72,7 @@ for (const promptFamily of [undefined, 'ko']) {
     assert.equal(result.ok, true);
     // golden values recorded at 52e5aee
     assert.deepEqual(result.value.lineage.selectedIds, ['c9', 'c8', 'c7', 'c6', 'c5']);
-    assert.deepEqual(result.value.usage, { maxTokens: 3000, reservedTokens: 500, mandatoryTokens: 450, discretionaryTokens: 1750, remainingTokens: 300 });
+    assert.deepEqual(result.value.usage, { maxTokens: 3000, reservedTokens: 500, mandatoryTokens: 450, discretionaryTokens: 1750, remainingTokens: 300, droppedForBudget: 5 });
     assert.equal(result.value.usage.mandatoryTokens, legacyTokens(mixedKo(900, 99)));
     assert.ok(tokenUnits(mixedKo(900, 99)) < legacyTokens(mixedKo(900, 99)), 'fixture must be mixed enough for tokenUnits() to diverge');
   });

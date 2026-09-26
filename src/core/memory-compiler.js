@@ -50,7 +50,9 @@ export function compileMemory(context, input) {
   let remaining = available - mandatoryTokens;
   const discretionary = [];
   let boundaryWitness = null;
+  let droppedForBudget = 0;
   for (const candidate of ranked) {
+    if (candidate.score > 0 && candidate.tokenCost > remaining) droppedForBudget += 1;
     if (candidate.score <= 0 || candidate.tokenCost > remaining) {
       boundaryWitness ??= { id: candidate.id, score: candidate.score, reason: candidate.score <= 0 ? 'no_query_match' : 'budget_boundary' };
       continue;
@@ -72,5 +74,5 @@ export function compileMemory(context, input) {
     selectedIds: discretionary.map((item) => item.id), mandatoryIds: mandatory.map((item) => item.id),
     boundaryWitness: boundaryWitness ?? { id: null, reason: 'all_ranked_candidates_fit' },
   };
-  return { ok: true, value: { mandatory, discretionary, lineage, usage: { maxTokens, reservedTokens, mandatoryTokens, discretionaryTokens: available - mandatoryTokens - remaining, remainingTokens: remaining } } };
+  return { ok: true, value: { mandatory, discretionary, lineage, usage: { maxTokens, reservedTokens, mandatoryTokens, discretionaryTokens: available - mandatoryTokens - remaining, remainingTokens: remaining, droppedForBudget } } };
 }

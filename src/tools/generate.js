@@ -8,7 +8,7 @@ import { runRewrite } from '../../engine/src/generators/text/steps/rewrite.js';
 import { runNextArcProposal } from '../../engine/src/generators/text/steps/next-arc-proposal.js';
 import { emptyStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
-import { buildContext } from './context.js';
+import { selectWriterContinuity } from './context.js';
 import { applyEntityOps } from './entities.js';
 import { episodeForChapter, renderArcMap } from './arc.js';
 import { compileBriefWithProfile, profileToPromptOverride } from './story-profile.js';
@@ -172,7 +172,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const arcIntent = compileArcIntent(arcPlan);
   const episodeIntent = compileEpisodeIntent({ episodePlan: detailedPlan, arcEpisode, chapter });
   const pinnedPlanSourceHash = sourceDigest({ arcPlan, detailedPlan, storyProfile, storyIdentity, pilotContract, patternLedger, writerSkill, styleAnchor, narrativeContract, arcIntent, episodeIntent });
-  const { context, meta: contextMeta } = await buildContext({ store: draftStore, workId, chapter, onOverflow: 'report' });
+  const continuitySelection = chapter > 1 ? await selectWriterContinuity({ store: draftStore, workId, chapter }) : null;
   const planningArc = {
     arcNumber: arcPlan.arcNumber, title: arcPlan.title, promise: arcPlan.promise, type: arcPlan.type,
     currentChapterInArc: arcEpisode.index, estimatedEpisodes: arcPlan.estimatedEpisodes,
@@ -220,8 +220,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     kit,
     continuity: {
       genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
-      recentSummaries: chapter > 1 ? contextMeta.recentSummaryTexts : [],
-      olderMemory: chapter > 1 ? writerOlderMemory(contextMeta.olderMemory, (item) => detailedPlan.cast.includes(item.ref)) : [],
+      recentSummaries: continuitySelection?.recentSummaryTexts ?? [],
+      olderMemory: continuitySelection ? writerOlderMemory(continuitySelection.olderMemory, (item) => detailedPlan.cast.includes(item.ref)) : [],
       castIds: detailedPlan.cast,
       locations: detailedPlan.locations,
       previousSceneTail,
@@ -285,8 +285,13 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   return {
     chapter, prose: result.raw, next: 'lore_check로 검사한 뒤 lore_commit 하세요.',
     contextAudit: {
-      recentSummaries: contextMeta.recentSummaries,
-      contextOverflow: contextMeta.overflow,
+      recentSummaries: continuitySelection?.recentSummaryTexts.length ?? 0,
+      // What the window and the memory budget left out; shown to the user with the draft.
+      memory: {
+        trimmedSummaries: continuitySelection?.trimmedSummaries ?? 0,
+        droppedForBudget: continuitySelection?.droppedForBudget ?? 0,
+        retrieval: continuitySelection?.retrieval ?? null,
+      },
       recentSummaryChapters: result.compiled.trace.continuity.recentSummaryChapters,
       olderMemoryRefs: result.compiled.trace.continuity.olderMemoryRefs,
       previousSceneChars: previousSceneTail.length,
@@ -363,11 +368,11 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
   // A whole-chapter rewrite replaces the chapter, so it needs the same window
   // a draft of this chapter would get. Its Foundation carries every
   // registered character.
-  const { meta: contextMeta } = chapter > 1 ? await buildContext({ store, workId, chapter, onOverflow: 'report' }) : { meta: null };
-  const continuity = contextMeta ? renderContinuity({
+  const selection = chapter > 1 ? await selectWriterContinuity({ store, workId, chapter }) : null;
+  const continuity = selection ? renderContinuity({
     genreLine: '',
-    recentSummaries: contextMeta.recentSummaryTexts,
-    olderMemory: writerOlderMemory(contextMeta.olderMemory, () => true),
+    recentSummaries: selection.recentSummaryTexts,
+    olderMemory: writerOlderMemory(selection.olderMemory, () => true),
     maxContextTokens: 2000,
     kit: promptKit({ contract: workLanguage.contract }),
   }) : null;

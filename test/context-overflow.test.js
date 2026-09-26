@@ -32,7 +32,7 @@ import { describe, it } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { runInit } from '../src/tools/init.js';
 import { approvalFixtureProvider } from './fixtures/approval-response.js';
-import { buildContext, MAX_CONTEXT_TOKENS } from '../src/tools/context.js';
+import { buildContext, MAX_CONTEXT_TOKENS, selectWriterContinuity } from '../src/tools/context.js';
 import { tokenUnits } from '../src/core/token-units.js';
 
 async function newStore(tag) {
@@ -180,20 +180,18 @@ describe('writing-context token budget is script-aware (src/tools/context.js)', 
     );
   });
 
-  it('report mode records an oversized context instead of stopping the writer', async () => {
-    const store = await newStore('ko-report');
+  it('the writer selection never refuses: world facts and hooks are shown elsewhere and do not spend the memory budget', async () => {
+    const store = await newStore('ko-writer');
     await runInit({
       store, workId: 'w', genre: 'other', povMode: '3인칭제한',
       worldFacts: hangulFacts(60, 1300),
       providers: approvalFixtureProvider(),
     });
-    const { context, meta } = await buildContext({ store, workId: 'w', chapter: 1, onOverflow: 'report' });
-    assert.ok(context.length > 0);
-    assert.equal(meta.overflow.context.maxTokens, MAX_CONTEXT_TOKENS);
-    assert.ok(meta.overflow.context.actualTokens > MAX_CONTEXT_TOKENS);
-    assert.equal(meta.overflow.memory, 'context_overflow');
-    assert.deepEqual(meta.olderMemory, []);
-    const trace = await store.loadContextTrace('w', 1);
-    assert.deepEqual(trace.overflow, meta.overflow);
+    await assert.rejects(buildContext({ store, workId: 'w', chapter: 1 }), /context_overflow/);
+    const selection = await selectWriterContinuity({ store, workId: 'w', chapter: 1 });
+    assert.deepEqual(selection.recentSummaryTexts, []);
+    assert.deepEqual(selection.olderMemory, []);
+    assert.equal(selection.trimmedSummaries, 0);
+    assert.equal(selection.droppedForBudget, 0);
   });
 });

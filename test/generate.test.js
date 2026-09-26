@@ -456,28 +456,13 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(prompt, /OLD_MEMORY_TOKEN/);
   });
 
-  it('drafts past an oversized assembled context and records the overflow', async () => {
-    const store = await createdStore({ legacy: true });
-    const foundation = await store.loadFoundation('tax-tower');
-    const long = '탑의 세금 규칙은 층마다 다르고 창구는 밤에 닫힌다. '.repeat(50);
-    foundation.worldFacts = Array.from({ length: 60 }, (_, index) => ({ id: `big${index}`, statement: long, registeredAtChapter: 1 }));
-    await store.saveFoundation(foundation);
-    const { result } = await draftPrompt(store, 1);
-    assert.equal(result.contextAudit.contextOverflow.memory, 'context_overflow');
-    assert.ok(result.contextAudit.contextOverflow.context.actualTokens > 18000);
-  });
-
-  it('tells the writer which characters are recorded dead and which hooks are still open', async () => {
+  it('selects the draft continuity without assembling the lore_context render, and reports what was cut', async () => {
     const store = await sevenChapterStore();
-    const eighth = emptyDelta(8);
-    eighth.mutableChanges = [{ characterId: 'hero', vitalStatus: 'dead', status: '탑에서 추락' }];
-    eighth.hookChanges = [{ id: 'key-owner', text: '은빛열쇠 주인은 ACTIVE_HOOK_TOKEN', plantedAtChapter: 3, phase: 'paid' }];
-    await runCommit({ store, workId: 'tax-tower', chapter: 8, prose: '윤재가 떨어졌다.', summary: '윤재가 탑에서 떨어졌다.', providers: createHostRelay({}), delta: eighth });
-    const { prompt } = await draftPrompt(store, 9);
-    assert.match(prompt, /윤재 \(hero\) — 사망/);
-    assert.match(prompt, /회상·기억·언급으로만 나오는 인물은 넣지 않는다/);
-    const { context } = await buildContext({ store, workId: 'tax-tower', chapter: 9 });
-    assert.doesNotMatch(context.split('## 미해결 떡밥')[1] ?? '', /ACTIVE_HOOK_TOKEN/, '회수된 떡밥은 미해결 목록에 없다');
+    const { result, prompt } = await draftPrompt(store, 8);
+    assert.equal(await store.loadContextTrace('tax-tower', 8), null, 'the lore_context render is not built for a draft');
+    assert.match(prompt, /OLD_MEMORY_TOKEN/);
+    assert.equal(result.contextAudit.memory.trimmedSummaries, 0);
+    assert.equal(typeof result.contextAudit.memory.droppedForBudget, 'number');
   });
 
   it('opens chapter one without a continuity window or older memory', async () => {

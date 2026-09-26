@@ -44,13 +44,11 @@ function renderAddressMap(state, foundation, kit) {
 }
 
 /**
- * `onOverflow: 'throw'` (lore_context) refuses an oversized context. Writer
- * and reviewer paths pass 'report': the draft does not send this string, so
- * an oversized one is recorded in `meta.overflow` and the trace instead of
- * stopping the chapter, and memory falls back to none when the mandatory set
- * alone is over its budget.
+ * The lore_context render: everything the store knows about the chapter in one
+ * reference text. It refuses when that text is over budget. The writing path
+ * does not use it; drafts select their continuity with `selectWriterContinuity`.
  */
-export async function buildContext({ store, workId, chapter, scene, targetChapters, onOverflow = 'throw' }) {
+export async function buildContext({ store, workId, chapter, scene, targetChapters }) {
   const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
   store = await openCanonRepository({ store, publicationUnit });
   const foundation = await store.loadFoundation(workId);
@@ -114,12 +112,8 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     indexGeneration: `memory:${memory.documents}`, tokenizerRevision: SEARCH_TERMS_REVISION, rankerRevision: memory.backend,
   });
   const t = kit.phrases.context;
-  const overflow = { context: null, memory: null };
-  if (!compiledMemory.ok) {
-    if (onOverflow !== 'report') throw new Error(`${compiledMemory.error.code}: ${t.mandatoryOverflow}`);
-    overflow.memory = compiledMemory.error.code;
-  }
-  const memoryItems = compiledMemory.ok ? compiledMemory.value.discretionary : [];
+  if (!compiledMemory.ok) throw new Error(`${compiledMemory.error.code}: ${t.mandatoryOverflow}`);
+  const memoryItems = compiledMemory.value.discretionary;
 
   const sections = [
     t.heading(chapter, workId),
@@ -198,16 +192,14 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     ? Math.max(1, Math.ceil([...context].length / 2))
     : tokenUnits(context);
   if (actualTokens > MAX_CONTEXT_TOKENS) {
-    if (onOverflow !== 'report') throw new Error(`context_overflow: ${t.contextOverflow(actualTokens, MAX_CONTEXT_TOKENS)}`);
-    overflow.context = { actualTokens, maxTokens: MAX_CONTEXT_TOKENS };
+    throw new Error(`context_overflow: ${t.contextOverflow(actualTokens, MAX_CONTEXT_TOKENS)}`);
   }
   const contextHash = `sha256:${createHash('sha256').update(context).digest('hex')}`;
   const trace = {
     workId, chapter, compiledAt: new Date().toISOString(), query: retrievalQuery,
     protected: { worldFacts: foundation.worldFacts.map((f) => f.id), characters: visible.map((c) => c.id), arcEpisode: arcEpisode?.index ?? null, episodePlan: episodePlan?.revision ?? null },
     slidingWindow: { included: window.recentSummaries.map((summary) => summary.chapterNumber), trimmed: window.trimmedCount },
-    retrieval: { documents: memory.documents, candidates: memory.candidates, selected: memory.selected, compiled: compiledMemory.ok ? compiledMemory.value : null }, hookDebt: debts,
-    overflow,
+    retrieval: { documents: memory.documents, candidates: memory.candidates, selected: memory.selected, compiled: compiledMemory.value }, hookDebt: debts,
     contextChars: context.length, actualTokens, contextHash,
   };
   await store.saveContextTrace(workId, trace);
@@ -224,7 +216,6 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
       // Newest-first text of the same window, and the older memory the
       // compiler selected, so the draft sees what this context assembled.
       recentSummaryTexts: window.recentSummaries.map((summary) => ({ chapter: summary.chapterNumber, text: summary.summary })),
-      overflow,
       olderMemory: memoryItems.map((item) => ({
         scope: item.scope ?? item.kind, ref: item.ref ?? item.id, chapter: item.chapter ?? null, text: item.text,
       })),
@@ -240,5 +231,62 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
       retrievedMemory: memory.selected.length,
       contextTrace: `context-traces/${chapter}.json`,
     },
+  };
+}
+
+/**
+ * What a draft (or rewrite) takes from the store beyond its setting and state
+ * sections: the recent summary window and older memory retrieved for the
+ * chapter. World facts and open hooks are already in those sections, so they
+ * are excluded from the candidates instead of spending the memory budget, and
+ * the selection never refuses. What the budget left out is counted for the
+ * draft audit.
+ */
+export async function selectWriterContinuity({ store, workId, chapter }) {
+  const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
+  store = await openCanonRepository({ store, publicationUnit });
+  const foundation = await store.loadFoundation(workId);
+  if (!foundation) throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
+  const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
+  const kit = promptKit({ contract: workLanguage.contract });
+  const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store, promptFamily: kit.family });
+  const lastState = window.lastStoryState;
+  const arcPlan = await store.loadArcPlan(workId);
+  const episodePlan = await store.loadEpisodePlan(workId, chapter);
+  const arcEpisode = episodeForChapter(arcPlan, chapter);
+  const retrievalQuery = [arcEpisode?.beat, arcEpisode?.pressure, episodePlan?.premise, episodePlan?.entryState?.activeQuestion,
+    episodePlan?.readerExpectation?.likelyOutcome, ...(episodePlan?.hooksTouched ?? [])].filter(Boolean).join(' ');
+  const snapshotId = store.publishedRevision?.head ?? 'legacy-working-tree';
+  const searchLanguage = workLanguage.contract?.language;
+  const memory = await retrieveMemory({ store, workId, query: retrievalQuery, currentChapter: chapter, language: searchLanguage });
+  const windowChapters = new Set(window.recentSummaries.map((summary) => summary.chapterNumber));
+  const shown = new Set([
+    ...foundation.worldFacts.map((fact) => `fact:${fact.id}`),
+    ...(lastState?.hooks ?? []).filter(isHookActive).map((hook) => `hook:${hook.id}`),
+  ]);
+  const candidates = memory.candidates
+    .filter((item) => Number(item.chapter) < chapter && !(item.scope === 'summary' && windowChapters.has(Number(item.chapter))))
+    .map((item) => ({ ...item, id: `${item.scope}:${item.ref}` }))
+    .filter((item) => !shown.has(item.id));
+  const compiled = compileMemory({
+    snapshotId, expectedHead: snapshotId, storyTimeScope: { worldline: 'main', through: chapter - 1 },
+    publicationOrder: chapter - 1, transactionTime: new Date().toISOString(), policyRevision: 1,
+    semanticGeneration: 1, fencingToken: store.publishedRevision?.manifest?.fencingToken ?? 1,
+  }, {
+    scope: { chapter, entityIds: [] }, budget: { maxTokens: 12000, reservedTokens: 3000 },
+    mandatory: [], candidates,
+    query: retrievalQuery, promptFamily: kit.family, language: searchLanguage,
+    indexGeneration: `memory:${memory.documents}`, tokenizerRevision: SEARCH_TERMS_REVISION, rankerRevision: memory.backend,
+  });
+  if (!compiled.ok) throw new Error(`${compiled.error.code}: ${compiled.error.message}`);
+  return {
+    // Newest first, like the window.
+    recentSummaryTexts: window.recentSummaries.map((summary) => ({ chapter: summary.chapterNumber, text: summary.summary })),
+    olderMemory: compiled.value.discretionary.map((item) => ({
+      scope: item.scope ?? item.kind, ref: item.ref ?? item.id, chapter: item.chapter ?? null, text: item.text,
+    })),
+    trimmedSummaries: window.trimmedCount,
+    droppedForBudget: compiled.value.usage.droppedForBudget,
+    retrieval: { documents: memory.documents, candidates: candidates.length, selected: compiled.value.discretionary.length },
   };
 }
