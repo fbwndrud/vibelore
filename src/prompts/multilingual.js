@@ -119,7 +119,7 @@ export const steps = {
 
   'pattern-ledger': {
     system: 'Extract and normalize the narrative pattern the reader actually experienced in this chapter, not its surface material. When different wordings serve the same function, use the same short category name. Record the solution shape, the moral choice, the shape of the cost, the family of decisive evidence, the dominant scene mode, the emotional temperature, the closing image, the comedy structure, the protagonist\'s way of thinking, their misjudgement and correction, the independent action of supporting characters, and the type of the final hook. Category names are machine-facing labels: keep them short and stable. Output pure JSON only.',
-    user: (c) => `Prose:\n${c.prose}\nJSON: {"solutionPattern":"environment|rule-reinterpretation|negotiation|combat|sacrifice|information|relationship-choice|other","moralChoice":"both sides of the choice in a few words, such as people vs results","costShape":"body|relationship|standing|resource|information|time|identity|none|other","evidenceFamily":"document|number|physical|testimony|behaviour-contradiction|place-trace|sensory|none|other","sceneMode":"combat|negotiation|investigation|training|travel|rest|trial|infiltration|other","emotionalTemperature":"light|tense|fearful|angry|sad|intimate|shameful|liberating|other","endingImage":"sealed-document|dark-evidence|injury|parting|new-character|place-change|rule-notice|relational-action|other","comedyMechanism":"","protagonistMethod":"","mistakeAndCorrection":"","supportingAgency":{"characterId":"the choice they made independently"},"hookType":"result|reinterpretation|relationship|ability|moral|identity|none"}`,
+    user: (c) => `${c.notesText ? `${c.notesText}\n\n` : ''}Prose:\n${c.prose}\nJSON: {"solutionPattern":"environment|rule-reinterpretation|negotiation|combat|sacrifice|information|relationship-choice|other","moralChoice":"both sides of the choice in a few words, such as people vs results","costShape":"body|relationship|standing|resource|information|time|identity|none|other","evidenceFamily":"document|number|physical|testimony|behaviour-contradiction|place-trace|sensory|none|other","sceneMode":"combat|negotiation|investigation|training|travel|rest|trial|infiltration|other","emotionalTemperature":"light|tense|fearful|angry|sad|intimate|shameful|liberating|other","endingImage":"sealed-document|dark-evidence|injury|parting|new-character|place-change|rule-notice|relational-action|other","comedyMechanism":"","protagonistMethod":"","mistakeAndCorrection":"","supportingAgency":{"characterId":"the choice they made independently"},"hookType":"result|reinterpretation|relationship|ability|moral|identity|none"}`,
   },
 
   'story-profile-check': {
@@ -583,6 +583,9 @@ export const phrases = {
     planExit: (closed, next, value, type) => `- next value: ${[closed && `closed question ${closed}`, next && `next question ${next}`, value && `specific value ${value}`, type && `hook type ${type}`].filter(Boolean).join(' / ')}`,
     planAgenda: (name, goal, redLine, fallback) => `- ${name}'s agenda: ${[goal, redLine && `line not crossed ${redLine}`, fallback && `fallback ${fallback}`].filter(Boolean).join(' / ')}`,
     previousSummary: (chapter, text) => `Previous chapter summary (ch. ${chapter}): ${text}`,
+    patternIds: (pairs) => `Character IDs (key supportingAgency by ID): ${pairs}`,
+    patternPrevious: (rows) => `Categories used in the previous chapters (reuse a name for the same function, use another for a different one):\n${rows}`,
+    patternPreviousRow: (chapter, fields) => `- ch. ${chapter}: ${fields}`,
     invariantsHeading: '## Genre invariants',
     invariant: (severity, description) => `- [${severity}] ${description}`,
   },

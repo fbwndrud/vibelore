@@ -55,6 +55,10 @@
   doubled.
 - The editorial review's earlier summaries are labelled by chapter and run
   oldest first; they were unlabelled and newest first.
+- The pattern review sees the character ID table and the categories the
+  previous two chapters were filed under. Repetition is detected by exact
+  category name, and without the earlier names the reviewer invented new
+  ones each chapter. Supporting-agency keys given as names are stored as IDs.
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

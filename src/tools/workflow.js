@@ -579,7 +579,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, episodePlan, prevState: fidelityPrevState, dynamics: fidelityDynamics, previousSummary: priorSummaries[0] ?? null, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
 
     readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, foundation, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
-    patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
+    patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, foundation, cast: episodePlan?.cast ?? [], previousEntries: patternLedger.slice(-2), providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
     // Independent reviews above are collected into one host round trip. The
     // semantic continuity check (needs the extracted delta) and the arc review
     // (needs the pattern entry) wait for the answers they depend on.
