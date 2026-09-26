@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- A lone relayed request that carries the shared chapter prose (the
+  continuity check, which parks after the review batch) gets the same
+  shared-prefix layout, so it reads the prefix that batch cached. Warm-first
+  stays off for a lone request. The CLI relay instruction and the operations
+  guide ask for `CLAUDE_CODE_PROMPT_CACHE_TTL=5m`: a subscription-signed CLI
+  writes the cache with a 1-hour TTL at twice the input price.
 - `needs_model` responses carry `inputReport`: for each request its
   sections with character counts, the shared prose size and whether it can
   reuse the cached shared block. `lore_write` keeps the last report on the

@@ -2,8 +2,8 @@
  * What each parked model request carries, for the user: its sections with
  * character counts, and whether it can reuse the cached shared block. The
  * relay layout moves a declared shared text (the chapter prose) into a common
- * prefix only when it occurs exactly once in two or more requests of the
- * batch; the same rule decides `sharedPrefix` here.
+ * prefix when it occurs exactly once in a request; the same rule decides
+ * `sharedPrefix` here.
  */
 const SHARED = '\u0000shared\u0000';
 const HEADING = /^##\s+(.+)$/;
@@ -22,7 +22,7 @@ function sharedMembership(requests, sharedContexts) {
     if (!context?.text) continue;
     const members = requests.filter((request) => !assigned.has(request.id)
       && typeof request.user === 'string' && occurrences(request.user, context.text) === 1);
-    if (members.length < 2) continue;
+    if (members.length < 1) continue;
     for (const request of members) assigned.set(request.id, context);
   }
   return assigned;

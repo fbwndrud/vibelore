@@ -70,9 +70,18 @@ describe('relay prompt layout', () => {
     assert.equal(draft.promptCache, undefined);
   });
 
-  it('does not group a lone request, a repeated occurrence, or an undeclared batch', () => {
-    const [one] = reviewBatch();
-    assert.equal(layoutRelayRequests([one], [{ id: 'p', label: 'l', text: PROSE }])[0].promptCache, undefined);
+  it('lays out a lone request like its batch so it reads the prefix the earlier batch cached', () => {
+    const shared = [{ id: 'chapter-prose', label: '5화 본문', text: PROSE }];
+    const batchPrefix = sharedPrefix(layoutRelayRequests(reviewBatch(), shared)[0]);
+    const lone = { id: 'check', step: 'continuity-check', jsonMode: true, system: '검사 역할', user: `검사 자료\n본문:\n${PROSE}\nJSON: {}` };
+    const [laid] = layoutRelayRequests([lone], shared);
+    assert.equal(laid.system, HOST_EXECUTION_NOTE);
+    assert.equal(sharedPrefix(laid), batchPrefix);
+    assert.equal(laid.promptCache.groupSize, 1);
+    assert.equal(laid.promptCache.warmFirst, false, 'nothing in its own batch waits for it');
+  });
+
+  it('does not group a repeated occurrence or an undeclared batch', () => {
     const twice = reviewBatch().map((request) => ({ ...request, user: `${request.user}\n${PROSE}` }));
     assert.ok(layoutRelayRequests(twice, [{ id: 'p', label: 'l', text: PROSE }]).every((request) => !request.promptCache));
     assert.ok(layoutRelayRequests(reviewBatch(), []).every((request) => !request.promptCache));

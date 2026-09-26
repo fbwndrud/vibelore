@@ -17,8 +17,10 @@ import { createHash } from 'node:crypto';
  *           [이번 요청 자료] original user, shared text replaced by a pointer
  *
  * Only text a workflow declared with `shareContext` and that occurs exactly once
- * in the user of two or more requests is moved, so no request gains material it
- * did not have (an editorial review that excludes the plan stays without it).
+ * in a request's user is moved, so no request gains material it did not have
+ * (an editorial review that excludes the plan stays without it). A lone
+ * request gets the same layout: the continuity check parks after the review
+ * batch, and the identical prefix lets it read what that batch cached.
  * Request ids stay the fingerprints of the engine's original requests, so
  * answers resume exactly as before; direct providers never see this layout.
  */
@@ -124,7 +126,7 @@ export function layoutRelayRequests(requests, sharedContexts = [], { promptFamil
     if (!context?.text) continue;
     const members = requests.filter((request) => !assigned.has(request.id)
       && typeof request.user === 'string' && occurrences(request.user, context.text) === 1);
-    if (members.length < 2) continue;
+    if (members.length < 1) continue;
     for (const request of members) assigned.set(request.id, context);
   }
 
@@ -149,7 +151,8 @@ export function layoutRelayRequests(requests, sharedContexts = [], { promptFamil
           estimatedSharedTokens: estimatedTokens,
           groupSize: size,
         },
-        warm: estimatedTokens >= MIN_SHARED_PREFIX_TOKENS,
+        // Warming first only helps requests waiting in the same batch.
+        warm: size >= 2 && estimatedTokens >= MIN_SHARED_PREFIX_TOKENS,
         first: true,
       };
       groups.set(context, group);

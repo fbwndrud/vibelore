@@ -25,9 +25,11 @@ test('each request is described by its sections, character counts and whether it
   assert.deepEqual(pattern.sections.map((s) => s.heading), ['인물 ID', '본문']);
 });
 
-test('a single request cannot share a prefix with anyone and says so', () => {
+test('a lone request still uses the shared prefix an earlier batch cached; one without the prose does not', () => {
   const [row] = describeRequestInputs([requests[0]], [{ id: 'chapter-prose', label: '8화 본문', text: prose }]);
-  assert.equal(row.sharedPrefix, false);
+  assert.equal(row.sharedPrefix, true);
+  const [plain] = describeRequestInputs([{ id: 'x', step: 'draft', system: '', user: '계획만' }], [{ id: 'chapter-prose', label: '8화 본문', text: prose }]);
+  assert.equal(plain.sharedPrefix, false);
 });
 
 test('needs_model responses carry the input report', async () => {
