@@ -204,7 +204,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   const characterPacket = renderSceneCharacterPacket({
     projection: published.value?.projections?.characterDynamics,
     cast: episodePlan?.cast ?? [], pressure: episodePlan?.scenePressure?.decisionDeadline ?? '',
-    kit,
+    episodePlan, kit,
   });
   if (characterPacket) sections.push('', characterPacket);
 

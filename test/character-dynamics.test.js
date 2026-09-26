@@ -168,6 +168,22 @@ describe('CharacterDynamics seam', () => {
     assert.ok(packet.length < 1800);
   });
 
+  it('shows the current chapter goal, not the goal seeded from the first chapter', () => {
+    const seeded = foldLegacyChapterCharacterDynamics(context(), {
+      foundation: { characters: [{ id: 'jiwon', canonicalName: '지원' }] },
+      delta: { chapterNumber: 1, mutableChanges: [], relationshipOps: [] },
+      episodePlan: { scenePressure: { choiceOwner: 'jiwon' }, entryState: { protagonistImmediateWant: 'FIRST_CHAPTER_GOAL' } },
+      acceptedObservation: { status: 'accepted', observationId: 'obs-1', sourceHash: 'sha256:1', acceptedAt: 1, influenceEvents: [] },
+    });
+    assert.equal(seeded.ok, true);
+    const packet = renderSceneCharacterPacket({
+      projection: seeded.value, cast: ['jiwon'],
+      episodePlan: { scenePressure: { choiceOwner: 'jiwon' }, entryState: { protagonistImmediateWant: 'FIFTH_CHAPTER_GOAL' } },
+    });
+    assert.match(packet, /FIFTH_CHAPTER_GOAL/);
+    assert.doesNotMatch(packet, /FIRST_CHAPTER_GOAL/);
+  });
+
   it('refuses to fold unaccepted observations into character truth', () => {
     const result = foldLegacyChapterCharacterDynamics(context(), {
       foundation: { characters: [{ id: 'jiwon', canonicalName: '지원' }] },

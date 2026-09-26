@@ -444,7 +444,7 @@ export const phrases = {
     mergedExitState: 'the payout above is confirmed as the closing state',
     characterCarryHeading: '## Character Carry',
     characterChange: (name, beat, note) => `${name}: change this chapter=${beat}${note ? ` — ${note}` : ''}`,
-    relationshipResidue: (name, kind, state) => `${name}: ${kind} — ${state}`,
+    relationshipResidue: (from, to, kind, state) => `${from}→${to}: ${kind} — ${state}`,
     arcResidue: (name, beat, note) => `${name}: ${beat}${note ? ` — ${note}` : ''}`,
     characterCarryFooter: '- Do not explain the earlier relationship; let it show in exactly one of register, distance or hesitation where it is needed.',
     protectedTruthsHeading: '## Protected Truths',

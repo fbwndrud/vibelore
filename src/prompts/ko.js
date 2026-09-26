@@ -437,7 +437,7 @@ export const phrases = {
     mergedExitState: '위 지급 결과가 종료 상태로 확정됨',
     characterCarryHeading: '## Character Carry',
     characterChange: (name, beat, note) => `${name}: 이번 화 변화=${beat}${note ? ` — ${note}` : ''}`,
-    relationshipResidue: (name, kind, state) => `${name}: ${kind} — ${state}`,
+    relationshipResidue: (from, to, kind, state) => `${from}→${to}: ${kind} — ${state}`,
     arcResidue: (name, beat, note) => `${name}: ${beat}${note ? ` — ${note}` : ''}`,
     characterCarryFooter: '- 이전 관계를 설명하지 말고 현재 말투·거리·망설임 중 필요한 한 곳에만 반영한다.',
     protectedTruthsHeading: '## Protected Truths',

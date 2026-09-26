@@ -102,7 +102,17 @@ export function foldLegacyChapterCharacterDynamics(context, input = {}) {
 }
 
 /** Bounded prose-facing projection used by context compilation. */
-export function renderSceneCharacterPacket({ projection, cast = [], pressure = '', maxInfluences = 3, kit: kitSource }) {
+// The folded agenda keeps the goal it was seeded with (the first chapter's
+// immediate want for the choice owner). The current plan owns this chapter's
+// goals, so it overrides the stored ones.
+function currentGoal(characterId, agenda, episodePlan) {
+  const planned = asArray(episodePlan?.characterAgendas).find((item) => item?.characterId === characterId)?.goal;
+  if (planned) return planned;
+  if (episodePlan?.scenePressure?.choiceOwner === characterId) return episodePlan?.entryState?.protagonistImmediateWant || '';
+  return agenda.goal ?? '';
+}
+
+export function renderSceneCharacterPacket({ projection, cast = [], pressure = '', maxInfluences = 3, episodePlan = null, kit: kitSource }) {
   if (!projection || !cast.length) return '';
   const t = asKit(kitSource).phrases.context;
   const lines = [t.scenePacketHeading, pressure ? t.scenePressure(pressure) : ''];
@@ -111,7 +121,8 @@ export function renderSceneCharacterPacket({ projection, cast = [], pressure = '
     if (!state) continue;
     const agenda = projection.agendas?.[characterId] ?? {};
     lines.push(t.sceneCharacter(state.model?.canonicalName ?? characterId, characterId));
-    if (agenda.goal) lines.push(t.sceneGoal(agenda.goal));
+    const goal = currentGoal(characterId, agenda, episodePlan);
+    if (goal) lines.push(t.sceneGoal(goal));
     if (agenda.nextAction) lines.push(t.sceneNextAction(agenda.nextAction, agenda.deadline));
     if (agenda.fallback) lines.push(t.sceneFallback(agenda.fallback));
     if (state.nextChoiceBias) lines.push(t.sceneBias(state.nextChoiceBias));

@@ -76,8 +76,14 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
   const foreground = new Set(list(episodePlan.foregroundCharacters).length
     ? list(episodePlan.foregroundCharacters)
     : [ownerId].filter(Boolean));
-  const relationshipResidue = (prevState?.relationships ?? []).filter((item) => foreground.has(clean(item.to)))
-    .slice(-4).map((item) => ({ to: clean(item.to), kind: clean(item.kind), state: clean(item.state) }));
+  // A record without a direction cannot say who feels what, so it is left out.
+  // Older extractions wrote the direction into `to` as "a->b".
+  const relationshipResidue = (prevState?.relationships ?? []).map((item) => {
+    const arrow = /^([^\s>]+)->([^\s>]+)$/.exec(clean(item.to));
+    const from = clean(item.from) || arrow?.[1] || '';
+    const to = arrow && !clean(item.from) ? arrow[2] : clean(item.to);
+    return { from, to, kind: clean(item.kind), state: clean(item.state) };
+  }).filter((item) => item.from && (foreground.has(item.from) || foreground.has(item.to))).slice(-4);
   const arcResidue = Object.entries(prevState?.arcCursor ?? {}).filter(([characterId]) => foreground.has(characterId))
     .slice(-2).map(([characterId, value]) => ({ characterId, beat: clean(value?.beat), note: clean(value?.note) }));
   const includedFields = [
@@ -159,7 +165,7 @@ export function compileWriterEpisodePacket({ episodePlan, arcEpisode, characterN
     ...obligations.characterChanges
       .filter((item) => foreground.has(item.characterId))
       .map((item) => t.characterChange(characterNames[item.characterId] ?? item.characterId, item.beat, item.note)),
-    ...relationshipResidue.map((item) => t.relationshipResidue(characterNames[item.to] ?? item.to, item.kind, item.state)),
+    ...relationshipResidue.map((item) => t.relationshipResidue(characterNames[item.from] ?? item.from, characterNames[item.to] ?? item.to, item.kind, item.state)),
     ...carriedResidue.map((item) => t.arcResidue(characterNames[item.characterId] ?? item.characterId, item.beat, item.note)),
   ];
   const discoverySpace = [...t.discoverySpace];

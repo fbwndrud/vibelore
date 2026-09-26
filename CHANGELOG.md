@@ -7,6 +7,12 @@
   working store where the approval tools write them; they used to read the
   plans sealed in the last publication, so a finished arc stayed the published
   arc forever and context showed "no arc plan".
+- The character packet shows each character's goal for the current chapter
+  from its plan. The choice owner's goal used to stay the first chapter's
+  immediate want for the rest of the work.
+- Carried relationships in the draft name both ends ("A→B"). Records without
+  a direction are left out; they used to be shown under the target's name as
+  if that character held the feeling.
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only
