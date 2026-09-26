@@ -574,7 +574,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
 
     characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, context: characterContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
 
-    readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
+    readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, foundation, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
     patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
     // Independent reviews above are collected into one host round trip. The
     // semantic continuity check (needs the extracted delta) and the arc review

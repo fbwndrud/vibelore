@@ -114,7 +114,7 @@ export const steps = {
 
   'reader-hook': {
     system: '한국 상업 웹소설 회차의 독자 경험을 승인된 작품 약속에 비추어 평가한다. 사건 수가 아니라 독자 가설의 갱신 속도, 약속의 장면 지급, 인물이 만든 전환, 해결이 낳은 비용, 앞 단서 재해석, 상대와 조연의 독립 행동, 구체적인 다음 가치를 본다. pass 판단에는 반드시 본문의 짧은 근거 구절이나 장면 위치를 든다. 계획에만 있고 본문에 없으면 지급으로 인정하지 않는다. 해당 회차에 지급할 약속과 의도적으로 뒤에 지급할 약속을 구분한다. 취미의 구입·설명과 실제 사용·즐거움을 구분하며 어떤 반응에서 인물성이 드러나는지 본문으로 판단한다. 모든 화에 같은 웃음·손실·밈을 강제하지 않는다. 순수 JSON만 출력한다.',
-    user: (c) => `회차: ${c.chapter}\n승인된 작품 계약:\n${c.contract}\n${c.identityRender}\n${c.pilotRender}\nEpisodePlan:\n${c.episodePlanJson}\n최근 훅 유형: ${c.recentHookTypesJson}\n본문:\n${c.prose}\nJSON: {"score":0,"dimensions":{"protagonistAttachment":0,"competenceProof":0,"choiceAndCost":0,"supportingAgency":0,"nextChapterPull":0},"commercialSerialCheck":{"genrePromisePaid":{"verdict":"pass|warn|fail","evidence":""},"onPageExpectationEvidence":{"verdict":"pass|fail","evidence":""},"characterCausedTurn":{"verdict":"pass|warn|fail","evidence":""},"payoffBeforeNewDebt":{"verdict":"pass|warn|fail","evidence":""},"resolutionCreatesCost":{"verdict":"pass|warn|fail","evidence":""},"priorClueReinterpreted":{"verdict":"pass|warn|na","evidence":""},"opponentHasAgency":{"verdict":"pass|warn|na","evidence":""},"hookValueIsSpecific":{"verdict":"pass|warn|fail","evidence":""},"hookTypeVariety":{"verdict":"pass|warn","evidence":""},"metadataLeak":{"verdict":"pass|fail","evidence":""}},"findings":[{"code":"WEAK_PROTAGONIST_HOOK|GENERIC_COMPETENCE|COST_FREE_CHOICE|PASSIVE_SUPPORT|WEAK_NEXT_PULL|MISSING_EXPECTATION_EVIDENCE|UNPAID_PROMISE|AUTHOR_FORCED_TURN|NO_RESOLUTION_COST|VAGUE_EXIT_VALUE|HOOK_TYPE_REPETITION|METADATA_LEAK","message":"본문 근거와 최소 수정 방향"}]}`,
+    user: (c) => `회차: ${c.chapter}\n승인된 작품 계약:\n${c.contract}\n${c.identityRender}\n${c.pilotRender}\n${c.planText}\n최근 훅 유형: ${c.recentHookTypesText}\n본문:\n${c.prose}\nJSON: {"score":0,"dimensions":{"protagonistAttachment":0,"competenceProof":0,"choiceAndCost":0,"supportingAgency":0,"nextChapterPull":0},"commercialSerialCheck":{"genrePromisePaid":{"verdict":"pass|warn|fail","evidence":""},"onPageExpectationEvidence":{"verdict":"pass|fail","evidence":""},"characterCausedTurn":{"verdict":"pass|warn|fail","evidence":""},"payoffBeforeNewDebt":{"verdict":"pass|warn|fail","evidence":""},"resolutionCreatesCost":{"verdict":"pass|warn|fail","evidence":""},"priorClueReinterpreted":{"verdict":"pass|warn|na","evidence":""},"opponentHasAgency":{"verdict":"pass|warn|na","evidence":""},"hookValueIsSpecific":{"verdict":"pass|warn|fail","evidence":""},"hookTypeVariety":{"verdict":"pass|warn","evidence":""},"metadataLeak":{"verdict":"pass|fail","evidence":""}},"findings":[{"code":"WEAK_PROTAGONIST_HOOK|GENERIC_COMPETENCE|COST_FREE_CHOICE|PASSIVE_SUPPORT|WEAK_NEXT_PULL|MISSING_EXPECTATION_EVIDENCE|UNPAID_PROMISE|AUTHOR_FORCED_TURN|NO_RESOLUTION_COST|VAGUE_EXIT_VALUE|HOOK_TYPE_REPETITION|METADATA_LEAK","message":"본문 근거와 최소 수정 방향"}]}`,
   },
 
   'pattern-ledger': {
@@ -566,6 +566,13 @@ export const phrases = {
     withheldNote: (v) => `이번 화에 일부러 드러내지 않는 것: ${v}`,
     deferredNote: (v) => `다음으로 미룬 결과: ${v}`,
     settledNote: (v) => `사용자가 확정한 결정: ${v}`,
+    planReviewHeading: '계획의 독자 경험 설계:',
+    planExpectation: (outcome, evidence) => `- 독자가 예상할 결과: ${outcome}${evidence ? ` / 지면 근거: ${evidence}` : ''}`,
+    planTurn: (broken, caused, clue) => `- 전환: ${[broken && `깨지는 믿음 ${broken}`, caused && `선택이 만든 원인 ${caused}`, clue && `재해석되는 단서 ${clue}`].filter(Boolean).join(' / ')}`,
+    planPayoff: (promise, proof) => `- 지급: ${[promise, proof && `지면 증명 ${proof}`].filter(Boolean).join(' / ')}`,
+    planCost: (immediate, deferred, payer) => `- 해결의 비용: ${[immediate && `즉시 ${immediate}`, deferred && `나중 ${deferred}`, payer && `지불자 ${payer}`].filter(Boolean).join(' / ')}`,
+    planExit: (closed, next, value, type) => `- 다음 가치: ${[closed && `닫힌 질문 ${closed}`, next && `다음 질문 ${next}`, value && `구체적 가치 ${value}`, type && `훅 유형 ${type}`].filter(Boolean).join(' / ')}`,
+    planAgenda: (name, goal, redLine, fallback) => `- ${name}의 의제: ${[goal, redLine && `넘지 않는 선 ${redLine}`, fallback && `차선책 ${fallback}`].filter(Boolean).join(' / ')}`,
     invariantsHeading: '## 장르 불변식',
     invariant: (severity, description) => `- [${severity}] ${description}`,
   },

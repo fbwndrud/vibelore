@@ -204,6 +204,22 @@ describe('host round trips are batched by dependency', () => {
     assert.equal(history.events.filter((e) => e.event === 'reviews_completed').length, 1);
   });
 
+  it('gives the reader-hook review the plan as text, with expectation, turn, payoff and exit value', async () => {
+    const store = await qualityStore();
+    const plan = await store.loadEpisodePlan(workId, 1);
+    await store.saveEpisodePlan(workId, { ...plan, readerExpectation: { likelyOutcome: 'EXPECTED_OUTCOME', evidenceOnPage: ['PAGE_EVIDENCE'] },
+      exitValue: { ...(plan.exitValue ?? {}), specificFutureValue: 'FUTURE_VALUE' } });
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    const user = requests.find((req) => req.step === 'reader-hook').messages.find((m) => m.role === 'user').content;
+    const input = user.slice(0, user.lastIndexOf('JSON:'));
+    assert.doesNotMatch(input, /[{}]|\["/, 'no JSON before the output schema');
+    assert.match(input, /EXPECTED_OUTCOME/);
+    assert.match(input, /PAGE_EVIDENCE/);
+    assert.match(input, /FUTURE_VALUE/);
+    assert.match(input, /닫힌 문 앞에 선다/);
+  });
+
   it('shows reviewers a plan view without bookkeeping fields', async () => {
     const store = await qualityStore();
     const plan = await store.loadEpisodePlan(workId, 1);

@@ -259,3 +259,29 @@ export function renderCheckSections({ foundation, prevState, delta, povDesign = 
     invariants: invariants.length ? invariants.join('\n') : '-',
   };
 }
+
+/**
+ * The reader-experience fields of an EpisodePlan that the shared plan render
+ * (renderEpisodePlan) leaves out. Reviews that judge expectation, turn, payoff
+ * and exit value append this after the shared render.
+ */
+export function renderPlanReviewExtras(plan, foundation, kit) {
+  if (!plan) return '';
+  const t = kit.phrases.sections;
+  const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
+  const lines = [];
+  const expectation = plan.readerExpectation ?? {};
+  if (clean(expectation.likelyOutcome)) lines.push(t.planExpectation(clean(expectation.likelyOutcome), asArray(expectation.evidenceOnPage).map(clean).filter(Boolean).join('; ')));
+  const turn = plan.turn ?? {};
+  if (clean(turn.brokenBelief) || clean(turn.causedByChoice) || clean(turn.priorClueReinterpreted)) lines.push(t.planTurn(clean(turn.brokenBelief), clean(turn.causedByChoice), clean(turn.priorClueReinterpreted)));
+  const payoff = plan.payoff ?? {};
+  if (clean(payoff.promisePaid) || clean(payoff.proofOnPage)) lines.push(t.planPayoff(clean(payoff.promisePaid), clean(payoff.proofOnPage)));
+  const cost = plan.costCreatedByResolution ?? {};
+  if (clean(cost.immediate) || clean(cost.deferred)) lines.push(t.planCost(clean(cost.immediate), clean(cost.deferred), clean(cost.payer)));
+  const exit = plan.exitValue ?? {};
+  if (clean(exit.closedQuestion) || clean(exit.nextQuestion) || clean(exit.specificFutureValue)) lines.push(t.planExit(clean(exit.closedQuestion), clean(exit.nextQuestion), clean(exit.specificFutureValue), clean(exit.hookType)));
+  for (const agenda of asArray(plan.characterAgendas)) {
+    if (clean(agenda?.goal)) lines.push(t.planAgenda(`${name(agenda.characterId)} (${agenda.characterId})`, clean(agenda.goal), clean(agenda.redLine), clean(agenda.fallback)));
+  }
+  return lines.length ? [t.planReviewHeading, ...lines].join('\n') : '';
+}

@@ -1,4 +1,5 @@
-import { episodePlanReviewView } from '../core/episode-plan-view.js';
+import { renderPlanReviewExtras } from '../core/prompt-sections.js';
+import { renderEpisodePlan } from './episode-plan.js';
 import { gateApprovalActivation, requireApprovalResult } from '../core/approval-language-gate.js';
 import { asKit, resolveWorkKit } from '../prompts/index.js';
 
@@ -81,14 +82,16 @@ export async function ensurePilotContract({ store, workId, identity, foundation,
  * @param {{ kit?: object|null }} input 워크플로가 작품 계약을 넘기기 전까지는
  *   구작의 암묵적 ko 계열로 해석한다(기존 동작).
  */
-export async function runReaderHook({ chapter, prose, identity, pilotContract, episodePlan, contract = '', recentHookTypes = [], providers, kit: kitSource }) {
+export async function runReaderHook({ chapter, prose, identity, pilotContract, episodePlan, foundation = null, contract = '', recentHookTypes = [], providers, kit: kitSource }) {
   const kit = asKit(kitSource);
   const response = await providers.complete({ model:MODEL,jsonMode:true,step:'reader-hook',messages: kit.messages('reader-hook', {
     chapter, contract,
     identityRender: renderStoryIdentity(identity, kit),
     pilotRender: chapter === 1 ? renderPilotContract(pilotContract, kit) : '',
-    episodePlanJson: JSON.stringify(episodePlanReviewView(episodePlan)),
-    recentHookTypesJson: JSON.stringify(recentHookTypes),
+    // The shared plan render (same text the other reviews get) plus the
+    // reader-experience fields only this review judges.
+    planText: [renderEpisodePlan(episodePlan, kit), renderPlanReviewExtras(episodePlan, foundation, kit)].filter(Boolean).join('\n') || kit.phrases.common.noneParen,
+    recentHookTypesText: recentHookTypes.length ? recentHookTypes.join(', ') : kit.phrases.common.noneParen,
     prose,
   })}); const o=parse(response.text); return {score:typeof o?.score==='number'?Math.round(o.score):null,dimensions:o?.dimensions??{},commercialSerialCheck:o?.commercialSerialCheck??{},findings:Array.isArray(o?.findings)?o.findings.slice(0,10):[]};
 }
