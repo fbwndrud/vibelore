@@ -160,9 +160,10 @@ describe('reduceStoryState', () => {
         ];
         const next = reduceStoryState(prev, delta);
         expect(next.trackedEntities).toHaveLength(3);
-        expect(next.trackedEntities[0]).toEqual({ kind: 'Timeline', data: { now: '회귀후', loops: 2 } });
+        // updatedChapter says when a record last changed, so prompts can pick recent ones.
+        expect(next.trackedEntities[0]).toEqual({ kind: 'Timeline', data: { now: '회귀후', loops: 2 }, updatedChapter: 2 });
         expect(next.trackedEntities[1]).toEqual({ kind: 'PowerSystem', data: { tier: 1 } });
-        expect(next.trackedEntities[2]).toEqual({ kind: 'Artifact', data: { owner: 'sample-character' } });
+        expect(next.trackedEntities[2]).toEqual({ kind: 'Artifact', data: { owner: 'sample-character' }, updatedChapter: 2 });
     });
     it('does not mutate prev (deep equality preserved after reduce)', () => {
         const prev = {
@@ -277,10 +278,10 @@ describe('reduceStoryState', () => {
         ];
         const next = reduceStoryState(reduceStoryState(emptyStoryState('w'), first), second);
         expect(next.trackedEntities).toEqual([
-            { kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2', 'c4'] } },
-            { kind: 'Timeline', data: { chapter: 1, event: '다리가 무너졌다' } },
-            { kind: 'KnowledgeMatrix', data: { fact: '표식의 주인', holders: ['c1'] } },
-            { kind: 'Timeline', data: { chapter: 2, event: '막힌 통로를 찾았다' } },
+            { kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2', 'c4'] }, updatedChapter: 2 },
+            { kind: 'Timeline', data: { chapter: 1, event: '다리가 무너졌다' }, updatedChapter: 1 },
+            { kind: 'KnowledgeMatrix', data: { fact: '표식의 주인', holders: ['c1'] }, updatedChapter: 2 },
+            { kind: 'Timeline', data: { chapter: 2, event: '막힌 통로를 찾았다' }, updatedChapter: 2 },
         ]);
     });
 });

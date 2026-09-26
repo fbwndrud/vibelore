@@ -261,7 +261,7 @@ const DRAFT_MANIFEST_RULES = [
     '',
     'manifest 규칙:',
     '- 이번 회차에 실제로 등장한 (대사/행동/시점) 캐릭터만 포함.',
-    '- 회상·기억·언급으로만 나오는 인물은 넣지 않는다. 이전 상태 characterStates 에서 vitalStatus 가 dead 인 인물은 살아 있음이 이번 화에서 밝혀지지 않는 한 등장시키지 않는다.',
+    '- 회상·기억·언급으로만 나오는 인물은 넣지 않는다. 이전 상태에서 사망으로 기록된 인물은 살아 있음이 이번 화에서 밝혀지지 않는 한 등장시키지 않는다.',
     '- characterId 는 Foundation 의 id 그대로 사용.',
     '- addressTermsUsed 는 해당 캐릭터가 본문에서 다른 캐릭터를 향해 사용한 호칭들의 집합.',
     '- 본문에 `⟦vle:…⟧` 패턴은 cast-manifest 외에 다른 어떤 것도 출력하지 말 것.',
@@ -273,7 +273,7 @@ const DRAFT_MANIFEST_RULES_MULTILINGUAL = [
     '',
     'Manifest rules:',
     '- Include only characters who actually appear in this chapter (speech, action, or viewpoint).',
-    '- Do not include a character who is only remembered, recalled or mentioned. A character whose vitalStatus is dead in the previous characterStates does not appear unless this chapter reveals them alive.',
+    '- Do not include a character who is only remembered, recalled or mentioned. A character recorded as dead in the previous state does not appear unless this chapter reveals them alive.',
     '- Use the Foundation id verbatim as characterId. Do not translate ids, JSON keys or the sentinel tag.',
     '- addressTermsUsed is the set of address terms that character used toward other characters in the prose, written in the target work language exactly as they appear in the text.',
     '- Do not emit any `⟦vle:…⟧` pattern other than the cast-manifest block.',
@@ -392,7 +392,7 @@ const ARC_HEADER_LABELS_EN = {
     summary: (summary) => `(Arc summary: ${summary})`,
 };
 function buildUserPrompt(input) {
-    const { foundation, prevState, chapterNumber, plan, tension, openingContract, arc, slidingWindowRender, entityContextRender } = input;
+    const { foundation, prevState, chapterNumber, plan, tension, openingContract, arc, slidingWindowRender, entityContextRender, foundationRender, stateRender } = input;
     const ctx = draftLanguageContext(input);
     const labels = pickByFamily(ctx, { ko: USER_LABELS_KO, multilingual: USER_LABELS_EN });
     // P4b (#516) — Codex 에서 비활성(disabled)된 캐릭터는 prompt 에서 제외.
@@ -439,7 +439,10 @@ function buildUserPrompt(input) {
     if (arc) {
         sections.push(formatArcHeader(arc, ctx), ``);
     }
-    sections.push(labels.foundation, JSON.stringify(foundationSummary, null, 2), ``);
+    // The plugin renders characters, world facts and the carried state as text
+    // (src/core/prompt-sections.js). Direct engine callers keep the JSON form.
+    if (typeof foundationRender === 'string' && foundationRender.trim()) sections.push(foundationRender.trim(), ``);
+    else sections.push(labels.foundation, JSON.stringify(foundationSummary, null, 2), ``);
     // ADR-0001 (#215) — sliding window 묶음 (있으면). prevState carry-forward
     // 앞에 두 — 작가가 시간 순서로 읽음. NULL 이면 기존 path 그대로.
     if (slidingWindowRender && slidingWindowRender.length > 0) {
@@ -450,7 +453,11 @@ function buildUserPrompt(input) {
     if (entityContextRender && entityContextRender.length > 0) {
         sections.push(entityContextRender, ``);
     }
-    sections.push(labels.prevState, JSON.stringify(prevSummary, null, 2), ``, labels.plan, plan && plan.length > 0 ? plan : labels.planMissing, ``);
+    if (typeof stateRender === 'string') {
+        if (stateRender.trim()) sections.push(stateRender.trim(), ``);
+    }
+    else sections.push(labels.prevState, JSON.stringify(prevSummary, null, 2), ``);
+    sections.push(labels.plan, plan && plan.length > 0 ? plan : labels.planMissing, ``);
     const openingContractRender = renderOpeningContract(openingContract, chapterNumber, ctx);
     if (openingContractRender.length > 0) {
         sections.push(openingContractRender, ``);

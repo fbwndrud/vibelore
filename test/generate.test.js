@@ -411,6 +411,14 @@ describe('Phase 2 generation pipeline', () => {
     assert.ok(result.contextAudit.olderMemoryRefs.length <= 8);
   });
 
+  it('drafts from text sections: no Foundation or state JSON, no design-time location', async () => {
+    const { prompt } = await draftPrompt(await sevenChapterStore(), 8);
+    assert.doesNotMatch(prompt, /"worldFacts"|"addressMap"|"trackedEntities"|"intrinsic"|"mutable"/);
+    assert.match(prompt, /## 세계 사실\n- 탑의 시스템은 모든 보상에 세금을 매긴다/);
+    assert.match(prompt, /## 현재 상태/);
+    assert.match(prompt, /은빛열쇠 주인은 ACTIVE_HOOK_TOKEN/);
+  });
+
   it('gives a whole-chapter rewrite the same continuity window and older memory as a draft', async () => {
     const store = await sevenChapterStore();
     let rewriteRequest;
@@ -445,7 +453,7 @@ describe('Phase 2 generation pipeline', () => {
     eighth.hookChanges = [{ id: 'key-owner', text: '은빛열쇠 주인은 ACTIVE_HOOK_TOKEN', plantedAtChapter: 3, phase: 'paid' }];
     await runCommit({ store, workId: 'tax-tower', chapter: 8, prose: '윤재가 떨어졌다.', summary: '윤재가 탑에서 떨어졌다.', providers: createHostRelay({}), delta: eighth });
     const { prompt } = await draftPrompt(store, 9);
-    assert.match(prompt, /"characterStates":\s*\{\s*"hero":\s*\{[^}]*"vitalStatus":\s*"dead"/);
+    assert.match(prompt, /윤재 \(hero\) — 사망/);
     assert.match(prompt, /회상·기억·언급으로만 나오는 인물은 넣지 않는다/);
     const { context } = await buildContext({ store, workId: 'tax-tower', chapter: 9 });
     assert.doesNotMatch(context.split('## 미해결 떡밥')[1] ?? '', /ACTIVE_HOOK_TOKEN/, '회수된 떡밥은 미해결 목록에 없다');

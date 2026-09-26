@@ -12,7 +12,6 @@
 import { buildSlidingWindow, renderSlidingWindow } from '../../engine/src/core/sliding-window.js';
 import { resolveEntityContext, renderEntityContext } from '../../engine/src/core/entity-context.js';
 import { arcPositionFromRatio, ARC_POSITION_LABEL_KO } from '../../engine/src/core/arc-context.js';
-import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { episodeForChapter, renderArcEpisode } from './arc.js';
 import { renderStoryProfile } from './story-profile.js';
 import { renderStorySpine } from './story-spine.js';
@@ -28,51 +27,9 @@ import { isHookActive } from '../../engine/src/continuity/story-state.js';
 import { PROMPT_FAMILY_KO, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { tokenUnits } from '../core/token-units.js';
+import { renderCharacter } from '../core/prompt-sections.js';
 
 export const MAX_CONTEXT_TOKENS = 18000;
-
-function renderCharacter(foundation, character, chapter, kit) {
-  const t = kit.phrases.context;
-  const labels = t.intrinsicLabels;
-  const events = foundation.intrinsicChanges.filter((e) => e.characterId === character.id);
-  const intrinsic = effectiveIntrinsic(character.intrinsic, events, chapter);
-  const pinned = Object.entries(labels)
-    .filter(([k]) => intrinsic[k] !== undefined && intrinsic[k] !== '')
-    .map(([k, label]) => `${label}=${intrinsic[k]}`);
-  if (intrinsic.coreAppearance?.length) pinned.push(t.appearance(intrinsic.coreAppearance.join('·')));
-  const lines = [`- **${character.canonicalName}** (\`${character.id}\`) — ${pinned.join(', ')}`];
-  if (character.contradiction) lines.push(t.characterContradiction(character.contradiction));
-  const model = character.dramaticModel;
-  if (model?.valueOrder?.length) lines.push(t.valueOrder(model.valueOrder.join(' > ')));
-  for (const trait of (model?.behaviorTraits ?? []).slice(0, 3)) {
-    lines.push(t.behaviorTrait(trait.trigger, trait.actionBias, trait.benefit, trait.cost));
-  }
-  if (model?.perception?.seesFirst?.length || model?.perception?.missesFirst?.length) {
-    lines.push(t.perception(model.perception.seesFirst?.join('·') || '-', model.perception.missesFirst?.join('·') || '-'));
-  }
-  if (model?.defense?.underPressure) lines.push(t.defense(model.defense.underPressure));
-  if (model?.repair?.firstMove) lines.push(t.repair(model.repair.firstMove));
-  const speech = character.speechProfile;
-  if (speech) {
-    const samples = speech.samples ?? {};
-    lines.push(t.speech([speech.defaultRegister, speech.sentenceShape, speech.logicHabit, speech.emotionalLeak].filter(Boolean).join(' / ') || t.speechProfilePresent));
-    const sampleLines = [
-      samples.everyday ? t.speechSampleEveryday(samples.everyday) : '',
-      samples.underPressure ? t.speechSamplePressure(samples.underPressure) : '',
-      samples.lying ? t.speechSampleLying(samples.lying) : '',
-      samples.intimate ? t.speechSampleIntimate(samples.intimate) : '',
-    ].filter(Boolean);
-    if (sampleLines.length) lines.push(t.speechSamples(sampleLines.join(' / ')));
-    if (speech.relationVariants?.length) {
-      lines.push(t.relationVariants(speech.relationVariants.map((row) => `${row.targetId || '?'}=${row.adjustment || row.sample || ''}`).join('; ')));
-    }
-  }
-  const changed = events.filter((e) => e.atChapter <= chapter);
-  if (changed.length > 0) {
-    lines.push(t.intrinsicChanges(changed.map((e) => t.intrinsicChange(e.atChapter, labels[e.field] ?? e.field, JSON.stringify(e.from), JSON.stringify(e.to))).join('; ')));
-  }
-  return lines.join('\n');
-}
 
 function renderAddressMap(state, foundation, kit) {
   const entries = Object.entries(state?.addressMap?.entries ?? {});

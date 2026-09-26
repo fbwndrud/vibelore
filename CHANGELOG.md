@@ -13,6 +13,16 @@
 - Carried relationships in the draft name both ends ("A→B"). Records without
   a direction are left out; they used to be shown under the target's name as
   if that character held the feeling.
+- The draft request carries characters, world facts and the previous state as
+  text instead of JSON (src/core/prompt-sections.js). The state section keeps
+  what bears on the chapter: the cast's current place and condition, every
+  dead or missing character, address terms within the cast, open threads,
+  directed relationships touching the cast and the tracked items the cast
+  holds or the plan names, most recent first. Foundation's design-time place
+  and condition appear only in chapter one; design-time knowledge stays.
+  Appearance is given where a character first enters. On the thundertrail
+  chapter 8 request this cuts the prompt from 34.7K to 19.3K characters.
+- Tracked records note the chapter that last changed them (`updatedChapter`).
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

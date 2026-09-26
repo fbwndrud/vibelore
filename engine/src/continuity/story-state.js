@@ -160,11 +160,12 @@ export function reduceStoryState(prev, delta) {
     const nextTracked = prev.trackedEntities.map((t) => ({
         kind: t.kind,
         data: { ...t.data },
+        ...(t.updatedChapter !== undefined ? { updatedChapter: t.updatedChapter } : {}),
     }));
     for (const op of delta.trackedEntityOps) {
         const key = trackedRecordKey(op.data);
         const idx = nextTracked.findIndex((t) => t.kind === op.kind && trackedRecordKey(t.data) === key);
-        const cloned = { kind: op.kind, data: { ...op.data } };
+        const cloned = { kind: op.kind, data: { ...op.data }, updatedChapter: delta.chapterNumber };
         if (idx >= 0) {
             nextTracked[idx] = cloned;
         }

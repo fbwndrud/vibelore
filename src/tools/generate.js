@@ -25,6 +25,7 @@ import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-l
 import { promptKit } from '../prompts/index.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
 import { renderContinuity } from '../core/draft-input-compiler.js';
+import { renderCharacters, renderCurrentState, renderWorldFacts } from '../core/prompt-sections.js';
 import { supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract, compileDraftContract, renderNarrativeContract } from '../core/narrative-contract.js';
@@ -241,12 +242,28 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   if (!currentPublication.ok) throw new Error(`CORRUPT_PUBLICATION: ${currentPublication.error.code}`);
   const observedCanonHead = currentPublication.value?.head ?? 'legacy-working-tree';
   if (observedCanonHead !== pinnedCanonHead) throw new Error(`STALE_DRAFT_IDENTITY: canonHead ${pinnedCanonHead} -> ${observedCanonHead}`);
+  const sectionPhrases = kit.phrases.sections;
+  const invariants = (executionSnapshot.genreProfile?.invariants ?? []).map((inv) => sectionPhrases.invariant(inv.severity, inv.description));
+  const foundationRender = [
+    sectionPhrases.worldFactsHeading, renderWorldFacts(executionSnapshot, kit), '',
+    sectionPhrases.charactersHeading,
+    // Appearance only where a character first enters; repeating it every chapter
+    // pulled appearance tags into climaxes.
+    ...detailedPlan.cast.map((id) => renderCharacters(executionSnapshot, [id], chapter, kit, {
+      appearance: chapter === 1 || executionSnapshot.characters.find((c) => c.id === id)?.registeredAtChapter === chapter,
+      initialPlacement: chapter === 1,
+    })).filter(Boolean),
+    ...(invariants.length ? ['', sectionPhrases.invariantsHeading, ...invariants] : []),
+  ].join('\n');
+  const stateRender = chapter > 1
+    ? renderCurrentState(prevState, executionSnapshot, { cast: detailedPlan.cast, kit, mode: 'writer', focusText: episodePacket.writerText })
+    : '';
   const writerArc = { ...planningArc, summary: `${arcEpisode.beat || arcEpisode.goal} → 비용: ${arcEpisode.costCreatedByResolution || arcEpisode.cost || ''}` };
   const execution = await executePinnedDraft({
     resolvedInputs: {
       compiler: compilerInputs,
       engine: {
-        foundation: executionSnapshot, prevState, chapterNumber: chapter,
+        foundation: executionSnapshot, prevState, chapterNumber: chapter, foundationRender, stateRender,
         activeCastIds: detailedPlan.cast,
         tension: tension ?? detailedPlan.tension, arc: writerArc,
         ...engineLanguageArgs(workLanguage, { legacyTarget: true }),
