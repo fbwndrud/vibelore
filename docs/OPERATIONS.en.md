@@ -308,7 +308,7 @@ The family is fixed per work, so within one work the common prefix is byte-for-b
 | `warmFirst` | The one request to send first. If the estimate is under 1024 tokens, all are `false` and are sent in parallel as they are |
 
 The minimum cache length is 512 tokens for Claude Opus 5 and Opus 5.5, 1024 tokens for Sonnet 5 and Opus 4.8,
-and 4096 tokens for Opus 4.6 and Haiku 4.5. The default TTL is 5 minutes and is refreshed on every read, so a workflow that processes a bundle
+and 4096 tokens for Opus 4.6 and Haiku 4.5. The API default TTL is 5 minutes and is refreshed on every read, so a workflow that processes a bundle
 within a few minutes doesn't need the 1-hour TTL.
 
 Per host:
@@ -317,7 +317,9 @@ Per host:
   If you send the common block inside user, reads are 0 even with the same prefix (measured 0 both for one stdin block and
   for two stream-json blocks). Put `system` + an empty line + the common block in `--system-prompt` and
   send the rest through stdin. With `--output-format stream-json --include-partial-messages`, start the rest after receiving
-  the warm-first request's first `stream_event`.
+  the warm-first request's first `stream_event`. A CLI signed in with a subscription writes the cache with a
+  1-hour TTL, which costs twice the input price. A bundle finishes within minutes, so run it with
+  `CLAUDE_CODE_PROMPT_CACHE_TTL=5m` (writes at 1.25x).
 - Direct Claude API calls: split the common block into its own text block and put `cache_control` on that block.
 - Hosts with automatic prefix caching (Codex, etc.): send the layout as it is. The host's minimum
   length and routing conditions apply, and vibelore does not guarantee hits.

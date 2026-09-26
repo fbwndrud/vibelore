@@ -310,7 +310,7 @@ MCP 표면을 바꾸면 다음을 함께 갱신합니다.
 | `warmFirst` | 먼저 보낼 요청 하나. 추정치가 1024토큰 미만이면 모두 `false`이며 그대로 병렬로 보냅니다 |
 
 최소 캐시 길이는 Claude Opus 5·Opus 5.5가 512토큰, Sonnet 5·Opus 4.8이 1024토큰이며
-Opus 4.6·Haiku 4.5는 4096토큰입니다. 기본 TTL은 5분이고 읽기마다 갱신되므로, 한 묶음을
+Opus 4.6·Haiku 4.5는 4096토큰입니다. API 기본 TTL은 5분이고 읽기마다 갱신되므로, 한 묶음을
 몇 분 안에 처리하는 워크플로에는 1시간 TTL이 필요하지 않습니다.
 
 호스트별 적용:
@@ -319,7 +319,9 @@ Opus 4.6·Haiku 4.5는 4096토큰입니다. 기본 TTL은 5분이고 읽기마�
   공통 블록을 user 안에 둔 채 보내면 접두부가 같아도 읽기가 0입니다(stdin 한 블록,
   stream-json 두 블록 모두 실측 0). `--system-prompt`에 `system` + 빈 줄 + 공통 블록을 넣고
   나머지를 stdin으로 보냅니다. `--output-format stream-json --include-partial-messages`로
-  warm-first 요청의 첫 `stream_event`를 받은 뒤 나머지를 시작합니다.
+  warm-first 요청의 첫 `stream_event`를 받은 뒤 나머지를 시작합니다. 구독 로그인 CLI는 캐시를
+  1시간 TTL로 써서 쓰기 비용이 입력의 2배입니다. 한 묶음은 몇 분 안에 끝나므로
+  `CLAUDE_CODE_PROMPT_CACHE_TTL=5m`으로 실행합니다(쓰기 1.25배).
 - Claude API 직접 호출: 공통 블록을 별도 text 블록으로 나누고 그 블록에 `cache_control`을 둡니다.
 - 자동 접두부 캐시를 쓰는 호스트(Codex 등): 배치 그대로 보내면 됩니다. 해당 호스트의 최소
   길이와 라우팅 조건을 따르며 vibelore는 적중을 보장하지 않습니다.
