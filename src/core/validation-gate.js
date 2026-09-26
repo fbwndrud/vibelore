@@ -343,7 +343,7 @@ const LANGUAGE_STEPS = Object.freeze({
       '문자 비율이나 문자 체계 추정으로 통과시키지 마라.',
       '순수 JSON만 출력한다.',
     ].join('\n'),
-    user: (payload) => `목표 언어: ${payload.language}\nartifactHash: ${payload.artifactHash}\nvalidationEpoch: ${payload.epoch}\nattempt: ${payload.attempt}\n허용 예외: ${JSON.stringify(payload.exceptions)}\n산출물:\n${payload.artifactJson}\n\nJSON: {"verdict":"pass|fail|uncertain","language":"${payload.language}","artifactHash":"${payload.artifactHash}","evidence":[{"fieldPath":"prose|title|summary|semanticDelta","quote":"산출물에 있는 인용","reason":"이유"}],"allowedExceptions":[]}`,
+    user: (payload) => `목표 언어: ${payload.language}\nartifactHash: ${payload.artifactHash}\nvalidationEpoch: ${payload.epoch}\nattempt: ${payload.attempt}\n허용 예외: ${JSON.stringify(payload.exceptions)}\n산출물 prose:\n${payload.prose}\n\n산출물 title·summary·semanticDelta:\n${payload.artifactJson}\n\nJSON: {"verdict":"pass|fail|uncertain","language":"${payload.language}","artifactHash":"${payload.artifactHash}","evidence":[{"fieldPath":"prose|title|summary|semanticDelta","quote":"산출물에 있는 인용","reason":"이유"}],"allowedExceptions":[]}`,
   },
   multilingual: {
     system: [
@@ -353,7 +353,7 @@ const LANGUAGE_STEPS = Object.freeze({
       'Do not pass or fail by script ratio or script detection.',
       'Return JSON only.',
     ].join('\n'),
-    user: (payload) => `Target language: ${payload.language}\nartifactHash: ${payload.artifactHash}\nvalidationEpoch: ${payload.epoch}\nattempt: ${payload.attempt}\nAllowed exceptions: ${JSON.stringify(payload.exceptions)}\nArtifact:\n${payload.artifactJson}\n\nJSON: {"verdict":"pass|fail|uncertain","language":"${payload.language}","artifactHash":"${payload.artifactHash}","evidence":[{"fieldPath":"prose|title|summary|semanticDelta","quote":"a quote that actually appears","reason":"why"}],"allowedExceptions":[]}`,
+    user: (payload) => `Target language: ${payload.language}\nartifactHash: ${payload.artifactHash}\nvalidationEpoch: ${payload.epoch}\nattempt: ${payload.attempt}\nAllowed exceptions: ${JSON.stringify(payload.exceptions)}\nArtifact prose:\n${payload.prose}\n\nArtifact title, summary and semanticDelta:\n${payload.artifactJson}\n\nJSON: {"verdict":"pass|fail|uncertain","language":"${payload.language}","artifactHash":"${payload.artifactHash}","evidence":[{"fieldPath":"prose|title|summary|semanticDelta","quote":"a quote that actually appears","reason":"why"}],"allowedExceptions":[]}`,
   },
 });
 
@@ -361,8 +361,9 @@ export function languageComplianceMessages({ workContract, artifact, epoch, atte
   const family = workContract.promptFamily === 'ko' ? 'ko' : 'multilingual';
   const pack = LANGUAGE_STEPS[family];
   const directive = buildLanguageDirective(workContract);
+  // The prose goes in verbatim, outside the JSON: escaped it would differ from
+  // the shared prose block every other request of the chapter carries.
   const artifactJson = JSON.stringify({
-    prose: artifact.prose,
     title: artifact.title,
     summary: artifact.summary,
     semanticDelta: artifact.semanticDelta,
@@ -373,6 +374,7 @@ export function languageComplianceMessages({ workContract, artifact, epoch, atte
     epoch,
     attempt,
     exceptions: workContract.allowedLanguageExceptions ?? [],
+    prose: artifact.prose,
     artifactJson,
   };
   const system = family === 'ko'

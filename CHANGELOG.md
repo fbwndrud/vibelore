@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The language-contract request carries the prose verbatim before the
+  title, summary and delta JSON. Escaped inside JSON it never matched the
+  shared prose block, so it could not reuse the chapter's prompt cache.
 - A lone relayed request that carries the shared chapter prose (the
   continuity check, which parks after the review batch) gets the same
   shared-prefix layout, so it reads the prefix that batch cached. Warm-first

@@ -17,7 +17,7 @@ const BOUNDS = {
   'story-profile-check': 1100, 'continuity-extract': 400, 'continuity-check': 800,
   'chapter-title': 100, 'chapter-summary': 100, 'narrative-boundary': 600,
   'coherence-judge': 100, 'editorial-quality': 200, 'character-fidelity': 900,
-  'reader-hook': 2600, 'pattern-ledger': 200,
+  'reader-hook': 2600, 'pattern-ledger': 200, 'language-contract': 300,
 };
 const SECTIONS = {
   'character-fidelity': [/윤재 \(`hero`\)/, /1화 EpisodePlan/],
