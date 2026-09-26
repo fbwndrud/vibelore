@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `needs_model` responses carry `inputReport`: for each request its
+  sections with character counts, the shared prose size and whether it can
+  reuse the cached shared block. `lore_write` keeps the last report on the
+  workflow (`lore_workflow_status`) and reports `trimmedContext` when the
+  draft's summary window or memory budget left something out.
 - The per-chapter reviews can be turned off per work:
   `lore_configure(disabledReviews=[...])` stores the full list
   (story-profile-check, coherence-judge, editorial-quality,

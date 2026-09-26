@@ -1,4 +1,5 @@
 import { HOST_EXECUTION_NOTE, layoutRelayRequests } from './core/relay-prompt-layout.js';
+import { describeRequestInputs } from './core/request-input-report.js';
 import { dropRun, newRunId, saveRun } from './runs.js';
 import { resolveWorkLanguage } from './core/work-language.js';
 import { promptFamilyFor } from '../engine/src/core/language-policy.js';
@@ -86,10 +87,17 @@ export async function runRelayedTool({
     createdAt: run?.createdAt ?? new Date().toISOString(),
   });
 
+  const inputReport = describeRequestInputs(pending, relay.sharedContexts ?? []);
+  let trimmedContext = null;
   if (toolName === 'lore_write') {
     const workflow = await store.loadWorkflow(args.workId);
     if (workflow) {
       workflow.pendingRunId = saved.id;
+      workflow.lastInputReport = inputReport;
+      const memory = workflow.contextAudit?.memory;
+      if (memory && (memory.trimmedSummaries > 0 || memory.droppedForBudget > 0)) {
+        trimmedContext = { trimmedSummaries: memory.trimmedSummaries, droppedForBudget: memory.droppedForBudget };
+      }
       await store.saveWorkflow(args.workId, workflow);
     }
   }
@@ -98,6 +106,10 @@ export async function runRelayedTool({
     status: 'needs_model',
     runId: saved.id,
     requests: layoutRelayRequests(pending, relay.sharedContexts ?? [], { promptFamily: await relayPromptFamily(store, args) }),
+    // What each request carries, so the user can see sections, sizes and cache reuse.
+    inputReport,
+    // What the draft's summary window and memory budget left out, when anything was.
+    ...(trimmedContext ? { trimmedContext } : {}),
     instruction:
       '각 request 의 system 과 user 를 그대로 읽고 답을 만든 뒤, lore_resume 에 { runId, answers: { <request id>: "<답변>" } } 로 넘기세요. ' +
       'jsonMode=true 인 요청은 코드블록 없이 순수 JSON 으로만 답해야 합니다. 답을 넘기지 않으면 아래 결정론 결과가 최종입니다. ' +
