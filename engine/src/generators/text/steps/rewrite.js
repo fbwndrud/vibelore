@@ -103,6 +103,9 @@ export async function runRewrite(input) {
         previousProse: input.previousProse,
         foundationContext: buildFoundationContext(input.foundation, input.chapterNumber),
         prevStateSummary: buildPrevStateSummary(input.prevState),
+        // 호스트가 글로 렌더링한 설정·상태. 있으면 JSON 투영 대신 싣는다.
+        foundationRender: input.foundationRender,
+        stateRender: input.stateRender,
         // P4b (#516) — 멘션 entity 섹션 (없으면 prompt 그대로).
         entityContextRender: input.entityContextRender,
         // 최근 회차 요약·오래된 기억 (호스트가 렌더링; 없으면 prompt 그대로).

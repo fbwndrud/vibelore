@@ -69,6 +69,9 @@
   and the plan's scene staging are left out; the character curves are shown
   on the last beat. Thundertrail chapter 8: 6.2K to 2.1K characters besides
   the prose.
+- `lore_rewrite` sends characters, world facts and the previous state as the
+  same text the draft gets (shared `renderWriterFoundation`), instead of
+  JSON. The state section is focused on the chapter being rewritten.
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

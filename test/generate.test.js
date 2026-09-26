@@ -311,8 +311,15 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(revised.prose, /무릎을 꿇었다/);
     await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '윤재는 탑 앞에 섰다.', summary: '윤재가 탑 앞에 섰다.', providers: createHostRelay({}), delta: emptyDelta(1) });
     assert.equal((await store.loadArcPlan('tax-tower')).episodes[0].status, 'completed');
-    const rewritten = await runRewriteTool({ store, workId: 'tax-tower', chapter: 1, intent: '더 절박하게', providers: provider({ rewrite: prose }) });
+    const rewriteProvider = provider({ rewrite: prose });
+    let rewriteRequest;
+    const rewritten = await runRewriteTool({ store, workId: 'tax-tower', chapter: 1, intent: '더 절박하게', providers: { ...rewriteProvider, async complete(req) { if (req.step === 'rewrite') rewriteRequest = req; return rewriteProvider.complete(req); } } });
     assert.match(rewritten.prose, /윤재는 탑 앞/);
+    // The rewrite reads characters and world facts as the same text the draft gets.
+    const rewriteUser = rewriteRequest.messages.find((m) => m.role === 'user').content;
+    assert.match(rewriteUser, /윤재 \(`hero`\)/);
+    assert.match(rewriteUser, /- 탑의 시스템은 모든 보상에 세금을 매긴다/);
+    assert.doesNotMatch(rewriteUser.slice(0, rewriteUser.indexOf('윤재는 탑 앞')), /"canonicalName"|"worldFacts"|"addressMap"/);
     const arc = await runNextArc({ store, workId: 'tax-tower', providers: provider({ 'next-arc-proposal': JSON.stringify({ title: '압류 아크', promise: '윤재는 자신의 이름을 되찾는다.', type: 'small', estimatedEpisodes: 6, scopedEntities: [], carryOverCharacters: ['hero'], newCharacterSeeds: [], transitionHook: '압류관이 온다.' }) }) });
     assert.equal(arc.proposal.title, '압류 아크');
   });

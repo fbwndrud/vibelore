@@ -76,6 +76,28 @@ export function renderCharacters(foundation, ids, chapter, kit, options = {}) {
   return characters.map((c) => renderCharacter(foundation, c, chapter, kit, options)).join('\n');
 }
 
+/**
+ * The fixed setting a writer drafts (or rewrites) a chapter against: world
+ * facts, the cast and the genre invariants. Appearance is given only where a
+ * character first enters; repeating it every chapter pulled appearance tags
+ * into climaxes. The design-time place and condition belong to chapter one.
+ */
+export function renderWriterFoundation(foundation, cast, chapter, kit) {
+  const t = kit.phrases.sections;
+  const invariants = asArray(foundation?.genreProfile?.invariants).map((inv) => t.invariant(inv.severity, inv.description));
+  const ids = asArray(cast).length ? cast : asArray(foundation?.characters)
+    .filter((c) => c.disabled !== true && (c.registeredAtChapter ?? 0) <= chapter).map((c) => c.id);
+  return [
+    t.worldFactsHeading, renderWorldFacts(foundation, kit), '',
+    t.charactersHeading,
+    ...ids.map((id) => renderCharacters(foundation, [id], chapter, kit, {
+      appearance: chapter === 1 || asArray(foundation?.characters).find((c) => c.id === id)?.registeredAtChapter === chapter,
+      initialPlacement: chapter === 1,
+    })).filter(Boolean),
+    ...(invariants.length ? ['', t.invariantsHeading, ...invariants] : []),
+  ].join('\n');
+}
+
 export function renderWorldFacts(foundation, kit) {
   return asArray(foundation?.worldFacts).map((fact) => `- ${fact.statement}`).join('\n');
 }
