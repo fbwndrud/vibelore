@@ -10,7 +10,7 @@ import { episodeForChapter, renderArcMap } from './arc.js';
 import { renderEpisodePlan, runEpisodePlan } from './episode-plan.js';
 import { applyNarrativeBoundary, runNarrativeBoundary } from './narrative-boundary.js';
 import { editorialQualityAdvisories, runEditorialQuality } from './editorial-quality.js';
-import { ensurePilotContract, ensureStoryIdentity, patternViolations, runPatternAnalysis, runReaderHook } from './story-experience.js';
+import { ensurePilotContract, ensureStoryIdentity, patternViolations, readerHookAdvisories, runPatternAnalysis, runReaderHook } from './story-experience.js';
 import { assertProseIntegrity } from './prose-integrity.js';
 import { chooseBestRevision, makeRevisionCandidate, publicRevisionCandidate } from './revision-selection.js';
 import { createChapterSnapshot } from './snapshots.js';
@@ -621,6 +621,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       ...editorialQualityAdvisories(editorial, chapter),
       ...characterFidelityAdvisories(characterFidelity, chapter),
       ...arcReviewAdvisories(arcReview, chapter),
+      ...readerHookAdvisories(readerHook, chapter, kit),
     ];
     violations.push(...independentAdvisories);
     if (readerHook.score !== null && readerHook.score < MIN_READER_HOOK) {
@@ -723,6 +724,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     hardViolations: check.counts.hard, prosody: check.prosody.score,
     coherence: coherence.score, editorial: editorial.score, readerHook: readerHook.score, chars: current.prose.length,
     characterFidelity: characterFidelity.score, characterFlexibility: characterFidelity.flexibilityScore,
+    readerHookDetail: { dimensions: readerHook.dimensions ?? {}, commercialSerialCheck: readerHook.commercialSerialCheck ?? {} },
     qualityPolicy: { styleAnchorRevision: styleAnchor?.revision ?? null },
     review: reviewAudit,
     lengthAssessment, arcReview, advisories: surfacedAdvisories,

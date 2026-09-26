@@ -376,6 +376,7 @@ export const phrases = {
       moralChoice: 'moral choice', costShape: 'shape of cost', evidenceFamily: 'evidence family',
       sceneMode: 'dominant scene mode', emotionalTemperature: 'emotional temperature', endingImage: 'closing image',
     },
+    readerCheckFailed: (key, evidence) => `Reader-hook check ${key} failed${evidence ? ` (evidence: ${evidence})` : ''}`,
     perfectJudgment: 'The last three chapters contain no misjudgement, objection or correction from the protagonist.',
     hookRepetition: (hookType) => `The last three chapters all end on the same ${hookType} hook. Change the kind of value the next chapter promises.`,
   },

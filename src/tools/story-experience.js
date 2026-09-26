@@ -96,6 +96,21 @@ export async function runReaderHook({ chapter, prose, identity, pilotContract, e
   })}); const o=parse(response.text); return {score:typeof o?.score==='number'?Math.round(o.score):null,dimensions:o?.dimensions??{},commercialSerialCheck:o?.commercialSerialCheck??{},findings:Array.isArray(o?.findings)?o.findings.slice(0,10):[]};
 }
 
+/**
+ * The reader-hook checklist items the reviewer failed, as advisories. `warn`
+ * and `na` stay in the receipt detail only.
+ */
+export function readerHookAdvisories(result, chapter, kitSource) {
+  const t = asKit(kitSource).phrases.experience;
+  return Object.entries(result?.commercialSerialCheck ?? {})
+    .filter(([, item]) => item?.verdict === 'fail')
+    .map(([key, item]) => ({
+      severity: 'soft', advisoryOnly: true, chapterNumber: chapter,
+      code: `READER_CHECK_${key.toUpperCase()}`,
+      message: t.readerCheckFailed(key, typeof item.evidence === 'string' ? item.evidence.trim() : ''),
+    }));
+}
+
 const PATTERN_FIELDS = ['solutionPattern', 'moralChoice', 'costShape', 'evidenceFamily', 'sceneMode', 'emotionalTemperature', 'endingImage', 'comedyMechanism', 'protagonistMethod', 'hookType'];
 
 /**

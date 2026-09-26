@@ -59,6 +59,9 @@
   previous two chapters were filed under. Repetition is detected by exact
   category name, and without the earlier names the reviewer invented new
   ones each chapter. Supporting-agency keys given as names are stored as IDs.
+- The reader-hook review's checklist is no longer thrown away: items it
+  marks `fail` are shown as advisories with the evidence, and the receipt
+  keeps the dimension scores and the full checklist (`readerHookDetail`).
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

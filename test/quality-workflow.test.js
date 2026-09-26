@@ -251,6 +251,21 @@ describe('host round trips are batched by dependency', () => {
     assert.match(user, /6화[^\n]*OLDER[\s\S]*7화[^\n]*NEWER/);
   });
 
+  it('keeps the reader-hook checklist: failed items surface as advisories and the detail is on the receipt', async () => {
+    const store = await qualityStore();
+    const hook = JSON.stringify({ score: 88, dimensions: { competenceProof: 88, nextChapterPull: 71 },
+      commercialSerialCheck: { genrePromisePaid: { verdict: 'fail', evidence: 'GENRE_EVIDENCE' }, hookValueIsSpecific: { verdict: 'pass', evidence: '' } }, findings: [] });
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: { async complete(req) { const contract = contractResponse(req); if (contract) return contract; return { text: req.step === 'reader-hook' ? hook : (outputs[req.step] ?? '{}') }; } } });
+    const advisory = (result.quality?.advisories ?? []).find((item) => item.code === 'READER_CHECK_GENREPROMISEPAID');
+    assert.ok(advisory, JSON.stringify(result.quality?.advisories));
+    assert.match(advisory.message, /GENRE_EVIDENCE/);
+    assert.ok(!(result.quality?.advisories ?? []).some((item) => /HOOKVALUEISSPECIFIC/.test(item.code)));
+    const workflow = await store.loadWorkflow(workId);
+    const receipt = await store.loadCheckReceipt(workId, workflow.checkId);
+    assert.equal(receipt.readerHookDetail.dimensions.nextChapterPull, 71);
+    assert.equal(receipt.readerHookDetail.commercialSerialCheck.genrePromisePaid.verdict, 'fail');
+  });
+
   it('shows reviewers a plan view without bookkeeping fields', async () => {
     const store = await qualityStore();
     const plan = await store.loadEpisodePlan(workId, 1);

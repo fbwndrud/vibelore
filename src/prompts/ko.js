@@ -369,6 +369,7 @@ export const phrases = {
       moralChoice: '도덕적 선택', costShape: '대가 형태', evidenceFamily: '증거 계열',
       sceneMode: '주 장면 모드', emotionalTemperature: '정서 온도', endingImage: '결말 이미지',
     },
+    readerCheckFailed: (key, evidence) => `독자 견인 점검 ${key} 불충족${evidence ? ` (근거: ${evidence})` : ''}`,
     perfectJudgment: '최근 3화에서 주인공 판단의 오차·반론·수정이 없다.',
     hookRepetition: (hookType) => `최근 3화가 같은 ${hookType} 훅으로 끝난다. 다음 회차 가치의 종류를 바꿔라.`,
   },
