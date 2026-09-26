@@ -594,6 +594,7 @@ export const phrases = {
       ageBand: '연령대', birthOrder: '출생순서', role: '역할',
     },
     appearance: (v) => `외형=${v}`,
+    characterAliases: (v) => `  - 별칭: ${v}`,
     characterContradiction: (v) => `  - 모순: ${v}`,
     valueOrder: (v) => `  - 가치 우선순위: ${v}`,
     behaviorTrait: (trigger, bias, benefit, cost) => `  - 행동 편향: ${trigger} → ${bias} (효용: ${benefit}; 비용: ${cost})`,

@@ -383,12 +383,13 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
     kit: promptKit({ contract: workLanguage.contract }),
   }) : null;
   const kit = promptKit({ contract: workLanguage.contract });
-  const episodePlan = await store.loadEpisodePlan?.(workId, chapter);
-  const cast = episodePlan?.cast ?? [];
+  // The author's intent may bring in any registered character, so the rewrite
+  // is not limited to the plan's cast.
+  const everyone = foundation.characters.filter((c) => c.disabled !== true && (c.registeredAtChapter ?? 0) <= chapter).map((c) => c.id);
   const result = await runRewrite({
     foundation: executionFoundation(foundation, workLanguage), prevState, chapterNumber: chapter,
-    foundationRender: renderWriterFoundation(foundation, cast, chapter, kit),
-    stateRender: chapter > 1 ? renderCurrentState(prevState, foundation, { cast: cast.length ? cast : foundation.characters.map((c) => c.id), kit, mode: 'writer', focusText: artifact.prose }) : '',
+    foundationRender: renderWriterFoundation(foundation, everyone, chapter, kit),
+    stateRender: chapter > 1 ? renderCurrentState(prevState, foundation, { cast: everyone, kit, mode: 'writer', focusText: artifact.prose }) : '',
     previousProse: artifact.prose, intentSummary: intent,
     continuityRender: continuity?.text ?? '',
     ...engineLanguageArgs(workLanguage), model: MODEL, providers,

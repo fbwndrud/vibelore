@@ -566,6 +566,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       characterNames: Object.fromEntries((foundation?.characters ?? []).map((character) => [character.id, character.canonicalName])) });
     const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(), disabled: disabledReviews,
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
+    // The profile check runs inside the mandatory check; record it here when it is off.
+    if (disabledReviews.includes('story-profile-check')) await reviews.run('story-profile-check', async () => null, null);
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
@@ -583,6 +585,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
 
     readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, foundation, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
     patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, foundation, cast: episodePlan?.cast ?? [], previousEntries: patternLedger.slice(-2), providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
+    // A review the user turned off leaves no entry: its fallback is not an analysis.
+    if (disabledReviews.includes('pattern-ledger')) patternEntry = null;
     // Independent reviews above are collected into one host round trip. The
     // semantic continuity check (needs the extracted delta) and the arc review
     // (needs the pattern entry) wait for the answers they depend on.
@@ -630,7 +634,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     if (readerHook.score !== null && readerHook.score < MIN_READER_HOOK) {
       violations.push(...(readerHook.findings.length ? readerHook.findings : [{ code: 'QUALITY_GATE_READER_HOOK', message: `독자 견인 점수 ${readerHook.score}` }]).map((finding) => ({ ...finding, severity: 'soft', advisoryOnly: true, chapterNumber: chapter })));
     }
-    const experienceViolations = patternViolations(patternLedger, patternEntry).map((violation) => ({ ...violation, chapterNumber: chapter }));
+    const experienceViolations = (patternEntry ? patternViolations(patternLedger, patternEntry) : []).map((violation) => ({ ...violation, chapterNumber: chapter }));
     const checkpointViolations = arcReviewViolations(arcReview, chapter);
     violations.push(...experienceViolations, ...checkpointViolations);
     const lengthFailed = check.lengthAssessment.actual < check.lengthAssessment.min;

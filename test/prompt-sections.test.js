@@ -13,7 +13,7 @@ const foundation = {
   intrinsicChanges: [],
   worldFacts: [{ id: 'f1', statement: '빛 방패는 한계를 넘으면 깨진다.' }],
   characters: [
-    { id: 'c1', canonicalName: '리아', registeredAtChapter: 1,
+    { id: 'c1', canonicalName: '리아', aliases: ['꼬마 길잡이'], registeredAtChapter: 1,
       intrinsic: { gender: 'female', ageBand: '20대', role: '주인공', coreAppearance: ['밤색 머리'], visualHints: { hair: 'VISUAL_HINT' }, addressing: { acceptedGenderedTerms: [] } },
       mutable: { location: 'DESIGN_TIME_LOCATION', status: 'alive', knownFacts: ['INITIAL_KNOWLEDGE'] },
       contradiction: '지키려다 숨긴다.', speechProfile: { defaultRegister: '반말', samples: { everyday: '내가 들게.' } } },
@@ -50,6 +50,7 @@ const state = {
 test('characters render as text with ids inline, without design-time state or JSON', () => {
   const text = renderCharacters(foundation, ['c1'], 7, kit, { appearance: true });
   assert.match(text, /리아 \(`c1`\)/);
+  assert.match(text, /별칭: 꼬마 길잡이/, 'aliases let a reviewer attribute a nickname to the character');
   assert.match(text, /모순: 지키려다 숨긴다/);
   assert.match(text, /외형=밤색 머리/);
   assert.doesNotMatch(text, /DESIGN_TIME_LOCATION|VISUAL_HINT|[{}]/);

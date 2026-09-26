@@ -603,6 +603,7 @@ export const phrases = {
       ageBand: 'age band', birthOrder: 'birth order', role: 'role',
     },
     appearance: (v) => `appearance=${v}`,
+    characterAliases: (v) => `  - aliases: ${v}`,
     characterContradiction: (v) => `  - contradiction: ${v}`,
     valueOrder: (v) => `  - value order: ${v}`,
     behaviorTrait: (trigger, bias, benefit, cost) => `  - behaviour bias: ${trigger} → ${bias} (benefit: ${benefit}; cost: ${cost})`,

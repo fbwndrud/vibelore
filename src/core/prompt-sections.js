@@ -26,6 +26,7 @@ export function renderCharacter(foundation, character, chapter, kit, { appearanc
     .map(([k, label]) => `${label}=${intrinsic[k]}`);
   if (appearance && intrinsic.coreAppearance?.length) pinned.push(t.appearance(intrinsic.coreAppearance.join('·')));
   const lines = [`- ${character.canonicalName} (\`${character.id}\`) — ${pinned.join(', ')}`];
+  if (asArray(character.aliases).length) lines.push(t.characterAliases(character.aliases.join(', ')));
   if (character.contradiction) lines.push(t.characterContradiction(character.contradiction));
   const model = character.dramaticModel;
   if (model?.valueOrder?.length) lines.push(t.valueOrder(model.valueOrder.join(' > ')));

@@ -42,7 +42,8 @@ const SCAFFOLD = Object.freeze({
     blockEnd: (id) => `[공통 자료 끝 · ${id}]`,
     role: '[이번 요청 역할]',
     data: '[이번 요청 자료]',
-    pointer: (id, label) => `(위 [공통 자료 · ${id}]의 「${label}」 전문)`,
+    // The pointer stands for the field itself: quotes and fieldPath refer to this place.
+    pointer: (id, label) => `(위 [공통 자료 · ${id}]의 「${label}」 전문) — 이 자리의 값으로 읽고 인용과 fieldPath도 이 자리를 기준으로 쓴다.`,
     blockRef: (id) => `[sharedBlocks의 ${id} 전문을 이 줄 대신 그대로 붙인다]\n`,
   }),
   multilingual: Object.freeze({
@@ -52,7 +53,7 @@ const SCAFFOLD = Object.freeze({
     blockEnd: (id) => `[Shared material end · ${id}]`,
     role: '[Role for this request]',
     data: '[Material for this request]',
-    pointer: (id, label) => `(the full "${label}" in [Shared material · ${id}] above)`,
+    pointer: (id, label) => `(the full "${label}" in [Shared material · ${id}] above) — read it as the value of this place; quotes and fieldPath refer to this place.`,
     blockRef: (id) => `[Replace this line with the full ${id} from sharedBlocks, verbatim]\n`,
   }),
 });

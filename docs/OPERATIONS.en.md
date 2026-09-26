@@ -327,7 +327,7 @@ Per host:
   this layout gives little or no benefit. The parallel answer rule still applies.
 
 With `lore_write(sharedOnce=true)` the response carries each common block once in `sharedBlocks`; replace the
-first line of each request's user (`promptCache.sharedBlockRef`) with the `text` of the block named by `sharedBlockId`.
+exact `promptCache.sharedBlockRef` string at the start of each request's user (newline included) with the `text` of the block named by `sharedBlockId`.
 The completed user is byte-identical to the default response. It is an option for hosts that assemble requests
 themselves and want smaller responses; by default every request is self-contained.
 

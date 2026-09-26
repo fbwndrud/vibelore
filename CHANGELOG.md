@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- With the pattern review off, no placeholder entry is written to the
+  experience ledger and repetition checks skip the chapter. A turned-off
+  profile check is listed in the review audit (`review.disabled`).
+- Character renders list aliases, so a reviewer can attribute a nickname to
+  the right character. `lore_rewrite` again carries every registered
+  character, not only the plan's cast.
+- The shared-block pointer tells the model to read it as the value of that
+  place, so quotes and `fieldPath` keep naming the request's own field.
+- Request prompts changed in this release, so a `lore_write` parked before
+  upgrading asks the changed requests again when resumed.
 - Optional draft sections can be left out per work:
   `lore_configure(disabledDraftSections=[...])` with `older-memory`,
   `previous-tail`, `author-craft` and `style-anchor`. The plan, setting,

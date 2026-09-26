@@ -118,7 +118,7 @@ export async function runRelayedTool({
       '한 응답의 requests 는 서로 독립이므로 병렬로(서브에이전트·동시 CLI 실행) 답해도 되며, 순서와 무관하게 모든 답을 한 번의 lore_resume 에 함께 넘기세요. ' +
       'promptCache 가 있는 요청들은 system 과 user 의 공통 자료 블록(sharedPrefixEndMarker 까지)이 바이트 단위로 같으므로, 새 프로세스·API 호출로 답한다면 ' +
       'warmFirst=true 인 요청을 먼저 보내 첫 출력이 시작된 뒤 나머지를 병렬로 보내면 프롬프트 캐시를 재사용합니다. ' +
-      (args.sharedOnce ? 'sharedBlocks 가 있으면 각 request 의 user 첫 줄(promptCache.sharedBlockRef)을 같은 sharedBlockId 블록의 text 로 바꿔 완성한 뒤 보내세요. ' : '') +
+      (args.sharedOnce ? 'sharedBlocks 가 있으면 각 request 의 user 맨 앞 promptCache.sharedBlockRef 문자열(줄바꿈 포함)을 같은 sharedBlockId 블록의 text 로 정확히 바꿔 완성한 뒤 보내세요. ' : '') +
       'Claude Code CLI(claude -p)는 system 과 마지막 user 블록에만 캐시 지점을 두므로 공통 자료 블록을 --system-prompt 의 system 뒤에 붙이고 나머지만 stdin 으로 보내고, CLAUDE_CODE_PROMPT_CACHE_TTL=5m 으로 실행하세요.',
     deterministicResult: result,
   };
