@@ -213,8 +213,9 @@ describe('host round trips are batched by dependency', () => {
     for (const step of ['story-profile-check', 'reader-hook']) {
       const text = requests.find((req) => req.step === step).messages.map((m) => m.content).join('\n');
       assert.doesNotMatch(text, /contractVersion|createdAt/, step);
-      assert.match(text, /닫힌 문 앞에 선다/, step);
     }
+    // The profile check judges drift against the arc beat; the plan's scenes are the coherence review's input.
+    assert.match(requests.find((req) => req.step === 'reader-hook').messages.map((m) => m.content).join('\n'), /닫힌 문 앞에 선다/);
   });
 });
 

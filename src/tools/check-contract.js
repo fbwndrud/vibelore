@@ -1,3 +1,4 @@
+import { profileCheckInputs } from '../core/profile-check-input.js';
 import { renderCheckSections, renderCurrentState } from '../core/prompt-sections.js';
 import { createHash } from 'node:crypto';
 import { extractDelta, continuityCheck, computeExtractionContextHash } from '../../engine/src/continuity/continuity-check.js';
@@ -11,7 +12,6 @@ import { chapterArtifactBundle, computeArtifactHash, continuityContextHash, eval
 import { lexiconsForLanguage } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
-import { episodePlanReviewView } from '../core/episode-plan-view.js';
 import { promptKit } from '../prompts/index.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
@@ -140,9 +140,9 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     const before = providers.pending?.length ?? 0;
     try {
       const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'story-profile-check',
-        messages: promptKit({ contract: workContract }).messages('story-profile-check', {
-          storyProfile: context.plans.profile, arcEpisode: episodeForChapter(context.plans.arc, chapter),
-          episodePlan: episodePlanReviewView(context.plans.episode), prose: input.prose }) });
+        messages: promptKit({ contract: workContract }).messages('story-profile-check', profileCheckInputs({
+          profile: context.plans.profile, arcEpisode: episodeForChapter(context.plans.arc, chapter),
+          episodePlan: context.plans.episode, foundation, prose: input.prose, kit: promptKit({ contract: workContract }) })) });
       if ((providers.pending?.length ?? 0) === before) state.profileAdvisory = { findings: profileFindings(response.text) };
     } catch (error) {
       if (error?.name !== 'PendingModelWork') state.profileAdvisory = { findings: [], error: String(error?.message ?? error) };

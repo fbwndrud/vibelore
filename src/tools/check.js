@@ -26,7 +26,8 @@ import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { emptyStoryState } from '../../engine/src/continuity/story-state.js';
 import { lexicons } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
-import { episodePlanReviewView } from '../core/episode-plan-view.js';
+import { profileCheckInputs } from '../core/profile-check-input.js';
+import { promptKit } from '../prompts/index.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { runContractCheck, shouldUseContractCheck } from './check-contract.js';
 
@@ -138,10 +139,9 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
     try {
       const response = await providers.complete({
         model: MODEL, jsonMode: true, step: 'story-profile-check',
-        messages: [
-          { role: 'system', content: '승인된 작품 StoryProfile과 회차 본문을 비교한다. 명백하고 구체적인 이탈만 findings에 넣는다. 취향 차이와 장면상 의도는 지적하지 않는다. 모든 finding은 soft다. 순수 JSON만 출력한다.' },
-          { role: 'user', content: `StoryProfile:\n${JSON.stringify(storyProfile)}\n\n회차 비트:\n${JSON.stringify(arcEpisode)}\n\nEpisodePlan:\n${JSON.stringify(episodePlanReviewView(episodePlan))}\n\n본문:\n${prose}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"구체적 근거"}]}` },
-        ],
+        // Same text inputs as the contract check path (src/core/profile-check-input.js).
+        messages: promptKit({ profile: storyProfile }).messages('story-profile-check',
+          profileCheckInputs({ profile: storyProfile, arcEpisode, episodePlan, foundation, prose, kit: promptKit({ profile: storyProfile }) })),
       });
       const parsed = JSON.parse(String(response.text).replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim());
       for (const finding of Array.isArray(parsed?.findings) ? parsed.findings.slice(0, 10) : []) {

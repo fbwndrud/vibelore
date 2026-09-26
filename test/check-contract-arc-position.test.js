@@ -69,3 +69,17 @@ test('extract and check requests carry text sections, not JSON, before the outpu
   const check = requests.find((req) => req.step === 'continuity-check').messages.find((m) => m.role === 'user').content;
   assert.match(check, /\[foundation\.characters\[0\]\]/);
 });
+
+test('the profile check reads the profile, beat and deferred results as text instead of profile and plan JSON', async () => {
+  const store = await qualityStore();
+  const requests = [];
+  const recording = { pending: [], async complete(req) { requests.push(req); return contractResponse(req) ?? { text: '{}' }; } };
+  await runContractCheck({ store, workId, chapter: 1, prose: SYNTHETIC_LONG_PROSE, title: '첫 문', providers: recording, issueReceipt: false });
+  const request = requests.find((req) => req.step === 'story-profile-check');
+  assert.ok(request, requests.map((req) => req.step).join(','));
+  const user = request.messages.find((m) => m.role === 'user').content;
+  const input = user.slice(0, user.lastIndexOf('JSON:'));
+  assert.doesNotMatch(input, /[{}]|\["/, 'no JSON before the output schema');
+  assert.match(input, /## 승인된 작품 StoryProfile/);
+  assert.match(input, /윤재 \(hero\)/);
+});

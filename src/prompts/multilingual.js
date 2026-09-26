@@ -124,7 +124,7 @@ export const steps = {
 
   'story-profile-check': {
     system: 'Compare the approved StoryProfile of the work with the chapter prose. Put only clear, concrete departures in findings. Do not flag differences of taste or deliberate choices of the scene. Every finding is soft. Output pure JSON only.',
-    user: (c) => `StoryProfile:\n${JSON.stringify(c.storyProfile)}\n\nArc beat for this chapter:\n${JSON.stringify(c.arcEpisode)}\n\nEpisodePlan:\n${JSON.stringify(c.episodePlan)}\n\nProse:\n${c.prose}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"concrete evidence"}]}`,
+    user: (c) => `${c.profileText}\n\nArc beat for this chapter:\n${c.arcBeatText}\n\n${c.planNotesText}\n\nProse:\n${c.prose}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"concrete evidence"}]}`,
   },
 
   'editorial-quality': {
@@ -571,6 +571,10 @@ export const phrases = {
     deltaMutable: (path, name, fields) => `- [${path}] ${name}: ${fields}`,
     deltaTracked: (path, kind, body) => `- [${path}] [${kind}] ${body}`,
     deltaEmpty: '- (no appearances, address terms or state changes)',
+    castNames: (v) => `Characters: ${v}`,
+    withheldNote: (v) => `Deliberately not revealed in this chapter: ${v}`,
+    deferredNote: (v) => `Results deferred to later: ${v}`,
+    settledNote: (v) => `Decisions the user settled: ${v}`,
     invariantsHeading: '## Genre invariants',
     invariant: (severity, description) => `- [${severity}] ${description}`,
   },

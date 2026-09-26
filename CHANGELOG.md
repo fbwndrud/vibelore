@@ -36,6 +36,11 @@
   evidence, the current state instead of Foundation's design-time place, and
   only the Delta fields its tasks judge (appearances, address terms, state
   changes, tracked-item changes).
+- The StoryProfile drift check reads the rendered profile with the user's
+  settled decisions, the arc beat, who is on stage and what the plan withheld
+  or deferred, instead of the raw profile JSON and the whole plan JSON, so a
+  deferred payoff is not taken for drift. Both check paths share the input.
+  Thundertrail chapter 8: 19.1K to 7.8K characters.
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

@@ -125,7 +125,7 @@ export const steps = {
   // main(4a928e2) src/tools/check.js 의 story-profile-check 와 byte 단위로 같다.
   'story-profile-check': {
     system: '승인된 작품 StoryProfile과 회차 본문을 비교한다. 명백하고 구체적인 이탈만 findings에 넣는다. 취향 차이와 장면상 의도는 지적하지 않는다. 모든 finding은 soft다. 순수 JSON만 출력한다.',
-    user: (c) => `StoryProfile:\n${JSON.stringify(c.storyProfile)}\n\n회차 비트:\n${JSON.stringify(c.arcEpisode)}\n\nEpisodePlan:\n${JSON.stringify(c.episodePlan)}\n\n본문:\n${c.prose}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"구체적 근거"}]}`,
+    user: (c) => `${c.profileText}\n\n회차 비트:\n${c.arcBeatText}\n\n${c.planNotesText}\n\n본문:\n${c.prose}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"구체적 근거"}]}`,
   },
 
   'editorial-quality': {
@@ -562,6 +562,10 @@ export const phrases = {
     deltaMutable: (path, name, fields) => `- [${path}] ${name}: ${fields}`,
     deltaTracked: (path, kind, body) => `- [${path}] [${kind}] ${body}`,
     deltaEmpty: '- (등장·호칭·상태 변화 없음)',
+    castNames: (v) => `등장 인물: ${v}`,
+    withheldNote: (v) => `이번 화에 일부러 드러내지 않는 것: ${v}`,
+    deferredNote: (v) => `다음으로 미룬 결과: ${v}`,
+    settledNote: (v) => `사용자가 확정한 결정: ${v}`,
     invariantsHeading: '## 장르 불변식',
     invariant: (severity, description) => `- [${severity}] ${description}`,
   },
