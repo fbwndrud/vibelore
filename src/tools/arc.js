@@ -304,6 +304,41 @@ export function renderArcEpisode(plan, episode, kitSource) {
 }
 
 /** Complete causal map for the writer; current-beat-only context cannot seed later payoffs. */
+/**
+ * What the boundary judge needs: the arc promise, the current beat in full and
+ * the next beat's event (to tell "one more chapter" from "move on"). Earlier
+ * beats, the opposition and voice shifts do not bear on the decision; the
+ * character curves do only when this is the last beat.
+ */
+export function renderBoundaryArc(plan, currentChapter, kitSource) {
+  if (!plan || plan.status !== 'active') return '';
+  const t = asKit(kitSource).phrases.arc;
+  const at = plan.episodes.findIndex((episode) => episode.chapter === currentChapter);
+  const current = plan.episodes[at];
+  const next = at >= 0 ? plan.episodes[at + 1] : null;
+  const isLast = current === plan.episodes.at(-1);
+  return [
+    t.mapHeading(plan.arcNumber, plan.title),
+    t.promise(plan.promise),
+    plan.readerContract?.openingQuestion ? t.readerContract(plan.readerContract.openingQuestion, plan.readerContract.minimumPayoff) : '',
+    current ? [
+      t.mapEpisode('▶', current.index, plan.estimatedEpisodes, current.title),
+      t.mapEvent(current.beat ?? current.goal ?? ''),
+      current.pressure || current.conflict ? t.mapPressure(current.pressure ?? current.conflict) : '',
+      current.turn ? t.mapTurn(current.turn) : '',
+      current.payoff ? t.mapPayoff(current.payoff) : '',
+      current.costCreatedByResolution ? t.mapResolutionCost(current.costCreatedByResolution) : '',
+      current.carry || current.hook ? t.mapCarry(current.carry ?? current.hook) : '',
+      current.exitValue ? t.mapExitValue(current.exitValue) : '',
+    ].filter(Boolean).join(' / ') : '',
+    next ? [t.mapEpisode(' ', next.index, plan.estimatedEpisodes, next.title), t.mapEvent(next.beat ?? next.goal ?? '')].join(' / ') : '',
+    ...(isLast && plan.characterArcs?.length ? [
+      t.characterCurveHeading,
+      ...plan.characterArcs.map((arc) => t.characterCurve(arc.characterId, arc.promise, arc.beats.map((b) => t.characterCurveBeat(b.episodeIndex, b.beat, b.note)).join(' → '))),
+    ] : []),
+  ].filter(Boolean).join('\n');
+}
+
 export function renderArcMap(plan, currentChapter, kitSource) {
   if (!plan || plan.status !== 'active') return '';
   const t = asKit(kitSource).phrases.arc;

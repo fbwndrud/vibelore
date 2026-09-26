@@ -584,6 +584,7 @@ export const phrases = {
     planExit: (closed, next, value, type) => `- next value: ${[closed && `closed question ${closed}`, next && `next question ${next}`, value && `specific value ${value}`, type && `hook type ${type}`].filter(Boolean).join(' / ')}`,
     planAgenda: (name, goal, redLine, fallback) => `- ${name}'s agenda: ${[goal, redLine && `line not crossed ${redLine}`, fallback && `fallback ${fallback}`].filter(Boolean).join(' / ')}`,
     previousSummary: (chapter, text) => `Previous chapter summary (ch. ${chapter}): ${text}`,
+    sceneResult: (order, change) => `- Scene ${order} result: ${change}`,
     patternIds: (pairs) => `Character IDs (key supportingAgency by ID): ${pairs}`,
     patternPrevious: (rows) => `Categories used in the previous chapters (reuse a name for the same function, use another for a different one):\n${rows}`,
     patternPreviousRow: (chapter, fields) => `- ch. ${chapter}: ${fields}`,

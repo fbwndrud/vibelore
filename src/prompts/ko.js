@@ -575,6 +575,7 @@ export const phrases = {
     planExit: (closed, next, value, type) => `- 다음 가치: ${[closed && `닫힌 질문 ${closed}`, next && `다음 질문 ${next}`, value && `구체적 가치 ${value}`, type && `훅 유형 ${type}`].filter(Boolean).join(' / ')}`,
     planAgenda: (name, goal, redLine, fallback) => `- ${name}의 의제: ${[goal, redLine && `넘지 않는 선 ${redLine}`, fallback && `차선책 ${fallback}`].filter(Boolean).join(' / ')}`,
     previousSummary: (chapter, text) => `직전 화 요약 (${chapter}화): ${text}`,
+    sceneResult: (order, change) => `- 장면 ${order} 결과: ${change}`,
     patternIds: (pairs) => `인물 ID (supportingAgency 키는 ID로 쓴다): ${pairs}`,
     patternPrevious: (rows) => `직전 회차에 쓴 범주 (같은 기능이면 같은 이름을, 다르면 다른 이름을 쓴다):\n${rows}`,
     patternPreviousRow: (chapter, fields) => `- ${chapter}화: ${fields}`,

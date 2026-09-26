@@ -1,5 +1,5 @@
-import { renderArcMap } from './arc.js';
-import { renderEpisodePlan } from './episode-plan.js';
+import { renderBoundaryArc } from './arc.js';
+import { renderEpisodeOutcome } from './episode-plan.js';
 import { asKit } from '../prompts/index.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
@@ -22,8 +22,8 @@ export async function runNarrativeBoundary({ arcPlan, episodePlan, chapter, pros
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'narrative-boundary',
     messages: kit.messages('narrative-boundary', {
-      arcMap: renderArcMap(arcPlan, chapter, kit),
-      episodePlanRender: renderEpisodePlan(episodePlan, kit),
+      arcMap: renderBoundaryArc(arcPlan, chapter, kit),
+      episodePlanRender: renderEpisodeOutcome(episodePlan, kit),
       isLast, prose,
     }),
   });

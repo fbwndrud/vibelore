@@ -397,6 +397,21 @@ export async function completeEpisodePlan({ store, workId, chapter }) {
   return { chapter, status: 'completed' };
 }
 
+/** The plan's intended results only: what the boundary judge checks the prose against. */
+export function renderEpisodeOutcome(plan, kitSource) {
+  if (!plan || plan.status !== 'active') return '';
+  const kit = asKit(kitSource);
+  const t = kit.phrases.episode;
+  return [
+    t.heading(plan.chapter, plan.title), t.premise(plan.premise),
+    t.choiceAndResult(plan.turn?.causedByChoice || t.choiceFallback, plan.payoff?.promisePaid || plan.closingState),
+    t.nextState(plan.exitValue?.nextQuestion || plan.closingState),
+    ...(plan.scenes ?? []).filter((s) => s.change ?? s.turn).map((s, i) => kit.phrases.sections.sceneResult(s.order ?? i + 1, s.change ?? s.turn)),
+    plan.costCreatedByResolution?.immediate || plan.costCreatedByResolution?.deferred
+      ? t.remainingCost(plan.costCreatedByResolution.immediate || plan.costCreatedByResolution.deferred) : '',
+  ].filter(Boolean).join('\n');
+}
+
 export function renderEpisodePlan(plan, kitSource) {
   if (!plan || plan.status !== 'active') return '';
   const kit = asKit(kitSource);

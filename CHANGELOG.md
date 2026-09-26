@@ -62,6 +62,13 @@
 - The reader-hook review's checklist is no longer thrown away: items it
   marks `fail` are shown as advisories with the evidence, and the receipt
   keeps the dimension scores and the full checklist (`readerHookDetail`).
+- The narrative-boundary request carries what the decision needs: the arc
+  promise and reader contract, the current beat in full, the next beat's
+  event, and the plan's intended results (choice and result, next state,
+  scene results, remaining cost). Earlier beats, opposition, voice shifts
+  and the plan's scene staging are left out; the character curves are shown
+  on the last beat. Thundertrail chapter 8: 6.2K to 2.1K characters besides
+  the prose.
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only
