@@ -23,6 +23,10 @@
   Appearance is given where a character first enters. On the thundertrail
   chapter 8 request this cuts the prompt from 34.7K to 19.3K characters.
 - Tracked records note the chapter that last changed them (`updatedChapter`).
+- The episode-plan request carries the arc beat, character beats, world
+  facts, cast, recent summaries (labelled, oldest first), the previous plan
+  and the current state as text instead of JSON. Thundertrail chapter 8:
+  23.2K to 12.2K characters.
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

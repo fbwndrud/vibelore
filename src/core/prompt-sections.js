@@ -168,3 +168,42 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
   }
   return lines.length > 1 ? lines.join('\n') : '';
 }
+
+/** One line per character: id, role and contradiction — the planning cast list. */
+export function renderCastBrief(foundation, kit) {
+  const t = kit.phrases.sections;
+  return asArray(foundation?.characters).filter((c) => c.disabled !== true)
+    .map((c) => t.castBrief(c.canonicalName, c.id, c.intrinsic?.role, c.contradiction)).join('\n');
+}
+
+/** Chapter summaries oldest first, each labelled with its chapter. */
+export function renderSummaries(summaries, kit) {
+  const t = kit.phrases.sections;
+  return asArray(summaries)
+    .map((item) => ({ chapter: Number(item.chapterNumber ?? item.chapter), text: clean(item.summary ?? item.text) }))
+    .filter((item) => item.text)
+    .sort((a, b) => a.chapter - b.chapter)
+    .map((item) => t.summary(item.chapter, item.text)).join('\n');
+}
+
+export function renderCharacterArcBeats(beats, foundation, kit) {
+  const t = kit.phrases.sections;
+  const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
+  return asArray(beats).map((beat) => t.arcCharacterBeat(`${name(beat.characterId)} (${beat.characterId})`, clean(beat.promise), clean(beat.beat), clean(beat.note))).join('\n');
+}
+
+/** The fixed arc beat, one labelled line per non-empty field; a field equal to one already shown is skipped. */
+export function renderArcBeat(beat, kit) {
+  const t = kit.phrases.sections;
+  const seen = new Set();
+  const lines = [];
+  for (const [field, label] of Object.entries(t.arcBeatLabels)) {
+    const raw = beat?.[field];
+    const value = typeof raw === 'string' ? raw.trim()
+      : raw && typeof raw === 'object' ? Object.values(raw).filter((v) => typeof v === 'string' && v.trim()).join(' / ') : '';
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    lines.push(t.arcBeatField(label, value));
+  }
+  return lines.join('\n');
+}

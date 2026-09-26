@@ -419,6 +419,20 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(prompt, /은빛열쇠 주인은 ACTIVE_HOOK_TOKEN/);
   });
 
+  it('plans a chapter from text sections: no JSON before the output schema', async () => {
+    const store = await sevenChapterStore();
+    let planRequest;
+    const capture = { async complete(req) { planRequest = req; throw new Error('CAPTURED'); } };
+    await assert.rejects(runEpisodePlan({ store, workId: 'tax-tower', chapter: 8, mode: 'review', providers: capture }), /CAPTURED/);
+    const user = planRequest.messages.find((m) => m.role === 'user').content;
+    const input = user.slice(0, user.indexOf('필수 JSON 스키마'));
+    assert.doesNotMatch(input, /[{}]|\["/, 'input carries no JSON objects or arrays');
+    assert.match(input, /- 7화: 윤재가 7번째 고지서를 받았다/);
+    assert.match(input, /은빛열쇠 주인은 ACTIVE_HOOK_TOKEN/);
+    assert.match(input, /윤재 \(hero\)/);
+    assert.match(input, /- 탑의 시스템은 모든 보상에 세금을 매긴다/);
+  });
+
   it('gives a whole-chapter rewrite the same continuity window and older memory as a draft', async () => {
     const store = await sevenChapterStore();
     let rewriteRequest;

@@ -1,3 +1,4 @@
+import { renderArcBeat, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { characterArcBeatsForEpisode, episodeForChapter } from './arc.js';
 import { renderStoryProfile } from './story-profile.js';
@@ -202,15 +203,15 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       pilotRender: renderPilotContract(pilotContract, kit),
       ledgerRender: renderPatternLedger(patternLedger, kit),
       arcTitle: arcPlan.title, arcPromise: arcPlan.promise,
-      arcBeatsJson: JSON.stringify(characterArcBeatsForEpisode(arcPlan, arcBeat.index)),
-      arcBeatJson: JSON.stringify(arcBeat),
+      arcBeatsText: renderCharacterArcBeats(characterArcBeatsForEpisode(arcPlan, arcBeat.index), foundation, kit) || kit.phrases.common.noneParen,
+      arcBeatText: renderArcBeat(arcBeat, kit),
       direction: direction || kit.phrases.common.noneParen,
       feedback: feedback || kit.phrases.common.noneParen,
-      priorJson: prior ? JSON.stringify(prior) : kit.phrases.common.noneParen,
-      worldFactsJson: JSON.stringify(foundation.worldFacts.map((f) => f.statement)),
-      castJson: JSON.stringify(foundation.characters.map((c) => ({ id: c.id, name: c.canonicalName, contradiction: c.contradiction, role: c.intrinsic?.role }))),
-      summariesJson: JSON.stringify(summaries.reverse().map((s) => s.summary)),
-      stateJson: JSON.stringify(state),
+      priorText: prior ? renderEpisodePlan(prior, kit) || kit.phrases.common.noneParen : kit.phrases.common.noneParen,
+      worldFactsText: renderWorldFacts(foundation, kit) || kit.phrases.common.noneParen,
+      castText: renderCastBrief(foundation, kit),
+      summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
+      stateText: renderCurrentState(state, foundation, { cast: foundation.characters.map((c) => c.id), kit, mode: 'writer', focusText: renderArcBeat(arcBeat, kit) }) || kit.phrases.common.noneParen,
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };
