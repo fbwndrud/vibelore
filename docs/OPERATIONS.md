@@ -342,7 +342,7 @@ Opus 4.6·Haiku 4.5는 4096토큰입니다. API 기본 TTL은 5분이고 읽기�
 2. 원문에서 관찰한 경험과 승인된 약속의 구현을 구분합니다. 현재 계획을 주지 않은 편집 요청에 별도로 계획을 덧붙이지 않습니다. 미래에 지급할 약속이나 의도적인 지연을 현재 누락으로 단정하지 않습니다.
 3. 높은 점수에도 약점이 있으면 findings에 근거를 남깁니다. 취향 의견은 자동 수정 지시로 바꾸지 않습니다. 응답할 수 없거나 검토가 실패했을 때 임의의 통과 점수를 만들지 않습니다.
 4. 주어진 요청 ID로 `lore_resume`합니다. 서버는 실제 요청·응답과 원고·계약 해시를 연결합니다. 이 연결은 같은 평가를 재개하는 장치이며 평가자가 성실히 읽었거나 독립적이라는 증명은 아닙니다.
-5. 매 화 검토(`story-profile-check`, `coherence-judge`, `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`)는 작가를 돕는 선택 기능입니다. 사용자가 원하면 `lore_configure`에 `disabledReviews`로 끌 목록 전체를 넘깁니다. 꺼진 검토는 요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다. `editorial-quality`를 끄면 분량·밀도 조언도 나오지 않습니다. 연속성 추출·검사는 끌 수 없습니다.
+5. 매 화 검토(`story-profile-check`, `coherence-judge`, `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`)는 작가를 돕는 선택 기능입니다. 사용자가 원하면 `lore_configure`에 `disabledReviews`로 끌 목록 전체를 넘깁니다. 꺼진 검토는 요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다. `editorial-quality`를 끄면 분량·밀도 조언도 나오지 않습니다. 연속성 추출·검사는 끌 수 없습니다. 초고 요청의 선택 섹션(`older-memory`, `previous-tail`, `author-craft`, `style-anchor`)도 `disabledDraftSections`로 뺄 수 있고, 적용 결과는 `draft_context_supplied.disabledDraftSections`에 남습니다.
 6. `lore_workflow_history`와 `quality.review`에서 전체 발견 및 출처를 확인합니다. 같은 호스트 문맥으로 작성·검토했다면 자기검토로 보고합니다. 근거와 실행 경로를 조사할 때만 `includeModelExchanges=true`로 전문을 조회합니다.
 
 `lore_workflow_history` 호출 인자 예시:

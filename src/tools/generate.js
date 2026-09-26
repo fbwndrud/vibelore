@@ -26,6 +26,7 @@ import { promptKit } from '../prompts/index.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
 import { renderContinuity } from '../core/draft-input-compiler.js';
 import { renderCurrentState, renderWriterFoundation } from '../core/prompt-sections.js';
+import { loadDisabledDraftSections } from '../core/review-policy.js';
 import { supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract, compileDraftContract, renderNarrativeContract } from '../core/narrative-contract.js';
@@ -184,7 +185,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   // run here as an extra host round trip, but its answer never reached the
   // prompt, so it is not requested.
   const previousArtifact = chapter > 1 ? await draftStore.loadArtifact(workId, chapter - 1) : null;
-  const previousSceneTail = previousArtifact?.prose
+  const draftSectionsOff = await loadDisabledDraftSections(store, workId);
+  const previousSceneTail = previousArtifact?.prose && !draftSectionsOff.includes('previous-tail')
     ? previousArtifact.prose.slice(-2400).trim()
     : '';
   const episodePacketResult = compileWriterEpisodePacket({
@@ -201,10 +203,12 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     throw new Error(`${episodePacketResult.error.code}${details}`);
   }
   const episodePacket = episodePacketResult.value;
-  const authorCraftPacket = compileAuthorCraftPacket({ skill: writerSkill, episodePlan: detailedPlan, chapter, recentPatterns: patternLedger.slice(-3), kit });
+  const authorCraftPacket = draftSectionsOff.includes('author-craft') ? ''
+    : compileAuthorCraftPacket({ skill: writerSkill, episodePlan: detailedPlan, chapter, recentPatterns: patternLedger.slice(-3), kit });
   const draftContract = compileDraftContract({ profile: storyProfile, identity: storyIdentity, writerSkill, episodePlan: detailedPlan, chapter, kit,
     characterNames: Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName])) });
-  const writerPacket = [draftContract.writerText, authorCraftPacket, renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
+  const writerPacket = [draftContract.writerText, authorCraftPacket,
+    draftSectionsOff.includes('style-anchor') ? '' : renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
   const compilerInputs = {
     identity: {
       workId, chapter, workflowId, invocation: workflowId ? 'workflow' : 'direct',
@@ -221,7 +225,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     continuity: {
       genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
       recentSummaries: continuitySelection?.recentSummaryTexts ?? [],
-      olderMemory: continuitySelection ? writerOlderMemory(continuitySelection.olderMemory, (item) => detailedPlan.cast.includes(item.ref)) : [],
+      olderMemory: continuitySelection && !draftSectionsOff.includes('older-memory')
+        ? writerOlderMemory(continuitySelection.olderMemory, (item) => detailedPlan.cast.includes(item.ref)) : [],
       castIds: detailedPlan.cast,
       locations: detailedPlan.locations,
       previousSceneTail,
@@ -286,6 +291,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     chapter, prose: result.raw, next: 'lore_check로 검사한 뒤 lore_commit 하세요.',
     contextAudit: {
       recentSummaries: continuitySelection?.recentSummaryTexts.length ?? 0,
+      disabledDraftSections: draftSectionsOff,
       // What the window and the memory budget left out; shown to the user with the draft.
       memory: {
         trimmedSummaries: continuitySelection?.trimmedSummaries ?? 0,

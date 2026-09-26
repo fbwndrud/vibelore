@@ -132,10 +132,12 @@ const TOOLS = [
   },
   {
     name: 'lore_configure',
-    description: '기존 Profile·Identity·WriterSkill을 하나의 v2 NarrativeContract로 컴파일해 현재 통합 설정과 누락 단계를 보여준다. disabledReviews를 넘기면 매 화 검토 중 끌 항목을 작품 설정으로 저장한다.',
+    description: '기존 Profile·Identity·WriterSkill을 하나의 v2 NarrativeContract로 컴파일해 현재 통합 설정과 누락 단계를 보여준다. disabledReviews·disabledDraftSections를 넘기면 매 화 검토와 초고 선택 섹션 중 끌 항목을 작품 설정으로 저장한다.',
     inputSchema: { type: 'object', properties: { ...projectArg,
       disabledReviews: { type: 'array', items: { type: 'string', enum: ['story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger'] },
         description: '끌 검토 목록 전체(빈 배열이면 모두 켬). 꺼진 검토는 요청하지 않고 실패로 보지 않는다. 연속성 추출·검사는 끌 수 없다.' },
+      disabledDraftSections: { type: 'array', items: { type: 'string', enum: ['older-memory', 'previous-tail', 'author-craft', 'style-anchor'] },
+        description: '초고 요청에서 뺄 선택 섹션 목록 전체(빈 배열이면 모두 넣음): older-memory=오래된 관련 기억, previous-tail=직전 화 말미, author-craft=작법 묶음, style-anchor=문체 기준 예시. 계획·설정·현재 상태·최근 요약은 뺄 수 없다.' },
     }, required: ['workId'] },
   },
   {
@@ -614,7 +616,7 @@ async function dispatchTool(store, name, args) {
     case 'lore_status':
       return runStatus({ store, workId: args.workId });
     case 'lore_configure':
-      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews });
+      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
     case 'lore_init':

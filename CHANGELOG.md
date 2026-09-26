@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Optional draft sections can be left out per work:
+  `lore_configure(disabledDraftSections=[...])` with `older-memory`,
+  `previous-tail`, `author-craft` and `style-anchor`. The plan, setting,
+  current state and recent summary window always stay. The draft audit
+  records which sections were off.
 - `lore_write(sharedOnce=true)`: a `needs_model` response carries each
   shared prose block once (`sharedBlocks`) and every request starts with a
   one-line reference to it; replacing that line with the block restores the

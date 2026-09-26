@@ -13,6 +13,7 @@ import { createPreflightRelay } from '../src/provider/host-relay.js';
 import { createLocalOpenAIProvider } from '../src/provider/local-openai.js';
 import { runCreate, runDraftTool, runReviseTool, runRewriteTool, runNextArc, runRefold } from '../src/tools/generate.js';
 import { runCommit, runStatus } from '../src/tools/commit.js';
+import { saveWriterSupportPolicy } from '../src/core/review-policy.js';
 import { runEraResearchTool } from '../src/tools/era-research.js';
 import { runArcPlan, runArcDecide } from '../src/tools/arc.js';
 import { runArcQuality } from '../src/tools/arc-quality.js';
@@ -463,6 +464,21 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(prompt, /OLD_MEMORY_TOKEN/);
     assert.equal(result.contextAudit.memory.trimmedSummaries, 0);
     assert.equal(typeof result.contextAudit.memory.droppedForBudget, 'number');
+  });
+
+  it('leaves out the draft sections the user turned off', async () => {
+    const store = await sevenChapterStore();
+    const on = (await draftPrompt(store, 8)).prompt;
+    assert.match(on, /OLD_MEMORY_TOKEN/);
+    assert.match(on, /윤재는 7번째 고지서를 접었다/);
+    assert.match(on, /정확한 행동은 장면에서 발견한다/);
+    await saveWriterSupportPolicy(store, 'tax-tower', { disabledDraftSections: ['older-memory', 'previous-tail', 'author-craft'] });
+    const { result, prompt } = await draftPrompt(store, 8);
+    assert.doesNotMatch(prompt, /OLD_MEMORY_TOKEN/);
+    assert.doesNotMatch(prompt, /윤재는 7번째 고지서를 접었다/);
+    assert.doesNotMatch(prompt, /정확한 행동은 장면에서 발견한다/);
+    assert.match(prompt, /RECENT_SUMMARY_7/, 'the summary window stays');
+    assert.deepEqual(result.contextAudit.disabledDraftSections, ['older-memory', 'previous-tail', 'author-craft']);
   });
 
   it('opens chapter one without a continuity window or older memory', async () => {
