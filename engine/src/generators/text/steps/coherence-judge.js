@@ -61,7 +61,8 @@ export async function runCoherenceJudge(input) {
         labels.proseHeading(input.chapterNumber),
         input.prose,
         ``,
-        input.plan ? labels.plan(input.plan) : '',
+        // A plan render that carries its own heading is used as is.
+        input.plan ? (/^#/.test(input.plan.trim()) ? input.plan.trim() : labels.plan(input.plan)) : '',
         input.prevSummary ? labels.prevSummary(input.prevSummary) : '',
         ``,
         labels.request,

@@ -20,6 +20,7 @@ import { assessContractLength, assessChapterLength, chapterDensityViolations } f
 import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '../core/quality-policy.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
+import { renderSummaries } from '../core/prompt-sections.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { findLatestRun } from '../runs.js';
@@ -562,16 +563,17 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       characterNames: Object.fromEntries((foundation?.characters ?? []).map((character) => [character.id, character.canonicalName])) });
     const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(),
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
+    const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
-      plan: renderEpisodePlan(episodePlan, kit), writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
+      plan: renderEpisodePlan(episodePlan, kit), prevSummary: priorSummaries[0]?.summary ?? '',
+      writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
     }), { score: null, reason: null });
 
     const canon = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
     const fidelityPrevState = chapter > 1 ? await canon.loadStoryState(workId, chapter - 1) : null;
     const fidelityDynamics = await canon.loadCharacterDynamics?.(workId) ?? null;
-    const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
-    const editorialContext = priorSummaries.map((item) => item.summary).join('\n');
+    const editorialContext = renderSummaries(priorSummaries, kit);
     editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
 
     characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, episodePlan, prevState: fidelityPrevState, dynamics: fidelityDynamics, previousSummary: priorSummaries[0] ?? null, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });

@@ -50,6 +50,11 @@
   chapter plan, the character packet, the current state and the previous
   chapter's summary. Characters were sent twice before (JSON and context).
   Thundertrail chapter 8: about 21K to 12.5K characters besides the prose.
+- Fix: the coherence review receives the previous chapter's summary its
+  instructions ask for; it was never passed. The plan heading is no longer
+  doubled.
+- The editorial review's earlier summaries are labelled by chapter and run
+  oldest first; they were unlabelled and newest first.
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

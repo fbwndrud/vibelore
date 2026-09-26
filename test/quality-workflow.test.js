@@ -232,6 +232,25 @@ describe('host round trips are batched by dependency', () => {
     assert.match(input, /닫힌 문 앞에 선다/, 'the plan the chapter was written from');
   });
 
+  it('gives the coherence review the previous chapter summary and one plan heading', async () => {
+    const store = await qualityStore();
+    store.loadRecentChapterSummaries = async () => [{ chapterNumber: 0, summary: 'PREVIOUS_SUMMARY' }];
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    const user = requests.find((req) => req.step === 'coherence-judge').messages.find((m) => m.role === 'user').content;
+    assert.match(user, /PREVIOUS_SUMMARY/);
+    assert.doesNotMatch(user, /## 이번 화 plan\n##/, 'the plan render carries its own heading');
+  });
+
+  it('gives the editorial review earlier summaries oldest first, labelled by chapter', async () => {
+    const store = await qualityStore();
+    store.loadRecentChapterSummaries = async () => [{ chapterNumber: 7, summary: 'NEWER' }, { chapterNumber: 6, summary: 'OLDER' }];
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    const user = requests.find((req) => req.step === 'editorial-quality').messages.find((m) => m.role === 'user').content;
+    assert.match(user, /6화[^\n]*OLDER[\s\S]*7화[^\n]*NEWER/);
+  });
+
   it('shows reviewers a plan view without bookkeeping fields', async () => {
     const store = await qualityStore();
     const plan = await store.loadEpisodePlan(workId, 1);
