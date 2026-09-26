@@ -32,7 +32,7 @@ test('contract check shows the extractor known entities and flags a destroyed on
   const result = await runContractCheck({ store, workId, chapter: 1, prose: `${SYNTHETIC_LONG_PROSE}\n\n그는 다리검을 다시 뽑았다.`, title: '첫 문', providers: recording, issueReceipt: false });
   const extraction = requests.find((req) => req.step === 'continuity-extract');
   assert.ok(extraction, requests.map((req) => req.step).join(','));
-  assert.match(extraction.messages.map((m) => m.content).join('\n'), /"knownEntities":\[\{"entityId":"bridge-sword"/);
+  assert.match(extraction.messages.map((m) => m.content).join('\n'), /\[item\] 다리검 \(`bridge-sword`\) · destroyed/);
   const mention = result.violations.find((violation) => violation.code === 'DESTROYED_ENTITY_MENTION');
   assert.equal(mention?.severity, 'soft');
 });
@@ -52,4 +52,20 @@ test('contract check surfaces an address entry the extractor could not support',
   const warning = result.violations.find((violation) => violation.code === 'ADDRESS_ENTRY_REJECTED');
   assert.equal(warning?.severity, 'soft', JSON.stringify(result.violations.map((v) => v.code)));
   assert.deepEqual(result.delta?.newAddressEntries ?? [], []);
+});
+
+test('extract and check requests carry text sections, not JSON, before the output schema', async () => {
+  const store = await qualityStore();
+  const requests = [];
+  const recording = { pending: [], async complete(req) { requests.push(req); return contractResponse(req) ?? { text: '{}' }; } };
+  await runContractCheck({ store, workId, chapter: 1, prose: SYNTHETIC_LONG_PROSE, title: '첫 문', providers: recording, issueReceipt: false });
+  for (const step of ['continuity-extract', 'continuity-check']) {
+    const request = requests.find((req) => req.step === step);
+    assert.ok(request, `${step}: ${requests.map((req) => req.step).join(',')}`);
+    const user = request.messages.find((m) => m.role === 'user').content;
+    const input = user.slice(0, user.indexOf('## 본문'));
+    assert.doesNotMatch(input, /[{}]|\["/, `${step} input has no JSON`);
+  }
+  const check = requests.find((req) => req.step === 'continuity-check').messages.find((m) => m.role === 'user').content;
+  assert.match(check, /\[foundation\.characters\[0\]\]/);
 });

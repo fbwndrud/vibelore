@@ -96,3 +96,13 @@ test('multilingual family renders English labels', () => {
   assert.match(text, /dead/i);
   assert.doesNotMatch(text, /위치:|상태:|열린 떡밥|추적 항목/, 'labels are not Korean');
 });
+
+test('check sections keep tracked-item changes so ownership invariants can be judged', async () => {
+  const { renderCheckSections } = await import('../src/core/prompt-sections.js');
+  const sections = renderCheckSections({ foundation: { ...foundation, genreProfile: { invariants: [{ id: 'OWN', severity: 'soft', description: '소유자 이동은 사건 필요' }] } },
+    prevState: state, kit,
+    delta: { appearedCharacterIds: ['c1'], newAddressEntries: [], mutableChanges: [], trackedEntityOps: [{ kind: 'Artifact', data: { id: 'slip', holder: 'c1' } }] } });
+  assert.match(sections.delta, /\[delta\.trackedEntityOps\[0\]\] \[Artifact\] id: slip; holder: 리아/);
+  assert.match(sections.invariants, /OWN: 소유자 이동은 사건 필요/);
+  assert.doesNotMatch(sections.foundation, /DESIGN_TIME_LOCATION/);
+});

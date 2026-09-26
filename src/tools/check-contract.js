@@ -1,3 +1,4 @@
+import { renderCheckSections, renderCurrentState } from '../core/prompt-sections.js';
 import { createHash } from 'node:crypto';
 import { extractDelta, continuityCheck, computeExtractionContextHash } from '../../engine/src/continuity/continuity-check.js';
 import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
@@ -152,8 +153,10 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     base.violations.push({ severity: 'soft', code: finding.code, chapterNumber: chapter, message: finding.message });
   }
   const prevState = await canonicalStore.loadStoryState(workId, chapter - 1) ?? emptyStoryState(workId);
+  const kit = promptKit({ contract: workContract });
   const extractionInput = { prose: input.prose, chapterNumber: chapter, foundation, providers: wrapped, model: MODEL, prevState,
     castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language,
+    prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', entities }),
     ...(entities.length ? { entities } : {}) };
   try {
     if (!state.extracted) {
@@ -181,6 +184,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       // with Malik to be confirmed" and three reviews answered uncertain).
       ...(context.plans.profile?.povDesign ? { povDesign: context.plans.profile.povDesign } : {}),
       ...(typeof context.plans.episode?.povCharacter === 'string' && context.plans.episode.povCharacter ? { povCharacterId: context.plans.episode.povCharacter } : {}) };
+    semanticInput.checkSections = renderCheckSections({ foundation, prevState, delta: semanticInput.delta, povDesign: semanticInput.povDesign ?? null,
+      povCharacterId: semanticInput.povCharacterId ?? null, kit });
     if (!state.semantic) {
       const semantic = await continuityCheck(semanticInput);
       if (pending(wrapped)) return preview();

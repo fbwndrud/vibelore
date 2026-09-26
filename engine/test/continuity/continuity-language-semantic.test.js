@@ -227,8 +227,8 @@ describe('extractDelta prompt families', () => {
             JSON.stringify({ chapterNumber: 0, addressMapKeys: [], activeHookIds: [] }),
             ``,
             `## 이번 회차 등장 캐스트 (writer manifest)`,
-            JSON.stringify([{ characterId: 'c1', canonicalName: '이세종', aliases: [], addressTermsUsed: ['도련님'] }]),
-            '- characterId 는 canonicalName/aliases 로 식별한다. addressTermsUsed 는 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
+            '- 이세종 (c1) · 쓴 호칭: 도련님',
+            '- characterId 는 이름·별칭으로 식별한다. 쓴 호칭은 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
             ``,
             `## 본문`,
             PROSE,
@@ -260,7 +260,7 @@ describe('extractDelta prompt families', () => {
         expect(HANGUL.test(system)).toBe(false);
         expect(user).toContain('## Chapter number');
         expect(user).toContain('## Cast appearing in this chapter (writer manifest)');
-        expect(user).toContain('- Identify each characterId by its canonicalName/aliases.');
+        expect(user).toContain('- Identify each characterId by its name and aliases.');
         expect(user).toContain('"trackedEntityOps"');
         expect(user).toContain('## Extraction validation (extractionValidation)');
         expect(user).toContain(`contextHash: ${computeExtractionContextHash(input)}`);
@@ -550,11 +550,8 @@ describe('extractDelta / continuityCheck identify cast and declared POV', () => 
             ] }),
         }));
         const { user } = partsOf(cap.requests[0]);
-        const cast = JSON.parse(user.split('## 이번 회차 등장 캐스트 (writer manifest)\n')[1].split('\n- characterId')[0]);
-        expect(cast).toEqual([
-            { characterId: 'c1', canonicalName: '이세종', aliases: [], addressTermsUsed: ['도련님'] },
-            { characterId: 'ghost', addressTermsUsed: [] },
-        ]);
+        const cast = user.split('## 이번 회차 등장 캐스트 (writer manifest)\n')[1].split('\n- characterId')[0];
+        expect(cast).toBe(['- 이세종 (c1) · 쓴 호칭: 도련님', '- ghost (ghost)'].join('\n'));
     });
     it('foundation summary carries povMode when the work declares one', async () => {
         const cap = capturing('{}');

@@ -27,6 +27,15 @@
   facts, cast, recent summaries (labelled, oldest first), the previous plan
   and the current state as text instead of JSON. Thundertrail chapter 8:
   23.2K to 12.2K characters.
+- The continuity extraction and check requests take text sections instead of
+  JSON. Extraction sees the whole state index with exact keys, hook ids,
+  planting chapters and address terms (it used to get address keys without
+  terms and hook ids without text), the known entities, and the cast with the
+  work's influence dimension ids, so it stops inventing dimension names. The
+  check sees characters and world facts with the paths it may cite as
+  evidence, the current state instead of Foundation's design-time place, and
+  only the Delta fields its tasks judge (appearances, address terms, state
+  changes, tracked-item changes).
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

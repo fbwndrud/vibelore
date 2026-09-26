@@ -383,7 +383,9 @@ const EXTRACT_LABELS_KO = Object.freeze({
     chapter: '## 회차 번호',
     prev: '## 이전 상태 요약 (StoryState N-1)',
     cast: '## 이번 회차 등장 캐스트 (writer manifest)',
-    castNote: '- characterId 는 canonicalName/aliases 로 식별한다. addressTermsUsed 는 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
+    castNote: '- characterId 는 이름·별칭으로 식별한다. 쓴 호칭은 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
+    castLine: (name, id, aliases, terms, dimensions) => `- ${name} (${id})${aliases.length ? ` · 별칭: ${aliases.join(', ')}` : ''}${terms.length ? ` · 쓴 호칭: ${terms.join(', ')}` : ''}${dimensions.length ? ` · 변화 차원 ID: ${dimensions.join(', ')}` : ''}`,
+    castEmpty: '- (등장 선언 없음)',
     prose: '## 본문',
     schema: '## 출력 스키마 (이 JSON 한 개만 출력)',
     bindHeading: '## 추출 검증 (extractionValidation)',
@@ -404,7 +406,9 @@ const EXTRACT_LABELS_EN = Object.freeze({
     chapter: '## Chapter number',
     prev: '## Previous state summary (StoryState N-1)',
     cast: '## Cast appearing in this chapter (writer manifest)',
-    castNote: '- Identify each characterId by its canonicalName/aliases. addressTermsUsed are the terms that character uses toward others, not the terms that character is called.',
+    castNote: '- Identify each characterId by its name and aliases. Terms used are the terms that character uses toward others, not the terms that character is called.',
+    castLine: (name, id, aliases, terms, dimensions) => `- ${name} (${id})${aliases.length ? ` · aliases: ${aliases.join(', ')}` : ''}${terms.length ? ` · terms used: ${terms.join(', ')}` : ''}${dimensions.length ? ` · influence dimension ids: ${dimensions.join(', ')}` : ''}`,
+    castEmpty: '- (no declared cast)',
     prose: '## Chapter text',
     schema: '## Output schema (output this one JSON object only)',
     bindHeading: '## Extraction validation (extractionValidation)',
@@ -478,23 +482,23 @@ function buildExtractDeltaUserPrompt(input, manifest, ctx, bindHash) {
     // 추출기가 ID 와 본문 인물을 잇는 유일한 단서는 이 명단이다. 이름 없이 ID 와 호칭만
     // 주면 c1/c2 가 뒤바뀐 Delta 가 나온다(2026-09-15 ko·zh-Hant·es 표본, REGISTRATION fail).
     const knownCharacters = new Map((input.foundation?.characters ?? []).map((c) => [c.id, c]));
-    const castSummary = manifest.map((c) => {
+    // Text, not JSON. The dimension ids are the work's own influence dimensions;
+    // without them the extractor invented new names for dimensionChanges.
+    const castLines = manifest.map((c) => {
         const known = knownCharacters.get(c.characterId);
-        return {
-            characterId: c.characterId,
-            ...(known ? { canonicalName: known.canonicalName, aliases: known.aliases ?? [] } : {}),
-            addressTermsUsed: c.addressTermsUsed,
-        };
+        const dimensions = Object.keys(known?.dramaticModel?.dimensionBaselines ?? known?.dimensionBaselines ?? {});
+        return labels.castLine(known?.canonicalName ?? c.characterId, c.characterId, known?.aliases ?? [], c.addressTermsUsed ?? [], dimensions);
     });
     return [
         labels.chapter,
         String(chapterNumber),
         ``,
-        labels.prev,
-        JSON.stringify(prevSummary),
+        ...(typeof input.prevStateRender === 'string'
+            ? (input.prevStateRender.trim() ? [input.prevStateRender.trim()] : [])
+            : [labels.prev, JSON.stringify(prevSummary)]),
         ``,
         labels.cast,
-        JSON.stringify(castSummary),
+        ...(castLines.length ? castLines : [labels.castEmpty]),
         labels.castNote,
         ``,
         labels.prose,
@@ -1129,11 +1133,15 @@ function buildContinuityCheckSections(input) {
         intrinsicChanges: foundation.intrinsicChanges,
         worldFacts: foundation.worldFacts,
     };
+    // The plugin supplies text renders (src/core/prompt-sections.js); direct
+    // engine callers keep the JSON form.
+    const text = isRecord(input.checkSections) ? input.checkSections : {};
+    const pick = (key, fallback) => (typeof text[key] === 'string' ? text[key] : fallback());
     return Object.freeze({
-        prevSummary: JSON.stringify(prevSummary),
-        foundationSummary: JSON.stringify(foundationSummary),
-        delta: JSON.stringify(delta),
-        invariants: JSON.stringify(foundation.genreProfile.invariants),
+        prevSummary: pick('prev', () => JSON.stringify(prevSummary)),
+        foundationSummary: pick('foundation', () => JSON.stringify(foundationSummary)),
+        delta: pick('delta', () => JSON.stringify(delta)),
+        invariants: pick('invariants', () => JSON.stringify(foundation.genreProfile.invariants)),
         prose: typeof input.prose === 'string' ? input.prose : '',
     });
 }

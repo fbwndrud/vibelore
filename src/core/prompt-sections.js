@@ -80,6 +80,13 @@ export function renderWorldFacts(foundation, kit) {
   return asArray(foundation?.worldFacts).map((fact) => `- ${fact.statement}`).join('\n');
 }
 
+function flatBody(data, name) {
+  return Object.entries(data ?? {})
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => `${key}: ${[].concat(value).map((v) => (typeof v === 'object' ? Object.values(v).join(' ') : name(v))).join(', ')}`)
+    .join('; ');
+}
+
 const MODES = new Set(['writer', 'extract', 'check']);
 const WRITER_TRACKED_LIMIT = 12;
 const WRITER_RELATION_LIMIT = 6;
@@ -107,7 +114,7 @@ function directed(relationship) {
  *   updates existing records instead of inventing new ones.
  * - `check`: current states and the whole address map.
  */
-export function renderCurrentState(state, foundation, { cast = [], kit, mode = 'writer', focusText = '' } = {}) {
+export function renderCurrentState(state, foundation, { cast = [], kit, mode = 'writer', focusText = '', entities = [] } = {}) {
   if (!MODES.has(mode)) throw new Error(`UNKNOWN_STATE_RENDER_MODE: ${mode}`);
   if (!state) return '';
   const t = kit.phrases.sections;
@@ -149,10 +156,7 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
     const shownRelations = mode === 'extract' ? relations : relations.slice(-WRITER_RELATION_LIMIT);
     if (shownRelations.length) lines.push(t.relationsHeading, ...shownRelations.map((item) => t.relation(name(item.from), name(item.to), item.kind, item.state)));
 
-    const body = (data) => Object.entries(data ?? {})
-      .filter(([, value]) => value !== null && value !== undefined && value !== '')
-      .map(([key, value]) => `${key}: ${[].concat(value).map((v) => (typeof v === 'object' ? Object.values(v).join(' ') : castIds.has(v) || asArray(foundation?.characters).some((c) => c.id === v) ? name(v) : String(v))).join(', ')}`)
-      .join('; ');
+    const body = (data) => flatBody(data, (v) => String(name(v)));
     const tracked = asArray(state.trackedEntities);
     if (mode === 'extract') {
       if (tracked.length) lines.push(t.trackedHeadingKeyed, ...tracked.map((record) => t.trackedKeyed(record.kind, trackedRecordKey(record.data) || '-', body(record.data).slice(0, 160))));
@@ -165,6 +169,9 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
         .slice(0, WRITER_TRACKED_LIMIT);
       if (relevant.length) lines.push(t.trackedHeading, ...relevant.map(({ record }) => t.tracked(record.kind, body(record.data), record.updatedChapter)));
     }
+  }
+  if (mode === 'extract' && asArray(entities).length) {
+    lines.push(t.entitiesHeading, ...asArray(entities).map((e) => t.entity(e.kind, e.canonicalName ?? e.entityId, e.entityId, e.status)));
   }
   return lines.length > 1 ? lines.join('\n') : '';
 }
@@ -206,4 +213,49 @@ export function renderArcBeat(beat, kit) {
     lines.push(t.arcBeatField(label, value));
   }
   return lines.join('\n');
+}
+
+/**
+ * Continuity-check sections. Each item carries the path the reviewer may cite as
+ * evidence; quotes are checked against the original objects at that path.
+ * Foundation `mutable` is left out: the current place and condition come from
+ * the state section.
+ */
+export function renderCheckSections({ foundation, prevState, delta, povDesign = null, povCharacterId = null, kit }) {
+  const t = kit.phrases.sections;
+  const labels = kit.phrases.context.intrinsicLabels;
+  const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
+  const intrinsicFields = (intrinsic = {}) => [
+    ...Object.entries(labels).filter(([k]) => intrinsic[k] !== undefined && intrinsic[k] !== '').map(([k, label]) => `${label}=${intrinsic[k]}`),
+    ...(intrinsic.coreAppearance?.length ? [kit.phrases.context.appearance(intrinsic.coreAppearance.join('·'))] : []),
+  ].join(', ');
+  const pov = [
+    foundation?.povMode ? `povMode=${foundation.povMode}` : '',
+    ...Object.entries(povDesign ?? {}).filter(([, v]) => typeof v === 'string' && v.trim()).map(([k, v]) => `povDesign.${k}=${v}`),
+    povCharacterId ? `povCharacterId=${povCharacterId} (${name(povCharacterId)})` : '',
+  ].filter(Boolean);
+  const foundationText = [
+    t.checkPathNote,
+    ...(pov.length ? [t.checkPov(pov.join(' · '))] : []),
+    ...asArray(foundation?.characters).map((c, i) => t.checkCharacter(`foundation.characters[${i}]`, c.canonicalName, c.id,
+      [intrinsicFields(c.intrinsic), asArray(c.aliases).length ? c.aliases.join(', ') : ''].filter(Boolean).join(' · '))),
+    ...asArray(foundation?.intrinsicChanges).map((e, i) => t.checkWorldFact(`foundation.intrinsicChanges[${i}]`, `${name(e.characterId)} ${e.field}: ${e.from} → ${e.to} (${e.atChapter})`)),
+    ...asArray(foundation?.worldFacts).map((f, i) => t.checkWorldFact(`foundation.worldFacts[${i}]`, f.statement)),
+  ].join('\n');
+  const appeared = asArray(delta?.appearedCharacterIds);
+  const deltaText = [
+    ...(appeared.length ? [t.deltaAppeared(appeared.map((id) => `${name(id)} (${id})`).join(', '))] : []),
+    ...asArray(delta?.newAddressEntries).map((a, i) => t.deltaAddress(`delta.newAddressEntries[${i}]`, name(a.speakerId), name(a.targetId), a.term)),
+    ...asArray(delta?.mutableChanges).map((m, i) => t.deltaMutable(`delta.mutableChanges[${i}]`, `${name(m.characterId)} (${m.characterId})`,
+      [m.vitalStatus && t.vital[m.vitalStatus], m.location && t.location(m.location), m.status && t.status(m.status)].filter(Boolean).join(' · '))),
+    // Genre invariants such as item ownership or power tiers are judged on these.
+    ...asArray(delta?.trackedEntityOps).map((op, i) => t.deltaTracked(`delta.trackedEntityOps[${i}]`, op.kind, flatBody(op.data, name))),
+  ];
+  const invariants = asArray(foundation?.genreProfile?.invariants).map((inv) => t.invariant(inv.severity, `${inv.id}: ${inv.description}`));
+  return {
+    prev: renderCurrentState(prevState, foundation, { kit, mode: 'check' }),
+    foundation: foundationText,
+    delta: deltaText.length ? deltaText.join('\n') : t.deltaEmpty,
+    invariants: invariants.length ? invariants.join('\n') : '-',
+  };
 }
