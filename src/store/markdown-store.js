@@ -336,6 +336,17 @@ export class MarkdownStateStore {
     await writeJson(this.sidecar('working-tree-fingerprint.json'), fingerprint);
   }
 
+  /** Which advisory reviews the user turned off for this work. */
+  async loadReviewPolicy(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('review-policy.json'));
+  }
+
+  async saveReviewPolicy(workId, policy) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('review-policy.json'), policy);
+  }
+
   async loadStyleAnchor(workId) {
     assertSafeId('workId', workId);
     return readJsonOrNull(this.sidecar('style-anchor.json'));

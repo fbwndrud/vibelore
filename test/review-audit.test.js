@@ -57,3 +57,16 @@ for (const text of ['{}', 'null', '[]', '{"score":101,"findings":[]}', '{"score"
     assert.equal(review.result().status, 'failed');
   });
 }
+
+it('a review the user turned off is not requested and is recorded as disabled, not failed', async () => {
+  let called = 0;
+  const reviews = audit({ async complete() { called += 1; return { text: JSON.stringify({ score: 80, findings: [] }) }; } }, { disabled: ['editorial-quality'] });
+  const result = await reviews.run('editorial-quality', async (provider) => { await provider.complete(request); return { score: 80 }; }, { score: null, fallback: true });
+  assert.equal(called, 0);
+  assert.equal(result.fallback, true);
+  await reviews.run('coherence-judge', (provider) => provider.complete({ ...request, step: 'coherence-judge' }).then(() => ({ score: 80 })), { score: null });
+  const summary = reviews.result();
+  assert.equal(summary.status, 'completed', JSON.stringify(summary.records));
+  assert.deepEqual(summary.disabled, ['editorial-quality']);
+  assert.equal(summary.records.find((r) => r.step === 'editorial-quality').status, 'disabled_by_user');
+});

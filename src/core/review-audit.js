@@ -24,9 +24,15 @@ export function reviewTimeoutMs(env = process.env) {
   return Number.isSafeInteger(value) && value > 0 ? value : DEFAULT_REVIEW_TIMEOUT_MS;
 }
 
-/** One review attempt: retain evidence independently of publication policy. */
-export function createReviewAudit({ providers, prose, chapter, contractDigest, saveExchange, timeoutMs = DEFAULT_REVIEW_TIMEOUT_MS }) {
+/**
+ * One review attempt: retain evidence independently of publication policy.
+ * `disabled` lists the reviews the user turned off for the work; they are not
+ * requested and are recorded as `disabled_by_user`, which does not count as a
+ * failed review.
+ */
+export function createReviewAudit({ providers, prose, chapter, contractDigest, saveExchange, timeoutMs = DEFAULT_REVIEW_TIMEOUT_MS, disabled = [] }) {
   const records = [];
+  const off = new Set(disabled);
   const binding = { chapter, proseHash: hash(prose), contractDigest };
   const auditedProvider = {
     get pending() { return providers.pending ?? []; },
@@ -74,6 +80,10 @@ export function createReviewAudit({ providers, prose, chapter, contractDigest, s
   return {
     providers: auditedProvider,
     async run(step, action, fallback) {
+      if (off.has(step)) {
+        if (!records.some((item) => item.step === step)) records.push({ step, ...binding, status: 'disabled_by_user', findings: [] });
+        return structuredClone(fallback);
+      }
       try {
         const result = await action(auditedProvider);
         if ((providers.pending?.length ?? 0) === 0 && result !== null) {
@@ -94,7 +104,9 @@ export function createReviewAudit({ providers, prose, chapter, contractDigest, s
       }
     },
     result() {
-      return { schemaVersion: 1, ...binding, status: records.length && records.every((item) => item.status === 'completed') ? 'completed' : 'failed', records };
+      const done = (item) => item.status === 'completed' || item.status === 'disabled_by_user';
+      return { schemaVersion: 1, ...binding, status: records.length && records.every(done) ? 'completed' : 'failed',
+        disabled: records.filter((item) => item.status === 'disabled_by_user').map((item) => item.step), records };
     },
   };
 }

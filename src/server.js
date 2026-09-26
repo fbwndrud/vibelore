@@ -132,8 +132,11 @@ const TOOLS = [
   },
   {
     name: 'lore_configure',
-    description: '기존 Profile·Identity·WriterSkill을 하나의 v2 NarrativeContract로 컴파일해 현재 통합 설정과 누락 단계를 보여준다.',
-    inputSchema: { type: 'object', properties: { ...projectArg }, required: ['workId'] },
+    description: '기존 Profile·Identity·WriterSkill을 하나의 v2 NarrativeContract로 컴파일해 현재 통합 설정과 누락 단계를 보여준다. disabledReviews를 넘기면 매 화 검토 중 끌 항목을 작품 설정으로 저장한다.',
+    inputSchema: { type: 'object', properties: { ...projectArg,
+      disabledReviews: { type: 'array', items: { type: 'string', enum: ['story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger'] },
+        description: '끌 검토 목록 전체(빈 배열이면 모두 켬). 꺼진 검토는 요청하지 않고 실패로 보지 않는다. 연속성 추출·검사는 끌 수 없다.' },
+    }, required: ['workId'] },
   },
   {
     name: 'lore_style_anchor',
@@ -610,7 +613,7 @@ async function dispatchTool(store, name, args) {
     case 'lore_status':
       return runStatus({ store, workId: args.workId });
     case 'lore_configure':
-      return runConfigureStatus({ store, workId: args.workId });
+      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
     case 'lore_init':

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- The per-chapter reviews can be turned off per work:
+  `lore_configure(disabledReviews=[...])` stores the full list
+  (story-profile-check, coherence-judge, editorial-quality,
+  character-fidelity, reader-hook, pattern-ledger; unknown names are
+  rejected). A review that is off is not requested and is recorded as
+  `disabled_by_user`, which does not count as a failed review, so `auto`
+  still commits. Results list `quality.disabledReviews`. Continuity
+  extraction and checking stay on.
 - Fix: an arc approved after the previous arc completed is now published with
   the next commit. Commits, context assembly and status read plans from the
   working store where the approval tools write them; they used to read the

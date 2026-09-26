@@ -1,8 +1,11 @@
+import { OPTIONAL_REVIEWS, loadDisabledReviews, saveDisabledReviews } from '../core/review-policy.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract } from '../core/narrative-contract.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { episodeForChapter } from './arc.js';
 
-export async function runConfigureStatus({ store, workId }) {
+export async function runConfigureStatus({ store, workId, disabledReviews }) {
+  if (Array.isArray(disabledReviews)) await saveDisabledReviews(store, workId, disabledReviews);
+  const disabled = await loadDisabledReviews(store, workId);
   const [foundation, profile, identity, writerSkill, storySpine, arcPlan] = await Promise.all([
     store.loadFoundation(workId), store.loadStoryProfile(workId), store.loadStoryIdentity(workId),
     store.loadWriterSkill(workId), store.loadStorySpine(workId), store.loadArcPlan(workId),
@@ -34,6 +37,11 @@ export async function runConfigureStatus({ store, workId }) {
       source: workLanguage.length.source,
     },
     narrativeContract: contract,
+    reviewPolicy: {
+      disabled, available: OPTIONAL_REVIEWS,
+      // Density and length advice come from the editorial review.
+      ...(disabled.includes('editorial-quality') ? { note: 'editorial-quality가 꺼져 있어 분량·밀도 조언도 나오지 않습니다.' } : {}),
+    },
     storySpine: storySpine ? { status: storySpine.status, revision: storySpine.revision ?? null, dramaticQuestion: storySpine.dramaticQuestion ?? null } : null,
     arcIntent: compileArcIntent(arcPlan),
     episodeIntent: compileEpisodeIntent({ episodePlan, arcEpisode: episodeForChapter(arcPlan, nextChapter), chapter: nextChapter }),

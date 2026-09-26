@@ -21,6 +21,7 @@ import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '..
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { renderSummaries } from '../core/prompt-sections.js';
+import { loadDisabledReviews } from '../core/review-policy.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { findLatestRun } from '../runs.js';
@@ -453,6 +454,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   let arcReview;
   let lengthAssessment;
   let surfacedAdvisories = [];
+  let disabledReviews = [];
   let reviewAudit;
   let styleReport = null;
   let revisionPreservation = workflow.revisionPreservation ?? null;
@@ -510,12 +512,13 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     // relay presents it as one shared prompt prefix for the whole batch.
     providers.shareContext?.({ id: 'chapter-prose', label: kit.phrases.common.chapterProseLabel(chapter), text: current.prose });
     const checkedProse = current.prose;
+    disabledReviews = await loadDisabledReviews(store, workId);
     check = await runCheck({
       store, workId, chapter, prose: current.prose,
       castManifestRaw: current.castManifestRaw, providers,
       dialogueBreakMode: workContract.formatPolicy.dialogueBreakMode,
       includeSemanticContinuity: true,
-      includeProfileCheck: true,
+      includeProfileCheck: !disabledReviews.includes('story-profile-check'),
       requireInfluenceObservation, forceContract: true, issueReceipt: true, workflowId: workflow.workflowId, retryValidation: retryValidation && attempt === 1,
       // The boundary judge reads the same checked prose as the title and
       // summary, so it rides in their round trip instead of a pass of its own.
@@ -561,7 +564,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const patternLedger = experienceLedger.entries;
     const contract = compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter, kit,
       characterNames: Object.fromEntries((foundation?.characters ?? []).map((character) => [character.id, character.canonicalName])) });
-    const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(),
+    const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(), disabled: disabledReviews,
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
@@ -747,7 +750,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     attempt, draftProse: current.prose, castManifestRaw: current.castManifestRaw,
     checkId: receipt.checkId, summary: receipt.artifact.summary, title: receipt.artifact.title,
     boundary,
-    patternEntry, arcReview, quality: { prosody: receipt.prosody, coherence: receipt.coherence, editorial: receipt.editorial, characterFidelity: receipt.characterFidelity, characterFlexibility: receipt.characterFlexibility, readerHook: readerHook.score, chars: receipt.chars, lengthBand: lengthAssessment.band, arcReview: arcReview?.score ?? null, advisories: surfacedAdvisories, styleContinuity: receipt.styleContinuity, hard: 0, attempts: attempt },
+    patternEntry, arcReview, quality: { disabledReviews, prosody: receipt.prosody, coherence: receipt.coherence, editorial: receipt.editorial, characterFidelity: receipt.characterFidelity, characterFlexibility: receipt.characterFlexibility, readerHook: readerHook.score, chars: receipt.chars, lengthBand: lengthAssessment.band, arcReview: arcReview?.score ?? null, advisories: surfacedAdvisories, styleContinuity: receipt.styleContinuity, hard: 0, attempts: attempt },
   });
   workflow.quality.review = reviewAudit;
   delete workflow.degraded;
