@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Fix: an arc approved after the previous arc completed is now published with
+  the next commit. Commits, context assembly and status read plans from the
+  working store where the approval tools write them; they used to read the
+  plans sealed in the last publication, so a finished arc stayed the published
+  arc forever and context showed "no arc plan".
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

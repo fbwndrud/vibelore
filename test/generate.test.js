@@ -363,6 +363,23 @@ describe('Phase 2 generation pipeline', () => {
     return store;
   }
 
+  it('publishes the arc approved after the previous arc completed, and later reads see it', async () => {
+    const store = await createdStore({ legacy: true });
+    const first = activePlan();
+    first.estimatedEpisodes = 1; first.episodes = [first.episodes[0]];
+    await store.saveArcPlan('tax-tower', first);
+    await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '윤재는 첫 고지서를 접었다.', summary: '첫 고지.', providers: createHostRelay({}), delta: emptyDelta(1) });
+    const second = { ...activePlan(), arcNumber: 2, title: 'SECOND_ARC_TITLE', startChapter: 2, estimatedEpisodes: 2,
+      episodes: [2, 3].map((chapter, i) => ({ ...activePlan().episodes[0], index: i + 1, chapter, title: `${chapter}화` })) };
+    await store.saveArcPlan('tax-tower', second);
+    await runCommit({ store, workId: 'tax-tower', chapter: 2, prose: '윤재는 둘째 고지서를 접었다.', summary: '둘째 고지.', providers: createHostRelay({}), delta: emptyDelta(2) });
+    const published = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
+    assert.equal(published.value.tree.plans.arcPlan.arcNumber, 2);
+    assert.equal(published.value.tree.plans.arcPlan.episodes.find((e) => e.chapter === 2).status, 'completed');
+    const { context } = await buildContext({ store, workId: 'tax-tower', chapter: 3 });
+    assert.match(context, /SECOND_ARC_TITLE/);
+  });
+
   async function draftPrompt(store, chapter) {
     await store.saveEpisodePlan('tax-tower', { ...activeEpisodePlan(), chapter, arcEpisodeIndex: chapter, title: '열쇠' });
     let draftRequest;
