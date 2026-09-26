@@ -53,3 +53,21 @@ test('lore_write keeps the last input report on the workflow so status can show 
   assert.equal(workflow.lastInputReport.length, 2);
   assert.deepEqual(parked.trimmedContext, { trimmedSummaries: 2, droppedForBudget: 3 });
 });
+
+test('with sharedOnce the prose block is sent once and each request points to it; joining restores the exact request', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'vibelore-shared-once-'));
+  const store = { rootDir, async loadWorkflow() { return null; }, async saveWorkflow() {} };
+  const shared = [{ id: 'chapter-prose', label: '8화 본문', text: prose }];
+  const run = (args) => runRelayedTool({ store, toolName: 'lore_rewrite', args,
+    executeTool: async () => ({ preview: true }), providerForTool: () => ({ pending: requests, sharedContexts: shared }) });
+  const inline = await run({ workId: 'book', chapter: 1 });
+  const once = await run({ workId: 'book', chapter: 1, sharedOnce: true });
+  assert.equal(once.sharedBlocks.length, 1);
+  const block = once.sharedBlocks[0];
+  for (const [index, request] of once.requests.entries()) {
+    assert.equal(request.user.split(prose).length - 1, 0, 'no prose inside the request');
+    assert.equal(request.promptCache.sharedBlockId, block.id);
+    assert.equal(block.text + request.user.slice(request.promptCache.sharedBlockRef.length), inline.requests[index].user);
+  }
+  assert.ok(JSON.stringify(once).length < JSON.stringify(inline).length - prose.length / 2, 'one copy of the prose instead of two');
+});

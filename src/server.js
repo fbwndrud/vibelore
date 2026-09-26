@@ -380,6 +380,7 @@ const TOOLS = [
           }])),
         },
         language: { type: 'string', description: '저장된 작품 언어와 일치하는지 확인하는 인자. 일회성 출력 언어 변경이 아니다.' },
+        sharedOnce: { type: 'boolean', description: 'true면 needs_model 응답에 공통 본문 블록을 sharedBlocks로 한 번만 싣고, 각 request user 첫 줄(promptCache.sharedBlockRef)을 그 블록 text로 바꿔 보내게 한다. 요청을 직접 조립하는 호스트용이며 기본값은 자기완결 요청이다.' },
       }, required: ['workId'],
     },
   },

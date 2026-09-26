@@ -328,6 +328,11 @@ Opus 4.6·Haiku 4.5는 4096토큰입니다. API 기본 TTL은 5분이고 읽기�
 - 한 대화 안에서 직접 답하거나 서브에이전트로 답하는 호스트: 호스트 자체 문맥이 앞에 붙으므로
   이 배치로 얻는 이득이 없거나 작습니다. 병렬 답변 규칙은 그대로입니다.
 
+`lore_write(sharedOnce=true)`를 쓰면 응답의 `sharedBlocks`에 공통 블록을 한 번만 싣고, 각
+요청 user의 첫 줄(`promptCache.sharedBlockRef`)을 같은 `sharedBlockId` 블록의 `text`로 바꿔
+완성합니다. 완성한 user는 기본 응답과 바이트 단위로 같습니다. 요청을 직접 조립하는 호스트에서
+응답 크기를 줄이는 선택 옵션이며, 기본 응답은 요청마다 자기완결입니다.
+
 배치 변경은 표시 방식만 바꿉니다. 요청 ID는 엔진 원 요청의 fingerprint 그대로이고, 감사
 기록(`modelExchanges`)은 원 요청을 저장하며, 직접 provider는 이 배치를 보지 않습니다.
 

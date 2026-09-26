@@ -326,6 +326,11 @@ Per host:
 - Hosts that answer directly within one conversation or through subagents: the host's own context comes first, so
   this layout gives little or no benefit. The parallel answer rule still applies.
 
+With `lore_write(sharedOnce=true)` the response carries each common block once in `sharedBlocks`; replace the
+first line of each request's user (`promptCache.sharedBlockRef`) with the `text` of the block named by `sharedBlockId`.
+The completed user is byte-identical to the default response. It is an option for hosts that assemble requests
+themselves and want smaller responses; by default every request is self-contained.
+
 The layout change only changes presentation. Request IDs remain the fingerprints of the engine's original requests, the audit
 record (`modelExchanges`) stores the original requests, and direct providers never see this layout.
 

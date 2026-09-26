@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `lore_write(sharedOnce=true)`: a `needs_model` response carries each
+  shared prose block once (`sharedBlocks`) and every request starts with a
+  one-line reference to it; replacing that line with the block restores the
+  exact default request. The default stays self-contained requests.
 - The language-contract request carries the prose verbatim before the
   title, summary and delta JSON. Escaped inside JSON it never matched the
   shared prose block, so it could not reuse the chapter's prompt cache.

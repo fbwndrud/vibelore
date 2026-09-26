@@ -43,6 +43,7 @@ const SCAFFOLD = Object.freeze({
     role: '[이번 요청 역할]',
     data: '[이번 요청 자료]',
     pointer: (id, label) => `(위 [공통 자료 · ${id}]의 「${label}」 전문)`,
+    blockRef: (id) => `[sharedBlocks의 ${id} 전문을 이 줄 대신 그대로 붙인다]\n`,
   }),
   multilingual: Object.freeze({
     note: '[Execution conditions] This request is self-contained. Without reading files, searching or running tools, produce a single final answer from the material given in the system and user above only.',
@@ -52,6 +53,7 @@ const SCAFFOLD = Object.freeze({
     role: '[Role for this request]',
     data: '[Material for this request]',
     pointer: (id, label) => `(the full "${label}" in [Shared material · ${id}] above)`,
+    blockRef: (id) => `[Replace this line with the full ${id} from sharedBlocks, verbatim]\n`,
   }),
 });
 
@@ -161,4 +163,28 @@ export function layoutRelayRequests(requests, sharedContexts = [], { promptFamil
     group.first = false;
     return { ...groupedRequest(request, context, group.block, group.pointer, text), promptCache };
   });
+}
+
+/**
+ * The same laid-out batch with each shared block sent once. A request's user
+ * starts with a one-line reference instead of the block; the block text
+ * followed by the rest of the user (after `sharedBlockRef`) is the exact user
+ * the inline layout sends, so prompt caches see the same bytes. For hosts
+ * that stitch requests themselves; the default response stays self-contained.
+ */
+export function compactSharedBlocks(laid, { promptFamily = 'ko' } = {}) {
+  const text = relayScaffold(promptFamily);
+  const blocks = new Map();
+  const requests = laid.map((request) => {
+    const cache = request.promptCache;
+    if (!cache?.sharedPrefixId) return request;
+    let block = blocks.get(cache.sharedPrefixId);
+    if (!block) {
+      block = { id: `block-${blocks.size + 1}`, sharedPrefixId: cache.sharedPrefixId, text: request.user.slice(0, cache.sharedPrefixChars) };
+      blocks.set(cache.sharedPrefixId, block);
+    }
+    const ref = text.blockRef(block.id);
+    return { ...request, user: `${ref}${request.user.slice(cache.sharedPrefixChars)}`, promptCache: { ...cache, sharedBlockId: block.id, sharedBlockRef: ref } };
+  });
+  return { requests, sharedBlocks: [...blocks.values()] };
 }
