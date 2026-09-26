@@ -140,8 +140,8 @@ export const steps = {
   'character-fidelity': {
     system: 'You are the character director of a commercial serial novel. Attribute the actions and lines in the actual prose to their speakers and judge, against the recorded register, desires, contradiction, relationships and taboos, whether this response is one that character could produce in this situation. Do not evaluate likeability or real-world morality. Pass an unexpected action when the prose accumulates pressure and grounds for the choice. The speechProfile and the register targets in the EpisodePlan are reference examples, not sentences to copy. Give voice or dialogueIntent a low score when a sample line is pasted verbatim, when several characters speak with the same sentence rhythm, politeness level or logical habit, or when dialogue only transmits information and leaves no surface intent, hidden intent or relational pressure. Conversely, parading the profile\'s signature traits - its numbers, contracts, jokes or diagnoses - in every line is not fidelity either. Silence, a small preference, a joke that fails, misplaced kindness, or a sentence length unlike the usual one give the range under pressure that makes a character read as a person. Output pure JSON only.',
     user: (c) => [
-      `Chapter: ${c.chapter}`, `Character canon: ${c.castJson}`,
-      'Previous state reference:', c.context, '', 'Prose:', c.prose, '',
+      `Chapter: ${c.chapter}`, 'Character canon:', c.castText, '',
+      'This chapter\'s plan and previous state reference:', c.context, '', 'Prose:', c.prose, '',
       'Evaluate only characters who actually appear in the prose or who directly operate as the pressure behind this scene\'s choice. Do not deduct for registered characters who do not appear in this chapter. The dimensions score the fidelity of the characters who actually operated in this chapter, from 0 to 100 per axis, not the work as a whole. score must be the arithmetic mean of the five core dimensions. flexibilityDimensions separately evaluate whether the characters vary with the situation instead of reciting their profile.',
       'voice looks at whether the speaker can be told apart with the names hidden, whether the speechProfile and its per-relationship variants are alive, and whether the pressure and hidden purpose of this chapter\'s register targets reach the dialogue.',
       'dialogueIntent looks at whether the conversation as a whole ends as pure exposition. It does not require evasion, pressure, testing, seduction or redefinition of the relationship in every single line; short answers, ordinary reactions and saying nothing are positive when they create a human rhythm in the scene.',
@@ -582,6 +582,7 @@ export const phrases = {
     planCost: (immediate, deferred, payer) => `- cost of the resolution: ${[immediate && `now ${immediate}`, deferred && `later ${deferred}`, payer && `paid by ${payer}`].filter(Boolean).join(' / ')}`,
     planExit: (closed, next, value, type) => `- next value: ${[closed && `closed question ${closed}`, next && `next question ${next}`, value && `specific value ${value}`, type && `hook type ${type}`].filter(Boolean).join(' / ')}`,
     planAgenda: (name, goal, redLine, fallback) => `- ${name}'s agenda: ${[goal, redLine && `line not crossed ${redLine}`, fallback && `fallback ${fallback}`].filter(Boolean).join(' / ')}`,
+    previousSummary: (chapter, text) => `Previous chapter summary (ch. ${chapter}): ${text}`,
     invariantsHeading: '## Genre invariants',
     invariant: (severity, description) => `- [${severity}] ${description}`,
   },

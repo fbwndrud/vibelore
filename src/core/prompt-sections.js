@@ -20,7 +20,7 @@ export function renderCharacter(foundation, character, chapter, kit, { appearanc
   const t = kit.phrases.context;
   const labels = t.intrinsicLabels;
   const events = asArray(foundation.intrinsicChanges).filter((e) => e.characterId === character.id);
-  const intrinsic = effectiveIntrinsic(character.intrinsic ?? {}, events, chapter);
+  const intrinsic = effectiveIntrinsic({ ...character.intrinsic, coreAppearance: asArray(character.intrinsic?.coreAppearance) }, events, chapter);
   const pinned = Object.entries(labels)
     .filter(([k]) => intrinsic[k] !== undefined && intrinsic[k] !== '')
     .map(([k, label]) => `${label}=${intrinsic[k]}`);

@@ -45,6 +45,11 @@
   get, plus the reader-experience fields only it judges (expected outcome and
   on-page evidence, turn, payoff proof, cost, exit value, agendas), instead of
   the plan JSON. The unused plan JSON view is removed.
+- The character-fidelity review gets its own input instead of the general
+  context render: each on-stage character once as text (no appearance), the
+  chapter plan, the character packet, the current state and the previous
+  chapter's summary. Characters were sent twice before (JSON and context).
+  Thundertrail chapter 8: about 21K to 12.5K characters besides the prose.
 - Fix: the draft prompt now receives the recent chapter summaries (the
   sliding window, up to five chapters, oldest first). Before, `lore_write`
   passed the summary count instead of the summaries, so the writer saw only

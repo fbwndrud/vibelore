@@ -10,7 +10,6 @@ import { episodeForChapter, renderArcMap } from './arc.js';
 import { renderEpisodePlan, runEpisodePlan } from './episode-plan.js';
 import { applyNarrativeBoundary, runNarrativeBoundary } from './narrative-boundary.js';
 import { editorialQualityAdvisories, runEditorialQuality } from './editorial-quality.js';
-import { buildContext } from './context.js';
 import { ensurePilotContract, ensureStoryIdentity, patternViolations, runPatternAnalysis, runReaderHook } from './story-experience.js';
 import { assertProseIntegrity } from './prose-integrity.js';
 import { chooseBestRevision, makeRevisionCandidate, publicRevisionCandidate } from './revision-selection.js';
@@ -20,6 +19,7 @@ import { arcReviewAdvisories, arcReviewViolations, runArcReview } from './arc-re
 import { assessContractLength, assessChapterLength, chapterDensityViolations } from './chapter-density.js';
 import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '../core/quality-policy.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
+import { openCanonRepository } from '../core/canon-repository.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { findLatestRun } from '../runs.js';
@@ -567,12 +567,14 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       plan: renderEpisodePlan(episodePlan, kit), writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
     }), { score: null, reason: null });
 
-    const { context: characterContext } = await buildContext({ store, workId, chapter, onOverflow: 'report' });
+    const canon = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
+    const fidelityPrevState = chapter > 1 ? await canon.loadStoryState(workId, chapter - 1) : null;
+    const fidelityDynamics = await canon.loadCharacterDynamics?.(workId) ?? null;
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     const editorialContext = priorSummaries.map((item) => item.summary).join('\n');
     editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
 
-    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, context: characterContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
+    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, episodePlan, prevState: fidelityPrevState, dynamics: fidelityDynamics, previousSummary: priorSummaries[0] ?? null, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
 
     readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, foundation, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
     patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });

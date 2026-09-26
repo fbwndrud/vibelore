@@ -220,6 +220,18 @@ describe('host round trips are batched by dependency', () => {
     assert.match(input, /닫힌 문 앞에 선다/);
   });
 
+  it('gives the character review each character once, as text, with the plan it was written from', async () => {
+    const store = await qualityStore();
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    const user = requests.find((req) => req.step === 'character-fidelity').messages.find((m) => m.role === 'user').content;
+    const input = user.slice(0, user.indexOf('본문:'));
+    assert.doesNotMatch(input, /[{}]|\["/, 'no JSON before the prose');
+    assert.equal(input.match(/윤재 \(`hero`\)/g)?.length, 1, 'the character appears once');
+    assert.doesNotMatch(input, /아크 계획 없음|lore_arc_plan/);
+    assert.match(input, /닫힌 문 앞에 선다/, 'the plan the chapter was written from');
+  });
+
   it('shows reviewers a plan view without bookkeeping fields', async () => {
     const store = await qualityStore();
     const plan = await store.loadEpisodePlan(workId, 1);

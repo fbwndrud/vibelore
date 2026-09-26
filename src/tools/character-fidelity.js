@@ -1,4 +1,7 @@
 import { asKit } from '../prompts/index.js';
+import { renderCharacters, renderCurrentState } from '../core/prompt-sections.js';
+import { renderSceneCharacterPacket } from '../core/character-dynamics-adapter.js';
+import { renderEpisodePlan } from './episode-plan.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 export const MIN_CHARACTER_FIDELITY = 70;
@@ -18,17 +21,31 @@ function parse(raw) {
  * @param {{ kit?: object|null }} input `kit` 이 없으면 정본 foundation 에 기록된
  *   작품 언어를 쓴다. 언어 키가 없던 구작은 암묵적 ko 다.
  */
-export async function runCharacterFidelity({ prose, chapter, foundation, context, providers, kit: kitSource }) {
+/**
+ * The review sees each on-stage character once, as text, and the material the
+ * writer drafted from: the chapter plan, the character packet (current goals
+ * and relationship views), the current state and the previous chapter's
+ * summary. Design-time relationships and appearance are left out; the current
+ * relationships come from the state. A caller may still pass its own `context`.
+ */
+export function characterFidelityContext({ foundation, chapter, episodePlan, prevState, dynamics, previousSummary, kit }) {
+  const cast = episodePlan?.cast?.length ? episodePlan.cast : [];
+  const plan = renderEpisodePlan(episodePlan, kit);
+  return [
+    plan,
+    renderSceneCharacterPacket({ projection: dynamics, cast, pressure: episodePlan?.scenePressure?.decisionDeadline ?? '', episodePlan, kit }),
+    renderCurrentState(prevState, foundation, { cast, kit, mode: 'writer', focusText: plan }),
+    previousSummary?.summary ? kit.phrases.sections.previousSummary(previousSummary.chapterNumber, previousSummary.summary) : '',
+  ].filter(Boolean).join('\n\n');
+}
+
+export async function runCharacterFidelity({ prose, chapter, foundation, context, episodePlan = null, prevState = null, dynamics = null, previousSummary = null, providers, kit: kitSource }) {
   const kit = asKit(kitSource ?? { foundation });
-  const cast = foundation.characters.map((character) => ({
-    id: character.id, name: character.canonicalName, aliases: character.aliases,
-    role: character.intrinsic?.role, contradiction: character.contradiction,
-    description: character.description, relationships: character.relationships,
-    speechProfile: character.speechProfile,
-  }));
+  const castText = renderCharacters(foundation, episodePlan?.cast ?? [], chapter, kit, { appearance: false });
+  const contextText = context ?? characterFidelityContext({ foundation, chapter, episodePlan, prevState, dynamics, previousSummary, kit });
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'character-fidelity',
-    messages: kit.messages('character-fidelity', { chapter, castJson: JSON.stringify(cast), context, prose }),
+    messages: kit.messages('character-fidelity', { chapter, castText, context: contextText, prose }),
   });
   const obj = parse(response.text);
   const dimensions = obj?.dimensions && typeof obj.dimensions === 'object' ? obj.dimensions : {};

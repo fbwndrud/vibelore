@@ -141,8 +141,8 @@ export const steps = {
   'character-fidelity': {
     system: '당신은 한국 상업 웹소설의 캐릭터 디렉터다. 실제 본문에서 인물별 행동과 대사를 화자에게 귀속하고, 설정된 말투·욕망·모순·관계·금기에 비추어 이 상황의 대응이 그 인물에게서 나올 법한지 평가한다. 단순 호감도나 현실의 도덕성을 평가하지 않는다. 예상 밖 행동도 본문에 압력과 선택 근거가 축적되면 통과시킨다. speechProfile과 EpisodePlan의 말투 목표는 복사할 문장이 아니라 기준 예시다. 샘플 대사를 그대로 붙였거나, 여러 인물이 같은 문장 리듬/존대/논리 습관으로 말하거나, 대사가 정보 전달만 하고 겉목적·숨은목적·관계 압력을 남기지 않으면 voice 또는 dialogueIntent를 낮게 준다. 반대로 모든 대사에서 프로필의 숫자·계약·농담·진단 같은 대표 특징을 과시하는 것도 캐릭터 충실도가 아니다. 침묵, 사소한 취향, 실패한 농담, 엇나간 친절, 평소와 다른 문장 길이처럼 압력에 따른 가동 범위가 있어야 사람으로 보인다. 순수 JSON만 출력한다.',
     user: (c) => [
-      `회차: ${c.chapter}`, `캐릭터 정본: ${c.castJson}`,
-      '직전 상태 참고:', c.context, '', '본문:', c.prose, '',
+      `회차: ${c.chapter}`, '캐릭터 정본:', c.castText, '',
+      '이번 화 계획과 직전 상태 참고:', c.context, '', '본문:', c.prose, '',
       '본문에 실제 등장하거나 이번 장면의 선택 압력으로 직접 작동한 인물만 평가한다. 등록됐지만 이번 화에 나오지 않은 인물은 감점하지 않는다. dimensions는 작품 전체가 아니라 이번 화에 실제 작동한 인물들의 충실도를 각 축별 0~100으로 평가한다. score는 기존 다섯 핵심 dimensions의 산술평균이어야 한다. flexibilityDimensions는 캐릭터가 프로필을 반복 낭독하지 않고 상황에 따라 변주되는지를 별도로 평가한다.',
       'voice는 이름을 가려도 화자를 구분할 수 있는지, speechProfile과 관계별 말투 변형이 살아 있는지, 이번 화 말투 목표의 압력과 숨은 목적이 대사에 반영됐는지를 본다.',
       'dialogueIntent는 대화 전체가 정보 설명만으로 끝나는지 본다. 개별 대사마다 회피·압박·시험·유혹·관계 재정의를 강제하지 않으며, 짧은 대답·일상 반응·말하지 않음이 장면의 사람다운 호흡을 만들면 긍정적으로 평가한다.',
@@ -573,6 +573,7 @@ export const phrases = {
     planCost: (immediate, deferred, payer) => `- 해결의 비용: ${[immediate && `즉시 ${immediate}`, deferred && `나중 ${deferred}`, payer && `지불자 ${payer}`].filter(Boolean).join(' / ')}`,
     planExit: (closed, next, value, type) => `- 다음 가치: ${[closed && `닫힌 질문 ${closed}`, next && `다음 질문 ${next}`, value && `구체적 가치 ${value}`, type && `훅 유형 ${type}`].filter(Boolean).join(' / ')}`,
     planAgenda: (name, goal, redLine, fallback) => `- ${name}의 의제: ${[goal, redLine && `넘지 않는 선 ${redLine}`, fallback && `차선책 ${fallback}`].filter(Boolean).join(' / ')}`,
+    previousSummary: (chapter, text) => `직전 화 요약 (${chapter}화): ${text}`,
     invariantsHeading: '## 장르 불변식',
     invariant: (severity, description) => `- [${severity}] ${description}`,
   },
