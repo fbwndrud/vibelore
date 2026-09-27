@@ -167,7 +167,7 @@ describe('reduceStoryState', () => {
         expect(next.trackedEntities).toEqual([]);
         expect(next.ledger.records.map((r) => [r.id, r.label, r.name, r.fields, r.lastEventAt])).toEqual([
             ['o1', 'Artifact', '검', { holder: 'c2' }, 2],
-            ['o2', 'PowerSystem', '불꽃', { ability: '불꽃', tier: 2 }, 2],
+            ['o2', 'PowerSystem', '불꽃', { tier: 2 }, 2],
         ]);
     });
     it('does not mutate prev (deep equality preserved after reduce)', () => {
@@ -189,7 +189,8 @@ describe('reduceStoryState', () => {
                     lastMovedChapter: 1,
                 },
             ],
-            trackedEntities: [{ kind: 'Timeline', data: { now: '회귀전' } }],
+            trackedEntities: [],
+            ledger: { records: [{ id: 'o1', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [], status: 'active', fields: { holder: 'c1' }, registeredAt: 1, recent: [] }] },
         };
         const snapshot = JSON.parse(JSON.stringify(prev));
         const delta = emptyDelta(2);
@@ -211,6 +212,7 @@ describe('reduceStoryState', () => {
             },
         ];
         delta.trackedEntityOps = [{ kind: 'Timeline', data: { now: '회귀후' } }];
+        delta.ledgerOps = [{ op: 'event', id: 'o1', event: 'changed', set: { holder: 'c2' } }];
         const next = reduceStoryState(prev, delta);
         // prev untouched
         expect(prev).toEqual(snapshot);
@@ -219,8 +221,9 @@ describe('reduceStoryState', () => {
         expect(next.addressMap).not.toBe(prev.addressMap);
         expect(next.relationships).not.toBe(prev.relationships);
         expect(next.hooks).not.toBe(prev.hooks);
-        expect(next.ledger.records).toEqual([]);
         expect(next.hooks[0].status).toBe('paid');
+        expect(next.hooks[0]).not.toBe(prev.hooks[0]);
+        expect(next.ledger).not.toBe(prev.ledger);
     });
     it('folds mutableChanges into characterStates and ignores appearedCharacterIds', () => {
         const prev = emptyStoryState('w');
@@ -333,5 +336,38 @@ describe('ledger in StoryState', () => {
         const step = ledgerStep(prev, { ...emptyDelta(2), ledgerOps: [{ op: 'plant', text: '사슬' }] });
         expect(step.events.map((e) => [e.target, e.event])).toEqual([['hook', 'planted']]);
         expect(step.violations).toEqual([]);
+    });
+});
+describe('replaying old deltas', () => {
+    it('keeps a legacy entity id so later updates and retirements land on it', () => {
+        const first = { ...emptyDelta(1), entityOps: [{ op: 'register', entityId: 'e7', kind: 'item', name: '청동 열쇠' }] };
+        const second = { ...emptyDelta(2), entityOps: [{ op: 'update', entityId: 'e7', fields: { holder: 'c2' } }] };
+        const third = { ...emptyDelta(3), entityOps: [{ op: 'retire', entityId: 'e7', cause: 'destroyed' }] };
+        const once = reduceStoryState(emptyStoryState('w'), first);
+        const twice = reduceStoryState(once, second);
+        expect(ledgerStep(twice, third).violations).toEqual([]);
+        const next = reduceStoryState(twice, third);
+        expect(next.ledger.records.map((r) => [r.id, r.name, r.fields.holder, r.status])).toEqual([['e7', '청동 열쇠', 'c2', 'destroyed']]);
+    });
+    it('keeps the phase and planting chapter of a hook first seen as paid', () => {
+        const delta = { ...emptyDelta(5), hookChanges: [{ id: 'oath', text: '맹세', phase: 'paid', plantedAtChapter: 2 }] };
+        expect(legacyLedgerOps(emptyStoryState('w'), delta)).toEqual([
+            { op: 'plant', text: '맹세', id: 'oath', plantedAtChapter: 2 },
+            { op: 'hook', id: 'oath', event: 'paid' },
+        ]);
+        const next = reduceStoryState({ ...emptyStoryState('w'), chapterNumber: 4 }, delta);
+        expect(next.hooks[0]).toMatchObject({ id: 'oath', status: 'paid', plantedAtChapter: 2 });
+    });
+    it('carries a rewording and a new horizon of a known hook', () => {
+        const prev = { ...emptyStoryState('w'), chapterNumber: 4, hooks: [{ id: 'wrist', text: '손목', phase: 'planted', horizon: 'long', plantedAtChapter: 2 }] };
+        const delta = { ...emptyDelta(5), hookChanges: [{ id: 'wrist', text: '손목의 흉터', phase: 'advancing', horizon: 'next' }] };
+        expect(legacyLedgerOps(normalizeStoryState(prev), delta)).toEqual([{ op: 'hook', id: 'wrist', event: 'advanced', text: '손목의 흉터', horizon: 'next' }]);
+        expect(reduceStoryState(prev, delta).hooks[0]).toMatchObject({ text: '손목의 흉터', horizon: 'next', status: 'open' });
+    });
+    it('does not repeat the name field in the fields', () => {
+        const delta = { ...emptyDelta(1), trackedEntityOps: [{ kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2'] } }] };
+        expect(legacyLedgerOps(emptyStoryState('w'), delta)).toEqual([
+            { op: 'register', feature: 'knowledge', label: 'KnowledgeMatrix', name: '리아의 손목 부상', fields: { holders: ['c2'] } },
+        ]);
     });
 });

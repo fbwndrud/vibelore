@@ -94,6 +94,12 @@ test('extract state lists the hooks, items and address terms the prose touches w
   assert.doesNotMatch(text, /LATEST_FACT/, 'known-fact history is not re-sent to the extractor');
 });
 
+test('extract state shows the status of a hook that has no legacy phase', () => {
+  const current = { ...state, hooks: [{ id: 'mark', text: '표식은 어디로 이어지나', plantedAtChapter: 1, status: 'open', recent: [] }] };
+  const text = renderCurrentState(current, foundation, { cast: ['c1'], kit, mode: 'extract', focusText: '표식은 어디로 이어지나.' });
+  assert.match(text, /`mark` · open · 1화/);
+});
+
 test('multilingual family renders English labels', () => {
   const text = renderCurrentState(state, foundation, { cast: ['c1', 'c2'], kit: en, mode: 'writer' });
   assert.match(text, /dead/i);

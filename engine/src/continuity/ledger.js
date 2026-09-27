@@ -22,15 +22,17 @@ export const HOOK_STATUSES = Object.freeze(['open', 'dormant', 'paid', 'closed']
 export const RECORD_EVENTS = Object.freeze(['registered', 'mentioned', 'changed', 'status', 'restored', 'alias', 'merged']);
 export const HOOK_EVENTS = Object.freeze(['planted', 'mentioned', 'advanced', 'paid', 'reopened', 'parked', 'closed']);
 export const RECENT_EVENTS = 3;
+/** How soon the reader expects a hook's payoff. Semantic, never a chapter count. */
+export const HOOK_HORIZONS = Object.freeze(['next', 'soon', 'arc', 'long', 'finale']);
 const ID_PREFIX = Object.freeze({ objects: 'o', knowledge: 'k', scheduled: 's', hooks: 'h' });
 // Legacy vocabulary: phases of 0.3.x hooks and the statuses before them.
 const LEGACY_HOOK_STATUS = Object.freeze({
     planted: 'open', advancing: 'open', open: 'open', progressing: 'open',
     paid: 'paid', resolved: 'paid', parked: 'dormant', deferred: 'dormant',
 });
-const LEGACY_KNOWLEDGE_KINDS = new Set(['KnowledgeMatrix', 'RegressionKnowledge']);
+export const LEGACY_KNOWLEDGE_KINDS = new Set(['KnowledgeMatrix', 'RegressionKnowledge']);
 // Kinds that were used as a per-chapter event list; the event log replaces them.
-const LEGACY_LOG_KINDS = new Set(['Timeline']);
+export const LEGACY_LOG_KINDS = new Set(['Timeline']);
 const LEGACY_NAME_FIELDS = ['name', 'item', 'ability', 'title', 'subject', 'fact', 'clue', 'event', 'key', 'id', 'label', 'canonicalName'];
 const PARTICLES = ['에게서', '에서는', '으로는', '에서', '에게', '한테', '으로', '까지', '부터', '처럼', '은', '는', '이', '가', '을', '를', '의', '에', '와', '과', '도', '로', '만'];
 const QUOTES = /["'“”‘’「」『』《》〈〉()[\]{}]/g;
@@ -117,15 +119,22 @@ export function hookStatusOf(raw) {
         return raw.status;
     return LEGACY_HOOK_STATUS[raw?.phase] ?? LEGACY_HOOK_STATUS[raw?.status] ?? 'open';
 }
-/** The name a pre-ledger tracked-entity record goes by, or ''. */
-export function legacyName(data) {
+/**
+ * The name a pre-ledger tracked-entity record goes by, and its other fields.
+ * The single field the name came from is left out of the fields; a from→to
+ * pair keeps both ends, which are character ids.
+ */
+export function legacyRecord(data) {
+    const record = data ?? {};
     for (const field of LEGACY_NAME_FIELDS) {
-        if (typeof data?.[field] === 'string' && data[field].trim())
-            return data[field].trim();
+        if (typeof record[field] === 'string' && record[field].trim()) {
+            const { [field]: _name, ...fields } = record;
+            return { name: record[field].trim(), fields };
+        }
     }
-    if (typeof data?.from === 'string' && typeof data?.to === 'string')
-        return `${data.from}→${data.to}`;
-    return '';
+    if (typeof record.from === 'string' && typeof record.to === 'string')
+        return { name: `${record.from}→${record.to}`, fields: { ...record } };
+    return { name: '', fields: { ...record } };
 }
 function legacyEntityStatus(status) {
     return RECORD_STATUSES.objects.includes(status) ? status : 'active';
@@ -152,10 +161,9 @@ export function ledgerFromLegacy({ trackedEntities = [], entities = [] } = {}) {
         if (!tracked?.kind || LEGACY_LOG_KINDS.has(tracked.kind))
             continue;
         const feature = LEGACY_KNOWLEDGE_KINDS.has(tracked.kind) ? 'knowledge' : 'objects';
-        const name = legacyName(tracked.data);
+        const { name, fields } = legacyRecord(tracked.data);
         if (!name)
             continue;
-        const { name: _name, ...fields } = tracked.data ?? {};
         const existing = findRecord(state.ledger, name, feature);
         if (existing) {
             existing.fields = { ...existing.fields, ...fields };
@@ -246,8 +254,10 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
             const similar = similarRecord(next.ledger, op.feature, op.name);
             const custom = customItem(config, op.name);
             const useCustomId = custom && custom.feature === op.feature;
+            // A record converted from a legacy entity keeps its entityId so later ops on that id still land.
+            const legacyId = typeof op.id === 'string' && op.id && !next.ledger.records.some((item) => item.id === op.id || (item.mergedIds ?? []).includes(op.id)) ? op.id : null;
             const record = {
-                id: useCustomId ? custom.id : nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
+                id: useCustomId ? custom.id : legacyId ?? nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
                 aliases: (op.aliases ?? []).map((alias) => aliasOf(alias, chapter)).filter(Boolean),
                 status: INITIAL_STATUS[op.feature], fields: { ...(op.fields ?? {}) }, registeredAt: chapter, recent: [],
                 ...(similar ? { possibleDuplicateOf: similar.id } : {}),
@@ -324,7 +334,7 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
                 continue;
             // A hook converted from a legacy delta keeps its old id so later deltas still find it.
             const id = op.id && !next.hooks.some((item) => item.id === op.id) ? op.id : nextLedgerId(next, 'hooks');
-            const hook = { id, text: op.text.trim(), status: 'open', ...(op.horizon ? { horizon: op.horizon } : {}), plantedAtChapter: chapter, lastMovedChapter: chapter, recent: [] };
+            const hook = { id, text: op.text.trim(), status: 'open', ...(op.horizon ? { horizon: op.horizon } : {}), plantedAtChapter: Number.isInteger(op.plantedAtChapter) ? op.plantedAtChapter : chapter, lastMovedChapter: chapter, recent: [] };
             next.hooks.push(hook);
             emit('hook', hook, { event: 'planted', ...(op.note ? { note: op.note } : {}) });
             continue;
@@ -355,7 +365,13 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
             const status = { advanced: 'open', reopened: 'open', paid: 'paid', parked: 'dormant', closed: 'closed' }[op.event];
             if (status)
                 hook.status = status;
-            emit('hook', hook, { event: op.event, ...note, ...(op.evidence ? { evidence: op.evidence } : {}) });
+            const set = {};
+            if (typeof op.text === 'string' && op.text.trim() && op.text.trim() !== hook.text)
+                set.text = op.text.trim();
+            if (HOOK_HORIZONS.includes(op.horizon) && op.horizon !== hook.horizon)
+                set.horizon = op.horizon;
+            Object.assign(hook, set);
+            emit('hook', hook, { event: op.event, ...note, ...(op.evidence ? { evidence: op.evidence } : {}), ...(Object.keys(set).length ? { set } : {}) });
             hook.lastMovedChapter = chapter;
         }
     }

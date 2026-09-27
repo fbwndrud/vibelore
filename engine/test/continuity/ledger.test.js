@@ -141,6 +141,25 @@ describe('applyLedgerOps', () => {
         expect(out.ledger).toEqual(base().ledger);
         expect(out.hooks).toEqual(base().hooks);
     });
+    it('keeps a legacy record id on register unless a record or merged id uses it', () => {
+        const state = { ...base(), ledger: { records: [...base().ledger.records.map((r) => (r.id === 'o1' ? { ...r, mergedIds: ['e9'] } : r))] } };
+        const out = applyLedgerOps(state, [
+            { op: 'register', feature: 'objects', label: 'item', name: '청동 열쇠', id: 'e7' },
+            { op: 'register', feature: 'objects', label: 'item', name: '은 거울', id: 'e9' },
+        ], { chapter: 7 });
+        expect(out.ledger.records.slice(-2).map((r) => [r.id, r.name])).toEqual([['e7', '청동 열쇠'], ['o3', '은 거울']]);
+    });
+    it('plants a hook at the chapter it was first planted when given', () => {
+        const out = applyLedgerOps(base(), [{ op: 'plant', text: '사슬', id: 'chain', plantedAtChapter: 2 }], { chapter: 7 });
+        expect(out.hooks[1]).toMatchObject({ id: 'chain', plantedAtChapter: 2, lastMovedChapter: 7 });
+    });
+    it('rewords a hook and changes its horizon through a hook op', () => {
+        const out = applyLedgerOps(base(), [{ op: 'hook', id: 'h1', event: 'reopened', text: '손목의 진짜 비밀', horizon: 'next' }], { chapter: 7 });
+        expect(out.hooks[0]).toMatchObject({ text: '손목의 진짜 비밀', horizon: 'next', status: 'open' });
+        const bad = applyLedgerOps(base(), [{ op: 'hook', id: 'h1', event: 'mentioned', text: '  ', horizon: 'someday' }], { chapter: 7 });
+        expect(bad.hooks[0].text).toBe('손목의 비밀');
+        expect(bad.hooks[0]).not.toHaveProperty('horizon');
+    });
     it('does not apply ops of a feature the user turned off', () => {
         const out = applyLedgerOps(base(), [{ op: 'register', feature: 'knowledge', label: '비밀', name: '손목 부상' }], { chapter: 7, config: { tracking: { knowledge: false } } });
         expect(out.ledger.records).toHaveLength(2);

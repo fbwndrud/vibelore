@@ -7,7 +7,7 @@
  * containers so evaluating a candidate does not mutate the prior snapshot.
  */
 import { advanceCursor, CHARACTER_ARC_BEATS } from './character-arc.js';
-import { applyLedgerOps, applyMerges, emptyLedger, hookStatusOf, HOOK_STATUSES, ledgerFromLegacy, legacyName } from './ledger.js';
+import { applyLedgerOps, applyMerges, emptyLedger, HOOK_HORIZONS, hookStatusOf, HOOK_STATUSES, LEGACY_KNOWLEDGE_KINDS, LEGACY_LOG_KINDS, ledgerFromLegacy, legacyRecord } from './ledger.js';
 /**
  * Hook lifecycle. A hook is a narrative promise to the reader.
  *   open    — the reader is waiting on it
@@ -15,9 +15,7 @@ import { applyLedgerOps, applyMerges, emptyLedger, hookStatusOf, HOOK_STATUSES, 
  *   paid    — answered on the page; may be reopened
  *   closed  — no longer used
  */
-export { HOOK_STATUSES };
-/** How soon the reader expects the payoff. Semantic, never a chapter count. */
-export const HOOK_HORIZONS = ['next', 'soon', 'arc', 'long', 'finale'];
+export { HOOK_HORIZONS, HOOK_STATUSES };
 const LEGACY_HORIZON = { immediate: 'next', 'near-term': 'soon', 'mid-arc': 'arc', 'slow-burn': 'long', endgame: 'finale' };
 /** True while the hook is open. Dormant hooks are listed separately by planners. */
 export function isHookActive(hook) {
@@ -108,7 +106,7 @@ export function trackedRecordKey(data) {
     return '';
 }
 const LEGACY_EVENT = { planted: 'mentioned', advancing: 'advanced', paid: 'paid', parked: 'parked' };
-const LEGACY_PHASE = { open: 'planted', progressing: 'advancing', resolved: 'paid', deferred: 'parked' };
+const LEGACY_PHASE = { open: 'planted', progressing: 'advancing', resolved: 'paid', deferred: 'parked', paid: 'paid', dormant: 'parked' };
 /** Ledger ops equivalent to a delta written before the ledger. */
 export function legacyLedgerOps(prev, delta) {
     const ops = [];
@@ -119,30 +117,35 @@ export function legacyLedgerOps(prev, delta) {
             continue;
         const phase = raw.phase ?? LEGACY_PHASE[raw.status] ?? 'planted';
         if (!known.has(hook.id)) {
-            ops.push({ op: 'plant', text: hook.text, id: hook.id, ...(hook.horizon ? { horizon: hook.horizon } : {}) });
+            ops.push({ op: 'plant', text: hook.text, id: hook.id, ...(hook.horizon ? { horizon: hook.horizon } : {}), ...(hook.plantedAtChapter !== undefined ? { plantedAtChapter: hook.plantedAtChapter } : {}) });
+            // A hook first seen already moved, paid or parked keeps that state.
+            if (phase !== 'planted' && LEGACY_EVENT[phase])
+                ops.push({ op: 'hook', id: hook.id, event: LEGACY_EVENT[phase] });
+            known.set(hook.id, { ...hook, status: hookStatusOf({ phase }) });
             continue;
         }
         const before = known.get(hook.id);
         const event = before.status === 'paid' && phase !== 'paid' ? 'reopened' : LEGACY_EVENT[phase] ?? 'mentioned';
-        ops.push({ op: 'hook', id: hook.id, event });
+        const text = hook.text && hook.text !== before.text ? { text: hook.text } : {};
+        const horizon = hook.horizon && hook.horizon !== before.horizon ? { horizon: hook.horizon } : {};
+        ops.push({ op: 'hook', id: hook.id, event, ...text, ...horizon });
     }
     for (const op of delta.trackedEntityOps ?? []) {
-        if (op.kind === 'Timeline') {
+        if (LEGACY_LOG_KINDS.has(op.kind)) {
             const events = Array.isArray(op.data?.events) ? op.data.events : [op.data?.event].filter(Boolean);
             for (const note of events)
                 ops.push({ op: 'chapter-note', note: String(note) });
             continue;
         }
-        const name = legacyName(op.data);
+        const { name, fields } = legacyRecord(op.data);
         if (!name)
             continue;
-        const { name: _name, ...fields } = op.data ?? {};
-        const feature = op.kind === 'KnowledgeMatrix' || op.kind === 'RegressionKnowledge' ? 'knowledge' : 'objects';
+        const feature = LEGACY_KNOWLEDGE_KINDS.has(op.kind) ? 'knowledge' : 'objects';
         ops.push({ op: 'register', feature, label: op.kind, name, ...(Object.keys(fields).length ? { fields } : {}) });
     }
     for (const op of delta.entityOps ?? []) {
         if (op.op === 'register')
-            ops.push({ op: 'register', feature: 'objects', label: op.kind, name: op.name });
+            ops.push({ op: 'register', feature: 'objects', label: op.kind, name: op.name, ...(op.entityId ? { id: op.entityId } : {}) });
         else if (op.op === 'update')
             ops.push({ op: 'event', id: op.entityId, event: 'changed', set: op.fields });
         else if (op.op === 'retire')
@@ -150,7 +153,7 @@ export function legacyLedgerOps(prev, delta) {
     }
     return ops;
 }
-/** The ledger part of a reduce, with the history lines and findings it produced. */
+/** The ledger part of a reduce, with the history lines and findings it produced. Callers keep deltas in chapter order. */
 export function ledgerStep(prev, delta, { config = {} } = {}) {
     const state = normalizeStoryState(prev);
     const ops = [...legacyLedgerOps(state, delta), ...(delta.ledgerOps ?? [])];

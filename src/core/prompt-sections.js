@@ -288,8 +288,8 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
     const { shown: hooks, omitted: hooksOmitted, capped: hooksCapped } = selectHooks(asArray(state.hooks).filter(isHookActive), focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
     if (hooks.length) {
       lines.push(t.hooksHeading, ...hooks.map((hook) => (mode === 'extract'
-        ? t.hookKeyed(hook.id, hook.phase, hook.plantedAtChapter, hook.text ?? '')
-        : t.hook(hook.text ?? hook.id, hook.phase))));
+        ? t.hookKeyed(hook.id, hook.status ?? hook.phase, hook.plantedAtChapter, hook.text ?? '')
+        : t.hook(hook.text ?? hook.id, hook.status ?? hook.phase))));
     }
     if (hooksCapped > 0) lines.push(t.capped(hooksCapped));
     if (hooksOmitted > 0) lines.push(t.omitted(hooksOmitted));
