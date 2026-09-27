@@ -1,5 +1,6 @@
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { emptyLedger, findRecord, hookStatusOf, ledgerFromLegacy, ledgerNameKey, nextLedgerId, similarRecord } from '../../src/continuity/ledger.js';
+import { applyLedgerOps, applyMerges } from '../../src/continuity/ledger.js';
 
 const note = { id: 'o1', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [{ text: '그 쪽지' }], status: 'active', fields: {}, recent: [] };
 
@@ -53,5 +54,88 @@ describe('legacy conversion', () => {
         ]);
         expect(ledger.records[1].fields).toEqual({ holder: 'c2' });
         expect(ledger.records[0].aliases).toEqual([{ text: '다리' }]);
+    });
+});
+
+const base = () => ({ ledger: { records: [
+    { id: 'o1', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [], status: 'active', fields: { holder: 'c1' }, registeredAt: 4, lastEventAt: 4, recent: [] },
+    { id: 'o2', feature: 'objects', label: '물건', name: '낡은 검', aliases: [], status: 'destroyed', fields: {}, registeredAt: 2, lastEventAt: 6, recent: [] },
+] }, hooks: [{ id: 'h1', text: '손목의 비밀', status: 'paid', plantedAtChapter: 2, lastMovedChapter: 5, recent: [] }] });
+
+describe('applyLedgerOps', () => {
+    it('adds a changed event and keeps the last three events', () => {
+        let state = base();
+        for (let chapter = 5; chapter <= 8; chapter += 1) {
+            state = { ...state, ...applyLedgerOps(state, [{ op: 'event', id: 'o1', event: 'changed', set: { holder: `c${chapter}` }, note: `${chapter}화` }], { chapter }) };
+        }
+        const record = state.ledger.records[0];
+        expect(record.fields.holder).toBe('c8');
+        expect(record.recent.map((e) => e.chapter)).toEqual([6, 7, 8]);
+        expect(record.lastEventAt).toBe(8);
+    });
+    it('turns a register with an existing name into an event on that record', () => {
+        const out = applyLedgerOps(base(), [{ op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지를', fields: { state: '재서명' } }], { chapter: 7 });
+        expect(out.ledger.records).toHaveLength(2);
+        expect(out.events).toEqual([{ chapter: 7, target: 'record', id: 'o1', event: 'changed', set: { state: '재서명' } }]);
+    });
+    it('registers a similar name but marks it as a possible duplicate', () => {
+        const out = applyLedgerOps(base(), [{ op: 'register', feature: 'objects', label: '물건', name: '재서명된 쪽지' }], { chapter: 7 });
+        const added = out.ledger.records.at(-1);
+        expect(added.id).toBe('o3');
+        expect(added.possibleDuplicateOf).toBe('o1');
+        expect(out.violations.map((v) => v.code)).toEqual(['LEDGER_POSSIBLE_DUPLICATE']);
+    });
+    it('rejects a change to a destroyed record but allows a mention', () => {
+        const out = applyLedgerOps(base(), [
+            { op: 'event', id: 'o2', event: 'changed', set: { state: '수리됨' } },
+            { op: 'event', id: 'o2', event: 'mentioned', note: '회상' },
+        ], { chapter: 7 });
+        expect(out.violations.map((v) => [v.code, v.severity])).toEqual([['LEDGER_UPDATE_AFTER_DESTROY', 'hard']]);
+        expect(out.ledger.records[1].fields).toEqual({});
+        expect(out.ledger.records[1].recent.map((e) => e.event)).toEqual(['mentioned']);
+    });
+    it('restores a destroyed record only with a note', () => {
+        const without = applyLedgerOps(base(), [{ op: 'event', id: 'o2', event: 'restored' }], { chapter: 7 });
+        expect(without.violations[0].code).toBe('LEDGER_RESTORE_NOTE_REQUIRED');
+        const withNote = applyLedgerOps(base(), [{ op: 'event', id: 'o2', event: 'restored', note: '대장장이가 다시 벼림' }], { chapter: 7 });
+        expect(withNote.ledger.records[1].status).toBe('active');
+    });
+    it('reopens a paid hook and plants a new one with the next id', () => {
+        const out = applyLedgerOps(base(), [
+            { op: 'hook', id: 'h1', event: 'reopened', note: '다시 아픔' },
+            { op: 'plant', text: '누가 사슬을 박았나', horizon: 'arc' },
+        ], { chapter: 7 });
+        expect(out.hooks.map((h) => [h.id, h.status])).toEqual([['h1', 'open'], ['h2', 'open']]);
+        expect(out.hooks[1].plantedAtChapter).toBe(7);
+    });
+    it('does not apply ops of a feature the user turned off', () => {
+        const out = applyLedgerOps(base(), [{ op: 'register', feature: 'knowledge', label: '비밀', name: '손목 부상' }], { chapter: 7, config: { tracking: { knowledge: false } } });
+        expect(out.ledger.records).toHaveLength(2);
+        expect(out.violations).toEqual([]);
+    });
+    it('drops an unknown id with a soft finding', () => {
+        const out = applyLedgerOps(base(), [{ op: 'event', id: 'o99', event: 'mentioned' }], { chapter: 7 });
+        expect(out.violations.map((v) => v.code)).toEqual(['LEDGER_UNKNOWN_ID']);
+    });
+    it('checks author rules on the custom item', () => {
+        const config = { customTracking: [{ id: 'u1', name: '금화', feature: 'objects', rules: [{ type: 'monotonic', field: 'amount', direction: 'down', unless: '벌었' }] }] };
+        let state = { ...base(), ...applyLedgerOps(base(), [{ op: 'event', id: 'u1', event: 'changed', set: { amount: '금화 10닢' } }], { chapter: 5, config }) };
+        const up = applyLedgerOps(state, [{ op: 'event', id: 'u1', event: 'changed', set: { amount: '금화 12닢' } }], { chapter: 6, config });
+        expect(up.violations.map((v) => v.code)).toEqual(['CUSTOM_RULE_MONOTONIC']);
+        const earned = applyLedgerOps(state, [{ op: 'event', id: 'u1', event: 'changed', set: { amount: '금화 12닢' }, note: '품삯을 벌었다' }], { chapter: 6, config });
+        expect(earned.violations).toEqual([]);
+    });
+});
+
+describe('applyMerges', () => {
+    it('folds a record into another and keeps its id and name as aliases', () => {
+        const ledger = { records: [...base().ledger.records, { id: 'o3', feature: 'objects', label: '물건', name: '재서명된 쪽지', aliases: [], status: 'active', fields: { state: '재서명' }, recent: [] }] };
+        const out = applyMerges(ledger, [{ from: 'o3', into: 'o1' }], 8);
+        expect(out.ledger.records.map((r) => r.id)).toEqual(['o1', 'o2']);
+        expect(out.ledger.records[0].mergedIds).toEqual(['o3']);
+        expect(out.ledger.records[0].aliases).toEqual([{ text: '재서명된 쪽지' }]);
+        expect(out.ledger.records[0].fields).toEqual({ holder: 'c1', state: '재서명' });
+        expect(out.events).toEqual([{ chapter: 8, target: 'record', id: 'o3', event: 'merged', into: 'o1' }]);
+        expect(applyMerges(out.ledger, [{ from: 'o3', into: 'o1' }], 9).events).toEqual([]);
     });
 });

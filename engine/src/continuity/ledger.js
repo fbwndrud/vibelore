@@ -152,3 +152,208 @@ export function ledgerFromLegacy({ trackedEntities = [], entities = [] } = {}) {
     }
     return state.ledger;
 }
+
+
+export function trackingEnabled(config, feature) {
+    return config?.tracking?.[feature] !== false;
+}
+function customItem(config, ref) {
+    return (config?.customTracking ?? []).find((item) => item.id === ref || ledgerNameKey(item.name) === ledgerNameKey(ref)) ?? null;
+}
+function clone(state) {
+    return {
+        ledger: { records: (state?.ledger?.records ?? []).map((record) => ({ ...record, aliases: [...(record.aliases ?? [])], fields: { ...(record.fields ?? {}) }, recent: [...(record.recent ?? [])] })) },
+        hooks: (state?.hooks ?? []).map((hook) => ({ ...hook, recent: [...(hook.recent ?? [])] })),
+    };
+}
+function remember(target, event, chapter) {
+    const { target: _target, id: _id, ...kept } = event;
+    target.recent = [...(target.recent ?? []), kept].slice(-RECENT_EVENTS);
+    target.lastEventAt = chapter;
+}
+function aliasOf(value, chapter) {
+    if (typeof value === 'string')
+        return value.trim() ? { text: value.trim() } : null;
+    if (typeof value?.text !== 'string' || !value.text.trim())
+        return null;
+    return { text: value.text.trim(), ...(typeof value.by === 'string' && value.by ? { by: value.by, since: value.since ?? chapter } : {}) };
+}
+function firstNumber(value) {
+    const match = /-?\d+(?:\.\d+)?/.exec(String(value ?? '').replace(/,/g, ''));
+    return match ? Number(match[0]) : null;
+}
+function ruleFindings(record, before, event, config) {
+    const item = customItem(config, record.id);
+    const findings = [];
+    for (const rule of item?.rules ?? []) {
+        const severity = rule.severity === 'hard' ? 'hard' : 'soft';
+        if (rule.type === 'monotonic' && event.set && rule.field in event.set) {
+            const prior = firstNumber(before.fields?.[rule.field]);
+            const next = firstNumber(event.set[rule.field]);
+            const excused = rule.unless && String(event.note ?? '').includes(rule.unless);
+            const wrong = prior !== null && next !== null && (rule.direction === 'down' ? next > prior : next < prior);
+            if (wrong && !excused)
+                findings.push({ severity, code: 'CUSTOM_RULE_MONOTONIC', ledgerId: record.id, message: `${item.name}: ${rule.field} ${prior} → ${next} (${rule.direction})` });
+        }
+        if (rule.type === 'frozenAfter' && before.status === rule.status && (event.event === 'changed' || event.event === 'status'))
+            findings.push({ severity, code: 'CUSTOM_RULE_FROZEN', ledgerId: record.id, message: `${item.name}: ${rule.status} 이후 변경` });
+    }
+    return findings;
+}
+/**
+ * Apply one chapter's ledger ops. Pure: returns new containers, the event
+ * lines for the history log and the findings. Ops of a feature the user turned
+ * off are ignored without a finding.
+ */
+export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
+    const next = clone(state);
+    const events = [];
+    const violations = [];
+    const emit = (target, holder, event) => {
+        const line = { chapter, target, id: holder.id, ...event };
+        events.push(line);
+        remember(holder, line, chapter);
+    };
+    for (const op of ops ?? []) {
+        if (op?.op === 'register') {
+            if (!LEDGER_FEATURES.includes(op.feature) || !trackingEnabled(config, op.feature) || typeof op.name !== 'string' || !op.name.trim())
+                continue;
+            const existing = findRecord(next.ledger, op.name, op.feature);
+            if (existing) {
+                const set = op.fields && Object.keys(op.fields).length ? { ...op.fields } : null;
+                if (set)
+                    existing.fields = { ...existing.fields, ...set };
+                emit('record', existing, { event: set ? 'changed' : 'mentioned', ...(op.note ? { note: op.note } : {}), ...(set ? { set } : {}) });
+                continue;
+            }
+            const similar = similarRecord(next.ledger, op.feature, op.name);
+            const custom = customItem(config, op.name);
+            const record = {
+                id: custom?.id ?? nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
+                aliases: (op.aliases ?? []).map((alias) => aliasOf(alias, chapter)).filter(Boolean),
+                status: INITIAL_STATUS[op.feature], fields: { ...(op.fields ?? {}) }, registeredAt: chapter, recent: [],
+                ...(similar ? { possibleDuplicateOf: similar.id } : {}),
+            };
+            next.ledger.records.push(record);
+            emit('record', record, { event: 'registered', ...(op.note ? { note: op.note } : {}), ...(Object.keys(record.fields).length ? { set: { ...record.fields } } : {}) });
+            if (similar)
+                violations.push({ severity: 'soft', code: 'LEDGER_POSSIBLE_DUPLICATE', ledgerId: record.id, duplicateOf: similar.id, message: `"${record.name}" may be "${similar.name}" (${similar.id})` });
+            continue;
+        }
+        if (op?.op === 'event' || op?.op === 'alias') {
+            let record = findRecord(next.ledger, op.id);
+            const custom = !record ? customItem(config, op.id) : null;
+            if (!record && custom && trackingEnabled(config, custom.feature)) {
+                record = { id: custom.id, feature: custom.feature, label: '', name: custom.name, aliases: [], status: INITIAL_STATUS[custom.feature], fields: {}, registeredAt: chapter, recent: [] };
+                next.ledger.records.push(record);
+            }
+            if (!record) {
+                violations.push({ severity: 'soft', code: 'LEDGER_UNKNOWN_ID', ledgerId: op.id, message: `unknown ledger id "${op.id}"` });
+                continue;
+            }
+            if (!trackingEnabled(config, record.feature))
+                continue;
+            if (op.op === 'alias') {
+                const alias = aliasOf({ text: op.alias, by: op.by }, chapter);
+                if (alias && !recordNames(record).some((name) => ledgerNameKey(name) === ledgerNameKey(alias.text))) {
+                    record.aliases.push(alias);
+                    emit('record', record, { event: 'alias', alias: alias.text, ...(alias.by ? { by: alias.by } : {}) });
+                }
+                continue;
+            }
+            const before = { status: record.status, fields: { ...record.fields } };
+            const note = op.note ? { note: op.note } : {};
+            if (op.event === 'restored') {
+                if (!['destroyed', 'lost', 'retired'].includes(record.status))
+                    continue;
+                if (!op.note) {
+                    violations.push({ severity: 'hard', code: 'LEDGER_RESTORE_NOTE_REQUIRED', ledgerId: record.id, message: `"${record.name}" was ${record.status}; restoring it needs a reason` });
+                    continue;
+                }
+                record.status = INITIAL_STATUS[record.feature];
+                emit('record', record, { event: 'restored', ...note, status: record.status });
+                continue;
+            }
+            if (record.status === 'destroyed' && (op.event === 'changed' || op.event === 'status')) {
+                violations.push({ severity: 'hard', code: 'LEDGER_UPDATE_AFTER_DESTROY', ledgerId: record.id, message: `update attempted on destroyed "${record.name}" (${record.id})` });
+                continue;
+            }
+            if (op.event === 'status') {
+                if (!RECORD_STATUSES[record.feature].includes(op.status)) {
+                    violations.push({ severity: 'soft', code: 'LEDGER_INVALID_STATUS', ledgerId: record.id, message: `"${op.status}" is not a ${record.feature} status` });
+                    continue;
+                }
+                if (record.feature === 'scheduled' && op.status === 'pending' && ['happened', 'prevented'].includes(record.status))
+                    violations.push({ severity: 'soft', code: 'LEDGER_SCHEDULED_REOPENED', ledgerId: record.id, message: `"${record.name}" was ${record.status} and is pending again` });
+                violations.push(...ruleFindings(record, before, op, config));
+                record.status = op.status;
+                emit('record', record, { event: 'status', ...note, status: op.status });
+                continue;
+            }
+            if (op.event === 'changed' && op.set && Object.keys(op.set).length) {
+                violations.push(...ruleFindings(record, before, op, config));
+                record.fields = { ...record.fields, ...op.set };
+                emit('record', record, { event: 'changed', ...note, set: { ...op.set } });
+                continue;
+            }
+            emit('record', record, { event: 'mentioned', ...note });
+            continue;
+        }
+        if (op?.op === 'plant') {
+            if (!trackingEnabled(config, 'hooks') || typeof op.text !== 'string' || !op.text.trim())
+                continue;
+            const hook = { id: nextLedgerId(next, 'hooks'), text: op.text.trim(), status: 'open', ...(op.horizon ? { horizon: op.horizon } : {}), plantedAtChapter: chapter, lastMovedChapter: chapter, recent: [] };
+            next.hooks.push(hook);
+            emit('hook', hook, { event: 'planted', ...(op.note ? { note: op.note } : {}) });
+            hook.lastMovedChapter = chapter;
+            continue;
+        }
+        if (op?.op === 'hook') {
+            if (!trackingEnabled(config, 'hooks'))
+                continue;
+            const hook = next.hooks.find((item) => item.id === op.id);
+            if (!hook || !HOOK_EVENTS.includes(op.event) || op.event === 'planted') {
+                violations.push({ severity: 'soft', code: 'LEDGER_UNKNOWN_ID', ledgerId: op.id, message: `unknown hook "${op.id}" or event "${op.event}"` });
+                continue;
+            }
+            const note = op.note ? { note: op.note } : {};
+            if (hook.status === 'closed' && op.event !== 'reopened') {
+                violations.push({ severity: 'soft', code: 'LEDGER_CLOSED_HOOK_EVENT', ledgerId: hook.id, message: `closed hook "${hook.id}" used again` });
+                emit('hook', hook, { event: 'mentioned', ...note });
+                continue;
+            }
+            const status = { advanced: 'open', reopened: 'open', paid: 'paid', parked: 'dormant', closed: 'closed' }[op.event];
+            if (status)
+                hook.status = status;
+            emit('hook', hook, { event: op.event, ...note, ...(op.evidence ? { evidence: op.evidence } : {}) });
+            hook.lastMovedChapter = chapter;
+        }
+    }
+    return { ledger: next.ledger, hooks: next.hooks, events, violations };
+}
+/** Fold approved merges ({from, into}) whose source still exists. Idempotent. */
+export function applyMerges(ledger, merges, chapter) {
+    const records = (ledger?.records ?? []).map((record) => ({ ...record }));
+    const events = [];
+    for (const merge of merges ?? []) {
+        const fromIndex = records.findIndex((record) => record.id === merge.from);
+        const into = records.find((record) => record.id === merge.into);
+        if (fromIndex < 0 || !into || merge.from === merge.into)
+            continue;
+        const from = records[fromIndex];
+        const known = new Set(recordNames(into).map(ledgerNameKey));
+        const aliases = [...(into.aliases ?? [])];
+        for (const alias of [{ text: from.name }, ...(from.aliases ?? [])]) {
+            if (alias?.text && !known.has(ledgerNameKey(alias.text))) {
+                aliases.push(alias.by ? alias : { text: alias.text });
+                known.add(ledgerNameKey(alias.text));
+            }
+        }
+        const merged = { ...into, aliases, fields: { ...(from.fields ?? {}), ...(into.fields ?? {}) }, mergedIds: [...(into.mergedIds ?? []), from.id, ...(from.mergedIds ?? [])] };
+        delete merged.possibleDuplicateOf;
+        records[records.indexOf(into)] = merged;
+        records.splice(fromIndex, 1);
+        events.push({ chapter, target: 'record', id: from.id, event: 'merged', into: into.id });
+    }
+    return { ledger: { records }, events };
+}
