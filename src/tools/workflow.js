@@ -22,7 +22,7 @@ import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { renderSummaries } from '../core/prompt-sections.js';
 import { ensureArcSummaries } from './arc-summary.js';
-import { loadDisabledReviews } from '../core/review-policy.js';
+import { loadDisabledReviews, loadLedgerConfig } from '../core/review-policy.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { findLatestRun } from '../runs.js';
@@ -146,6 +146,18 @@ const DRAMATIC_DIMENSIONS = {
   consequenceResidue: '충돌의 대가가 다음 장면에 남지 않는다.',
   surpriseIntegrity: '전환이 지나치게 예고되거나 근거 없이 발생한다.',
 };
+
+/**
+ * Author natural-language rules (each custom tracking item's `note`) judged
+ * by the coherence review. `pass` stays in the receipt only; `warn`/`fail`
+ * surface as soft advisories — the author's own rule, never a hard violation.
+ */
+export function authorRuleAdvisories(coherence, chapter) {
+  return (coherence?.authorRules ?? [])
+    .filter((entry) => entry.verdict === 'warn' || entry.verdict === 'fail')
+    .map((entry) => ({ severity: 'soft', advisoryOnly: true, chapterNumber: chapter,
+      code: 'AUTHOR_RULE', message: `${entry.rule}: ${entry.evidence}` }));
+}
 
 export function dramaticQualityViolations(editorial, chapter) {
   return Object.entries(DRAMATIC_DIMENSIONS).flatMap(([dimension, fallback]) => {
@@ -584,10 +596,13 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     // The profile check runs inside the mandatory check; record it here when it is off.
     if (disabledReviews.includes('story-profile-check')) await reviews.run('story-profile-check', async () => null, null);
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
+    const ledgerConfig = await loadLedgerConfig(store, workId);
+    const authorRules = ledgerConfig.customTracking.map((item) => item.note).filter(Boolean);
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
       plan: renderEpisodePlan(episodePlan, kit), prevSummary: priorSummaries[0]?.summary ?? '',
       writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
+      authorRules,
     }), { score: null, reason: null });
 
     const canon = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
@@ -644,6 +659,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       ...characterFidelityAdvisories(characterFidelity, chapter),
       ...arcReviewAdvisories(arcReview, chapter),
       ...readerHookAdvisories(readerHook, chapter, kit),
+      ...authorRuleAdvisories(coherence, chapter),
     ];
     violations.push(...independentAdvisories);
     if (readerHook.score !== null && readerHook.score < MIN_READER_HOOK) {

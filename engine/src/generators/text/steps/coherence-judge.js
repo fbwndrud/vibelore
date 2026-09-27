@@ -38,13 +38,18 @@ const JUDGE_LABELS_KO = {
     plan: (plan) => `## 이번 화 plan\n${plan}`,
     prevSummary: (summary) => `## 직전 화 요약\n${summary}`,
     request: '위 본문을 0-100 점으로 평가. JSON 한 개 출력.',
+    authorRules: '## 작가 점검 규칙 (각각 pass|warn|fail과 본문 근거)',
+    authorRulesOutput: ', "authorRules": [{ "rule": "...", "verdict": "pass|warn|fail", "evidence": "..." }]',
 };
 const JUDGE_LABELS_EN = {
     proseHeading: (n) => `## Chapter ${n} text`,
     plan: (plan) => `## Plan for this chapter\n${plan}`,
     prevSummary: (summary) => `## Previous chapter summary\n${summary}`,
     request: 'Score the chapter above from 0 to 100. Output one JSON object.',
+    authorRules: '## Author rules (pass|warn|fail each, with evidence from the chapter)',
+    authorRulesOutput: ', "authorRules": [{ "rule": "...", "verdict": "pass|warn|fail", "evidence": "..." }]',
 };
+const AUTHOR_RULE_VERDICTS = new Set(['pass', 'warn', 'fail']);
 function tryParse(raw) {
     const fenced = raw.replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim();
     try {
@@ -57,6 +62,7 @@ function tryParse(raw) {
 export async function runCoherenceJudge(input) {
     const ctx = resolveStepPromptLanguage(input);
     const labels = pickByFamily(ctx, { ko: JUDGE_LABELS_KO, multilingual: JUDGE_LABELS_EN });
+    const hasAuthorRules = Array.isArray(input.authorRules) && input.authorRules.length > 0;
     const userPrompt = [
         labels.proseHeading(input.chapterNumber),
         input.prose,
@@ -64,8 +70,9 @@ export async function runCoherenceJudge(input) {
         // A plan render that carries its own heading is used as is.
         input.plan ? (/^#/.test(input.plan.trim()) ? input.plan.trim() : labels.plan(input.plan)) : '',
         input.prevSummary ? labels.prevSummary(input.prevSummary) : '',
+        hasAuthorRules ? [labels.authorRules, ...input.authorRules.map((rule) => `- ${rule}`)].join('\n') : '',
         ``,
-        labels.request,
+        hasAuthorRules ? `${labels.request}${labels.authorRulesOutput}` : labels.request,
     ]
         .filter((s) => s.length > 0)
         .join('\n');
@@ -101,5 +108,18 @@ export async function runCoherenceJudge(input) {
         ? Math.round(obj.score)
         : null;
     const reason = typeof obj.reason === 'string' ? obj.reason.slice(0, 200) : null;
-    return { score, reason };
+    const result = { score, reason };
+    // Backward compatible: no key when the caller gave no rules to judge.
+    if (hasAuthorRules) {
+        result.authorRules = Array.isArray(obj.authorRules)
+            ? obj.authorRules
+                .filter((entry) => entry && typeof entry.rule === 'string' && AUTHOR_RULE_VERDICTS.has(entry.verdict))
+                .map((entry) => ({
+                    rule: entry.rule,
+                    verdict: entry.verdict,
+                    evidence: typeof entry.evidence === 'string' ? entry.evidence.slice(0, 200) : '',
+                }))
+            : [];
+    }
+    return result;
 }

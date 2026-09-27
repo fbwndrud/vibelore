@@ -108,4 +108,49 @@ describe('runCoherenceJudge', () => {
         });
         expect(r.score).toBe(73);
     });
+    it('asks about author rules and returns their verdicts', async () => {
+        let seen = '';
+        const providers = {
+            register: vi.fn(),
+            has: vi.fn(),
+            complete: async (req) => {
+                seen = req.messages.at(-1).content;
+                return { text: JSON.stringify({ score: 80, reason: 'ok', authorRules: [{ rule: '리아는 어머니 이야기를 먼저 꺼내지 않는다', verdict: 'fail', evidence: '"엄마가…"' }] }) };
+            },
+        };
+        const out = await runCoherenceJudge({
+            prose: '본문', chapterNumber: 3, plan: '', prevSummary: '', writerModel: {}, providers,
+            authorRules: ['리아는 어머니 이야기를 먼저 꺼내지 않는다'],
+        });
+        expect(seen).toContain('리아는 어머니 이야기를 먼저 꺼내지 않는다');
+        expect(out.authorRules[0].verdict).toBe('fail');
+    });
+    it('no author rules given → no authorRules key', async () => {
+        const providers = {
+            register: vi.fn(),
+            has: vi.fn(),
+            complete: vi.fn(async () => ({ text: JSON.stringify({ score: 80, reason: 'ok' }) })),
+        };
+        const out = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, providers });
+        expect(out.authorRules).toBeUndefined();
+    });
+    it('malformed authorRules entry is dropped, not the whole review', async () => {
+        const providers = {
+            register: vi.fn(),
+            has: vi.fn(),
+            complete: vi.fn(async () => ({
+                text: JSON.stringify({ score: 80, reason: 'ok', authorRules: [
+                    { rule: '유효', verdict: 'warn', evidence: 'x' },
+                    { rule: '검증 불가', verdict: 'maybe' },
+                    { verdict: 'pass' },
+                ] }),
+            })),
+        };
+        const out = await runCoherenceJudge({
+            prose: SAMPLE, chapterNumber: 3, writerModel, providers, authorRules: ['유효'],
+        });
+        expect(out.score).toBe(80);
+        expect(out.authorRules).toHaveLength(1);
+        expect(out.authorRules[0]).toEqual({ rule: '유효', verdict: 'warn', evidence: 'x' });
+    });
 });

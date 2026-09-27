@@ -266,6 +266,29 @@ describe('host round trips are batched by dependency', () => {
     assert.equal(receipt.readerHookDetail.commercialSerialCheck.genrePromisePaid.verdict, 'fail');
   });
 
+  it('asks the coherence review about author tracking notes and surfaces a fail as a soft advisory', async () => {
+    const store = await qualityStore();
+    store.loadReviewPolicy = async () => ({ customTracking: [
+      { id: 'u1', name: '리아', feature: 'objects', note: '리아는 어머니 이야기를 먼저 꺼내지 않는다' },
+      { id: 'u2', name: '무명', feature: 'objects' }, // no note: excluded, not an empty rule
+    ] });
+    const requests = [];
+    const judge = JSON.stringify({ score: 88, reason: 'ok', authorRules: [
+      { rule: '리아는 어머니 이야기를 먼저 꺼내지 않는다', verdict: 'fail', evidence: '"엄마가…"' },
+    ] });
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: req.step === 'coherence-judge' ? judge : (outputs[req.step] ?? '{}') }; } } });
+    const user = requests.find((req) => req.step === 'coherence-judge').messages.find((m) => m.role === 'user').content;
+    assert.match(user, /리아는 어머니 이야기를 먼저 꺼내지 않는다/);
+    const advisory = (result.quality?.advisories ?? []).find((item) => item.code === 'AUTHOR_RULE');
+    assert.ok(advisory, JSON.stringify(result.quality?.advisories));
+    assert.match(advisory.message, /엄마가/);
+    assert.equal(advisory.severity, 'soft');
+    // A soft advisory never blocks: the workflow still reaches guided approval
+    // with the same draft, not a revision loop or a clean_fail.
+    assert.equal(result.status, 'awaiting_approval');
+    assert.equal(requests.filter((req) => req.step === 'revise').length, 0);
+  });
+
   it('shows reviewers a plan view without bookkeeping fields', async () => {
     const store = await qualityStore();
     const plan = await store.loadEpisodePlan(workId, 1);
