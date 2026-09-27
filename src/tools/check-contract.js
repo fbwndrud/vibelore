@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto';
 import { extractDelta, continuityCheck, computeExtractionContextHash } from '../../engine/src/continuity/continuity-check.js';
 import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
 import { ledgerPrevState } from './ledger-log.js';
-import { scanDestroyedEntityMentions } from '../../engine/src/continuity/entity-ops.js';
+import { reviewLedgerOps } from '../../engine/src/continuity/ledger.js';
+import { ledgerStep } from '../../engine/src/continuity/story-state.js';
 import { evaluateChapterQuality } from '../../engine/src/continuity/quality-gate.js';
 import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-language.js';
 import { currentValidationContext, exactHash, sameIdentity, exceptionOnlyRebind, loadValidationSession, saveValidationSession, invalidateValidationSession } from '../core/validation-context.js';
@@ -82,8 +83,6 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     : (estimated > 0 ? arcPositionFromRatio(chapter, estimated) : 'rising');
   const entities = await canonicalStore.loadEntitySnapshots(workId);
   const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, arcPosition, entities });
-  // A destroyed entity named again is often a memory, so it stays advisory.
-  scan.violations.push(...scanDestroyedEntityMentions({ snapshots: entities, prose: input.prose, chapterNumber: chapter }));
   const length = lengthCoverage({ workContract, prose: input.prose });
   const prosody = scan.detectorResults.find(row => row.checkerId === 'runProsodyScan' && ['passed','failed'].includes(row.status));
   const base = {
@@ -173,9 +172,17 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       if (context.plans.episode?.characterArcBeats?.length) {
         extracted.delta = { ...extracted.delta, arcCursorOps: context.plans.episode.characterArcBeats.map(({ characterId, beat, note }) => ({ characterId, nextBeat: beat, ...(note !== undefined ? { note } : {}) })) };
       }
+      // Reviewed once per extraction: the downgraded ops are what the receipt
+      // carries and commit reduces. A destroyed record named again is often a
+      // memory, so that finding stays advisory like the other review findings.
+      const reviewed = reviewLedgerOps({ state: prevState, ops: extracted.delta.ledgerOps ?? [], prose: input.prose,
+        cast: extracted.delta.appearedCharacterIds ?? [], config: ledgerConfig });
+      extracted.delta = { ...extracted.delta, ledgerOps: reviewed.ops };
+      extracted.ledgerFindings = [...reviewed.violations, ...ledgerStep(prevState, extracted.delta, { config: ledgerConfig }).violations];
       state.extracted = extracted; await save();
     }
     base.delta = state.extracted.delta;
+    base.violations.push(...(state.extracted.ledgerFindings ?? []).map((v) => ({ ...v, chapterNumber: chapter })));
     base.extractionValidation = state.extracted.extractionValidation;
     base.unregisteredNamed = state.extracted.unregisteredNamed ?? [];
     for (const entry of state.extracted.rejectedAddressEntries ?? []) {

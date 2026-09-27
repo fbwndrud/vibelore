@@ -4,6 +4,8 @@ import { runContractCheck } from '../src/tools/check-contract.js';
 import { qualityStore, workId } from './fixtures/quality-workflow.js';
 import { SYNTHETIC_LONG_PROSE } from './fixtures/synthetic-prose.js';
 import { contractResponse } from './fixtures/contract-response.js';
+import { loadValidationSession, saveValidationSession } from '../src/core/validation-context.js';
+import { emptyStoryState } from '../engine/src/continuity/story-state.js';
 
 const providers = { pending: [], async complete(req) { return contractResponse(req) ?? { text: '{}' }; } };
 
@@ -82,4 +84,55 @@ test('the profile check reads the profile, beat and deferred results as text ins
   assert.doesNotMatch(input, /[{}]|\["/, 'no JSON before the output schema');
   assert.match(input, /## 승인된 작품 StoryProfile/);
   assert.match(input, /윤재 \(hero\)/);
+});
+
+// Runs the check with extra fields merged into the canned extraction answer,
+// on top of a saved chapter-0 state when one is given.
+async function checkWithExtraction(extraction, { prevState, issueReceipt = false, prose = SYNTHETIC_LONG_PROSE } = {}) {
+  const store = await qualityStore();
+  if (prevState) await store.saveStoryState({ ...emptyStoryState(workId), chapterNumber: 0, ...prevState });
+  const provider = { pending: [], async complete(req) {
+    const answer = contractResponse(req);
+    if (req.step !== 'continuity-extract' || !answer) return answer ?? { text: '{}' };
+    return { text: JSON.stringify({ ...JSON.parse(answer.text), ...extraction }) };
+  } };
+  const result = await runContractCheck({ store, workId, chapter: 1, prose, title: '첫 문', providers: provider, issueReceipt });
+  return { ...result, store };
+}
+
+test('a paid hook without a quote is stored as advanced and reported', async () => {
+  const result = await checkWithExtraction({
+    ledgerOps: [{ op: 'hook', id: 'h1', event: 'paid', evidence: '본문에 없는 문장' }],
+  }, { prevState: { hooks: [{ id: 'h1', text: '누가', status: 'open' }] } });
+  assert.equal(result.delta.ledgerOps[0].event, 'advanced');
+  assert.ok(result.violations.some((v) => v.code === 'HOOK_PAID_WITHOUT_EVIDENCE' && v.severity === 'soft'), JSON.stringify(result.violations.map((v) => v.code)));
+});
+
+test('the receipt carries the reviewed ledger ops, so commit stores the downgraded hook', async () => {
+  const result = await checkWithExtraction({
+    ledgerOps: [{ op: 'hook', id: 'h1', event: 'paid', evidence: '본문에 없는 문장' }],
+  }, { prevState: { hooks: [{ id: 'h1', text: '누가', status: 'open' }] }, issueReceipt: true });
+  assert.ok(result.checkId, JSON.stringify({ status: result.status, code: result.code, violations: result.violations?.map((v) => v.code) }));
+  const receipt = await result.store.loadCheckReceipt(workId, result.checkId);
+  assert.equal(receipt.delta.ledgerOps[0].event, 'advanced');
+  assert.equal(receipt.artifact.semanticDelta.ledgerOps[0].event, 'advanced');
+});
+
+test('changing a destroyed record is a hard violation', async () => {
+  const result = await checkWithExtraction({ ledgerOps: [{ op: 'event', id: 'o2', event: 'changed', set: { state: '수리' } }] },
+    { prevState: { ledger: { records: [{ id: 'o2', feature: 'objects', label: '물건', name: '낡은 검', aliases: [], status: 'destroyed', fields: {}, recent: [] }] } } });
+  assert.ok(result.violations.some((v) => v.code === 'LEDGER_UPDATE_AFTER_DESTROY' && v.severity === 'hard'), JSON.stringify(result.violations.map((v) => v.code)));
+});
+
+test('an extraction saved before ledger ops existed still checks when replayed', async () => {
+  const store = await qualityStore();
+  const run = (extra = {}) => runContractCheck({ store, workId, chapter: 1, prose: SYNTHETIC_LONG_PROSE, title: '첫 문', providers, issueReceipt: false, ...extra });
+  await run({ includeSemanticContinuity: false });
+  const session = await loadValidationSession(store, workId, 'manual-1');
+  const { ledgerOps, ...legacyDelta } = session.extracted.delta;
+  const { ledgerFindings, ...legacy } = session.extracted;
+  await saveValidationSession(store, workId, 'manual-1', { ...session, extracted: { ...legacy, delta: legacyDelta } });
+  const result = await run();
+  assert.equal(result.validationComplete, true, JSON.stringify({ status: result.status, code: result.code, error: result.validationError }));
+  assert.ok(!result.violations.some((v) => v.code.startsWith('LEDGER_')), JSON.stringify(result.violations.map((v) => v.code)));
 });
