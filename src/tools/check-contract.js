@@ -3,7 +3,7 @@ import { renderCheckSections, renderCurrentState } from '../core/prompt-sections
 import { createHash } from 'node:crypto';
 import { extractDelta, continuityCheck, computeExtractionContextHash } from '../../engine/src/continuity/continuity-check.js';
 import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
-import { emptyStoryState } from '../../engine/src/continuity/story-state.js';
+import { ledgerPrevState } from './ledger-log.js';
 import { scanDestroyedEntityMentions } from '../../engine/src/continuity/entity-ops.js';
 import { evaluateChapterQuality } from '../../engine/src/continuity/quality-gate.js';
 import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-language.js';
@@ -153,14 +153,15 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   for (const finding of state.profileAdvisory?.findings ?? []) {
     base.violations.push({ severity: 'soft', code: finding.code, chapterNumber: chapter, message: finding.message });
   }
-  const prevState = await canonicalStore.loadStoryState(workId, chapter - 1) ?? emptyStoryState(workId);
+  // The same state the commit reduces from, so the extractor sees the seeded and snapshot records by id.
+  const prevState = ledgerPrevState(workId, await canonicalStore.loadStoryState(workId, chapter - 1), entities);
   const kit = promptKit({ contract: workContract });
   const ledgerConfig = await loadLedgerConfig(store, workId);
   const extractionInput = { prose: input.prose, chapterNumber: chapter, foundation, providers: wrapped, model: MODEL, prevState,
     castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language,
     tracking: ledgerConfig.tracking,
     // Only what the prose touches (and the planned cast): the index does not grow with the work.
-    prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', entities, focusText: input.prose, cast: context.plans.episode?.cast ?? [], hookIds: context.plans.episode?.hooksTouched ?? [] }),
+    prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', config: ledgerConfig, focusText: input.prose, cast: context.plans.episode?.cast ?? [], hookIds: context.plans.episode?.hooksTouched ?? [] }),
     ...(entities.length ? { entities } : {}) };
   try {
     if (!state.extracted) {
@@ -189,7 +190,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       ...(context.plans.profile?.povDesign ? { povDesign: context.plans.profile.povDesign } : {}),
       ...(typeof context.plans.episode?.povCharacter === 'string' && context.plans.episode.povCharacter ? { povCharacterId: context.plans.episode.povCharacter } : {}) };
     semanticInput.checkSections = renderCheckSections({ foundation, prevState, delta: semanticInput.delta, povDesign: semanticInput.povDesign ?? null,
-      povCharacterId: semanticInput.povCharacterId ?? null, kit, focusText: input.prose });
+      povCharacterId: semanticInput.povCharacterId ?? null, kit, focusText: input.prose, config: ledgerConfig });
     if (!state.semantic) {
       const semantic = await continuityCheck(semanticInput);
       if (pending(wrapped)) return preview();

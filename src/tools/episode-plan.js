@@ -215,7 +215,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       castText: renderCastBrief(foundation, kit, { focusText: planFocus, chapter }),
       summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
       longMemoryText: await renderLongMemory({ store, workId, arcPlan, chapter, kit }),
-      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'writer', focusText: planFocus, oldestHooks: 3 }) || kit.phrases.common.noneParen,
+      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'planner', focusText: planFocus, oldestHooks: 3 }) || kit.phrases.common.noneParen,
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };

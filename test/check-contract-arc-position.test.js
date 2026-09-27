@@ -32,7 +32,7 @@ test('contract check shows the extractor known entities and flags a destroyed on
   const result = await runContractCheck({ store, workId, chapter: 1, prose: `${SYNTHETIC_LONG_PROSE}\n\n그는 다리검을 다시 뽑았다.`, title: '첫 문', providers: recording, issueReceipt: false });
   const extraction = requests.find((req) => req.step === 'continuity-extract');
   assert.ok(extraction, requests.map((req) => req.step).join(','));
-  assert.match(extraction.messages.map((m) => m.content).join('\n'), /\[item\] 다리검 \(`bridge-sword`\) · destroyed/);
+  assert.match(extraction.messages.map((m) => m.content).join('\n'), /`bridge-sword` \[item\] 다리검 · destroyed/);
   const mention = result.violations.find((violation) => violation.code === 'DESTROYED_ENTITY_MENTION');
   assert.equal(mention?.severity, 'soft');
 });

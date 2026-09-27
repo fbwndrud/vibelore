@@ -4,7 +4,7 @@
  * without its own bookkeeping.
  */
 import { emptyStoryState, ledgerStep, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
-import { ledgerHistory } from '../../engine/src/continuity/ledger.js';
+import { ledgerHistory, withLegacyEntities } from '../../engine/src/continuity/ledger.js';
 
 export { ledgerHistory };
 
@@ -16,6 +16,17 @@ export function ledgerSeedState(workId, entities = []) {
   return normalizeStoryState({ ...emptyStoryState(workId), ledger: undefined }, {
     entities: (entities ?? []).filter((entity) => (entity.registeredAtChapter ?? 0) === 0),
   });
+}
+
+/**
+ * The state chapter `loaded.chapterNumber + 1` builds on: a state written
+ * before the ledger gets one from the entity snapshots, chapter 1 starts from
+ * the seeded entities, and any snapshot no record holds yet is added (the
+ * working store may have given a legacy state a ledger without them).
+ */
+export function ledgerPrevState(workId, loaded, entities = []) {
+  const seeded = loaded ? normalizeStoryState(loaded, { entities }) : ledgerSeedState(workId, entities);
+  return { ...seeded, ledger: withLegacyEntities(seeded.ledger, entities) };
 }
 
 export async function rebuildLedgerLog({ store, workId, config = {} }) {

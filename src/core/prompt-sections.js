@@ -1,5 +1,6 @@
 import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { isHookActive, trackedRecordKey } from '../../engine/src/continuity/story-state.js';
+import { hookStatusOf, ledgerHistory, ledgerNameKey, recordNames } from '../../engine/src/continuity/ledger.js';
 import { searchTerms } from './search-terms.js';
 
 /**
@@ -112,7 +113,7 @@ function flatBody(data, name) {
     .join('; ');
 }
 
-const MODES = new Set(['writer', 'extract', 'check']);
+const MODES = new Set(['writer', 'planner', 'extract', 'check']);
 const WRITER_TRACKED_LIMIT = 12;
 const WRITER_RELATION_LIMIT = 6;
 const WRITER_KNOWN_FACTS = 3;
@@ -121,13 +122,14 @@ const EXTRACT_RELATION_LIMIT = 12;
 const HOOK_LIMIT = 12;
 const RECENT_HOOK_CHAPTERS = 3;
 const RECENT_LOSS_CHAPTERS = 5;
-const ENTITY_LIMIT = 20;
 const HOOK_MATCH_WEIGHT = 2;
-const HOLDER_FIELDS = ['holder', 'owner', 'user', 'holders', 'characterId', 'from', 'to'];
-
-function mentions(record, ids) {
-  return HOLDER_FIELDS.some((field) => asArray([].concat(record.data?.[field] ?? [])).some((value) => ids.has(value)));
-}
+const RECENT_RECORD_CHAPTERS = 3;
+// A record back after this many quiet chapters gets a few lines of its history.
+const HISTORY_GAP = 20;
+const HISTORY_ITEMS = 5;
+// A planner is reminded of a dormant hook once it has been quiet this long.
+const DORMANT_AFTER = 10;
+const PLANNER_LIST_LIMIT = 12;
 
 function directed(relationship) {
   const arrow = /^([^\s>]+)->([^\s>]+)$/.exec(clean(relationship.to));
@@ -165,21 +167,10 @@ export function namedCharacters(foundation, text, cast = []) {
   return named;
 }
 
-const IDENTITY_FIELDS = ['name', 'title', 'label', 'canonicalName', 'id'];
-
-/** 2 when the text names the record (an identity field), 1 when it only shares another field value. */
-function textMatches(record, text) {
-  if (!text) return 0;
-  const hit = (value) => typeof value === 'string' && value.length >= 2 && value.length <= 40 && text.includes(value);
-  const data = record.data ?? {};
-  if (IDENTITY_FIELDS.some((field) => hit(data[field]))) return 2;
-  return Object.entries(data).some(([field, value]) => !IDENTITY_FIELDS.includes(field) && hit(value)) ? 1 : 0;
-}
-
 /**
  * Open hooks that bear on the text: shared words weighing at least
- * HOOK_MATCH_WEIGHT characters, or planted in the last few chapters. The rest
- * are counted, not listed, so the list does not grow with the work.
+ * HOOK_MATCH_WEIGHT characters, or planted or moved in the last few chapters.
+ * The rest are counted, not listed, so the list does not grow with the work.
  */
 function selectHooks(active, text, language, now, hookIds = new Set(), oldest = 0) {
   const debt = new Set([...active].sort((a, b) => (a.plantedAtChapter ?? 0) - (b.plantedAtChapter ?? 0)).slice(0, oldest).map((hook) => hook.id));
@@ -187,7 +178,7 @@ function selectHooks(active, text, language, now, hookIds = new Set(), oldest = 
   const scored = active.map((hook, index) => {
     const weight = [...new Set(searchTerms(hook.text ?? '', language))].filter((term) => term.length >= 2 && terms.has(term))
       .reduce((sum, term) => sum + term.length, 0);
-    const recent = Number.isFinite(now) && Number(hook.plantedAtChapter) >= now - RECENT_HOOK_CHAPTERS + 1;
+    const recent = Number.isFinite(now) && [hook.plantedAtChapter, hook.lastMovedChapter].some((chapter) => Number(chapter) >= now - RECENT_HOOK_CHAPTERS + 1);
     const planned = hookIds.has(hook.id) || debt.has(hook.id);
     return { hook, index, weight, recent, planned };
   }).filter((item) => item.planned || item.weight >= HOOK_MATCH_WEIGHT || item.recent)
@@ -211,20 +202,54 @@ function selectFacts(facts, text, language) {
   return facts.filter((fact) => chosen.includes(fact));
 }
 
+/** A record's fields on one line, character ids shown by name. */
+function recordText(record, name) {
+  return Object.entries(record.fields ?? {})
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.map((item) => name(String(item))).join(', ') : name(String(value))}`)
+    .join('; ').slice(0, 160);
+}
+
 /**
- * Tracked records the text names directly come first, then records held by a
- * named character, most recent first, up to `limit`.
+ * Pinned author items, then records the focus names (name or alias), then
+ * records a named character holds or knows (any field value is their id), then
+ * records with a recent event; most recent first within a rank, up to `limit`.
+ * Pinned items are never cut by the cap.
  */
-function selectTracked(tracked, text, ids, limit) {
-  const ranked = tracked.map((record, index) => {
-    const match = textMatches(record, text);
-    const held = mentions(record, ids);
-    // Named outright first, then held by a named character, then a shared field value.
-    return { record, index, rank: match === 2 ? 3 : held ? 2 : match };
+function selectRecords(records, text, ids, limit, { pinnedIds = new Set(), now = NaN } = {}) {
+  const ranked = records.map((record, index) => {
+    const named = Boolean(text) && recordNames(record).some((item) => item.length >= 2 && text.includes(item));
+    const held = Object.values(record.fields ?? {}).some((value) => (Array.isArray(value) ? value : [value]).some((item) => ids.has(item)));
+    const recent = Number.isFinite(now) && Number(record.lastEventAt) >= now - RECENT_RECORD_CHAPTERS + 1;
+    return { record, index, rank: pinnedIds.has(record.id) ? 4 : named ? 3 : held ? 2 : recent ? 1 : 0 };
   }).filter((item) => item.rank > 0)
-    .sort((a, b) => b.rank - a.rank || (b.record.updatedChapter ?? 0) - (a.record.updatedChapter ?? 0) || b.index - a.index)
-    .slice(0, limit);
-  return { shown: ranked.map((item) => item.record), omitted: tracked.length - ranked.length, capped: Math.max(0, tracked.filter((record) => textMatches(record, text) || mentions(record, ids)).length - ranked.length) };
+    .sort((a, b) => b.rank - a.rank || (b.record.lastEventAt ?? 0) - (a.record.lastEventAt ?? 0) || b.index - a.index);
+  const pinned = ranked.filter((item) => item.rank === 4);
+  const others = ranked.filter((item) => item.rank < 4);
+  const kept = [...pinned, ...others.slice(0, Math.max(0, limit - pinned.length))];
+  return { shown: kept.map((item) => item.record), omitted: records.length - ranked.length, capped: ranked.length - kept.length };
+}
+
+/**
+ * Aliases only one character uses ("그 종이" is 리아's word for the note), from
+ * record aliases with a speaker and author speakerOnly rules, for speakers in
+ * `speakers`.
+ */
+function speakerAliases(records, config, speakers) {
+  const byId = new Map(records.map((record) => [record.id, record]));
+  const found = [
+    ...records.flatMap((record) => asArray(record.aliases).filter((alias) => clean(alias?.by) && clean(alias?.text))
+      .map((alias) => ({ by: alias.by, alias: alias.text, name: record.name }))),
+    ...asArray(config.customTracking).flatMap((item) => asArray(item.rules).filter((rule) => rule?.type === 'speakerOnly' && clean(rule.by) && clean(rule.alias))
+      .map((rule) => ({ by: rule.by, alias: rule.alias, name: byId.get(item.id)?.name ?? item.name }))),
+  ].filter((item) => speakers.has(item.by));
+  const seen = new Set();
+  return found.filter((item) => {
+    const key = `${item.by}\u0000${ledgerNameKey(item.alias)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /**
@@ -233,18 +258,24 @@ function selectTracked(tracked, text, ids, limit) {
  * request is about (the plan for a writer, the prose for extraction and the
  * check); characters named in it join `cast`.
  * `hookIds` (the plan's touched hooks) and the `oldestHooks` longest-open ones
- * (a planner's debt) are always listed.
+ * (a planner's debt) are always listed, and so are pinned author items
+ * (`config.customTracking`).
  * - `writer`: cast states, dead or missing characters the focus names or who
  *   were lost in the last chapters, address terms within the cast, open
- *   threads the focus touches or that were just planted, directed
- *   relationships touching the cast, tracked items the cast holds or the
- *   focus names.
- * - `extract`: the same selection with exact keys and hook ids, so the
- *   extractor updates existing records instead of inventing new ones.
- * - `check`: states and address terms of the named characters.
+ *   threads the focus touches or that just moved, directed relationships
+ *   touching the cast, ledger records the cast holds or knows or the focus
+ *   names. A record back after a long gap carries a short history from
+ *   `history` (the ledger event log).
+ * - `planner`: the writer's view, plus hooks dormant for a while and
+ *   scheduled events still pending.
+ * - `extract`: the same selection with record ids, aliases, duplicate
+ *   candidates and hook ids, so the extractor updates existing records
+ *   instead of inventing new ones.
+ * - `check`: states, address terms and speaker-only aliases of the named
+ *   characters.
  * What is left out is counted, never silently dropped.
  */
-export function renderCurrentState(state, foundation, { cast = [], kit, mode = 'writer', focusText = '', entities = [], hookIds = [], oldestHooks = 0 } = {}) {
+export function renderCurrentState(state, foundation, { cast = [], kit, mode = 'writer', focusText = '', hookIds = [], oldestHooks = 0, config = {}, history = [] } = {}) {
   if (!MODES.has(mode)) throw new Error(`UNKNOWN_STATE_RENDER_MODE: ${mode}`);
   if (!state) return '';
   const t = kit.phrases.sections;
@@ -253,12 +284,14 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
   const named = namedCharacters(foundation, focus, cast);
   const now = Number(state.chapterNumber);
   const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
+  const writerLike = mode === 'writer' || mode === 'planner';
+  const allRecords = asArray(state.ledger?.records);
   const lines = [t.currentStateHeading];
 
   const states = state.characterStates ?? {};
   const lost = (value) => value?.vitalStatus === 'dead' || value?.vitalStatus === 'missing';
   const wanted = ([id, value]) => named.has(id)
-    || (mode === 'writer' && lost(value) && Number(value?.sinceChapter) >= now - RECENT_LOSS_CHAPTERS + 1);
+    || (writerLike && lost(value) && Number(value?.sinceChapter) >= now - RECENT_LOSS_CHAPTERS + 1);
   const entries = Object.entries(states);
   const people = entries.filter(wanted)
     .map(([id, value]) => {
@@ -267,7 +300,7 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
       if (clean(value?.location)) parts.push(t.location(clean(value.location)));
       if (clean(value?.status)) parts.push(t.status(clean(value.status)));
       const facts = selectFacts(asArray(value?.knownFacts), focus, kit.language);
-      if (mode === 'writer' && facts.length) parts.push(t.knownFacts(facts.join('; ')));
+      if (writerLike && facts.length) parts.push(t.knownFacts(facts.join('; ')));
       return parts.length ? t.person(name(id), id, parts.join(' · ')) : '';
     }).filter(Boolean);
   const peopleOmitted = entries.length - entries.filter(wanted).length;
@@ -276,20 +309,22 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
 
   const address = Object.entries(state.addressMap?.entries ?? {}).map(([key, entry]) => {
     const [speaker, target] = key.split('->');
-    const within = mode === 'writer' ? castIds.has(speaker) && castIds.has(target) : named.has(speaker) && named.has(target);
+    const within = writerLike ? castIds.has(speaker) && castIds.has(target) : named.has(speaker) && named.has(target);
     if (!within) return '';
     return mode === 'extract'
       ? t.addressKeyed(key, name(speaker), name(target), entry.term, entry.sinceChapter)
       : t.address(name(speaker), name(target), entry.term, entry.sinceChapter);
   }).filter(Boolean);
+  // A word only one character uses for a thing is a voice fact the check judges with address terms.
+  if (mode === 'check') address.push(...speakerAliases(allRecords, config, named).map((item) => t.speakerAlias(name(item.by), item.alias, item.name)));
   if (address.length) lines.push(t.addressHeading, ...address);
 
   if (mode !== 'check') {
     const { shown: hooks, omitted: hooksOmitted, capped: hooksCapped } = selectHooks(asArray(state.hooks).filter(isHookActive), focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
     if (hooks.length) {
       lines.push(t.hooksHeading, ...hooks.map((hook) => (mode === 'extract'
-        ? t.hookKeyed(hook.id, hook.status ?? hook.phase, hook.plantedAtChapter, hook.text ?? '')
-        : t.hook(hook.text ?? hook.id, hook.status ?? hook.phase))));
+        ? t.hookKeyed(hook.id, hookStatusOf(hook), hook.plantedAtChapter, hook.text ?? '')
+        : t.hook(hook.text ?? hook.id, hookStatusOf(hook)))));
     }
     if (hooksCapped > 0) lines.push(t.capped(hooksCapped));
     if (hooksOmitted > 0) lines.push(t.omitted(hooksOmitted));
@@ -305,22 +340,40 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
       .map(({ item }) => item);
     if (relations.length) lines.push(t.relationsHeading, ...relations.map((item) => t.relation(name(item.from), name(item.to), item.kind, item.state)));
 
-    const body = (data) => flatBody(data, (v) => String(name(v)));
-    const tracked = asArray(state.trackedEntities);
-    if (mode === 'extract') {
-      const { shown, omitted, capped } = selectTracked(tracked, focus, named, EXTRACT_TRACKED_LIMIT);
-      if (shown.length) lines.push(t.trackedHeadingKeyed, ...shown.map((record) => t.trackedKeyed(record.kind, trackedRecordKey(record.data) || '-', body(record.data).slice(0, 160))));
-      if (capped > 0) lines.push(t.capped(capped));
-      if (omitted - capped > 0) lines.push(t.omitted(omitted - capped));
-    } else {
-      const { shown } = selectTracked(tracked, focus, castIds, WRITER_TRACKED_LIMIT);
-      if (shown.length) lines.push(t.trackedHeading, ...shown.map((record) => t.tracked(record.kind, body(record.data), record.updatedChapter)));
+    // A writer sees only scheduled events still to come; a planner gets those under their own heading.
+    const records = allRecords.filter((record) => record.feature !== 'scheduled' || mode === 'extract' || (mode === 'writer' && record.status === 'pending'));
+    const pinnedIds = new Set(asArray(config.customTracking).filter((item) => item.pinned).map((item) => item.id));
+    const recordIds = mode === 'extract' ? named : castIds;
+    const { shown, omitted, capped } = selectRecords(records, focus, recordIds, mode === 'extract' ? EXTRACT_TRACKED_LIMIT : WRITER_TRACKED_LIMIT, { pinnedIds, now });
+    const label = (record) => record.label || record.feature;
+    if (shown.length && mode === 'extract') {
+      lines.push(t.recordsHeadingKeyed, ...shown.flatMap((record) => {
+        const last = asArray(record.recent).at(-1);
+        return [
+          t.recordKeyed(record.id, label(record), record.name, asArray(record.aliases).map((alias) => alias?.text).filter(Boolean).join(', '), record.status, recordText(record, name),
+            last ? t.historyItem(last.chapter, last.event, '') : ''),
+          ...(record.possibleDuplicateOf ? [t.duplicateOf(record.possibleDuplicateOf)] : []),
+        ];
+      }));
+    } else if (shown.length) {
+      lines.push(t.recordsHeading, ...shown.flatMap((record) => {
+        const past = Number(record.lastEventAt) <= now - HISTORY_GAP ? ledgerHistory(asArray(history), record.id, HISTORY_ITEMS) : [];
+        return [t.record(label(record), record.name, record.status, recordText(record, name)),
+          ...(past.length ? [t.recordHistory(past.map((event) => t.historyItem(event.chapter, event.event, event.note ?? '')).join(', '))] : [])];
+      }));
     }
-  }
-  if (mode === 'extract' && asArray(entities).length) {
-    const relevant = asArray(entities).filter((e) => focus && [e.canonicalName, e.entityId].some((n) => typeof n === 'string' && n.length >= 2 && focus.includes(n)))
-      .slice(0, ENTITY_LIMIT);
-    if (relevant.length) lines.push(t.entitiesHeading, ...relevant.map((e) => t.entity(e.kind, e.canonicalName ?? e.entityId, e.entityId, e.status)));
+    if (capped > 0) lines.push(t.capped(capped));
+    if (omitted - capped > 0) lines.push(t.omitted(omitted - capped));
+
+    if (mode === 'planner') {
+      const dormant = asArray(state.hooks).filter((hook) => hookStatusOf(hook) === 'dormant' && now - Number(hook.lastMovedChapter ?? hook.plantedAtChapter) >= DORMANT_AFTER)
+        .sort((a, b) => (a.plantedAtChapter ?? 0) - (b.plantedAtChapter ?? 0));
+      if (dormant.length) lines.push(t.dormantHooksHeading, ...dormant.slice(0, PLANNER_LIST_LIMIT).map((hook) => t.hook(hook.text ?? hook.id, hookStatusOf(hook))));
+      if (dormant.length > PLANNER_LIST_LIMIT) lines.push(t.capped(dormant.length - PLANNER_LIST_LIMIT));
+      const pending = allRecords.filter((record) => record.feature === 'scheduled' && record.status === 'pending');
+      if (pending.length) lines.push(t.pendingHeading, ...pending.slice(0, PLANNER_LIST_LIMIT).map((record) => t.record(label(record), record.name, record.status, recordText(record, name))));
+      if (pending.length > PLANNER_LIST_LIMIT) lines.push(t.capped(pending.length - PLANNER_LIST_LIMIT));
+    }
   }
   return lines.length > 1 ? lines.join('\n') : '';
 }
@@ -394,7 +447,7 @@ export function renderArcBeat(beat, kit) {
  * Foundation `mutable` is left out: the current place and condition come from
  * the state section.
  */
-export function renderCheckSections({ foundation, prevState, delta, povDesign = null, povCharacterId = null, kit, focusText = '' }) {
+export function renderCheckSections({ foundation, prevState, delta, povDesign = null, povCharacterId = null, kit, focusText = '', config = {} }) {
   const t = kit.phrases.sections;
   const labels = kit.phrases.context.intrinsicLabels;
   const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
@@ -438,7 +491,7 @@ export function renderCheckSections({ foundation, prevState, delta, povDesign = 
   const before = asArray(prevState?.trackedEntities).filter((record) => touchedKeys.has(`${record.kind}\u0000${trackedRecordKey(record.data)}`));
   const touchedTracked = before.length ? [t.trackedHeading, ...before.map((record) => t.tracked(record.kind, flatBody(record.data, name), record.updatedChapter))].join('\n') : '';
   return {
-    prev: [renderCurrentState(prevState, foundation, { kit, mode: 'check', cast: [...onPage] }), touchedTracked].filter(Boolean).join('\n'),
+    prev: [renderCurrentState(prevState, foundation, { kit, mode: 'check', cast: [...onPage], config }), touchedTracked].filter(Boolean).join('\n'),
     foundation: foundationText,
     delta: deltaText.length ? deltaText.join('\n') : t.deltaEmpty,
     invariants: invariants.length ? invariants.join('\n') : '-',

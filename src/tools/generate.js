@@ -254,7 +254,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const currentStateRender = chapter > 1
     ? renderCurrentState(prevState, executionSnapshot, { cast: detailedPlan.cast, kit, mode: 'writer',
       focusText: [episodePacket.writerText, arcEpisode.beat, arcEpisode.pressure, detailedPlan.premise].filter(Boolean).join('\n'),
-      hookIds: detailedPlan.hooksTouched ?? [] })
+      hookIds: detailedPlan.hooksTouched ?? [], history: await store.loadLedgerEvents?.(workId) ?? [], config: await loadLedgerConfig(store, workId) })
     : '';
   // Long memory (finished arcs and this arc so far) leads the carried state.
   const longMemory = await renderLongMemory({ store: draftStore, workId, arcPlan, chapter, kit });
@@ -402,7 +402,8 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
     foundationRender: renderWriterFoundation(foundation, everyone, chapter, kit),
     stateRender: [
       await renderLongMemory({ store, workId, arcPlan: await store.loadArcPlan(workId), chapter, kit }),
-      chapter > 1 ? renderCurrentState(prevState, foundation, { cast: everyone, kit, mode: 'writer', focusText: artifact.prose }) : '',
+      chapter > 1 ? renderCurrentState(prevState, foundation, { cast: everyone, kit, mode: 'writer', focusText: artifact.prose,
+        history: await store.loadLedgerEvents?.(workId) ?? [], config: await loadLedgerConfig(store, workId) }) : '',
     ].filter(Boolean).join('\n\n'),
     previousProse: artifact.prose, intentSummary: intent,
     continuityRender: continuity?.text ?? '',
