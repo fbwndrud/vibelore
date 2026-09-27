@@ -395,6 +395,17 @@ export class MarkdownStateStore {
     if (build) await writeJson(this.sidecar('ledger', 'built.json'), build);
   }
 
+  /** Record merge candidates the model proposed for one ledger digest, awaiting the user's approval. */
+  async loadMergeCandidates(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('ledger', 'merge-candidates.json'));
+  }
+
+  async saveMergeCandidates(workId, value) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('ledger', 'merge-candidates.json'), value);
+  }
+
   async loadStyleAnchor(workId) {
     assertSafeId('workId', workId);
     return readJsonOrNull(this.sidecar('style-anchor.json'));

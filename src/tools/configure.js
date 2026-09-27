@@ -15,6 +15,7 @@ export async function runConfigureStatus({ store, workId, disabledReviews, disab
   const disabled = await loadDisabledReviews(store, workId);
   const draftSectionsOff = await loadDisabledDraftSections(store, workId);
   const ledgerConfig = await loadLedgerConfig(store, workId);
+  const mergeCandidates = (await store.loadMergeCandidates?.(workId))?.candidates ?? [];
   const [foundation, profile, identity, writerSkill, storySpine, arcPlan] = await Promise.all([
     store.loadFoundation(workId), store.loadStoryProfile(workId), store.loadStoryIdentity(workId),
     store.loadWriterSkill(workId), store.loadStorySpine(workId), store.loadArcPlan(workId),
@@ -55,6 +56,8 @@ export async function runConfigureStatus({ store, workId, disabledReviews, disab
     tracking: { enabled: Object.fromEntries(TRACKING_FEATURES.map((feature) => [feature, ledgerConfig.tracking[feature] !== false])), available: TRACKING_FEATURES },
     customTracking: ledgerConfig.customTracking,
     merges: ledgerConfig.merges,
+    // Proposed by the model; approve a candidate with mergeRecords [{ from, into }].
+    mergeCandidates,
     storySpine: storySpine ? { status: storySpine.status, revision: storySpine.revision ?? null, dramaticQuestion: storySpine.dramaticQuestion ?? null } : null,
     arcIntent: compileArcIntent(arcPlan),
     episodeIntent: compileEpisodeIntent({ episodePlan, arcEpisode: episodeForChapter(arcPlan, nextChapter), chapter: nextChapter }),
