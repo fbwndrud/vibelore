@@ -140,3 +140,20 @@ for (const failAt of [null, 'afterPublication', 'after:machine']) {
     assert.deepEqual(await store.listChapters(), [1]);
   });
 }
+
+test('commit keeps the ledger history and rollback cuts it back to the restored chapter', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'vibelore-rollback-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const store = new MarkdownStateStore(root);
+  await legacyWorkFixture({ store, workId, genre: 'other', worldFacts: ['문은 열쇠로 열린다.'] });
+  const first = { ...delta(1), ledgerOps: [{ op: 'register', feature: 'objects', label: '물건', name: '은 열쇠', fields: { holder: 'c1' } }] };
+  const committed = await runCommit({ store, workId, chapter: 1, prose: '은 열쇠로 문을 열었다.', summary: '은 열쇠.', delta: first, providers: createHostRelay({}) });
+  assert.equal(committed.state.records, 1);
+  assert.deepEqual((await store.loadEntitySnapshots(workId)).map((e) => [e.entityId, e.canonicalName, e.attrs.holder]), [['o1', '은 열쇠', 'c1']]);
+  const second = { ...delta(2), ledgerOps: [{ op: 'plant', text: '문 너머의 목소리' }] };
+  await runCommit({ store, workId, chapter: 2, prose: '문 너머에서 목소리가 들렸다.', summary: '목소리.', delta: second, providers: createHostRelay({}) });
+  assert.deepEqual((await store.loadLedgerEvents(workId)).map((e) => [e.chapter, e.id, e.event]), [[1, 'o1', 'registered'], [2, 'h1', 'planted']]);
+  await rollbackToSnapshot({ store, workId, chapter: 1 });
+  assert.deepEqual((await store.loadLedgerEvents(workId)).map((e) => [e.chapter, e.id, e.event]), [[1, 'o1', 'registered']]);
+  assert.deepEqual((await runStatus({ store, workId })).ledgerLog, { ok: true, lastChapter: 1, committed: 1 });
+});

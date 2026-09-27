@@ -9,7 +9,9 @@ import { runNextArcProposal } from '../../engine/src/generators/text/steps/next-
 import { emptyStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { selectWriterContinuity } from './context.js';
-import { applyEntityOps } from './entities.js';
+import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
+import { ledgerSeedState, rebuildLedgerLog } from './ledger-log.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 import { episodeForChapter, renderArcMap } from './arc.js';
 import { compileBriefWithProfile, profileToPromptOverride } from './story-profile.js';
 import { renderEpisodePlan } from './episode-plan.js';
@@ -462,8 +464,8 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
   const chapters = await canonicalStore.listChapters();
   const foundation = await canonicalStore.loadFoundation(workId);
   const arcPlan = await store.loadArcPlan(workId);
-  let state = emptyStoryState(workId);
-  let entities = [];
+  const config = await loadLedgerConfig(store, workId);
+  let state = ledgerSeedState(workId, await canonicalStore.loadEntitySnapshots(workId));
   let dynamics = null;
   let rebuilt = 0;
   for (const chapter of chapters) {
@@ -474,10 +476,7 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
     state = reduceStoryState(state, {
       ...artifact.delta,
       newAddressEntries: supportedAddressEntries(artifact.delta.newAddressEntries, foundation, artifact.prose).entries,
-    });
-    if (artifact.delta.entityOps?.length) {
-      entities = applyEntityOps(entities, artifact.delta.entityOps, chapter).snapshots;
-    }
+    }, { config });
     const observation = canonicalStore.publishedRevision?.tree?.observations?.[chapter];
     if (observation) {
       const folded = foldLegacyChapterCharacterDynamics({
@@ -491,6 +490,7 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
     }
     if (chapter >= fromChapter) rebuilt += 1;
   }
+  const entities = ledgerEntitySnapshots(state.ledger);
   const published = canonicalStore.publishedRevision;
   if (published) {
     const token = await publicationUnit.issueFencingToken();
@@ -511,5 +511,6 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
   }
   await store.saveStoryState(state);
   await store.saveEntitySnapshots(workId, entities);
+  await rebuildLedgerLog({ store, workId, config });
   return { fromChapter, throughChapter: chapters.at(-1) ?? 0, rebuilt };
 }

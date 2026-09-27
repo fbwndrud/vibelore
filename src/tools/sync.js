@@ -7,6 +7,8 @@ import { computeArtifactHash } from '../core/validation-gate.js';
 import { assertProseIntegrity } from './prose-integrity.js';
 import { runCheck } from './check.js';
 import { runCommit } from './commit.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
+import { ledgerLogStatus, rebuildLedgerLog } from './ledger-log.js';
 
 const CHAPTER_PATH = /^chapters\/(\d+)\.md$/;
 const proseHash = (prose) => `sha256:${createHash('sha256').update(String(prose)).digest('hex')}`;
@@ -195,7 +197,16 @@ async function applyDesign({ store, workId, candidate }) {
   return result.value;
 }
 
+// The ledger history is derived from the chapter deltas; a log that is missing
+// or runs past the last chapter (an interrupted commit or rollback) is rebuilt.
+async function repairLedgerLog({ store, workId }) {
+  const log = await ledgerLogStatus({ store, workId });
+  if (log.ok && (log.committed === null || log.lastChapter !== null)) return;
+  await rebuildLedgerLog({ store, workId, config: await loadLedgerConfig(store, workId) });
+}
+
 export async function runSyncStatus({ store, workId, action = 'inspect', approvalId, providers }) {
+  await repairLedgerLog({ store, workId });
   if (action === 'inspect') return inspectSync({ store, workId });
   if (action === 'validate') {
     const inspected = await inspectSync({ store, workId });

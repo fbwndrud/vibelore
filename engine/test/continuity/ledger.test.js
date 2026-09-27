@@ -270,3 +270,37 @@ describe('reviewLedgerOps', () => {
         expect(out.violations).toEqual([]);
     });
 });
+
+describe('ledger history and snapshots', () => {
+    it('lists the events of one record, with the records merged into it, most recent last', async () => {
+        const { ledgerHistory } = await import('../../src/continuity/ledger.js');
+        const events = [
+            { chapter: 1, target: 'record', id: 'o1', event: 'registered' },
+            { chapter: 1, target: 'record', id: 'o2', event: 'registered' },
+            { chapter: 2, target: 'record', id: 'o3', event: 'registered' },
+            { chapter: 2, target: 'record', id: 'o2', event: 'changed' },
+            { chapter: 3, target: 'record', id: 'o3', event: 'merged', into: 'o2' },
+            { chapter: 3, target: 'record', id: 'o2', event: 'merged', into: 'o1' },
+            { chapter: 4, target: 'record', id: 'o1', event: 'changed' },
+        ];
+        expect(ledgerHistory(events, 'o1', 10).map((e) => `${e.id}:${e.event}`)).toEqual(['o1:registered', 'o2:registered', 'o3:registered', 'o2:changed', 'o3:merged', 'o2:merged', 'o1:changed']);
+        expect(ledgerHistory(events, 'o1', 2).map((e) => e.chapter)).toEqual([3, 4]);
+        expect(ledgerHistory(events, 'o3').map((e) => e.event)).toEqual(['registered', 'merged']);
+    });
+    it('derives entity snapshots from objects records only', async () => {
+        const { ledgerEntitySnapshots } = await import('../../src/continuity/ledger.js');
+        const lost = { id: 'o1', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [{ text: '그 쪽지' }], status: 'lost', fields: { holder: 'c2' }, registeredAt: 4, recent: [] };
+        const ledger = { records: [
+            lost,
+            { ...lost, id: 'o2', name: '깨진 거울', aliases: [], status: 'destroyed', fields: {}, lastEventAt: 6 },
+            { ...lost, id: 'o3', name: '옛 반지', aliases: [], status: 'retired', fields: {} },
+            { id: 'k1', feature: 'knowledge', label: '비밀', name: '출생', aliases: [], status: 'secret', fields: {}, registeredAt: 1, recent: [] },
+            { id: 's1', feature: 'scheduled', label: '예정', name: '처형', aliases: [], status: 'pending', fields: {}, registeredAt: 1, recent: [] },
+        ] };
+        const snapshots = ledgerEntitySnapshots(ledger);
+        expect(snapshots[0]).toEqual({ entityId: 'o1', kind: '물건', canonicalName: '서명 쪽지', aliases: ['그 쪽지'], status: 'active', attrs: { holder: 'c2' }, registeredAtChapter: 4 });
+        expect(snapshots.map((s) => [s.entityId, s.status])).toEqual([['o1', 'active'], ['o2', 'destroyed'], ['o3', 'retired']]);
+        expect(snapshots[1].updatedAtChapter).toBe(6);
+        expect(ledgerEntitySnapshots(undefined)).toEqual([]);
+    });
+});

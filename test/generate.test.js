@@ -566,7 +566,10 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal(result.rebuilt, 2);
     assert.equal((await store.loadStoryState('tax-tower', 2)).hooks[0].id, 'bill');
     assert.ok((await store.loadEntitySnapshots('tax-tower')).some((e) => e.entityId === 'taxman'));
-    assert.equal((await runStatus({ store, workId: 'tax-tower' })).arc.status, 'completed');
+    assert.deepEqual((await store.loadLedgerEvents('tax-tower')).map((e) => [e.chapter, e.id, e.event]), [[1, 'taxman', 'registered'], [2, 'bill', 'planted']]);
+    const status = await runStatus({ store, workId: 'tax-tower' });
+    assert.equal(status.arc.status, 'completed');
+    assert.deepEqual(status.ledgerLog, { ok: true, lastChapter: 2, committed: 2 });
   });
 
   it('commits only address entries the chapter prose supports', async () => {

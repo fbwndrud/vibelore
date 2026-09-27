@@ -405,6 +405,30 @@ export function applyMerges(ledger, merges, chapter) {
     }
     return { ledger: { records }, events };
 }
+/** The history lines of one record or hook, including records merged into it (transitively), most recent last. */
+export function ledgerHistory(events, id, limit = 5) {
+    const ids = new Set([id]);
+    for (let grown = true; grown;) {
+        grown = false;
+        for (const event of events ?? []) {
+            if (event.event === 'merged' && ids.has(event.into) && !ids.has(event.id)) {
+                ids.add(event.id);
+                grown = true;
+            }
+        }
+    }
+    return (events ?? []).filter((event) => ids.has(event.id)).slice(-limit);
+}
+/** Entity snapshots derived from the ledger, for readers that still take the snapshot shape. */
+export function ledgerEntitySnapshots(ledger) {
+    return (ledger?.records ?? []).filter((record) => record.feature === 'objects').map((record) => ({
+        entityId: record.id, kind: record.label || 'object', canonicalName: record.name,
+        aliases: (record.aliases ?? []).map((alias) => alias.text),
+        status: record.status === 'destroyed' || record.status === 'retired' ? record.status : 'active',
+        attrs: { ...(record.fields ?? {}) }, registeredAtChapter: record.registeredAt ?? 0,
+        ...(record.lastEventAt !== undefined ? { updatedAtChapter: record.lastEventAt } : {}),
+    }));
+}
 
 const squash = (text) => String(text ?? '').normalize('NFC').replace(/\s+/g, ' ').trim();
 /**

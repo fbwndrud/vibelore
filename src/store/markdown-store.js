@@ -364,6 +364,18 @@ export class MarkdownStateStore {
     await writeJson(this.sidecar('review-policy.json'), policy);
   }
 
+  /** Chapter event history of the ledger, rebuilt from the chapter deltas. */
+  async loadLedgerEvents(workId) {
+    assertSafeId('workId', workId);
+    const text = await readTextOrNull(this.sidecar('ledger', 'events.jsonl'));
+    return text ? text.split('\n').filter(Boolean).map((line) => JSON.parse(line)) : [];
+  }
+
+  async saveLedgerEvents(workId, events) {
+    assertSafeId('workId', workId);
+    await writeAtomic(this.sidecar('ledger', 'events.jsonl'), events.map((event) => JSON.stringify(event)).join('\n') + (events.length ? '\n' : ''));
+  }
+
   async loadStyleAnchor(workId) {
     assertSafeId('workId', workId);
     return readJsonOrNull(this.sidecar('style-anchor.json'));

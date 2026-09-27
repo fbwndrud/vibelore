@@ -21,6 +21,12 @@ async function loadPolicy(store, workId) {
   return (await store.loadReviewPolicy?.(workId)) ?? {};
 }
 
+/** What the story ledger tracks for this work, and the merges the user approved. */
+export async function loadLedgerConfig(store, workId) {
+  const policy = await loadPolicy(store, workId);
+  return { tracking: policy.tracking ?? {}, customTracking: policy.customTracking ?? [], merges: policy.merges ?? [] };
+}
+
 function checked(values, allowed, kind) {
   const unknown = values.filter((value) => !allowed.includes(value));
   if (unknown.length) throw new Error(`INVALID_${kind}_NAME: ${unknown.join(', ')} — 끌 수 있는 항목: ${allowed.join(', ')}`);
