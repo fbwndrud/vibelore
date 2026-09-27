@@ -43,18 +43,53 @@ function checkedTracking(tracking) {
   return Object.fromEntries(Object.entries(tracking).map(([key, value]) => [key, value !== false]));
 }
 
-function checkedCustom(items, previous) {
+const RULE_SEVERITIES = new Set(['soft', 'hard']);
+
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+/** Names the item and the missing/invalid field, or returns null when the rule is well-formed. */
+function ruleFieldError(rule) {
+  if (!RULE_TYPES.has(rule?.type)) return `rules.type은 ${[...RULE_TYPES].join('|')} 중 하나여야 합니다`;
+  if (rule.severity !== undefined && !RULE_SEVERITIES.has(rule.severity)) return 'severity는 soft|hard여야 합니다';
+  if (rule.type === 'monotonic') {
+    if (!nonEmptyString(rule.field)) return 'monotonic 규칙에는 field(빈 문자열 아님)가 필요합니다';
+    if (rule.direction !== 'up' && rule.direction !== 'down') return 'monotonic 규칙의 direction은 up|down이어야 합니다';
+  }
+  if (rule.type === 'frozenAfter' && !nonEmptyString(rule.status)) return 'frozenAfter 규칙에는 status(빈 문자열 아님)가 필요합니다';
+  if (rule.type === 'speakerOnly') {
+    if (!nonEmptyString(rule.alias)) return 'speakerOnly 규칙에는 alias(빈 문자열 아님)가 필요합니다';
+    if (!nonEmptyString(rule.by)) return 'speakerOnly 규칙에는 by(빈 문자열 아님)가 필요합니다';
+  }
+  return null;
+}
+
+function maxCustomId(items) {
+  return Math.max(0, ...(items ?? []).map((item) => Number(/^u(\d+)$/.exec(item.id)?.[1] ?? 0)));
+}
+
+/**
+ * Assigns ids stably by name and never reuses one a removed item held: `counterSeed` is the
+ * highest id ever issued for this work (persisted separately from the current list, since the
+ * current list only holds items still present after a replace).
+ */
+function checkedCustom(items, previous, counterSeed) {
   const taken = new Map((previous ?? []).map((item) => [item.name, item.id]));
-  let next = Math.max(0, ...(previous ?? []).map((item) => Number(/^u(\d+)$/.exec(item.id)?.[1] ?? 0)));
-  return items.map((item) => {
-    if (typeof item?.name !== 'string' || !item.name.trim() || !LEDGER_FEATURES.includes(item.feature)
-      || (item.rules ?? []).some((rule) => !RULE_TYPES.has(rule?.type))) {
-      throw new Error(`INVALID_CUSTOM_TRACKING: ${JSON.stringify(item)} — feature는 ${LEDGER_FEATURES.join('|')}, rules.type은 ${[...RULE_TYPES].join('|')}`);
+  let next = counterSeed ?? 0;
+  const list = items.map((item) => {
+    if (typeof item?.name !== 'string' || !item.name.trim() || !LEDGER_FEATURES.includes(item.feature)) {
+      throw new Error(`INVALID_CUSTOM_TRACKING: ${JSON.stringify(item)} — feature는 ${LEDGER_FEATURES.join('|')} 중 하나여야 합니다`);
+    }
+    for (const rule of item.rules ?? []) {
+      const error = ruleFieldError(rule);
+      if (error) throw new Error(`INVALID_CUSTOM_TRACKING: ${item.name} — ${error} (${JSON.stringify(rule)})`);
     }
     const id = taken.get(item.name.trim()) ?? `u${++next}`;
     return { id, name: item.name.trim(), feature: item.feature, ...(item.pinned ? { pinned: true } : {}),
       ...(item.rules?.length ? { rules: item.rules } : {}), ...(item.note ? { note: String(item.note) } : {}) };
   });
+  return { list, counter: next };
 }
 
 export async function loadDisabledReviews(store, workId) {
@@ -73,11 +108,15 @@ export async function saveWriterSupportPolicy(store, workId, { disabledReviews, 
     if (typeof merge?.from !== 'string' || typeof merge?.into !== 'string') throw new Error('INVALID_MERGE: {from, into} 기록 id가 필요합니다.');
     if (!merges.some((item) => item.from === merge.from && item.into === merge.into)) merges.push({ from: merge.from, into: merge.into });
   }
+  const customResult = customTracking === undefined
+    ? { list: current.customTracking ?? [], counter: current.customIdCounter ?? maxCustomId(current.customTracking) }
+    : checkedCustom(customTracking, current.customTracking, current.customIdCounter ?? maxCustomId(current.customTracking));
   const next = {
     disabled: disabledReviews === undefined ? (current.disabled ?? []) : checked(disabledReviews, OPTIONAL_REVIEWS, 'REVIEW'),
     draftSectionsOff: disabledDraftSections === undefined ? (current.draftSectionsOff ?? []) : checked(disabledDraftSections, OPTIONAL_DRAFT_SECTIONS, 'DRAFT_SECTION'),
     tracking: tracking === undefined ? (current.tracking ?? {}) : checkedTracking(tracking),
-    customTracking: customTracking === undefined ? (current.customTracking ?? []) : checkedCustom(customTracking, current.customTracking),
+    customTracking: customResult.list,
+    customIdCounter: customResult.counter,
     merges,
     updatedAt: new Date().toISOString(),
   };

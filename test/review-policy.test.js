@@ -24,6 +24,48 @@ test('stores tracking switches, author items with stable ids, and merges', async
   await assert.rejects(saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'x', feature: 'objects', rules: [{ type: 'magic' }] }] }), /INVALID_CUSTOM_TRACKING/);
 });
 
+test('customTracking never reuses an id after an item is removed', async () => {
+  const store = memoryStore();
+  await saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'A', feature: 'objects' }, { name: 'B', feature: 'objects' }] });
+  await saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'A', feature: 'objects' }] }); // B dropped from the replacing list
+  const afterDrop = await saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'A', feature: 'objects' }, { name: 'C', feature: 'objects' }] });
+  assert.deepEqual(afterDrop.customTracking.map((item) => [item.id, item.name]), [['u1', 'A'], ['u3', 'C']]);
+  const readdB = await saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'A', feature: 'objects' }, { name: 'C', feature: 'objects' }, { name: 'B', feature: 'objects' }] });
+  assert.deepEqual(readdB.customTracking.map((item) => [item.id, item.name]), [['u1', 'A'], ['u3', 'C'], ['u4', 'B']]);
+});
+
+test('customTracking rules are validated field by field', async () => {
+  const store = memoryStore();
+  await assert.rejects(
+    saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'x', feature: 'objects', rules: [{ type: 'monotonic', direction: 'up' }] }] }),
+    /INVALID_CUSTOM_TRACKING/,
+  );
+  await assert.rejects(
+    saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'x', feature: 'objects', rules: [{ type: 'monotonic', field: 'amount', direction: 'sideways' }] }] }),
+    /INVALID_CUSTOM_TRACKING/,
+  );
+  await assert.rejects(
+    saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'x', feature: 'objects', rules: [{ type: 'frozenAfter' }] }] }),
+    /INVALID_CUSTOM_TRACKING/,
+  );
+  await assert.rejects(
+    saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'x', feature: 'objects', rules: [{ type: 'speakerOnly', alias: 'a' }] }] }),
+    /INVALID_CUSTOM_TRACKING/,
+  );
+  await assert.rejects(
+    saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'x', feature: 'objects', rules: [{ type: 'monotonic', field: 'amount', direction: 'up', severity: 'extreme' }] }] }),
+    /INVALID_CUSTOM_TRACKING/,
+  );
+  const ok = await saveWriterSupportPolicy(store, 'w', {
+    customTracking: [{ name: 'y', feature: 'objects', rules: [
+      { type: 'monotonic', field: 'amount', direction: 'down' },
+      { type: 'frozenAfter', status: 'dead' },
+      { type: 'speakerOnly', alias: 'a', by: 'b', severity: 'hard' },
+    ] }],
+  });
+  assert.equal(ok.customTracking[0].name, 'y');
+});
+
 test('lore_configure result exposes tracking switches, author items and merges', async () => {
   const store = await qualityStore();
   const status = await runConfigureStatus({
