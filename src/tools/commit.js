@@ -11,7 +11,7 @@
 import { extractDelta, supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { isHookActive, normalizeStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
-import { ledgerBaseState, ledgerLogStatus, rebuildLedgerLog } from './ledger-log.js';
+import { ledgerBaseState, ledgerLogStatus, updateLedgerLog } from './ledger-log.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { advanceArcAfterCommit } from './arc.js';
 import { completeEpisodePlan, upgradeEpisodePlanningContract } from './episode-plan.js';
@@ -269,7 +269,7 @@ export async function runCommit({
   await store.saveArtifact({ workId, chapterNumber: chapter, prose, ...(title ? { title } : {}), delta });
   await store.saveStoryState(next);
   if (entities.length > 0) await store.saveEntitySnapshots(workId, entities);
-  try { await rebuildLedgerLog({ store, workId, config: ledgerConfig }); }
+  try { await updateLedgerLog({ store, workId, chapter, prevState: prev, delta, config: ledgerConfig }); }
   catch { /* the log is rebuilt from the deltas; a failure here never loses the chapter */ }
   if (chapterSummary) {
     await store.saveChapterSummary({

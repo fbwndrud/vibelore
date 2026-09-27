@@ -372,6 +372,7 @@ export class MarkdownStateStore {
   async loadLedgerLog(workId) {
     assertSafeId('workId', workId);
     const text = await readTextOrNull(this.sidecar('ledger', 'events.jsonl'));
+    const missing = text === null;
     const events = [];
     let malformed = 0;
     for (const line of (text ?? '').split('\n').filter(Boolean)) {
@@ -381,7 +382,7 @@ export class MarkdownStateStore {
     let build = null;
     try { build = await readJsonOrNull(this.sidecar('ledger', 'built.json')); }
     catch { malformed += 1; }
-    return { events, malformed, build };
+    return { events, malformed, build, missing };
   }
 
   async loadLedgerEvents(workId) {
@@ -393,6 +394,20 @@ export class MarkdownStateStore {
     assertSafeId('workId', workId);
     await writeAtomic(this.sidecar('ledger', 'events.jsonl'), events.map((event) => JSON.stringify(event)).join('\n') + (events.length ? '\n' : ''));
     if (build) await writeJson(this.sidecar('ledger', 'built.json'), build);
+  }
+
+  /**
+   * The entities as they were before chapter 1. Unlike the rest of ledger/,
+   * this is not rebuilt from the deltas: the replay starts from it.
+   */
+  async loadLedgerSeed(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('ledger', 'seed.json'));
+  }
+
+  async saveLedgerSeed(workId, seed) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('ledger', 'seed.json'), seed);
   }
 
   /** Record merge candidates the model proposed for one ledger digest, awaiting the user's approval. */

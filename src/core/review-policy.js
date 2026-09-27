@@ -25,10 +25,34 @@ async function loadPolicy(store, workId) {
   return (await store.loadReviewPolicy?.(workId)) ?? {};
 }
 
-/** What the story ledger tracks for this work, and the merges the user approved. */
+/**
+ * What the story ledger tracks for this work, and the merges the user approved.
+ * `history` holds each tracking/author-item change with the chapter it takes
+ * effect from, and each merge carries its `atChapter`, so a replay applies the
+ * config each chapter was committed under (`ledgerConfigAt`).
+ */
 export async function loadLedgerConfig(store, workId) {
   const policy = await loadPolicy(store, workId);
-  return { tracking: policy.tracking ?? {}, customTracking: policy.customTracking ?? [], merges: policy.merges ?? [] };
+  return { tracking: policy.tracking ?? {}, customTracking: policy.customTracking ?? [], merges: policy.merges ?? [], history: policy.trackingHistory ?? [] };
+}
+
+/** The chapter a change made now takes effect from: the next one to be committed. */
+async function nextChapter(store) {
+  const chapters = (await store.listChapters?.()) ?? [];
+  return (chapters.at(-1) ?? 0) + 1;
+}
+
+/**
+ * The tracking history after a change to `tracking` or `customTracking`. The
+ * config before the first recorded change was in effect from chapter 1; a
+ * second change before the next commit replaces the first.
+ */
+function nextTrackingHistory(current, next, atChapter) {
+  const same = JSON.stringify([current.tracking ?? {}, current.customTracking ?? []]) === JSON.stringify([next.tracking, next.customTracking]);
+  const history = current.trackingHistory ?? [];
+  if (same) return history;
+  const before = history.length ? history : [{ atChapter: 1, tracking: current.tracking ?? {}, customTracking: current.customTracking ?? [] }];
+  return [...before.filter((entry) => entry.atChapter < atChapter), { atChapter, tracking: next.tracking, customTracking: next.customTracking }];
 }
 
 function checked(values, allowed, kind) {
@@ -103,20 +127,24 @@ export async function loadDisabledDraftSections(store, workId) {
 /** Replaces the given lists; a list left undefined keeps its stored value. */
 export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, tracking, customTracking, mergeRecords } = {}) {
   const current = await loadPolicy(store, workId);
+  const atChapter = await nextChapter(store);
   const merges = [...(current.merges ?? [])];
   for (const merge of mergeRecords ?? []) {
     if (typeof merge?.from !== 'string' || typeof merge?.into !== 'string') throw new Error('INVALID_MERGE: {from, into} 기록 id가 필요합니다.');
-    if (!merges.some((item) => item.from === merge.from && item.into === merge.into)) merges.push({ from: merge.from, into: merge.into });
+    // A merge applies from the next chapter on; the chapters already written keep their records apart.
+    if (!merges.some((item) => item.from === merge.from && item.into === merge.into)) merges.push({ from: merge.from, into: merge.into, atChapter });
   }
   const customResult = customTracking === undefined
     ? { list: current.customTracking ?? [], counter: current.customIdCounter ?? maxCustomId(current.customTracking) }
     : checkedCustom(customTracking, current.customTracking, current.customIdCounter ?? maxCustomId(current.customTracking));
+  const nextTracking = tracking === undefined ? (current.tracking ?? {}) : checkedTracking(tracking);
   const next = {
     disabled: disabledReviews === undefined ? (current.disabled ?? []) : checked(disabledReviews, OPTIONAL_REVIEWS, 'REVIEW'),
     draftSectionsOff: disabledDraftSections === undefined ? (current.draftSectionsOff ?? []) : checked(disabledDraftSections, OPTIONAL_DRAFT_SECTIONS, 'DRAFT_SECTION'),
-    tracking: tracking === undefined ? (current.tracking ?? {}) : checkedTracking(tracking),
+    tracking: nextTracking,
     customTracking: customResult.list,
     customIdCounter: customResult.counter,
+    trackingHistory: nextTrackingHistory(current, { tracking: nextTracking, customTracking: customResult.list }, atChapter),
     merges,
     updatedAt: new Date().toISOString(),
   };

@@ -19,9 +19,23 @@ test('stores tracking switches, author items with stable ids, and merges', async
   const config = await loadLedgerConfig(store, 'w');
   assert.deepEqual(config.tracking, { scheduled: false });
   assert.deepEqual(config.customTracking.map((item) => [item.id, item.name]), [['u2', '계절'], ['u1', '금화']]);
-  assert.deepEqual(config.merges, [{ from: 'o3', into: 'o1' }]);
+  assert.deepEqual(config.merges, [{ from: 'o3', into: 'o1', atChapter: 1 }]);
   await assert.rejects(saveWriterSupportPolicy(store, 'w', { tracking: { genre: true } }), /INVALID_TRACKING_FEATURE/);
   await assert.rejects(saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'x', feature: 'objects', rules: [{ type: 'magic' }] }] }), /INVALID_CUSTOM_TRACKING/);
+});
+
+test('records the chapter each tracking change and merge takes effect from', async () => {
+  const store = { ...memoryStore(), listChapters: async () => chapters };
+  let chapters = [1, 2];
+  await saveWriterSupportPolicy(store, 'w', { tracking: { hooks: false } });
+  chapters = [1, 2, 3, 4];
+  await saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: '금화', feature: 'objects' }], mergeRecords: [{ from: 'o2', into: 'o1' }] });
+  await saveWriterSupportPolicy(store, 'w', { disabledReviews: ['reader-hook'] });
+  const config = await loadLedgerConfig(store, 'w');
+  assert.deepEqual(config.merges, [{ from: 'o2', into: 'o1', atChapter: 5 }]);
+  assert.deepEqual(config.history.map((entry) => [entry.atChapter, entry.tracking, entry.customTracking.map((item) => item.id)]), [
+    [1, {}, []], [3, { hooks: false }, []], [5, { hooks: false }, ['u1']],
+  ]);
 });
 
 test('customTracking never reuses an id after an item is removed', async () => {

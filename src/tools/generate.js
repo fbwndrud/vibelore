@@ -10,7 +10,7 @@ import { emptyStoryState, reduceStoryState } from '../../engine/src/continuity/s
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { selectWriterContinuity } from './context.js';
 import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
-import { ledgerBaseState, ledgerSeedState, rebuildLedgerLog } from './ledger-log.js';
+import { ledgerBaseState, ledgerSeedEntities, ledgerSeedState, rebuildLedgerLog } from './ledger-log.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { episodeForChapter, renderArcMap } from './arc.js';
 import { compileBriefWithProfile, profileToPromptOverride } from './story-profile.js';
@@ -105,6 +105,8 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
     canonicalFormatVersion: resolution.canonicalFormatVersion,
   });
   if (entities.length) await store.saveEntitySnapshots(workId, entities);
+  // The ledger replay starts from these; the snapshots are rewritten after every commit.
+  await store.saveLedgerSeed?.(workId, { entities: entities.map((entity) => ({ ...entity, registeredAtChapter: 0 })), source: 'lore_create' });
   return {
     created: true, workId, genre: engineGenre, genreLabel: storyProfile?.genreLabel ?? engineGenre,
     language: resolution.language,
@@ -466,7 +468,7 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
   const foundation = await canonicalStore.loadFoundation(workId);
   const arcPlan = await store.loadArcPlan(workId);
   const config = await loadLedgerConfig(store, workId);
-  let state = ledgerSeedState(workId, await canonicalStore.loadEntitySnapshots(workId));
+  let state = ledgerSeedState(workId, await ledgerSeedEntities(canonicalStore, workId));
   let dynamics = null;
   let rebuilt = 0;
   for (const chapter of chapters) {

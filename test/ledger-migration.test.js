@@ -130,7 +130,7 @@ test('lore_configure shows the stored candidates next to the approved merges', a
   assert.deepEqual(shown.mergeCandidates, [{ into: 'o1', from: ['o2'], reason: '같은 쪽지' }]);
   assert.deepEqual(shown.merges, []);
   const approved = await runConfigureStatus({ store, workId, mergeRecords: [{ from: 'o2', into: 'o1' }] });
-  assert.deepEqual(approved.merges, [{ from: 'o2', into: 'o1' }]);
+  assert.deepEqual(approved.merges, [{ from: 'o2', into: 'o1', atChapter: 3 }]);
   assert.deepEqual(approved.mergeCandidates, [], 'an approved candidate is no longer offered');
 });
 
@@ -199,11 +199,12 @@ test('a legacy work builds on the ledger its delta replay ends with, ids and nam
   assert.equal(base.chapterNumber, 2);
   assert.deepEqual(base.hooks.map((hook) => hook.id), ['wrist']);
 
-  // A merge approved on a live id lands on the same record when the log is rebuilt.
+  // A merge approved on a live id applies from the next chapter: the chapters written keep their history,
+  // and the state the next chapter builds on has the merged record.
   await runConfigureStatus({ store, workId, mergeRecords: [{ from: 'o2', into: 'o1' }] });
   const { loadLedgerConfig } = await import('../src/core/review-policy.js');
   const rebuilt = await rebuildLedgerLog({ store, workId, config: await loadLedgerConfig(store, workId) });
-  assert.ok(rebuilt.events.some((event) => event.id === 'o2' && event.event === 'merged' && event.into === 'o1'));
+  assert.deepEqual(rebuilt.events.filter((event) => event.event === 'merged'), []);
   const merged = (await ledgerBaseState({ store, workId, chapter: 2 })).ledger.records.find((record) => record.id === 'o1');
   assert.equal(merged.name, '서명 쪽지');
   assert.deepEqual(merged.mergedIds, ['o2']);
