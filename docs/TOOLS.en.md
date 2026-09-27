@@ -129,7 +129,8 @@ It does not change old stored data. With the optional arguments it stores the wr
   `monotonic{field,direction:up|down,unless?}`, `frozenAfter{status}`, `speakerOnly{alias,by}`;
   note=natural-language rule shown to the review model (advisory).
 - `mergeRecords`: records confirmed to be the same subject, to merge. `{from, into}` (absorbs
-  `from` into `into`). Takes effect from the next commit.
+  `from` into `into`). Takes effect from the next chapter (stored with `atChapter`); tracking and
+  customTracking changes likewise apply from the next chapter, and chapters already written keep their history.
 
 `reviewPolicy` and `draftSections` in the response show the current settings and choices, and
 `tracking` (`enabled`, `available`), `customTracking` and `merges` show the tracking configuration.

@@ -12,40 +12,59 @@
     `open|dormant|paid|closed`; a payoff needs a quote from the chapter
     (otherwise it counts as an advance) and a paid hook used again reopens.
     Older `planted`/`advancing` read as `open`, `parked` as `dormant`.
-  - Each chapter's events go to `.vibelore/ledger/events.jsonl`, rebuilt
-    from the committed chapters on commit, rollback and `lore_sync`.
-    `lore_status` reports `ledgerLog`. A record that returns after more than
+  - Each chapter's events go to `.vibelore/ledger/events.jsonl`. The replay
+    starts from `.vibelore/ledger/seed.json` (the records before chapter 1,
+    written by `lore_create`, or once from the entity snapshots for older
+    works) and applies each chapter under the settings it was committed
+    with, so it equals the live ledger. A commit appends its chapter; a
+    rollback, refold, `lore_sync` or settings change rebuilds it.
+    `lore_status` reports `ledgerLog`, which is ok only when the file exists,
+    has the recorded number of lines and matches the digest of seed,
+    settings and chapter extractions. A record that returns after more than
     20 quiet chapters brings up to five lines of its history into the writer
     input; otherwise inputs carry current values and recent events only.
   - An exactly equal name joins the existing record; a similar one is
     registered and flagged (`LEDGER_POSSIBLE_DUPLICATE`, soft), never merged
-    on its own.
+    on its own. A record may be registered in its first status (already
+    destroyed, prevented); a status event keeps the values that changed with
+    it. A dormant or paid hook that returns keeps its ID, and a passing
+    mention does not count as the hook moving.
   - Hard findings: changing a destroyed record and restoring one without a
     reason. Both first re-extract once, since they are usually extraction
     slips. Everything else the ledger reports is soft.
 - Tracking settings in `lore_configure`:
   - `tracking={objects, knowledge, scheduled, hooks}` turns each feature on
     or off (all on by default). A feature turned off is not asked for, not
-    checked and never a failure. What is tracked no longer depends on the
+    checked and never a failure, and `lore_context` leaves it out. A change
+    applies from the next chapter; earlier chapters keep their history. What is tracked no longer depends on the
     genre (the genre profile's tracked kinds are gone).
-  - `customTracking=[{name, feature, pinned?, rules?, note?}]`: `pinned`
-    items are always in the inputs; `rules` are deterministic checks
+  - `customTracking=[{name, feature, pinned?, rules?, note?}]`: an item
+    links to the record with its ID, name or alias; `pinned` items are
+    always in the inputs, and items with no record yet are listed as things
+    to track; `rules` are deterministic checks
     (`monotonic` with `unless`, `frozenAfter`, `speakerOnly`), soft unless
     `severity: "hard"`; `note` is a natural-language rule the
-    `coherence-judge` review judges and reports as an `AUTHOR_RULE`
-    advisory, with no extra model request.
+    `coherence-judge` review judges per item ID and reports as an
+    `AUTHOR_RULE` advisory, with no extra model request (an answer with no
+    verdicts leaves the review incomplete).
   - Speaker-only aliases (an alias with `by`): reported when the term appears
-    while that character is not in the chapter, and listed in the
-    continuity check's address section.
+    while that character is not in the chapter, listed in the continuity
+    check's address section and shown to the planner and writer.
   - Merges: in `guided`, `lore_write` asks one `ledger-merge` request about
     newly flagged pairs only (`auto` never asks); the proposals show as
-    `mergeCandidates` in `lore_configure`, and `mergeRecords=[{from, into}]`
-    approves them from the next commit.
+    `mergeCandidates` in the guided approval result and in
+    `lore_configure`, and `mergeRecords=[{from, into}]` approves them from
+    the next chapter (`atChapter`). The merged record keeps the `into` ID;
+    its status and values come from the record with the later event.
+  - The chapter plan sees hook IDs and `hooksTouched` keeps existing IDs
+    only.
 - Existing works move to the ledger on their own: the history log and the
   ledger are replayed from the committed chapters without a model call
   (`Timeline` entries become chapter notes; `RelationshipState` and
   `PowerSystem` entries are not carried over), and `guided` asks once for
-  merge candidates.
+  merge candidates (at most 150 records: flagged pairs first).
+- Engine: `foldEntityOps` and `scanDestroyedEntityMentions` are removed
+  from the public exports; the ledger review reports destroyed mentions.
 - Rollback also restores `review-policy.json` (review and tracking settings,
   approved merges) and the arc summaries; before, both were deleted.
 - The language-field classifier (version 5) and the extraction context

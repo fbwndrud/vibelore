@@ -106,6 +106,7 @@
   - `speakerOnly` — 특정 별칭·호칭은 지정 인물만 사용
 - `note`: 자연어 규칙. 기존 검토 요청 안의 한 구역으로 검토 모델에 전달하고 advisory로만 보고(`AUTHOR_RULE`). 구현상 `coherence-judge` 검토가 함께 판단하므로 `disabledReviews`에서 `coherence-judge`를 끄면 판단하지 않는다. 새 모델 요청을 추가하지 않는다.
 - 기본 기능 4개도 내부적으로 같은 틀의 기본값이다.
+- 구현 조정(최종 수정): 항목은 ID(`u1`)나 이름·별칭이 같은 기존 기록에 연결되어 핀과 규칙이 그 기록에 적용된다. 이미 있는 이름의 `register`도 사건으로 바뀐 뒤 규칙을 검사한다. 아직 기록이 없는 항목은 추출·계획·집필 입력에 추적 요청 항목(추출에는 ID와 함께)으로 보인다. `note` 규칙은 항목 ID로 판정받고, 판정이 아예 없는 응답은 검토 미완료다.
 
 ### 3.7 설정
 
@@ -127,6 +128,7 @@
 - **최근 3화 안에 사건이 있었던** 기록·떡밥 (`lastEventAt`)
 - `pinned` 작가 정의 항목 (상한 제외)
 - `possibleDuplicateOf`가 있는 기록은 "(중복 후보: X)" 표시
+- 구현 조정(최종 수정): 떡밥은 `open`에 더해 관련 있는 `dormant`·`paid` 떡밥도 ID·상태와 함께 보이며, 다시 나오면 `plant` 대신 그 ID로 `reopened`/`mentioned`를 쓰라고 지시한다. 목록은 관련 기록만이라고 밝히고, `register` 전에 이름·별칭을 확인하되 비슷하지만 확실하지 않으면 등록하게 한다(중복 후보는 반영 함수가 표시). `register`는 처음 본 상태를 `status`로 가질 수 있고, `status` 사건의 `set`도 반영한다. 계획 입력은 떡밥 ID를 보이고 `hooksTouched`는 있는 ID만 남긴다. 인물 전용 별칭은 계획·집필 입력에도 기록마다 한 줄로 보인다.
 
 빠진 수는 지금처럼 `omitted`/`capped`로 표시.
 
@@ -159,7 +161,8 @@
 - guided: 승인 화면에 원고·advisory와 함께 병합 후보 목록. 승인 시 `merged` 사건(흡수된 ID는 이후 별칭처럼 해석).
 - auto: 병합하지 않고 후보로 둠. 커밋을 막지 않음.
 - ~~병합 결정은 `lore_decide(action="merge_records", …)`~~ 구현 조정: 승인한 병합은 설정으로 저장한다. `lore_configure(mergeRecords=[{from, into}])`로 넘기면 `review-policy.json`의 `merges`에 남고, 다음 커밋부터 반영 함수가 적용한다. 검사 영수증 발급 뒤 delta를 바꾸지 않기 위해서이며, 화 승인과 기존 작품 이전에 같은 경로를 쓴다.
-- 후보는 guided에서만 묻는다. 새로 표시된 중복 후보 쌍(이전에 묻지 않은 것)과 기존 작품 이전 1회만 `ledger-merge` 요청으로 묻고, 결과는 `.vibelore/ledger/merge-candidates.json`에 두어 `lore_configure` 응답의 `mergeCandidates`로 보여 준다. auto는 묻지 않는다.
+- 후보는 guided에서만 묻는다. 새로 표시된 중복 후보 쌍(이전에 묻지 않은 것)과 기존 작품 이전 1회만 `ledger-merge` 요청으로 묻고, 결과는 `.vibelore/ledger/merge-candidates.json`에 두어 guided 승인 대기 결과와 `lore_configure` 응답의 `mergeCandidates`로 보여 준다. auto는 묻지 않는다.
+- 구현 조정(최종 수정): 병합은 승인 당시 다음 화(`atChapter`)부터 적용한다. 반영 함수는 그 화의 사건 앞뒤로 병합을 접고, 다음 화의 기준 상태에도 미리 접어 추출·작가가 합쳐진 기록을 본다. 합친 기록은 `into`의 ID·이름을 쓰고 상태와 값은 마지막 사건이 늦은 쪽(값은 항목별), 등록 화는 이른 쪽, 최근 사건은 화 순으로 합친다. 요청에는 기록마다 상태·등록 화·마지막 사건 화를 주고 `into`는 먼저 등록된 기록으로 하라고 적는다. 기존 작품의 첫 요청은 후보 쌍 기록부터 최근 순으로 최대 150개다.
 
 ## 5. 반영 · 커밋 · 롤백
 
@@ -168,6 +171,9 @@
 - 롤백: `chapter > N` 줄 제거.
 - 재생성: 1..N화 `artifacts/N.json`의 `ledgerOps`로 로그 재구성. 로그와 커밋된 화가 어긋나면 `lore_status`가 보고하고 `lore_sync`가 재생성.
 - 구현 조정: 원본은 화별 delta다. `events.jsonl`은 커밋·롤백·동기화 때마다 delta 재생으로 통째로 다시 만들며(줄 단위 절단이 아님), 같은 delta에서 바이트 단위로 같은 결과가 나온다.
+- 구현 조정(최종 수정): 재생은 `.vibelore/ledger/seed.json`(1화 전 기록, `lore_create`가 씀)에서 시작한다. `entities.json`은 커밋마다 등록부에서 다시 쓰이는 파생 파일이라 출발점이 될 수 없다. seed가 없는 작품은 처음 필요할 때 한 번 만든다: 쓴 화가 없으면 `entities.json` 그대로, 있으면 0화 등록 항목을 시작 상태로 되돌려서(값은 그 시점의 것).
+- 구현 조정(최종 수정): `tracking`·`customTracking` 변경은 적용 화와 함께 `trackingHistory`에, 병합은 `atChapter`와 함께 저장한다. 재생은 각 화에 그 화가 커밋될 때의 설정(`ledgerConfigAt`)을 적용한다. 끈 기능은 새 사건만 멈추고 기존 기록·이력은 남는다. 적용 화가 없는 기존 설정은 1화부터 적용된 것으로 본다. 그래서 재생 결과는 현재 등록부와 같다.
+- 구현 조정(최종 수정): `built.json`은 사건 줄 수와 seed·설정·화별 delta 해시의 digest를 남긴다. 로그 파일이 있고 줄 수와 digest가 맞을 때만 `ledgerLog.ok`다. 커밋은 N-1화까지 맞는 로그에 N화 사건만 덧붙이고, 그 밖(첫 화, 옛 상태 작품, 롤백·refold·동기화·설정 변경 뒤)에는 다시 만든다.
 - 구현 조정: `entities.json`은 기존 읽기 경로(엔티티 문맥, 언급 활성화)를 위해 커밋 때 등록부로부터 다시 쓴다(`ledgerEntitySnapshots`). 추출은 `entityOps`를 쓰지 않는다.
 
 ## 6. 사용처
@@ -189,7 +195,7 @@
    - `trackedEntityOps` → `trackedRecordKey`로 등록/사건. 종류 매핑: Artifact·Clue → `objects`, KnowledgeMatrix·RegressionKnowledge → `knowledge`, Timeline → `target:"chapter"` 화 메모. 구현 조정: RelationshipState·PowerSystem은 옮기지 않는다(관계는 관계 상태, 힘의 규칙은 세계 설정).
    - 구현 조정: 옛 상태(`ledger` 키 없음)의 작품은 delta 재생이 끝난 등록부를 다음 화의 기준으로 쓴다. 로그·현재 등록부·병합·새 `ledgerOps`가 같은 ID 체계를 쓰기 위해서다.
    - 떡밥 변화 → 이전 상태와의 `phase` 차이로 사건(`planted`/`advanced`/`paid`/`parked`), 차이가 없으면 `mentioned`.
-   - `entities.json` 초기 등록 → 0화 `registered`.
+   - `entities.json` 초기 등록 → 0화 `registered`. 구현 조정: 0화 `registered` 줄은 쓰지 않는다. seed 기록은 재생의 시작 상태이고 이력은 1화 사건부터다.
 2. 병합 후보: 작품마다 모델 요청 1건으로 같은 대상 묶음 제안 → 사용자 승인분만 `merged`.
 3. 스크래치 사본으로 먼저 실행해 결과 보고. **실제 `works/` 적용은 별도 확인 후.**
 4. 이전하지 않은 작품은 읽기 시 변환해서 계속 열린다.

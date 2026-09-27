@@ -77,16 +77,19 @@ the full history stays as per-chapter events in `.vibelore/ledger/events.jsonl`.
 
 ```mermaid
 flowchart LR
+    S["Records before chapter 1<br/>ledger/seed.json"] --> X
     X["Chapter extractions<br/>(artifacts/)"] -->|"applied at commit"| N["Story state<br/>current values of records and hooks"]
-    X -->|"rebuilt at commit, rollback, sync"| L["History log<br/>ledger/events.jsonl"]
+    X -->|"appended at commit, rebuilt at rollback, sync, settings change"| L["History log<br/>ledger/events.jsonl"]
     N --> I["Next chapter's input<br/>current values, recent events"]
     L -->|"up to 5 lines when a long-idle record returns"| I
 ```
 
 - The source is the committed chapters' extractions. The history log is a derived file that can always be rebuilt from them,
-  so it needs no separate fixing after a rollback or a revision.
+  starting from the records before chapter 1 (`seed.json`), so it needs no separate fixing after a rollback or a revision.
+  A commit appends its chapter's events only when the digest in `built.json` (seed, settings, chapter extractions) matches; otherwise the log is rebuilt.
 - What is tracked and checked is set by the work's settings (`tracking` and `customTracking` in `lore_configure`), not by the genre;
-  approved merges are stored in the same settings and applied at commit.
+  approved merges are stored in the same settings. Setting changes and merges are kept with the chapter they apply from
+  (`trackingHistory`, `atChapter`), and the replay applies to each chapter the settings it was committed with, so the replay equals the live ledger.
 - The ledger takes over from the former tracked-item lists and `entities.json`. `entities.json` is still written from the
   ledger at commit for the existing readers.
 

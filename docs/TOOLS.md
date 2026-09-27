@@ -127,8 +127,9 @@ StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 �
 - `customTracking`: 작가 정의 추적 항목 전체 목록(교체). `{name, feature, pinned?, rules?, note?}`.
   pinned=매 화 입력에 항상 포함. rules: `monotonic{field,direction:up|down,unless?}`,
   `frozenAfter{status}`, `speakerOnly{alias,by}`; note=검토 모델에 보여줄 자연어 규칙(advisory).
-- `mergeRecords`: 같은 대상으로 확인된 기록 병합 목록. `{from, into}`(from을 into에 흡수). 다음
-  커밋부터 반영.
+- `mergeRecords`: 같은 대상으로 확인된 기록 병합 목록. `{from, into}`(from을 into에 흡수). 다음에
+  쓸 화부터 반영(`atChapter`로 저장). tracking·customTracking 변경도 다음 화부터 적용되고, 이미 쓴 화의
+  이력은 그대로 남습니다.
 
 응답의 `reviewPolicy`와 `draftSections`가 현재 설정과 선택지를 보여주고, `tracking`(`enabled`,
 `available`)·`customTracking`·`merges`가 추적 설정을 보여줍니다. 모르는 이름은 거부합니다.

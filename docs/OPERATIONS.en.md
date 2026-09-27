@@ -68,7 +68,7 @@ When an error occurs, call a status tool first before calling the same generatio
 | `CANON_MEMORY_CONFLICT` | Search memory doesn't match canon | Regenerate the search projection, check the canon |
 | `UNSAFE_MEMORY_CLAIM` | Invalid schema, control characters or instructions | Quarantine the claim, fix the source data |
 | Check receipt mismatch | The prose changed after the check | Check the changed prose again |
-| `ledgerLog.ok=false` in `lore_status` | The history log is out of step with the committed chapters | Rebuild it with `lore_sync` |
+| `ledgerLog.ok=false` in `lore_status` | The history log is out of step with the committed chapters or tracking settings | Rebuild it with `lore_sync(action="validate")` |
 | runId missing or expired | The saved run finished or was deleted | Check the workflow status, then start a new run or resume the workflow |
 
 ## Recovering from `needs_model`
@@ -220,9 +220,12 @@ So when an object from long ago comes back, its history is known and the story c
 | `hooks` | Promises made to the reader | `open` · `dormant` · `paid` · `closed` |
 
 - Each record has a name, aliases, a free label (a kind such as object or clue; it changes no behaviour), current values and its last 3 events.
+- Something already broken or prevented when it first appears is registered in that status. Values that changed with a status (who knows a secret once it is out) stay in the same event.
 - Hook statuses: `open` means the reader is waiting, `dormant` resting for now, `paid` paid off,
   `closed` no longer pursued. A paid hook used again opens again.
   A payoff needs a verbatim quote from this chapter's prose; without one it is recorded as an advance instead.
+  A dormant or paid hook that comes back is reopened under its own ID, never planted again (the extraction input lists the
+  related dormant and paid hooks with their IDs). A passing mention does not count as movement, so a neglected hook stays on the overdue list.
   Older works' `planted` and `advancing` read as `open`, `parked` as `dormant`.
 - Model inputs carry only the current values and recent events of related records, so they don't grow with the chapter count.
   When a record that hasn't moved for over 20 chapters returns in the plan or prose, up to 5 lines of its history come with it.
@@ -230,16 +233,28 @@ So when an object from long ago comes back, its history is known and the story c
 ### History log
 
 Each chapter's events are kept one per line in `.vibelore/ledger/events.jsonl`. The source is the extraction of the
-committed chapters; the file is rebuilt from it on every commit, rollback and `lore_sync`.
-Don't edit it. If `ledgerLog.ok` in `lore_status` is `false`, the log is out of step with the committed
-chapters: call `lore_sync` (`lore_write` also rebuilds it when it starts).
+committed chapters. The replay starts from the records before chapter 1 (`.vibelore/ledger/seed.json`) and applies each
+chapter under the tracking settings it was committed with, so the replay and the live ledger agree.
+A commit appends its chapter's events; after a rollback, refold, `lore_sync` or a change of tracking settings or merges the
+log is rebuilt from the start. Don't edit it.
+
+`built.json` records the number of event lines and a digest of the seed, the tracking settings and each chapter's extraction.
+If the log file is missing, has a different number of lines or the digest doesn't match, `ledgerLog.ok` in `lore_status`
+is `false`: rebuild it with `lore_sync(action="validate")` (`lore_write` also rebuilds it when it starts).
 Memory search indexes the event notes too.
+
+`seed.json` holds the starting objects `lore_create` made. `entities.json` is rewritten from the ledger on every commit, so it
+can't be where a replay starts. A work made before this file gets one the first time it is needed: before chapter 1 from
+`entities.json` as it is; with chapters already written, the entries registered before chapter 1 are taken back to their
+starting status (`active`), with the values `entities.json` held at that point.
 
 ### Turning tracking on and off
 
 `lore_configure(tracking={objects, knowledge, scheduled, hooks})` turns each feature on or off.
 All are on by default. A feature turned off is left out of the extraction request, not checked and never counted as a failure;
-its existing records are kept and only left out of model inputs. What is tracked does not depend on the genre.
+its existing records are kept and only left out of model inputs (`lore_context` included). What is tracked does not depend on the genre.
+A change applies from the next chapter written (kept with that chapter in `trackingHistory` in `review-policy.json`);
+the history of chapters already written stays as it is. Settings with no recorded change count as in effect from chapter 1.
 
 ### Author tracking items
 
@@ -252,14 +267,17 @@ its existing records are kept and only left out of model inputs. What is tracked
 ```
 
 - `pinned`: always included in the extraction and writer inputs, whatever the input caps.
+- An item links to the record with its ID (`u1`) or with the same name or alias. Something already recorded as `o3` and
+  added as an item later gets the pin and rules. An item with no record yet shows in the extraction, planning and writing
+  inputs as "tracked on request (no record yet)", and the extractor records it under that ID when it appears.
 - `rules` (deterministic checks, soft by default, hard with `"severity": "hard"`):
   - `monotonic{field, direction: up|down, unless?}`: a number only moves one way.
     An event note containing the `unless` word is an exception.
   - `frozenAfter{status}`: nothing changes after that status.
   - `speakerOnly{alias, by}`: only that character uses the term.
-- `note`: a natural-language rule. It adds no model request: the `coherence-judge` review judges it as well
-  and reports a miss only as an `AUTHOR_RULE` advisory. With `coherence-judge` turned off through `disabledReviews`,
-  it is not judged.
+- `note`: a natural-language rule. It adds no model request: the `coherence-judge` review judges it as well, per item ID,
+  and reports a miss only as an `AUTHOR_RULE` advisory. An answer with no rule verdicts at all records the review as
+  incomplete, so `auto` falls back to approval. With `coherence-judge` turned off through `disabledReviews`, it is not judged.
 
 Item IDs (`u1`, `u2`, …) stay with the name, and a removed item's ID is never reused.
 An item with an unknown feature or a rule missing a required value is refused.
@@ -268,6 +286,7 @@ An item with an unknown feature or a rule missing a required value is refused.
 
 An alias with a character (`by`) is a term only that character uses. If the term appears in the prose while that character
 is not in the chapter's cast, it is reported as soft, and the continuity check lists it in its address section so the model checks who said it.
+Planning and writing inputs also note, in one line per record shown, who uses the term.
 
 ### Duplicate records and merges
 
@@ -275,9 +294,15 @@ is not in the chapter's cast, it is reported as soft, and the continuity check l
 - A similar name (containment, a particle difference, word overlap) is registered as a new record and flagged as a possible duplicate (`LEDGER_POSSIBLE_DUPLICATE`, soft). It is never merged automatically.
 - In `guided`, only in a chapter where a newly flagged pair appears does `lore_write` send one `ledger-merge`
   model request with the chapter. A pair already asked about is not asked again. `auto` never asks.
-- The proposals appear in `mergeCandidates` (`{into, from[], reason}`) in the `lore_configure` response. Show them to the user
-  and pass only the approved ones with `lore_configure(mergeRecords=[{from, into}])` (one entry per `from` ID).
-  They apply from the next commit; the absorbed ID then reads as the `into` record and both records' history shows together.
+- The proposals appear in `mergeCandidates` (`{into, from[], reason}`) in the `guided` approval result (`awaiting_approval`)
+  and in the `lore_configure` response. Show them to the user with the draft and pass only the approved ones with
+  `lore_configure(mergeRecords=[{from, into}])` (one entry per `from` ID).
+- The merge request gives each record's status, registration chapter and last event chapter; `into` is the record registered
+  first. An existing work's first request asks about at most 150 records: those in flagged pairs first, then the most recently moved.
+- An approved merge applies from the next chapter written (`atChapter`). That chapter's extraction and writer inputs already
+  show the merged record; the history of chapters already written stays apart. The merged record keeps the `into` ID and
+  name, takes its status and values from the record whose last event is later (values key by key), and counts as registered
+  when the earlier one was. The absorbed ID then reads as the `into` record and both records' history shows together.
 
 ### Existing works
 
@@ -363,7 +388,8 @@ If you use Git, check that ignore rules don't leave out candidates, images or ru
 | `.vibelore/check-receipts/` | Recommended | Commit audits |
 | `.vibelore/snapshots/` | Recommended | rollback |
 | `.vibelore/review-policy.json` | Recommended | Review and tracking settings, author items, approved merges |
-| `.vibelore/ledger/` | Low | The history log can be rebuilt from the chapter extractions; merge candidates can be asked again |
+| `.vibelore/ledger/seed.json` | Recommended | The records before chapter 1 the replay starts from (approximated from `entities.json` when missing) |
+| rest of `.vibelore/ledger/` | Low | The history log can be rebuilt from the chapter extractions; merge candidates can be asked again |
 | `.vibelore/memory.db` | Low | A projection that can be rebuilt from canon |
 
 ## Before a release
