@@ -1,6 +1,6 @@
 import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { isHookActive, trackedRecordKey } from '../../engine/src/continuity/story-state.js';
-import { hookStatusOf, ledgerHistory, ledgerNameKey, recordNames } from '../../engine/src/continuity/ledger.js';
+import { hookStatusOf, ledgerHistory, ledgerNameKey, recordNames, trackingEnabled } from '../../engine/src/continuity/ledger.js';
 import { searchTerms } from './search-terms.js';
 
 /**
@@ -240,7 +240,7 @@ function speakerAliases(records, config, speakers) {
   const found = [
     ...records.flatMap((record) => asArray(record.aliases).filter((alias) => clean(alias?.by) && clean(alias?.text))
       .map((alias) => ({ by: alias.by, alias: alias.text, name: record.name }))),
-    ...asArray(config.customTracking).flatMap((item) => asArray(item.rules).filter((rule) => rule?.type === 'speakerOnly' && clean(rule.by) && clean(rule.alias))
+    ...asArray(config.customTracking).filter((item) => trackingEnabled(config, item.feature)).flatMap((item) => asArray(item.rules).filter((rule) => rule?.type === 'speakerOnly' && clean(rule.by) && clean(rule.alias))
       .map((rule) => ({ by: rule.by, alias: rule.alias, name: byId.get(item.id)?.name ?? item.name }))),
   ].filter((item) => speakers.has(item.by));
   const seen = new Set();
@@ -285,7 +285,11 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
   const now = Number(state.chapterNumber);
   const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
   const writerLike = mode === 'writer' || mode === 'planner';
-  const allRecords = asArray(state.ledger?.records);
+  // A feature the author turned off is neither asked of the extractor nor shown to anyone.
+  const allRecords = asArray(state.ledger?.records).filter((record) => trackingEnabled(config, record.feature));
+  const hooksOn = trackingEnabled(config, 'hooks');
+  // Writers and planners read words; the extractor writes the enums back, so it sees them raw.
+  const word = (table, value) => (mode === 'extract' ? value : t[table]?.[value] ?? value);
   const lines = [t.currentStateHeading];
 
   const states = state.characterStates ?? {};
@@ -320,11 +324,11 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
   if (address.length) lines.push(t.addressHeading, ...address);
 
   if (mode !== 'check') {
-    const { shown: hooks, omitted: hooksOmitted, capped: hooksCapped } = selectHooks(asArray(state.hooks).filter(isHookActive), focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
+    const { shown: hooks, omitted: hooksOmitted, capped: hooksCapped } = selectHooks(hooksOn ? asArray(state.hooks).filter(isHookActive) : [], focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
     if (hooks.length) {
       lines.push(t.hooksHeading, ...hooks.map((hook) => (mode === 'extract'
         ? t.hookKeyed(hook.id, hookStatusOf(hook), hook.plantedAtChapter, hook.text ?? '')
-        : t.hook(hook.text ?? hook.id, hookStatusOf(hook)))));
+        : t.hook(hook.text ?? hook.id, word('statusWords', hookStatusOf(hook))))));
     }
     if (hooksCapped > 0) lines.push(t.capped(hooksCapped));
     if (hooksOmitted > 0) lines.push(t.omitted(hooksOmitted));
@@ -358,20 +362,20 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
     } else if (shown.length) {
       lines.push(t.recordsHeading, ...shown.flatMap((record) => {
         const past = Number(record.lastEventAt) <= now - HISTORY_GAP ? ledgerHistory(asArray(history), record.id, HISTORY_ITEMS) : [];
-        return [t.record(label(record), record.name, record.status, recordText(record, name)),
-          ...(past.length ? [t.recordHistory(past.map((event) => t.historyItem(event.chapter, event.event, event.note ?? '')).join(', '))] : [])];
+        return [t.record(label(record), record.name, word('statusWords', record.status), recordText(record, name)),
+          ...(past.length ? [t.recordHistory(past.map((event) => t.historyItem(event.chapter, word('eventWords', event.event), event.note ?? '')).join(', '))] : [])];
       }));
     }
     if (capped > 0) lines.push(t.capped(capped));
     if (omitted - capped > 0) lines.push(t.omitted(omitted - capped));
 
     if (mode === 'planner') {
-      const dormant = asArray(state.hooks).filter((hook) => hookStatusOf(hook) === 'dormant' && now - Number(hook.lastMovedChapter ?? hook.plantedAtChapter) >= DORMANT_AFTER)
+      const dormant = asArray(hooksOn ? state.hooks : []).filter((hook) => hookStatusOf(hook) === 'dormant' && now - Number(hook.lastMovedChapter ?? hook.plantedAtChapter) >= DORMANT_AFTER)
         .sort((a, b) => (a.plantedAtChapter ?? 0) - (b.plantedAtChapter ?? 0));
-      if (dormant.length) lines.push(t.dormantHooksHeading, ...dormant.slice(0, PLANNER_LIST_LIMIT).map((hook) => t.hook(hook.text ?? hook.id, hookStatusOf(hook))));
+      if (dormant.length) lines.push(t.dormantHooksHeading, ...dormant.slice(0, PLANNER_LIST_LIMIT).map((hook) => t.hook(hook.text ?? hook.id, word('statusWords', 'dormant'))));
       if (dormant.length > PLANNER_LIST_LIMIT) lines.push(t.capped(dormant.length - PLANNER_LIST_LIMIT));
       const pending = allRecords.filter((record) => record.feature === 'scheduled' && record.status === 'pending');
-      if (pending.length) lines.push(t.pendingHeading, ...pending.slice(0, PLANNER_LIST_LIMIT).map((record) => t.record(label(record), record.name, record.status, recordText(record, name))));
+      if (pending.length) lines.push(t.pendingHeading, ...pending.slice(0, PLANNER_LIST_LIMIT).map((record) => t.record(label(record), record.name, word('statusWords', record.status), recordText(record, name))));
       if (pending.length > PLANNER_LIST_LIMIT) lines.push(t.capped(pending.length - PLANNER_LIST_LIMIT));
     }
   }

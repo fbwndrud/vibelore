@@ -141,7 +141,8 @@ test('writer render adds a short history for a record back after a long gap', ()
   ] } };
   const history = [{ chapter: 4, target: 'record', id: 'o1', event: 'registered' }, { chapter: 5, target: 'record', id: 'o1', event: 'changed', note: '재서명' }];
   const text = renderCurrentState(state, foundation, { kit, mode: 'writer', focusText: '서명 쪽지를 다시 꺼낸다', history });
-  assert.match(text, /이력: 4화 registered, 5화 changed 재서명/);
+  assert.match(text, /이력: 4화 등록, 5화 변경 재서명/);
+  assert.match(text, /- \[물건\] 서명 쪽지 · 있음/, 'writer statuses read as Korean');
 });
 
 test('pinned author items are always listed', () => {
@@ -164,7 +165,8 @@ test('planner render adds long-dormant hooks and pending scheduled events; the w
   const planner = renderCurrentState(state, foundation, { kit, mode: 'planner', focusText: '' });
   assert.match(planner, /잠복한 떡밥 \(다시 꺼낼 수 있음\):\n- DORMANT_OLD/);
   assert.doesNotMatch(planner, /DORMANT_FRESH|PAID_ONE/);
-  assert.match(planner, /아직 일어나지 않은 예정 사건:\n- \[예정\] 왕성 공성전 · pending/);
+  assert.match(planner, /아직 일어나지 않은 예정 사건:\n- \[예정\] 왕성 공성전 · 예정/);
+  assert.match(planner, /- DORMANT_OLD \(잠복\)/);
   assert.doesNotMatch(planner, /DONE_EVENT/);
   const writer = renderCurrentState(state, foundation, { kit, mode: 'writer', focusText: '' });
   assert.doesNotMatch(writer, /DORMANT_OLD|잠복한 떡밥|PAID_ONE/);
@@ -180,7 +182,52 @@ test('check sections name speaker-only aliases of the characters on the page', a
   const config = { customTracking: [{ id: 'u1', name: '금화', feature: 'objects', rules: [{ type: 'speakerOnly', alias: '반짝이', by: 'c2' }] }] };
   const sections = renderCheckSections({ foundation, prevState, kit, config, focusText: '리아와 도윤이 말했다.',
     delta: { appearedCharacterIds: ['c1', 'c2'], newAddressEntries: [], mutableChanges: [], trackedEntityOps: [] } });
-  assert.match(sections.prev, /- "그 종이"는 리아만 쓰는 서명 쪽지의 별칭/);
-  assert.match(sections.prev, /- "반짝이"는 도윤만 쓰는 금화의 별칭/);
+  assert.match(sections.prev, /- 리아만 쓰는 서명 쪽지의 별칭: "그 종이"/);
+  assert.match(sections.prev, /- 도윤만 쓰는 금화의 별칭: "반짝이"/);
   assert.doesNotMatch(sections.prev, /OFFSTAGE_ALIAS|"쪽지"/);
+});
+
+test('a feature the author turned off is not rendered in any mode', async () => {
+  const { renderCheckSections } = await import('../src/core/prompt-sections.js');
+  const state = { chapterNumber: 30, addressMap: { entries: {} }, relationships: [], hooks: [
+    { id: 'hk', text: 'OPEN_HOOK 표식', status: 'open', plantedAtChapter: 29, lastMovedChapter: 29 },
+    { id: 'hd', text: 'DORMANT_HOOK', status: 'dormant', plantedAtChapter: 2, lastMovedChapter: 5 },
+  ], ledger: { records: [
+    { id: 'o1', feature: 'objects', label: '물건', name: 'OBJ_NOTE', aliases: [{ text: 'OBJ_ALIAS', by: 'c1' }], status: 'active', fields: { holder: 'c1' }, lastEventAt: 29, recent: [] },
+    { id: 'k1', feature: 'knowledge', label: '비밀', name: 'KNOW_SECRET', aliases: [{ text: 'KNOW_ALIAS', by: 'c1' }], status: 'secret', fields: { knownBy: ['c1'] }, lastEventAt: 29, recent: [] },
+  ] } };
+  const focus = '리아는 OBJ_NOTE와 KNOW_SECRET, OPEN_HOOK 표식을 떠올렸다.';
+  const render = (mode, tracking) => renderCurrentState(state, foundation, { kit, mode, focusText: focus, cast: ['c1'], config: { tracking } });
+  const check = (tracking) => renderCheckSections({ foundation, prevState: state, kit, focusText: focus, config: { tracking },
+    delta: { appearedCharacterIds: ['c1'], newAddressEntries: [], mutableChanges: [], trackedEntityOps: [] } }).prev;
+  for (const mode of ['extract', 'writer', 'planner']) {
+    assert.match(render(mode, {}), /OBJ_NOTE/, mode);
+    assert.doesNotMatch(render(mode, { objects: false }), /OBJ_NOTE/, mode);
+    assert.match(render(mode, { objects: false }), /KNOW_SECRET/, mode);
+    assert.doesNotMatch(render(mode, { knowledge: false }), /KNOW_SECRET/, mode);
+    assert.match(render(mode, {}), /OPEN_HOOK/, mode);
+    assert.doesNotMatch(render(mode, { hooks: false }), /OPEN_HOOK|DORMANT_HOOK/, mode);
+  }
+  assert.match(render('planner', {}), /DORMANT_HOOK/);
+  assert.match(check({}), /OBJ_ALIAS/);
+  assert.doesNotMatch(check({ objects: false }), /OBJ_ALIAS/);
+  assert.match(check({ objects: false }), /KNOW_ALIAS/);
+  assert.doesNotMatch(check({ knowledge: false }), /KNOW_ALIAS/);
+});
+
+test('extract keeps the raw status and event enums the extractor writes back', () => {
+  const state = { chapterNumber: 7, addressMap: { entries: {} }, relationships: [], hooks: [], ledger: { records: [
+    { id: 'o1', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [], status: 'active', fields: {}, lastEventAt: 5, recent: [{ chapter: 5, event: 'changed' }] },
+  ] } };
+  assert.match(renderCurrentState(state, foundation, { kit, mode: 'extract', focusText: '서명 쪽지' }), /· active · 최근: 5화 changed/);
+});
+
+test('English writer history labels chapters as in the rest of the table', () => {
+  const state = { chapterNumber: 40, addressMap: { entries: {} }, relationships: [], hooks: [], ledger: { records: [
+    { id: 'o1', feature: 'objects', label: 'item', name: 'signed note', aliases: [], status: 'lost', fields: {}, lastEventAt: 7, recent: [] },
+  ] } };
+  const history = [{ chapter: 4, target: 'record', id: 'o1', event: 'registered' }, { chapter: 5, target: 'record', id: 'o1', event: 'odd-event' }];
+  const text = renderCurrentState(state, foundation, { kit: en, mode: 'writer', focusText: 'the signed note', history });
+  assert.match(text, /history: ch\. 4 registered, ch\. 5 odd-event/, 'unknown words fall back to the raw value');
+  assert.match(text, /signed note · missing/);
 });

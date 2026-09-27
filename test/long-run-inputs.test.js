@@ -54,7 +54,7 @@ test('writer state with the whole event log stays under the writer cap and gives
   const line = returning.split('\n').find((item) => item.includes('이력:'));
   assert.ok(line, 'a history line');
   assert.equal(line.split(', ').length, 5);
-  assert.match(line, /11화 changed 열쇠 7$/, 'the latest events');
+  assert.match(line, /11화 변경 열쇠 7$/, 'the latest events');
   // Thirty chapters of silence is past the gap too.
   const state = structuredClone(w.state);
   state.ledger.records[0].lastEventAt = 970;

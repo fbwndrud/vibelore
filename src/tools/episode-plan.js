@@ -12,6 +12,7 @@ import { validatePlanningContracts } from '../../engine/src/core/narrative-plann
 import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
@@ -215,7 +216,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       castText: renderCastBrief(foundation, kit, { focusText: planFocus, chapter }),
       summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
       longMemoryText: await renderLongMemory({ store, workId, arcPlan, chapter, kit }),
-      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'planner', focusText: planFocus, oldestHooks: 3 }) || kit.phrases.common.noneParen,
+      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'planner', focusText: planFocus, oldestHooks: 3, config: await loadLedgerConfig(store, workId) }) || kit.phrases.common.noneParen,
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };
