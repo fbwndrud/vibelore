@@ -1,6 +1,6 @@
 import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
-import { isHookActive, trackedRecordKey } from '../../engine/src/continuity/story-state.js';
-import { hookStatusOf, ledgerHistory, ledgerNameKey, recordNames, trackingEnabled } from '../../engine/src/continuity/ledger.js';
+import { isHookActive, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
+import { findRecord, hookStatusOf, ledgerHistory, ledgerNameKey, recordNames, trackingEnabled } from '../../engine/src/continuity/ledger.js';
 import { searchTerms } from './search-terms.js';
 
 /**
@@ -451,8 +451,9 @@ export function renderArcBeat(beat, kit) {
  * Foundation `mutable` is left out: the current place and condition come from
  * the state section.
  */
-export function renderCheckSections({ foundation, prevState, delta, povDesign = null, povCharacterId = null, kit, focusText = '', config = {} }) {
+export function renderCheckSections({ foundation, prevState: loadedState, delta, povDesign = null, povCharacterId = null, kit, focusText = '', config = {} }) {
   const t = kit.phrases.sections;
+  const prevState = normalizeStoryState(loadedState);
   const labels = kit.phrases.context.intrinsicLabels;
   const name = (id) => asArray(foundation?.characters).find((c) => c.id === id)?.canonicalName ?? id;
   const intrinsicFields = (intrinsic = {}) => [
@@ -481,19 +482,29 @@ export function renderCheckSections({ foundation, prevState, delta, povDesign = 
     ...asArray(foundation?.worldFacts).map((f, i) => t.checkWorldFact(`foundation.worldFacts[${i}]`, f.statement)),
   ].join('\n');
   const appeared = asArray(delta?.appearedCharacterIds);
+  // Record ops with the record they touch; ops of a feature the author turned off never reach the ledger, so the check skips them too.
+  const ledger = prevState?.ledger;
+  const recordOps = asArray(delta?.ledgerOps).map((op, index) => ({
+    op, index, record: op?.op === 'register' ? findRecord(ledger, clean(op.name), op.feature) : op?.op === 'event' ? findRecord(ledger, op.id) : null,
+  })).filter(({ op, record }) => (op?.op === 'register' && clean(op.name) && trackingEnabled(config, op.feature))
+    || (op?.op === 'event' && trackingEnabled(config, record?.feature)));
+  const opText = ({ op, index, record }) => (op.op === 'register'
+    ? t.deltaLedger(`delta.ledgerOps[${index}]`, op.label || op.feature, [clean(op.name), flatBody(op.fields, name), clean(op.note)].filter(Boolean).join(' · '))
+    : t.deltaLedger(`delta.ledgerOps[${index}]`, record?.label || record?.feature || op.id, [`${record?.name ?? op.id} (${op.id})`, t.eventWords[op.event] ?? op.event,
+      op.status ? t.statusWords[op.status] ?? op.status : '', flatBody(op.set, name), clean(op.note)].filter(Boolean).join(' · ')));
   const deltaText = [
     ...(appeared.length ? [t.deltaAppeared(appeared.map((id) => `${name(id)} (${id})`).join(', '))] : []),
     ...asArray(delta?.newAddressEntries).map((a, i) => t.deltaAddress(`delta.newAddressEntries[${i}]`, name(a.speakerId), name(a.targetId), a.term)),
     ...asArray(delta?.mutableChanges).map((m, i) => t.deltaMutable(`delta.mutableChanges[${i}]`, `${name(m.characterId)} (${m.characterId})`,
       [m.vitalStatus && t.vital[m.vitalStatus], m.location && t.location(m.location), m.status && t.status(m.status)].filter(Boolean).join(' · '))),
     // Genre invariants such as item ownership or power tiers are judged on these.
-    ...asArray(delta?.trackedEntityOps).map((op, i) => t.deltaTracked(`delta.trackedEntityOps[${i}]`, op.kind, flatBody(op.data, name))),
+    ...recordOps.map(opText),
   ];
   const invariants = asArray(foundation?.genreProfile?.invariants).map((inv) => t.invariant(inv.severity, `${inv.id}: ${inv.description}`));
   // Ownership and tier invariants compare a change with the value before it.
-  const touchedKeys = new Set(asArray(delta?.trackedEntityOps).map((op) => `${op.kind}\u0000${trackedRecordKey(op.data)}`));
-  const before = asArray(prevState?.trackedEntities).filter((record) => touchedKeys.has(`${record.kind}\u0000${trackedRecordKey(record.data)}`));
-  const touchedTracked = before.length ? [t.trackedHeading, ...before.map((record) => t.tracked(record.kind, flatBody(record.data, name), record.updatedChapter))].join('\n') : '';
+  const before = [...new Map(recordOps.filter(({ record }) => record).map(({ record }) => [record.id, record])).values()];
+  const touchedTracked = before.length ? [t.trackedHeading, ...before.map((record) => t.tracked(record.label || record.feature,
+    [record.name, t.statusWords[record.status] ?? record.status, recordText(record, name)].filter(Boolean).join(' · '), record.lastEventAt))].join('\n') : '';
   return {
     prev: [renderCurrentState(prevState, foundation, { kit, mode: 'check', cast: [...onPage], config }), touchedTracked].filter(Boolean).join('\n'),
     foundation: foundationText,

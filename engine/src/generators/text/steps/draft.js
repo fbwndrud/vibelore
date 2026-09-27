@@ -10,7 +10,7 @@ import { arcPositionLabel } from '../../../core/arc-context.js';
 import { renderCustomPromptOverride } from '../../../core/custom-prompt-override.js';
 import { formatLengthTarget, pickByFamily, promptFamilyCaptureContext, resolveDialogueBreakMode, resolvePromptLanguageContext, resolveStepPromptLanguage, resolveWorkPromptLanguage, } from '../../../core/prompt-language.js';
 import { DRAFT_FEWSHOT, DRAFT_FEWSHOT_MULTILINGUAL } from '../prompts/draft.js';
-import { isHookActive } from '../../../continuity/story-state.js';
+import { isHookActive, normalizeStoryState } from '../../../continuity/story-state.js';
 /**
  * Default target word count when the foundation does not record one.
  *
@@ -307,15 +307,13 @@ function buildDraftSystem(arc, customPromptOverride, context, options = {}) {
     }
     return parts.join('\n');
 }
-const TRACKED_RECORDS_PER_KIND = 8;
-function recentTrackedRecords(tracked) {
-    const byKind = new Map();
-    for (const record of tracked ?? []) {
-        const list = byKind.get(record.kind) ?? [];
-        list.push(record);
-        byKind.set(record.kind, list);
-    }
-    return [...byKind.values()].flatMap((list) => list.slice(-TRACKED_RECORDS_PER_KIND));
+const RECENT_RECORDS = 12;
+/** The ledger records with the latest events, oldest first; the full ledger stays in StoryState. */
+function recentLedgerRecords(state) {
+    return [...(state.ledger?.records ?? [])]
+        .sort((a, b) => (a.lastEventAt ?? a.registeredAt ?? 0) - (b.lastEventAt ?? b.registeredAt ?? 0))
+        .slice(-RECENT_RECORDS)
+        .map(({ id, label, name, status, fields }) => ({ id, label, name, status, fields }));
 }
 function summariseCharacterForPrompt(foundation, chapterNumber, id) {
     // resolveCharacter throws if not registered at/before chapterNumber — fall back to raw.
@@ -412,15 +410,16 @@ function buildUserPrompt(input) {
             description: inv.description,
         })),
     };
+    // A state written before the ledger reads with current hook statuses and records.
+    const current = normalizeStoryState(prevState);
     const prevSummary = {
         chapterNumber: prevState.chapterNumber,
         addressMap: prevState.addressMap.entries,
-        openHooks: (prevState.hooks ?? [])
+        openHooks: current.hooks
             .filter(isHookActive)
             .map((h) => ({ id: h.id, text: h.text, status: h.status })),
         relationships: prevState.relationships,
-        // Recent records per kind; the full history stays in StoryState.
-        trackedEntities: recentTrackedRecords(prevState.trackedEntities),
+        records: recentLedgerRecords(current),
         ...(prevState.characterStates ? { characterStates: prevState.characterStates } : {}),
         // Arc Flow Stage A (EPIC #191) — per-character arc 진행도. legacy state =
         // {} fallback. 작가 prompt 안에 노출되어 LLM 이 인물별 6-beat 위치 인식.

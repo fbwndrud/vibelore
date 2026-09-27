@@ -502,7 +502,23 @@ describe('relay-aware continuity prompts', () => {
 });
 // ─── continuity state that survives chapters ───────────────────────────────
 describe('extractDelta carries continuity state', () => {
-    it('shows the extractor active hook text, character states, tracked records and known entities', async () => {
+    it('shows the extractor open hook text, character states and ledger records', async () => {
+        const calls = [];
+        const providers = createProviderRegistry([makeMockAdapter({ default: '{}', recordCalls: calls })]);
+        const foundation = makeFoundation({ characters: [maleChar('c1', '이세종'), femaleChar('c2', '소영')] });
+        const prevState = {
+            ...emptyStoryState('work-test'), chapterNumber: 4,
+            hooks: [{ id: 'h1', text: 'HOOK_TEXT_TOKEN', status: 'open', plantedAtChapter: 2 }, { id: 'h2', text: 'PAID_HOOK_TOKEN', status: 'paid', plantedAtChapter: 1 }],
+            ledger: { records: [{ id: 'o1', feature: 'objects', label: '물건', name: 'RECORD_TOKEN', aliases: [], status: 'active', fields: { owner: 'c1' }, registeredAt: 2, recent: [] }] },
+        };
+        await extractDelta({ prose: '평범한 회차였다.', castManifestRaw: '', chapterNumber: 5, foundation, prevState, providers, model: MODEL });
+        const prompt = calls[0].messages.map((m) => m.content).join('\n');
+        for (const token of ['HOOK_TEXT_TOKEN', '"records":[{"id":"o1","feature":"objects","label":"물건","name":"RECORD_TOKEN","status":"active"}]'])
+            expect(prompt.includes(token)).toBe(true);
+        for (const token of ['PAID_HOOK_TOKEN', 'trackedEntities', 'knownEntities'])
+            expect(prompt.includes(token)).toBe(false);
+    });
+    it('shows the extractor records converted from a state written before the ledger', async () => {
         const calls = [];
         const providers = createProviderRegistry([makeMockAdapter({ default: '{}', recordCalls: calls })]);
         const foundation = makeFoundation({ characters: [maleChar('c1', '이세종'), femaleChar('c2', '소영')] });
@@ -510,6 +526,7 @@ describe('extractDelta carries continuity state', () => {
             ...emptyStoryState('work-test'), chapterNumber: 4,
             hooks: [{ id: 'h1', text: 'HOOK_TEXT_TOKEN', phase: 'planted', plantedAtChapter: 2 }],
             characterStates: { c2: { vitalStatus: 'dead', knownFacts: [], sinceChapter: 3 } },
+            ledger: undefined,
             trackedEntities: [{ kind: 'Artifact', data: { name: 'TRACKED_TOKEN', owner: 'c1' } }],
         };
         await extractDelta({

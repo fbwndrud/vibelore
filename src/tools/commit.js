@@ -9,7 +9,7 @@
  * judgement beats the engine's, but it should cost a deliberate keystroke.
  */
 import { extractDelta, supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
-import { isHookActive, reduceStoryState } from '../../engine/src/continuity/story-state.js';
+import { isHookActive, normalizeStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
 import { ledgerLogStatus, ledgerPrevState, rebuildLedgerLog } from './ledger-log.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
@@ -339,7 +339,7 @@ export async function runStatus({ store, workId }) {
   if (!foundation) return { initialized: false, message: '이 디렉터리에 작품이 없습니다.', runtime: runtimeVersion() };
   const chapters = await store.listChapters();
   const last = chapters.length ? chapters[chapters.length - 1] : 0;
-  const state = last > 0 ? await store.loadStoryState(workId, last) : null;
+  const state = last > 0 ? normalizeStoryState(await store.loadStoryState(workId, last)) : null;
   const arcPlan = await store.loadArcPlan(workId);
   const storyProfile = await store.loadStoryProfile(workId);
   const nextDetailedEpisode = await store.loadEpisodePlan(workId, last + 1);
@@ -360,7 +360,8 @@ export async function runStatus({ store, workId }) {
       id: c.id, name: c.canonicalName, since: c.registeredAtChapter,
     })),
     worldFacts: foundation.worldFacts.length,
-    openHooks: (state?.hooks ?? []).map((h) => h.text || h.id),
+    // Only hooks the reader is still waiting on; dormant and paid ones are not open.
+    openHooks: (state?.hooks ?? []).filter(isHookActive).map((h) => h.text || h.id),
     ledgerLog: await ledgerLogStatus({ store, workId }),
     arcCursor: state?.arcCursor ?? {},
     arc: arcPlan ? {

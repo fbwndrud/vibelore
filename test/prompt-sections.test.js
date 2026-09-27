@@ -114,8 +114,9 @@ test('check sections keep tracked-item changes so ownership invariants can be ju
   const { renderCheckSections } = await import('../src/core/prompt-sections.js');
   const sections = renderCheckSections({ foundation: { ...foundation, genreProfile: { invariants: [{ id: 'OWN', severity: 'soft', description: '소유자 이동은 사건 필요' }] } },
     prevState: state, kit,
-    delta: { appearedCharacterIds: ['c1'], newAddressEntries: [], mutableChanges: [], trackedEntityOps: [{ kind: 'Artifact', data: { id: 'slip', holder: 'c1' } }] } });
-  assert.match(sections.delta, /\[delta\.trackedEntityOps\[0\]\] \[Artifact\] id: slip; holder: 리아/);
+    delta: { appearedCharacterIds: ['c1'], newAddressEntries: [], mutableChanges: [], ledgerOps: [{ op: 'event', id: 'o1', event: 'changed', set: { holder: 'c1' } }] } });
+  assert.match(sections.delta, /\[delta\.ledgerOps\[0\]\] \[Artifact\] 구겨진 쪽지 \(o1\) · 변경 · holder: 리아/);
+  assert.match(sections.prev, /\[Artifact\] 구겨진 쪽지 · 있음 · holder: 도윤 \(6화\)/);
   assert.match(sections.invariants, /OWN: 소유자 이동은 사건 필요/);
   assert.doesNotMatch(sections.foundation, /DESIGN_TIME_LOCATION/);
 });

@@ -23,7 +23,7 @@ import { createPublicationUnit } from '../core/publication-unit.js';
 import { createHash } from 'node:crypto';
 import { renderSceneCharacterPacket } from '../core/character-dynamics-adapter.js';
 import { openCanonRepository } from '../core/canon-repository.js';
-import { isHookActive } from '../../engine/src/continuity/story-state.js';
+import { isHookActive, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
 import { PROMPT_FAMILY_KO, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { tokenUnits } from '../core/token-units.js';
@@ -67,7 +67,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   const sectionLanguage = kit.family === PROMPT_FAMILY_KO ? undefined : workLanguage.contract;
 
   const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store, promptFamily: kit.family });
-  const lastState = window.lastStoryState;
+  const lastState = normalizeStoryState(window.lastStoryState);
 
   const snapshots = await store.loadEntitySnapshots(workId);
   const entity = resolveEntityContext({ snapshots, scene: scene ?? undefined, promptFamily: kit.family });
@@ -211,7 +211,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
       genre: foundation.genre,
       characterCount: visible.length,
       worldFactCount: foundation.worldFacts.length,
-      openHooks: lastState?.hooks?.length ?? 0,
+      openHooks: openHooks.length,
       recentSummaries: window.recentSummaries.length,
       // Newest-first text of the same window, and the older memory the
       // compiler selected, so the draft sees what this context assembled.
@@ -250,7 +250,7 @@ export async function selectWriterContinuity({ store, workId, chapter }) {
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });
   const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store, promptFamily: kit.family });
-  const lastState = window.lastStoryState;
+  const lastState = normalizeStoryState(window.lastStoryState);
   const arcPlan = await store.loadArcPlan(workId);
   const episodePlan = await store.loadEpisodePlan(workId, chapter);
   const arcEpisode = episodeForChapter(arcPlan, chapter);

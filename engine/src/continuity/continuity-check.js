@@ -33,8 +33,8 @@ import { createHash } from 'node:crypto';
 import { computeLanguageContractHash } from '../core/language-policy.js';
 import { languageSystemLines, pickByFamily, promptFamilyCaptureContext, resolveStepPromptLanguage, } from '../core/prompt-language.js';
 import { scanLexicon, } from './lexicon-scan.js';
-import { isHookActive, normalizeHook, VITAL_STATUSES } from './story-state.js';
-import { hookStatusOf, LEDGER_FEATURES, trackingEnabled } from './ledger.js';
+import { isHookActive, normalizeHook, normalizeStoryState, VITAL_STATUSES } from './story-state.js';
+import { LEDGER_FEATURES, trackingEnabled } from './ledger.js';
 // ───────────────────────────── cast-manifest parsing ──────────────────────
 /**
  * Parse the cast-manifest body emitted by the writer. The OutputSanitizer has
@@ -436,35 +436,25 @@ const EXTRACT_LABELS_EN = Object.freeze({
     belief: 'how "from" now sees "to"',
     noInfluenceReason: 'fill in specifically only when there truly is no choice, cost, perception or relationship change; an empty string when influenceEvents is non-empty',
 });
-const TRACKED_PROMPT_LIMIT_PER_KIND = 8;
-function recentTrackedEntities(tracked) {
-    const byKind = new Map();
-    for (const record of tracked ?? []) {
-        const list = byKind.get(record.kind) ?? [];
-        list.push(record);
-        byKind.set(record.kind, list);
-    }
-    return [...byKind.values()].flatMap((list) => list.slice(-TRACKED_PROMPT_LIMIT_PER_KIND));
-}
+const SUMMARY_RECORD_LIMIT = 30;
 /**
- * What the extractor and the semantic checker see of earlier chapters: active
- * hooks with their text and status, recorded character states, recent tracked
- * records per kind and, when supplied, the known entities. Keys that would be
- * empty are left out.
+ * What the extractor and the semantic checker see of earlier chapters when no
+ * rendered state is given: open hooks with their text and status, recorded
+ * character states and the latest ledger records. A state written before the
+ * ledger gets its records from its tracked entities and `entities`. Keys that
+ * would be empty are left out.
  */
-function continuityStateSummary(prevState, entities) {
-    const activeHooks = (prevState.hooks ?? []).filter(isHookActive);
-    const tracked = recentTrackedEntities(prevState.trackedEntities);
+function continuityStateSummary(loadedState, entities) {
+    const prevState = normalizeStoryState(loadedState, { entities: Array.isArray(entities) ? entities : [] });
+    const activeHooks = prevState.hooks.filter(isHookActive);
+    const records = (prevState.ledger?.records ?? []).slice(-SUMMARY_RECORD_LIMIT).map(({ id, feature, label, name, status }) => ({ id, feature, label, name, status }));
     return {
         chapterNumber: prevState.chapterNumber,
         addressMapKeys: Object.keys(prevState.addressMap.entries),
-        activeHookIds: activeHooks.map((h) => h.id ?? h.hookId),
-        ...(activeHooks.length ? { activeHooks: activeHooks.map((h) => ({ id: h.id ?? h.hookId, text: h.text ?? h.description ?? '', status: hookStatusOf(h) })) } : {}),
+        activeHookIds: activeHooks.map((h) => h.id),
+        ...(activeHooks.length ? { activeHooks: activeHooks.map((h) => ({ id: h.id, text: h.text, status: h.status })) } : {}),
         ...(prevState.characterStates ? { characterStates: prevState.characterStates } : {}),
-        ...(tracked.length ? { trackedEntities: tracked } : {}),
-        ...(Array.isArray(entities) && entities.length ? {
-            knownEntities: entities.map((e) => ({ entityId: e.entityId, kind: e.kind, name: e.canonicalName, status: e.status })),
-        } : {}),
+        ...(records.length ? { records } : {}),
     };
 }
 /**

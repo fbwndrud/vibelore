@@ -592,7 +592,7 @@ export const phrases = {
     deltaAppeared: (names) => `- [delta.appearedCharacterIds] appearing in this chapter: ${names}`,
     deltaAddress: (path, speaker, target, term) => `- [${path}] ${speaker} → ${target}: "${term}"`,
     deltaMutable: (path, name, fields) => `- [${path}] ${name}: ${fields}`,
-    deltaTracked: (path, kind, body) => `- [${path}] [${kind}] ${body}`,
+    deltaLedger: (path, label, body) => `- [${path}] [${label}] ${body}`,
     deltaEmpty: '- (no appearances, address terms or state changes)',
     castNames: (v) => `Characters: ${v}`,
     withheldNote: (v) => `Deliberately not revealed in this chapter: ${v}`,

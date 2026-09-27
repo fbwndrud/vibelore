@@ -583,7 +583,7 @@ export const phrases = {
     deltaAppeared: (names) => `- [delta.appearedCharacterIds] 이번 화 등장: ${names}`,
     deltaAddress: (path, speaker, target, term) => `- [${path}] ${speaker} → ${target}: "${term}"`,
     deltaMutable: (path, name, fields) => `- [${path}] ${name}: ${fields}`,
-    deltaTracked: (path, kind, body) => `- [${path}] [${kind}] ${body}`,
+    deltaLedger: (path, label, body) => `- [${path}] [${label}] ${body}`,
     deltaEmpty: '- (등장·호칭·상태 변화 없음)',
     castNames: (v) => `등장 인물: ${v}`,
     withheldNote: (v) => `이번 화에 일부러 드러내지 않는 것: ${v}`,

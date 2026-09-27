@@ -105,9 +105,8 @@ test('review fixes: names match as words, and future characters stay out of the 
 
 test('review fixes: the check sees the previous value of a tracked item this chapter changes', () => {
   const w = longRunWork(100);
-  // The check still compares legacy tracked items until it reads ledger ops.
-  const prevState = { ...w.state, trackedEntities: [{ kind: 'Artifact', data: { id: 'silver-key', name: '은빛 열쇠', holder: 'x5', state: '녹슨 채 보관' }, updatedChapter: 4 }] };
+  const prevState = { ...w.state, ledger: { records: [{ id: 'silver-key', feature: 'objects', label: 'Artifact', name: '은빛 열쇠', aliases: [], status: 'active', fields: { holder: 'x5', state: '녹슨 채 보관' }, lastEventAt: 4, recent: [] }] } };
   const sections = renderCheckSections({ foundation: w.foundation, prevState, kit, focusText: w.prose,
-    delta: { appearedCharacterIds: ['c1'], trackedEntityOps: [{ kind: 'Artifact', data: { id: 'silver-key', holder: 'c1' } }] } });
-  assert.match(sections.prev, /silver-key[^\n]*조연5|은빛 열쇠[^\n]*조연5/);
+    delta: { appearedCharacterIds: ['c1'], ledgerOps: [{ op: 'event', id: 'silver-key', event: 'changed', set: { holder: 'c1' } }] } });
+  assert.match(sections.prev, /은빛 열쇠[^\n]*조연5/);
 });

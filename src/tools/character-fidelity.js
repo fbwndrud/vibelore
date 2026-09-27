@@ -28,21 +28,22 @@ function parse(raw) {
  * summary. Design-time relationships and appearance are left out; the current
  * relationships come from the state. A caller may still pass its own `context`.
  */
-export function characterFidelityContext({ foundation, chapter, episodePlan, prevState, dynamics, previousSummary, kit }) {
+export function characterFidelityContext({ foundation, chapter, episodePlan, prevState, dynamics, previousSummary, kit, config = {}, history = [] }) {
   const cast = episodePlan?.cast?.length ? episodePlan.cast : [];
   const plan = renderEpisodePlan(episodePlan, kit);
   return [
     plan,
     renderSceneCharacterPacket({ projection: dynamics, cast, pressure: episodePlan?.scenePressure?.decisionDeadline ?? '', episodePlan, kit }),
-    renderCurrentState(prevState, foundation, { cast, kit, mode: 'writer', focusText: plan, hookIds: episodePlan?.hooksTouched ?? [] }),
+    // The same tracking switches, pinned items and record history the writer saw.
+    renderCurrentState(prevState, foundation, { cast, kit, mode: 'writer', focusText: plan, hookIds: episodePlan?.hooksTouched ?? [], config, history }),
     previousSummary?.summary ? kit.phrases.sections.previousSummary(previousSummary.chapterNumber, previousSummary.summary) : '',
   ].filter(Boolean).join('\n\n');
 }
 
-export async function runCharacterFidelity({ prose, chapter, foundation, context, episodePlan = null, prevState = null, dynamics = null, previousSummary = null, providers, kit: kitSource }) {
+export async function runCharacterFidelity({ prose, chapter, foundation, context, episodePlan = null, prevState = null, dynamics = null, previousSummary = null, config = {}, history = [], providers, kit: kitSource }) {
   const kit = asKit(kitSource ?? { foundation });
   const castText = renderCharacters(foundation, episodePlan?.cast ?? [], chapter, kit, { appearance: false, description: true });
-  const contextText = context ?? characterFidelityContext({ foundation, chapter, episodePlan, prevState, dynamics, previousSummary, kit });
+  const contextText = context ?? characterFidelityContext({ foundation, chapter, episodePlan, prevState, dynamics, previousSummary, kit, config, history });
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'character-fidelity',
     messages: kit.messages('character-fidelity', { chapter, castText, context: contextText, prose }),

@@ -39,4 +39,18 @@ describe('runDraft — text sections', () => {
         const user = requests[0].messages.find((m) => m.role === 'user').content;
         expect(user).toContain('JSON_WORLD_FACT');
     });
+    it('the JSON state shows the latest ledger records and only open hooks', async () => {
+        const { provider, requests } = capture();
+        const records = Array.from({ length: 14 }, (_, i) => ({ id: `o${i + 1}`, feature: 'objects', label: '물건', name: `RECORD_${i + 1}_`, aliases: [], status: 'active', fields: {}, registeredAt: 1, lastEventAt: i + 1, recent: [] }));
+        const prevState = { ...emptyStoryState('w'), chapterNumber: 14, ledger: { records },
+            hooks: [{ id: 'h1', text: 'OPEN_HOOK', status: 'open' }, { id: 'h2', text: 'PAID_HOOK', phase: 'paid' }] };
+        await runDraft({ foundation, prevState, chapterNumber: 15, plan: '기획', providers: provider, model: { provider: 'openai', modelId: 'm' } });
+        const user = requests[0].messages.find((m) => m.role === 'user').content;
+        expect(user).toContain('RECORD_14_');
+        expect(user).toContain('RECORD_3_');
+        expect(user).not.toContain('RECORD_2_');
+        expect(user).toContain('OPEN_HOOK');
+        expect(user).not.toContain('PAID_HOOK');
+        expect(user).not.toContain('"trackedEntities"');
+    });
 });

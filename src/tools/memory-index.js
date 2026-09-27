@@ -3,10 +3,13 @@ import { mkdir, rm } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { isHookActive, normalizeHook } from '../../engine/src/continuity/story-state.js';
 import { searchTerms } from '../core/search-terms.js';
+import { ledgerPrevState } from './ledger-log.js';
+import { trackingEnabled } from '../../engine/src/continuity/ledger.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 
 const ftsQuery = (queryTerms) => queryTerms.map((term) => `"${term.replaceAll('"', '""')}"`).join(' OR ');
 
-/** Rebuildable FTS projection. Markdown/StoryState remain authoritative. */
+/** Rebuildable FTS projection. Markdown/StoryState and the ledger log remain authoritative. */
 export async function rebuildMemoryIndex({ store, workId, language }) {
   const path = store.sidecar('memory.db');
   await mkdir(dirname(path), { recursive: true });
@@ -32,13 +35,25 @@ export async function rebuildMemoryIndex({ store, workId, language }) {
     }
     const latest = chapters.at(-1) ?? 0;
     const state = latest ? await store.loadStoryState(workId, latest) : null;
-    for (const hook of state?.hooks ?? []) {
+    // What the author stopped tracking is not brought back through memory either.
+    const config = await loadLedgerConfig(store, workId);
+    for (const hook of trackingEnabled(config, 'hooks') ? state?.hooks ?? [] : []) {
       // Dormant hooks stay searchable: they may come back.
       const { status } = normalizeHook(hook) ?? {};
       if (status === 'paid' || status === 'closed') continue;
       insert.run('hook', hook.id ?? '', hook.plantedAtChapter ?? 0, hook.text ?? '');
     }
-    for (const entity of await store.loadEntitySnapshots(workId)) insert.run('entity', entity.entityId ?? entity.id ?? entity.canonicalName, entity.registeredAtChapter ?? 0, [entity.canonicalName, ...(entity.aliases ?? []), JSON.stringify(entity.attrs ?? {})].join(' '));
+    // A state written before the ledger (or no chapter yet) gets its records from the entity snapshots.
+    const ledger = ledgerPrevState(workId, state, await store.loadEntitySnapshots(workId)).ledger;
+    const records = ledger?.records ?? [];
+    const off = new Set(records.filter((record) => !trackingEnabled(config, record.feature)).flatMap((record) => [record.id, ...(record.mergedIds ?? [])]));
+    for (const record of records.filter((item) => !off.has(item.id))) {
+      insert.run('record', record.id, record.registeredAt ?? 0, [record.name, ...(record.aliases ?? []).map((alias) => alias.text), record.label, JSON.stringify(record.fields ?? {})].filter(Boolean).join(' '));
+    }
+    for (const event of await store.loadLedgerEvents(workId)) {
+      const shown = event.target === 'hook' ? trackingEnabled(config, 'hooks') : !off.has(event.id);
+      if (event.note && shown) insert.run('event', event.id ?? `chapter-${event.chapter}`, event.chapter ?? 0, event.note);
+    }
     return { rebuilt: true, backend, documents: Number(db.prepare('SELECT count(*) AS n FROM memory').get().n) };
   } finally { db.close(); }
 }
