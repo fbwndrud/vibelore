@@ -47,6 +47,17 @@ describe('reduceStoryState', () => {
         expect(next.arcCursor.hero.beat).toBe('collapse');
         expect(next.chapterNumber).toBe(10);
     });
+    // Chapter 11 of the same sample: the plan's next beat for the arc that never
+    // started. With the quota still full it is left out the same way.
+    it('leaves out later beats of an arc whose start was left out over the quota', () => {
+        const prev = { ...emptyStoryState('w'), chapterNumber: 10, arcCursor: {
+            hero: { beat: 'attempt', enteredAtChapter: 2 }, ally: { beat: 'attempt', enteredAtChapter: 3 } } };
+        const delta = emptyDelta(11);
+        delta.arcCursorOps = [{ characterId: 'rival', nextBeat: 'attempt' }];
+        expect(reduceStoryState(prev, delta).arcCursor.rival).toBe(undefined);
+        const open = { ...prev, arcCursor: { hero: prev.arcCursor.hero } };
+        expect(() => reduceStoryState(open, delta)).toThrow(/first beat must be 'wound'/);
+    });
     it('still rejects an arc that regresses', () => {
         const prev = { ...emptyStoryState('w'), chapterNumber: 3, arcCursor: { hero: { beat: 'collapse', enteredAtChapter: 2 } } };
         const delta = emptyDelta(4);

@@ -6,7 +6,7 @@
  * Genre profiles add typed categories of tracked entities. Reducers return new
  * containers so evaluating a candidate does not mutate the prior snapshot.
  */
-import { advanceCursor, CHARACTER_ARC_BEATS } from './character-arc.js';
+import { activeArcCount, advanceCursor, CHARACTER_ARC_BEATS, MAX_ACTIVE_CHARACTER_ARCS } from './character-arc.js';
 import { applyLedgerOps, applyMerges, emptyLedger, HOOK_HORIZONS, ledgerConfigAt, hookStatusOf, HOOK_STATUSES, LEGACY_KNOWLEDGE_KINDS, LEGACY_LOG_KINDS, LEGACY_SKIPPED_KINDS, ledgerFromLegacy, legacyRecord } from './ledger.js';
 /**
  * Hook lifecycle. A hook is a narrative promise to the reader.
@@ -260,9 +260,12 @@ export function reduceStoryState(prev, delta, { config = {} } = {}) {
             catch (error) {
                 // The arc cursor is an advisory observation: an arc start over the
                 // active quota (e.g. an approved arc opening a third personal arc)
-                // is left out rather than failing the chapter commit. Order
+                // is left out rather than failing the chapter commit, and so are the
+                // later beats of that arc while the quota is still full. Order
                 // violations stay errors.
-                if (error?.code !== 'ACTIVE_ARC_QUOTA_EXCEEDED')
+                const leftOutStart = error?.code === 'ARC_MUST_START_AT_WOUND'
+                    && activeArcCount(nextArcCursor) >= MAX_ACTIVE_CHARACTER_ARCS;
+                if (error?.code !== 'ACTIVE_ARC_QUOTA_EXCEEDED' && !leftOutStart)
                     throw error;
             }
         }
