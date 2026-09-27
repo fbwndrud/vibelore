@@ -1369,6 +1369,26 @@ function reasonIsNaturalLanguage(reason, entry) {
  * 모델 응답의 semanticValidation 블록을 검증한다. 하나라도 규칙을 어기면 부분
  * 채택 없이 전부 폐기한다 — 절반만 믿은 판정이 통과 증거로 쓰이지 않게 한다.
  */
+function checkEvidenceEntry(raw, invariantId, fieldRoots) {
+    const fieldPath = asString(raw.fieldPath)?.trim();
+    if (!fieldPath)
+        return rejected('malformed_evidence');
+    const quote = asString(raw.quote);
+    if (!quote || quote.trim().length === 0)
+        return rejected('malformed_evidence');
+    const resolved = resolveFieldPath(fieldRoots, fieldPath);
+    if (!resolved.ok && resolved.reason === 'malformed')
+        return rejected('malformed_evidence');
+    if (!resolved.ok || !valueContainsQuote(resolved.value, quote))
+        return rejected('quote_not_found');
+    const reason = asString(raw.reason)?.trim();
+    if (!reason)
+        return rejected('empty_reason');
+    const entry = Object.freeze({ invariantId, fieldPath, quote, reason });
+    if (!reasonIsNaturalLanguage(reason, entry))
+        return rejected('reason_not_natural_language');
+    return { ok: true, entry };
+}
 function validateSemanticBlock(parsed, { requiredIds, contextHash, fieldRoots }) {
     const block = parsed?.semanticValidation;
     if (!isRecord(block))
@@ -1401,24 +1421,17 @@ function validateSemanticBlock(parsed, { requiredIds, contextHash, fieldRoots })
             return rejected('malformed_evidence');
         if (!requiredIds.includes(invariantId))
             return rejected('unknown_invariant_id');
-        const fieldPath = asString(raw.fieldPath)?.trim();
-        if (!fieldPath)
-            return rejected('malformed_evidence');
-        const quote = asString(raw.quote);
-        if (!quote || quote.trim().length === 0)
-            return rejected('malformed_evidence');
-        const resolved = resolveFieldPath(fieldRoots, fieldPath);
-        if (!resolved.ok && resolved.reason === 'malformed')
-            return rejected('malformed_evidence');
-        if (!resolved.ok || !valueContainsQuote(resolved.value, quote))
-            return rejected('quote_not_found');
-        const reason = asString(raw.reason)?.trim();
-        if (!reason)
-            return rejected('empty_reason');
-        const entry = Object.freeze({ invariantId, fieldPath, quote, reason });
-        if (!reasonIsNaturalLanguage(reason, entry))
-            return rejected('reason_not_natural_language');
-        evidence.push(entry);
+        const checked = checkEvidenceEntry(raw, invariantId, fieldRoots);
+        if (!checked.ok) {
+            // A pass needs no evidence: a decorative citation under it (a quote
+            // rendered from an ID array, a paraphrase) is dropped instead of
+            // discarding every verdict (2026-09-28 ko sample: three all-pass
+            // answers lost this way). fail/uncertain evidence stays strict.
+            if (verdicts[invariantId] === 'pass')
+                continue;
+            return checked;
+        }
+        evidence.push(checked.entry);
     }
     for (const id of requiredIds) {
         if (verdicts[id] !== 'fail')
