@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1 — 2026-09-27
 
 - Story ledger. Objects, knowledge, scheduled events and hooks are kept as
   one record each across the whole work, with an ID, a status, current
