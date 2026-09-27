@@ -1,6 +1,7 @@
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { emptyStoryState, reduceStoryState, } from '../../src/continuity/story-state.js';
 import { ledgerStep, legacyLedgerOps, normalizeStoryState, isHookActive, isLegacyLedger } from '../../src/continuity/story-state.js';
+import { advanceCursor } from '../../src/continuity/character-arc.js';
 const emptyDelta = (chapterNumber) => ({
     chapterNumber,
     appearedCharacterIds: [],
@@ -58,11 +59,12 @@ describe('reduceStoryState', () => {
         const open = { ...prev, arcCursor: { hero: prev.arcCursor.hero } };
         expect(() => reduceStoryState(open, delta)).toThrow(/first beat must be 'wound'/);
     });
-    it('still rejects an arc that regresses', () => {
+    it('leaves out a beat the cursor has already passed but still rejects skipping ahead', () => {
         const prev = { ...emptyStoryState('w'), chapterNumber: 3, arcCursor: { hero: { beat: 'collapse', enteredAtChapter: 2 } } };
         const delta = emptyDelta(4);
         delta.arcCursorOps = [{ characterId: 'hero', nextBeat: 'wound' }];
-        expect(() => reduceStoryState(prev, delta)).toThrow(/cannot regress/);
+        expect(reduceStoryState(prev, delta).arcCursor.hero).toEqual({ beat: 'collapse', enteredAtChapter: 2 });
+        expect(() => advanceCursor(prev.arcCursor, { characterId: 'hero', nextBeat: 'wound', chapterNumber: 4 })).toThrow(/cannot regress/);
     });
     it('throws chapter-out-of-order when delta.chapterNumber <= prev.chapterNumber', () => {
         const prev = { ...emptyStoryState('w'), chapterNumber: 3 };

@@ -75,6 +75,14 @@ describe('CharacterArcSeed compiler', () => {
       foundation, projection: projection(), previousArcPlan, arcCursor: { lua: { beat: 'wound', enteredAtChapter: 1 } },
     });
     assert.equal(behind[0].previousArc.lastBeat, 'wound');
+    // An arc the last plan left out still stands on the cursor.
+    const carried = compileCharacterArcSeeds({
+      foundation, projection: projection(), previousArcPlan: { status: 'completed', characterArcs: [] },
+      arcCursor: { lua: { beat: 'attempt', enteredAtChapter: 6 } },
+    });
+    assert.equal(carried[0].status, 'active');
+    assert.equal(carried[0].previousArc.lastBeat, 'attempt');
+    assert.match(renderCharacterArcSeeds(carried), /마지막 단계=attempt/);
   });
 
   it('allows a grounded character beat to continue across episode arcs without restarting at wound', () => {

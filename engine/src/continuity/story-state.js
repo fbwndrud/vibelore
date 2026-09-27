@@ -261,11 +261,14 @@ export function reduceStoryState(prev, delta, { config = {} } = {}) {
                 // The arc cursor is an advisory observation: an arc start over the
                 // active quota (e.g. an approved arc opening a third personal arc)
                 // is left out rather than failing the chapter commit, and so are the
-                // later beats of that arc while the quota is still full. Order
-                // violations stay errors.
+                // later beats of that arc while the quota is still full. A beat the
+                // cursor has already passed (a plan that restarted an ongoing arc)
+                // is left out too; skipping ahead stays an error.
                 const leftOutStart = error?.code === 'ARC_MUST_START_AT_WOUND'
                     && activeArcCount(nextArcCursor) >= MAX_ACTIVE_CHARACTER_ARCS;
-                if (error?.code !== 'ACTIVE_ARC_QUOTA_EXCEEDED' && !leftOutStart)
+                const passedBeat = error?.code === 'ARC_BEAT_OUT_OF_ORDER'
+                    && currentIndex >= 0 && targetIndex >= 0 && targetIndex < currentIndex;
+                if (error?.code !== 'ACTIVE_ARC_QUOTA_EXCEEDED' && !leftOutStart && !passedBeat)
                     throw error;
             }
         }

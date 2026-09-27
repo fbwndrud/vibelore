@@ -64,13 +64,15 @@ export function compileCharacterArcSeeds({
     const previousArc = previousArcs.get(character.id);
     const outcome = outcomes.get(character.id);
     const evidence = evidenceFromState(state, maxEvidence);
-    const hasHistory = evidence.length || state?.nextChoiceBias || previousArc || outcome;
+    const cursorEntry = arcCursor?.[character.id] ?? null;
+    const hasHistory = evidence.length || state?.nextChoiceBias || previousArc || outcome || cursorEntry;
     if (!state || !hasHistory) return [];
     // The committed cursor is where the arc actually stands; a planned beat the reducer left out never happened.
     const lastBeat = arcCursor
       ? arcCursor[character.id]?.beat ?? null
       : asArray(previousArc?.beats).at(-1)?.beat ?? null;
     const status = outcome?.status
+      ?? (cursorEntry && cursorEntry.beat !== 'echo' ? 'active' : null)
       ?? (previousArc ? (previousArcPlan?.status === 'completed' ? 'dormant' : 'active') : 'latent');
     const latestChapter = Math.max(-1, ...evidence.map((item) => Number(item.chapter ?? -1)));
     return [{
@@ -86,10 +88,11 @@ export function compileCharacterArcSeeds({
         fallback: text(agenda.fallback),
       },
       relationshipResidue: relationshipResidue(projection, character.id),
-      previousArc: previousArc ? {
-        promise: text(previousArc.promise), lastBeat, outcomeEvidence: text(outcome?.evidence),
+      // An arc from an earlier plan still stands on the cursor even when the last plan left it out.
+      previousArc: previousArc || cursorEntry ? {
+        promise: text(previousArc?.promise), lastBeat, outcomeEvidence: text(outcome?.evidence),
       } : null,
-      _rank: (previousArc ? 1_000_000 : 0) + latestChapter,
+      _rank: (previousArc || cursorEntry ? 1_000_000 : 0) + latestChapter,
     }];
   }).sort((a, b) => b._rank - a._rank || a.characterId.localeCompare(b.characterId))
     .slice(0, Math.max(0, maxCharacters))
@@ -108,7 +111,9 @@ export function renderCharacterArcSeeds(seeds, kitSource) {
     return [
       t.seedHeading(seed.characterId, seed.canonicalName, seed.status),
       seed.unresolvedPressure ? t.seedPressure(seed.unresolvedPressure) : '',
-      seed.previousArc?.promise ? t.seedPreviousArc(seed.previousArc.promise, seed.previousArc.lastBeat ?? kit.phrases.common.none, seed.previousArc.outcomeEvidence) : '',
+      seed.previousArc?.promise || seed.previousArc?.lastBeat
+        ? t.seedPreviousArc(seed.previousArc.promise || kit.phrases.common.none, seed.previousArc.lastBeat ?? kit.phrases.common.none, seed.previousArc.outcomeEvidence)
+        : '',
       seed.currentAgenda?.goal ? t.seedAgenda(seed.currentAgenda.goal, seed.currentAgenda.nextAction) : '',
       ...evidence.map((item) => t.seedEvidence(item)),
       ...asArray(seed.relationshipResidue).map((item) => t.seedRelationship(item.direction, item.belief)),
