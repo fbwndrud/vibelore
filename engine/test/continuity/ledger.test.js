@@ -1,6 +1,6 @@
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { emptyLedger, findRecord, hookStatusOf, ledgerFromLegacy, ledgerNameKey, nextLedgerId, similarRecord } from '../../src/continuity/ledger.js';
-import { applyLedgerOps, applyMerges } from '../../src/continuity/ledger.js';
+import { applyLedgerOps, applyMerges, ledgerConfigAt } from '../../src/continuity/ledger.js';
 import { reviewLedgerOps } from '../../src/continuity/ledger.js';
 
 const note = { id: 'o1', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [{ text: '그 쪽지' }], status: 'active', fields: {}, recent: [] };
@@ -319,5 +319,83 @@ describe('withLegacyEntities', () => {
         expect(next.records[1]).toEqual({ id: 'seed-1', feature: 'objects', label: '장소', name: '은 탑', aliases: [{ text: '탑' }], status: 'active', fields: { floor: 3 }, registeredAt: 0, lastEventAt: 0, recent: [] });
         expect(ledger.records.length).toBe(1);
         expect(withLegacyEntities(ledger, [])).toBe(ledger);
+    });
+});
+
+describe('registering with a first status', () => {
+    it('keeps a valid first status on register and reports an invalid one', () => {
+        const out = applyLedgerOps(base(), [
+            { op: 'register', feature: 'objects', label: '물건', name: '유리 병', status: 'destroyed', note: '깨진 채 발견' },
+            { op: 'register', feature: 'scheduled', label: '예정', name: '대관식', status: 'prevented' },
+            { op: 'register', feature: 'objects', label: '물건', name: '은 반지', status: 'pending' },
+        ], { chapter: 7 });
+        const byName = Object.fromEntries(out.ledger.records.map((r) => [r.name, r.status]));
+        expect(byName).toMatchObject({ '유리 병': 'destroyed', '대관식': 'prevented', '은 반지': 'active' });
+        expect(out.events.find((e) => e.id === out.ledger.records.find((r) => r.name === '유리 병').id)).toMatchObject({ event: 'registered', status: 'destroyed' });
+        expect(out.violations.map((v) => v.code)).toEqual(['LEDGER_INVALID_STATUS']);
+    });
+});
+
+describe('a status event with fields', () => {
+    it('applies the set fields of a status event too', () => {
+        const state = { ...base(), ledger: { records: [{ id: 'k1', feature: 'knowledge', label: '비밀', name: '손목 부상', aliases: [], status: 'secret', fields: { knownBy: ['c1'] }, recent: [] }] } };
+        const out = applyLedgerOps(state, [{ op: 'event', id: 'k1', event: 'status', status: 'public', set: { knownBy: ['c1', 'c2'] }, note: '들킴' }], { chapter: 7 });
+        expect(out.ledger.records[0]).toMatchObject({ status: 'public', fields: { knownBy: ['c1', 'c2'] } });
+        expect(out.events[0]).toMatchObject({ event: 'status', status: 'public', set: { knownBy: ['c1', 'c2'] } });
+    });
+});
+
+describe('author rules reach existing records', () => {
+    const rules = [{ type: 'monotonic', field: 'amount', direction: 'down', severity: 'hard' }];
+    const purse = () => ({ ...base(), ledger: { records: [{ id: 'o1', feature: 'objects', label: '물건', name: '금화 주머니', aliases: [], status: 'active', fields: { amount: '10' }, recent: [] }] } });
+    it('links a custom item to the record with its name and checks the rule on events', () => {
+        const config = { customTracking: [{ id: 'u1', name: '금화 주머니', feature: 'objects', rules }] };
+        const byRecord = applyLedgerOps(purse(), [{ op: 'event', id: 'o1', event: 'changed', set: { amount: '20' } }], { chapter: 7, config });
+        expect(byRecord.violations.map((v) => [v.code, v.severity])).toEqual([['CUSTOM_RULE_MONOTONIC', 'hard']]);
+        const byItem = applyLedgerOps(purse(), [{ op: 'event', id: 'u1', event: 'changed', set: { amount: '20' } }], { chapter: 7, config });
+        expect(byItem.ledger.records.map((r) => r.id)).toEqual(['o1']);
+        expect(byItem.ledger.records[0].fields.amount).toBe('20');
+        expect(byItem.violations.map((v) => v.code)).toEqual(['CUSTOM_RULE_MONOTONIC']);
+    });
+    it('checks the rule when a register names an existing record', () => {
+        const config = { customTracking: [{ id: 'u1', name: '금화 주머니', feature: 'objects', rules }] };
+        const out = applyLedgerOps(purse(), [{ op: 'register', feature: 'objects', label: '물건', name: '금화 주머니', fields: { amount: '20' } }], { chapter: 7, config });
+        expect(out.violations.map((v) => v.code)).toEqual(['CUSTOM_RULE_MONOTONIC']);
+    });
+});
+
+describe('hook movement', () => {
+    it('does not move a hook on a passing mention', () => {
+        const state = { ...base(), hooks: [{ id: 'h1', text: '손목의 비밀', status: 'open', plantedAtChapter: 2, lastMovedChapter: 5, recent: [] }] };
+        expect(applyLedgerOps(state, [{ op: 'hook', id: 'h1', event: 'mentioned' }], { chapter: 9 }).hooks[0].lastMovedChapter).toBe(5);
+        expect(applyLedgerOps(state, [{ op: 'hook', id: 'h1', event: 'advanced' }], { chapter: 9 }).hooks[0].lastMovedChapter).toBe(9);
+    });
+});
+
+describe('merge by the later record', () => {
+    it('takes status and fields from the record with the later event, keeps the into id and the earliest registration', () => {
+        const ledger = { records: [
+            { id: 'o1', feature: 'objects', label: '물건', name: '낡은 검', aliases: [], status: 'active', fields: { holder: 'c1', edge: '무딤' }, registeredAt: 2, lastEventAt: 3, recent: [{ chapter: 3, event: 'changed' }] },
+            { id: 'o2', feature: 'objects', label: '물건', name: '부러진 검', aliases: [], status: 'destroyed', fields: { holder: 'c2' }, registeredAt: 4, lastEventAt: 6, recent: [{ chapter: 4, event: 'registered' }, { chapter: 6, event: 'status' }] },
+        ] };
+        const out = applyMerges(ledger, [{ from: 'o2', into: 'o1' }], 7);
+        const merged = out.ledger.records[0];
+        expect(merged).toMatchObject({ id: 'o1', name: '낡은 검', status: 'destroyed', fields: { holder: 'c2', edge: '무딤' }, registeredAt: 2, lastEventAt: 6 });
+        expect(merged.recent.map((e) => e.chapter)).toEqual([3, 4, 6]);
+        const older = applyMerges({ records: [ledger.records[1], { ...ledger.records[0], lastEventAt: 8 }] }, [{ from: 'o2', into: 'o1' }], 9);
+        expect(older.ledger.records[0]).toMatchObject({ id: 'o1', status: 'active', fields: { holder: 'c1', edge: '무딤' }, registeredAt: 2 });
+    });
+});
+
+describe('ledgerConfigAt', () => {
+    it('gives the config in effect at a chapter; a config without history is in effect from chapter 1', () => {
+        const config = {
+            tracking: { hooks: false }, customTracking: [{ id: 'u1', name: '금화', feature: 'objects' }],
+            merges: [{ from: 'o2', into: 'o1', atChapter: 3 }, { from: 'o4', into: 'o3' }],
+            history: [{ atChapter: 1, tracking: {}, customTracking: [] }, { atChapter: 4, tracking: { hooks: false }, customTracking: [{ id: 'u1', name: '금화', feature: 'objects' }] }],
+        };
+        expect(ledgerConfigAt(config, 2)).toEqual({ tracking: {}, customTracking: [], merges: [{ from: 'o4', into: 'o3' }] });
+        expect(ledgerConfigAt(config, 4)).toMatchObject({ tracking: { hooks: false }, merges: [{ from: 'o2', into: 'o1', atChapter: 3 }, { from: 'o4', into: 'o3' }] });
+        expect(ledgerConfigAt({ tracking: { knowledge: false } }, 1)).toEqual({ tracking: { knowledge: false }, customTracking: [], merges: [] });
     });
 });

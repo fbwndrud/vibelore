@@ -201,6 +201,35 @@ export function trackingEnabled(config, feature) {
 function customItem(config, ref) {
     return (config?.customTracking ?? []).find((item) => item.id === ref || ledgerNameKey(item.name) === ledgerNameKey(ref)) ?? null;
 }
+/**
+ * The author's item for a record: by id (or an id merged into it), or by a
+ * name or alias the record goes by. An item added after its record was
+ * registered under an `o`/`k`/`s` id still applies its rules to that record.
+ */
+export function customItemFor(config, record) {
+    if (!record)
+        return null;
+    const keys = new Set(recordNames(record).map(ledgerNameKey));
+    const ids = new Set([record.id, ...(record.mergedIds ?? [])]);
+    return (config?.customTracking ?? []).find((item) => item.feature === record.feature
+        && (ids.has(item.id) || keys.has(ledgerNameKey(item.name)))) ?? null;
+}
+/**
+ * The ledger config in effect at `chapter`. Tracking and author items change
+ * at the chapter recorded in `history` ({ atChapter, tracking, customTracking },
+ * oldest first); a merge applies from its `atChapter`. A config without
+ * history, or a merge without `atChapter`, is in effect from chapter 1, so
+ * replaying the deltas reproduces what each commit saw.
+ */
+export function ledgerConfigAt(config, chapter) {
+    const history = Array.isArray(config?.history) ? config.history : [];
+    const entry = history.filter((item) => (item?.atChapter ?? 1) <= chapter).at(-1) ?? (history.length ? null : config);
+    return {
+        tracking: entry?.tracking ?? {},
+        customTracking: entry?.customTracking ?? [],
+        merges: (config?.merges ?? []).filter((merge) => (merge?.atChapter ?? 1) <= chapter),
+    };
+}
 function clone(state) {
     return {
         ledger: { records: (state?.ledger?.records ?? []).map((record) => ({ ...record, aliases: [...(record.aliases ?? [])], fields: { ...(record.fields ?? {}) }, recent: [...(record.recent ?? [])] })) },
@@ -224,7 +253,7 @@ function firstNumber(value) {
     return match ? Number(match[0]) : null;
 }
 function ruleFindings(record, before, event, config) {
-    const item = customItem(config, record.id);
+    const item = customItemFor(config, record);
     const findings = [];
     for (const rule of item?.rules ?? []) {
         const severity = rule.severity === 'hard' ? 'hard' : 'soft';
@@ -255,34 +284,41 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
         events.push(line);
         remember(holder, line, chapter);
     };
-    for (const op of ops ?? []) {
+    for (const raw of ops ?? []) {
+        let op = raw;
         if (op?.op === 'register') {
             if (!LEDGER_FEATURES.includes(op.feature) || !trackingEnabled(config, op.feature) || typeof op.name !== 'string' || !op.name.trim())
                 continue;
             const existing = findRecord(next.ledger, op.name, op.feature);
             if (existing) {
+                // A known name is an event on that record, checked like any other.
                 const set = op.fields && Object.keys(op.fields).length ? { ...op.fields } : null;
-                if (set)
-                    existing.fields = { ...existing.fields, ...set };
-                emit('record', existing, { event: set ? 'changed' : 'mentioned', ...(op.note ? { note: op.note } : {}), ...(set ? { set } : {}) });
+                const status = op.status && op.status !== existing.status ? op.status : null;
+                op = { op: 'event', id: existing.id, event: status ? 'status' : set ? 'changed' : 'mentioned', ...(status ? { status } : {}), ...(set ? { set } : {}), ...(op.note ? { note: op.note } : {}) };
+            }
+            else {
+                const similar = similarRecord(next.ledger, op.feature, op.name);
+                const custom = customItem(config, op.name);
+                const useCustomId = custom && custom.feature === op.feature;
+                // A record converted from a legacy entity keeps its entityId so later ops on that id still land.
+                const legacyId = typeof op.id === 'string' && op.id && !next.ledger.records.some((item) => item.id === op.id || (item.mergedIds ?? []).includes(op.id)) ? op.id : null;
+                // A thing first seen already destroyed or prevented starts in that status.
+                const validStatus = op.status === undefined || RECORD_STATUSES[op.feature].includes(op.status);
+                if (!validStatus)
+                    violations.push({ severity: 'soft', code: 'LEDGER_INVALID_STATUS', ledgerId: op.name, message: `"${op.status}" is not a ${op.feature} status` });
+                const status = op.status !== undefined && validStatus ? op.status : INITIAL_STATUS[op.feature];
+                const record = {
+                    id: useCustomId ? custom.id : legacyId ?? nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
+                    aliases: (op.aliases ?? []).map((alias) => aliasOf(alias, chapter)).filter(Boolean),
+                    status, fields: { ...(op.fields ?? {}) }, registeredAt: chapter, recent: [],
+                    ...(similar ? { possibleDuplicateOf: similar.id } : {}),
+                };
+                next.ledger.records.push(record);
+                emit('record', record, { event: 'registered', ...(op.note ? { note: op.note } : {}), ...(status !== INITIAL_STATUS[op.feature] ? { status } : {}), ...(Object.keys(record.fields).length ? { set: { ...record.fields } } : {}) });
+                if (similar)
+                    violations.push({ severity: 'soft', code: 'LEDGER_POSSIBLE_DUPLICATE', ledgerId: record.id, duplicateOf: similar.id, message: `"${record.name}" may be "${similar.name}" (${similar.id})` });
                 continue;
             }
-            const similar = similarRecord(next.ledger, op.feature, op.name);
-            const custom = customItem(config, op.name);
-            const useCustomId = custom && custom.feature === op.feature;
-            // A record converted from a legacy entity keeps its entityId so later ops on that id still land.
-            const legacyId = typeof op.id === 'string' && op.id && !next.ledger.records.some((item) => item.id === op.id || (item.mergedIds ?? []).includes(op.id)) ? op.id : null;
-            const record = {
-                id: useCustomId ? custom.id : legacyId ?? nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
-                aliases: (op.aliases ?? []).map((alias) => aliasOf(alias, chapter)).filter(Boolean),
-                status: INITIAL_STATUS[op.feature], fields: { ...(op.fields ?? {}) }, registeredAt: chapter, recent: [],
-                ...(similar ? { possibleDuplicateOf: similar.id } : {}),
-            };
-            next.ledger.records.push(record);
-            emit('record', record, { event: 'registered', ...(op.note ? { note: op.note } : {}), ...(Object.keys(record.fields).length ? { set: { ...record.fields } } : {}) });
-            if (similar)
-                violations.push({ severity: 'soft', code: 'LEDGER_POSSIBLE_DUPLICATE', ledgerId: record.id, duplicateOf: similar.id, message: `"${record.name}" may be "${similar.name}" (${similar.id})` });
-            continue;
         }
         if (op?.op === 'event' || op?.op === 'alias') {
             let record = findRecord(next.ledger, op.id);
@@ -290,8 +326,12 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
             if (!record && custom) {
                 if (!trackingEnabled(config, custom.feature))
                     continue;
-                record = { id: custom.id, feature: custom.feature, label: '', name: custom.name, aliases: [], status: INITIAL_STATUS[custom.feature], fields: {}, registeredAt: chapter, recent: [] };
-                next.ledger.records.push(record);
+                // An author item named like an existing record is that record.
+                record = findRecord(next.ledger, custom.name, custom.feature);
+                if (!record) {
+                    record = { id: custom.id, feature: custom.feature, label: '', name: custom.name, aliases: [], status: INITIAL_STATUS[custom.feature], fields: {}, registeredAt: chapter, recent: [] };
+                    next.ledger.records.push(record);
+                }
             }
             if (!record) {
                 violations.push({ severity: 'soft', code: 'LEDGER_UNKNOWN_ID', ledgerId: op.id, message: `unknown ledger id "${op.id}"` });
@@ -324,6 +364,7 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
                 violations.push({ severity: 'hard', code: 'LEDGER_UPDATE_AFTER_DESTROY', ledgerId: record.id, message: `update attempted on destroyed "${record.name}" (${record.id})` });
                 continue;
             }
+            const set = op.set && Object.keys(op.set).length ? { ...op.set } : null;
             if (op.event === 'status') {
                 if (!RECORD_STATUSES[record.feature].includes(op.status)) {
                     violations.push({ severity: 'soft', code: 'LEDGER_INVALID_STATUS', ledgerId: record.id, message: `"${op.status}" is not a ${record.feature} status` });
@@ -333,13 +374,16 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
                     violations.push({ severity: 'soft', code: 'LEDGER_SCHEDULED_REOPENED', ledgerId: record.id, message: `"${record.name}" was ${record.status} and is pending again` });
                 violations.push(...ruleFindings(record, before, op, config));
                 record.status = op.status;
-                emit('record', record, { event: 'status', ...note, status: op.status });
+                // A status change often moves fields with it (a secret out, and who knows it now).
+                if (set)
+                    record.fields = { ...record.fields, ...set };
+                emit('record', record, { event: 'status', ...note, status: op.status, ...(set ? { set } : {}) });
                 continue;
             }
-            if (op.event === 'changed' && op.set && Object.keys(op.set).length) {
+            if (op.event === 'changed' && set) {
                 violations.push(...ruleFindings(record, before, op, config));
-                record.fields = { ...record.fields, ...op.set };
-                emit('record', record, { event: 'changed', ...note, set: { ...op.set } });
+                record.fields = { ...record.fields, ...set };
+                emit('record', record, { event: 'changed', ...note, set });
                 continue;
             }
             emit('record', record, { event: 'mentioned', ...note });
@@ -388,19 +432,27 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
                 set.horizon = op.horizon;
             Object.assign(hook, set);
             emit('hook', hook, { event: op.event, ...note, ...(op.evidence ? { evidence: op.evidence } : {}), ...(Object.keys(set).length ? { set } : {}) });
-            hook.lastMovedChapter = chapter;
+            // A passing mention is not movement: the hook stays as overdue as it was.
+            if (op.event !== 'mentioned')
+                hook.lastMovedChapter = chapter;
         }
     }
     return { ledger: next.ledger, hooks: next.hooks, events, violations };
 }
-/** Fold approved merges ({from, into}) whose source still exists. Idempotent. */
+/**
+ * Fold approved merges ({from, into}) whose source still exists. Idempotent.
+ * The merged record keeps the `into` id and name. Its status comes from the
+ * record whose last event is later (a tie keeps `into`), fields merge key by
+ * key with the later record winning, recent events interleave by chapter and
+ * it counts as registered when the earlier of the two was.
+ */
 export function applyMerges(ledger, merges, chapter) {
     const records = (ledger?.records ?? []).map((record) => ({ ...record }));
     const events = [];
     for (const merge of merges ?? []) {
         const fromIndex = records.findIndex((record) => record.id === merge.from);
-        const into = records.find((record) => record.id === merge.into);
-        if (fromIndex < 0 || !into || merge.from === merge.into)
+        const into = records.find((record) => record.id === merge.into || (record.mergedIds ?? []).includes(merge.into));
+        if (fromIndex < 0 || !into || into.id === merge.from)
             continue;
         const from = records[fromIndex];
         if (from.feature !== into.feature)
@@ -413,7 +465,20 @@ export function applyMerges(ledger, merges, chapter) {
                 known.add(ledgerNameKey(alias.text));
             }
         }
-        const merged = { ...into, aliases, fields: { ...(from.fields ?? {}), ...(into.fields ?? {}) }, mergedIds: [...(into.mergedIds ?? []), from.id, ...(from.mergedIds ?? [])] };
+        const fromIsLater = (from.lastEventAt ?? from.registeredAt ?? 0) > (into.lastEventAt ?? into.registeredAt ?? 0);
+        const [older, later] = fromIsLater ? [into, from] : [from, into];
+        const recent = [...(older.recent ?? []), ...(later.recent ?? [])]
+            .map((event, index) => ({ event, index }))
+            .sort((a, b) => (a.event.chapter ?? 0) - (b.event.chapter ?? 0) || a.index - b.index)
+            .map((item) => item.event).slice(-RECENT_EVENTS);
+        const registered = [into.registeredAt, from.registeredAt].filter(Number.isFinite);
+        const lastEvent = [into.lastEventAt, from.lastEventAt].filter(Number.isFinite);
+        const merged = {
+            ...into, aliases, status: later.status, fields: { ...(older.fields ?? {}), ...(later.fields ?? {}) }, recent,
+            ...(registered.length ? { registeredAt: Math.min(...registered) } : {}),
+            ...(lastEvent.length ? { lastEventAt: Math.max(...lastEvent) } : {}),
+            mergedIds: [...(into.mergedIds ?? []), from.id, ...(from.mergedIds ?? [])],
+        };
         delete merged.possibleDuplicateOf;
         records[records.indexOf(into)] = merged;
         records.splice(fromIndex, 1);
@@ -442,7 +507,7 @@ export function ledgerEntitySnapshots(ledger) {
         aliases: (record.aliases ?? []).map((alias) => alias.text),
         status: record.status === 'destroyed' || record.status === 'retired' ? record.status : 'active',
         attrs: { ...(record.fields ?? {}) }, registeredAtChapter: record.registeredAt ?? 0,
-        ...(record.lastEventAt !== undefined ? { updatedAtChapter: record.lastEventAt } : {}),
+        ...(Number(record.lastEventAt) > Number(record.registeredAt ?? 0) ? { updatedAtChapter: record.lastEventAt } : {}),
     }));
 }
 

@@ -387,3 +387,29 @@ describe('replaying old deltas', () => {
         ]);
     });
 });
+describe('config in effect per chapter', () => {
+    it('applies a merge at the chapter it was approved for, so a later change of the merged record wins by recency', () => {
+        const config = { merges: [{ from: 'o2', into: 'o1', atChapter: 3 }] };
+        let state = { ...emptyStoryState('w') };
+        state = reduceStoryState(state, { ...emptyDelta(1), ledgerOps: [{ op: 'register', feature: 'objects', label: '물건', name: '낡은 검', fields: { holder: 'c1' } }] }, { config });
+        state = reduceStoryState(state, { ...emptyDelta(2), ledgerOps: [{ op: 'register', feature: 'objects', label: '물건', name: '녹슨 검', fields: { holder: 'c1' } }] }, { config });
+        expect(state.ledger.records.map((r) => r.id)).toEqual(['o1', 'o2']);
+        const step = ledgerStep(state, { ...emptyDelta(3), ledgerOps: [{ op: 'event', id: 'o2', event: 'changed', set: { holder: 'c3' } }] }, { config });
+        expect(step.ledger.records.map((r) => [r.id, r.fields.holder])).toEqual([['o1', 'c3']]);
+        expect(step.events.map((e) => [e.id, e.event])).toEqual([['o2', 'merged'], ['o1', 'changed']]);
+    });
+    it('keeps the ops of a feature turned off later, and drops them from the chapter it was turned off', () => {
+        const config = { tracking: { hooks: false }, history: [{ atChapter: 1, tracking: {}, customTracking: [] }, { atChapter: 3, tracking: { hooks: false }, customTracking: [] }] };
+        const early = ledgerStep(emptyStoryState('w'), { ...emptyDelta(1), ledgerOps: [{ op: 'plant', text: '손목' }] }, { config });
+        expect(early.hooks.map((h) => h.id)).toEqual(['h1']);
+        const late = ledgerStep({ ...emptyStoryState('w'), chapterNumber: 2, hooks: early.hooks }, { ...emptyDelta(3), ledgerOps: [{ op: 'hook', id: 'h1', event: 'advanced' }] }, { config });
+        expect(late.events).toEqual([]);
+        expect(late.hooks.map((h) => [h.id, h.status])).toEqual([['h1', 'open']]);
+    });
+    it('reads a legacy hook change by its current status, not a stale phase', () => {
+        const prev = normalizeStoryState({ ...emptyStoryState('w'), chapterNumber: 4, hooks: [{ id: 'oath', text: '맹세', status: 'open', plantedAtChapter: 2 }] });
+        const delta = { ...emptyDelta(5), hookChanges: [{ id: 'oath', text: '맹세', status: 'paid', phase: 'advancing' }] };
+        expect(legacyLedgerOps(prev, delta)).toEqual([{ op: 'hook', id: 'oath', event: 'paid' }]);
+        expect(reduceStoryState(prev, delta).hooks[0].status).toBe('paid');
+    });
+});

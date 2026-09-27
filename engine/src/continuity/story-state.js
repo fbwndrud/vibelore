@@ -7,7 +7,7 @@
  * containers so evaluating a candidate does not mutate the prior snapshot.
  */
 import { advanceCursor, CHARACTER_ARC_BEATS } from './character-arc.js';
-import { applyLedgerOps, applyMerges, emptyLedger, HOOK_HORIZONS, hookStatusOf, HOOK_STATUSES, LEGACY_KNOWLEDGE_KINDS, LEGACY_LOG_KINDS, LEGACY_SKIPPED_KINDS, ledgerFromLegacy, legacyRecord } from './ledger.js';
+import { applyLedgerOps, applyMerges, emptyLedger, HOOK_HORIZONS, ledgerConfigAt, hookStatusOf, HOOK_STATUSES, LEGACY_KNOWLEDGE_KINDS, LEGACY_LOG_KINDS, LEGACY_SKIPPED_KINDS, ledgerFromLegacy, legacyRecord } from './ledger.js';
 /**
  * Hook lifecycle. A hook is a narrative promise to the reader.
  *   open    — the reader is waiting on it
@@ -85,8 +85,10 @@ export function normalizeStoryState(state, { entities = [] } = {}) {
  *      `trackedEntityOps`, `entityOps`) is converted by `legacyLedgerOps`
  *      first. Hooks are normalized through `normalizeHook`, so snapshots in
  *      the `phase` or older `status` vocabulary load with a current status.
- *   4. `config.merges` (user-approved {from, into}) fold last, every reduce,
- *      so a merge stays applied to records re-registered later.
+ *   4. `config.merges` (user-approved {from, into, atChapter}) fold before
+ *      and after the ops from their chapter on, every reduce, so a merge
+ *      stays applied to records re-registered later. Tracking switches and
+ *      author items apply as they were at this chapter (`ledgerConfigAt`).
  *      `trackedEntities` is always `[]`; readers move to `ledger.records`.
  *   5. `characterStates`: `delta.mutableChanges` fold per character —
  *      `vitalStatus` (alive|dead|missing), location, status, accumulated
@@ -119,8 +121,17 @@ export function trackedRecordKey(data) {
     }
     return '';
 }
-const LEGACY_EVENT = { planted: 'mentioned', advancing: 'advanced', paid: 'paid', parked: 'parked' };
+const LEGACY_EVENT = { planted: 'mentioned', advancing: 'advanced', paid: 'paid', parked: 'parked', closed: 'closed' };
 const LEGACY_PHASE = { open: 'planted', progressing: 'advancing', resolved: 'paid', deferred: 'parked', paid: 'paid', dormant: 'parked' };
+const STATUS_PHASE = { paid: 'paid', dormant: 'parked', closed: 'closed' };
+/** The phase a legacy hook change means. Its status, once current, wins over a stale phase (as in `hookStatusOf`). */
+function legacyPhase(raw) {
+    const status = hookStatusOf(raw);
+    if (STATUS_PHASE[status])
+        return STATUS_PHASE[status];
+    const phase = raw.phase ?? LEGACY_PHASE[raw.status];
+    return phase === 'advancing' ? 'advancing' : 'planted';
+}
 /** Ledger ops equivalent to a delta written before the ledger. */
 export function legacyLedgerOps(prev, delta) {
     const ops = [];
@@ -129,13 +140,13 @@ export function legacyLedgerOps(prev, delta) {
         const hook = normalizeHook(raw);
         if (!hook)
             continue;
-        const phase = raw.phase ?? LEGACY_PHASE[raw.status] ?? 'planted';
+        const phase = legacyPhase(raw);
         if (!known.has(hook.id)) {
             ops.push({ op: 'plant', text: hook.text, id: hook.id, ...(hook.horizon ? { horizon: hook.horizon } : {}), ...(hook.plantedAtChapter !== undefined ? { plantedAtChapter: hook.plantedAtChapter } : {}) });
             // A hook first seen already moved, paid or parked keeps that state.
             if (phase !== 'planted' && LEGACY_EVENT[phase])
                 ops.push({ op: 'hook', id: hook.id, event: LEGACY_EVENT[phase] });
-            known.set(hook.id, { ...hook, status: hookStatusOf({ phase }) });
+            known.set(hook.id, { ...hook, status: hookStatusOf(raw) });
             continue;
         }
         const before = known.get(hook.id);
@@ -169,13 +180,21 @@ export function legacyLedgerOps(prev, delta) {
     }
     return ops;
 }
-/** The ledger part of a reduce, with the history lines and findings it produced. Callers keep deltas in chapter order. */
+/**
+ * The ledger part of a reduce, with the history lines and findings it produced.
+ * Callers keep deltas in chapter order. The config in effect at this chapter
+ * applies (`ledgerConfigAt`), so a replay of the deltas reproduces each commit.
+ * Merges fold before the chapter's ops (a merge approved for this chapter is
+ * what the extractor saw) and again after them (a record registered now).
+ */
 export function ledgerStep(prev, delta, { config = {} } = {}) {
     const state = normalizeStoryState(prev);
+    const effective = ledgerConfigAt(config, delta.chapterNumber);
+    const before = applyMerges(state.ledger, effective.merges, delta.chapterNumber);
     const ops = [...legacyLedgerOps(state, delta), ...(delta.ledgerOps ?? [])];
-    const applied = applyLedgerOps(state, ops, { chapter: delta.chapterNumber, config });
-    const merged = applyMerges(applied.ledger, config.merges, delta.chapterNumber);
-    return { ledger: merged.ledger, hooks: applied.hooks, events: [...applied.events, ...merged.events], violations: applied.violations };
+    const applied = applyLedgerOps({ ...state, ledger: before.ledger }, ops, { chapter: delta.chapterNumber, config: effective });
+    const after = applyMerges(applied.ledger, effective.merges, delta.chapterNumber);
+    return { ledger: after.ledger, hooks: applied.hooks, events: [...before.events, ...applied.events, ...after.events], violations: applied.violations };
 }
 export function reduceStoryState(prev, delta, { config = {} } = {}) {
     if (delta.chapterNumber <= prev.chapterNumber) {
