@@ -68,6 +68,7 @@ When an error occurs, call a status tool first before calling the same generatio
 | `CANON_MEMORY_CONFLICT` | Search memory doesn't match canon | Regenerate the search projection, check the canon |
 | `UNSAFE_MEMORY_CLAIM` | Invalid schema, control characters or instructions | Quarantine the claim, fix the source data |
 | Check receipt mismatch | The prose changed after the check | Check the changed prose again |
+| `ledgerLog.ok=false` in `lore_status` | The history log is out of step with the committed chapters | Rebuild it with `lore_sync` |
 | runId missing or expired | The saved run finished or was deleted | Check the workflow status, then start a new run or resume the workflow |
 
 ## Recovering from `needs_model`
@@ -174,6 +175,9 @@ tampered data, symbolic links and invalid chapter arguments are refused without 
 The restored result is published as a new Published HEAD, aligning the canon, design, state and change-detection baseline.
 Earlier approvals, model requests, check receipts and the search cache are not restored. The originals are
 kept in `.vibelore/rollback-archives/<archiveId>/before/`.
+Tracking settings, author items and approved merges (`review-policy.json`) and arc summaries are restored to
+that chapter too, and the story ledger's history log is rebuilt from the restored chapters. The merge candidate list moves to the archive and,
+in `guided`, is asked again when needed.
 
 If the process is interrupted during restoration, `.vibelore/rollback-pending.json` and the verified recovery data
 remain. The next MCP tool call on the same project finishes the restoration first.
@@ -199,6 +203,102 @@ When only the sentences of an earlier chapter change, use the rewrite/refold flo
 - Don't edit `.vibelore/` directly.
 - If you changed a saved earlier chapter, the check and commit path and refold are needed.
 - A workflow in progress becomes stale. Check the state and start a new run.
+
+## Story ledger and tracking settings
+
+Objects, knowledge, scheduled events and hooks extracted each chapter are kept in **one ledger** for the whole work.
+The same subject keeps the ID it got when first registered, and what happened to it in each chapter stays as history.
+So when an object from long ago comes back, its history is known and the story can continue from it.
+
+### Records and hooks
+
+| Feature | Tracks | Statuses |
+|---|---|---|
+| `objects` | Objects, places, clues, abilities and the like | `active` · `lost` · `destroyed` · `retired` |
+| `knowledge` | Who knows what | `secret` · `partial` · `public` · `retired` |
+| `scheduled` | What is set to happen (events before a regression, prophecies, fixed dates) | `pending` · `prevented` · `happened` · `altered` · `retired` |
+| `hooks` | Promises made to the reader | `open` · `dormant` · `paid` · `closed` |
+
+- Each record has a name, aliases, a free label (a kind such as object or clue; it changes no behaviour), current values and its last 3 events.
+- Hook statuses: `open` means the reader is waiting, `dormant` resting for now, `paid` paid off,
+  `closed` no longer pursued. A paid hook used again opens again.
+  A payoff needs a verbatim quote from this chapter's prose; without one it is recorded as an advance instead.
+  Older works' `planted` and `advancing` read as `open`, `parked` as `dormant`.
+- Model inputs carry only the current values and recent events of related records, so they don't grow with the chapter count.
+  When a record that hasn't moved for over 20 chapters returns in the plan or prose, up to 5 lines of its history come with it.
+
+### History log
+
+Each chapter's events are kept one per line in `.vibelore/ledger/events.jsonl`. The source is the extraction of the
+committed chapters; the file is rebuilt from it on every commit, rollback and `lore_sync`.
+Don't edit it. If `ledgerLog.ok` in `lore_status` is `false`, the log is out of step with the committed
+chapters: call `lore_sync` (`lore_write` also rebuilds it when it starts).
+Memory search indexes the event notes too.
+
+### Turning tracking on and off
+
+`lore_configure(tracking={objects, knowledge, scheduled, hooks})` turns each feature on or off.
+All are on by default. A feature turned off is left out of the extraction request, not checked and never counted as a failure;
+its existing records are kept and only left out of model inputs. What is tracked does not depend on the genre.
+
+### Author tracking items
+
+`lore_configure(customTracking=[...])` replaces the **full list** of items the author wants kept.
+
+```json
+{ "name": "Gold balance", "feature": "objects", "pinned": true,
+  "rules": [{ "type": "monotonic", "field": "amount", "direction": "down", "unless": "reward" }],
+  "note": "Ria never brings up her mother first" }
+```
+
+- `pinned`: always included in the extraction and writer inputs, whatever the input caps.
+- `rules` (deterministic checks, soft by default, hard with `"severity": "hard"`):
+  - `monotonic{field, direction: up|down, unless?}`: a number only moves one way.
+    An event note containing the `unless` word is an exception.
+  - `frozenAfter{status}`: nothing changes after that status.
+  - `speakerOnly{alias, by}`: only that character uses the term.
+- `note`: a natural-language rule. It adds no model request: the `coherence-judge` review judges it as well
+  and reports a miss only as an `AUTHOR_RULE` advisory. With `coherence-judge` turned off through `disabledReviews`,
+  it is not judged.
+
+Item IDs (`u1`, `u2`, …) stay with the name, and a removed item's ID is never reused.
+An item with an unknown feature or a rule missing a required value is refused.
+
+### Speaker-only aliases
+
+An alias with a character (`by`) is a term only that character uses. If the term appears in the prose while that character
+is not in the chapter's cast, it is reported as soft, and the continuity check lists it in its address section so the model checks who said it.
+
+### Duplicate records and merges
+
+- Within a feature, an exactly equal name (differing only in spacing, quotes or case) creates no new record; the event joins the existing one.
+- A similar name (containment, a particle difference, word overlap) is registered as a new record and flagged as a possible duplicate (`LEDGER_POSSIBLE_DUPLICATE`, soft). It is never merged automatically.
+- In `guided`, only in a chapter where a newly flagged pair appears does `lore_write` send one `ledger-merge`
+  model request with the chapter. A pair already asked about is not asked again. `auto` never asks.
+- The proposals appear in `mergeCandidates` (`{into, from[], reason}`) in the `lore_configure` response. Show them to the user
+  and pass only the approved ones with `lore_configure(mergeRecords=[{from, into}])` (one entry per `from` ID).
+  They apply from the next commit; the absorbed ID then reads as the `into` record and both records' history shows together.
+
+### Existing works
+
+Works written before the ledger continue with nothing to do. `lore_write` replays the committed chapters' extractions
+from chapter 1 to build the history log and the ledger without a model call, and the next chapter is written on that result.
+Older tracked items become `objects` and `knowledge` records; `Timeline`, which was used as a per-chapter event list,
+becomes chapter notes. `RelationshipState` and `PowerSystem` are not carried over (relationships live in the relationship
+state, power rules in the world settings). In `guided`, merge candidates over all records are asked once.
+`world/`, `characters/` and `chapters/` don't change.
+
+A chapter that finished its check and was waiting for approval before the upgrade loses its check receipt and is checked once more.
+
+### What counts as hard
+
+| Severity | Cases |
+|---|---|
+| hard | Changing the values or status of a `destroyed` record (`LEDGER_UPDATE_AFTER_DESTROY`), restoring without a reason (`LEDGER_RESTORE_NOTE_REQUIRED`), author rules set to `severity:"hard"` |
+| soft | Possible duplicates, unknown IDs, events whose name isn't in the prose, payoffs without evidence, a closed hook used again, a finished scheduled event back to `pending`, speaker-only aliases, a destroyed record named again (it may be a memory), author rules by default, `AUTHOR_RULE` |
+
+The two hard cases are usually extraction slips, so the extraction is first run once more. If it repeats them, they become
+violations to revise. Soft findings may be the author's intent, so they are not fixed automatically; they are shown to the user.
 
 ## Connection problems
 
@@ -262,6 +362,8 @@ If you use Git, check that ignore rules don't leave out candidates, images or ru
 | `.vibelore/workflows/` | Required while work is in progress | Resuming workflows after a restart |
 | `.vibelore/check-receipts/` | Recommended | Commit audits |
 | `.vibelore/snapshots/` | Recommended | rollback |
+| `.vibelore/review-policy.json` | Recommended | Review and tracking settings, author items, approved merges |
+| `.vibelore/ledger/` | Low | The history log can be rebuilt from the chapter extractions; merge candidates can be asked again |
 | `.vibelore/memory.db` | Low | A projection that can be rebuilt from canon |
 
 ## Before a release

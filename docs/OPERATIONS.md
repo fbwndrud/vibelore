@@ -68,6 +68,7 @@ flowchart TD
 | `CANON_MEMORY_CONFLICT` | 검색 기억과 정본 불일치 | 검색 투영 재생성, 정본 확인 |
 | `UNSAFE_MEMORY_CLAIM` | 잘못된 schema·제어 문자·지시문 | claim 격리, 원천 데이터 수정 |
 | 검사 영수증 불일치 | 검사 후 본문 변경 | 변경된 본문을 다시 검사 |
+| `lore_status`의 `ledgerLog.ok=false` | 이력 로그가 커밋된 화와 어긋남 | `lore_sync`로 다시 만들기 |
 | runId 없음·만료 | 저장 실행이 완료·삭제됨 | workflow status 확인 후 새 실행 또는 워크플로 재개 |
 
 ## `needs_model` 복구
@@ -176,6 +177,9 @@ sequenceDiagram
 복구 결과는 새 Published HEAD로 발행하며, 정본·설계·상태·변경 감지 기준을 맞춥니다.
 이전 승인, 모델 요청, 검사 영수증과 검색 캐시는 복원하지 않습니다. 원본은
 `.vibelore/rollback-archives/<archiveId>/before/`에 보존합니다.
+추적 설정·작가 정의 항목·승인한 병합(`review-policy.json`)과 아크 요약도 그 회차 시점으로
+복원하며, 이야기 등록부의 이력 로그는 복원된 화들로부터 다시 만듭니다. 병합 후보 목록은 보관 영역으로 옮겨지고,
+`guided`에서 필요하면 다시 묻습니다.
 
 복구 도중 프로세스가 중단되면 `.vibelore/rollback-pending.json`과 검증된 복구 자료가
 남습니다. 같은 프로젝트로 다음 MCP 도구를 호출하면 복구를 먼저 마무리합니다.
@@ -201,6 +205,102 @@ sequenceDiagram
 - `.vibelore/`는 직접 수정하지 않습니다.
 - 저장된 앞 화를 바꿨다면 검사·커밋 경로와 refold가 필요합니다.
 - 진행 중 워크플로가 있으면 stale이 됩니다. 상태를 확인하고 새 실행을 시작합니다.
+
+## 이야기 등록부와 추적 설정
+
+매 화 추출한 물건·지식·예정 사건·떡밥은 작품 전체에서 **하나의 등록부**로 관리합니다.
+같은 대상은 처음 등록될 때 받은 ID 하나로 이어지고, 화마다 있었던 일은 이력으로 남습니다.
+그래서 오래전에 나온 물건이 다시 등장해도 그 이력을 알고 이어 쓸 수 있습니다.
+
+### 기록과 떡밥
+
+| 기능 | 추적 대상 | 상태 |
+|---|---|---|
+| `objects` | 물건·장소·단서·능력 등 | `active` · `lost` · `destroyed` · `retired` |
+| `knowledge` | 누가 무엇을 아는가 | `secret` · `partial` · `public` · `retired` |
+| `scheduled` | 일어나기로 된 일(회귀 전 사건, 예언, 예약된 일정) | `pending` · `prevented` · `happened` · `altered` · `retired` |
+| `hooks` | 독자에게 한 약속(떡밥) | `open` · `dormant` · `paid` · `closed` |
+
+- 기록마다 이름, 별칭, 자유 라벨(물건·단서 같은 분류, 동작에는 영향 없음), 현재 값, 최근 사건 3개를 둡니다.
+- 떡밥 상태: `open`은 독자가 기다리는 중, `dormant`는 잠시 쉬는 중, `paid`는 회수됨,
+  `closed`는 더 다루지 않음입니다. 회수한 떡밥을 다시 쓰면 `open`으로 다시 열립니다.
+  회수에는 이번 화 본문에서 그대로 인용한 근거가 필요하며, 근거가 없으면 회수 대신 진전으로 기록합니다.
+  예전 작품의 `planted`·`advancing`은 `open`, `parked`는 `dormant`로 읽습니다.
+- 모델 입력에는 관련 기록의 현재 값과 최근 사건만 들어가므로 화 수가 늘어도 커지지 않습니다.
+  20화 넘게 움직이지 않던 기록이 계획이나 본문에 다시 나오면 이력 최대 5줄을 함께 보여 줍니다.
+
+### 이력 로그
+
+화별 사건은 `.vibelore/ledger/events.jsonl`에 한 줄에 하나씩 남습니다. 원본은 커밋된 화의
+추출 결과이고, 이 파일은 커밋·rollback·`lore_sync` 때마다 그것으로부터 다시 만들어집니다.
+직접 수정하지 않습니다. `lore_status`의 `ledgerLog.ok`가 `false`이면 로그가 커밋된 화와
+어긋난 것이니 `lore_sync`를 호출하세요(`lore_write`도 시작할 때 다시 만듭니다).
+기억 검색은 사건 메모도 색인합니다.
+
+### 추적 켜고 끄기
+
+`lore_configure(tracking={objects, knowledge, scheduled, hooks})`로 기능별로 켜고 끕니다.
+기본은 모두 켜짐입니다. 끈 기능은 추출 요청에서 빠지고, 검사하지 않고, 실패로 보지 않으며,
+기존 기록은 지우지 않고 모델 입력에서만 뺍니다. 장르에 따라 추적 종류가 달라지지 않습니다.
+
+### 작가 정의 추적 항목
+
+`lore_configure(customTracking=[...])`는 작가가 꼭 지키고 싶은 항목의 **전체 목록**을 교체합니다.
+
+```json
+{ "name": "금화 잔액", "feature": "objects", "pinned": true,
+  "rules": [{ "type": "monotonic", "field": "amount", "direction": "down", "unless": "보상" }],
+  "note": "리아는 어머니 이야기를 먼저 꺼내지 않는다" }
+```
+
+- `pinned`: 입력 상한과 관계없이 추출과 작가 입력에 항상 포함합니다.
+- `rules`(결정론 검사, 기본 soft, `"severity": "hard"`로 hard 지정 가능):
+  - `monotonic{field, direction: up|down, unless?}`: 숫자 값이 한 방향으로만 바뀝니다.
+    사건 메모에 `unless`의 말이 있으면 예외입니다.
+  - `frozenAfter{status}`: 그 상태가 된 뒤에는 바뀌지 않습니다.
+  - `speakerOnly{alias, by}`: 그 호칭은 지정한 인물만 씁니다.
+- `note`: 자연어 규칙입니다. 새 모델 요청을 늘리지 않고 `coherence-judge` 검토가 함께 판단하며,
+  어긋나면 `AUTHOR_RULE` advisory로만 보고합니다. `disabledReviews`로 `coherence-judge`를 끄면
+  판단하지 않습니다.
+
+항목 ID(`u1`, `u2` …)는 이름으로 유지되고, 지운 항목의 ID는 다시 쓰지 않습니다.
+잘못된 기능 이름이나 규칙에 필요한 값이 빠진 항목은 거부합니다.
+
+### 인물 전용 별칭
+
+별칭에 인물(`by`)이 붙으면 그 인물만 쓰는 호칭입니다. 그 인물이 이번 화 등장인물에 없는데
+호칭이 본문에 나오면 soft로 알리고, 설정 검사의 호칭 구역에도 넣어 누가 말했는지 모델이 확인합니다.
+
+### 중복 기록과 병합
+
+- 같은 기능 안에서 이름이 정확히 같으면(공백·따옴표·대소문자 차이만) 새 기록을 만들지 않고 기존 기록의 사건으로 이어 붙입니다.
+- 이름이 비슷하면(포함 관계, 조사 차이, 단어 겹침) 새 기록으로 등록하고 중복 후보로 표시합니다(`LEDGER_POSSIBLE_DUPLICATE`, soft). 자동으로 합치지 않습니다.
+- `guided`에서는 새로 표시된 후보 쌍이 생긴 화에만 `lore_write`가 `ledger-merge` 모델 요청 1건을
+  함께 보냅니다. 이미 물어본 쌍은 다시 묻지 않습니다. `auto`는 묻지 않습니다.
+- 제안은 `lore_configure` 응답의 `mergeCandidates`(`{into, from[], reason}`)에 나옵니다. 사용자에게 보여 주고,
+  승인한 것만 `lore_configure(mergeRecords=[{from, into}])`로 넘깁니다(`from` ID마다 한 항목).
+  다음 커밋부터 반영되며, 흡수된 ID는 이후 `into` 기록으로 읽히고 두 기록의 이력은 함께 보입니다.
+
+### 기존 작품
+
+등록부 이전에 쓴 작품은 별도 작업 없이 이어집니다. `lore_write`가 커밋된 화의 추출 결과를
+1화부터 다시 반영해 이력 로그와 등록부를 모델 호출 없이 만들고, 다음 화는 그 결과 위에서 씁니다.
+예전 추적 항목은 `objects`·`knowledge` 기록으로, 화별 사건 목록으로 쓰이던 `Timeline`은 화 메모로
+옮깁니다. `RelationshipState`·`PowerSystem`은 옮기지 않습니다(관계는 인물 관계 상태에, 힘의 규칙은
+세계 설정에 있습니다). `guided`에서는 처음 한 번 전체 기록을 대상으로 병합 후보를 묻습니다.
+`world/`·`characters/`·`chapters/`는 바뀌지 않습니다.
+
+업그레이드 전에 검사를 마치고 승인 대기 중이던 화는 검사 영수증이 무효가 되어 한 번 다시 검사합니다.
+
+### 무엇이 hard인가
+
+| 심각도 | 경우 |
+|---|---|
+| hard | 파괴된(`destroyed`) 기록의 값·상태 변경(`LEDGER_UPDATE_AFTER_DESTROY`), 이유 없는 복구(`LEDGER_RESTORE_NOTE_REQUIRED`), `severity:"hard"`로 지정한 작가 규칙 |
+| soft | 중복 후보, 모르는 ID, 본문에 이름이 없는 사건, 근거 없는 회수, 닫힌 떡밥 재사용, 끝난 예정 사건의 `pending` 복귀, 인물 전용 별칭, 파괴된 기록의 재언급(회상일 수 있음), 작가 규칙 기본값, `AUTHOR_RULE` |
+
+앞의 두 hard는 대개 추출 실수라서 먼저 추출을 한 번 다시 합니다. 다시 해도 같으면 수정 대상
+위반으로 넘어갑니다. soft는 작가의 의도일 수 있으므로 자동으로 고치지 않고 사용자에게 보여 줍니다.
 
 ## 연결 문제
 
@@ -264,6 +364,8 @@ Git을 사용한다면 ignore 규칙으로 후보·이미지·실행 기록이 �
 | `.vibelore/workflows/` | 진행 중이면 필수 | 재시작 후 워크플로 재개 |
 | `.vibelore/check-receipts/` | 권장 | 커밋 감사 |
 | `.vibelore/snapshots/` | 권장 | rollback |
+| `.vibelore/review-policy.json` | 권장 | 검토·추적 설정, 작가 정의 항목, 승인한 병합 |
+| `.vibelore/ledger/` | 낮음 | 이력 로그는 화별 추출 결과에서 재구축 가능, 병합 후보는 다시 물으면 됨 |
 | `.vibelore/memory.db` | 낮음 | 정본에서 재구축 가능한 투영 |
 
 ## 릴리스 전 확인

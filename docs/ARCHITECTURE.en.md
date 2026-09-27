@@ -69,6 +69,29 @@ Right before saving, it checks that the manuscript that was checked is the same 
 or the settings changed during the work, the earlier check result is not reused.
 Passing the checks does not guarantee the novel is enjoyable or that every settings contradiction is resolved.
 
+### Story ledger
+
+The story state (StoryState) settled for each chapter holds the **records** of objects, knowledge and scheduled events
+and the **hooks** in one ledger. Records and hooks carry only an ID, a status, current values and a few recent events;
+the full history stays as per-chapter events in `.vibelore/ledger/events.jsonl`.
+
+```mermaid
+flowchart LR
+    X["Chapter extractions<br/>(artifacts/)"] -->|"applied at commit"| N["Story state<br/>current values of records and hooks"]
+    X -->|"rebuilt at commit, rollback, sync"| L["History log<br/>ledger/events.jsonl"]
+    N --> I["Next chapter's input<br/>current values, recent events"]
+    L -->|"up to 5 lines when a long-idle record returns"| I
+```
+
+- The source is the committed chapters' extractions. The history log is a derived file that can always be rebuilt from them,
+  so it needs no separate fixing after a rollback or a revision.
+- What is tracked and checked is set by the work's settings (`tracking` and `customTracking` in `lore_configure`), not by the genre;
+  approved merges are stored in the same settings and applied at commit.
+- The ledger takes over from the former tracked-item lists and `entities.json`. `entities.json` is still written from the
+  ledger at commit for the existing readers.
+
+For operation, see [Operations and recovery](OPERATIONS.en.md#story-ledger-and-tracking-settings).
+
 ## Webtoon production structure
 
 A webtoon is a **separate work, approval and storage path** from novel writing. The chosen source manuscript,

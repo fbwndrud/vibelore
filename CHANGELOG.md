@@ -2,6 +2,55 @@
 
 ## Unreleased
 
+- Story ledger. Objects, knowledge, scheduled events and hooks are kept as
+  one record each across the whole work, with an ID, a status, current
+  values and the last three events, instead of per-chapter tracked items that
+  were overwritten or registered again under a new name:
+  - Record statuses: objects `active|lost|destroyed|retired`, knowledge
+    `secret|partial|public|retired`, scheduled
+    `pending|prevented|happened|altered|retired`. Hooks are
+    `open|dormant|paid|closed`; a payoff needs a quote from the chapter
+    (otherwise it counts as an advance) and a paid hook used again reopens.
+    Older `planted`/`advancing` read as `open`, `parked` as `dormant`.
+  - Each chapter's events go to `.vibelore/ledger/events.jsonl`, rebuilt
+    from the committed chapters on commit, rollback and `lore_sync`.
+    `lore_status` reports `ledgerLog`. A record that returns after more than
+    20 quiet chapters brings up to five lines of its history into the writer
+    input; otherwise inputs carry current values and recent events only.
+  - An exactly equal name joins the existing record; a similar one is
+    registered and flagged (`LEDGER_POSSIBLE_DUPLICATE`, soft), never merged
+    on its own.
+  - Hard findings: changing a destroyed record and restoring one without a
+    reason. Both first re-extract once, since they are usually extraction
+    slips. Everything else the ledger reports is soft.
+- Tracking settings in `lore_configure`:
+  - `tracking={objects, knowledge, scheduled, hooks}` turns each feature on
+    or off (all on by default). A feature turned off is not asked for, not
+    checked and never a failure. What is tracked no longer depends on the
+    genre (the genre profile's tracked kinds are gone).
+  - `customTracking=[{name, feature, pinned?, rules?, note?}]`: `pinned`
+    items are always in the inputs; `rules` are deterministic checks
+    (`monotonic` with `unless`, `frozenAfter`, `speakerOnly`), soft unless
+    `severity: "hard"`; `note` is a natural-language rule the
+    `coherence-judge` review judges and reports as an `AUTHOR_RULE`
+    advisory, with no extra model request.
+  - Speaker-only aliases (an alias with `by`): reported when the term appears
+    while that character is not in the chapter, and listed in the
+    continuity check's address section.
+  - Merges: in `guided`, `lore_write` asks one `ledger-merge` request about
+    newly flagged pairs only (`auto` never asks); the proposals show as
+    `mergeCandidates` in `lore_configure`, and `mergeRecords=[{from, into}]`
+    approves them from the next commit.
+- Existing works move to the ledger on their own: the history log and the
+  ledger are replayed from the committed chapters without a model call
+  (`Timeline` entries become chapter notes; `RelationshipState` and
+  `PowerSystem` entries are not carried over), and `guided` asks once for
+  merge candidates.
+- Rollback also restores `review-policy.json` (review and tracking settings,
+  approved merges) and the arc summaries; before, both were deleted.
+- The language-field classifier (version 5) and the extraction context
+  (version 2) changed, so check receipts issued before the upgrade no longer
+  apply: a chapter checked and waiting for approval is checked once more.
 - Review fixes for the bounded state inputs and the long memory:
   - Hooks the plan touches are never cut by the 12-hook cap; related records
     left out by a cap are counted separately from unrelated ones.

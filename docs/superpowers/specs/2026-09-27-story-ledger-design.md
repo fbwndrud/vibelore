@@ -2,7 +2,7 @@
 
 - 날짜: 2026-09-27
 - 브랜치 기준: `fix/draft-continuity-handoff` (8d0aaf6 이후)
-- 상태: 설계 승인, 구현 전
+- 상태: 구현 완료 (구현 중 조정한 내용은 해당 절에 "구현 조정"으로 적었다)
 
 ## 1. 배경
 
@@ -12,7 +12,7 @@
 
 1. 추적 기록이 두 체계로 나뉘어 있다.
    - `StoryState.trackedEntities`: 매 화 쓰인다. ID가 없고(`name` 등에서 키 추정), 같은 키는 통째로 덮어쓰며, 이력이 없다. 이름이 조금만 달라져도 새 기록이 된다(실측: 매 화 새 이름으로 등록).
-   - `.vibelore/entities.json`: ID·별칭·상태(active/retired/destroyed)가 있지만 실제 작품 3개 모두 설계 시점 9개에서 늘지 않았다(`entityOps`가 추출에서 나온 적 없음). 화별 스냅샷이 아니라 롤백해도 되돌아가지 않는다. 이 파일만 보는 "파괴된 대상 재등장" 검사는 사실상 걸릴 수 없다.
+   - `.vibelore/entities.json`: ID·별칭·상태(active/retired/destroyed)가 있지만 실제 작품 3개 모두 설계 시점 9개에서 늘지 않았다(`entityOps`가 추출에서 나온 적 없음). (구현 조정: 롤백은 이 파일도 스냅샷에서 되돌린다. 롤백이 되돌리지 못한 것은 `review-policy.json`과 `arc-summaries/`였고, 이번에 함께 되돌리도록 고쳤다.) 이 파일만 보는 "파괴된 대상 재등장" 검사는 사실상 걸릴 수 없다.
 2. 떡밥 상태는 `planted/advancing/paid/parked` 넷뿐이고 이력이 없다(`lastMovedChapter`만). `paid`가 되면 영구히 추적에서 빠지고, 회수는 추출 모델의 자기 보고만으로 확정된다.
 3. 장르별 추적 종류(`genreProfile.trackedEntities`)와 장르별 불변식이 코드 분기로 흩어져 있다. 추출 프롬프트는 장르와 무관하게 6종류를 모두 노출해서, 회귀물용 `Timeline`(전생/현생 듀얼 타임라인)이 모든 작품에서 "이번 화 사건 목록"으로 오용된다. 회귀물의 전생 사건 추적은 한 번도 작동하지 않았다.
 4. 입력 필터 실측(2026-09-27): 500화 규모에 같은 세계관 잡음 200개를 섞어 재생했을 때, 화 계획의 떡밥 목록을 쓰면 떡밥 포함률 33/34, 쓰지 않으면 20/34였다. 유일한 누락은 직전 화에 움직였지만 계획에 없던 떡밥이었다(선택 코드가 `lastMovedChapter`를 보지 않음). 필터에서 빠진 기록은 모델이 새 기록으로 중복 등록하는 위험으로 이어진다.
@@ -104,16 +104,16 @@
   - `monotonic` — 숫자 필드가 한 방향으로만 변함(`unless` 사건 라벨이면 예외)
   - `frozenAfter` — 특정 상태 이후 변경 금지
   - `speakerOnly` — 특정 별칭·호칭은 지정 인물만 사용
-- `note`: 자연어 규칙. 기존 검토 요청 안의 한 구역으로 검토 모델에 전달하고 advisory로만 보고. `disabledReviews`로 끌 수 있음. 새 모델 요청을 추가하지 않는다.
+- `note`: 자연어 규칙. 기존 검토 요청 안의 한 구역으로 검토 모델에 전달하고 advisory로만 보고(`AUTHOR_RULE`). 구현상 `coherence-judge` 검토가 함께 판단하므로 `disabledReviews`에서 `coherence-judge`를 끄면 판단하지 않는다. 새 모델 요청을 추가하지 않는다.
 - 기본 기능 4개도 내부적으로 같은 틀의 기본값이다.
 
 ### 3.7 설정
 
-`lore_configure(tracking={objects,knowledge,scheduled,hooks}, customTracking=[…])`, 저장은 기존 `.vibelore/review-policy.json` 옆의 작품별 설정. 끈 기능은 추출 요청에서 빠지고 검사하지 않으며 실패로 보지 않는다. `genreProfile.trackedEntities`와 장르별 불변식 분기는 제거한다.
+`lore_configure(tracking={objects,knowledge,scheduled,hooks}, customTracking=[…])`, 저장은 기존 `.vibelore/review-policy.json` 옆의 작품별 설정. 끈 기능은 추출 요청에서 빠지고 검사하지 않으며 실패로 보지 않는다. `genreProfile.trackedEntities`와 장르별 불변식 분기는 제거한다. 구현 조정: 이번에는 `genreProfile.trackedEntities`만 제거하고 `genreProfile.invariants`는 남긴다(작품별 저장, 프롬프트와 승인 게이트가 읽음). 장르 불변식을 기본 작가 규칙으로 바꾸는 일은 후속 작업이다.
 
 ### 3.8 범위 밖
 
-- 인물 관계(`relationships`)와 호칭(`addressMap`)은 현 구조 유지. 로맨스 `RelationshipState`는 이번에 `objects`의 일반 기록(라벨 "관계")으로만 옮긴다.
+- 인물 관계(`relationships`)와 호칭(`addressMap`)은 현 구조 유지. ~~로맨스 `RelationshipState`는 `objects` 기록으로 옮긴다.~~ 구현 조정: 옮기지 않는다(7절).
 - SQLite 색인은 이름 검색이 느려질 때 `memory.db`처럼 파생 색인으로 추가. 이번에는 만들지 않음.
 
 ## 4. 추출과 중복 판정
@@ -152,12 +152,14 @@
    - `changed`/`mentioned`인데 이름·별칭이 본문에 없음 → soft.
    - 떡밥 `paid`의 `evidence`가 본문 부분 문자열이 아님 → `advanced`로 낮추고 soft.
    - 인물 전용 별칭이 다른 인물 대사에 나옴 → soft.
+     구현 조정: 누가 말했는지는 결정론으로 알 수 없어 두 갈래로 본다. 별칭 주인이 이번 화 등장인물에 없는데 별칭이 본문에 나오면 결정론 soft(`LEDGER_ALIAS_OWNER_ABSENT`), 그리고 설정 검사의 호칭 구역에 인물 전용 별칭을 나열해 모델이 화자를 확인한다.
 
 ### 4.4 중복 후보 해결
 
 - guided: 승인 화면에 원고·advisory와 함께 병합 후보 목록. 승인 시 `merged` 사건(흡수된 ID는 이후 별칭처럼 해석).
 - auto: 병합하지 않고 후보로 둠. 커밋을 막지 않음.
-- 병합 결정은 `lore_decide(action="merge_records", merges=[{from, into}])`로 같은 workflow 안에서 처리. 이전 단계의 병합 후보도 같은 action.
+- ~~병합 결정은 `lore_decide(action="merge_records", …)`~~ 구현 조정: 승인한 병합은 설정으로 저장한다. `lore_configure(mergeRecords=[{from, into}])`로 넘기면 `review-policy.json`의 `merges`에 남고, 다음 커밋부터 반영 함수가 적용한다. 검사 영수증 발급 뒤 delta를 바꾸지 않기 위해서이며, 화 승인과 기존 작품 이전에 같은 경로를 쓴다.
+- 후보는 guided에서만 묻는다. 새로 표시된 중복 후보 쌍(이전에 묻지 않은 것)과 기존 작품 이전 1회만 `ledger-merge` 요청으로 묻고, 결과는 `.vibelore/ledger/merge-candidates.json`에 두어 `lore_configure` 응답의 `mergeCandidates`로 보여 준다. auto는 묻지 않는다.
 
 ## 5. 반영 · 커밋 · 롤백
 
@@ -165,7 +167,8 @@
 - 커밋: `events.jsonl`에서 `chapter ≥ N` 줄 제거 후 N화 사건 추가(재커밋 멱등).
 - 롤백: `chapter > N` 줄 제거.
 - 재생성: 1..N화 `artifacts/N.json`의 `ledgerOps`로 로그 재구성. 로그와 커밋된 화가 어긋나면 `lore_status`가 보고하고 `lore_sync`가 재생성.
-- `entities.json`은 이전 후 더 쓰지 않는다.
+- 구현 조정: 원본은 화별 delta다. `events.jsonl`은 커밋·롤백·동기화 때마다 delta 재생으로 통째로 다시 만들며(줄 단위 절단이 아님), 같은 delta에서 바이트 단위로 같은 결과가 나온다.
+- 구현 조정: `entities.json`은 기존 읽기 경로(엔티티 문맥, 언급 활성화)를 위해 커밋 때 등록부로부터 다시 쓴다(`ledgerEntitySnapshots`). 추출은 `entityOps`를 쓰지 않는다.
 
 ## 6. 사용처
 
@@ -183,7 +186,8 @@
 ## 7. 기존 작품 이전
 
 1. 재생(결정론): 1화부터 옛 delta를 `ledgerOps`로 변환해 반영.
-   - `trackedEntityOps` → `trackedRecordKey`로 등록/사건. 종류 매핑: Artifact·Clue·PowerSystem·RelationshipState → `objects`, KnowledgeMatrix·RegressionKnowledge → `knowledge`, Timeline → `target:"chapter"` 화 메모.
+   - `trackedEntityOps` → `trackedRecordKey`로 등록/사건. 종류 매핑: Artifact·Clue → `objects`, KnowledgeMatrix·RegressionKnowledge → `knowledge`, Timeline → `target:"chapter"` 화 메모. 구현 조정: RelationshipState·PowerSystem은 옮기지 않는다(관계는 관계 상태, 힘의 규칙은 세계 설정).
+   - 구현 조정: 옛 상태(`ledger` 키 없음)의 작품은 delta 재생이 끝난 등록부를 다음 화의 기준으로 쓴다. 로그·현재 등록부·병합·새 `ledgerOps`가 같은 ID 체계를 쓰기 위해서다.
    - 떡밥 변화 → 이전 상태와의 `phase` 차이로 사건(`planted`/`advanced`/`paid`/`parked`), 차이가 없으면 `mentioned`.
    - `entities.json` 초기 등록 → 0화 `registered`.
 2. 병합 후보: 작품마다 모델 요청 1건으로 같은 대상 묶음 제안 → 사용자 승인분만 `merged`.
