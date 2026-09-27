@@ -90,6 +90,7 @@ describe('CharacterArcSeed compiler', () => {
     assert.equal(violations[0].code, 'CHARACTER_ARC_QUOTA_EXCEEDED');
     assert.match(violations[0].message, /c2/);
     assert.match(violations[0].message, /c1, c3/);
+    assert.match(violations[0].message, /characterArcs에서 빼고/);
   });
 
   it('allows a new personal arc once an active arc reaches echo earlier in the plan', () => {

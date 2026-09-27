@@ -62,7 +62,7 @@ export function characterArcQuotaViolations(plan, cursor = {}) {
     if (!tracked.has(event.characterId)) {
       if (active.size >= MAX_ACTIVE_CHARACTER_ARCS) {
         violations.push({ code: 'CHARACTER_ARC_QUOTA_EXCEEDED',
-          message: `${[...active].sort().join(', ')}의 개인 아크가 이미 진행 중이라 ${event.characterId}의 새 개인 아크를 열 수 없다(동시 ${MAX_ACTIVE_CHARACTER_ARCS}명). 진행 중인 아크를 이어 가거나, 먼저 하나를 echo로 닫은 뒤 새 아크를 연다.` });
+          message: `${[...active].sort().join(', ')}의 개인 아크가 이미 진행 중이라 ${event.characterId}의 새 개인 아크를 열 수 없다(동시 ${MAX_ACTIVE_CHARACTER_ARCS}명). ${event.characterId}를 이번 아크의 characterArcs에서 빼고 그 감정선은 회차 사건으로만 다루거나, 진행 중인 아크 하나를 먼저 echo로 닫은 뒤 새 아크를 연다.` });
         tracked.add(event.characterId);
         continue;
       }
