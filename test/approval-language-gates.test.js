@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { buildLanguageContract } from '../engine/src/core/language-policy.js';
+import { createGenreProfileRegistry } from '../engine/src/continuity/genre-profile.js';
 import { gateApprovalActivation, projectApprovalValue } from '../src/core/approval-language-gate.js';
 import { runInit } from '../src/tools/init.js';
 import { runStoryProfile, runStoryProfileDecide, runStoryProfileStatus } from '../src/tools/story-profile.js';
@@ -113,6 +114,22 @@ test('generated prose cannot hide inside an engine configuration slot', async ()
     resolution: resolution('en'), providers });
   assert.equal(out.code, 'APPROVAL_SCHEMA_INVALID');
   assert.equal(providers.requests.length, 0);
+});
+
+test('a stored foundation carrying the old genre-specific tracked entity list still passes the approval gate', async () => {
+  const store = await newStore(); const providers = approvalProvider();
+  const currentProfile = createGenreProfileRegistry().get('regression-hunter');
+  const staleGenreProfile = {
+    ...currentProfile,
+    trackedEntities: [
+      { kind: 'Timeline', description: '전생/현생 듀얼 타임라인 추적' },
+      { kind: 'RegressionKnowledge', description: '회귀 시점 이전 사건 지식 — 회귀 이후 활용 제한' },
+    ],
+  };
+  const out = await gateApprovalActivation({ store, workId: 'book', kind: 'foundation',
+    value: { genre: 'regression-hunter', characters: [], worldFacts: [], genreProfile: staleGenreProfile },
+    resolution: resolution('en'), providers });
+  assert.equal(out.ok, true);
 });
 
 test('a canonical source edit during a model round trip invalidates the approval', async () => {

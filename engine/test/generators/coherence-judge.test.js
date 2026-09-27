@@ -108,4 +108,64 @@ describe('runCoherenceJudge', () => {
         });
         expect(r.score).toBe(73);
     });
+    it('asks about author rules and returns their verdicts', async () => {
+        let seen = '';
+        const providers = {
+            register: vi.fn(),
+            has: vi.fn(),
+            complete: async (req) => {
+                seen = req.messages.at(-1).content;
+                return { text: JSON.stringify({ score: 80, reason: 'ok', authorRules: [{ rule: '리아는 어머니 이야기를 먼저 꺼내지 않는다', verdict: 'fail', evidence: '"엄마가…"' }] }) };
+            },
+        };
+        const out = await runCoherenceJudge({
+            prose: '본문', chapterNumber: 3, plan: '', prevSummary: '', writerModel: {}, providers,
+            authorRules: ['리아는 어머니 이야기를 먼저 꺼내지 않는다'],
+        });
+        expect(seen).toContain('리아는 어머니 이야기를 먼저 꺼내지 않는다');
+        expect(out.authorRules[0].verdict).toBe('fail');
+    });
+    it('no author rules given → no authorRules key', async () => {
+        const providers = {
+            register: vi.fn(),
+            has: vi.fn(),
+            complete: vi.fn(async () => ({ text: JSON.stringify({ score: 80, reason: 'ok' }) })),
+        };
+        const out = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, providers });
+        expect(out.authorRules).toBeUndefined();
+    });
+    it('malformed authorRules entry is dropped, not the whole review', async () => {
+        const providers = {
+            register: vi.fn(),
+            has: vi.fn(),
+            complete: vi.fn(async () => ({
+                text: JSON.stringify({ score: 80, reason: 'ok', authorRules: [
+                    { rule: '유효', verdict: 'warn', evidence: 'x' },
+                    { rule: '검증 불가', verdict: 'maybe' },
+                    { verdict: 'pass' },
+                ] }),
+            })),
+        };
+        const out = await runCoherenceJudge({
+            prose: SAMPLE, chapterNumber: 3, writerModel, providers, authorRules: ['유효'],
+        });
+        expect(out.score).toBe(80);
+        expect(out.authorRules).toHaveLength(1);
+        expect(out.authorRules[0]).toEqual({ id: 'r1', rule: '유효', verdict: 'warn', evidence: 'x' });
+    });
+    it('asks for the whole JSON with a verdict per rule id, and flags a response without authorRules', async () => {
+        let seen = '';
+        const reply = (body) => ({ register: vi.fn(), has: vi.fn(), complete: async (req) => { seen = req.messages.at(-1).content; return { text: JSON.stringify(body) }; } });
+        const rules = [{ id: 'u1', text: '리아는 어머니 이야기를 먼저 꺼내지 않는다' }, { id: 'u3', text: '금화는 줄기만 한다' }];
+        const answered = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, authorRules: rules,
+            providers: reply({ score: 80, reason: 'ok', authorRules: [{ id: 'u3', verdict: 'warn', evidence: '금화가 늘었다' }, { id: 'u9', verdict: 'fail', evidence: 'x' }] }) });
+        expect(seen).toContain('- u1: 리아는 어머니 이야기를 먼저 꺼내지 않는다');
+        expect(seen).toContain('"authorRules": [{ "id":');
+        expect(seen).toContain('"score": <0-100>');
+        expect(answered.authorRules).toEqual([{ id: 'u3', rule: '금화는 줄기만 한다', verdict: 'warn', evidence: '금화가 늘었다' }]);
+        expect(answered.authorRulesMissing).toBeUndefined();
+        const missing = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, authorRules: rules, providers: reply({ score: 80, reason: 'ok' }) });
+        expect(missing.authorRules).toEqual([]);
+        expect(missing.authorRulesMissing).toBe(true);
+    });
 });

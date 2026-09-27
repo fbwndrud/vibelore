@@ -10,8 +10,7 @@ import { episodeForChapter, renderArcMap } from './arc.js';
 import { renderEpisodePlan, runEpisodePlan } from './episode-plan.js';
 import { applyNarrativeBoundary, runNarrativeBoundary } from './narrative-boundary.js';
 import { editorialQualityAdvisories, runEditorialQuality } from './editorial-quality.js';
-import { buildContext } from './context.js';
-import { ensurePilotContract, ensureStoryIdentity, patternViolations, runPatternAnalysis, runReaderHook } from './story-experience.js';
+import { ensurePilotContract, ensureStoryIdentity, patternViolations, readerHookAdvisories, runPatternAnalysis, runReaderHook } from './story-experience.js';
 import { assertProseIntegrity } from './prose-integrity.js';
 import { chooseBestRevision, makeRevisionCandidate, publicRevisionCandidate } from './revision-selection.js';
 import { createChapterSnapshot } from './snapshots.js';
@@ -20,6 +19,11 @@ import { arcReviewAdvisories, arcReviewViolations, runArcReview } from './arc-re
 import { assessContractLength, assessChapterLength, chapterDensityViolations } from './chapter-density.js';
 import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '../core/quality-policy.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
+import { openCanonRepository } from '../core/canon-repository.js';
+import { renderSummaries } from '../core/prompt-sections.js';
+import { ensureArcSummaries } from './arc-summary.js';
+import { ensureLedgerLog, openMergeCandidates, proposeLedgerMerges } from './ledger-migration.js';
+import { loadDisabledReviews, loadLedgerConfig } from '../core/review-policy.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { findLatestRun } from '../runs.js';
@@ -33,6 +37,7 @@ import { promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage, executionFoundationSnapshot } from '../core/work-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { normalizeModelProfile, withModelProfile } from '../core/model-profile.js';
+import { ledgerBaseState } from './ledger-log.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const MAX_ATTEMPTS = 3;
@@ -137,12 +142,34 @@ function manifestFrom(raw) {
   return { prose: cleaned.clean.trim(), castManifestRaw: block?.body ?? '{"cast":[]}' };
 }
 
+/**
+ * Record merge candidates waiting for the user, shown with the draft on the
+ * guided approval screen (auto never asks for them). Nothing when none wait.
+ */
+async function mergeCandidatesForApproval(store, workId) {
+  const mergeCandidates = await openMergeCandidates({ store, workId }).catch(() => []);
+  return mergeCandidates.length ? { mergeCandidates,
+    mergeHint: '같은 대상으로 보이는 기록입니다. 합치려면 lore_configure(mergeRecords=[{from, into}])로 승인하세요. 승인하지 않으면 그대로 둡니다.' } : {};
+}
+
 const DRAMATIC_DIMENSIONS = {
   powerShift: '장면 안의 힘의 관계가 바뀌지 않는다.',
   subtext: '대사와 행동이 욕망을 직접 설명해 서브텍스트가 약하다.',
   consequenceResidue: '충돌의 대가가 다음 장면에 남지 않는다.',
   surpriseIntegrity: '전환이 지나치게 예고되거나 근거 없이 발생한다.',
 };
+
+/**
+ * Author natural-language rules (each custom tracking item's `note`) judged
+ * by the coherence review. `pass` stays in the receipt only; `warn`/`fail`
+ * surface as soft advisories — the author's own rule, never a hard violation.
+ */
+export function authorRuleAdvisories(coherence, chapter) {
+  return (coherence?.authorRules ?? [])
+    .filter((entry) => entry.verdict === 'warn' || entry.verdict === 'fail')
+    .map((entry) => ({ severity: 'soft', advisoryOnly: true, chapterNumber: chapter,
+      code: 'AUTHOR_RULE', message: `${entry.rule}: ${entry.evidence}` }));
+}
 
 export function dramaticQualityViolations(editorial, chapter) {
   return Object.entries(DRAMATIC_DIMENSIONS).flatMap(([dimension, fallback]) => {
@@ -354,6 +381,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       approvalId: workflow.approvalId, chapter, prose: workflow.draftProse,
       quality: workflow.quality, nextAction: 'lore_decide로 승인하거나 피드백과 함께 거절하세요.',
       ...(workflow.degraded ? { degraded: workflow.degraded } : {}),
+      ...await mergeCandidatesForApproval(store, workId),
     };
   }
 
@@ -382,6 +410,41 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   if (pending(providers)) {
     await transition(store, workflow, 'awaiting_model', { operation: 'pilot_contract' });
     return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'pilot_contract' };
+  }
+
+  // A finished arc is condensed into the long memory before the next chapter
+  // is planned or drafted from it.
+  const arcSummaries = await ensureArcSummaries({ store, workId, arcPlan, providers, kit });
+  if (arcSummaries.pending) {
+    await transition(store, workflow, 'awaiting_model', { operation: 'arc_summary' });
+    return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'arc_summary' };
+  }
+  // An unusable answer or a missing arc archive does not stop the chapter; it is
+  // shown with the result and the summary is asked again next time.
+  const longMemory = arcSummaries.failed || arcSummaries.missing
+    ? { ...(arcSummaries.failed ? { failed: arcSummaries.failed } : {}), ...(arcSummaries.missing ? { missingArchive: arcSummaries.missing } : {}) }
+    : null;
+  if (longMemory) await logOnce(store, workflow, `long-memory:${JSON.stringify(longMemory)}`, { at: now(), event: 'long_memory_incomplete', chapter, ...longMemory });
+
+  // An existing work gets its ledger history without a model. In guided mode a
+  // newly flagged near-duplicate pair (or a legacy work, once) is offered as
+  // merge candidates for the user to approve; auto never asks. The request
+  // rides with the chapter plan's round trip when a plan is still needed, and
+  // a failure never stops the chapter.
+  let mergePending = false;
+  try {
+    await ensureLedgerLog({ store, workId });
+    if (workflow.autonomy === 'guided') {
+      const merges = await proposeLedgerMerges({ store, workId, providers, kit });
+      mergePending = merges.status === 'pending';
+      if (merges.status === 'failed') await logOnce(store, workflow, 'ledger-merge:failed', { at: now(), event: 'ledger_merge_incomplete', chapter, reason: 'unusable_answer' });
+    }
+  } catch (error) {
+    await logOnce(store, workflow, 'ledger-merge:error', { at: now(), event: 'ledger_merge_incomplete', chapter, reason: String(error?.message ?? error) });
+  }
+  if (mergePending && episodePlan?.status === 'active') {
+    await transition(store, workflow, 'awaiting_model', { operation: 'ledger_merge' });
+    return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'ledger_merge' };
   }
 
   // Per-chapter planning is an internal stage, not a caller checklist item.
@@ -452,6 +515,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   let arcReview;
   let lengthAssessment;
   let surfacedAdvisories = [];
+  let disabledReviews = [];
   let reviewAudit;
   let styleReport = null;
   let revisionPreservation = workflow.revisionPreservation ?? null;
@@ -509,12 +573,13 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     // relay presents it as one shared prompt prefix for the whole batch.
     providers.shareContext?.({ id: 'chapter-prose', label: kit.phrases.common.chapterProseLabel(chapter), text: current.prose });
     const checkedProse = current.prose;
+    disabledReviews = await loadDisabledReviews(store, workId);
     check = await runCheck({
       store, workId, chapter, prose: current.prose,
       castManifestRaw: current.castManifestRaw, providers,
       dialogueBreakMode: workContract.formatPolicy.dialogueBreakMode,
       includeSemanticContinuity: true,
-      includeProfileCheck: true,
+      includeProfileCheck: !disabledReviews.includes('story-profile-check'),
       requireInfluenceObservation, forceContract: true, issueReceipt: true, workflowId: workflow.workflowId, retryValidation: retryValidation && attempt === 1,
       // The boundary judge reads the same checked prose as the title and
       // summary, so it rides in their round trip instead of a pass of its own.
@@ -560,22 +625,33 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const patternLedger = experienceLedger.entries;
     const contract = compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter, kit,
       characterNames: Object.fromEntries((foundation?.characters ?? []).map((character) => [character.id, character.canonicalName])) });
-    const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(),
+    const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(), disabled: disabledReviews,
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
+    // The profile check runs inside the mandatory check; record it here when it is off.
+    if (disabledReviews.includes('story-profile-check')) await reviews.run('story-profile-check', async () => null, null);
+    const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
+    const ledgerConfig = await loadLedgerConfig(store, workId);
+    const authorRules = ledgerConfig.customTracking.filter((item) => item.note).map((item) => ({ id: item.id, text: item.note }));
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
-      plan: renderEpisodePlan(episodePlan, kit), writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
+      plan: renderEpisodePlan(episodePlan, kit), prevSummary: priorSummaries[0]?.summary ?? '',
+      writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
+      authorRules,
     }), { score: null, reason: null });
 
-    const { context: characterContext } = await buildContext({ store, workId, chapter });
-    const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
-    const editorialContext = priorSummaries.map((item) => item.summary).join('\n');
+    const canon = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
+    const fidelityPrevState = chapter > 1 ? await ledgerBaseState({ store: canon, workId, chapter: chapter - 1 }) : null;
+    const fidelityDynamics = await canon.loadCharacterDynamics?.(workId) ?? null;
+    const fidelityHistory = await store.loadLedgerEvents?.(workId) ?? [];
+    const editorialContext = renderSummaries(priorSummaries, kit);
     editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
 
-    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, context: characterContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
+    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, episodePlan, prevState: fidelityPrevState, dynamics: fidelityDynamics, previousSummary: priorSummaries[0] ?? null, config: ledgerConfig, history: fidelityHistory, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
 
-    readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
-    patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
+    readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, foundation, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
+    patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, foundation, cast: episodePlan?.cast ?? [], previousEntries: patternLedger.slice(-2), providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
+    // A review the user turned off leaves no entry: its fallback is not an analysis.
+    if (disabledReviews.includes('pattern-ledger')) patternEntry = null;
     // Independent reviews above are collected into one host round trip. The
     // semantic continuity check (needs the extracted delta) and the arc review
     // (needs the pattern entry) wait for the answers they depend on.
@@ -617,12 +693,14 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       ...editorialQualityAdvisories(editorial, chapter),
       ...characterFidelityAdvisories(characterFidelity, chapter),
       ...arcReviewAdvisories(arcReview, chapter),
+      ...readerHookAdvisories(readerHook, chapter, kit),
+      ...authorRuleAdvisories(coherence, chapter),
     ];
     violations.push(...independentAdvisories);
     if (readerHook.score !== null && readerHook.score < MIN_READER_HOOK) {
       violations.push(...(readerHook.findings.length ? readerHook.findings : [{ code: 'QUALITY_GATE_READER_HOOK', message: `독자 견인 점수 ${readerHook.score}` }]).map((finding) => ({ ...finding, severity: 'soft', advisoryOnly: true, chapterNumber: chapter })));
     }
-    const experienceViolations = patternViolations(patternLedger, patternEntry).map((violation) => ({ ...violation, chapterNumber: chapter }));
+    const experienceViolations = (patternEntry ? patternViolations(patternLedger, patternEntry) : []).map((violation) => ({ ...violation, chapterNumber: chapter }));
     const checkpointViolations = arcReviewViolations(arcReview, chapter);
     violations.push(...experienceViolations, ...checkpointViolations);
     const lengthFailed = check.lengthAssessment.actual < check.lengthAssessment.min;
@@ -719,6 +797,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     hardViolations: check.counts.hard, prosody: check.prosody.score,
     coherence: coherence.score, editorial: editorial.score, readerHook: readerHook.score, chars: current.prose.length,
     characterFidelity: characterFidelity.score, characterFlexibility: characterFidelity.flexibilityScore,
+    readerHookDetail: { dimensions: readerHook.dimensions ?? {}, commercialSerialCheck: readerHook.commercialSerialCheck ?? {} },
     qualityPolicy: { styleAnchorRevision: styleAnchor?.revision ?? null },
     review: reviewAudit,
     lengthAssessment, arcReview, advisories: surfacedAdvisories,
@@ -741,7 +820,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     attempt, draftProse: current.prose, castManifestRaw: current.castManifestRaw,
     checkId: receipt.checkId, summary: receipt.artifact.summary, title: receipt.artifact.title,
     boundary,
-    patternEntry, arcReview, quality: { prosody: receipt.prosody, coherence: receipt.coherence, editorial: receipt.editorial, characterFidelity: receipt.characterFidelity, characterFlexibility: receipt.characterFlexibility, readerHook: readerHook.score, chars: receipt.chars, lengthBand: lengthAssessment.band, arcReview: arcReview?.score ?? null, advisories: surfacedAdvisories, styleContinuity: receipt.styleContinuity, hard: 0, attempts: attempt },
+    patternEntry, arcReview, quality: { ...(longMemory ? { longMemory } : {}), disabledReviews, prosody: receipt.prosody, coherence: receipt.coherence, editorial: receipt.editorial, characterFidelity: receipt.characterFidelity, characterFlexibility: receipt.characterFlexibility, readerHook: readerHook.score, chars: receipt.chars, lengthBand: lengthAssessment.band, arcReview: arcReview?.score ?? null, advisories: surfacedAdvisories, styleContinuity: receipt.styleContinuity, hard: 0, attempts: attempt },
   });
   workflow.quality.review = reviewAudit;
   delete workflow.degraded;
@@ -762,6 +841,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       status: 'awaiting_approval', stage: workflow.stage, workflowId: workflow.workflowId,
       approvalId: workflow.approvalId, chapter, prose: current.prose, quality: workflow.quality,
       ...(workflow.degraded ? { degraded: workflow.degraded } : {}),
+      ...await mergeCandidatesForApproval(store, workId),
       nextAction: 'lore_decide로 승인하거나 피드백과 함께 수정 요청·보류·거절하세요.',
     };
   }
@@ -785,6 +865,7 @@ async function commitPassedWorkflow({ store, workflow, providers }) {
     await transition(store, workflow, 'awaiting_draft_approval', { operation: null });
     return { status: 'awaiting_approval', workflowId: workflow.workflowId, chapter: workflow.chapter,
       approvalId: workflow.approvalId, prose: workflow.draftProse, quality: workflow.quality, degraded: workflow.degraded,
+      ...await mergeCandidatesForApproval(store, workflow.workId),
       nextAction: '필수 검토가 완료되지 않았습니다. 원고와 검사 결과를 보고 lore_decide로 판단하세요.' };
   }
   const priorExperience = workflow.patternEntry

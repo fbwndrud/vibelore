@@ -215,7 +215,7 @@ function buildUserPrompt(input) {
         chapterNumber: prevState.chapterNumber,
         openHooks: (prevState.hooks ?? [])
             .filter(isHookActive)
-            .map((h) => ({ id: h.id, text: h.text, phase: h.phase })),
+            .map((h) => ({ id: h.id, text: h.text, status: h.status })),
     };
     return [
         labels.chapterNumber,

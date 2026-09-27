@@ -18,14 +18,19 @@ async function markdownFiles(rootDir) {
   return files.sort();
 }
 
+const sha256 = (value) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+// Whitespace carries no canon: a hand edit that only moves spaces or line
+// breaks must not stop writing or trigger a model re-check.
+const contentDigestOf = (bytes) => sha256(bytes.toString('utf8').normalize('NFC').replace(/\s+/gu, ''));
+
 export async function fingerprintWorkingTree(rootDir) {
   const files = await markdownFiles(rootDir);
   const inventory = [];
   for (const path of files) {
     const bytes = await readFile(path);
-    inventory.push({ path: relative(rootDir, path).split(sep).join('/'), digest: `sha256:${createHash('sha256').update(bytes).digest('hex')}` });
+    inventory.push({ path: relative(rootDir, path).split(sep).join('/'), digest: sha256(bytes), contentDigest: contentDigestOf(bytes) });
   }
-  const digest = `sha256:${createHash('sha256').update(JSON.stringify(inventory)).digest('hex')}`;
+  const digest = sha256(JSON.stringify(inventory.map(({ path, contentDigest }) => ({ path, contentDigest }))));
   return { digest, inventory };
 }
 
@@ -49,9 +54,16 @@ export async function detectWorkingTreeDrift({ store, sourceHead }) {
   const accepted = await store.loadWorkingTreeFingerprint();
   if (!accepted) return { status: 'untracked', sourceHead, changed: [] };
   const current = await fingerprintWorkingTree(store.rootDir);
-  const before = new Map((accepted.inventory ?? []).map((item) => [item.path.replaceAll('\\', '/'), item.digest]));
-  const after = new Map(current.inventory.map((item) => [item.path.replaceAll('\\', '/'), item.digest]));
-  const changed = [...new Set([...before.keys(), ...after.keys()])].filter((path) => before.get(path) !== after.get(path)).sort();
+  const before = new Map((accepted.inventory ?? []).map((item) => [item.path.replaceAll('\\', '/'), item]));
+  const after = new Map(current.inventory.map((item) => [item.path.replaceAll('\\', '/'), item]));
+  // Records captured before content digests existed compare raw bytes.
+  const differs = (path) => {
+    const old = before.get(path);
+    const now = after.get(path);
+    if (!old || !now) return true;
+    return old.contentDigest ? old.contentDigest !== now.contentDigest : old.digest !== now.digest;
+  };
+  const changed = [...new Set([...before.keys(), ...after.keys()])].filter(differs).sort();
   if (accepted.sourceHead !== sourceHead) return { status: 'stale_fingerprint', sourceHead, acceptedHead: accepted.sourceHead, changed };
   return changed.length
     ? { status: 'modified', sourceHead, acceptedHead: accepted.sourceHead, changed }

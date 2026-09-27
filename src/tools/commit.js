@@ -8,9 +8,11 @@
  * writer who has looked at the finding and decided it is wrong -- their
  * judgement beats the engine's, but it should cost a deliberate keystroke.
  */
-import { extractDelta } from '../../engine/src/continuity/continuity-check.js';
-import { reduceStoryState, emptyStoryState } from '../../engine/src/continuity/story-state.js';
-import { applyEntityOps } from './entities.js';
+import { extractDelta, supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
+import { isHookActive, normalizeStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
+import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
+import { ledgerBaseState, ledgerLogStatus, updateLedgerLog } from './ledger-log.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 import { advanceArcAfterCommit } from './arc.js';
 import { completeEpisodePlan, upgradeEpisodePlanningContract } from './episode-plan.js';
 import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
@@ -115,21 +117,21 @@ export async function runCommit({
     castManifestRaw = contractArtifact.castManifestRaw;
   }
 
-  const prev = (await canonicalStore.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
-  const delta = contractCommit
+  // Every snapshot must reach the ledger (the base state adds them); otherwise the entities derived below would drop it from canon.
+  const prev = await ledgerBaseState({ store: canonicalStore, workId, chapter: chapter - 1 });
+  let delta = contractCommit
     ? (contractArtifact.semanticDelta ?? checkReceipt.delta)
     : (presetDelta ?? checkReceipt?.delta ?? (await extractDelta({
       prose, chapterNumber: chapter, foundation, providers, model: MODEL, prevState: prev,
       castManifestRaw: castManifestRaw ?? '',
     })).delta);
 
-  const next = reduceStoryState(prev, delta);
-
-  let entities = await canonicalStore.loadEntitySnapshots(workId);
-  if (delta.entityOps?.length) {
-    try { entities = applyEntityOps(entities, delta.entityOps, chapter).snapshots; }
-    catch (err) { /* entity ops are advisory; a malformed op must not lose the chapter */ }
-  }
+  // Preset and legacy deltas get the same address check the extractor applies.
+  delta = { ...delta, newAddressEntries: supportedAddressEntries(delta.newAddressEntries, foundation, prose).entries };
+  const ledgerConfig = await loadLedgerConfig(store, workId);
+  const next = reduceStoryState(prev, delta, { config: ledgerConfig });
+  // Canon readers still take entity snapshots; the ledger is their source now.
+  const entities = ledgerEntitySnapshots(next.ledger);
 
   const generatedSummary = contractCommit ? (typeof contractArtifact.summary === 'object' ? contractArtifact.summary : null) : summary ? null : await runChapterSummary({
     prose,
@@ -267,6 +269,8 @@ export async function runCommit({
   await store.saveArtifact({ workId, chapterNumber: chapter, prose, ...(title ? { title } : {}), delta });
   await store.saveStoryState(next);
   if (entities.length > 0) await store.saveEntitySnapshots(workId, entities);
+  try { await updateLedgerLog({ store, workId, chapter, delta, config: ledgerConfig }); }
+  catch { /* the log is rebuilt from the deltas; a failure here never loses the chapter */ }
   if (chapterSummary) {
     await store.saveChapterSummary({
       workId,
@@ -306,7 +310,8 @@ export async function runCommit({
       hooks: next.hooks?.length ?? 0,
       relationships: next.relationships?.length ?? 0,
       addressEntries: Object.keys(next.addressMap?.entries ?? {}).length,
-      trackedEntities: entities.length,
+      records: next.ledger.records.length,
+      openHooks: next.hooks.filter(isHookActive).length,
     },
     summary: {
       source: summary ? 'provided' : 'generated',
@@ -333,7 +338,7 @@ export async function runStatus({ store, workId }) {
   if (!foundation) return { initialized: false, message: '이 디렉터리에 작품이 없습니다.', runtime: runtimeVersion() };
   const chapters = await store.listChapters();
   const last = chapters.length ? chapters[chapters.length - 1] : 0;
-  const state = last > 0 ? await store.loadStoryState(workId, last) : null;
+  const state = last > 0 ? normalizeStoryState(await store.loadStoryState(workId, last)) : null;
   const arcPlan = await store.loadArcPlan(workId);
   const storyProfile = await store.loadStoryProfile(workId);
   const nextDetailedEpisode = await store.loadEpisodePlan(workId, last + 1);
@@ -354,7 +359,9 @@ export async function runStatus({ store, workId }) {
       id: c.id, name: c.canonicalName, since: c.registeredAtChapter,
     })),
     worldFacts: foundation.worldFacts.length,
-    openHooks: (state?.hooks ?? []).map((h) => h.text || h.id),
+    // Only hooks the reader is still waiting on; dormant and paid ones are not open.
+    openHooks: (state?.hooks ?? []).filter(isHookActive).map((h) => h.text || h.id),
+    ledgerLog: await ledgerLogStatus({ store, workId }),
     arcCursor: state?.arcCursor ?? {},
     arc: arcPlan ? {
       number: arcPlan.arcNumber, title: arcPlan.title, status: arcPlan.status,
@@ -368,7 +375,7 @@ export async function runStatus({ store, workId }) {
     episodePlan: nextDetailedEpisode ? {
       status: nextDetailedEpisode.status, chapter: nextDetailedEpisode.chapter, title: nextDetailedEpisode.title,
       scenes: nextDetailedEpisode.scenes?.length ?? 0,
-    } : { status: 'missing', chapter: last + 1, instruction: 'lore_episode_plan으로 현재 아크 비트를 상세화하세요.' },
+    } : { status: 'missing', chapter: last + 1, instruction: 'lore_write를 호출하면 현재 아크 비트로 이 화의 계획을 자동으로 만듭니다.' },
     workingTree,
     runtime: runtimeVersion(),
   };

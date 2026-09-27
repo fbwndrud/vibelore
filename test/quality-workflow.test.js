@@ -204,6 +204,107 @@ describe('host round trips are batched by dependency', () => {
     assert.equal(history.events.filter((e) => e.event === 'reviews_completed').length, 1);
   });
 
+  it('gives the reader-hook review the plan as text, with expectation, turn, payoff and exit value', async () => {
+    const store = await qualityStore();
+    const plan = await store.loadEpisodePlan(workId, 1);
+    await store.saveEpisodePlan(workId, { ...plan, readerExpectation: { likelyOutcome: 'EXPECTED_OUTCOME', evidenceOnPage: ['PAGE_EVIDENCE'] },
+      exitValue: { ...(plan.exitValue ?? {}), specificFutureValue: 'FUTURE_VALUE' } });
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    const user = requests.find((req) => req.step === 'reader-hook').messages.find((m) => m.role === 'user').content;
+    const input = user.slice(0, user.lastIndexOf('JSON:'));
+    assert.doesNotMatch(input, /[{}]|\["/, 'no JSON before the output schema');
+    assert.match(input, /EXPECTED_OUTCOME/);
+    assert.match(input, /PAGE_EVIDENCE/);
+    assert.match(input, /FUTURE_VALUE/);
+    assert.match(input, /닫힌 문 앞에 선다/);
+  });
+
+  it('gives the character review each character once, as text, with the plan it was written from', async () => {
+    const store = await qualityStore();
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    const user = requests.find((req) => req.step === 'character-fidelity').messages.find((m) => m.role === 'user').content;
+    const input = user.slice(0, user.indexOf('본문:'));
+    assert.doesNotMatch(input, /[{}]|\["/, 'no JSON before the prose');
+    assert.equal(input.match(/윤재 \(`hero`\)/g)?.length, 1, 'the character appears once');
+    assert.doesNotMatch(input, /아크 계획 없음|lore_arc_plan/);
+    assert.match(input, /닫힌 문 앞에 선다/, 'the plan the chapter was written from');
+  });
+
+  it('gives the coherence review the previous chapter summary and one plan heading', async () => {
+    const store = await qualityStore();
+    store.loadRecentChapterSummaries = async () => [{ chapterNumber: 0, summary: 'PREVIOUS_SUMMARY' }];
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    const user = requests.find((req) => req.step === 'coherence-judge').messages.find((m) => m.role === 'user').content;
+    assert.match(user, /PREVIOUS_SUMMARY/);
+    assert.doesNotMatch(user, /## 이번 화 plan\n##/, 'the plan render carries its own heading');
+  });
+
+  it('gives the editorial review earlier summaries oldest first, labelled by chapter', async () => {
+    const store = await qualityStore();
+    store.loadRecentChapterSummaries = async () => [{ chapterNumber: 7, summary: 'NEWER' }, { chapterNumber: 6, summary: 'OLDER' }];
+    const requests = [];
+    await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: outputs[req.step] ?? '{}' }; } } });
+    const user = requests.find((req) => req.step === 'editorial-quality').messages.find((m) => m.role === 'user').content;
+    assert.match(user, /6화[^\n]*OLDER[\s\S]*7화[^\n]*NEWER/);
+  });
+
+  it('keeps the reader-hook checklist: failed items surface as advisories and the detail is on the receipt', async () => {
+    const store = await qualityStore();
+    const hook = JSON.stringify({ score: 88, dimensions: { competenceProof: 88, nextChapterPull: 71 },
+      commercialSerialCheck: { genrePromisePaid: { verdict: 'fail', evidence: 'GENRE_EVIDENCE' }, hookValueIsSpecific: { verdict: 'pass', evidence: '' } }, findings: [] });
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: { async complete(req) { const contract = contractResponse(req); if (contract) return contract; return { text: req.step === 'reader-hook' ? hook : (outputs[req.step] ?? '{}') }; } } });
+    const advisory = (result.quality?.advisories ?? []).find((item) => item.code === 'READER_CHECK_GENREPROMISEPAID');
+    assert.ok(advisory, JSON.stringify(result.quality?.advisories));
+    assert.match(advisory.message, /GENRE_EVIDENCE/);
+    assert.ok(!(result.quality?.advisories ?? []).some((item) => /HOOKVALUEISSPECIFIC/.test(item.code)));
+    const workflow = await store.loadWorkflow(workId);
+    const receipt = await store.loadCheckReceipt(workId, workflow.checkId);
+    assert.equal(receipt.readerHookDetail.dimensions.nextChapterPull, 71);
+    assert.equal(receipt.readerHookDetail.commercialSerialCheck.genrePromisePaid.verdict, 'fail');
+  });
+
+  it('asks the coherence review about author tracking notes and surfaces a fail as a soft advisory', async () => {
+    const store = await qualityStore();
+    store.loadReviewPolicy = async () => ({ customTracking: [
+      { id: 'u1', name: '리아', feature: 'objects', note: '리아는 어머니 이야기를 먼저 꺼내지 않는다' },
+      { id: 'u2', name: '무명', feature: 'objects' }, // no note: excluded, not an empty rule
+    ] });
+    const requests = [];
+    const judge = JSON.stringify({ score: 88, reason: 'ok', authorRules: [
+      { rule: '리아는 어머니 이야기를 먼저 꺼내지 않는다', verdict: 'fail', evidence: '"엄마가…"' },
+    ] });
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: req.step === 'coherence-judge' ? judge : (outputs[req.step] ?? '{}') }; } } });
+    const user = requests.find((req) => req.step === 'coherence-judge').messages.find((m) => m.role === 'user').content;
+    assert.match(user, /리아는 어머니 이야기를 먼저 꺼내지 않는다/);
+    const advisory = (result.quality?.advisories ?? []).find((item) => item.code === 'AUTHOR_RULE');
+    assert.ok(advisory, JSON.stringify(result.quality?.advisories));
+    assert.match(advisory.message, /엄마가/);
+    assert.equal(advisory.severity, 'soft');
+    // A soft advisory never blocks: the workflow still reaches guided approval
+    // with the same draft, not a revision loop or a clean_fail.
+    assert.equal(result.status, 'awaiting_approval');
+    assert.equal(requests.filter((req) => req.step === 'revise').length, 0);
+  });
+
+  it('asks about author rules by item id and treats a coherence answer without authorRules as an incomplete review', async () => {
+    const store = await qualityStore();
+    store.loadReviewPolicy = async () => ({ customTracking: [{ id: 'u1', name: '리아', feature: 'objects', note: '리아는 어머니 이야기를 먼저 꺼내지 않는다' }] });
+    const requests = [];
+    const judge = JSON.stringify({ score: 88, reason: 'ok' });
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: req.step === 'coherence-judge' ? judge : (outputs[req.step] ?? '{}') }; } } });
+    const user = requests.find((req) => req.step === 'coherence-judge').messages.find((m) => m.role === 'user').content;
+    assert.match(user, /- u1: 리아는 어머니 이야기를 먼저 꺼내지 않는다/);
+    const workflow = await store.loadWorkflow(workId);
+    const receipt = await store.loadCheckReceipt(workId, workflow.checkId);
+    const record = receipt.review.records.find((item) => item.step === 'coherence-judge');
+    assert.equal(record.status, 'failed');
+    assert.equal(record.failure, 'INCOMPLETE_REVIEW_RESULT');
+    assert.notEqual(result.status, 'committed', 'a failed critic demotes auto to guided approval');
+  });
+
   it('shows reviewers a plan view without bookkeeping fields', async () => {
     const store = await qualityStore();
     const plan = await store.loadEpisodePlan(workId, 1);
@@ -213,8 +314,9 @@ describe('host round trips are batched by dependency', () => {
     for (const step of ['story-profile-check', 'reader-hook']) {
       const text = requests.find((req) => req.step === step).messages.map((m) => m.content).join('\n');
       assert.doesNotMatch(text, /contractVersion|createdAt/, step);
-      assert.match(text, /닫힌 문 앞에 선다/, step);
     }
+    // The profile check judges drift against the arc beat; the plan's scenes are the coherence review's input.
+    assert.match(requests.find((req) => req.step === 'reader-hook').messages.map((m) => m.content).join('\n'), /닫힌 문 앞에 선다/);
   });
 });
 

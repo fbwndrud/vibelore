@@ -2071,6 +2071,19 @@ it('audits open entity attribute records while keeping surrounding operation IDs
  expectCode(()=>evaluate(artifact,{verdict:'fail',evidence:[{fieldPath:'semanticDelta.trackedEntityOps[0].data.id',quote:'item-1',reason:'An ID cannot prove language failure.'}]}),VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
 });
 
+it('language-checks ledgerOps prose while keeping feature, event and ids machine-bound', () => {
+ const koContract = buildLanguageContract({ language: 'ko' });
+ const artifact = bundle({ prose: '문이 열렸다.', title: '문', summary: { text: '문이 열린다.' }, castManifestRaw: [], semanticDelta: { ledgerOps: [
+  { op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [{ text: '쪽지', by: 'c1' }], fields: { 상태: '구겨짐' }, note: '서랍에서 나왔다' },
+  { op: 'event', id: 'r1', event: 'changed', set: { 위치: '주머니' }, note: '주머니로 옮겼다' },
+  { op: 'hook', id: 'h1', event: 'paid', evidence: '문이 열렸다.' },
+ ] } });
+ const run = (overrides = {}) => evaluateLanguageCompliance({ artifact, workContract: koContract, compliance: compliance(artifact, { language: 'ko', ...overrides }) });
+ expect(run().satisfied).toBe(true);
+ expect(run({ verdict: 'fail', evidence: [{ fieldPath: 'semanticDelta.ledgerOps[0].note', quote: '서랍에서', reason: 'not the work language' }] }).failureCode).toBe(VALIDATION_ERROR_CODES.OUTPUT_LANGUAGE_MISMATCH);
+ expectCode(() => run({ verdict: 'fail', evidence: [{ fieldPath: 'semanticDelta.ledgerOps[0].feature', quote: 'objects', reason: 'English enum' }] }), VALIDATION_ERROR_CODES.INCOMPLETE_LANGUAGE_EVIDENCE);
+});
+
 // ─── cast-design 승인 묶음의 생성 필드 분류 ────────────────────────────────────
 // 2026-09-14 실제 8개 언어 표본에서 ko/es 의 foundation 승인이 검토자 pass 를 받고도
 // `unclassified_generated_field` 로 3회 소진된 반례. 프롬프트가 요구하는 모든 생성

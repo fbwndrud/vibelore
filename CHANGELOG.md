@@ -1,5 +1,335 @@
 # Changelog
 
+## 0.4.1 — 2026-09-27
+
+- Story ledger. Objects, knowledge, scheduled events and hooks are kept as
+  one record each across the whole work, with an ID, a status, current
+  values and the last three events, instead of per-chapter tracked items that
+  were overwritten or registered again under a new name:
+  - Record statuses: objects `active|lost|destroyed|retired`, knowledge
+    `secret|partial|public|retired`, scheduled
+    `pending|prevented|happened|altered|retired`. Hooks are
+    `open|dormant|paid|closed`; a payoff needs a quote from the chapter
+    (otherwise it counts as an advance) and a paid hook used again reopens.
+    Older `planted`/`advancing` read as `open`, `parked` as `dormant`.
+  - Each chapter's events go to `.vibelore/ledger/events.jsonl`. The replay
+    starts from `.vibelore/ledger/seed.json` (the records before chapter 1,
+    written by `lore_create`, or once from the entity snapshots for older
+    works) and applies each chapter under the settings it was committed
+    with, so it equals the live ledger. A commit appends its chapter; a
+    rollback, refold, `lore_sync` or settings change rebuilds it.
+    `lore_status` reports `ledgerLog`, which is ok only when the file exists,
+    has the recorded number of lines and matches the digest of seed,
+    settings and chapter extractions. A record that returns after more than
+    20 quiet chapters brings up to five lines of its history into the writer
+    input; otherwise inputs carry current values and recent events only.
+  - An exactly equal name joins the existing record; a similar one is
+    registered and flagged (`LEDGER_POSSIBLE_DUPLICATE`, soft), never merged
+    on its own. A record may be registered in its first status (already
+    destroyed, prevented); a status event keeps the values that changed with
+    it. A dormant or paid hook that returns keeps its ID, and a passing
+    mention does not count as the hook moving.
+  - Hard findings: changing a destroyed record and restoring one without a
+    reason. Both first re-extract once, since they are usually extraction
+    slips. Everything else the ledger reports is soft.
+- Tracking settings in `lore_configure`:
+  - `tracking={objects, knowledge, scheduled, hooks}` turns each feature on
+    or off (all on by default). A feature turned off is not asked for, not
+    checked and never a failure, and `lore_context` leaves it out. A change
+    applies from the next chapter; earlier chapters keep their history. What is tracked no longer depends on the
+    genre (the genre profile's tracked kinds are gone).
+  - `customTracking=[{name, feature, pinned?, rules?, note?}]`: an item
+    links to the record with its ID, name or alias; `pinned` items are
+    always in the inputs, and items with no record yet are listed as things
+    to track; `rules` are deterministic checks
+    (`monotonic` with `unless`, `frozenAfter`, `speakerOnly`), soft unless
+    `severity: "hard"`; `note` is a natural-language rule the
+    `coherence-judge` review judges per item ID and reports as an
+    `AUTHOR_RULE` advisory, with no extra model request (an answer with no
+    verdicts leaves the review incomplete).
+  - Speaker-only aliases (an alias with `by`): reported when the term appears
+    while that character is not in the chapter, listed in the continuity
+    check's address section and shown to the planner and writer.
+  - Merges: in `guided`, `lore_write` asks one `ledger-merge` request about
+    newly flagged pairs only (`auto` never asks); the proposals show as
+    `mergeCandidates` in the guided approval result and in
+    `lore_configure`, and `mergeRecords=[{from, into}]` approves them from
+    the next chapter (`atChapter`). The merged record keeps the `into` ID;
+    its status and values come from the record with the later event.
+  - The chapter plan sees hook IDs and `hooksTouched` keeps existing IDs
+    only.
+- Existing works move to the ledger on their own: the history log and the
+  ledger are replayed from the committed chapters without a model call
+  (`Timeline` entries become chapter notes; `RelationshipState` and
+  `PowerSystem` entries are not carried over), and `guided` asks once for
+  merge candidates (at most 150 records: flagged pairs first).
+- Engine: `foldEntityOps` and `scanDestroyedEntityMentions` are removed
+  from the public exports; the ledger review reports destroyed mentions.
+- Rollback also restores `review-policy.json` (review and tracking settings,
+  approved merges) and the arc summaries; before, both were deleted.
+- The language-field classifier (version 5) and the extraction context
+  (version 2) changed, so check receipts issued before the upgrade no longer
+  apply: a chapter checked and waiting for approval is checked once more.
+- Review fixes for the bounded state inputs and the long memory:
+  - Hooks the plan touches are never cut by the 12-hook cap; related records
+    left out by a cap are counted separately from unrelated ones.
+  - Tracked items the text names by an identity field (name, id, title) rank
+    above items that only share a state word.
+  - Known facts the focus shares words with survive the three-fact limit;
+    relationships between two focused characters rank first.
+  - Character names match as words ("조연5" no longer matches "조연50").
+  - The chapter plan lists and accepts only characters registered by that
+    chapter.
+  - The continuity check sees the previous value of every tracked item the
+    chapter changes, so ownership invariants have both sides.
+  - The character review shows character descriptions again.
+  - Only arcs with status `completed` are summarized (rejected plans keep
+    their numbers); a missing arc archive stops the chain instead of building
+    on a hole; blank answers are not stored. An unusable answer does not stop
+    the chapter: the result carries `quality.longMemory` and the summary is
+    asked again next time.
+  - The current arc so far uses stored chapter summaries (a plan beat only
+    where none exists, labelled) for chapters before the five-chapter window;
+    retrieval no longer repeats them. `lore_rewrite` reads the long memory too.
+  - docs/TOOLS(.en).md describe the `lore_configure` settings arguments.
+- Long memory across arcs. When an arc is finished, the next `lore_write`
+  first asks one `arc-summary` request per unsummarized arc: from the
+  previous story so far and the arc's chapter summaries it returns an arc
+  summary (at most 800 characters) and the updated story so far (at most
+  2000). Works with finished arcs are summarized the same way. The chapter
+  plan and the draft read the latest story so far, the last two arc
+  summaries and the current arc's chapters so far, ahead of the five-chapter
+  summary window; this does not grow with the number of arcs. Stored in
+  `.vibelore/arc-summaries/`.
+- Per-chapter state inputs no longer grow with the length of the work.
+  Each request lists what its focus text touches (the prose for extraction
+  and the continuity check, the plan for the draft, the character review and
+  the chapter plan) and counts the rest:
+  - open hooks the focus shares words with, the plan's `hooksTouched`, those
+    planted in the last three chapters and, for the chapter plan, the three
+    longest open ones; at most 12;
+  - tracked items the focus names first, then those the named characters
+    hold; at most 30 for extraction, 12 for writers;
+  - characters in the cast or named in the focus, plus writers see
+    characters lost in the last five chapters; address terms and
+    relationships between those;
+  - the continuity check lists Foundation characters on the page only
+    (evidence paths keep the Foundation index);
+  - the chapter plan's cast list gives full lines for the core cast, named
+    and recently registered characters and names only for up to 30 others.
+  A synthetic 300- and 1000-chapter work guards this
+  (test/long-run-inputs.test.js): the 1000-chapter render may be at most 20%
+  larger than the 300-chapter one and must keep every needle the prose or
+  plan touches. Thundertrail chapter 8 extraction: 13.5K to 9.5K characters.
+- `lore_rewrite` carries the planned cast and characters the intent or the
+  chapter names, not every registered character.
+- With the pattern review off, no placeholder entry is written to the
+  experience ledger and repetition checks skip the chapter. A turned-off
+  profile check is listed in the review audit (`review.disabled`).
+- Character renders list aliases, so a reviewer can attribute a nickname to
+  the right character. `lore_rewrite` again carries every registered
+  character, not only the plan's cast.
+- The shared-block pointer tells the model to read it as the value of that
+  place, so quotes and `fieldPath` keep naming the request's own field.
+- Request prompts changed in this release, so a `lore_write` parked before
+  upgrading asks the changed requests again when resumed.
+- Optional draft sections can be left out per work:
+  `lore_configure(disabledDraftSections=[...])` with `older-memory`,
+  `previous-tail`, `author-craft` and `style-anchor`. The plan, setting,
+  current state and recent summary window always stay. The draft audit
+  records which sections were off.
+- `lore_write(sharedOnce=true)`: a `needs_model` response carries each
+  shared prose block once (`sharedBlocks`) and every request starts with a
+  one-line reference to it; replacing that line with the block restores the
+  exact default request. The default stays self-contained requests.
+- The language-contract request carries the prose verbatim before the
+  title, summary and delta JSON. Escaped inside JSON it never matched the
+  shared prose block, so it could not reuse the chapter's prompt cache.
+- A lone relayed request that carries the shared chapter prose (the
+  continuity check, which parks after the review batch) gets the same
+  shared-prefix layout, so it reads the prefix that batch cached. Warm-first
+  stays off for a lone request. The CLI relay instruction and the operations
+  guide ask for `CLAUDE_CODE_PROMPT_CACHE_TTL=5m`: a subscription-signed CLI
+  writes the cache with a 1-hour TTL at twice the input price.
+- `needs_model` responses carry `inputReport`: for each request its
+  sections with character counts, the shared prose size and whether it can
+  reuse the cached shared block. `lore_write` keeps the last report on the
+  workflow (`lore_workflow_status`) and reports `trimmedContext` when the
+  draft's summary window or memory budget left something out.
+- The per-chapter reviews can be turned off per work:
+  `lore_configure(disabledReviews=[...])` stores the full list
+  (story-profile-check, coherence-judge, editorial-quality,
+  character-fidelity, reader-hook, pattern-ledger; unknown names are
+  rejected). A review that is off is not requested and is recorded as
+  `disabled_by_user`, which does not count as a failed review, so `auto`
+  still commits. Results list `quality.disabledReviews`. Continuity
+  extraction and checking stay on.
+- Fix: an arc approved after the previous arc completed is now published with
+  the next commit. Commits, context assembly and status read plans from the
+  working store where the approval tools write them; they used to read the
+  plans sealed in the last publication, so a finished arc stayed the published
+  arc forever and context showed "no arc plan".
+- The character packet shows each character's goal for the current chapter
+  from its plan. The choice owner's goal used to stay the first chapter's
+  immediate want for the rest of the work.
+- Carried relationships in the draft name both ends ("A→B"). Records without
+  a direction are left out; they used to be shown under the target's name as
+  if that character held the feeling.
+- The draft request carries characters, world facts and the previous state as
+  text instead of JSON (src/core/prompt-sections.js). The state section keeps
+  what bears on the chapter: the cast's current place and condition, every
+  dead or missing character, address terms within the cast, open threads,
+  directed relationships touching the cast and the tracked items the cast
+  holds or the plan names, most recent first. Foundation's design-time place
+  and condition appear only in chapter one; design-time knowledge stays.
+  Appearance is given where a character first enters. On the thundertrail
+  chapter 8 request this cuts the prompt from 34.7K to 19.3K characters.
+- Tracked records note the chapter that last changed them (`updatedChapter`).
+- The episode-plan request carries the arc beat, character beats, world
+  facts, cast, recent summaries (labelled, oldest first), the previous plan
+  and the current state as text instead of JSON. Thundertrail chapter 8:
+  23.2K to 12.2K characters.
+- The continuity extraction and check requests take text sections instead of
+  JSON. Extraction sees the whole state index with exact keys, hook ids,
+  planting chapters and address terms (it used to get address keys without
+  terms and hook ids without text), the known entities, and the cast with the
+  work's influence dimension ids, so it stops inventing dimension names. The
+  check sees characters and world facts with the paths it may cite as
+  evidence, the current state instead of Foundation's design-time place, and
+  only the Delta fields its tasks judge (appearances, address terms, state
+  changes, tracked-item changes).
+- The StoryProfile drift check reads the rendered profile with the user's
+  settled decisions, the arc beat, who is on stage and what the plan withheld
+  or deferred, instead of the raw profile JSON and the whole plan JSON, so a
+  deferred payoff is not taken for drift. Both check paths share the input.
+  Thundertrail chapter 8: 19.1K to 7.8K characters.
+- The reader-hook review reads the plan as the same text the other reviews
+  get, plus the reader-experience fields only it judges (expected outcome and
+  on-page evidence, turn, payoff proof, cost, exit value, agendas), instead of
+  the plan JSON. The unused plan JSON view is removed.
+- The character-fidelity review gets its own input instead of the general
+  context render: each on-stage character once as text (no appearance), the
+  chapter plan, the character packet, the current state and the previous
+  chapter's summary. Characters were sent twice before (JSON and context).
+  Thundertrail chapter 8: about 21K to 12.5K characters besides the prose.
+- Fix: the coherence review receives the previous chapter's summary its
+  instructions ask for; it was never passed. The plan heading is no longer
+  doubled.
+- The editorial review's earlier summaries are labelled by chapter and run
+  oldest first; they were unlabelled and newest first.
+- The pattern review sees the character ID table and the categories the
+  previous two chapters were filed under. Repetition is detected by exact
+  category name, and without the earlier names the reviewer invented new
+  ones each chapter. Supporting-agency keys given as names are stored as IDs.
+- The reader-hook review's checklist is no longer thrown away: items it
+  marks `fail` are shown as advisories with the evidence, and the receipt
+  keeps the dimension scores and the full checklist (`readerHookDetail`).
+- The narrative-boundary request carries what the decision needs: the arc
+  promise and reader contract, the current beat in full, the next beat's
+  event, and the plan's intended results (choice and result, next state,
+  scene results, remaining cost). Earlier beats, opposition, voice shifts
+  and the plan's scene staging are left out; the character curves are shown
+  on the last beat. Thundertrail chapter 8: 6.2K to 2.1K characters besides
+  the prose.
+- `lore_rewrite` sends characters, world facts and the previous state as the
+  same text the draft gets (shared `renderWriterFoundation`), instead of
+  JSON. The state section is focused on the chapter being rewritten.
+- Fix: the draft prompt now receives the recent chapter summaries (the
+  sliding window, up to five chapters, oldest first). Before, `lore_write`
+  passed the summary count instead of the summaries, so the writer saw only
+  the previous chapter's closing scene and the carried state.
+- The draft prompt also receives older retrieved memory (summaries beyond the
+  window, entities and off-cast characters, up to eight items) as canon
+  material, not instructions. World facts, the planned cast and active hooks
+  are left out there because Foundation and the previous state already carry
+  them.
+- Retrieval no longer returns summaries already in the window, and a redraft
+  no longer sees canon registered in the chapter it replaces or later. The
+  `lore_context` memory section changes accordingly.
+- Over its continuity budget the draft drops the lowest-ranked memory, then
+  the oldest summaries, then shortens the newest summary instead of failing.
+  Continuity text with control characters, reserved markup or instruction-like
+  content is left out. Every omission is recorded in the draft trace.
+- Memory search splits words with `Intl.Segmenter` in the work language, so
+  `ja`, `zh-Hant`, `th`, `ar` and accented Latin works retrieve older memory,
+  and a Korean word with a common particle also matches its stem (`수아가`
+  and `수아는` meet at `수아`).
+- StoryState records character state per chapter (`characterStates`): the
+  extractor may set `vitalStatus` (`alive`, `dead`, `missing`), and location,
+  status and accumulated known facts carry forward. A character recorded dead
+  who is in a later chapter's cast manifest is a hard
+  `DEAD_CHARACTER_ON_STAGE` violation unless that chapter records them alive
+  again. The writer sees `characterStates`, and the manifest rules now say a
+  remembered or mentioned character is not an appearance.
+- The extractor can emit `entityOps` (register, update, retire with
+  `cause: "destroyed"`), so entity lifecycle reaches the entity snapshots on
+  commit. It is shown the known entities. A destroyed entity named again in a
+  later chapter is a soft `DESTROYED_ENTITY_MENTION` advisory.
+- Tracked entities keep one record per natural key within a kind (name, fact,
+  event, from/to and similar) instead of one record per kind, so a new
+  KnowledgeMatrix fact or Timeline event no longer erases the earlier ones.
+  Prompts show the latest eight records per kind.
+- Relationships carry a `from` side; `A -> C` and `B -> C` of the same kind
+  are separate entries. Legacy entries without `from` stay as they are.
+- The extractor and the semantic checker see active hook text and phase,
+  character states and recent tracked records, not only ids. The writing
+  context lists only open hooks under unresolved hooks.
+- Address entries are recorded only when the chapter prose supports them:
+  the term must occur in the prose and must not contain another registered
+  character's name or alias. The extractor, `lore_commit` with a preset delta
+  and `lore_refold` apply the check, rejected entries surface as a soft
+  `ADDRESS_ENTRY_REJECTED` advisory, and a refold clears entries an earlier
+  extractor wrote with speaker and target swapped.
+- The previous-scene join rule now opens a chapter straight into a new action
+  or reaction and forbids repeating or restating the previous chapter's last
+  sentence, line or image. Before, it asked the writer to show how the scene
+  continued, and chapters opened by replaying the last line.
+- Payoff guidance asks for results the reader feels through action, dialogue
+  and change in the scene instead of "on-screen evidence", which pulled
+  climaxes toward documents and ledgers.
+- Cast design no longer seeds every character with the example's silver hair
+  and left-cheek scar: the schema examples are neutral placeholders, and a
+  rule asks for different kinds of marks on different body parts, not a mark
+  on everyone.
+- Edits to `world/` or `characters/` no longer stall writing with no way out.
+  `lore_sync action=validate` shows which world facts and characters changed
+  and which published plans mention them, and `action=apply` with that
+  approval id publishes the edited Foundation without a model call. Plans are
+  not rewritten and published chapters are not re-checked; the approval goes
+  stale if the files change after validation.
+- Default-surface guidance no longer points to advanced-only tools:
+  `lore_status`, the writing context and `lore_sync` now name `lore_write`
+  (which creates the chapter plan) instead of `lore_episode_plan`,
+  `lore_episode_decide` or `lore_refold`. An edit to an earlier chapter is
+  reported as not yet supported by the default tools.
+- A hand edit that only changes whitespace or line breaks in `world/`,
+  `characters/` or `chapters/` no longer counts as working-tree drift, so it
+  neither blocks `lore_write` nor triggers a model re-check. Fingerprints now
+  also record a whitespace-free content digest; fingerprints captured before
+  this keep comparing raw bytes until the next capture.
+- Drafts and `lore_rewrite` no longer assemble the `lore_context` render to
+  take its summary window and older memory, so an oversized reference render
+  cannot stop `lore_write`. A dedicated selection
+  (`selectWriterContinuity`) retrieves older memory without counting world
+  facts and open hooks against the memory budget, since the draft already
+  carries them in its setting and state sections; it never refuses. The draft
+  audit records how many summaries the window trimmed and how many matching
+  memories the budget left out (`contextAudit.memory`). `lore_context` still
+  refuses an oversized context.
+- A guard test fixes what each per-chapter request carries before the prose:
+  no JSON input, the sections it judges from, and a size bound
+  (test/request-inputs.test.js).
+- A whole-chapter rewrite (`lore_rewrite`) gets the same recent summaries and
+  older memory a draft of that chapter would get.
+- The memory index is rebuilt from an empty file, so a `memory.db` written by
+  a Node build with a different SQLite (such as one with FTS5) or a damaged
+  file no longer blocks context assembly.
+- Webtoon scenes: a previous scene whose image review failed is no longer
+  sent to the image model as a drawing reference, so its defects do not carry
+  into the next scene. The continuity review still compares against it, and
+  a changed previous image still stops the workflow. A passed previous scene
+  is carried as before.
+
 ## 0.4.0 — 2026-09-24
 
 - Integrate novel work language (BCP 47) support end to end, with an

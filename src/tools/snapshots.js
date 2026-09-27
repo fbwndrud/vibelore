@@ -4,9 +4,11 @@ import { join, dirname } from 'node:path';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { captureWorkingTreeFingerprint } from '../core/working-tree-sync.js';
 import { saveExperienceLedgerForHead } from '../core/experience-ledger.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
+import { rebuildLedgerLog } from './ledger-log.js';
 
 const canonicalDirs = ['world', 'characters', 'chapters', 'summaries'];
-const machineEntries = ['foundation.json', 'story-profile.json', 'story-spine.json', 'writer-skill.json', 'story-identity.json', 'pilot-contract.json', 'arc-plan.json', 'arcs', 'arc-reviews', 'episode-plans', 'artifacts', 'story-state', 'summaries', 'entities.json', 'pattern-ledger.json', 'experience-ledger.json', 'style-anchor.json'];
+const machineEntries = ['foundation.json', 'story-profile.json', 'story-spine.json', 'writer-skill.json', 'story-identity.json', 'pilot-contract.json', 'arc-plan.json', 'arcs', 'arc-reviews', 'arc-summaries', 'episode-plans', 'artifacts', 'story-state', 'summaries', 'entities.json', 'pattern-ledger.json', 'experience-ledger.json', 'style-anchor.json', 'review-policy.json'];
 const webtoonEntries = ['webtoon', 'webtoon-publication'];
 const infrastructure = new Set(['publication', 'snapshots', 'rollback-archives', 'rollback-pending.json', 'project.lock', 'project.lock.cleanup', ...webtoonEntries]);
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
@@ -223,6 +225,8 @@ export async function resumePendingRollback({ store, failAt = null }) {
   for (const entry of webtoonShared) await copyIfPresent(join(archive, 'before', 'machine', entry), store.sidecar(entry));
   const ledger = await store.loadExperienceLedger(journal.workId);
   await saveExperienceLedgerForHead({ store, workId: journal.workId, sourceHead: head, entries: (ledger.entries ?? []).filter((entry) => entry.chapter <= journal.chapter), criticVersion: ledger.criticVersion });
+  // The story ledger's history is derived from the restored deltas, so it is rebuilt rather than archived.
+  await rebuildLedgerLog({ store, workId: journal.workId, config: await loadLedgerConfig(store, journal.workId) });
   // Old prose authorizations, runs, model exchanges and caches stay archived.
   await captureWorkingTreeFingerprint({ store, sourceHead: head });
   const result = { rolledBackTo: journal.chapter, archiveId: journal.archiveId, archive: `rollback-archives/${journal.archiveId}`, recoverable: true, publication: { head } };

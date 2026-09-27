@@ -156,15 +156,21 @@ export function buildRewriteUserPrompt(input) {
         // 작가 지시는 작품 데이터다 — 계열과 무관하게 원문 그대로 싣는다.
         input.intentSummary.trim().length > 0 ? input.intentSummary.trim() : labels.intentMissing,
         ``,
-        labels.foundation,
-        JSON.stringify(input.foundationContext, null, 2),
-        ``,
     ];
+    if (typeof input.foundationRender === 'string' && input.foundationRender.trim()) sections.push(input.foundationRender.trim(), ``);
+    else sections.push(labels.foundation, JSON.stringify(input.foundationContext, null, 2), ``);
     // P4b (#516) — 멘션 entity 섹션. Foundation 뒤, StoryState 앞 (draft.ts 의
     // 섹션 순서와 정합 — entity 가 화 컨텍스트 핵심).
     if (input.entityContextRender && input.entityContextRender.length > 0) {
         sections.push(input.entityContextRender, ``);
     }
-    sections.push(labels.prevState, JSON.stringify(input.prevStateSummary, null, 2), ``, labels.original, input.previousProse, ``, labels.output, ...labels.outputLines);
+    if (input.continuityRender && input.continuityRender.length > 0) {
+        sections.push(input.continuityRender, ``);
+    }
+    if (typeof input.stateRender === 'string') {
+        if (input.stateRender.trim()) sections.push(input.stateRender.trim(), ``);
+    }
+    else sections.push(labels.prevState, JSON.stringify(input.prevStateSummary, null, 2), ``);
+    sections.push(labels.original, input.previousProse, ``, labels.output, ...labels.outputLines);
     return sections.join('\n');
 }

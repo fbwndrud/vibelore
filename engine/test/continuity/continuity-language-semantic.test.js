@@ -204,7 +204,7 @@ function completeEmptyExtraction(hash, extra = {}) {
         mutableChanges: [],
         influenceEvents: [],
         noInfluenceReason: '',
-        trackedEntityOps: [],
+        ledgerOps: [],
         extractionValidation: { contextHash: hash },
         ...extra,
     });
@@ -227,8 +227,8 @@ describe('extractDelta prompt families', () => {
             JSON.stringify({ chapterNumber: 0, addressMapKeys: [], activeHookIds: [] }),
             ``,
             `## 이번 회차 등장 캐스트 (writer manifest)`,
-            JSON.stringify([{ characterId: 'c1', canonicalName: '이세종', aliases: [], addressTermsUsed: ['도련님'] }]),
-            '- characterId 는 canonicalName/aliases 로 식별한다. addressTermsUsed 는 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
+            '- 이세종 (c1) · 쓴 호칭: 도련님',
+            '- characterId 는 이름·별칭으로 식별한다. 쓴 호칭은 그 인물이 다른 인물을 부를 때 쓴 호칭이며, 그 인물이 불리는 호칭이 아니다.',
             ``,
             `## 본문`,
             PROSE,
@@ -236,12 +236,19 @@ describe('extractDelta prompt families', () => {
             `## 출력 스키마 (이 JSON 한 개만 출력)`,
             '{',
             '  "newAddressEntries": [{ "speakerId": "...", "targetId": "...", "term": "...", "register": "formal|intimate|subordinate|..." }],',
-            '  "relationshipOps": [{ "to": "...", "kind": "...", "state": "..." }],',
-            '  "hookChanges": [{ "id": "...", "text": "독자가 아직 답을 기다리는 약속", "plantedAtChapter": 0, "phase": "planted|advancing|paid|parked", "horizon": "next|soon|arc|long|finale", "lastMovedChapter": 0 }],',
-            '  "mutableChanges": [{ "characterId": "...", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
+            '  "relationshipOps": [{ "from": "...", "to": "...", "kind": "...", "state": "..." }],',
+            '  "mutableChanges": [{ "characterId": "...", "vitalStatus": "alive|dead|missing", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
             '  "influenceEvents": [{ "characterId": "...", "anchor": "본문에서 확인 가능한 짧은 근거", "interpretation": "이 사건을 인물이 어떻게 받아들였는가", "dimensionChanges": { "작품별_dimension_id": -1 }, "nextChoiceBias": "다음 선택에 생긴 편향", "behavioralProof": { "hypothesis": "성격 가설", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["선택A", "선택B"], "chosen": "실제 선택", "costPaid": "지불한 비용", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "from이 to를 어떻게 보게 됐는가" }] }],',
             '  "noInfluenceReason": "인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성. influenceEvents 가 있으면 빈 문자열",',
-            '  "trackedEntityOps": [{ "kind": "Timeline|RelationshipState|PowerSystem|Artifact|Clue|KnowledgeMatrix", "data": {} }]',
+            '  "ledgerOps": [',
+            '    { "op": "register", "feature": "objects|knowledge|scheduled", "label": "물건·장소·단서·능력·비밀·예정된 일 등 자유 분류", "name": "...", "aliases": [{ "text": "...", "by": "characterId (only if one character uses it)" }], "status": "처음부터 기본값과 다른 상태일 때만 — objects: active|lost|destroyed|retired · knowledge: secret|partial|public|retired · scheduled: pending|prevented|happened|altered|retired", "fields": {}, "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "event", "id": "existing record id", "event": "changed", "set": { "field": "새 값" }, "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "event", "id": "existing record id", "event": "status", "status": "objects: active|lost|destroyed|retired · knowledge: secret|partial|public|retired · scheduled: pending|prevented|happened|altered|retired", "set": { "field": "상태와 함께 바뀐 값(있을 때만)" }, "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "event", "id": "existing record id", "event": "mentioned|restored", "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "alias", "id": "existing record id", "alias": "...", "by": "characterId or omit" },',
+            '    { "op": "plant", "text": "독자가 아직 답을 기다리는 약속", "horizon": "next|soon|arc|long|finale" },',
+            '    { "op": "hook", "id": "existing hook id", "event": "mentioned|advanced|paid|reopened|parked|closed", "evidence": "paid일 때만: 본문에서 그대로 옮긴 인용", "note": "이번 화에서 일어난 일 한 줄" }',
+            '  ]',
             '}',
         ].join('\n');
         expect(user).toBe(expectedUser);
@@ -259,8 +266,9 @@ describe('extractDelta prompt families', () => {
         expect(HANGUL.test(system)).toBe(false);
         expect(user).toContain('## Chapter number');
         expect(user).toContain('## Cast appearing in this chapter (writer manifest)');
-        expect(user).toContain('- Identify each characterId by its canonicalName/aliases.');
-        expect(user).toContain('"trackedEntityOps"');
+        expect(user).toContain('- Identify each characterId by its name and aliases.');
+        expect(user).toContain('"ledgerOps"');
+        expect(user).not.toContain('"trackedEntityOps"');
         expect(user).toContain('## Extraction validation (extractionValidation)');
         expect(user).toContain(`contextHash: ${computeExtractionContextHash(input)}`);
         // 프롬프트에 실린 한글은 작품 데이터(캐스트 호칭·본문)뿐이고 지시문은 영어다.
@@ -417,7 +425,7 @@ describe('extractDelta extractionValidation', () => {
         expect(result.delta.mutableChanges).toEqual([{ characterId: 'c1', status: 'wounded' }]);
     });
     it('valid nonempty records with every required key remain completed', async () => {
-        const input = extractInput({ workContract: EN_CONTRACT });
+        const input = extractInput({ workContract: EN_CONTRACT, prose: `${PROSE} "Yes, sir."` });
         const hash = computeExtractionContextHash(input);
         const cap = capturing(completeEmptyExtraction(hash, {
             newAddressEntries: [{ speakerId: 'c1', targetId: 'c1', term: 'sir', register: 'formal' }],
@@ -434,6 +442,7 @@ describe('extractDelta extractionValidation', () => {
             }],
             noInfluenceReason: '',
             trackedEntityOps: [{ kind: 'Timeline', data: { era: 'present' } }],
+            ledgerOps: [{ op: 'register', feature: 'objects', label: 'item', name: 'the letter' }, { op: 'plant', text: 'who wrote it', horizon: 'soon' }],
         }));
         const result = await extractDelta({ ...input, providers: cap.providers });
         expect(result.extractionValidation.status).toBe('completed');
@@ -441,13 +450,31 @@ describe('extractDelta extractionValidation', () => {
         expect(result.delta.hookChanges[0].id).toBe('h1');
         expect(result.delta.influenceEvents[0].characterId).toBe('c1');
         expect(result.delta.trackedEntityOps).toEqual([{ kind: 'Timeline', data: { era: 'present' } }]);
+        expect(result.delta.ledgerOps.map((op) => op.op)).toEqual(['register', 'plant']);
+    });
+    it('a ledger op the schema does not offer is dropped without failing the extraction', async () => {
+        const input = extractInput({ workContract: EN_CONTRACT });
+        const hash = computeExtractionContextHash(input);
+        const result = await extractDelta({ ...input, providers: capturing(completeEmptyExtraction(hash, {
+            ledgerOps: [{ op: 'update', entityId: 'e1', fields: {} }, { op: 'register', feature: 'objects', label: 'item', name: 'the jar', status: 'destroyed' }],
+        })).providers });
+        expect(result.extractionValidation.status).toBe('completed');
+        expect(result.delta.ledgerOps).toEqual([{ op: 'register', feature: 'objects', label: 'item', name: 'the jar', status: 'destroyed' }]);
+    });
+    it('the schema stays valid JSON when hooks are not tracked', async () => {
+        const cap = capturing('{}');
+        await extractDelta(extractInput({ providers: cap.providers, tracking: { hooks: false } }));
+        const { user } = partsOf(cap.requests[0]);
+        const schema = user.slice(user.indexOf('{\n  "newAddressEntries"'));
+        expect(() => JSON.parse(schema.replace(/"\.\.\."/g, '""'))).not.toThrow();
+        expect(user).not.toContain('"op": "plant"');
     });
     it('recorded influenceEvents make noInfluenceReason optional (ja sample, 43be593)', async () => {
         const input = extractInput({ workContract: EN_CONTRACT });
         const hash = computeExtractionContextHash(input);
         const event = { characterId: 'c1', anchor: 'He read the letter twice.', interpretation: 'he accepted the cost' };
         const omitted = JSON.stringify({
-            newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], trackedEntityOps: [],
+            newAddressEntries: [], relationshipOps: [], mutableChanges: [], ledgerOps: [],
             influenceEvents: [event],
             extractionValidation: { contextHash: hash },
         });
@@ -459,7 +486,7 @@ describe('extractDelta extractionValidation', () => {
         expect(nulled.extractionValidation.status).toBe('completed');
         // Without any event the reason is still the required substitute.
         const bare = JSON.stringify({
-            newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], trackedEntityOps: [], influenceEvents: [],
+            newAddressEntries: [], relationshipOps: [], mutableChanges: [], ledgerOps: [], influenceEvents: [],
             extractionValidation: { contextHash: hash },
         });
         const bareResult = await extractDelta({ ...input, providers: capturing(bare).providers });
@@ -549,11 +576,8 @@ describe('extractDelta / continuityCheck identify cast and declared POV', () => 
             ] }),
         }));
         const { user } = partsOf(cap.requests[0]);
-        const cast = JSON.parse(user.split('## 이번 회차 등장 캐스트 (writer manifest)\n')[1].split('\n- characterId')[0]);
-        expect(cast).toEqual([
-            { characterId: 'c1', canonicalName: '이세종', aliases: [], addressTermsUsed: ['도련님'] },
-            { characterId: 'ghost', addressTermsUsed: [] },
-        ]);
+        const cast = user.split('## 이번 회차 등장 캐스트 (writer manifest)\n')[1].split('\n- characterId')[0];
+        expect(cast).toBe(['- 이세종 (c1) · 쓴 호칭: 도련님', '- ghost (ghost)'].join('\n'));
     });
     it('foundation summary carries povMode when the work declares one', async () => {
         const cap = capturing('{}');

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { legacyWorkFixture } from './fixtures/legacy-work.js';
 import { runCommit, runStatus } from '../src/tools/commit.js';
-import { rollbackToSnapshot, resumePendingRollback } from '../src/tools/snapshots.js';
+import { rollbackToSnapshot, resumePendingRollback, createChapterSnapshot } from '../src/tools/snapshots.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { runWebtoonTool, readWebtoonWorkflow } from '../src/tools/webtoon.js';
 import { answers } from './fixtures/webtoon.js';
@@ -23,6 +23,23 @@ async function fixture(t) {
   for (const chapter of [1, 2]) await runCommit({ store, workId, chapter, prose: `${chapter}번째 문을 열었다.`, summary: `${chapter}번째 문.`, delta: delta(chapter), providers: createHostRelay({}) });
   return store;
 }
+
+test('rollback keeps review policy and arc summaries', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'vibelore-rollback-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const store = new MarkdownStateStore(root);
+  await legacyWorkFixture({ store, workId, genre: 'other', worldFacts: ['문은 열쇠로 열린다.'] });
+  await runCommit({ store, workId, chapter: 1, prose: '1번째 문을 열었다.', summary: '1번째 문.', delta: delta(1), providers: createHostRelay({}) });
+  await store.saveReviewPolicy(workId, { disabled: ['reader-hook'], draftSectionsOff: [] });
+  // Recapture snapshot 1 so it includes the review policy saved after the commit.
+  await createChapterSnapshot({ store, workId, chapter: 1 });
+  await store.saveArcSummary(workId, { arcNumber: 1, summary: '첫 아크 요약' });
+  // Committing chapter 2 snapshots the machine state, which now includes the arc summary too.
+  await runCommit({ store, workId, chapter: 2, prose: '2번째 문을 열었다.', summary: '2번째 문.', delta: delta(2), providers: createHostRelay({}) });
+  await rollbackToSnapshot({ store, workId, chapter: 2 });
+  assert.deepEqual((await store.loadReviewPolicy(workId)).disabled, ['reader-hook']);
+  assert.equal((await store.loadArcSummary(workId, 1)).summary, '첫 아크 요약');
+});
 
 test('rollback agrees with published status and allows writing the replacement chapter', async (t) => {
   const store = await fixture(t);
@@ -123,3 +140,40 @@ for (const failAt of [null, 'afterPublication', 'after:machine']) {
     assert.deepEqual(await store.listChapters(), [1]);
   });
 }
+
+test('commit keeps the ledger history and rollback cuts it back to the restored chapter', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'vibelore-rollback-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const store = new MarkdownStateStore(root);
+  await legacyWorkFixture({ store, workId, genre: 'other', worldFacts: ['문은 열쇠로 열린다.'] });
+  const first = { ...delta(1), ledgerOps: [{ op: 'register', feature: 'objects', label: '물건', name: '은 열쇠', fields: { holder: 'c1' } }] };
+  const committed = await runCommit({ store, workId, chapter: 1, prose: '은 열쇠로 문을 열었다.', summary: '은 열쇠.', delta: first, providers: createHostRelay({}) });
+  assert.equal(committed.state.records, 1);
+  assert.deepEqual((await store.loadEntitySnapshots(workId)).map((e) => [e.entityId, e.canonicalName, e.attrs.holder]), [['o1', '은 열쇠', 'c1']]);
+  const second = { ...delta(2), ledgerOps: [{ op: 'plant', text: '문 너머의 목소리' }] };
+  await runCommit({ store, workId, chapter: 2, prose: '문 너머에서 목소리가 들렸다.', summary: '목소리.', delta: second, providers: createHostRelay({}) });
+  assert.deepEqual((await store.loadLedgerEvents(workId)).map((e) => [e.chapter, e.id, e.event]), [[1, 'o1', 'registered'], [2, 'h1', 'planted']]);
+  await rollbackToSnapshot({ store, workId, chapter: 1 });
+  assert.deepEqual((await store.loadLedgerEvents(workId)).map((e) => [e.chapter, e.id, e.event]), [[1, 'o1', 'registered']]);
+  assert.deepEqual((await runStatus({ store, workId })).ledgerLog, { ok: true, lastChapter: 1, committed: 1 });
+});
+
+test('the first commit after upgrading an unpublished legacy work keeps its entity snapshots', async (t) => {
+  const { createPublicationUnit } = await import('../src/core/publication-unit.js');
+  const { emptyStoryState } = await import('../engine/src/continuity/story-state.js');
+  const root = await mkdtemp(join(tmpdir(), 'vibelore-legacy-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const store = new MarkdownStateStore(root);
+  await legacyWorkFixture({ store, workId, genre: 'other', worldFacts: ['문은 열쇠로 열린다.'] });
+  await store.saveArtifact({ workId, chapterNumber: 1, prose: '1번째 문을 열었다.', delta: delta(1) });
+  const { ledger: _ledger, ...legacyState } = { ...emptyStoryState(workId), chapterNumber: 1 };
+  await store.saveStoryState(legacyState);
+  await store.saveEntitySnapshots(workId, [{ entityId: 'seed-1', kind: '물건', canonicalName: '은 열쇠', aliases: [], status: 'active', attrs: {} }]);
+  const second = { ...delta(2), ledgerOps: [{ op: 'register', feature: 'objects', label: '물건', name: '금 열쇠' }] };
+  const result = await runCommit({ store, workId, chapter: 2, prose: '금 열쇠로 2번째 문을 열었다.', summary: '금 열쇠.', delta: second, providers: createHostRelay({}) });
+  assert.equal(result.state.records, 2);
+  const published = await createPublicationUnit({ rootDir: root }).readPublished();
+  assert.deepEqual(published.value.projections.entities.map((e) => e.entityId).sort(), ['o1', 'seed-1']);
+  assert.deepEqual((await store.loadEntitySnapshots(workId)).map((e) => e.entityId).sort(), ['o1', 'seed-1']);
+  assert.ok((await store.loadStoryState(workId, 2)).ledger.records.some((record) => record.id === 'seed-1'));
+});

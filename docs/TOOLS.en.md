@@ -114,11 +114,31 @@ is at native level.
 
 Compiles the existing StoryProfile, StoryIdentity and WriterSkill into a non-duplicated v2 NarrativeContract and
 shows the StorySpine, ArcIntent, the next EpisodeIntent and the current quality pipeline mode at once.
-It is a read-compatibility tool that does not change old stored data.
+It does not change old stored data. With the optional arguments it stores the writer-support settings only.
+
+- `disabledReviews`: the full list of per-chapter reviews to turn off (`story-profile-check`, `coherence-judge`,
+  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`). A review that is off is not
+  requested, is recorded as `disabled_by_user` and does not block auto commits.
+- `disabledDraftSections`: the full list of optional draft sections to leave out (`older-memory`,
+  `previous-tail`, `author-craft`, `style-anchor`).
+- `tracking`: turns tracking features on/off (`objects`, `knowledge`, `scheduled`, `hooks`). All on
+  by default. objects=items/places/clues/abilities, knowledge=who knows what, scheduled=events set
+  to happen (regression/past-life events, prophecies, reservations), hooks=dangling threads.
+- `customTracking`: the full list of author-defined tracking items (replaces it). `{name, feature,
+  pinned?, rules?, note?}`. pinned=always included in the per-chapter input. rules:
+  `monotonic{field,direction:up|down,unless?}`, `frozenAfter{status}`, `speakerOnly{alias,by}`;
+  note=natural-language rule shown to the review model (advisory).
+- `mergeRecords`: records confirmed to be the same subject, to merge. `{from, into}` (absorbs
+  `from` into `into`). Takes effect from the next chapter (stored with `atChapter`); tracking and
+  customTracking changes likewise apply from the next chapter, and chapters already written keep their history.
+
+`reviewPolicy` and `draftSections` in the response show the current settings and choices, and
+`tracking` (`enabled`, `available`), `customTracking` and `merges` show the tracking configuration.
+Unknown names are rejected.
 
 | Required | Optional |
 |---|---|
-| `workId` | `project` |
+| `workId` | `project`, `disabledReviews`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
 
 ### `lore_style_anchor`
 

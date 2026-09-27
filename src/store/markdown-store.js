@@ -224,6 +224,23 @@ export class MarkdownStateStore {
     await writeJson(this.sidecar('arcs', `${plan.arcNumber}.json`), plan);
   }
 
+  /** An archived arc plan by number (every saved arc is archived). */
+  async loadArcArchive(workId, arcNumber) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('arcs', `${Number(arcNumber)}.json`));
+  }
+
+  /** A completed arc's summary and the story so far after it. */
+  async loadArcSummary(workId, arcNumber) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('arc-summaries', `${Number(arcNumber)}.json`));
+  }
+
+  async saveArcSummary(workId, record) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('arc-summaries', `${Number(record.arcNumber)}.json`), record);
+  }
+
   // -- StoryProfile ---------------------------------------------------------
   async loadStoryProfile(workId) {
     assertSafeId('workId', workId);
@@ -334,6 +351,74 @@ export class MarkdownStateStore {
 
   async saveWorkingTreeFingerprint(fingerprint) {
     await writeJson(this.sidecar('working-tree-fingerprint.json'), fingerprint);
+  }
+
+  /** Which advisory reviews the user turned off for this work. */
+  async loadReviewPolicy(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('review-policy.json'));
+  }
+
+  async saveReviewPolicy(workId, policy) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('review-policy.json'), policy);
+  }
+
+  /**
+   * Chapter event history of the ledger, rebuilt from the chapter deltas, and
+   * what it was built through. A malformed line is skipped and counted, so a
+   * damaged log reads as stale instead of breaking status and sync.
+   */
+  async loadLedgerLog(workId) {
+    assertSafeId('workId', workId);
+    const text = await readTextOrNull(this.sidecar('ledger', 'events.jsonl'));
+    const missing = text === null;
+    const events = [];
+    let malformed = 0;
+    for (const line of (text ?? '').split('\n').filter(Boolean)) {
+      try { events.push(JSON.parse(line)); }
+      catch { malformed += 1; }
+    }
+    let build = null;
+    try { build = await readJsonOrNull(this.sidecar('ledger', 'built.json')); }
+    catch { malformed += 1; }
+    return { events, malformed, build, missing };
+  }
+
+  async loadLedgerEvents(workId) {
+    return (await this.loadLedgerLog(workId)).events;
+  }
+
+  /** Writes the log, then what it was built through, so a build record always describes a complete log. */
+  async saveLedgerEvents(workId, events, build = null) {
+    assertSafeId('workId', workId);
+    await writeAtomic(this.sidecar('ledger', 'events.jsonl'), events.map((event) => JSON.stringify(event)).join('\n') + (events.length ? '\n' : ''));
+    if (build) await writeJson(this.sidecar('ledger', 'built.json'), build);
+  }
+
+  /**
+   * The entities as they were before chapter 1. Unlike the rest of ledger/,
+   * this is not rebuilt from the deltas: the replay starts from it.
+   */
+  async loadLedgerSeed(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('ledger', 'seed.json'));
+  }
+
+  async saveLedgerSeed(workId, seed) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('ledger', 'seed.json'), seed);
+  }
+
+  /** Record merge candidates the model proposed for one ledger digest, awaiting the user's approval. */
+  async loadMergeCandidates(workId) {
+    assertSafeId('workId', workId);
+    return readJsonOrNull(this.sidecar('ledger', 'merge-candidates.json'));
+  }
+
+  async saveMergeCandidates(workId, value) {
+    assertSafeId('workId', workId);
+    await writeJson(this.sidecar('ledger', 'merge-candidates.json'), value);
   }
 
   async loadStyleAnchor(workId) {

@@ -10,7 +10,7 @@ import { arcPositionLabel } from '../../../core/arc-context.js';
 import { renderCustomPromptOverride } from '../../../core/custom-prompt-override.js';
 import { formatLengthTarget, pickByFamily, promptFamilyCaptureContext, resolveDialogueBreakMode, resolvePromptLanguageContext, resolveStepPromptLanguage, resolveWorkPromptLanguage, } from '../../../core/prompt-language.js';
 import { DRAFT_FEWSHOT, DRAFT_FEWSHOT_MULTILINGUAL } from '../prompts/draft.js';
-import { isHookActive } from '../../../continuity/story-state.js';
+import { isHookActive, normalizeStoryState } from '../../../continuity/story-state.js';
 /**
  * Default target word count when the foundation does not record one.
  *
@@ -261,6 +261,7 @@ const DRAFT_MANIFEST_RULES = [
     '',
     'manifest 규칙:',
     '- 이번 회차에 실제로 등장한 (대사/행동/시점) 캐릭터만 포함.',
+    '- 회상·기억·언급으로만 나오는 인물은 넣지 않는다. 이전 상태에서 사망으로 기록된 인물은 살아 있음이 이번 화에서 밝혀지지 않는 한 등장시키지 않는다.',
     '- characterId 는 Foundation 의 id 그대로 사용.',
     '- addressTermsUsed 는 해당 캐릭터가 본문에서 다른 캐릭터를 향해 사용한 호칭들의 집합.',
     '- 본문에 `⟦vle:…⟧` 패턴은 cast-manifest 외에 다른 어떤 것도 출력하지 말 것.',
@@ -272,6 +273,7 @@ const DRAFT_MANIFEST_RULES_MULTILINGUAL = [
     '',
     'Manifest rules:',
     '- Include only characters who actually appear in this chapter (speech, action, or viewpoint).',
+    '- Do not include a character who is only remembered, recalled or mentioned. A character recorded as dead in the previous state does not appear unless this chapter reveals them alive.',
     '- Use the Foundation id verbatim as characterId. Do not translate ids, JSON keys or the sentinel tag.',
     '- addressTermsUsed is the set of address terms that character used toward other characters in the prose, written in the target work language exactly as they appear in the text.',
     '- Do not emit any `⟦vle:…⟧` pattern other than the cast-manifest block.',
@@ -304,6 +306,14 @@ function buildDraftSystem(arc, customPromptOverride, context, options = {}) {
         parts.push('', overrideBlock);
     }
     return parts.join('\n');
+}
+const RECENT_RECORDS = 12;
+/** The ledger records with the latest events, oldest first; the full ledger stays in StoryState. */
+function recentLedgerRecords(state) {
+    return [...(state.ledger?.records ?? [])]
+        .sort((a, b) => (a.lastEventAt ?? a.registeredAt ?? 0) - (b.lastEventAt ?? b.registeredAt ?? 0))
+        .slice(-RECENT_RECORDS)
+        .map(({ id, label, name, status, fields }) => ({ id, label, name, status, fields }));
 }
 function summariseCharacterForPrompt(foundation, chapterNumber, id) {
     // resolveCharacter throws if not registered at/before chapterNumber — fall back to raw.
@@ -380,7 +390,7 @@ const ARC_HEADER_LABELS_EN = {
     summary: (summary) => `(Arc summary: ${summary})`,
 };
 function buildUserPrompt(input) {
-    const { foundation, prevState, chapterNumber, plan, tension, openingContract, arc, slidingWindowRender, entityContextRender } = input;
+    const { foundation, prevState, chapterNumber, plan, tension, openingContract, arc, slidingWindowRender, entityContextRender, foundationRender, stateRender } = input;
     const ctx = draftLanguageContext(input);
     const labels = pickByFamily(ctx, { ko: USER_LABELS_KO, multilingual: USER_LABELS_EN });
     // P4b (#516) — Codex 에서 비활성(disabled)된 캐릭터는 prompt 에서 제외.
@@ -400,14 +410,17 @@ function buildUserPrompt(input) {
             description: inv.description,
         })),
     };
+    // A state written before the ledger reads with current hook statuses and records.
+    const current = normalizeStoryState(prevState);
     const prevSummary = {
         chapterNumber: prevState.chapterNumber,
         addressMap: prevState.addressMap.entries,
-        openHooks: (prevState.hooks ?? [])
+        openHooks: current.hooks
             .filter(isHookActive)
-            .map((h) => ({ id: h.id, text: h.text, phase: h.phase })),
+            .map((h) => ({ id: h.id, text: h.text, status: h.status })),
         relationships: prevState.relationships,
-        trackedEntities: prevState.trackedEntities,
+        records: recentLedgerRecords(current),
+        ...(prevState.characterStates ? { characterStates: prevState.characterStates } : {}),
         // Arc Flow Stage A (EPIC #191) — per-character arc 진행도. legacy state =
         // {} fallback. 작가 prompt 안에 노출되어 LLM 이 인물별 6-beat 위치 인식.
         arcCursor: prevState.arcCursor ?? {},
@@ -425,7 +438,10 @@ function buildUserPrompt(input) {
     if (arc) {
         sections.push(formatArcHeader(arc, ctx), ``);
     }
-    sections.push(labels.foundation, JSON.stringify(foundationSummary, null, 2), ``);
+    // The plugin renders characters, world facts and the carried state as text
+    // (src/core/prompt-sections.js). Direct engine callers keep the JSON form.
+    if (typeof foundationRender === 'string' && foundationRender.trim()) sections.push(foundationRender.trim(), ``);
+    else sections.push(labels.foundation, JSON.stringify(foundationSummary, null, 2), ``);
     // ADR-0001 (#215) — sliding window 묶음 (있으면). prevState carry-forward
     // 앞에 두 — 작가가 시간 순서로 읽음. NULL 이면 기존 path 그대로.
     if (slidingWindowRender && slidingWindowRender.length > 0) {
@@ -436,7 +452,11 @@ function buildUserPrompt(input) {
     if (entityContextRender && entityContextRender.length > 0) {
         sections.push(entityContextRender, ``);
     }
-    sections.push(labels.prevState, JSON.stringify(prevSummary, null, 2), ``, labels.plan, plan && plan.length > 0 ? plan : labels.planMissing, ``);
+    if (typeof stateRender === 'string') {
+        if (stateRender.trim()) sections.push(stateRender.trim(), ``);
+    }
+    else sections.push(labels.prevState, JSON.stringify(prevSummary, null, 2), ``);
+    sections.push(labels.plan, plan && plan.length > 0 ? plan : labels.planMissing, ``);
     const openingContractRender = renderOpeningContract(openingContract, chapterNumber, ctx);
     if (openingContractRender.length > 0) {
         sections.push(openingContractRender, ``);

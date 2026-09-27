@@ -113,7 +113,7 @@ describe('prose quality structure', () => {
       providers: { async complete(input) { request = input; return { text: JSON.stringify({ score: 86, dimensions: { voice: 42, motivation: 90, responseCausality: 88, relationshipContinuity: 90, dialogueIntent: 80 }, findings: [{ characterId: 'captain', dimension: 'voice', code: 'VOICE_MISMATCH', message: '비용을 따지던 말투가 근거 없이 사라졌다.' }] }) }; } },
     });
     assert.match(request.messages[1].content, /대원을 살리려 냉정해졌다/);
-    assert.match(request.messages[1].content, /speechProfile/);
+    assert.match(request.messages[1].content, /짧게 끊고 비용을 먼저 말한다/);
     assert.match(request.messages[1].content, /VOICE_SAMPLE_COPIED/);
     assert.equal(result.score, 78);
     assert.equal(result.reportedScore, 86);

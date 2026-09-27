@@ -1,4 +1,5 @@
-import { episodePlanReviewView } from '../core/episode-plan-view.js';
+import { renderPlanReviewExtras } from '../core/prompt-sections.js';
+import { renderEpisodePlan } from './episode-plan.js';
 import { gateApprovalActivation, requireApprovalResult } from '../core/approval-language-gate.js';
 import { asKit, resolveWorkKit } from '../prompts/index.js';
 
@@ -81,27 +82,68 @@ export async function ensurePilotContract({ store, workId, identity, foundation,
  * @param {{ kit?: object|null }} input 워크플로가 작품 계약을 넘기기 전까지는
  *   구작의 암묵적 ko 계열로 해석한다(기존 동작).
  */
-export async function runReaderHook({ chapter, prose, identity, pilotContract, episodePlan, contract = '', recentHookTypes = [], providers, kit: kitSource }) {
+export async function runReaderHook({ chapter, prose, identity, pilotContract, episodePlan, foundation = null, contract = '', recentHookTypes = [], providers, kit: kitSource }) {
   const kit = asKit(kitSource);
   const response = await providers.complete({ model:MODEL,jsonMode:true,step:'reader-hook',messages: kit.messages('reader-hook', {
     chapter, contract,
     identityRender: renderStoryIdentity(identity, kit),
     pilotRender: chapter === 1 ? renderPilotContract(pilotContract, kit) : '',
-    episodePlanJson: JSON.stringify(episodePlanReviewView(episodePlan)),
-    recentHookTypesJson: JSON.stringify(recentHookTypes),
+    // The shared plan render (same text the other reviews get) plus the
+    // reader-experience fields only this review judges.
+    planText: [renderEpisodePlan(episodePlan, kit), renderPlanReviewExtras(episodePlan, foundation, kit)].filter(Boolean).join('\n') || kit.phrases.common.noneParen,
+    recentHookTypesText: recentHookTypes.length ? recentHookTypes.join(', ') : kit.phrases.common.noneParen,
     prose,
   })}); const o=parse(response.text); return {score:typeof o?.score==='number'?Math.round(o.score):null,dimensions:o?.dimensions??{},commercialSerialCheck:o?.commercialSerialCheck??{},findings:Array.isArray(o?.findings)?o.findings.slice(0,10):[]};
 }
 
-export async function runPatternAnalysis({ chapter, prose, providers, kit: kitSource }) {
+/**
+ * The reader-hook checklist items the reviewer failed, as advisories. `warn`
+ * and `na` stay in the receipt detail only.
+ */
+export function readerHookAdvisories(result, chapter, kitSource) {
+  const t = asKit(kitSource).phrases.experience;
+  return Object.entries(result?.commercialSerialCheck ?? {})
+    .filter(([, item]) => item?.verdict === 'fail')
+    .map(([key, item]) => ({
+      severity: 'soft', advisoryOnly: true, chapterNumber: chapter,
+      code: `READER_CHECK_${key.toUpperCase()}`,
+      message: t.readerCheckFailed(key, typeof item.evidence === 'string' ? item.evidence.trim() : ''),
+    }));
+}
+
+const PATTERN_FIELDS = ['solutionPattern', 'moralChoice', 'costShape', 'evidenceFamily', 'sceneMode', 'emotionalTemperature', 'endingImage', 'comedyMechanism', 'protagonistMethod', 'hookType'];
+
+/**
+ * Repetition is judged by exact category names, so the reviewer sees the names
+ * the previous chapters were filed under and the ID table its agency keys use.
+ */
+function patternNotes({ foundation, cast, previousEntries, kit }) {
+  const t = kit.phrases.sections;
+  const characters = (foundation?.characters ?? []).filter((c) => !cast?.length || cast.includes(c.id));
+  const rows = (previousEntries ?? []).slice(-2)
+    .map((entry) => t.patternPreviousRow(entry.chapter, PATTERN_FIELDS.filter((key) => entry[key]).map((key) => `${key}=${entry[key]}`).join('; ')));
+  return [
+    characters.length ? t.patternIds(characters.map((c) => `${c.id}=${c.canonicalName}`).join(', ')) : '',
+    rows.length ? t.patternPrevious(rows.join('\n')) : '',
+  ].filter(Boolean).join('\n\n');
+}
+
+function agencyById(agency, foundation) {
+  if (!agency || typeof agency !== 'object') return {};
+  const byName = new Map((foundation?.characters ?? []).flatMap((c) => [[c.canonicalName, c.id], ...(c.aliases ?? []).map((alias) => [alias, c.id])]));
+  return Object.fromEntries(Object.entries(agency).map(([key, value]) => [byName.get(key) ?? key, value]));
+}
+
+export async function runPatternAnalysis({ chapter, prose, foundation = null, cast = [], previousEntries = [], providers, kit: kitSource }) {
   const kit = asKit(kitSource);
-  const response = await providers.complete({ model:MODEL,jsonMode:true,step:'pattern-ledger',messages: kit.messages('pattern-ledger', { prose })});
+  const notesText = patternNotes({ foundation, cast, previousEntries, kit });
+  const response = await providers.complete({ model:MODEL,jsonMode:true,step:'pattern-ledger',messages: kit.messages('pattern-ledger', { prose, notesText })});
   const o=parse(response.text)??{}; return {
     chapter,
     solutionPattern:text(o.solutionPattern,200), moralChoice:text(o.moralChoice,200), costShape:text(o.costShape,100),
     evidenceFamily:text(o.evidenceFamily,100), sceneMode:text(o.sceneMode,100), emotionalTemperature:text(o.emotionalTemperature,100),
     endingImage:text(o.endingImage,100), comedyMechanism:text(o.comedyMechanism,200), protagonistMethod:text(o.protagonistMethod,200),
-    mistakeAndCorrection:text(o.mistakeAndCorrection,300), supportingAgency:o.supportingAgency&&typeof o.supportingAgency==='object'?o.supportingAgency:{}, hookType:text(o.hookType,40),
+    mistakeAndCorrection:text(o.mistakeAndCorrection,300), supportingAgency:agencyById(o.supportingAgency, foundation), hookType:text(o.hookType,40),
   };
 }
 

@@ -564,10 +564,13 @@ function schemaValidated({ extractionValidation, delta, chapterNumber, bundle, f
         return false;
     if (delta.chapterNumber !== chapterNumber)
         return false;
-    for (const key of ['appearedCharacterIds', 'newAddressEntries', 'relationshipOps', 'hookChanges', 'mutableChanges', 'influenceEvents']) {
+    for (const key of ['appearedCharacterIds', 'newAddressEntries', 'relationshipOps', 'mutableChanges', 'influenceEvents']) {
         if (!Array.isArray(delta[key]))
             return false;
     }
+    // Hooks arrive as ledgerOps now; older recorded deltas carry hookChanges.
+    if (!Array.isArray(delta.hookChanges) && !Array.isArray(delta.ledgerOps))
+        return false;
     try {
         canonicalArtifact(bundle);
         return true;

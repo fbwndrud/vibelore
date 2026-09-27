@@ -132,8 +132,21 @@ const TOOLS = [
   },
   {
     name: 'lore_configure',
-    description: '기존 Profile·Identity·WriterSkill을 하나의 v2 NarrativeContract로 컴파일해 현재 통합 설정과 누락 단계를 보여준다.',
-    inputSchema: { type: 'object', properties: { ...projectArg }, required: ['workId'] },
+    description: '기존 Profile·Identity·WriterSkill을 하나의 v2 NarrativeContract로 컴파일해 현재 통합 설정과 누락 단계를 보여준다. disabledReviews·disabledDraftSections를 넘기면 매 화 검토와 초고 선택 섹션 중 끌 항목을 작품 설정으로 저장한다.',
+    inputSchema: { type: 'object', properties: { ...projectArg,
+      disabledReviews: { type: 'array', items: { type: 'string', enum: ['story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger'] },
+        description: '끌 검토 목록 전체(빈 배열이면 모두 켬). 꺼진 검토는 요청하지 않고 실패로 보지 않는다. 연속성 추출·검사는 끌 수 없다.' },
+      disabledDraftSections: { type: 'array', items: { type: 'string', enum: ['older-memory', 'previous-tail', 'author-craft', 'style-anchor'] },
+        description: '초고 요청에서 뺄 선택 섹션 목록 전체(빈 배열이면 모두 넣음): older-memory=오래된 관련 기억, previous-tail=직전 화 말미, author-craft=작법 묶음, style-anchor=문체 기준 예시. 계획·설정·현재 상태·최근 요약은 뺄 수 없다.' },
+      tracking: { type: 'object', properties: { objects: { type: 'boolean' }, knowledge: { type: 'boolean' }, scheduled: { type: 'boolean' }, hooks: { type: 'boolean' } }, additionalProperties: false,
+        description: '추적 기능 켜기/끄기. 기본은 모두 켜짐. objects=물건·장소·단서·능력, knowledge=누가 무엇을 아는가, scheduled=일어나기로 된 일(회귀 전생 사건·예언·예약), hooks=떡밥.' },
+      customTracking: { type: 'array', items: { type: 'object', properties: {
+        name: { type: 'string' }, feature: { type: 'string', enum: ['objects', 'knowledge', 'scheduled'] }, pinned: { type: 'boolean' },
+        rules: { type: 'array', items: { type: 'object' } }, note: { type: 'string' } }, required: ['name', 'feature'] },
+        description: '작가 정의 추적 항목 전체 목록(교체). pinned=매 화 입력에 항상 포함. rules: monotonic{field,direction:up|down,unless?}, frozenAfter{status}, speakerOnly{alias,by}; severity soft(기본)|hard. note=검토 모델에 보여줄 자연어 규칙(advisory).' },
+      mergeRecords: { type: 'array', items: { type: 'object', properties: { from: { type: 'string' }, into: { type: 'string' } }, required: ['from', 'into'] },
+        description: '같은 대상으로 확인된 기록 병합(from을 into에 흡수). 다음 커밋부터 반영.' },
+    }, required: ['workId'] },
   },
   {
     name: 'lore_style_anchor',
@@ -151,7 +164,7 @@ const TOOLS = [
   },
   {
     name: 'lore_sync',
-    description: 'Published HEAD 이후 사람이 수정한 Markdown을 감지한다. 마지막 화는 validate 후 approvalId로 재발행하며, 이전 화와 설계 변경은 영향 분석 없이 자동 적용하지 않는다.',
+    description: 'Published HEAD 이후 사람이 수정한 Markdown을 감지한다. 공백만 바뀐 편집은 무시한다. 마지막 화 손수정은 validate(재검사) 후 approvalId로 재발행하고, world/·characters/ 변경은 validate로 바뀐 항목과 영향을 받는 계획을 보여 준 뒤 approvalId로 반영한다. 이전 화 손수정은 아직 반영하지 않는다.',
     inputSchema: { type: 'object', properties: { ...projectArg, action: { type: 'string', enum: ['inspect', 'validate', 'apply'] }, approvalId: { type: 'string' } }, required: ['workId'] },
   },
   {
@@ -377,6 +390,7 @@ const TOOLS = [
           }])),
         },
         language: { type: 'string', description: '저장된 작품 언어와 일치하는지 확인하는 인자. 일회성 출력 언어 변경이 아니다.' },
+        sharedOnce: { type: 'boolean', description: 'true면 needs_model 응답에 공통 본문 블록을 sharedBlocks로 한 번만 싣고, 각 request user 맨 앞 promptCache.sharedBlockRef 문자열(줄바꿈 포함)을 그 블록 text로 바꿔 보내게 한다. 요청을 직접 조립하는 호스트용이며 기본값은 자기완결 요청이다.' },
       }, required: ['workId'],
     },
   },
@@ -610,7 +624,7 @@ async function dispatchTool(store, name, args) {
     case 'lore_status':
       return runStatus({ store, workId: args.workId });
     case 'lore_configure':
-      return runConfigureStatus({ store, workId: args.workId });
+      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
     case 'lore_init':

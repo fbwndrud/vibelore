@@ -72,6 +72,20 @@ describe('Writer Episode Packet Compiler', () => {
     assert.ok(other.value.writerText.includes('- 한겸: attempt — 이전 단계'));
   });
 
+  it('names both ends of a carried relationship and drops records without a direction', () => {
+    const plan = { ...activePlan(), foregroundCharacters: ['han-gyeom', 'seo-yura'] };
+    const prevState = { relationships: [
+      { to: 'han-gyeom', kind: 'UNDIRECTED_KIND', state: '누가 누구에게인지 모르는 기록' },
+      { to: 'seo-yura->han-gyeom', kind: 'LEGACY_ARROW', state: '옛 형식 기록' },
+      { from: 'kang-taejun', to: 'seo-yura', kind: 'DIRECTED', state: '방향이 있는 기록' },
+    ] };
+    const names = { 'han-gyeom': '한겸', 'kang-taejun': '강태준', 'seo-yura': '서유라' };
+    const text = compileWriterEpisodePacket({ episodePlan: plan, arcEpisode: { chapter: 6 }, prevState, characterNames: names }).value.writerText;
+    assert.doesNotMatch(text, /UNDIRECTED_KIND/);
+    assert.match(text, /서유라→한겸: LEGACY_ARROW/);
+    assert.match(text, /강태준→서유라: DIRECTED/);
+  });
+
   it('names the planned viewpoint character so the writer narrates from it, and hashes it', () => {
     const plan = { ...activePlan(), povCharacter: 'seo-yura' };
     const input = { episodePlan: plan, arcEpisode: { chapter: 6 }, characterNames: { 'seo-yura': '서유라', 'han-gyeom': '한겸' } };

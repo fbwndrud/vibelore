@@ -34,7 +34,7 @@ export const VALIDATOR_VERSION = 'validation-contract-v1';
  * 언어 필드 분류기의 버전. 선언된 스키마 이름표가 바뀌면 올린다.
  * 호출자 투영과 함께 판정 hash · 영수증 신원에 묶인다.
  */
-export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 4;
+export const LANGUAGE_FIELD_CLASSIFIER_VERSION = 5;
 /** 호출자가 추가 이름을 넘기지 않은 기본 투영. 기본 API 는 이 값으로 동작한다. */
 export const DEFAULT_LANGUAGE_FIELD_PROJECTION = Object.freeze({
     humanTextFields: Object.freeze([]),
@@ -74,7 +74,7 @@ export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
     'appearedCharacterIds', 'approvalKind', 'arcId', 'arcNumber', 'artifactHash', 'artifactKind', 'artifactSchemaVersion',
     'at', 'beatId', 'canonicalFormatVersion', 'chapter', 'chapterId', 'characterId', 'checkId',
     'checkerId', 'checksum', 'code', 'commit', 'contractHash', 'createdAt', 'dialogueBreakMode',
-    'digest', 'engineGenre', 'entityId', 'epoch', 'eventId', 'from', 'fromBeat', 'genre', 'hash',
+    'by', 'digest', 'engineGenre', 'entityId', 'epoch', 'event', 'eventId', 'feature', 'from', 'into', 'fromBeat', 'genre', 'hash',
     'nextBeat', 'hookId', 'horizon', 'id', 'ids', 'invariantId', 'key', 'kind', 'language', 'locale', 'mode', 'op',
     'path', 'payoffTiming', 'phase', 'planSourceHash', 'pov', 'povCharacter', 'povMode', 'promptFamily', 'revision', 'role', 'schemaVersion',
     'speakerId',
@@ -126,6 +126,8 @@ export const SEMANTIC_DELTA_HUMAN_TEXT_FIELDS = Object.freeze([
     'belief', 'behavioralProof', 'competingHypotheses', 'cost', 'costPaid', 'description',
     'descriptions', 'fact', 'facts', 'hypothesis', 'interpretation', 'interpretations',
     'noInfluenceReason', 'plotBeat', 'sceneTags', 'knownFactsAdded', 'label', 'location', 'name', 'names', 'nextChoiceBias', 'note', 'notes',
+    // ledgerOps: `alias` is a generated name, `evidence` a quote copied from the chapter.
+    'alias', 'evidence',
     'reason', 'resolution', 'summary', 'term', 'terms', 'text', 'title', 'value',
 ]);
 
@@ -816,8 +818,9 @@ function classifyLeafPath(keys, artifactKind, humanTextFields, isString) {
     // 판정은 **잎**에서 한다. `ops` 같은 구조 컨테이너는 그 아래 생성 문장을 면제하지 않는다.
     if (!humanByPath && keys.length > 1 && MACHINE_FIELD_NAME_SET.has(leaf))
         return 'machine_field';
-    // trackedEntityOps.data is an open schema record; machine leaves above stay exempt.
+    // trackedEntityOps.data and ledgerOps fields/set are open schema records; machine leaves above stay exempt.
     if (root === 'semanticDelta' && keys[1] === 'trackedEntityOps' && keys[2] === 'data' && keys.length > 3) return null;
+    if (root === 'semanticDelta' && keys[1] === 'ledgerOps' && (keys[2] === 'fields' || keys[2] === 'set') && keys.length > 3) return null;
     if (!MIXED_TEXT_ROOTS.has(root))
         return null;
     if (keys.length === 1) {

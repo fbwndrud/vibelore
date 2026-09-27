@@ -1,7 +1,7 @@
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { checkPov } from '../../src/continuity/pov-check.js';
 import { scanSentenceStats } from '../../src/continuity/sentence-stats.js';
-import { scanDestroyedEntityMentions } from '../../src/continuity/entity-ops.js';
+import { reviewLedgerOps } from '../../src/continuity/ledger.js';
 import { detectGapSkip } from '../../src/continuity/gap-skip-detector.js';
 import { detectCliffhanger } from '../../src/continuity/cliffhanger-detector.js';
 import { DefaultEmotionVerbLexicon } from '../../src/continuity/emotion-verb-lexicon.js';
@@ -77,17 +77,10 @@ describe('multilingual scanner fixtures', () => {
     });
 
     it('destroyed-entity mentions share Ann/banner matching and keep soft severity', () => {
-        const v = scanDestroyedEntityMentions({
-            prose: 'The banner fell.',
-            snapshots: [{ entityId: 'ann', kind: 'character', canonicalName: 'Ann', aliases: [], status: 'destroyed', attrs: {} }],
-            chapterNumber: 1,
-        });
+        const state = { ledger: { records: [{ id: 'ann', feature: 'objects', label: 'character', name: 'Ann', aliases: [], status: 'destroyed', fields: {}, recent: [] }] } };
+        const v = reviewLedgerOps({ state, prose: 'The banner fell.' }).violations;
         expect(v).toEqual([]);
-        const hit = scanDestroyedEntityMentions({
-            prose: 'Ann walked in.',
-            snapshots: [{ entityId: 'ann', kind: 'character', canonicalName: 'Ann', aliases: [], status: 'destroyed', attrs: {} }],
-            chapterNumber: 1,
-        });
+        const hit = reviewLedgerOps({ state, prose: 'Ann walked in.' }).violations;
         expect(hit).toHaveLength(1);
         expect(hit[0].severity).toBe('soft');
         expect(hit[0].code).toBe('DESTROYED_ENTITY_MENTION');

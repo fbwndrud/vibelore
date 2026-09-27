@@ -13,6 +13,7 @@ import { createPreflightRelay } from '../src/provider/host-relay.js';
 import { createLocalOpenAIProvider } from '../src/provider/local-openai.js';
 import { runCreate, runDraftTool, runReviseTool, runRewriteTool, runNextArc, runRefold } from '../src/tools/generate.js';
 import { runCommit, runStatus } from '../src/tools/commit.js';
+import { saveWriterSupportPolicy } from '../src/core/review-policy.js';
 import { runEraResearchTool } from '../src/tools/era-research.js';
 import { runArcPlan, runArcDecide } from '../src/tools/arc.js';
 import { runArcQuality } from '../src/tools/arc-quality.js';
@@ -258,6 +259,9 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(context, /행동 편향:/);
     assert.match(context, /말투 예시:/);
     assert.equal((await store.loadEntitySnapshots('tax-tower'))[0].canonicalName, '체납자 감별');
+    // The ledger replay starts from a seed the commits never rewrite.
+    const seed = await store.loadLedgerSeed('tax-tower');
+    assert.deepEqual(seed.entities.map((e) => [e.canonicalName, e.registeredAtChapter]), [['체납자 감별', 0]]);
   });
 
   it('refuses to publish a newly generated cast with a thin dramatic model', async () => {
@@ -311,8 +315,15 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(revised.prose, /무릎을 꿇었다/);
     await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '윤재는 탑 앞에 섰다.', summary: '윤재가 탑 앞에 섰다.', providers: createHostRelay({}), delta: emptyDelta(1) });
     assert.equal((await store.loadArcPlan('tax-tower')).episodes[0].status, 'completed');
-    const rewritten = await runRewriteTool({ store, workId: 'tax-tower', chapter: 1, intent: '더 절박하게', providers: provider({ rewrite: prose }) });
+    const rewriteProvider = provider({ rewrite: prose });
+    let rewriteRequest;
+    const rewritten = await runRewriteTool({ store, workId: 'tax-tower', chapter: 1, intent: '더 절박하게', providers: { ...rewriteProvider, async complete(req) { if (req.step === 'rewrite') rewriteRequest = req; return rewriteProvider.complete(req); } } });
     assert.match(rewritten.prose, /윤재는 탑 앞/);
+    // The rewrite reads characters and world facts as the same text the draft gets.
+    const rewriteUser = rewriteRequest.messages.find((m) => m.role === 'user').content;
+    assert.match(rewriteUser, /윤재 \(`hero`\)/);
+    assert.match(rewriteUser, /- 탑의 시스템은 모든 보상에 세금을 매긴다/);
+    assert.doesNotMatch(rewriteUser.slice(0, rewriteUser.indexOf('윤재는 탑 앞')), /"canonicalName"|"worldFacts"|"addressMap"/);
     const arc = await runNextArc({ store, workId: 'tax-tower', providers: provider({ 'next-arc-proposal': JSON.stringify({ title: '압류 아크', promise: '윤재는 자신의 이름을 되찾는다.', type: 'small', estimatedEpisodes: 6, scopedEntities: [], carryOverCharacters: ['hero'], newCharacterSeeds: [], transitionHook: '압류관이 온다.' }) }) });
     assert.equal(arc.proposal.title, '압류 아크');
   });
@@ -340,6 +351,152 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(result.contextAudit.draftInputTrace.outputs.planHash, /^sha256:[0-9a-f]{64}$/);
     assert.match(result.contextAudit.draftInputTrace.outputs.slidingWindowHash, /^sha256:[0-9a-f]{64}$/);
     assert.equal(result.contextAudit.draftInputTrace.identity.invocation, 'direct');
+  });
+
+  async function sevenChapterStore() {
+    const store = await createdStore({ legacy: true });
+    const arc = activePlan();
+    arc.estimatedEpisodes = 9;
+    arc.episodes = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => ({ ...arc.episodes[0], index, chapter: index, title: `${index}화`, beat: '윤재가 은빛열쇠 를 되찾는다. 보상에 붙는 세금' }));
+    await store.saveArcPlan('tax-tower', arc);
+    for (let chapter = 1; chapter <= 7; chapter += 1) {
+      const summary = chapter === 1 ? '윤재는 은빛열쇠 하나를 창구에 맡겼다. OLD_MEMORY_TOKEN'
+        : chapter === 2 ? '두 번째 고지서가 도착했다. UNMATCHED_SUMMARY_2'
+          : `윤재가 ${chapter}번째 고지서를 받았다. RECENT_SUMMARY_${chapter}`;
+      const delta = emptyDelta(chapter);
+      if (chapter === 3) delta.hookChanges = [{ id: 'key-owner', text: '은빛열쇠 주인은 ACTIVE_HOOK_TOKEN', plantedAtChapter: 3, phase: 'planted' }];
+      if (chapter === 7) delta.hookChanges = [{ id: 'key-late', text: '은빛열쇠 두 번째 FUTURE_HOOK_TOKEN', plantedAtChapter: 7, phase: 'planted' }];
+      await runCommit({
+        store, workId: 'tax-tower', chapter, prose: `윤재는 ${chapter}번째 고지서를 접었다.`,
+        summary, providers: createHostRelay({}), delta,
+      });
+    }
+    return store;
+  }
+
+  it('publishes the arc approved after the previous arc completed, and later reads see it', async () => {
+    const store = await createdStore({ legacy: true });
+    const first = activePlan();
+    first.estimatedEpisodes = 1; first.episodes = [first.episodes[0]];
+    await store.saveArcPlan('tax-tower', first);
+    await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '윤재는 첫 고지서를 접었다.', summary: '첫 고지.', providers: createHostRelay({}), delta: emptyDelta(1) });
+    const second = { ...activePlan(), arcNumber: 2, title: 'SECOND_ARC_TITLE', startChapter: 2, estimatedEpisodes: 2,
+      episodes: [2, 3].map((chapter, i) => ({ ...activePlan().episodes[0], index: i + 1, chapter, title: `${chapter}화` })) };
+    await store.saveArcPlan('tax-tower', second);
+    await runCommit({ store, workId: 'tax-tower', chapter: 2, prose: '윤재는 둘째 고지서를 접었다.', summary: '둘째 고지.', providers: createHostRelay({}), delta: emptyDelta(2) });
+    const published = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
+    assert.equal(published.value.tree.plans.arcPlan.arcNumber, 2);
+    assert.equal(published.value.tree.plans.arcPlan.episodes.find((e) => e.chapter === 2).status, 'completed');
+    const { context } = await buildContext({ store, workId: 'tax-tower', chapter: 3 });
+    assert.match(context, /SECOND_ARC_TITLE/);
+  });
+
+  async function draftPrompt(store, chapter) {
+    await store.saveEpisodePlan('tax-tower', { ...activeEpisodePlan(), chapter, arcEpisodeIndex: chapter, title: '열쇠' });
+    let draftRequest;
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      if (req.step === 'draft') {
+        draftRequest = req;
+        return { text: '윤재가 창구 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧' };
+      }
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    const result = await runDraftTool({ store, workId: 'tax-tower', chapter, providers: p });
+    return { result, prompt: draftRequest.messages.map((message) => message.content).join('\n') };
+  }
+
+  it('drafts with the recent summary window and older retrieved memory, not only the previous tail', async () => {
+    const { result, prompt } = await draftPrompt(await sevenChapterStore(), 8);
+    for (const chapter of [3, 4, 5, 6, 7]) {
+      assert.equal(prompt.match(new RegExp(`RECENT_SUMMARY_${chapter}\\b`, 'g'))?.length, 1, `${chapter}화 요약은 창에서 한 번만 들어간다`);
+    }
+    // Earlier chapters of the current arc arrive once, through the long memory, not through retrieval.
+    assert.equal(prompt.match(/UNMATCHED_SUMMARY_2/g)?.length, 1);
+    assert.equal(prompt.match(/OLD_MEMORY_TOKEN/g)?.length, 1);
+    assert.deepEqual(result.contextAudit.recentSummaryChapters, [7, 6, 5, 4, 3]);
+    assert.deepEqual(result.contextAudit.draftInputTrace.continuity.excluded, []);
+    assert.equal(prompt.match(/ACTIVE_HOOK_TOKEN/g)?.length, 1, '활성 떡밥은 이전 상태에만 한 번 들어간다');
+    assert.equal(prompt.match(/탑의 시스템은 모든 보상에 세금을 매긴다/g)?.length, 1, '세계 사실은 Foundation에만 한 번 들어간다');
+    assert.doesNotMatch(prompt, /\[character:hero/, '이번 화 등장인물은 Foundation에 이미 있다');
+    assert.ok(result.contextAudit.olderMemoryRefs.length <= 8);
+  });
+
+  it('drafts from text sections: no Foundation or state JSON, no design-time location', async () => {
+    const { prompt } = await draftPrompt(await sevenChapterStore(), 8);
+    assert.doesNotMatch(prompt, /"worldFacts"|"addressMap"|"trackedEntities"|"intrinsic"|"mutable"/);
+    assert.match(prompt, /## 세계 사실\n- 탑의 시스템은 모든 보상에 세금을 매긴다/);
+    assert.match(prompt, /## 현재 상태/);
+    assert.match(prompt, /은빛열쇠 주인은 ACTIVE_HOOK_TOKEN/);
+  });
+
+  it('plans a chapter from text sections: no JSON before the output schema', async () => {
+    const store = await sevenChapterStore();
+    let planRequest;
+    const capture = { async complete(req) { planRequest = req; throw new Error('CAPTURED'); } };
+    await assert.rejects(runEpisodePlan({ store, workId: 'tax-tower', chapter: 8, mode: 'review', providers: capture }), /CAPTURED/);
+    const user = planRequest.messages.find((m) => m.role === 'user').content;
+    const input = user.slice(0, user.indexOf('필수 JSON 스키마'));
+    assert.doesNotMatch(input, /[{}]|\["/, 'input carries no JSON objects or arrays');
+    assert.match(input, /- 7화: 윤재가 7번째 고지서를 받았다/);
+    assert.match(input, /은빛열쇠 주인은 ACTIVE_HOOK_TOKEN/);
+    assert.match(input, /윤재 \(hero\)/);
+    assert.match(input, /- 탑의 시스템은 모든 보상에 세금을 매긴다/);
+  });
+
+  it('gives a whole-chapter rewrite the same continuity window and older memory as a draft', async () => {
+    const store = await sevenChapterStore();
+    let rewriteRequest;
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      if (req.step === 'rewrite') { rewriteRequest = req; return { text: '윤재가 다시 섰다.' }; }
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    await runRewriteTool({ store, workId: 'tax-tower', chapter: 7, intent: '열쇠를 되찾는 쪽으로 다시 쓴다.', providers: p });
+    const prompt = rewriteRequest.messages.map((message) => message.content).join('\n');
+    for (const chapter of [2, 3, 4, 5, 6]) assert.match(prompt, new RegExp(`- ${chapter}화: `));
+    assert.doesNotMatch(prompt, /RECENT_SUMMARY_7\b|FUTURE_HOOK_TOKEN/);
+    assert.match(prompt, /OLD_MEMORY_TOKEN/);
+  });
+
+  it('selects the draft continuity without assembling the lore_context render, and reports what was cut', async () => {
+    const store = await sevenChapterStore();
+    const { result, prompt } = await draftPrompt(store, 8);
+    assert.equal(await store.loadContextTrace('tax-tower', 8), null, 'the lore_context render is not built for a draft');
+    assert.match(prompt, /OLD_MEMORY_TOKEN/);
+    assert.equal(result.contextAudit.memory.trimmedSummaries, 0);
+    assert.equal(typeof result.contextAudit.memory.droppedForBudget, 'number');
+  });
+
+  it('leaves out the draft sections the user turned off', async () => {
+    const store = await sevenChapterStore();
+    const on = (await draftPrompt(store, 8)).prompt;
+    assert.match(on, /OLD_MEMORY_TOKEN/);
+    assert.match(on, /윤재는 7번째 고지서를 접었다/);
+    assert.match(on, /정확한 행동은 장면에서 발견한다/);
+    await saveWriterSupportPolicy(store, 'tax-tower', { disabledDraftSections: ['older-memory', 'previous-tail', 'author-craft'] });
+    const { result, prompt } = await draftPrompt(store, 8);
+    // Chapter one's summary still arrives through the current arc so far; retrieval adds nothing.
+    assert.deepEqual(result.contextAudit.olderMemoryRefs, []);
+    assert.doesNotMatch(prompt, /윤재는 7번째 고지서를 접었다/);
+    assert.doesNotMatch(prompt, /정확한 행동은 장면에서 발견한다/);
+    assert.match(prompt, /RECENT_SUMMARY_7/, 'the summary window stays');
+    assert.deepEqual(result.contextAudit.disabledDraftSections, ['older-memory', 'previous-tail', 'author-craft']);
+  });
+
+  it('opens chapter one without a continuity window or older memory', async () => {
+    const { prompt } = await draftPrompt(await createdStore({ legacy: true }), 1);
+    assert.doesNotMatch(prompt, /최근 회차 요약|오래된 관련 기억/);
+  });
+
+  it('keeps the chapter being redrafted and later chapters out of retrieved memory', async () => {
+    const { result, prompt } = await draftPrompt(await sevenChapterStore(), 7);
+    assert.deepEqual(result.contextAudit.recentSummaryChapters, [6, 5, 4, 3, 2]);
+    assert.doesNotMatch(prompt, /RECENT_SUMMARY_7\b/);
+    assert.doesNotMatch(prompt, /FUTURE_HOOK_TOKEN/);
+    assert.match(prompt, /OLD_MEMORY_TOKEN/);
   });
 
   it('rejects a draft result when its pinned plan source changes during generation', async () => {
@@ -412,7 +569,22 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal(result.rebuilt, 2);
     assert.equal((await store.loadStoryState('tax-tower', 2)).hooks[0].id, 'bill');
     assert.ok((await store.loadEntitySnapshots('tax-tower')).some((e) => e.entityId === 'taxman'));
-    assert.equal((await runStatus({ store, workId: 'tax-tower' })).arc.status, 'completed');
+    assert.deepEqual((await store.loadLedgerEvents('tax-tower')).map((e) => [e.chapter, e.id, e.event]), [[1, 'taxman', 'registered'], [2, 'bill', 'planted']]);
+    const status = await runStatus({ store, workId: 'tax-tower' });
+    assert.equal(status.arc.status, 'completed');
+    assert.deepEqual(status.ledgerLog, { ok: true, lastChapter: 2, committed: 2 });
+  });
+
+  it('commits only address entries the chapter prose supports', async () => {
+    const store = await createdStore({ legacy: true });
+    const delta = emptyDelta(1);
+    delta.newAddressEntries = [
+      { speakerId: 'hero', targetId: 'hero', term: '체납자', register: 'formal' },
+      { speakerId: 'hero', targetId: 'hero', term: '없는호칭', register: 'formal' },
+    ];
+    await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '"체납자, 앞으로." 윤재가 중얼거렸다.', summary: '윤재가 섰다.', providers: createHostRelay({}), delta });
+    const state = await store.loadStoryState('tax-tower', 1);
+    assert.deepEqual(Object.values(state.addressMap.entries).map((entry) => entry.term), ['체납자']);
   });
 
   it('supports an OpenAI-compatible local model endpoint', async () => {

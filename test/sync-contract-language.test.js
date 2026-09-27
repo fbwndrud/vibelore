@@ -20,7 +20,7 @@ function provider({ language = 'en', uncertain = false, onLanguage } = {}) {
     const content = req.messages.map(m => m.content).join('\n');
     const hash = content.match(/contextHash: ([a-f0-9]{64})/)?.[1];
     if (req.step === 'continuity-extract') return { text: JSON.stringify({
-      newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], trackedEntityOps: [],
+      newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], ledgerOps: [],
       noInfluenceReason: 'No lasting change.', extractionValidation: { contextHash: hash },
     }) };
     if (req.step === 'continuity-check') {

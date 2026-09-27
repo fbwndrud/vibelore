@@ -1,3 +1,5 @@
+import { renderLongMemory } from './arc-summary.js';
+import { planningCast, renderArcBeat, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { characterArcBeatsForEpisode, episodeForChapter } from './arc.js';
 import { renderStoryProfile } from './story-profile.js';
@@ -10,6 +12,8 @@ import { validatePlanningContracts } from '../../engine/src/core/narrative-plann
 import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
+import { ledgerBaseState } from './ledger-log.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
@@ -190,31 +194,36 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   if (storyProfile && storyProfile.status !== 'active') throw new Error('StoryProfile 승인 후 에피소드를 계획하세요.');
   const prior = await store.loadEpisodePlan(workId, chapter);
   const summaries = await store.loadRecentChapterSummaries(workId, chapter, 5);
-  const state = chapter > 1 ? await store.loadStoryState(workId, chapter - 1) : null;
+  const state = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1 }) : null;
+  const knownHookIds = new Set((state?.hooks ?? []).map((hook) => hook.id));
   const identity = await store.loadStoryIdentity(workId);
   const pilotContract = chapter === 1 ? await store.loadPilotContract(workId) : null;
   const patternLedger = await store.loadPatternLedger(workId);
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });
+  // The arc beat, character beats and recent summaries decide who the plan may draw on.
+  const planFocus = [renderArcBeat(arcBeat, kit), renderCharacterArcBeats(characterArcBeatsForEpisode(arcPlan, arcBeat.index), foundation, kit), ...summaries.map((item) => item.summary ?? '')].join('\n');
   const planMessages = kit.messages('episode-plan', {
       profileRender: renderStoryProfile(storyProfile, kit),
       identityRender: renderStoryIdentity(identity, kit),
       pilotRender: renderPilotContract(pilotContract, kit),
       ledgerRender: renderPatternLedger(patternLedger, kit),
       arcTitle: arcPlan.title, arcPromise: arcPlan.promise,
-      arcBeatsJson: JSON.stringify(characterArcBeatsForEpisode(arcPlan, arcBeat.index)),
-      arcBeatJson: JSON.stringify(arcBeat),
+      arcBeatsText: renderCharacterArcBeats(characterArcBeatsForEpisode(arcPlan, arcBeat.index), foundation, kit) || kit.phrases.common.noneParen,
+      arcBeatText: renderArcBeat(arcBeat, kit),
       direction: direction || kit.phrases.common.noneParen,
       feedback: feedback || kit.phrases.common.noneParen,
-      priorJson: prior ? JSON.stringify(prior) : kit.phrases.common.noneParen,
-      worldFactsJson: JSON.stringify(foundation.worldFacts.map((f) => f.statement)),
-      castJson: JSON.stringify(foundation.characters.map((c) => ({ id: c.id, name: c.canonicalName, contradiction: c.contradiction, role: c.intrinsic?.role }))),
-      summariesJson: JSON.stringify(summaries.reverse().map((s) => s.summary)),
-      stateJson: JSON.stringify(state),
+      priorText: prior ? renderEpisodePlan(prior, kit) || kit.phrases.common.noneParen : kit.phrases.common.noneParen,
+      worldFactsText: renderWorldFacts(foundation, kit) || kit.phrases.common.noneParen,
+      castText: renderCastBrief(foundation, kit, { focusText: planFocus, chapter }),
+      summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
+      longMemoryText: await renderLongMemory({ store, workId, arcPlan, chapter, kit }),
+      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'planner', focusText: planFocus, oldestHooks: 3, config: await loadLedgerConfig(store, workId) }) || kit.phrases.common.noneParen,
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };
-  const knownCharacterIds = foundation.characters.map((character) => character.id);
+  // A plan may use only characters registered by this chapter.
+  const knownCharacterIds = foundation.characters.filter((character) => (character.registeredAtChapter ?? 0) <= chapter).map((character) => character.id);
   const acceptPlan = (raw) => {
     const parsed = parse(raw);
     if (!parsed || !Array.isArray(parsed.scenes) || parsed.scenes.length < 2 || parsed.scenes.length > 4) throw new Error('episode-plan은 2~4개 scenes가 필요합니다.');
@@ -317,7 +326,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       powerChanges: strings(obj.powerChanges), artifacts: strings(obj.artifacts), absurdity: text(obj.absurdity),
       characterArcBeats: characterArcBeatsForEpisode(arcPlan, arcBeat.index),
       ...(pilotContract ? { pilotContract } : {}),
-      hooksTouched: strings(obj.hooksTouched), carryForward: strings(obj.carryForward),
+      // Only hooks that exist: the plan's hook ids pin them into the extraction and writer input.
+      hooksTouched: strings(obj.hooksTouched).filter((id) => knownHookIds.has(id)), carryForward: strings(obj.carryForward),
       status: mode === 'review' ? 'pending' : 'active', revision: Number(prior?.revision ?? 0) + 1,
       createdAt: new Date().toISOString(),
     };
@@ -394,6 +404,21 @@ export async function completeEpisodePlan({ store, workId, chapter }) {
   const next = { ...plan, status: 'completed', completedAt: new Date().toISOString() };
   await store.saveEpisodePlan(workId, next);
   return { chapter, status: 'completed' };
+}
+
+/** The plan's intended results only: what the boundary judge checks the prose against. */
+export function renderEpisodeOutcome(plan, kitSource) {
+  if (!plan || plan.status !== 'active') return '';
+  const kit = asKit(kitSource);
+  const t = kit.phrases.episode;
+  return [
+    t.heading(plan.chapter, plan.title), t.premise(plan.premise),
+    t.choiceAndResult(plan.turn?.causedByChoice || t.choiceFallback, plan.payoff?.promisePaid || plan.closingState),
+    t.nextState(plan.exitValue?.nextQuestion || plan.closingState),
+    ...(plan.scenes ?? []).filter((s) => s.change ?? s.turn).map((s, i) => kit.phrases.sections.sceneResult(s.order ?? i + 1, s.change ?? s.turn)),
+    plan.costCreatedByResolution?.immediate || plan.costCreatedByResolution?.deferred
+      ? t.remainingCost(plan.costCreatedByResolution.immediate || plan.costCreatedByResolution.deferred) : '',
+  ].filter(Boolean).join('\n');
 }
 
 export function renderEpisodePlan(plan, kitSource) {

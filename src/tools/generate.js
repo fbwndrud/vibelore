@@ -8,8 +8,10 @@ import { runRewrite } from '../../engine/src/generators/text/steps/rewrite.js';
 import { runNextArcProposal } from '../../engine/src/generators/text/steps/next-arc-proposal.js';
 import { emptyStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
-import { buildContext } from './context.js';
-import { applyEntityOps } from './entities.js';
+import { selectWriterContinuity } from './context.js';
+import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
+import { ledgerBaseState, ledgerSeedEntities, ledgerSeedState, rebuildLedgerLog } from './ledger-log.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 import { episodeForChapter, renderArcMap } from './arc.js';
 import { compileBriefWithProfile, profileToPromptOverride } from './story-profile.js';
 import { renderEpisodePlan } from './episode-plan.js';
@@ -24,6 +26,11 @@ import { MCP_CONTRACT_VERSION } from '../core/runtime-version.js';
 import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-language.js';
 import { promptKit } from '../prompts/index.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
+import { renderContinuity } from '../core/draft-input-compiler.js';
+import { namedCharacters, planningCast, renderCurrentState, renderWriterFoundation } from '../core/prompt-sections.js';
+import { loadDisabledDraftSections } from '../core/review-policy.js';
+import { renderLongMemory } from './arc-summary.js';
+import { supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { validateSalienceProfile } from '../../engine/src/continuity/character-design.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract, compileDraftContract, renderNarrativeContract } from '../core/narrative-contract.js';
 import { loadCurrentExperienceLedger } from '../core/experience-ledger.js';
@@ -98,6 +105,8 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
     canonicalFormatVersion: resolution.canonicalFormatVersion,
   });
   if (entities.length) await store.saveEntitySnapshots(workId, entities);
+  // The ledger replay starts from these; the snapshots are rewritten after every commit.
+  await store.saveLedgerSeed?.(workId, { entities: entities.map((entity) => ({ ...entity, registeredAtChapter: 0 })), source: 'lore_create' });
   return {
     created: true, workId, genre: engineGenre, genreLabel: storyProfile?.genreLabel ?? engineGenre,
     language: resolution.language,
@@ -156,7 +165,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   if (!arcEpisode) throw new Error('승인된 아크의 해당 회차 비트가 없습니다. lore_arc_plan으로 계획하고 승인하세요.');
   const detailedPlan = await store.loadEpisodePlan(workId, chapter);
   if (!detailedPlan || detailedPlan.status !== 'active') throw new Error('승인된 상세 EpisodePlan이 없습니다. lore_episode_plan을 먼저 실행하세요.');
-  const prevState = (await draftStore.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
+  const prevState = chapter > 1 ? await ledgerBaseState({ store: draftStore, workId, chapter: chapter - 1 }) : emptyStoryState(workId);
   const storyProfile = await store.loadStoryProfile(workId);
   const storyIdentity = await store.loadStoryIdentity(workId);
   const pilotContract = chapter === 1 ? await store.loadPilotContract(workId) : null;
@@ -169,7 +178,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const arcIntent = compileArcIntent(arcPlan);
   const episodeIntent = compileEpisodeIntent({ episodePlan: detailedPlan, arcEpisode, chapter });
   const pinnedPlanSourceHash = sourceDigest({ arcPlan, detailedPlan, storyProfile, storyIdentity, pilotContract, patternLedger, writerSkill, styleAnchor, narrativeContract, arcIntent, episodeIntent });
-  const { context, meta: contextMeta } = await buildContext({ store: draftStore, workId, chapter });
+  const continuitySelection = chapter > 1 ? await selectWriterContinuity({ store: draftStore, workId, chapter }) : null;
   const planningArc = {
     arcNumber: arcPlan.arcNumber, title: arcPlan.title, promise: arcPlan.promise, type: arcPlan.type,
     currentChapterInArc: arcEpisode.index, estimatedEpisodes: arcPlan.estimatedEpisodes,
@@ -181,7 +190,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   // run here as an extra host round trip, but its answer never reached the
   // prompt, so it is not requested.
   const previousArtifact = chapter > 1 ? await draftStore.loadArtifact(workId, chapter - 1) : null;
-  const previousSceneTail = previousArtifact?.prose
+  const draftSectionsOff = await loadDisabledDraftSections(store, workId);
+  const previousSceneTail = previousArtifact?.prose && !draftSectionsOff.includes('previous-tail')
     ? previousArtifact.prose.slice(-2400).trim()
     : '';
   const episodePacketResult = compileWriterEpisodePacket({
@@ -198,10 +208,12 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     throw new Error(`${episodePacketResult.error.code}${details}`);
   }
   const episodePacket = episodePacketResult.value;
-  const authorCraftPacket = compileAuthorCraftPacket({ skill: writerSkill, episodePlan: detailedPlan, chapter, recentPatterns: patternLedger.slice(-3), kit });
+  const authorCraftPacket = draftSectionsOff.includes('author-craft') ? ''
+    : compileAuthorCraftPacket({ skill: writerSkill, episodePlan: detailedPlan, chapter, recentPatterns: patternLedger.slice(-3), kit });
   const draftContract = compileDraftContract({ profile: storyProfile, identity: storyIdentity, writerSkill, episodePlan: detailedPlan, chapter, kit,
     characterNames: Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName])) });
-  const writerPacket = [draftContract.writerText, authorCraftPacket, renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
+  const writerPacket = [draftContract.writerText, authorCraftPacket,
+    draftSectionsOff.includes('style-anchor') ? '' : renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
   const compilerInputs = {
     identity: {
       workId, chapter, workflowId, invocation: workflowId ? 'workflow' : 'direct',
@@ -217,9 +229,9 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     kit,
     continuity: {
       genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
-      recentSummaries: chapter > 1 && contextMeta.recentSummaries?.length
-        ? contextMeta.recentSummaries.slice(0, 2).map((summary) => summary.summary || summary)
-        : [],
+      recentSummaries: continuitySelection?.recentSummaryTexts ?? [],
+      olderMemory: continuitySelection && !draftSectionsOff.includes('older-memory')
+        ? writerOlderMemory(continuitySelection.olderMemory, (item) => detailedPlan.cast.includes(item.ref)) : [],
       castIds: detailedPlan.cast,
       locations: detailedPlan.locations,
       previousSceneTail,
@@ -240,12 +252,21 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   if (!currentPublication.ok) throw new Error(`CORRUPT_PUBLICATION: ${currentPublication.error.code}`);
   const observedCanonHead = currentPublication.value?.head ?? 'legacy-working-tree';
   if (observedCanonHead !== pinnedCanonHead) throw new Error(`STALE_DRAFT_IDENTITY: canonHead ${pinnedCanonHead} -> ${observedCanonHead}`);
+  const foundationRender = renderWriterFoundation(executionSnapshot, detailedPlan.cast, chapter, kit);
+  const currentStateRender = chapter > 1
+    ? renderCurrentState(prevState, executionSnapshot, { cast: detailedPlan.cast, kit, mode: 'writer',
+      focusText: [episodePacket.writerText, arcEpisode.beat, arcEpisode.pressure, detailedPlan.premise].filter(Boolean).join('\n'),
+      hookIds: detailedPlan.hooksTouched ?? [], history: await store.loadLedgerEvents?.(workId) ?? [], config: await loadLedgerConfig(store, workId) })
+    : '';
+  // Long memory (finished arcs and this arc so far) leads the carried state.
+  const longMemory = await renderLongMemory({ store: draftStore, workId, arcPlan, chapter, kit });
+  const stateRender = [longMemory, currentStateRender].filter(Boolean).join('\n\n');
   const writerArc = { ...planningArc, summary: `${arcEpisode.beat || arcEpisode.goal} → 비용: ${arcEpisode.costCreatedByResolution || arcEpisode.cost || ''}` };
   const execution = await executePinnedDraft({
     resolvedInputs: {
       compiler: compilerInputs,
       engine: {
-        foundation: executionSnapshot, prevState, chapterNumber: chapter,
+        foundation: executionSnapshot, prevState, chapterNumber: chapter, foundationRender, stateRender,
         activeCastIds: detailedPlan.cast,
         tension: tension ?? detailedPlan.tension, arc: writerArc,
         ...engineLanguageArgs(workLanguage, { legacyTarget: true }),
@@ -279,7 +300,16 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   return {
     chapter, prose: result.raw, next: 'lore_check로 검사한 뒤 lore_commit 하세요.',
     contextAudit: {
-      recentSummaries: contextMeta.recentSummaries,
+      recentSummaries: continuitySelection?.recentSummaryTexts.length ?? 0,
+      disabledDraftSections: draftSectionsOff,
+      // What the window and the memory budget left out; shown to the user with the draft.
+      memory: {
+        trimmedSummaries: continuitySelection?.trimmedSummaries ?? 0,
+        droppedForBudget: continuitySelection?.droppedForBudget ?? 0,
+        retrieval: continuitySelection?.retrieval ?? null,
+      },
+      recentSummaryChapters: result.compiled.trace.continuity.recentSummaryChapters,
+      olderMemoryRefs: result.compiled.trace.continuity.olderMemoryRefs,
       previousSceneChars: previousSceneTail.length,
       arcEpisodes: arcPlan.episodes.length,
       characterArcBeats: detailedPlan.characterArcBeats?.length ?? 0,
@@ -338,15 +368,47 @@ export async function runReviseTool({ store, workId, chapter, prose, castManifes
   return { chapter, prose: result.revisedProse, next: '수정본을 lore_check로 다시 검사하세요.' };
 }
 
+// World facts, characters already in the prompt's Foundation and active hooks
+// reach the writer elsewhere; older memory keeps what only retrieval can add.
+function writerOlderMemory(items, characterInFoundation) {
+  return items.filter((item) => !['fact', 'hook'].includes(item.scope)
+    && !(item.scope === 'character' && characterInFoundation(item))).slice(0, 8);
+}
+
 export async function runRewriteTool({ store, workId, chapter, intent, language = null, providers }) {
   const foundation = await store.loadFoundation(workId);
   const artifact = await store.loadArtifact(workId, chapter);
   if (!foundation || !artifact) throw new Error(`${chapter}화 원본 또는 작품 설정을 찾을 수 없습니다.`);
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });
-  const prevState = (await store.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
+  const prevState = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1 }) : emptyStoryState(workId);
+  // A whole-chapter rewrite replaces the chapter, so it needs the same window
+  // a draft of this chapter would get. Its Foundation carries every
+  // registered character.
+  const selection = chapter > 1 ? await selectWriterContinuity({ store, workId, chapter }) : null;
+  const continuity = selection ? renderContinuity({
+    genreLine: '',
+    recentSummaries: selection.recentSummaryTexts,
+    olderMemory: writerOlderMemory(selection.olderMemory, () => true),
+    maxContextTokens: 2000,
+    kit: promptKit({ contract: workLanguage.contract }),
+  }) : null;
+  const kit = promptKit({ contract: workLanguage.contract });
+  // The author's intent may bring in any character it names, so the rewrite
+  // is not limited to the plan's cast; unnamed characters stay out so the
+  // input does not grow with the work.
+  const episodePlan = await store.loadEpisodePlan?.(workId, chapter);
+  const everyone = [...namedCharacters(foundation, `${intent ?? ''}\n${artifact.prose}`,
+    [...planningCast(foundation, { focusText: intent ?? '', chapter }), ...(episodePlan?.cast ?? [])])];
   const result = await runRewrite({
     foundation: executionFoundation(foundation, workLanguage), prevState, chapterNumber: chapter,
+    foundationRender: renderWriterFoundation(foundation, everyone, chapter, kit),
+    stateRender: [
+      await renderLongMemory({ store, workId, arcPlan: await store.loadArcPlan(workId), chapter, kit }),
+      chapter > 1 ? renderCurrentState(prevState, foundation, { cast: everyone, kit, mode: 'writer', focusText: artifact.prose,
+        history: await store.loadLedgerEvents?.(workId) ?? [], config: await loadLedgerConfig(store, workId) }) : '',
+    ].filter(Boolean).join('\n\n'),
     previousProse: artifact.prose, intentSummary: intent,
+    continuityRender: continuity?.text ?? '',
     ...engineLanguageArgs(workLanguage), model: MODEL, providers,
   });
   return { chapter, prose: result.prose, next: '다시 쓴 본문을 lore_check → lore_commit → lore_refold 순서로 반영하세요.' };
@@ -405,17 +467,19 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
   const chapters = await canonicalStore.listChapters();
   const foundation = await canonicalStore.loadFoundation(workId);
   const arcPlan = await store.loadArcPlan(workId);
-  let state = emptyStoryState(workId);
-  let entities = [];
+  const config = await loadLedgerConfig(store, workId);
+  let state = ledgerSeedState(workId, await ledgerSeedEntities(canonicalStore, workId));
   let dynamics = null;
   let rebuilt = 0;
   for (const chapter of chapters) {
     const artifact = await canonicalStore.loadArtifact(workId, chapter);
     if (!artifact?.delta) throw new Error(`${chapter}화 델타가 없어 재접기할 수 없습니다.`);
-    state = reduceStoryState(state, artifact.delta);
-    if (artifact.delta.entityOps?.length) {
-      entities = applyEntityOps(entities, artifact.delta.entityOps, chapter).snapshots;
-    }
+    // Replaying applies today's address check, so a refold also clears
+    // entries an earlier extractor wrote without prose support.
+    state = reduceStoryState(state, {
+      ...artifact.delta,
+      newAddressEntries: supportedAddressEntries(artifact.delta.newAddressEntries, foundation, artifact.prose).entries,
+    }, { config });
     const observation = canonicalStore.publishedRevision?.tree?.observations?.[chapter];
     if (observation) {
       const folded = foldLegacyChapterCharacterDynamics({
@@ -429,6 +493,7 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
     }
     if (chapter >= fromChapter) rebuilt += 1;
   }
+  const entities = ledgerEntitySnapshots(state.ledger);
   const published = canonicalStore.publishedRevision;
   if (published) {
     const token = await publicationUnit.issueFencingToken();
@@ -449,5 +514,6 @@ export async function runRefold({ store, workId, fromChapter = 1 }) {
   }
   await store.saveStoryState(state);
   await store.saveEntitySnapshots(workId, entities);
+  await rebuildLedgerLog({ store, workId, config });
   return { fromChapter, throughChapter: chapters.at(-1) ?? 0, rebuilt };
 }

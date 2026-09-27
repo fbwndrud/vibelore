@@ -32,7 +32,7 @@ import { describe, it } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { runInit } from '../src/tools/init.js';
 import { approvalFixtureProvider } from './fixtures/approval-response.js';
-import { buildContext, MAX_CONTEXT_TOKENS } from '../src/tools/context.js';
+import { buildContext, MAX_CONTEXT_TOKENS, selectWriterContinuity } from '../src/tools/context.js';
 import { tokenUnits } from '../src/core/token-units.js';
 
 async function newStore(tag) {
@@ -178,5 +178,20 @@ describe('writing-context token budget is script-aware (src/tools/context.js)', 
         return true;
       },
     );
+  });
+
+  it('the writer selection never refuses: world facts and hooks are shown elsewhere and do not spend the memory budget', async () => {
+    const store = await newStore('ko-writer');
+    await runInit({
+      store, workId: 'w', genre: 'other', povMode: '3인칭제한',
+      worldFacts: hangulFacts(60, 1300),
+      providers: approvalFixtureProvider(),
+    });
+    await assert.rejects(buildContext({ store, workId: 'w', chapter: 1 }), /context_overflow/);
+    const selection = await selectWriterContinuity({ store, workId: 'w', chapter: 1 });
+    assert.deepEqual(selection.recentSummaryTexts, []);
+    assert.deepEqual(selection.olderMemory, []);
+    assert.equal(selection.trimmedSummaries, 0);
+    assert.equal(selection.droppedForBudget, 0);
   });
 });

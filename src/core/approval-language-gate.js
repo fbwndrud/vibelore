@@ -194,7 +194,10 @@ export async function gateApprovalActivation({ store, workId, kind, value, provi
     if (!object || typeof object !== 'object') return;
     for (const [key, item] of Object.entries(object)) {
       if (key === 'genreProfile') {
-        if (!genreRegistry.has(value.genre) || configHash(item) !== configHash(genreRegistry.get(value.genre))) errors.push('unrecognized genreProfile configuration');
+        // trackedEntities is a retired genre-derived list (tracking is feature-based now);
+        // stored foundations may still carry the old per-genre entity lists here.
+        const stored = { ...item, trackedEntities: [] };
+        if (!genreRegistry.has(value.genre) || configHash(stored) !== configHash(genreRegistry.get(value.genre))) errors.push('unrecognized genreProfile configuration');
       } else if (key === 'workContract') {
         if (configHash(item) !== configHash(workContract)) errors.push('workContract configuration mismatch');
       } else checkConfig(item);

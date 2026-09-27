@@ -140,7 +140,7 @@ test('a failed semantic verdict becomes a hard violation that the workflow revis
   const text=req.messages.map(m=>m.content).join('\n');
   if(req.step==='continuity-check'&&failOnce){failOnce=false;
    const hash=text.match(/contextHash: ([a-f0-9]{64})/)[1];const ids=text.match(/판정한다: ([A-Z_, ]+)\./)[1].split(', ');
-   const prose=text.split('## 본문\n')[1].split('\n\n## ')[0];const quote=prose.split('\n')[0].slice(0,12);
+   const shared=text.match(/\[공통 자료 시작[^\n]*\]\n## [^\n]*\n([\s\S]*?)\n\[공통 자료 끝/);const prose=shared?shared[1]:text.split('## 본문\n')[1].split('\n\n## ')[0];const quote=prose.split('\n')[0].slice(0,12);
    const verdicts=Object.fromEntries(ids.map(id=>[id,id==='POV'?'fail':'pass']));
    return{text:JSON.stringify({violations:[],semanticValidation:{contextHash:hash,verdicts,evidence:[{invariantId:'POV',fieldPath:'prose',quote,reason:'서술자가 선언된 시점을 벗어나 다른 인물의 속마음을 직접 서술한다.'}]}})};}
   if(req.step==='revise'){reviseCalls+=1;revisePrompt=text;return{text:JSON.stringify({replacements:[],insertions:[{afterParagraph:1,text:'조용히 손을 내렸다.'}]})};}
@@ -171,7 +171,7 @@ test('resuming a pending mandatory repair validates the revised prose, never the
     judged.push({revised:text.includes(insertion),failuresBefore:session.failures});
     if(!failed){failed=true;
      const hash=text.match(/contextHash: ([a-f0-9]{64})/)[1];const ids=text.match(/판정한다: ([A-Z_, ]+)\./)[1].split(', ');
-     const prose=text.split('## 본문\n')[1].split('\n\n## ')[0];const quote=prose.split('\n')[0].slice(0,12);
+     const shared=text.match(/\[공통 자료 시작[^\n]*\]\n## [^\n]*\n([\s\S]*?)\n\[공통 자료 끝/);const prose=shared?shared[1]:text.split('## 본문\n')[1].split('\n\n## ')[0];const quote=prose.split('\n')[0].slice(0,12);
      answers[req.id]=JSON.stringify({violations:[],semanticValidation:{contextHash:hash,verdicts:Object.fromEntries(ids.map(id=>[id,id==='POV'?'fail':'pass'])),
       evidence:[{invariantId:'POV',fieldPath:'prose',quote,reason:'서술자가 선언된 시점을 벗어나 다른 인물의 속마음을 직접 서술한다.'}]}});
      continue;}

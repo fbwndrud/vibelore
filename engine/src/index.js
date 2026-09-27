@@ -31,7 +31,6 @@ export { scanEntityMentions } from './core/mention-scan.js';
 export { approxTokens, buildSlidingWindow, renderSlidingWindow } from './core/sliding-window.js';
 export { runChapterSummary } from './generators/text/steps/chapter-summary.js';
 export { ENTITY_KINDS, ATTRS_SCHEMAS, DEFAULT_ENTITY_PROFILE, STREAMING_LITRPG_PROFILE, entityProfileFor, } from './continuity/entity-profile.js';
-export { foldEntityOps, scanDestroyedEntityMentions } from './continuity/entity-ops.js';
 export { runEntitySeed } from './generators/text/steps/entity-seed.js';
 export { runEraResearch, DEFAULT_ERA_RESEARCH_BUDGET, NULL_ERA_RESEARCH_PROVIDER, } from './core/era-research.js';
 export { DEFAULT_REVISE_POLICY, createOrchestrator } from './core/orchestrator.js';

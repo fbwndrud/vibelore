@@ -26,6 +26,33 @@ describe('working tree and experience generations', () => {
     assert.deepEqual(drift.changed, ['world/setting.md']);
   });
 
+  it('treats a whitespace-only hand edit as no drift but still sees a changed word', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'vibelore-drift-space-'));
+    const store = new MarkdownStateStore(root);
+    await mkdir(join(root, 'chapters'), { recursive: true });
+    const path = join(root, 'chapters', '001.md');
+    await writeFile(path, '# 1화\n\n"가자." 리아가 말했다.\n', 'utf8');
+    await captureWorkingTreeFingerprint({ store, sourceHead: 'sha256:head-a' });
+    await writeFile(path, '# 1화\n\n\n"가자."\n리아가  말했다.\n\n', 'utf8');
+    assert.equal((await detectWorkingTreeDrift({ store, sourceHead: 'sha256:head-a' })).status, 'clean');
+    await writeFile(path, '# 1화\n\n"가자." 도윤이 말했다.\n', 'utf8');
+    const drift = await detectWorkingTreeDrift({ store, sourceHead: 'sha256:head-a' });
+    assert.deepEqual([drift.status, drift.changed], ['modified', ['chapters/001.md']]);
+  });
+
+  it('compares a fingerprint recorded before content digests by its raw bytes', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'vibelore-drift-legacy-'));
+    const store = new MarkdownStateStore(root);
+    await mkdir(join(root, 'world'), { recursive: true });
+    const path = join(root, 'world', 'setting.md');
+    await writeFile(path, '# 원본\n', 'utf8');
+    const captured = await captureWorkingTreeFingerprint({ store, sourceHead: 'sha256:head-a' });
+    await store.saveWorkingTreeFingerprint({ ...captured, inventory: captured.inventory.map(({ path: file, digest }) => ({ path: file, digest })) });
+    assert.equal((await detectWorkingTreeDrift({ store, sourceHead: 'sha256:head-a' })).status, 'clean');
+    await writeFile(path, '# 원본 \n', 'utf8');
+    assert.equal((await detectWorkingTreeDrift({ store, sourceHead: 'sha256:head-a' })).status, 'modified');
+  });
+
   it('advances a clean fingerprint across a metadata-only publication', async () => {
     const root = await mkdtemp(join(tmpdir(), 'vibelore-fingerprint-head-'));
     const store = new MarkdownStateStore(root);
@@ -146,7 +173,7 @@ describe('working tree and experience generations', () => {
         if (request.step === 'chapter-summary') return { text: '{"summary":"손수정 요약","plotBeat":"opening","sceneTags":[],"povCharacter":null}' };
         if (request.step === 'chapter-title') return { text: '{"title":"손수정 화"}' };
         if (request.step === 'continuity-extract') return { text: JSON.stringify({
-          newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], trackedEntityOps: [],
+          newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], ledgerOps: [],
           noInfluenceReason: '지속되는 상태 변화가 없는 장면이다.', extractionValidation: { contextHash },
         }) };
         if (request.step === 'continuity-check') {

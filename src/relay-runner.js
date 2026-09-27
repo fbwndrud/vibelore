@@ -1,4 +1,5 @@
-import { HOST_EXECUTION_NOTE, layoutRelayRequests } from './core/relay-prompt-layout.js';
+import { HOST_EXECUTION_NOTE, compactSharedBlocks, layoutRelayRequests } from './core/relay-prompt-layout.js';
+import { describeRequestInputs } from './core/request-input-report.js';
 import { dropRun, newRunId, saveRun } from './runs.js';
 import { resolveWorkLanguage } from './core/work-language.js';
 import { promptFamilyFor } from '../engine/src/core/language-policy.js';
@@ -86,25 +87,39 @@ export async function runRelayedTool({
     createdAt: run?.createdAt ?? new Date().toISOString(),
   });
 
+  const inputReport = describeRequestInputs(pending, relay.sharedContexts ?? []);
+  let trimmedContext = null;
   if (toolName === 'lore_write') {
     const workflow = await store.loadWorkflow(args.workId);
     if (workflow) {
       workflow.pendingRunId = saved.id;
+      workflow.lastInputReport = inputReport;
+      const memory = workflow.contextAudit?.memory;
+      if (memory && (memory.trimmedSummaries > 0 || memory.droppedForBudget > 0)) {
+        trimmedContext = { trimmedSummaries: memory.trimmedSummaries, droppedForBudget: memory.droppedForBudget };
+      }
       await store.saveWorkflow(args.workId, workflow);
     }
   }
 
+  const promptFamily = await relayPromptFamily(store, args);
+  const laid = layoutRelayRequests(pending, relay.sharedContexts ?? [], { promptFamily });
   return {
     status: 'needs_model',
     runId: saved.id,
-    requests: layoutRelayRequests(pending, relay.sharedContexts ?? [], { promptFamily: await relayPromptFamily(store, args) }),
+    ...(args.sharedOnce ? compactSharedBlocks(laid, { promptFamily }) : { requests: laid }),
+    // What each request carries, so the user can see sections, sizes and cache reuse.
+    inputReport,
+    // What the draft's summary window and memory budget left out, when anything was.
+    ...(trimmedContext ? { trimmedContext } : {}),
     instruction:
       '각 request 의 system 과 user 를 그대로 읽고 답을 만든 뒤, lore_resume 에 { runId, answers: { <request id>: "<답변>" } } 로 넘기세요. ' +
       'jsonMode=true 인 요청은 코드블록 없이 순수 JSON 으로만 답해야 합니다. 답을 넘기지 않으면 아래 결정론 결과가 최종입니다. ' +
       '한 응답의 requests 는 서로 독립이므로 병렬로(서브에이전트·동시 CLI 실행) 답해도 되며, 순서와 무관하게 모든 답을 한 번의 lore_resume 에 함께 넘기세요. ' +
       'promptCache 가 있는 요청들은 system 과 user 의 공통 자료 블록(sharedPrefixEndMarker 까지)이 바이트 단위로 같으므로, 새 프로세스·API 호출로 답한다면 ' +
       'warmFirst=true 인 요청을 먼저 보내 첫 출력이 시작된 뒤 나머지를 병렬로 보내면 프롬프트 캐시를 재사용합니다. ' +
-      'Claude Code CLI(claude -p)는 system 과 마지막 user 블록에만 캐시 지점을 두므로 공통 자료 블록을 --system-prompt 의 system 뒤에 붙이고 나머지만 stdin 으로 보내세요.',
+      (args.sharedOnce ? 'sharedBlocks 가 있으면 각 request 의 user 맨 앞 promptCache.sharedBlockRef 문자열(줄바꿈 포함)을 같은 sharedBlockId 블록의 text 로 정확히 바꿔 완성한 뒤 보내세요. ' : '') +
+      'Claude Code CLI(claude -p)는 system 과 마지막 user 블록에만 캐시 지점을 두므로 공통 자료 블록을 --system-prompt 의 system 뒤에 붙이고 나머지만 stdin 으로 보내고, CLAUDE_CODE_PROMPT_CACHE_TTL=5m 으로 실행하세요.',
     deterministicResult: result,
   };
 }

@@ -114,11 +114,29 @@ base language가 `ko`면 한국어 특화 계열, 그 밖의 언어(영어 포�
 
 기존 StoryProfile, StoryIdentity, WriterSkill을 중복 없는 v2 NarrativeContract로 컴파일하고
 StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 모드를 한 번에 보여줍니다.
-구형 저장 데이터를 수정하지 않는 읽기 호환 도구입니다.
+구형 저장 데이터는 수정하지 않습니다. 선택 인자를 넘기면 작가 지원 설정만 저장합니다.
+
+- `disabledReviews`: 끌 매 화 검토 목록 전체(`story-profile-check`, `coherence-judge`,
+  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`). 꺼진 검토는
+  요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다.
+- `disabledDraftSections`: 초고에서 뺄 선택 섹션 목록 전체(`older-memory`, `previous-tail`,
+  `author-craft`, `style-anchor`).
+- `tracking`: 추적 기능 켜기/끄기(`objects`, `knowledge`, `scheduled`, `hooks`). 기본은 모두 켜짐.
+  objects=물건·장소·단서·능력, knowledge=누가 무엇을 아는가, scheduled=일어나기로 된 일(회귀 전생
+  사건·예언·예약), hooks=떡밥.
+- `customTracking`: 작가 정의 추적 항목 전체 목록(교체). `{name, feature, pinned?, rules?, note?}`.
+  pinned=매 화 입력에 항상 포함. rules: `monotonic{field,direction:up|down,unless?}`,
+  `frozenAfter{status}`, `speakerOnly{alias,by}`; note=검토 모델에 보여줄 자연어 규칙(advisory).
+- `mergeRecords`: 같은 대상으로 확인된 기록 병합 목록. `{from, into}`(from을 into에 흡수). 다음에
+  쓸 화부터 반영(`atChapter`로 저장). tracking·customTracking 변경도 다음 화부터 적용되고, 이미 쓴 화의
+  이력은 그대로 남습니다.
+
+응답의 `reviewPolicy`와 `draftSections`가 현재 설정과 선택지를 보여주고, `tracking`(`enabled`,
+`available`)·`customTracking`·`merges`가 추적 설정을 보여줍니다. 모르는 이름은 거부합니다.
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project` |
+| `workId` | `project`, `disabledReviews`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
 
 ### `lore_style_anchor`
 

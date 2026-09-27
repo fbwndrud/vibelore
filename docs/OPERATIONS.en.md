@@ -68,6 +68,7 @@ When an error occurs, call a status tool first before calling the same generatio
 | `CANON_MEMORY_CONFLICT` | Search memory doesn't match canon | Regenerate the search projection, check the canon |
 | `UNSAFE_MEMORY_CLAIM` | Invalid schema, control characters or instructions | Quarantine the claim, fix the source data |
 | Check receipt mismatch | The prose changed after the check | Check the changed prose again |
+| `ledgerLog.ok=false` in `lore_status` | The history log is out of step with the committed chapters or tracking settings | Rebuild it with `lore_sync(action="validate")` |
 | runId missing or expired | The saved run finished or was deleted | Check the workflow status, then start a new run or resume the workflow |
 
 ## Recovering from `needs_model`
@@ -174,6 +175,9 @@ tampered data, symbolic links and invalid chapter arguments are refused without 
 The restored result is published as a new Published HEAD, aligning the canon, design, state and change-detection baseline.
 Earlier approvals, model requests, check receipts and the search cache are not restored. The originals are
 kept in `.vibelore/rollback-archives/<archiveId>/before/`.
+Tracking settings, author items and approved merges (`review-policy.json`) and arc summaries are restored to
+that chapter too, and the story ledger's history log is rebuilt from the restored chapters. The merge candidate list moves to the archive and,
+in `guided`, is asked again when needed.
 
 If the process is interrupted during restoration, `.vibelore/rollback-pending.json` and the verified recovery data
 remain. The next MCP tool call on the same project finishes the restoration first.
@@ -199,6 +203,127 @@ When only the sentences of an earlier chapter change, use the rewrite/refold flo
 - Don't edit `.vibelore/` directly.
 - If you changed a saved earlier chapter, the check and commit path and refold are needed.
 - A workflow in progress becomes stale. Check the state and start a new run.
+
+## Story ledger and tracking settings
+
+Objects, knowledge, scheduled events and hooks extracted each chapter are kept in **one ledger** for the whole work.
+The same subject keeps the ID it got when first registered, and what happened to it in each chapter stays as history.
+So when an object from long ago comes back, its history is known and the story can continue from it.
+
+### Records and hooks
+
+| Feature | Tracks | Statuses |
+|---|---|---|
+| `objects` | Objects, places, clues, abilities and the like | `active` · `lost` · `destroyed` · `retired` |
+| `knowledge` | Who knows what | `secret` · `partial` · `public` · `retired` |
+| `scheduled` | What is set to happen (events before a regression, prophecies, fixed dates) | `pending` · `prevented` · `happened` · `altered` · `retired` |
+| `hooks` | Promises made to the reader | `open` · `dormant` · `paid` · `closed` |
+
+- Each record has a name, aliases, a free label (a kind such as object or clue; it changes no behaviour), current values and its last 3 events.
+- Something already broken or prevented when it first appears is registered in that status. Values that changed with a status (who knows a secret once it is out) stay in the same event.
+- Hook statuses: `open` means the reader is waiting, `dormant` resting for now, `paid` paid off,
+  `closed` no longer pursued. A paid hook used again opens again.
+  A payoff needs a verbatim quote from this chapter's prose; without one it is recorded as an advance instead.
+  A dormant or paid hook that comes back is reopened under its own ID, never planted again (the extraction input lists the
+  related dormant and paid hooks with their IDs). A passing mention does not count as movement, so a neglected hook stays on the overdue list.
+  Older works' `planted` and `advancing` read as `open`, `parked` as `dormant`.
+- Model inputs carry only the current values and recent events of related records, so they don't grow with the chapter count.
+  When a record that hasn't moved for over 20 chapters returns in the plan or prose, up to 5 lines of its history come with it.
+
+### History log
+
+Each chapter's events are kept one per line in `.vibelore/ledger/events.jsonl`. The source is the extraction of the
+committed chapters. The replay starts from the records before chapter 1 (`.vibelore/ledger/seed.json`) and applies each
+chapter under the tracking settings it was committed with, so the replay and the live ledger agree.
+A commit appends its chapter's events; after a rollback, refold, `lore_sync` or a change of tracking settings or merges the
+log is rebuilt from the start. Don't edit it.
+
+`built.json` records the number of event lines and a digest of the seed, the tracking settings and each chapter's extraction.
+If the log file is missing, has a different number of lines or the digest doesn't match, `ledgerLog.ok` in `lore_status`
+is `false`: rebuild it with `lore_sync(action="validate")` (`lore_write` also rebuilds it when it starts).
+Memory search indexes the event notes too.
+
+`seed.json` holds the starting objects `lore_create` made. `entities.json` is rewritten from the ledger on every commit, so it
+can't be where a replay starts. A work made before this file gets one the first time it is needed: before chapter 1 from
+`entities.json` as it is; with chapters already written, the entries registered before chapter 1 are taken back to their
+starting status (`active`), with the values `entities.json` held at that point.
+
+### Turning tracking on and off
+
+`lore_configure(tracking={objects, knowledge, scheduled, hooks})` turns each feature on or off.
+All are on by default. A feature turned off is left out of the extraction request, not checked and never counted as a failure;
+its existing records are kept and only left out of model inputs (`lore_context` included). What is tracked does not depend on the genre.
+A change applies from the next chapter written (kept with that chapter in `trackingHistory` in `review-policy.json`);
+the history of chapters already written stays as it is. Settings with no recorded change count as in effect from chapter 1.
+
+### Author tracking items
+
+`lore_configure(customTracking=[...])` replaces the **full list** of items the author wants kept.
+
+```json
+{ "name": "Gold balance", "feature": "objects", "pinned": true,
+  "rules": [{ "type": "monotonic", "field": "amount", "direction": "down", "unless": "reward" }],
+  "note": "Ria never brings up her mother first" }
+```
+
+- `pinned`: always included in the extraction and writer inputs, whatever the input caps.
+- An item links to the record with its ID (`u1`) or with the same name or alias. Something already recorded as `o3` and
+  added as an item later gets the pin and rules. An item with no record yet shows in the extraction, planning and writing
+  inputs as "tracked on request (no record yet)", and the extractor records it under that ID when it appears.
+- `rules` (deterministic checks, soft by default, hard with `"severity": "hard"`):
+  - `monotonic{field, direction: up|down, unless?}`: a number only moves one way.
+    An event note containing the `unless` word is an exception.
+  - `frozenAfter{status}`: nothing changes after that status.
+  - `speakerOnly{alias, by}`: only that character uses the term.
+- `note`: a natural-language rule. It adds no model request: the `coherence-judge` review judges it as well, per item ID,
+  and reports a miss only as an `AUTHOR_RULE` advisory. An answer with no rule verdicts at all records the review as
+  incomplete, so `auto` falls back to approval. With `coherence-judge` turned off through `disabledReviews`, it is not judged.
+
+Item IDs (`u1`, `u2`, …) stay with the name, and a removed item's ID is never reused.
+An item with an unknown feature or a rule missing a required value is refused.
+
+### Speaker-only aliases
+
+An alias with a character (`by`) is a term only that character uses. If the term appears in the prose while that character
+is not in the chapter's cast, it is reported as soft, and the continuity check lists it in its address section so the model checks who said it.
+Planning and writing inputs also note, in one line per record shown, who uses the term.
+
+### Duplicate records and merges
+
+- Within a feature, an exactly equal name (differing only in spacing, quotes or case) creates no new record; the event joins the existing one.
+- A similar name (containment, a particle difference, word overlap) is registered as a new record and flagged as a possible duplicate (`LEDGER_POSSIBLE_DUPLICATE`, soft). It is never merged automatically.
+- In `guided`, only in a chapter where a newly flagged pair appears does `lore_write` send one `ledger-merge`
+  model request with the chapter. A pair already asked about is not asked again. `auto` never asks.
+- The proposals appear in `mergeCandidates` (`{into, from[], reason}`) in the `guided` approval result (`awaiting_approval`)
+  and in the `lore_configure` response. Show them to the user with the draft and pass only the approved ones with
+  `lore_configure(mergeRecords=[{from, into}])` (one entry per `from` ID).
+- The merge request gives each record's status, registration chapter and last event chapter; `into` is the record registered
+  first. An existing work's first request asks about at most 150 records: those in flagged pairs first, then the most recently moved.
+- An approved merge applies from the next chapter written (`atChapter`). That chapter's extraction and writer inputs already
+  show the merged record; the history of chapters already written stays apart. The merged record keeps the `into` ID and
+  name, takes its status and values from the record whose last event is later (values key by key), and counts as registered
+  when the earlier one was. The absorbed ID then reads as the `into` record and both records' history shows together.
+
+### Existing works
+
+Works written before the ledger continue with nothing to do. `lore_write` replays the committed chapters' extractions
+from chapter 1 to build the history log and the ledger without a model call, and the next chapter is written on that result.
+Older tracked items become `objects` and `knowledge` records; `Timeline`, which was used as a per-chapter event list,
+becomes chapter notes. `RelationshipState` and `PowerSystem` are not carried over (relationships live in the relationship
+state, power rules in the world settings). In `guided`, merge candidates over all records are asked once.
+`world/`, `characters/` and `chapters/` don't change.
+
+A chapter that finished its check and was waiting for approval before the upgrade loses its check receipt and is checked once more.
+
+### What counts as hard
+
+| Severity | Cases |
+|---|---|
+| hard | Changing the values or status of a `destroyed` record (`LEDGER_UPDATE_AFTER_DESTROY`), restoring without a reason (`LEDGER_RESTORE_NOTE_REQUIRED`), author rules set to `severity:"hard"` |
+| soft | Possible duplicates, unknown IDs, events whose name isn't in the prose, payoffs without evidence, a closed hook used again, a finished scheduled event back to `pending`, speaker-only aliases, a destroyed record named again (it may be a memory), author rules by default, `AUTHOR_RULE` |
+
+The two hard cases are usually extraction slips, so the extraction is first run once more. If it repeats them, they become
+violations to revise. Soft findings may be the author's intent, so they are not fixed automatically; they are shown to the user.
 
 ## Connection problems
 
@@ -262,6 +387,9 @@ If you use Git, check that ignore rules don't leave out candidates, images or ru
 | `.vibelore/workflows/` | Required while work is in progress | Resuming workflows after a restart |
 | `.vibelore/check-receipts/` | Recommended | Commit audits |
 | `.vibelore/snapshots/` | Recommended | rollback |
+| `.vibelore/review-policy.json` | Recommended | Review and tracking settings, author items, approved merges |
+| `.vibelore/ledger/seed.json` | Recommended | The records before chapter 1 the replay starts from (approximated from `entities.json` when missing) |
+| rest of `.vibelore/ledger/` | Low | The history log can be rebuilt from the chapter extractions; merge candidates can be asked again |
 | `.vibelore/memory.db` | Low | A projection that can be rebuilt from canon |
 
 ## Before a release
@@ -308,7 +436,7 @@ The family is fixed per work, so within one work the common prefix is byte-for-b
 | `warmFirst` | The one request to send first. If the estimate is under 1024 tokens, all are `false` and are sent in parallel as they are |
 
 The minimum cache length is 512 tokens for Claude Opus 5 and Opus 5.5, 1024 tokens for Sonnet 5 and Opus 4.8,
-and 4096 tokens for Opus 4.6 and Haiku 4.5. The default TTL is 5 minutes and is refreshed on every read, so a workflow that processes a bundle
+and 4096 tokens for Opus 4.6 and Haiku 4.5. The API default TTL is 5 minutes and is refreshed on every read, so a workflow that processes a bundle
 within a few minutes doesn't need the 1-hour TTL.
 
 Per host:
@@ -317,12 +445,19 @@ Per host:
   If you send the common block inside user, reads are 0 even with the same prefix (measured 0 both for one stdin block and
   for two stream-json blocks). Put `system` + an empty line + the common block in `--system-prompt` and
   send the rest through stdin. With `--output-format stream-json --include-partial-messages`, start the rest after receiving
-  the warm-first request's first `stream_event`.
+  the warm-first request's first `stream_event`. A CLI signed in with a subscription writes the cache with a
+  1-hour TTL, which costs twice the input price. A bundle finishes within minutes, so run it with
+  `CLAUDE_CODE_PROMPT_CACHE_TTL=5m` (writes at 1.25x).
 - Direct Claude API calls: split the common block into its own text block and put `cache_control` on that block.
 - Hosts with automatic prefix caching (Codex, etc.): send the layout as it is. The host's minimum
   length and routing conditions apply, and vibelore does not guarantee hits.
 - Hosts that answer directly within one conversation or through subagents: the host's own context comes first, so
   this layout gives little or no benefit. The parallel answer rule still applies.
+
+With `lore_write(sharedOnce=true)` the response carries each common block once in `sharedBlocks`; replace the
+exact `promptCache.sharedBlockRef` string at the start of each request's user (newline included) with the `text` of the block named by `sharedBlockId`.
+The completed user is byte-identical to the default response. It is an option for hosts that assemble requests
+themselves and want smaller responses; by default every request is self-contained.
 
 The layout change only changes presentation. Request IDs remain the fingerprints of the engine's original requests, the audit
 record (`modelExchanges`) stores the original requests, and direct providers never see this layout.

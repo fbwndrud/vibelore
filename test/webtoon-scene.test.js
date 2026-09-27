@@ -9,7 +9,7 @@ import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { readWebtoonWorkflow } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
-import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering } from '../src/core/webtoon-scene.js';
+import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering, PREVIOUS_SCENE_ID } from '../src/core/webtoon-scene.js';
 
 const plan = scenePlan, preflight = scenePreflight, setup = sceneSetup;
 
@@ -118,7 +118,18 @@ test('a count mismatch blocks completion and changing a selected count cannot re
   assert.equal(result.status, 'scene_needs_revision'); assert.equal(result.visualReview.observedPanelCount, 6);
 });
 
-test('continuation preserves prior failure, binds its image, and requires actual two-image continuity review', async () => {
+test('a passed previous scene is carried as the next scene image reference', async () => {
+  const { store, args: base } = await setup(), args = { ...base, autoRevisions: 0 };
+  const r = await runWebtoonSceneTool({ store, args: { ...args, sourceUnitIds: ['ch-1-p-1'] }, providers: provider() });
+  const first = await runWebtoonSceneTool({ store, args: { workId, asset: { path: args.references[0].path, inputHash: r.jobs[0].inputHash,
+    provenance: { kind: 'openai-api', requestedModel: 'gpt-image-2.5-sunburst', selectionId: 'selected-api' } } }, providers: provider() });
+  assert.equal(first.status, 'completed');
+  const next = await runWebtoonSceneTool({ store, args: { ...args, previousWorkflowId: first.workflowId, sourceUnitIds: ['ch-1-p-2'] }, providers: provider() });
+  assert.equal(next.jobs[0].referenceImages.at(-1).id, PREVIOUS_SCENE_ID);
+  assert.equal(next.jobs[0].referenceImages.at(-1).hash, first.image.hash);
+});
+
+test('continuation preserves prior failure, keeps its image out of the drawing, and requires actual two-image continuity review', async () => {
   const { store, repo, args: base } = await setup(), args = { ...base, autoRevisions: 0 };
   const r = await runWebtoonSceneTool({ store, args: { ...args, panelCount: 8, sourceUnitIds: ['ch-1-p-1'] }, providers: provider() });
   const first = await runWebtoonSceneTool({ store, args: { workId, asset: { path: args.references[0].path, inputHash: r.jobs[0].inputHash,
@@ -126,7 +137,9 @@ test('continuation preserves prior failure, binds its image, and requires actual
   const nextArgs = { ...args, previousWorkflowId: first.workflowId, sourceUnitIds: ['ch-1-p-2'] };
   await assert.rejects(runWebtoonSceneTool({ store, args: { ...nextArgs, sourceUnitIds: ['ch-1-p-1'] }, providers: provider() }), /SCENE_CONTINUATION_SCOPE/);
   const next = await runWebtoonSceneTool({ store, args: nextArgs, providers: provider() });
-  assert.equal(next.jobs[0].referenceImages.at(-1).hash, first.image.hash);
+  // A failed scene is still reviewed against, but never drawn from.
+  assert.ok(!next.jobs[0].referenceImages.some(r => r.id === PREVIOUS_SCENE_ID));
+  assert.equal((await repo.load()).previousScene.image.hash, first.image.hash);
   assert.equal((await repo.load(first.workflowId)).stage, 'scene_needs_revision');
   const p = provider(), complete = p.complete;
   p.complete = async request => {
@@ -143,7 +156,7 @@ test('continuation preserves prior failure, binds its image, and requires actual
   assert.equal(result.status, 'scene_needs_revision'); assert.equal(result.visualReview.continuity.identity.passed, false);
   const previousPath = (await repo.load(first.workflowId)).sceneImage.path;
   await writeFile(previousPath, Buffer.from('changed'));
-  await assert.rejects(runWebtoonSceneTool({ store, args: { workId }, providers: provider() }), /SCENE_REFERENCE_CHANGED|UNSUPPORTED_WEBTOON_IMAGE|INVALID_/);
+  await assert.rejects(runWebtoonSceneTool({ store, args: { workId }, providers: provider() }), /SCENE_PREVIOUS_IMAGE_CHANGED|SCENE_REFERENCE_CHANGED|UNSUPPORTED_WEBTOON_IMAGE|INVALID_/);
 });
 
 test('preflight must produce a drawable brief before dispatch; audit prose must not reach the image model', async () => {

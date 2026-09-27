@@ -17,8 +17,10 @@ import { createHash } from 'node:crypto';
  *           [이번 요청 자료] original user, shared text replaced by a pointer
  *
  * Only text a workflow declared with `shareContext` and that occurs exactly once
- * in the user of two or more requests is moved, so no request gains material it
- * did not have (an editorial review that excludes the plan stays without it).
+ * in a request's user is moved, so no request gains material it did not have
+ * (an editorial review that excludes the plan stays without it). A lone
+ * request gets the same layout: the continuity check parks after the review
+ * batch, and the identical prefix lets it read what that batch cached.
  * Request ids stay the fingerprints of the engine's original requests, so
  * answers resume exactly as before; direct providers never see this layout.
  */
@@ -40,7 +42,9 @@ const SCAFFOLD = Object.freeze({
     blockEnd: (id) => `[공통 자료 끝 · ${id}]`,
     role: '[이번 요청 역할]',
     data: '[이번 요청 자료]',
-    pointer: (id, label) => `(위 [공통 자료 · ${id}]의 「${label}」 전문)`,
+    // The pointer stands for the field itself: quotes and fieldPath refer to this place.
+    pointer: (id, label) => `(위 [공통 자료 · ${id}]의 「${label}」 전문) — 이 자리의 값으로 읽고 인용과 fieldPath도 이 자리를 기준으로 쓴다.`,
+    blockRef: (id) => `[sharedBlocks의 ${id} 전문을 이 줄 대신 그대로 붙인다]\n`,
   }),
   multilingual: Object.freeze({
     note: '[Execution conditions] This request is self-contained. Without reading files, searching or running tools, produce a single final answer from the material given in the system and user above only.',
@@ -49,7 +53,8 @@ const SCAFFOLD = Object.freeze({
     blockEnd: (id) => `[Shared material end · ${id}]`,
     role: '[Role for this request]',
     data: '[Material for this request]',
-    pointer: (id, label) => `(the full "${label}" in [Shared material · ${id}] above)`,
+    pointer: (id, label) => `(the full "${label}" in [Shared material · ${id}] above) — read it as the value of this place; quotes and fieldPath refer to this place.`,
+    blockRef: (id) => `[Replace this line with the full ${id} from sharedBlocks, verbatim]\n`,
   }),
 });
 
@@ -124,7 +129,7 @@ export function layoutRelayRequests(requests, sharedContexts = [], { promptFamil
     if (!context?.text) continue;
     const members = requests.filter((request) => !assigned.has(request.id)
       && typeof request.user === 'string' && occurrences(request.user, context.text) === 1);
-    if (members.length < 2) continue;
+    if (members.length < 1) continue;
     for (const request of members) assigned.set(request.id, context);
   }
 
@@ -149,7 +154,8 @@ export function layoutRelayRequests(requests, sharedContexts = [], { promptFamil
           estimatedSharedTokens: estimatedTokens,
           groupSize: size,
         },
-        warm: estimatedTokens >= MIN_SHARED_PREFIX_TOKENS,
+        // Warming first only helps requests waiting in the same batch.
+        warm: size >= 2 && estimatedTokens >= MIN_SHARED_PREFIX_TOKENS,
         first: true,
       };
       groups.set(context, group);
@@ -158,4 +164,28 @@ export function layoutRelayRequests(requests, sharedContexts = [], { promptFamil
     group.first = false;
     return { ...groupedRequest(request, context, group.block, group.pointer, text), promptCache };
   });
+}
+
+/**
+ * The same laid-out batch with each shared block sent once. A request's user
+ * starts with a one-line reference instead of the block; the block text
+ * followed by the rest of the user (after `sharedBlockRef`) is the exact user
+ * the inline layout sends, so prompt caches see the same bytes. For hosts
+ * that stitch requests themselves; the default response stays self-contained.
+ */
+export function compactSharedBlocks(laid, { promptFamily = 'ko' } = {}) {
+  const text = relayScaffold(promptFamily);
+  const blocks = new Map();
+  const requests = laid.map((request) => {
+    const cache = request.promptCache;
+    if (!cache?.sharedPrefixId) return request;
+    let block = blocks.get(cache.sharedPrefixId);
+    if (!block) {
+      block = { id: `block-${blocks.size + 1}`, sharedPrefixId: cache.sharedPrefixId, text: request.user.slice(0, cache.sharedPrefixChars) };
+      blocks.set(cache.sharedPrefixId, block);
+    }
+    const ref = text.blockRef(block.id);
+    return { ...request, user: `${ref}${request.user.slice(cache.sharedPrefixChars)}`, promptCache: { ...cache, sharedBlockId: block.id, sharedBlockRef: ref } };
+  });
+  return { requests, sharedBlocks: [...blocks.values()] };
 }

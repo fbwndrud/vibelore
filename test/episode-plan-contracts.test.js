@@ -213,4 +213,30 @@ describe('episode plan contracts are validated before drafting', () => {
     const text = requests[0].messages.map((m) => m.content).join('\n');
     assert.match(text, /모든 필드를 채운다|모두 채운다/);
   });
+
+  it('shows pinned author items in the planner state', async () => {
+    const store = await qualityStore();
+    await store.saveStoryState({ workId, chapterNumber: 1, characterStates: {}, addressMap: { entries: {} }, relationships: [], hooks: [],
+      // Twelve newer records fill the planner's cap, so only the pin keeps the coin listed.
+      ledger: { records: [{ id: 'u1', feature: 'objects', label: '', name: 'PINNED_COIN', aliases: [], status: 'active', fields: {}, lastEventAt: 0, recent: [] },
+        ...Array.from({ length: 12 }, (_, i) => ({ id: `o${i + 1}`, feature: 'objects', label: '', name: `물건${i}`, aliases: [], status: 'active', fields: {}, lastEventAt: 1, recent: [] }))] } });
+    await store.saveReviewPolicy(workId, { customTracking: [{ id: 'u1', name: 'PINNED_COIN', feature: 'objects', pinned: true }] });
+    const requests = [];
+    const providers = sequenceProvider({ 'episode-plan': [JSON.stringify(basePlan)] }, requests);
+    await runEpisodePlan({ store, workId, chapter: 2, mode: 'auto', providers });
+    const planning = requests.find((req) => req.step === 'episode-plan');
+    assert.match(planning.messages.map((m) => m.content).join('\n'), /PINNED_COIN/);
+  });
+  it('shows the planner hook ids and keeps only existing ids in hooksTouched', async () => {
+    const store = await qualityStore();
+    await store.saveStoryState({ workId, chapterNumber: 1, characterStates: {}, addressMap: { entries: {} }, relationships: [],
+      hooks: [{ id: 'h4', text: 'HOOK_WITH_ID', status: 'open', plantedAtChapter: 1, lastMovedChapter: 1, recent: [] }], ledger: { records: [] } });
+    const requests = [];
+    const providers = sequenceProvider({ 'episode-plan': [JSON.stringify({ ...basePlan, hooksTouched: ['h4', 'HOOK_WITH_ID', 'h99'] })] }, requests);
+    const result = await runEpisodePlan({ store, workId, chapter: 2, mode: 'auto', providers });
+    const text = requests.find((req) => req.step === 'episode-plan').messages.map((m) => m.content).join('\n');
+    assert.match(text, /- `h4` HOOK_WITH_ID/);
+    assert.match(text, /hooksTouched에는 .*떡밥 id/);
+    assert.deepEqual(result.plan.hooksTouched, ['h4']);
+  });
 });

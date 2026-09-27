@@ -12,66 +12,26 @@
 import { buildSlidingWindow, renderSlidingWindow } from '../../engine/src/core/sliding-window.js';
 import { resolveEntityContext, renderEntityContext } from '../../engine/src/core/entity-context.js';
 import { arcPositionFromRatio, ARC_POSITION_LABEL_KO } from '../../engine/src/core/arc-context.js';
-import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { episodeForChapter, renderArcEpisode } from './arc.js';
 import { renderStoryProfile } from './story-profile.js';
 import { renderStorySpine } from './story-spine.js';
 import { renderEpisodePlan } from './episode-plan.js';
 import { hookDebt, retrieveMemory } from './memory-index.js';
 import { compileMemory } from '../core/memory-compiler.js';
+import { SEARCH_TERMS_REVISION } from '../core/search-terms.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { createHash } from 'node:crypto';
 import { renderSceneCharacterPacket } from '../core/character-dynamics-adapter.js';
 import { openCanonRepository } from '../core/canon-repository.js';
-import { isHookActive } from '../../engine/src/continuity/story-state.js';
+import { isHookActive, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
+import { trackingEnabled } from '../../engine/src/continuity/ledger.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 import { PROMPT_FAMILY_KO, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { tokenUnits } from '../core/token-units.js';
+import { renderCharacter } from '../core/prompt-sections.js';
 
 export const MAX_CONTEXT_TOKENS = 18000;
-
-function renderCharacter(foundation, character, chapter, kit) {
-  const t = kit.phrases.context;
-  const labels = t.intrinsicLabels;
-  const events = foundation.intrinsicChanges.filter((e) => e.characterId === character.id);
-  const intrinsic = effectiveIntrinsic(character.intrinsic, events, chapter);
-  const pinned = Object.entries(labels)
-    .filter(([k]) => intrinsic[k] !== undefined && intrinsic[k] !== '')
-    .map(([k, label]) => `${label}=${intrinsic[k]}`);
-  if (intrinsic.coreAppearance?.length) pinned.push(t.appearance(intrinsic.coreAppearance.join('·')));
-  const lines = [`- **${character.canonicalName}** (\`${character.id}\`) — ${pinned.join(', ')}`];
-  if (character.contradiction) lines.push(t.characterContradiction(character.contradiction));
-  const model = character.dramaticModel;
-  if (model?.valueOrder?.length) lines.push(t.valueOrder(model.valueOrder.join(' > ')));
-  for (const trait of (model?.behaviorTraits ?? []).slice(0, 3)) {
-    lines.push(t.behaviorTrait(trait.trigger, trait.actionBias, trait.benefit, trait.cost));
-  }
-  if (model?.perception?.seesFirst?.length || model?.perception?.missesFirst?.length) {
-    lines.push(t.perception(model.perception.seesFirst?.join('·') || '-', model.perception.missesFirst?.join('·') || '-'));
-  }
-  if (model?.defense?.underPressure) lines.push(t.defense(model.defense.underPressure));
-  if (model?.repair?.firstMove) lines.push(t.repair(model.repair.firstMove));
-  const speech = character.speechProfile;
-  if (speech) {
-    const samples = speech.samples ?? {};
-    lines.push(t.speech([speech.defaultRegister, speech.sentenceShape, speech.logicHabit, speech.emotionalLeak].filter(Boolean).join(' / ') || t.speechProfilePresent));
-    const sampleLines = [
-      samples.everyday ? t.speechSampleEveryday(samples.everyday) : '',
-      samples.underPressure ? t.speechSamplePressure(samples.underPressure) : '',
-      samples.lying ? t.speechSampleLying(samples.lying) : '',
-      samples.intimate ? t.speechSampleIntimate(samples.intimate) : '',
-    ].filter(Boolean);
-    if (sampleLines.length) lines.push(t.speechSamples(sampleLines.join(' / ')));
-    if (speech.relationVariants?.length) {
-      lines.push(t.relationVariants(speech.relationVariants.map((row) => `${row.targetId || '?'}=${row.adjustment || row.sample || ''}`).join('; ')));
-    }
-  }
-  const changed = events.filter((e) => e.atChapter <= chapter);
-  if (changed.length > 0) {
-    lines.push(t.intrinsicChanges(changed.map((e) => t.intrinsicChange(e.atChapter, labels[e.field] ?? e.field, JSON.stringify(e.from), JSON.stringify(e.to))).join('; ')));
-  }
-  return lines.join('\n');
-}
 
 function renderAddressMap(state, foundation, kit) {
   const entries = Object.entries(state?.addressMap?.entries ?? {});
@@ -85,6 +45,11 @@ function renderAddressMap(state, foundation, kit) {
     .join('\n');
 }
 
+/**
+ * The lore_context render: everything the store knows about the chapter in one
+ * reference text. It refuses when that text is over budget. The writing path
+ * does not use it; drafts select their continuity with `selectWriterContinuity`.
+ */
 export async function buildContext({ store, workId, chapter, scene, targetChapters }) {
   const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
   store = await openCanonRepository({ store, publicationUnit });
@@ -104,9 +69,12 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   const sectionLanguage = kit.family === PROMPT_FAMILY_KO ? undefined : workLanguage.contract;
 
   const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store, promptFamily: kit.family });
-  const lastState = window.lastStoryState;
+  const lastState = normalizeStoryState(window.lastStoryState);
+  // A feature the author turned off is not put in front of the writer.
+  const ledgerConfig = await loadLedgerConfig(store, workId);
+  const activeHooks = trackingEnabled(ledgerConfig, 'hooks') ? (lastState?.hooks ?? []).filter(isHookActive) : [];
 
-  const snapshots = await store.loadEntitySnapshots(workId);
+  const snapshots = trackingEnabled(ledgerConfig, 'objects') ? await store.loadEntitySnapshots(workId) : [];
   const entity = resolveEntityContext({ snapshots, scene: scene ?? undefined, promptFamily: kit.family });
 
   const estimated = targetChapters ?? foundation.targetChapters ?? 0;
@@ -124,10 +92,19 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     episodePlan?.readerExpectation?.likelyOutcome, ...(episodePlan?.hooksTouched ?? []), ...(scene?.entityIds ?? [])].filter(Boolean).join(' ');
   const published = store.publishedRevision ? { ok: true, value: store.publishedRevision } : { ok: true, value: null };
   const snapshotId = published.value?.head ?? 'legacy-working-tree';
-  const memory = await retrieveMemory({ store, workId, query: retrievalQuery, currentChapter: chapter });
+  const searchLanguage = workLanguage.contract?.language;
+  const memory = await retrieveMemory({ store, workId, query: retrievalQuery, currentChapter: chapter, language: searchLanguage });
+  // Candidates get the same `scope:ref` ids as the mandatory set so facts and
+  // active hooks are not selected twice. The window already carries its
+  // summaries verbatim, and a redraft must not see canon from the chapter it
+  // replaces or later ones.
+  const windowChapters = new Set(window.recentSummaries.map((summary) => summary.chapterNumber));
+  const candidates = memory.candidates
+    .filter((item) => Number(item.chapter) < chapter && !(item.scope === 'summary' && windowChapters.has(Number(item.chapter))))
+    .map((item) => ({ ...item, id: `${item.scope}:${item.ref}` }));
   const mandatory = [
     ...foundation.worldFacts.map((fact) => ({ id: `fact:${fact.id}`, kind: 'world_fact', text: fact.statement, active: true })),
-    ...(lastState?.hooks ?? []).filter(isHookActive).map((hook) => ({ id: `hook:${hook.id}`, kind: 'promise', text: hook.text ?? '', active: true })),
+    ...activeHooks.map((hook) => ({ id: `hook:${hook.id}`, kind: 'promise', text: hook.text ?? '', active: true })),
   ];
   const compiledMemory = compileMemory({
     snapshotId, expectedHead: snapshotId, storyTimeScope: { worldline: 'main', through: chapter - 1 },
@@ -135,11 +112,13 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     semanticGeneration: 1, fencingToken: published.value?.manifest?.fencingToken ?? 1,
   }, {
     scope: { chapter, entityIds: scene?.entityIds ?? [] }, budget: { maxTokens: 12000, reservedTokens: 3000 },
-    mandatory, candidates: memory.candidates, query: retrievalQuery, promptFamily: kit.family,
-    indexGeneration: `memory:${memory.documents}`, tokenizerRevision: 'unicode61-or-ko-basic-1', rankerRevision: memory.backend,
+    mandatory, candidates: candidates,
+    query: retrievalQuery, promptFamily: kit.family, language: searchLanguage,
+    indexGeneration: `memory:${memory.documents}`, tokenizerRevision: SEARCH_TERMS_REVISION, rankerRevision: memory.backend,
   });
   const t = kit.phrases.context;
   if (!compiledMemory.ok) throw new Error(`${compiledMemory.error.code}: ${t.mandatoryOverflow}`);
+  const memoryItems = compiledMemory.value.discretionary;
 
   const sections = [
     t.heading(chapter, workId),
@@ -181,16 +160,18 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   const characterPacket = renderSceneCharacterPacket({
     projection: published.value?.projections?.characterDynamics,
     cast: episodePlan?.cast ?? [], pressure: episodePlan?.scenePressure?.decisionDeadline ?? '',
-    kit,
+    episodePlan, kit,
   });
   if (characterPacket) sections.push('', characterPacket);
 
   const address = renderAddressMap(lastState, foundation, kit);
   if (address) sections.push('', t.addressHeading, address);
 
-  if (lastState?.hooks?.length) {
+  // Only hooks still open; paid or parked ones are not promises to the reader.
+  const openHooks = activeHooks;
+  if (openHooks.length) {
     sections.push('', t.hooksHeading,
-      lastState.hooks.map((h) => {
+      openHooks.map((h) => {
         const text = h.text || h.id;
         const started = h.plantedAtChapter;
         return t.hook(text, started);
@@ -199,9 +180,9 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
 
   if (entity.injected.length > 0) sections.push('', renderEntityContext(entity, sectionLanguage));
 
-  if (compiledMemory.value.discretionary.length) {
+  if (memoryItems.length) {
     sections.push('', t.memoryHeading,
-      ...compiledMemory.value.discretionary.map((item) => t.memoryItem(item.scope ?? item.kind, item.ref ?? item.id, item.chapter, item.text)));
+      ...memoryItems.map((item) => t.memoryItem(item.scope ?? item.kind, item.ref ?? item.id, item.chapter, item.text)));
   }
   const debts = hookDebt(lastState?.hooks, chapter);
   if (debts.length) sections.push('', t.hookDebtHeading, ...debts.map((debt) => t.hookDebt(debt.id, debt.staleFor, debt.action)));
@@ -235,8 +216,14 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
       genre: foundation.genre,
       characterCount: visible.length,
       worldFactCount: foundation.worldFacts.length,
-      openHooks: lastState?.hooks?.length ?? 0,
+      openHooks: openHooks.length,
       recentSummaries: window.recentSummaries.length,
+      // Newest-first text of the same window, and the older memory the
+      // compiler selected, so the draft sees what this context assembled.
+      recentSummaryTexts: window.recentSummaries.map((summary) => ({ chapter: summary.chapterNumber, text: summary.summary })),
+      olderMemory: memoryItems.map((item) => ({
+        scope: item.scope ?? item.kind, ref: item.ref ?? item.id, chapter: item.chapter ?? null, text: item.text,
+      })),
       trimmedSummaries: window.trimmedCount,
       arcPosition,
       missingEntityIds: entity.missingIds,
@@ -249,5 +236,67 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
       retrievedMemory: memory.selected.length,
       contextTrace: `context-traces/${chapter}.json`,
     },
+  };
+}
+
+/**
+ * What a draft (or rewrite) takes from the store beyond its setting and state
+ * sections: the recent summary window and older memory retrieved for the
+ * chapter. World facts and open hooks are already in those sections, so they
+ * are excluded from the candidates instead of spending the memory budget, and
+ * the selection never refuses. What the budget left out is counted for the
+ * draft audit.
+ */
+export async function selectWriterContinuity({ store, workId, chapter }) {
+  const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
+  store = await openCanonRepository({ store, publicationUnit });
+  const foundation = await store.loadFoundation(workId);
+  if (!foundation) throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
+  const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
+  const kit = promptKit({ contract: workLanguage.contract });
+  const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store, promptFamily: kit.family });
+  const lastState = normalizeStoryState(window.lastStoryState);
+  const arcPlan = await store.loadArcPlan(workId);
+  const episodePlan = await store.loadEpisodePlan(workId, chapter);
+  const arcEpisode = episodeForChapter(arcPlan, chapter);
+  const retrievalQuery = [arcEpisode?.beat, arcEpisode?.pressure, episodePlan?.premise, episodePlan?.entryState?.activeQuestion,
+    episodePlan?.readerExpectation?.likelyOutcome, ...(episodePlan?.hooksTouched ?? [])].filter(Boolean).join(' ');
+  const snapshotId = store.publishedRevision?.head ?? 'legacy-working-tree';
+  const searchLanguage = workLanguage.contract?.language;
+  const memory = await retrieveMemory({ store, workId, query: retrievalQuery, currentChapter: chapter, language: searchLanguage });
+  // The window carries its summaries, and the long memory carries this arc's
+  // earlier chapters; retrieval does not repeat either.
+  const windowChapters = new Set([
+    ...window.recentSummaries.map((summary) => summary.chapterNumber),
+    ...(arcPlan?.status === 'active' ? (arcPlan.episodes ?? []).map((episode) => episode.chapter).filter((n) => n < chapter) : []),
+  ]);
+  const shown = new Set([
+    ...foundation.worldFacts.map((fact) => `fact:${fact.id}`),
+    ...(lastState?.hooks ?? []).filter(isHookActive).map((hook) => `hook:${hook.id}`),
+  ]);
+  const candidates = memory.candidates
+    .filter((item) => Number(item.chapter) < chapter && !(item.scope === 'summary' && windowChapters.has(Number(item.chapter))))
+    .map((item) => ({ ...item, id: `${item.scope}:${item.ref}` }))
+    .filter((item) => !shown.has(item.id));
+  const compiled = compileMemory({
+    snapshotId, expectedHead: snapshotId, storyTimeScope: { worldline: 'main', through: chapter - 1 },
+    publicationOrder: chapter - 1, transactionTime: new Date().toISOString(), policyRevision: 1,
+    semanticGeneration: 1, fencingToken: store.publishedRevision?.manifest?.fencingToken ?? 1,
+  }, {
+    scope: { chapter, entityIds: [] }, budget: { maxTokens: 12000, reservedTokens: 3000 },
+    mandatory: [], candidates,
+    query: retrievalQuery, promptFamily: kit.family, language: searchLanguage,
+    indexGeneration: `memory:${memory.documents}`, tokenizerRevision: SEARCH_TERMS_REVISION, rankerRevision: memory.backend,
+  });
+  if (!compiled.ok) throw new Error(`${compiled.error.code}: ${compiled.error.message}`);
+  return {
+    // Newest first, like the window.
+    recentSummaryTexts: window.recentSummaries.map((summary) => ({ chapter: summary.chapterNumber, text: summary.summary })),
+    olderMemory: compiled.value.discretionary.map((item) => ({
+      scope: item.scope ?? item.kind, ref: item.ref ?? item.id, chapter: item.chapter ?? null, text: item.text,
+    })),
+    trimmedSummaries: window.trimmedCount,
+    droppedForBudget: compiled.value.usage.droppedForBudget,
+    retrieval: { documents: memory.documents, candidates: candidates.length, selected: compiled.value.discretionary.length },
   };
 }

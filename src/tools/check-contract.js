@@ -1,7 +1,11 @@
+import { profileCheckInputs } from '../core/profile-check-input.js';
+import { renderCheckSections, renderCurrentState } from '../core/prompt-sections.js';
 import { createHash } from 'node:crypto';
 import { extractDelta, continuityCheck, computeExtractionContextHash } from '../../engine/src/continuity/continuity-check.js';
 import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
-import { emptyStoryState } from '../../engine/src/continuity/story-state.js';
+import { ledgerBaseState } from './ledger-log.js';
+import { findRecord, reviewLedgerOps } from '../../engine/src/continuity/ledger.js';
+import { ledgerStep } from '../../engine/src/continuity/story-state.js';
 import { evaluateChapterQuality } from '../../engine/src/continuity/quality-gate.js';
 import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-language.js';
 import { currentValidationContext, exactHash, sameIdentity, exceptionOnlyRebind, loadValidationSession, saveValidationSession, invalidateValidationSession } from '../core/validation-context.js';
@@ -9,10 +13,14 @@ import { chapterArtifactBundle, computeArtifactHash, continuityContextHash, eval
 import { lexiconsForLanguage } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
-import { episodePlanReviewView } from '../core/episode-plan-view.js';
 import { promptKit } from '../prompts/index.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
+// Hard ledger findings that usually come from the extractor's reading, not
+// from the prose: a remembered weapon logged as `changed`, a restore whose
+// reason the extractor left out. They get one re-extraction per epoch first.
+const EXTRACTION_LEDGER_CODES = new Set(['LEDGER_UPDATE_AFTER_DESTROY', 'LEDGER_RESTORE_NOTE_REQUIRED']);
 const pending = (providers) => Boolean(providers?.pending?.length);
 export async function shouldUseContractCheck({ store, workId, chapter, forceContract = false }) {
   const resolution = await resolveWorkLanguage({ store, workId });
@@ -77,7 +85,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   const arcPosition = arcEpisode
     ? arcPositionFromRatio(arcEpisode.index, context.plans.arc.estimatedEpisodes)
     : (estimated > 0 ? arcPositionFromRatio(chapter, estimated) : 'rising');
-  const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, arcPosition, entities: await canonicalStore.loadEntitySnapshots(workId) });
+  const entities = await canonicalStore.loadEntitySnapshots(workId);
+  const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, arcPosition, entities });
   const length = lengthCoverage({ workContract, prose: input.prose });
   const prosody = scan.detectorResults.find(row => row.checkerId === 'runProsodyScan' && ['passed','failed'].includes(row.status));
   const base = {
@@ -117,8 +126,10 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     async complete(request) {
       if (!providers?.complete) throw new Error('MODEL_PROVIDER_REQUIRED');
       try {
+        const ledgerRecheck = request.step === 'continuity-extract' && state.ledgerRecheck?.length
+          ? ` Ledger records ${state.ledgerRecheck.map((name) => `"${name}"`).join(', ')}: record for them only what this chapter's prose shows happening to them now. A destroyed record that is only remembered is a mentioned event; a restore carries the prose's reason in note.` : '';
         return await providers.complete({ ...request, messages: [...request.messages,
-        { role: 'system', content: `Validation identity: ${scope}; epoch ${state.epoch}; attempt ${state.failures + 1}. This identifies this evaluation, not fictional content.${state.languageEvidence ? ` Previous output-language evidence; correct only the affected generated fields: ${JSON.stringify(state.languageEvidence)}` : ''}` }] });
+        { role: 'system', content: `Validation identity: ${scope}; epoch ${state.epoch}; attempt ${state.failures + 1}. This identifies this evaluation, not fictional content.${state.languageEvidence ? ` Previous output-language evidence; correct only the affected generated fields: ${JSON.stringify(state.languageEvidence)}` : ''}${ledgerRecheck}` }] });
       } catch (error) {
         if (error?.name !== 'PendingModelWork') providerFailure = error;
         throw error;
@@ -135,9 +146,9 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     const before = providers.pending?.length ?? 0;
     try {
       const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'story-profile-check',
-        messages: promptKit({ contract: workContract }).messages('story-profile-check', {
-          storyProfile: context.plans.profile, arcEpisode: episodeForChapter(context.plans.arc, chapter),
-          episodePlan: episodePlanReviewView(context.plans.episode), prose: input.prose }) });
+        messages: promptKit({ contract: workContract }).messages('story-profile-check', profileCheckInputs({
+          profile: context.plans.profile, arcEpisode: episodeForChapter(context.plans.arc, chapter),
+          episodePlan: context.plans.episode, foundation, prose: input.prose, kit: promptKit({ contract: workContract }) })) });
       if ((providers.pending?.length ?? 0) === before) state.profileAdvisory = { findings: profileFindings(response.text) };
     } catch (error) {
       if (error?.name !== 'PendingModelWork') state.profileAdvisory = { findings: [], error: String(error?.message ?? error) };
@@ -147,11 +158,18 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   for (const finding of state.profileAdvisory?.findings ?? []) {
     base.violations.push({ severity: 'soft', code: finding.code, chapterNumber: chapter, message: finding.message });
   }
-  const prevState = await canonicalStore.loadStoryState(workId, chapter - 1) ?? emptyStoryState(workId);
+  // The same state the commit reduces from, so the extractor sees the seeded and snapshot records by id.
+  const prevState = await ledgerBaseState({ store: canonicalStore, workId, chapter: chapter - 1 });
+  const kit = promptKit({ contract: workContract });
+  const ledgerConfig = await loadLedgerConfig(store, workId);
   const extractionInput = { prose: input.prose, chapterNumber: chapter, foundation, providers: wrapped, model: MODEL, prevState,
-    castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language };
+    castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language,
+    tracking: ledgerConfig.tracking,
+    // Only what the prose touches (and the planned cast): the index does not grow with the work.
+    prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', config: ledgerConfig, focusText: input.prose, cast: context.plans.episode?.cast ?? [], hookIds: context.plans.episode?.hooksTouched ?? [] }),
+    ...(entities.length ? { entities } : {}) };
   try {
-    if (!state.extracted) {
+    const extract = async () => {
       const extracted = await extractDelta(extractionInput);
       if (pending(wrapped)) return preview();
       if (providerFailure) return providerError();
@@ -160,11 +178,42 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       if (context.plans.episode?.characterArcBeats?.length) {
         extracted.delta = { ...extracted.delta, arcCursorOps: context.plans.episode.characterArcBeats.map(({ characterId, beat, note }) => ({ characterId, nextBeat: beat, ...(note !== undefined ? { note } : {}) })) };
       }
-      state.extracted = extracted; await save();
+      // A re-ask about named records applies to the extraction it asked for, not to later ones.
+      state.extracted = extracted; delete state.ledgerRecheck; await save();
+      return null;
+    };
+    // Reviewed on every run from the stored extraction and the current config
+    // (deterministic and cheap, so tracking, rule and merge changes apply).
+    // The reviewed ops replace the extracted ones: they are what the receipt
+    // carries and commit reduces, and reviewing them again changes nothing.
+    const reviewLedger = () => {
+      const delta = state.extracted.delta;
+      const reviewed = reviewLedgerOps({ state: prevState, ops: delta.ledgerOps ?? [], prose: input.prose,
+        cast: delta.appearedCharacterIds ?? [], config: ledgerConfig });
+      state.extracted.delta = { ...delta, ledgerOps: reviewed.ops };
+      const stepped = ledgerStep(prevState, state.extracted.delta, { config: ledgerConfig }).violations
+        .map((v) => (EXTRACTION_LEDGER_CODES.has(v.code) ? { ...v, message: ledgerSlipMessage(v, reviewed.ops, prevState) } : v));
+      const findings = [...reviewed.violations, ...stepped];
+      return { findings, slips: findings.filter((v) => EXTRACTION_LEDGER_CODES.has(v.code)) };
+    };
+    if (!state.extracted) { const early = await extract(); if (early) return early; }
+    let ledger = reviewLedger();
+    if (ledger.slips.length && state.ledgerReextracted !== state.epoch) {
+      state.ledgerReextracted = state.epoch;
+      state.ledgerRecheck = [...new Set(ledger.slips.map((v) => findRecord(prevState.ledger, v.ledgerId)?.name ?? v.ledgerId))];
+      state.extracted = null; await save();
+      const early = await extract(); if (early) return early;
+      ledger = reviewLedger();
     }
+    await save();
     base.delta = state.extracted.delta;
+    base.violations.push(...ledger.findings.map((v) => ({ ...v, chapterNumber: chapter })));
     base.extractionValidation = state.extracted.extractionValidation;
     base.unregisteredNamed = state.extracted.unregisteredNamed ?? [];
+    for (const entry of state.extracted.rejectedAddressEntries ?? []) {
+      base.violations.push({ severity: 'soft', code: 'ADDRESS_ENTRY_REJECTED', chapterNumber: chapter, characterId: entry.speakerId,
+        message: `Address entry ${entry.speakerId}->${entry.targetId} "${entry.term}" was not recorded (${entry.reason}).` });
+    }
     if (!includeSemanticContinuity) return fail('VALIDATION_INCOMPLETE');
     const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan, lexicon: lexiconsForLanguage(workContract.language).honorific,
       // The reviewer judges POV against the profile's viewpoint design, not only
@@ -172,6 +221,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       // with Malik to be confirmed" and three reviews answered uncertain).
       ...(context.plans.profile?.povDesign ? { povDesign: context.plans.profile.povDesign } : {}),
       ...(typeof context.plans.episode?.povCharacter === 'string' && context.plans.episode.povCharacter ? { povCharacterId: context.plans.episode.povCharacter } : {}) };
+    semanticInput.checkSections = renderCheckSections({ foundation, prevState, delta: semanticInput.delta, povDesign: semanticInput.povDesign ?? null,
+      povCharacterId: semanticInput.povCharacterId ?? null, kit, focusText: input.prose, config: ledgerConfig });
     if (!state.semantic) {
       const semantic = await continuityCheck(semanticInput);
       if (pending(wrapped)) return preview();
@@ -305,6 +356,20 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     }
     return fail(error.code ?? 'VALIDATION_INCOMPLETE', { validationError: error.message, validationDetails: error.details });
   }
+}
+
+/**
+ * A ledger slip that survived the re-extraction goes to the revise step, so it
+ * names the op the chapter was read as: record, event, set and evidence.
+ */
+function ledgerSlipMessage(violation, ops, prevState) {
+  const op = ops.find((item) => item?.op === 'event' && (item.id === violation.ledgerId || findRecord(prevState.ledger, item.id)?.id === violation.ledgerId)) ?? {};
+  const name = findRecord(prevState.ledger, violation.ledgerId)?.name ?? violation.ledgerId;
+  const detail = [`event ${op.event ?? '?'}`, op.set ? `set ${JSON.stringify(op.set)}` : '', op.evidence ? `evidence "${op.evidence}"` : ''].filter(Boolean).join(', ');
+  const ask = violation.code === 'LEDGER_RESTORE_NOTE_REQUIRED'
+    ? 'Show on the page why it is back, or keep it gone.'
+    : 'Keep it destroyed on the page (remembered, not changed), or show in the prose how it came back.';
+  return `"${name}" (${violation.ledgerId}): ${violation.message}; the chapter reads as ${detail}. ${ask}`;
 }
 
 /** Up to ten well-formed advisory findings; a malformed answer is an advisory miss. */

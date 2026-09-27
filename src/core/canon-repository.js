@@ -1,13 +1,15 @@
 /**
- * CanonRepository read adapter. Published HEAD is the execution-time truth;
- * the working Markdown store remains the human editing/import surface.
+ * CanonRepository read adapter. Published HEAD is the execution-time truth for
+ * canon (foundation, chapters, summaries, state); the working Markdown store
+ * remains the human editing/import surface. Plans are not canon: approval tools
+ * write them to the working store, and a plan approved after the last commit
+ * (such as the next arc) must be read from there, so plan loads pass through.
  */
 export async function openCanonRepository({ store, publicationUnit }) {
   const published = await publicationUnit.readPublished();
   if (!published.ok) throw new Error(`CORRUPT_PUBLICATION: ${published.error.code}`);
   if (!published.value) return store;
   const { tree = {}, projections = {} } = published.value;
-  const plans = tree.plans ?? {};
   const own = {
     async loadFoundation() { return tree.foundation ?? null; },
     async loadStoryState(_workId, chapter) {
@@ -21,13 +23,6 @@ export async function openCanonRepository({ store, publicationUnit }) {
         chapterNumber: Number(number), ...(value && typeof value === 'object' ? value : { summary: value }),
       })).filter((item) => item.chapterNumber < beforeChapter).sort((a, b) => b.chapterNumber - a.chapterNumber).slice(0, limit);
     },
-    async loadStoryProfile() { return structuredClone(plans.storyProfile ?? null); },
-    async loadStorySpine() { return structuredClone(plans.storySpine ?? null); },
-    async loadWriterSkill() { return structuredClone(plans.writerSkill ?? null); },
-    async loadStoryIdentity() { return structuredClone(plans.storyIdentity ?? null); },
-    async loadPilotContract() { return structuredClone(plans.pilotContract ?? null); },
-    async loadArcPlan() { return structuredClone(plans.arcPlan ?? null); },
-    async loadEpisodePlan(_workId, chapter) { return structuredClone(plans.episodePlans?.[chapter] ?? null); },
     async loadArtifact(_workId, chapter) { return structuredClone(tree.chapters?.[chapter] ?? null); },
     publishedRevision: published.value,
   };

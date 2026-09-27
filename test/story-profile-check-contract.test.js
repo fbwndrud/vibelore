@@ -13,7 +13,8 @@ import { runCheck } from '../src/tools/check.js';
 import { runWriteWorkflow } from '../src/tools/workflow.js';
 import { createPreflightRelay } from '../src/provider/host-relay.js';
 import { episodeForChapter } from '../src/tools/arc.js';
-import { episodePlanReviewView } from '../src/core/episode-plan-view.js';
+import { profileCheckInputs } from '../src/core/profile-check-input.js';
+import { promptKit } from '../src/prompts/index.js';
 import { approvalFixtureProvider } from './fixtures/approval-response.js';
 import { contractResponse } from './fixtures/contract-response.js';
 import { qualityStore, outputs, workId as koWorkId } from './fixtures/quality-workflow.js';
@@ -24,7 +25,7 @@ function chapterProvider({ badLanguage = false, invalidSemantic = false, onLangu
     requests.push(req);
     const text = req.messages.map(m=>m.content).join('\n');
     const hash = text.match(/contextHash: ([a-f0-9]{64})/)?.[1];
-    if (req.step === 'continuity-extract') return { text: JSON.stringify({ appearedCharacterIds: [], newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], trackedEntityOps: [], noInfluenceReason: 'No lasting change.', extractionValidation: { contextHash: hash } }) };
+    if (req.step === 'continuity-extract') return { text: JSON.stringify({ appearedCharacterIds: [], newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], ledgerOps: [], noInfluenceReason: 'No lasting change.', extractionValidation: { contextHash: hash } }) };
     if (req.step === 'continuity-check') {
       const ids = text.match(/these invariants: ([A-Z_, ]+)\./)?.[1]?.split(', ') ?? text.match(/판정한다: ([A-Z_, ]+)\./)?.[1]?.split(', ') ?? [];
       return { text: JSON.stringify({ violations: [], semanticValidation: { contextHash: invalidSemantic ? 'invalid' : hash, verdicts: Object.fromEntries(ids.map(id=>[id,'pass'])), evidence: [] } }) };
@@ -88,7 +89,7 @@ test('no StoryProfile: the contract check skips story-profile-check', async () =
   assert.ok(!relay.pending.some((req) => req.step === 'story-profile-check'), relay.pending.map((req) => req.step).join(','));
 });
 
-test('ko work: story-profile-check messages are byte-identical to main', async () => {
+test('ko work: story-profile-check messages carry the profile, beat and plan notes as text', async () => {
   const store = await qualityStore();
   // Read what main read at check time, before the commit advances the arc.
   const storyProfile = await store.loadStoryProfile(koWorkId);
@@ -103,7 +104,9 @@ test('ko work: story-profile-check messages are byte-identical to main', async (
   const chapterProse = request.messages[1].content.split('\n\n본문:\n')[1].split('\n\nJSON: ')[0];
   assert.deepEqual(request.messages, [
     { role: 'system', content: '승인된 작품 StoryProfile과 회차 본문을 비교한다. 명백하고 구체적인 이탈만 findings에 넣는다. 취향 차이와 장면상 의도는 지적하지 않는다. 모든 finding은 soft다. 순수 JSON만 출력한다.' },
-    { role: 'user', content: `StoryProfile:\n${JSON.stringify(storyProfile)}\n\n회차 비트:\n${JSON.stringify(arcEpisode)}\n\nEpisodePlan:\n${JSON.stringify(episodePlanReviewView(episodePlan))}\n\n본문:\n${chapterProse}\n\nJSON: {"findings":[{"code":"PROFILE_TONE_DRIFT|PROFILE_ENGINE_DRIFT|PROFILE_BEAT_DRIFT","message":"구체적 근거"}]}` },
+    { role: 'user', content: promptKit({ profile: storyProfile }).messages('story-profile-check', profileCheckInputs({
+      profile: storyProfile, arcEpisode, episodePlan, foundation: await store.loadFoundation(koWorkId), prose: chapterProse, kit: promptKit({ profile: storyProfile }),
+    }))[1].content },
   ]);
   assert.ok(chapterProse.length > 100);
 });
