@@ -34,19 +34,28 @@ const LEGACY_LOG_KINDS = new Set(['Timeline']);
 const LEGACY_NAME_FIELDS = ['name', 'item', 'ability', 'title', 'subject', 'fact', 'clue', 'event', 'key', 'id', 'label', 'canonicalName'];
 const PARTICLES = ['에게서', '에서는', '으로는', '에서', '에게', '한테', '으로', '까지', '부터', '처럼', '은', '는', '이', '가', '을', '를', '의', '에', '와', '과', '도', '로', '만'];
 const QUOTES = /["'“”‘’「」『』《》〈〉()[\]{}]/g;
+// A paid hook must quote at least this many code points from the chapter.
+const MIN_EVIDENCE_LENGTH = 8;
 
 export function emptyLedger() {
     return { records: [] };
 }
-/** The comparable form of a name: NFC, lower case, no quotes, single spaces, no trailing Korean particle. */
+/**
+ * The comparable form of a name: NFC, lower case, no quotes, single spaces.
+ * Deliberately keeps a trailing Korean particle — stripping it here would
+ * equate real noun stems ("독사과"/"독사") whenever the last syllable happens
+ * to double as a particle. Only `similarRecord` strips a particle, and only
+ * to surface a soft candidate, never an exact match.
+ */
 export function ledgerNameKey(value) {
-    let text = String(value ?? '').normalize('NFC').toLocaleLowerCase().replace(QUOTES, '').replace(/\s+/g, ' ').trim();
-    if (/^[가-힣 ]+$/.test(text)) {
-        const particle = PARTICLES.find((item) => text.endsWith(item) && [...text].length - [...item].length >= 2);
-        if (particle)
-            text = text.slice(0, -particle.length).trim();
-    }
-    return text;
+    return String(value ?? '').normalize('NFC').toLocaleLowerCase().replace(QUOTES, '').replace(/\s+/g, ' ').trim();
+}
+/** `key` with one trailing Korean particle removed, if it has one. Candidate matching only. */
+function withoutTrailingParticle(key) {
+    if (!/^[가-힣 ]+$/.test(key))
+        return key;
+    const particle = PARTICLES.find((item) => key.endsWith(item) && [...key].length - [...item].length >= 2);
+    return particle ? key.slice(0, -particle.length).trim() : key;
 }
 export function recordNames(record) {
     return [record?.name, ...(record?.aliases ?? []).map((alias) => alias?.text)].filter((name) => typeof name === 'string' && name.trim());
@@ -69,20 +78,26 @@ function words(key) {
 }
 /**
  * A record whose name contains, or is contained in, this name, or shares at
- * least half of the longer name's words. Only a candidate for the user.
+ * least half of the longer name's words, or is the same name once a trailing
+ * particle is stripped from either side (e.g. "서명 쪽지를"/"서명 쪽지"). Only
+ * a candidate for the user — never an automatic merge.
  */
 export function similarRecord(ledger, feature, name) {
     const key = ledgerNameKey(name);
     if ([...key].length < 2)
         return null;
-    const mine = new Set(words(key));
+    const strippedKey = withoutTrailingParticle(key);
+    const mine = new Set(words(strippedKey));
     return (ledger?.records ?? []).find((record) => record.feature === feature && recordNames(record).some((other) => {
         const theirs = ledgerNameKey(other);
         if ([...theirs].length < 2)
             return false;
         if (theirs.includes(key) || key.includes(theirs))
             return true;
-        const list = words(theirs);
+        const strippedTheirs = withoutTrailingParticle(theirs);
+        if (strippedTheirs === strippedKey)
+            return true;
+        const list = words(strippedTheirs);
         const shared = list.filter((word) => mine.has(word)).length;
         return shared > 0 && shared * 2 >= Math.max(mine.size, list.length);
     })) ?? null;
@@ -96,8 +111,9 @@ export function nextLedgerId(state, feature) {
     const max = ids.reduce((top, id) => Math.max(top, Number(pattern.exec(String(id))?.[1] ?? 0)), 0);
     return `${prefix}${max + 1}`;
 }
+/** A current status always wins over a stale legacy `phase`; only a legacy-only word falls back to the phase, then the legacy status. */
 export function hookStatusOf(raw) {
-    if (HOOK_STATUSES.includes(raw?.status) && !LEGACY_HOOK_STATUS[raw.status])
+    if (HOOK_STATUSES.includes(raw?.status))
         return raw.status;
     return LEGACY_HOOK_STATUS[raw?.phase] ?? LEGACY_HOOK_STATUS[raw?.status] ?? 'open';
 }
@@ -228,8 +244,9 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
             }
             const similar = similarRecord(next.ledger, op.feature, op.name);
             const custom = customItem(config, op.name);
+            const useCustomId = custom && custom.feature === op.feature;
             const record = {
-                id: custom?.id ?? nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
+                id: useCustomId ? custom.id : nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
                 aliases: (op.aliases ?? []).map((alias) => aliasOf(alias, chapter)).filter(Boolean),
                 status: INITIAL_STATUS[op.feature], fields: { ...(op.fields ?? {}) }, registeredAt: chapter, recent: [],
                 ...(similar ? { possibleDuplicateOf: similar.id } : {}),
@@ -243,7 +260,9 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
         if (op?.op === 'event' || op?.op === 'alias') {
             let record = findRecord(next.ledger, op.id);
             const custom = !record ? customItem(config, op.id) : null;
-            if (!record && custom && trackingEnabled(config, custom.feature)) {
+            if (!record && custom) {
+                if (!trackingEnabled(config, custom.feature))
+                    continue;
                 record = { id: custom.id, feature: custom.feature, label: '', name: custom.name, aliases: [], status: INITIAL_STATUS[custom.feature], fields: {}, registeredAt: chapter, recent: [] };
                 next.ledger.records.push(record);
             }
@@ -305,15 +324,18 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
             const hook = { id: nextLedgerId(next, 'hooks'), text: op.text.trim(), status: 'open', ...(op.horizon ? { horizon: op.horizon } : {}), plantedAtChapter: chapter, lastMovedChapter: chapter, recent: [] };
             next.hooks.push(hook);
             emit('hook', hook, { event: 'planted', ...(op.note ? { note: op.note } : {}) });
-            hook.lastMovedChapter = chapter;
             continue;
         }
         if (op?.op === 'hook') {
             if (!trackingEnabled(config, 'hooks'))
                 continue;
             const hook = next.hooks.find((item) => item.id === op.id);
-            if (!hook || !HOOK_EVENTS.includes(op.event) || op.event === 'planted') {
-                violations.push({ severity: 'soft', code: 'LEDGER_UNKNOWN_ID', ledgerId: op.id, message: `unknown hook "${op.id}" or event "${op.event}"` });
+            if (!hook) {
+                violations.push({ severity: 'soft', code: 'LEDGER_UNKNOWN_ID', ledgerId: op.id, message: `unknown hook "${op.id}"` });
+                continue;
+            }
+            if (!HOOK_EVENTS.includes(op.event) || op.event === 'planted') {
+                violations.push({ severity: 'soft', code: 'LEDGER_INVALID_EVENT', ledgerId: op.id, message: `invalid hook event "${op.event}" for "${op.id}"` });
                 continue;
             }
             const note = op.note ? { note: op.note } : {};
@@ -341,6 +363,8 @@ export function applyMerges(ledger, merges, chapter) {
         if (fromIndex < 0 || !into || merge.from === merge.into)
             continue;
         const from = records[fromIndex];
+        if (from.feature !== into.feature)
+            continue;
         const known = new Set(recordNames(into).map(ledgerNameKey));
         const aliases = [...(into.aliases ?? [])];
         for (const alias of [{ text: from.name }, ...(from.aliases ?? [])]) {
@@ -369,31 +393,31 @@ export function reviewLedgerOps({ state, ops = [], prose = '', cast = [], config
     const violations = [];
     const text = squash(prose);
     const reviewed = (ops ?? []).map((op) => {
-        if (op?.op === 'hook' && op.event === 'paid') {
+        if (op?.op === 'hook' && op.event === 'paid' && trackingEnabled(config, 'hooks')) {
             const evidence = squash(op.evidence);
-            if (!evidence || !text.includes(evidence)) {
+            if ([...evidence].length < MIN_EVIDENCE_LENGTH || !text.includes(evidence)) {
                 violations.push({ severity: 'soft', code: 'HOOK_PAID_WITHOUT_EVIDENCE', ledgerId: op.id, message: `hook "${op.id}" marked paid without a quote from the chapter; kept open as advanced` });
                 return { ...op, event: 'advanced' };
             }
         }
         if (op?.op === 'event' && (op.event === 'changed' || op.event === 'mentioned')) {
             const record = findRecord(state?.ledger, op.id);
-            if (record && !recordNames(record).some((name) => termOccursInText(prose, name)))
+            if (record && trackingEnabled(config, record.feature) && !recordNames(record).some((name) => termOccursInText(prose, name)))
                 violations.push({ severity: 'soft', code: 'LEDGER_NAME_NOT_IN_PROSE', ledgerId: record.id, message: `"${record.name}" is ${op.event} but not named in the chapter` });
         }
         return op;
     });
     const present = new Set(cast ?? []);
     const speakerAliases = [
-        ...(state?.ledger?.records ?? []).flatMap((record) => (record.aliases ?? []).filter((alias) => alias.by).map((alias) => ({ id: record.id, text: alias.text, by: alias.by }))),
-        ...(config?.customTracking ?? []).flatMap((item) => (item.rules ?? []).filter((rule) => rule.type === 'speakerOnly').map((rule) => ({ id: item.id, text: rule.alias, by: rule.by }))),
+        ...(state?.ledger?.records ?? []).filter((record) => trackingEnabled(config, record.feature)).flatMap((record) => (record.aliases ?? []).filter((alias) => alias.by).map((alias) => ({ id: record.id, text: alias.text, by: alias.by }))),
+        ...(config?.customTracking ?? []).filter((item) => trackingEnabled(config, item.feature)).flatMap((item) => (item.rules ?? []).filter((rule) => rule.type === 'speakerOnly').map((rule) => ({ id: item.id, text: rule.alias, by: rule.by }))),
     ];
     for (const alias of speakerAliases) {
         if (present.size && !present.has(alias.by) && termOccursInText(prose, alias.text))
             violations.push({ severity: 'soft', code: 'LEDGER_ALIAS_OWNER_ABSENT', ledgerId: alias.id, message: `"${alias.text}" is ${alias.by}'s word, but ${alias.by} is not in this chapter` });
     }
     for (const record of state?.ledger?.records ?? []) {
-        if (record.status !== 'destroyed')
+        if (record.status !== 'destroyed' || !trackingEnabled(config, record.feature))
             continue;
         const name = recordNames(record).find((item) => termOccursInText(prose, item));
         if (name)

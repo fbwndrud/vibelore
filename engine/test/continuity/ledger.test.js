@@ -6,22 +6,33 @@ import { reviewLedgerOps } from '../../src/continuity/ledger.js';
 const note = { id: 'o1', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [{ text: '그 쪽지' }], status: 'active', fields: {}, recent: [] };
 
 describe('ledger lookup', () => {
-    it('normalizes names: case, quotes, spaces and a trailing particle', () => {
-        expect(ledgerNameKey('「서명 쪽지」를')).toBe('서명 쪽지');
+    it('normalizes names: case, quotes and spaces, but keeps a trailing particle', () => {
+        expect(ledgerNameKey('「서명 쪽지」를')).toBe('서명 쪽지를');
         expect(ledgerNameKey('  Silver  Key ')).toBe('silver key');
     });
     it('finds a record by id, merged id, name or alias', () => {
         const ledger = { records: [{ ...note, mergedIds: ['o9'] }] };
         expect(findRecord(ledger, 'o1')?.id).toBe('o1');
         expect(findRecord(ledger, 'o9')?.id).toBe('o1');
-        expect(findRecord(ledger, '서명 쪽지는')?.id).toBe('o1');
+        expect(findRecord(ledger, '서명 쪽지')?.id).toBe('o1');
         expect(findRecord(ledger, '그 쪽지')?.id).toBe('o1');
         expect(findRecord(ledger, '그 쪽지', 'knowledge')).toBe(null);
+    });
+    it('never equates a name and its stem via an exact lookup', () => {
+        const pairs = [['독사과', '독사'], ['공작가', '공작'], ['백작가', '백작'], ['고지도', '고지'], ['목걸이', '목걸']];
+        for (const [full, stem] of pairs) {
+            const ledger = { records: [{ id: 'o1', feature: 'objects', label: '', name: full, aliases: [], status: 'active', fields: {}, recent: [] }] };
+            expect(findRecord(ledger, stem, 'objects')).toBe(null);
+        }
     });
     it('reports a similar record without treating it as the same', () => {
         const ledger = { records: [note] };
         expect(similarRecord(ledger, 'objects', '재서명된 쪽지')?.id).toBe('o1');
         expect(similarRecord(ledger, 'objects', '은빛 열쇠')).toBe(null);
+    });
+    it('treats a name that only differs by a trailing particle as a similar candidate', () => {
+        const ledger = { records: [note] };
+        expect(similarRecord(ledger, 'objects', '서명 쪽지는')?.id).toBe('o1');
     });
     it('assigns the next id per feature prefix', () => {
         expect(nextLedgerId({ ledger: { records: [note, { ...note, id: 'o7' }] }, hooks: [] }, 'objects')).toBe('o8');
@@ -37,6 +48,10 @@ describe('legacy conversion', () => {
         expect(hookStatusOf({ phase: 'paid' })).toBe('paid');
         expect(hookStatusOf({ status: 'resolved' })).toBe('paid');
         expect(hookStatusOf({ status: 'closed' })).toBe('closed');
+    });
+    it('lets a current status win over a stale legacy phase', () => {
+        expect(hookStatusOf({ status: 'paid', phase: 'advancing' })).toBe('paid');
+        expect(hookStatusOf({ status: 'open', phase: 'paid' })).toBe('open');
     });
     it('turns tracked entities and entity snapshots into records, dropping Timeline logs', () => {
         const ledger = ledgerFromLegacy({
@@ -74,10 +89,17 @@ describe('applyLedgerOps', () => {
         expect(record.recent.map((e) => e.chapter)).toEqual([6, 7, 8]);
         expect(record.lastEventAt).toBe(8);
     });
-    it('turns a register with an existing name into an event on that record', () => {
-        const out = applyLedgerOps(base(), [{ op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지를', fields: { state: '재서명' } }], { chapter: 7 });
+    it('turns a register with an existing exact name into an event on that record', () => {
+        const out = applyLedgerOps(base(), [{ op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지', fields: { state: '재서명' } }], { chapter: 7 });
         expect(out.ledger.records).toHaveLength(2);
         expect(out.events).toEqual([{ chapter: 7, target: 'record', id: 'o1', event: 'changed', set: { state: '재서명' } }]);
+    });
+    it('registers a name that only differs by a trailing particle as a new possible duplicate', () => {
+        const out = applyLedgerOps(base(), [{ op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지를', fields: { state: '재서명' } }], { chapter: 7 });
+        expect(out.ledger.records).toHaveLength(3);
+        const added = out.ledger.records.at(-1);
+        expect(added.possibleDuplicateOf).toBe('o1');
+        expect(out.violations.map((v) => v.code)).toEqual(['LEDGER_POSSIBLE_DUPLICATE']);
     });
     it('registers a similar name but marks it as a possible duplicate', () => {
         const out = applyLedgerOps(base(), [{ op: 'register', feature: 'objects', label: '물건', name: '재서명된 쪽지' }], { chapter: 7 });
@@ -118,6 +140,29 @@ describe('applyLedgerOps', () => {
         const out = applyLedgerOps(base(), [{ op: 'event', id: 'o99', event: 'mentioned' }], { chapter: 7 });
         expect(out.violations.map((v) => v.code)).toEqual(['LEDGER_UNKNOWN_ID']);
     });
+    it('ignores an event on a custom item whose feature is turned off, without a finding', () => {
+        const config = { customTracking: [{ id: 'u1', name: '금화', feature: 'knowledge' }], tracking: { knowledge: false } };
+        const out = applyLedgerOps(base(), [{ op: 'event', id: 'u1', event: 'mentioned' }], { chapter: 7, config });
+        expect(out.ledger.records).toHaveLength(2);
+        expect(out.violations).toEqual([]);
+    });
+    it('gives a register the custom item id only when its feature matches the op', () => {
+        const config = { customTracking: [{ id: 'u1', name: '금화', feature: 'objects' }] };
+        const out = applyLedgerOps(base(), [{ op: 'register', feature: 'knowledge', label: '비밀', name: '금화' }], { chapter: 7, config });
+        const added = out.ledger.records.find((r) => r.name === '금화');
+        expect(added.id).not.toBe('u1');
+        expect(added.id.startsWith('k')).toBe(true);
+        const ids = out.ledger.records.map((r) => r.id);
+        expect(ids).toEqual([...new Set(ids)]);
+    });
+    it('reports LEDGER_INVALID_EVENT for a known hook given an unsupported event, keeping LEDGER_UNKNOWN_ID for an unknown hook', () => {
+        const out = applyLedgerOps(base(), [
+            { op: 'hook', id: 'h1', event: 'bogus' },
+            { op: 'hook', id: 'h1', event: 'planted' },
+            { op: 'hook', id: 'hXX', event: 'paid' },
+        ], { chapter: 7 });
+        expect(out.violations.map((v) => v.code)).toEqual(['LEDGER_INVALID_EVENT', 'LEDGER_INVALID_EVENT', 'LEDGER_UNKNOWN_ID']);
+    });
     it('checks author rules on the custom item', () => {
         const config = { customTracking: [{ id: 'u1', name: '금화', feature: 'objects', rules: [{ type: 'monotonic', field: 'amount', direction: 'down', unless: '벌었' }] }] };
         let state = { ...base(), ...applyLedgerOps(base(), [{ op: 'event', id: 'u1', event: 'changed', set: { amount: '금화 10닢' } }], { chapter: 5, config }) };
@@ -138,6 +183,15 @@ describe('applyMerges', () => {
         expect(out.ledger.records[0].fields).toEqual({ holder: 'c1', state: '재서명' });
         expect(out.events).toEqual([{ chapter: 8, target: 'record', id: 'o3', event: 'merged', into: 'o1' }]);
         expect(applyMerges(out.ledger, [{ from: 'o3', into: 'o1' }], 9).events).toEqual([]);
+    });
+    it('skips a merge whose two records have different features', () => {
+        const ledger = { records: [
+            ...base().ledger.records,
+            { id: 'k1', feature: 'knowledge', label: '비밀', name: '손목 부상', aliases: [], status: 'secret', fields: {}, recent: [] },
+        ] };
+        const out = applyMerges(ledger, [{ from: 'k1', into: 'o1' }], 5);
+        expect(out.ledger.records.map((r) => r.id).sort()).toEqual(['k1', 'o1', 'o2']);
+        expect(out.events).toEqual([]);
     });
 });
 
@@ -163,5 +217,27 @@ describe('reviewLedgerOps', () => {
     it('flags a speaker-only alias when its owner is absent, and a destroyed record named again', () => {
         const out = reviewLedgerOps({ state: state(), prose: '"그 종이 쪼가리 어디 뒀어?" 낡은 검이 벽에 걸려 있었다.', cast: ['c1', 'c2'], ops: [] });
         expect(out.violations.map((v) => v.code).sort()).toEqual(['DESTROYED_ENTITY_MENTION', 'LEDGER_ALIAS_OWNER_ABSENT']);
+    });
+    it('downgrades a paid hook whose evidence is too short, even when it matches the prose', () => {
+        const out = reviewLedgerOps({ state: state(), prose: '그는 문을 닫았다.', ops: [{ op: 'hook', id: 'h2', event: 'paid', evidence: '다' }] });
+        expect(out.ops[0].event).toBe('advanced');
+        expect(out.violations.map((v) => v.code)).toEqual(['HOOK_PAID_WITHOUT_EVIDENCE']);
+    });
+    it('does not check or alter a paid hook when hooks are turned off', () => {
+        const config = { tracking: { hooks: false } };
+        const out = reviewLedgerOps({ state: state(), prose: '도윤은 사슬을 풀었다.', config, ops: [{ op: 'hook', id: 'h2', event: 'paid', evidence: '아무개가 말했다' }] });
+        expect(out.ops[0].event).toBe('paid');
+        expect(out.violations).toEqual([]);
+    });
+    it('does not check destroyed mentions, name-in-prose or speaker aliases for a feature the user turned off', () => {
+        const config = { tracking: { objects: false } };
+        const out = reviewLedgerOps({
+            state: state(),
+            prose: '"그 종이 쪼가리 어디 뒀어?" 낡은 검이 벽에 걸려 있었다.',
+            cast: ['c1', 'c2'],
+            config,
+            ops: [{ op: 'event', id: 'o1', event: 'changed', set: { holder: 'c3' } }],
+        });
+        expect(out.violations).toEqual([]);
     });
 });
