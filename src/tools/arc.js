@@ -188,11 +188,14 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });
   const profileDirection = compileBriefWithProfile(direction || foundation.brief || '', storyProfile, 'arc', kit);
+  // The planned beats become the chapters' arcCursorOps; they must fit the cursor as it stands before this arc.
+  const priorState = startChapter > 1 ? await store.loadStoryState(workId, startChapter - 1) : null;
   const characterArcSeeds = compileCharacterArcSeeds({
     foundation,
     projection: await loadCharacterDynamics(store, workId),
     previousArcPlan: previous,
     previousArcReview,
+    arcCursor: priorState?.arcCursor ?? null,
   });
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'arc-plan',
@@ -233,8 +236,6 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   };
   if (!plan.title || !plan.promise) throw new Error('arc-plan에 title과 promise가 필요합니다.');
   if (!plan.storySpineNodes.length) throw new Error('아크는 전진시킬 StorySpine 노드를 최소 하나 참조해야 합니다.');
-  // The planned beats become the chapters' arcCursorOps; they must fit the cursor as it stands before this arc.
-  const priorState = startChapter > 1 ? await store.loadStoryState(workId, startChapter - 1) : null;
   const structuralViolations = [...characterArcBeatCollisions(obj.characterArcs, count), ...deterministicArcViolations(plan),
     ...characterArcQuotaViolations(plan, priorState?.arcCursor ?? {})];
   if (structuralViolations.length) throw new Error(`아크 품질 검증 실패: ${structuralViolations.map((item) => item.message).join(' ')}`);

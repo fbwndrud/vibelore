@@ -46,9 +46,11 @@ function relationshipResidue(projection, characterId) {
 /**
  * Compile accepted character history into bounded planning evidence. These are
  * candidates, not mandatory arcs and not prose-facing character biographies.
+ * Pass the committed arcCursor when there is one so lastBeat reflects accepted chapters
+ * rather than the previous plan.
  */
 export function compileCharacterArcSeeds({
-  foundation, projection, previousArcPlan, previousArcReview, maxCharacters = 6, maxEvidence = 3,
+  foundation, projection, previousArcPlan, previousArcReview, arcCursor = null, maxCharacters = 6, maxEvidence = 3,
 } = {}) {
   if (!projection) return [];
   const previousArcs = new Map(asArray(previousArcPlan?.characterArcs)
@@ -64,7 +66,10 @@ export function compileCharacterArcSeeds({
     const evidence = evidenceFromState(state, maxEvidence);
     const hasHistory = evidence.length || state?.nextChoiceBias || previousArc || outcome;
     if (!state || !hasHistory) return [];
-    const lastBeat = asArray(previousArc?.beats).at(-1)?.beat ?? null;
+    // The committed cursor is where the arc actually stands; a planned beat the reducer left out never happened.
+    const lastBeat = arcCursor
+      ? arcCursor[character.id]?.beat ?? null
+      : asArray(previousArc?.beats).at(-1)?.beat ?? null;
     const status = outcome?.status
       ?? (previousArc ? (previousArcPlan?.status === 'completed' ? 'dormant' : 'active') : 'latent');
     const latestChapter = Math.max(-1, ...evidence.map((item) => Number(item.chapter ?? -1)));

@@ -60,6 +60,23 @@ describe('CharacterArcSeed compiler', () => {
     assert.equal(complicated[0].unresolvedPressure, '독립과 신뢰를 함께 지킬 수 있는가');
   });
 
+  it('takes the last beat from the committed cursor, not the previous plan', () => {
+    const previousArcPlan = {
+      status: 'completed', characterArcs: [{
+        characterId: 'lua', promise: '보호받는 아이에서 선택하는 사람으로 움직인다.',
+        beats: [{ episodeIndex: 1, beat: 'wound' }, { episodeIndex: 3, beat: 'attempt' }],
+      }],
+    };
+    assert.equal(compileCharacterArcSeeds({ foundation, projection: projection(), previousArcPlan })[0].previousArc.lastBeat, 'attempt');
+    // The reducer left lua's planned arc out (quota), so it never opened.
+    const unopened = compileCharacterArcSeeds({ foundation, projection: projection(), previousArcPlan, arcCursor: {} });
+    assert.equal(unopened[0].previousArc.lastBeat, null);
+    const behind = compileCharacterArcSeeds({
+      foundation, projection: projection(), previousArcPlan, arcCursor: { lua: { beat: 'wound', enteredAtChapter: 1 } },
+    });
+    assert.equal(behind[0].previousArc.lastBeat, 'wound');
+  });
+
   it('allows a grounded character beat to continue across episode arcs without restarting at wound', () => {
     const violations = deterministicArcViolations({
       episodes: [],
