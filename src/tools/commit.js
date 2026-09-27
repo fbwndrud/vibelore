@@ -269,7 +269,7 @@ export async function runCommit({
   await store.saveArtifact({ workId, chapterNumber: chapter, prose, ...(title ? { title } : {}), delta });
   await store.saveStoryState(next);
   if (entities.length > 0) await store.saveEntitySnapshots(workId, entities);
-  try { await updateLedgerLog({ store, workId, chapter, prevState: prev, delta, config: ledgerConfig }); }
+  try { await updateLedgerLog({ store, workId, chapter, delta, config: ledgerConfig }); }
   catch { /* the log is rebuilt from the deltas; a failure here never loses the chapter */ }
   if (chapterSummary) {
     await store.saveChapterSummary({

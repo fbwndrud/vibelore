@@ -104,6 +104,7 @@ test('repeated sync does not rewrite the log of a work whose chapters produced n
 import { reduceStoryState } from '../engine/src/continuity/story-state.js';
 import { ledgerEntitySnapshots } from '../engine/src/continuity/ledger.js';
 import { ledgerBaseState, replayLedgerState, updateLedgerLog } from '../src/tools/ledger-log.js';
+import { ensureLedgerLog } from '../src/tools/ledger-migration.js';
 import { loadLedgerConfig, saveWriterSupportPolicy } from '../src/core/review-policy.js';
 
 /** What lore_commit does for the ledger: build on the base state, reduce, save the state and the derived snapshots, then the log. */
@@ -115,7 +116,7 @@ async function commitLike(store, delta) {
   await store.saveArtifact({ workId, chapterNumber: chapter, prose: 'x', delta });
   await store.saveStoryState(next);
   await store.saveEntitySnapshots(workId, ledgerEntitySnapshots(next.ledger));
-  return { next, log: await updateLedgerLog({ store, workId, chapter, prevState: prev, delta, config }) };
+  return { next, log: await updateLedgerLog({ store, workId, chapter, delta, config }) };
 }
 
 const seedSword = [{ entityId: 'sword', kind: '물건', canonicalName: '검', aliases: [], status: 'active', attrs: {} }];
@@ -165,6 +166,8 @@ test('the live ledger equals the replay after seeds, destroy and restore, a merg
     { op: 'plant', text: '누가 검을 부러뜨렸나' }] });
   await commitLike(store, { ...base(2), ledgerOps: [{ op: 'event', id: 'sword', event: 'restored', note: '대장장이가 벼림' }, { op: 'event', id: 'o2', event: 'changed', set: { holder: 'c2' } }] });
   await saveWriterSupportPolicy(store, workId, { mergeRecords: [{ from: 'o2', into: 'o1' }], tracking: { hooks: false }, customTracking: [{ name: '은 반지', feature: 'objects', rules: [{ type: 'frozenAfter', status: 'lost' }] }] });
+  // lore_write rebuilds the log under the new config before the chapter is written.
+  await ensureLedgerLog({ store, workId });
   await commitLike(store, { ...base(3), ledgerOps: [{ op: 'event', id: 'o2', event: 'changed', set: { holder: 'c3' } }, { op: 'event', id: 'u1', event: 'status', status: 'lost' }] });
   const live = await store.loadStoryState(workId, 3);
   const replay = await replayLedgerState({ store, workId, config: await loadLedgerConfig(store, workId) });
@@ -202,7 +205,22 @@ test('a commit appends its chapter to a current log and rebuilds a stale one', a
   assert.equal((await commitLike(store, { ...base(2), ledgerOps: [{ op: 'hook', id: 'h1', event: 'advanced' }] })).log.mode, 'append');
   await saveWriterSupportPolicy(store, workId, { mergeRecords: [{ from: 'o9', into: 'o1' }] });
   assert.equal((await commitLike(store, { ...base(3), ledgerOps: [{ op: 'hook', id: 'h1', event: 'mentioned' }] })).log.mode, 'rebuild');
+  await saveWriterSupportPolicy(store, workId, { mergeRecords: [{ from: 'o8', into: 'o1' }] });
+  await ensureLedgerLog({ store, workId });
+  assert.equal((await commitLike(store, { ...base(4), ledgerOps: [{ op: 'hook', id: 'h1', event: 'advanced' }] })).log.mode, 'append');
   const appended = await store.loadLedgerEvents(workId);
   assert.deepEqual(appended, (await rebuildLedgerLog({ store, workId, config: await loadLedgerConfig(store, workId) })).events);
   assert.equal((await ledgerLogStatus({ store, workId })).ok, true);
+});
+
+test('a merge approved between chapters is in the appended log when the log was rebuilt before the commit', async () => {
+  const store = await newStore();
+  await commitLike(store, { ...base(1), ledgerOps: [{ op: 'register', feature: 'objects', label: '물건', name: '은 반지' }, { op: 'register', feature: 'objects', label: '물건', name: '은반지' }] });
+  await commitLike(store, { ...base(2), ledgerOps: [{ op: 'event', id: 'o2', event: 'changed', set: { holder: 'c2' } }] });
+  await saveWriterSupportPolicy(store, workId, { mergeRecords: [{ from: 'o2', into: 'o1' }] });
+  await ensureLedgerLog({ store, workId });
+  assert.equal((await commitLike(store, { ...base(3), ledgerOps: [{ op: 'event', id: 'o1', event: 'mentioned' }] })).log.mode, 'append');
+  const appended = await store.loadLedgerEvents(workId);
+  assert.ok(appended.some((e) => e.chapter === 3 && e.id === 'o2' && e.event === 'merged'));
+  assert.deepEqual(appended, (await rebuildLedgerLog({ store, workId })).events);
 });

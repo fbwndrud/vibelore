@@ -24,7 +24,7 @@ function seedEntity(entity) {
  * the ones registered before chapter 1 are taken back to their starting status
  * (their fields stay as the snapshot has them). Written once, never re-derived.
  */
-export async function ledgerSeedEntities(store, workId) {
+export async function ledgerSeedEntities(store, workId, { persist = true } = {}) {
   const saved = await store.loadLedgerSeed?.(workId);
   if (Array.isArray(saved?.entities)) return saved.entities;
   const snapshots = ((await store.loadEntitySnapshots(workId)) ?? []).filter((entity) => entity?.entityId);
@@ -32,7 +32,7 @@ export async function ledgerSeedEntities(store, workId) {
   const entities = written
     ? snapshots.filter((entity) => (entity.registeredAtChapter ?? 0) === 0).map(seedEntity)
     : snapshots.map((entity) => ({ ...entity, registeredAtChapter: 0 }));
-  await store.saveLedgerSeed?.(workId, { entities, source: written ? 'entity-snapshots-reset' : 'entity-snapshots' });
+  if (persist) await store.saveLedgerSeed?.(workId, { entities, source: written ? 'entity-snapshots-reset' : 'entity-snapshots' });
   return entities;
 }
 
@@ -93,9 +93,9 @@ async function deltaHashes(store, workId, chapters) {
 }
 
 /** What a log is built from: the seed, the ledger config with its history, and each chapter's delta. */
-async function ledgerDigest({ store, workId, config, hashes }) {
+async function ledgerDigest({ store, workId, config, hashes, persist = true }) {
   const { tracking = {}, customTracking = [], merges = [], history = [] } = config ?? {};
-  return `sha256:${sha({ seed: await ledgerSeedEntities(store, workId), config: { tracking, customTracking, merges, history }, deltas: hashes })}`;
+  return `sha256:${sha({ seed: await ledgerSeedEntities(store, workId, { persist }), config: { tracking, customTracking, merges, history }, deltas: hashes })}`;
 }
 
 async function saveLog({ store, workId, config, events, hashes }) {
@@ -113,12 +113,12 @@ export async function rebuildLedgerLog({ store, workId, config = null }) {
 }
 
 /**
- * The log after committing `chapter` on `prevState`. A log built through the
+ * The log after committing `chapter`. A log built through the
  * chapter before, from the same deltas and config, gets this chapter's lines
  * appended; anything else (a first chapter, a legacy work, a rollback, refold,
  * sync or config change since) is rebuilt from the deltas.
  */
-export async function updateLedgerLog({ store, workId, chapter, prevState, delta, config = null }) {
+export async function updateLedgerLog({ store, workId, chapter, delta, config = null }) {
   const effective = config ?? await loadLedgerConfig(store, workId);
   const chapters = await store.listChapters();
   const { events, malformed, build, missing } = await store.loadLedgerLog(workId);
@@ -130,7 +130,9 @@ export async function updateLedgerLog({ store, workId, chapter, prevState, delta
     await rebuildLedgerLog({ store, workId, config: effective });
     return { mode: 'rebuild' };
   }
-  const step = ledgerStep(prevState, { ...delta, chapterNumber: chapter }, { config: effective });
+  // From the committed state as it was, not the base state: that one already folds this chapter's
+  // merges for the extractor, and the step must emit them as the full replay does.
+  const step = ledgerStep(normalizeStoryState(loaded), { ...delta, chapterNumber: chapter }, { config: effective });
   await saveLog({ store, workId, config: effective, events: [...events, ...step.events], hashes: [...hashes, [chapter, sha(delta)]] });
   return { mode: 'append' };
 }
@@ -174,6 +176,6 @@ export async function ledgerLogStatus({ store, workId }) {
   const committed = chapters.at(-1) ?? null;
   if (committed === null) return { ok: (build?.throughChapter ?? null) === null, lastChapter, committed };
   const shaped = !missing && malformed === 0 && build?.throughChapter === committed && build.eventCount === events.length;
-  const ok = shaped && build.digest === await ledgerDigest({ store, workId, config: await loadLedgerConfig(store, workId), hashes: await deltaHashes(store, workId, chapters) });
+  const ok = shaped && build.digest === await ledgerDigest({ store, workId, config: await loadLedgerConfig(store, workId), hashes: await deltaHashes(store, workId, chapters), persist: false });
   return { ok, lastChapter, committed };
 }
