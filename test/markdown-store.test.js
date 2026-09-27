@@ -158,7 +158,7 @@ describe('MarkdownStateStore -- chapters, summaries, state', () => {
 
   it('round-trips story state', async () => {
     const store = await newStore();
-    const state = { ...emptyStoryState('my-novel'), chapterNumber: 3, hooks: [{ id: 'h1', text: '탑의 문', phase: 'planted' }] };
+    const state = { ...emptyStoryState('my-novel'), chapterNumber: 3, hooks: [{ id: 'h1', text: '탑의 문', status: 'open', recent: [] }] };
     await store.saveStoryState(state);
     assert.deepEqual(await store.loadStoryState('my-novel', 3), state);
     assert.equal(await store.loadStoryState('my-novel', 9), null);
@@ -166,10 +166,13 @@ describe('MarkdownStateStore -- chapters, summaries, state', () => {
 
   it('normalizes hook records written by earlier builds', async () => {
     const store = await newStore();
-    const legacy = { ...emptyStoryState('my-novel'), chapterNumber: 4, hooks: [{ hookId: 'h1', description: '탑의 문', startChapter: 1, status: 'progressing', payoffTiming: 'slow-burn', lastAdvancedChapter: 3 }] };
+    const { ledger: _ledger, ...pre } = emptyStoryState('my-novel');
+    const legacy = { ...pre, chapterNumber: 4, hooks: [{ hookId: 'h1', description: '탑의 문', startChapter: 1, status: 'progressing', payoffTiming: 'slow-burn', lastAdvancedChapter: 3 }], trackedEntities: [{ kind: 'Clue', data: { name: '표식' } }] };
     await store.saveStoryState(legacy);
     const loaded = await store.loadStoryState('my-novel', 4);
-    assert.deepEqual(loaded.hooks, [{ id: 'h1', text: '탑의 문', plantedAtChapter: 1, phase: 'advancing', horizon: 'long', lastMovedChapter: 3 }]);
+    assert.deepEqual(loaded.hooks, [{ id: 'h1', text: '탑의 문', status: 'open', plantedAtChapter: 1, horizon: 'long', lastMovedChapter: 3, recent: [] }]);
+    // A state written before the ledger gains one from its tracked entities on read.
+    assert.deepEqual(loaded.ledger.records.map((r) => [r.id, r.name]), [['o1', '표식']]);
   });
 
   it('returns recent summaries newest first, bounded by limit', async () => {

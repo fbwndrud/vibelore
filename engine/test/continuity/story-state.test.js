@@ -1,5 +1,6 @@
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { emptyStoryState, reduceStoryState, } from '../../src/continuity/story-state.js';
+import { ledgerStep, legacyLedgerOps, normalizeStoryState, isHookActive } from '../../src/continuity/story-state.js';
 const emptyDelta = (chapterNumber) => ({
     chapterNumber,
     appearedCharacterIds: [],
@@ -108,7 +109,7 @@ describe('reduceStoryState', () => {
             { to: 'c', kind: '주군', state: '충성' },
         ]);
     });
-    it('hooks: upserts on id — replace if present, append if new', () => {
+    it('hooks: a legacy change moves a known hook and plants a new one under its id', () => {
         const prev = {
             ...emptyStoryState('w'),
             hooks: [
@@ -142,28 +143,32 @@ describe('reduceStoryState', () => {
         ];
         const next = reduceStoryState(prev, delta);
         expect(next.hooks).toHaveLength(2);
-        expect(next.hooks[0]).toMatchObject({ id: 'h1', phase: 'advancing', lastMovedChapter: 3 });
-        expect(next.hooks[1]).toMatchObject({ id: 'h2', phase: 'planted' });
+        expect(next.hooks[0]).toMatchObject({ id: 'h1', status: 'open', lastMovedChapter: 3 });
+        expect(next.hooks[0].recent.map((e) => e.event)).toEqual(['advanced']);
+        expect(next.hooks[0]).not.toHaveProperty('phase');
+        expect(next.hooks[1]).toMatchObject({ id: 'h2', status: 'open', plantedAtChapter: 3 });
     });
-    it('trackedEntities: upserts on kind (one snapshot per kind)', () => {
+    it('legacy tracked entities: named records become ledger records, unnamed snapshots are dropped', () => {
         const prev = {
             ...emptyStoryState('w'),
+            ledger: undefined,
             trackedEntities: [
                 { kind: 'Timeline', data: { now: '회귀전' } },
-                { kind: 'PowerSystem', data: { tier: 1 } },
+                { kind: 'Artifact', data: { name: '검', holder: 'c1' }, updatedChapter: 1 },
             ],
         };
         const delta = emptyDelta(2);
         delta.trackedEntityOps = [
             { kind: 'Timeline', data: { now: '회귀후', loops: 2 } },
-            { kind: 'Artifact', data: { owner: 'sample-character' } },
+            { kind: 'Artifact', data: { name: '검', holder: 'c2' } },
+            { kind: 'PowerSystem', data: { ability: '불꽃', tier: 2 } },
         ];
         const next = reduceStoryState(prev, delta);
-        expect(next.trackedEntities).toHaveLength(3);
-        // updatedChapter says when a record last changed, so prompts can pick recent ones.
-        expect(next.trackedEntities[0]).toEqual({ kind: 'Timeline', data: { now: '회귀후', loops: 2 }, updatedChapter: 2 });
-        expect(next.trackedEntities[1]).toEqual({ kind: 'PowerSystem', data: { tier: 1 } });
-        expect(next.trackedEntities[2]).toEqual({ kind: 'Artifact', data: { owner: 'sample-character' }, updatedChapter: 2 });
+        expect(next.trackedEntities).toEqual([]);
+        expect(next.ledger.records.map((r) => [r.id, r.label, r.name, r.fields, r.lastEventAt])).toEqual([
+            ['o1', 'Artifact', '검', { holder: 'c2' }, 2],
+            ['o2', 'PowerSystem', '불꽃', { ability: '불꽃', tier: 2 }, 2],
+        ]);
     });
     it('does not mutate prev (deep equality preserved after reduce)', () => {
         const prev = {
@@ -214,7 +219,8 @@ describe('reduceStoryState', () => {
         expect(next.addressMap).not.toBe(prev.addressMap);
         expect(next.relationships).not.toBe(prev.relationships);
         expect(next.hooks).not.toBe(prev.hooks);
-        expect(next.trackedEntities).not.toBe(prev.trackedEntities);
+        expect(next.ledger.records).toEqual([]);
+        expect(next.hooks[0].status).toBe('paid');
     });
     it('folds mutableChanges into characterStates and ignores appearedCharacterIds', () => {
         const prev = emptyStoryState('w');
@@ -264,7 +270,7 @@ describe('reduceStoryState', () => {
             { from: 'b', to: 'c', kind: '신뢰', state: '화해' },
         ]);
     });
-    it('trackedEntities: keeps one record per natural key within a kind', () => {
+    it('legacy tracked entities: one knowledge record per fact, timelines as chapter notes', () => {
         const first = emptyDelta(1);
         first.trackedEntityOps = [
             { kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2'] } },
@@ -276,12 +282,56 @@ describe('reduceStoryState', () => {
             { kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2', 'c4'] } },
             { kind: 'Timeline', data: { chapter: 2, event: '막힌 통로를 찾았다' } },
         ];
-        const next = reduceStoryState(reduceStoryState(emptyStoryState('w'), first), second);
-        expect(next.trackedEntities).toEqual([
-            { kind: 'KnowledgeMatrix', data: { fact: '리아의 손목 부상', holders: ['c2', 'c4'] }, updatedChapter: 2 },
-            { kind: 'Timeline', data: { chapter: 1, event: '다리가 무너졌다' }, updatedChapter: 1 },
-            { kind: 'KnowledgeMatrix', data: { fact: '표식의 주인', holders: ['c1'] }, updatedChapter: 2 },
-            { kind: 'Timeline', data: { chapter: 2, event: '막힌 통로를 찾았다' }, updatedChapter: 2 },
+        const once = reduceStoryState(emptyStoryState('w'), first);
+        const next = reduceStoryState(once, second);
+        expect(next.trackedEntities).toEqual([]);
+        expect(next.ledger.records.map((r) => [r.id, r.feature, r.name, r.fields.holders])).toEqual([
+            ['k1', 'knowledge', '리아의 손목 부상', ['c2', 'c4']],
+            ['k2', 'knowledge', '표식의 주인', ['c1']],
         ]);
+        const notes = ledgerStep(once, second).events.filter((e) => e.target === 'chapter');
+        expect(notes).toEqual([{ chapter: 2, target: 'chapter', event: 'note', note: '막힌 통로를 찾았다' }]);
+    });
+});
+describe('ledger in StoryState', () => {
+    it('folds ledger ops and merges from the config', () => {
+        const prev = { ...emptyStoryState('w'), chapterNumber: 1 };
+        const delta = { ...emptyDelta(2), ledgerOps: [
+            { op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지' },
+            { op: 'register', feature: 'objects', label: '물건', name: '재서명된 쪽지' },
+            { op: 'plant', text: '누가 사슬을 박았나' },
+        ] };
+        const next = reduceStoryState(prev, delta, { config: { merges: [{ from: 'o2', into: 'o1' }] } });
+        expect(next.ledger.records.map((r) => r.id)).toEqual(['o1']);
+        expect(next.hooks.map((h) => [h.id, h.status])).toEqual([['h1', 'open']]);
+        expect(next.trackedEntities).toEqual([]);
+    });
+    it('converts legacy hook changes and tracked entity ops into ledger ops', () => {
+        const prev = { ...emptyStoryState('w'), chapterNumber: 4, hooks: [{ id: 'wrist', text: '손목', phase: 'planted', plantedAtChapter: 2 }] };
+        const delta = { ...emptyDelta(5),
+            hookChanges: [{ id: 'wrist', text: '손목', phase: 'advancing', plantedAtChapter: 2, lastMovedChapter: 5 }, { id: 'chain', text: '사슬', phase: 'planted' }],
+            trackedEntityOps: [{ kind: 'Artifact', data: { name: '서명 쪽지', holder: 'c2' } }, { kind: 'Timeline', data: { chapter: 5, events: ['수레가 멈춤'] } }] };
+        expect(legacyLedgerOps(normalizeStoryState(prev), delta)).toEqual([
+            { op: 'hook', id: 'wrist', event: 'advanced' },
+            { op: 'plant', text: '사슬', id: 'chain' },
+            { op: 'register', feature: 'objects', label: 'Artifact', name: '서명 쪽지', fields: { holder: 'c2' } },
+            { op: 'chapter-note', note: '수레가 멈춤' },
+        ]);
+        const next = reduceStoryState(prev, delta);
+        expect(next.hooks.map((h) => [h.id, h.status])).toEqual([['wrist', 'open'], ['chain', 'open']]);
+        expect(next.ledger.records.map((r) => r.name)).toEqual(['서명 쪽지']);
+    });
+    it('reads a legacy state: hooks by status, tracked entities as records', () => {
+        const state = normalizeStoryState({ ...emptyStoryState('w'), ledger: undefined, hooks: [{ id: 'a', text: 'x', phase: 'parked' }], trackedEntities: [{ kind: 'Clue', data: { name: '표식' } }] },
+            { entities: [{ entityId: 'seed-1', kind: 'location', canonicalName: '다리', aliases: [], status: 'active', attrs: {} }] });
+        expect(state.hooks[0].status).toBe('dormant');
+        expect(isHookActive(state.hooks[0])).toBe(false);
+        expect(state.ledger.records.map((r) => r.id)).toEqual(['seed-1', 'o1']);
+    });
+    it('exposes the ledger step with its history lines', () => {
+        const prev = { ...emptyStoryState('w'), chapterNumber: 1 };
+        const step = ledgerStep(prev, { ...emptyDelta(2), ledgerOps: [{ op: 'plant', text: '사슬' }] });
+        expect(step.events.map((e) => [e.target, e.event])).toEqual([['hook', 'planted']]);
+        expect(step.violations).toEqual([]);
     });
 });

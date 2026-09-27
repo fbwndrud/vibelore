@@ -117,7 +117,8 @@ export function hookStatusOf(raw) {
         return raw.status;
     return LEGACY_HOOK_STATUS[raw?.phase] ?? LEGACY_HOOK_STATUS[raw?.status] ?? 'open';
 }
-function legacyName(data) {
+/** The name a pre-ledger tracked-entity record goes by, or ''. */
+export function legacyName(data) {
     for (const field of LEGACY_NAME_FIELDS) {
         if (typeof data?.[field] === 'string' && data[field].trim())
             return data[field].trim();
@@ -321,9 +322,16 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
         if (op?.op === 'plant') {
             if (!trackingEnabled(config, 'hooks') || typeof op.text !== 'string' || !op.text.trim())
                 continue;
-            const hook = { id: nextLedgerId(next, 'hooks'), text: op.text.trim(), status: 'open', ...(op.horizon ? { horizon: op.horizon } : {}), plantedAtChapter: chapter, lastMovedChapter: chapter, recent: [] };
+            // A hook converted from a legacy delta keeps its old id so later deltas still find it.
+            const id = op.id && !next.hooks.some((item) => item.id === op.id) ? op.id : nextLedgerId(next, 'hooks');
+            const hook = { id, text: op.text.trim(), status: 'open', ...(op.horizon ? { horizon: op.horizon } : {}), plantedAtChapter: chapter, lastMovedChapter: chapter, recent: [] };
             next.hooks.push(hook);
             emit('hook', hook, { event: 'planted', ...(op.note ? { note: op.note } : {}) });
+            continue;
+        }
+        if (op?.op === 'chapter-note') {
+            if (typeof op.note === 'string' && op.note.trim())
+                events.push({ chapter, target: 'chapter', event: 'note', note: op.note });
             continue;
         }
         if (op?.op === 'hook') {

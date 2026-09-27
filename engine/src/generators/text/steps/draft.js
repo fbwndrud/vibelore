@@ -417,7 +417,7 @@ function buildUserPrompt(input) {
         addressMap: prevState.addressMap.entries,
         openHooks: (prevState.hooks ?? [])
             .filter(isHookActive)
-            .map((h) => ({ id: h.id, text: h.text, phase: h.phase })),
+            .map((h) => ({ id: h.id, text: h.text, status: h.status })),
         relationships: prevState.relationships,
         // Recent records per kind; the full history stays in StoryState.
         trackedEntities: recentTrackedRecords(prevState.trackedEntities),

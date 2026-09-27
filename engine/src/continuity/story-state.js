@@ -7,27 +7,23 @@
  * containers so evaluating a candidate does not mutate the prior snapshot.
  */
 import { advanceCursor, CHARACTER_ARC_BEATS } from './character-arc.js';
+import { applyLedgerOps, applyMerges, emptyLedger, hookStatusOf, HOOK_STATUSES, ledgerFromLegacy, legacyName } from './ledger.js';
 /**
- * Hook lifecycle. A hook is a narrative promise the reader is still holding.
- *   planted   — introduced, nothing has moved yet
- *   advancing — new information or stakes landed in a later chapter
- *   paid      — answered on the page
- *   parked    — the story deliberately set it aside for now
+ * Hook lifecycle. A hook is a narrative promise to the reader.
+ *   open    — the reader is waiting on it
+ *   dormant — set aside for now; planners may bring it back
+ *   paid    — answered on the page; may be reopened
+ *   closed  — no longer used
  */
-export const HOOK_PHASES = ['planted', 'advancing', 'paid', 'parked'];
+export { HOOK_STATUSES };
 /** How soon the reader expects the payoff. Semantic, never a chapter count. */
 export const HOOK_HORIZONS = ['next', 'soon', 'arc', 'long', 'finale'];
-const LEGACY_PHASE = { open: 'planted', progressing: 'advancing', resolved: 'paid', deferred: 'parked' };
 const LEGACY_HORIZON = { immediate: 'next', 'near-term': 'soon', 'mid-arc': 'arc', 'slow-burn': 'long', endgame: 'finale' };
-/** True while the hook still owes the reader something. */
+/** True while the hook is open. Dormant hooks are listed separately by planners. */
 export function isHookActive(hook) {
-    const phase = hook?.phase ?? LEGACY_PHASE[hook?.status] ?? 'planted';
-    return phase === 'planted' || phase === 'advancing';
+    return hookStatusOf(hook) === 'open';
 }
-/**
- * Normalize a hook record into the current shape. Accepts records written by
- * earlier vibelore builds so existing projects keep opening.
- */
+/** Normalize a hook record, including those written by earlier vibelore builds. */
 export function normalizeHook(raw) {
     if (!raw || typeof raw !== 'object')
         return null;
@@ -36,30 +32,30 @@ export function normalizeHook(raw) {
         return null;
     const text = raw.text ?? raw.description ?? '';
     const plantedAtChapter = raw.plantedAtChapter ?? raw.startChapter;
-    let phase = raw.phase ?? LEGACY_PHASE[raw.status];
-    if (!HOOK_PHASES.includes(phase))
-        phase = 'planted';
     let horizon = raw.horizon ?? LEGACY_HORIZON[raw.payoffTiming];
     if (!HOOK_HORIZONS.includes(horizon))
         horizon = undefined;
     const lastMovedChapter = raw.lastMovedChapter ?? raw.lastAdvancedChapter ?? plantedAtChapter;
-    const { hookId, description, startChapter, status, payoffTiming, lastAdvancedChapter, ...rest } = raw;
+    const status = hookStatusOf(raw);
+    const { hookId, description, startChapter, phase, payoffTiming, lastAdvancedChapter, ...rest } = raw;
     return {
         ...rest,
         id,
         text,
+        status,
         ...(plantedAtChapter !== undefined ? { plantedAtChapter } : {}),
-        phase,
         ...(horizon ? { horizon } : {}),
         ...(lastMovedChapter !== undefined ? { lastMovedChapter } : {}),
+        recent: Array.isArray(raw.recent) ? raw.recent : [],
     };
 }
-/** Normalize a persisted StoryState (or null) into the current shape. */
-export function normalizeStoryState(state) {
+/** Normalize a persisted StoryState (or null). A state written before the ledger gets one from its tracked entities and the entity snapshots. */
+export function normalizeStoryState(state, { entities = [] } = {}) {
     if (!state || typeof state !== 'object')
         return state;
     const hooks = Array.isArray(state.hooks) ? state.hooks.map(normalizeHook).filter(Boolean) : [];
-    return { ...state, hooks };
+    const ledger = state.ledger?.records ? state.ledger : ledgerFromLegacy({ trackedEntities: state.trackedEntities, entities });
+    return { ...state, hooks, ledger };
 }
 /**
  * StoryState(N) = reduce(StoryState(N-1), ChapterDelta(N)). Pure — never
@@ -72,13 +68,14 @@ export function normalizeStoryState(state) {
  *   2. `relationships`: each `delta.relationshipOps` replaces the existing
  *      entry whose `(from, to, kind)` matches, preserving position; otherwise
  *      appended at the end.
- *   3. `hooks`: upsert by `id`. Replace in place if present, else append.
- *      Records are normalized through `normalizeHook` so snapshots written by
- *      earlier vibelore builds (`hookId`/`status`/`payoffTiming` vocabulary)
- *      load into the current `id`/`phase`/`horizon` shape.
- *   4. `trackedEntities`: upsert by `kind` plus the record's natural key
- *      (`trackedRecordKey`). Replace in place if present, else append, so
- *      earlier records of the same kind stay.
+ *   3. Ledger and hooks: `delta.ledgerOps` fold through `applyLedgerOps`.
+ *      A delta written before the ledger (`hookChanges`/`hookOps`,
+ *      `trackedEntityOps`, `entityOps`) is converted by `legacyLedgerOps`
+ *      first. Hooks are normalized through `normalizeHook`, so snapshots in
+ *      the `phase` or older `status` vocabulary load with a current status.
+ *   4. `config.merges` (user-approved {from, into}) fold last, every reduce,
+ *      so a merge stays applied to records re-registered later.
+ *      `trackedEntities` is always `[]`; readers move to `ledger.records`.
  *   5. `characterStates`: `delta.mutableChanges` fold per character —
  *      `vitalStatus` (alive|dead|missing), location, status, accumulated
  *      `knownFacts` and `sinceChapter`. Foundation keeps the design-time
@@ -110,7 +107,58 @@ export function trackedRecordKey(data) {
     }
     return '';
 }
-export function reduceStoryState(prev, delta) {
+const LEGACY_EVENT = { planted: 'mentioned', advancing: 'advanced', paid: 'paid', parked: 'parked' };
+const LEGACY_PHASE = { open: 'planted', progressing: 'advancing', resolved: 'paid', deferred: 'parked' };
+/** Ledger ops equivalent to a delta written before the ledger. */
+export function legacyLedgerOps(prev, delta) {
+    const ops = [];
+    const known = new Map((prev.hooks ?? []).map((hook) => [hook.id, hook]));
+    for (const raw of delta.hookChanges ?? delta.hookOps ?? []) {
+        const hook = normalizeHook(raw);
+        if (!hook)
+            continue;
+        const phase = raw.phase ?? LEGACY_PHASE[raw.status] ?? 'planted';
+        if (!known.has(hook.id)) {
+            ops.push({ op: 'plant', text: hook.text, id: hook.id, ...(hook.horizon ? { horizon: hook.horizon } : {}) });
+            continue;
+        }
+        const before = known.get(hook.id);
+        const event = before.status === 'paid' && phase !== 'paid' ? 'reopened' : LEGACY_EVENT[phase] ?? 'mentioned';
+        ops.push({ op: 'hook', id: hook.id, event });
+    }
+    for (const op of delta.trackedEntityOps ?? []) {
+        if (op.kind === 'Timeline') {
+            const events = Array.isArray(op.data?.events) ? op.data.events : [op.data?.event].filter(Boolean);
+            for (const note of events)
+                ops.push({ op: 'chapter-note', note: String(note) });
+            continue;
+        }
+        const name = legacyName(op.data);
+        if (!name)
+            continue;
+        const { name: _name, ...fields } = op.data ?? {};
+        const feature = op.kind === 'KnowledgeMatrix' || op.kind === 'RegressionKnowledge' ? 'knowledge' : 'objects';
+        ops.push({ op: 'register', feature, label: op.kind, name, ...(Object.keys(fields).length ? { fields } : {}) });
+    }
+    for (const op of delta.entityOps ?? []) {
+        if (op.op === 'register')
+            ops.push({ op: 'register', feature: 'objects', label: op.kind, name: op.name });
+        else if (op.op === 'update')
+            ops.push({ op: 'event', id: op.entityId, event: 'changed', set: op.fields });
+        else if (op.op === 'retire')
+            ops.push({ op: 'event', id: op.entityId, event: 'status', status: op.cause === 'destroyed' ? 'destroyed' : 'retired' });
+    }
+    return ops;
+}
+/** The ledger part of a reduce, with the history lines and findings it produced. */
+export function ledgerStep(prev, delta, { config = {} } = {}) {
+    const state = normalizeStoryState(prev);
+    const ops = [...legacyLedgerOps(state, delta), ...(delta.ledgerOps ?? [])];
+    const applied = applyLedgerOps(state, ops, { chapter: delta.chapterNumber, config });
+    const merged = applyMerges(applied.ledger, config.merges, delta.chapterNumber);
+    return { ledger: merged.ledger, hooks: applied.hooks, events: [...applied.events, ...merged.events], violations: applied.violations };
+}
+export function reduceStoryState(prev, delta, { config = {} } = {}) {
     if (delta.chapterNumber <= prev.chapterNumber) {
         throw new Error(`chapter-out-of-order: prev=${prev.chapterNumber} expected delta>${prev.chapterNumber}`);
     }
@@ -142,35 +190,6 @@ export function reduceStoryState(prev, delta) {
         }
         else {
             nextRelationships.push(cloned);
-        }
-    }
-    const nextHooks = (prev.hooks ?? []).map(normalizeHook).filter(Boolean);
-    for (const raw of delta.hookChanges ?? delta.hookOps ?? []) {
-        const cloned = normalizeHook(raw);
-        if (!cloned)
-            continue;
-        const idx = nextHooks.findIndex((h) => h.id === cloned.id);
-        if (idx >= 0) {
-            nextHooks[idx] = cloned;
-        }
-        else {
-            nextHooks.push(cloned);
-        }
-    }
-    const nextTracked = prev.trackedEntities.map((t) => ({
-        kind: t.kind,
-        data: { ...t.data },
-        ...(t.updatedChapter !== undefined ? { updatedChapter: t.updatedChapter } : {}),
-    }));
-    for (const op of delta.trackedEntityOps) {
-        const key = trackedRecordKey(op.data);
-        const idx = nextTracked.findIndex((t) => t.kind === op.kind && trackedRecordKey(t.data) === key);
-        const cloned = { kind: op.kind, data: { ...op.data }, updatedChapter: delta.chapterNumber };
-        if (idx >= 0) {
-            nextTracked[idx] = cloned;
-        }
-        else {
-            nextTracked.push(cloned);
         }
     }
     let nextArcCursor = { ...(prev.arcCursor ?? {}) };
@@ -220,13 +239,15 @@ export function reduceStoryState(prev, delta) {
             sinceChapter: delta.chapterNumber,
         };
     }
+    const ledger = ledgerStep(prev, delta, { config });
     return {
         workId: prev.workId,
         chapterNumber: delta.chapterNumber,
         addressMap: { entries: nextEntries },
         relationships: nextRelationships,
-        hooks: nextHooks,
-        trackedEntities: nextTracked,
+        hooks: ledger.hooks,
+        ledger: ledger.ledger,
+        trackedEntities: [],
         // Present only once a character state was recorded, so states of
         // works that never recorded one stay byte-identical.
         ...(Object.keys(nextCharacterStates).length ? { characterStates: nextCharacterStates } : {}),
@@ -243,6 +264,7 @@ export function emptyStoryState(workId) {
         addressMap: { entries: {} },
         relationships: [],
         hooks: [],
+        ledger: emptyLedger(),
         trackedEntities: [],
         arcCursor: {},
     };

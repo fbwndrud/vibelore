@@ -131,6 +131,16 @@ describe('applyLedgerOps', () => {
         expect(out.hooks.map((h) => [h.id, h.status])).toEqual([['h1', 'open'], ['h2', 'open']]);
         expect(out.hooks[1].plantedAtChapter).toBe(7);
     });
+    it('keeps a legacy hook id on plant unless it is taken', () => {
+        const out = applyLedgerOps(base(), [{ op: 'plant', text: '사슬', id: 'chain' }, { op: 'plant', text: '또 하나', id: 'h1' }], { chapter: 7 });
+        expect(out.hooks.map((h) => h.id)).toEqual(['h1', 'chain', 'h2']);
+    });
+    it('emits a chapter note without changing records or hooks', () => {
+        const out = applyLedgerOps(base(), [{ op: 'chapter-note', note: 'x' }], { chapter: 3 });
+        expect(out.events).toEqual([{ chapter: 3, target: 'chapter', event: 'note', note: 'x' }]);
+        expect(out.ledger).toEqual(base().ledger);
+        expect(out.hooks).toEqual(base().hooks);
+    });
     it('does not apply ops of a feature the user turned off', () => {
         const out = applyLedgerOps(base(), [{ op: 'register', feature: 'knowledge', label: '비밀', name: '손목 부상' }], { chapter: 7, config: { tracking: { knowledge: false } } });
         expect(out.ledger.records).toHaveLength(2);

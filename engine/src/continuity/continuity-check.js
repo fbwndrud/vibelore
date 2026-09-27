@@ -34,6 +34,7 @@ import { computeLanguageContractHash } from '../core/language-policy.js';
 import { languageSystemLines, pickByFamily, promptFamilyCaptureContext, resolveStepPromptLanguage, } from '../core/prompt-language.js';
 import { scanLexicon, } from './lexicon-scan.js';
 import { isHookActive, normalizeHook, VITAL_STATUSES } from './story-state.js';
+import { hookStatusOf } from './ledger.js';
 // ───────────────────────────── cast-manifest parsing ──────────────────────
 /**
  * Parse the cast-manifest body emitted by the writer. The OutputSanitizer has
@@ -437,7 +438,7 @@ function recentTrackedEntities(tracked) {
 }
 /**
  * What the extractor and the semantic checker see of earlier chapters: active
- * hooks with their text and phase, recorded character states, recent tracked
+ * hooks with their text and status, recorded character states, recent tracked
  * records per kind and, when supplied, the known entities. Keys that would be
  * empty are left out.
  */
@@ -448,7 +449,7 @@ function continuityStateSummary(prevState, entities) {
         chapterNumber: prevState.chapterNumber,
         addressMapKeys: Object.keys(prevState.addressMap.entries),
         activeHookIds: activeHooks.map((h) => h.id ?? h.hookId),
-        ...(activeHooks.length ? { activeHooks: activeHooks.map((h) => ({ id: h.id ?? h.hookId, text: h.text ?? h.description ?? '', phase: h.phase ?? null })) } : {}),
+        ...(activeHooks.length ? { activeHooks: activeHooks.map((h) => ({ id: h.id ?? h.hookId, text: h.text ?? h.description ?? '', status: hookStatusOf(h) })) } : {}),
         ...(prevState.characterStates ? { characterStates: prevState.characterStates } : {}),
         ...(tracked.length ? { trackedEntities: tracked } : {}),
         ...(Array.isArray(entities) && entities.length ? {

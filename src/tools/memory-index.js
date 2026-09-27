@@ -33,7 +33,9 @@ export async function rebuildMemoryIndex({ store, workId, language }) {
     const latest = chapters.at(-1) ?? 0;
     const state = latest ? await store.loadStoryState(workId, latest) : null;
     for (const hook of state?.hooks ?? []) {
-      if (hook.phase === 'paid') continue;
+      // Dormant hooks stay searchable: they may come back.
+      const { status } = normalizeHook(hook) ?? {};
+      if (status === 'paid' || status === 'closed') continue;
       insert.run('hook', hook.id ?? '', hook.plantedAtChapter ?? 0, hook.text ?? '');
     }
     for (const entity of await store.loadEntitySnapshots(workId)) insert.run('entity', entity.entityId ?? entity.id ?? entity.canonicalName, entity.registeredAtChapter ?? 0, [entity.canonicalName, ...(entity.aliases ?? []), JSON.stringify(entity.attrs ?? {})].join(' '));
