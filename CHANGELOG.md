@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- Review fixes for the bounded state inputs and the long memory:
+  - Hooks the plan touches are never cut by the 12-hook cap; related records
+    left out by a cap are counted separately from unrelated ones.
+  - Tracked items the text names by an identity field (name, id, title) rank
+    above items that only share a state word.
+  - Known facts the focus shares words with survive the three-fact limit;
+    relationships between two focused characters rank first.
+  - Character names match as words ("조연5" no longer matches "조연50").
+  - The chapter plan lists and accepts only characters registered by that
+    chapter.
+  - The continuity check sees the previous value of every tracked item the
+    chapter changes, so ownership invariants have both sides.
+  - The character review shows character descriptions again.
+  - Only arcs with status `completed` are summarized (rejected plans keep
+    their numbers); a missing arc archive stops the chain instead of building
+    on a hole; blank answers are not stored. An unusable answer does not stop
+    the chapter: the result carries `quality.longMemory` and the summary is
+    asked again next time.
+  - The current arc so far uses stored chapter summaries (a plan beat only
+    where none exists, labelled) for chapters before the five-chapter window;
+    retrieval no longer repeats them. `lore_rewrite` reads the long memory too.
+  - docs/TOOLS(.en).md describe the `lore_configure` settings arguments.
 - Long memory across arcs. When an arc is finished, the next `lore_write`
   first asks one `arc-summary` request per unsummarized arc: from the
   previous story so far and the arc's chapter summaries it returns an arc

@@ -17,7 +17,7 @@ import { searchTerms } from './search-terms.js';
 const asArray = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => typeof value === 'string' ? value.trim() : '';
 
-export function renderCharacter(foundation, character, chapter, kit, { appearance = true, initialPlacement = false } = {}) {
+export function renderCharacter(foundation, character, chapter, kit, { appearance = true, initialPlacement = false, description = false } = {}) {
   const t = kit.phrases.context;
   const labels = t.intrinsicLabels;
   const events = asArray(foundation.intrinsicChanges).filter((e) => e.characterId === character.id);
@@ -28,6 +28,7 @@ export function renderCharacter(foundation, character, chapter, kit, { appearanc
   if (appearance && intrinsic.coreAppearance?.length) pinned.push(t.appearance(intrinsic.coreAppearance.join('·')));
   const lines = [`- ${character.canonicalName} (\`${character.id}\`) — ${pinned.join(', ')}`];
   if (asArray(character.aliases).length) lines.push(t.characterAliases(character.aliases.join(', ')));
+  if (description && clean(character.description)) lines.push(t.characterDescription(clean(character.description)));
   if (character.contradiction) lines.push(t.characterContradiction(character.contradiction));
   const model = character.dramaticModel;
   if (model?.valueOrder?.length) lines.push(t.valueOrder(model.valueOrder.join(' > ')));
@@ -135,19 +136,44 @@ function directed(relationship) {
   return from ? { from, to, kind: clean(relationship.kind), state: clean(relationship.state) } : null;
 }
 
+const WORD_CHAR = /[\p{L}\p{N}]/u;
+const TRAILING_BLOCK = /[\p{N}A-Za-z]/u;
+
+/**
+ * `name` occurs in `text` as a word: not glued to a letter or digit before it,
+ * and not followed by a digit or Latin letter ("조연5" does not match "조연50").
+ * Korean particles may follow ("리아가").
+ */
+function namedIn(text, name) {
+  if (typeof name !== 'string' || name.length < 2) return false;
+  for (let at = text.indexOf(name); at !== -1; at = text.indexOf(name, at + 1)) {
+    const before = at > 0 ? text[at - 1] : '';
+    const after = text[at + name.length] ?? '';
+    if (!(before && WORD_CHAR.test(before)) && !(after && TRAILING_BLOCK.test(after))) return true;
+  }
+  return false;
+}
+
 /** Characters whose name or alias appears in `text`, plus `cast`. */
 export function namedCharacters(foundation, text, cast = []) {
   const named = new Set(asArray(cast));
   const value = clean(text);
   if (!value) return named;
   for (const c of asArray(foundation?.characters)) {
-    if ([c.canonicalName, ...asArray(c.aliases)].some((n) => typeof n === 'string' && n.length >= 2 && value.includes(n))) named.add(c.id);
+    if ([c.canonicalName, ...asArray(c.aliases)].some((n) => namedIn(value, n))) named.add(c.id);
   }
   return named;
 }
 
+const IDENTITY_FIELDS = ['name', 'title', 'label', 'canonicalName', 'id'];
+
+/** 2 when the text names the record (an identity field), 1 when it only shares another field value. */
 function textMatches(record, text) {
-  return Boolean(text) && Object.values(record.data ?? {}).some((value) => typeof value === 'string' && value.length >= 2 && value.length <= 40 && text.includes(value));
+  if (!text) return 0;
+  const hit = (value) => typeof value === 'string' && value.length >= 2 && value.length <= 40 && text.includes(value);
+  const data = record.data ?? {};
+  if (IDENTITY_FIELDS.some((field) => hit(data[field]))) return 2;
+  return Object.entries(data).some(([field, value]) => !IDENTITY_FIELDS.includes(field) && hit(value)) ? 1 : 0;
 }
 
 /**
@@ -165,9 +191,24 @@ function selectHooks(active, text, language, now, hookIds = new Set(), oldest = 
     const planned = hookIds.has(hook.id) || debt.has(hook.id);
     return { hook, index, weight, recent, planned };
   }).filter((item) => item.planned || item.weight >= HOOK_MATCH_WEIGHT || item.recent)
-    .sort((a, b) => Number(b.planned) - Number(a.planned) || b.weight - a.weight || (b.hook.plantedAtChapter ?? 0) - (a.hook.plantedAtChapter ?? 0) || a.index - b.index)
-    .slice(0, HOOK_LIMIT);
-  return { shown: scored.map((item) => item.hook), omitted: active.length - scored.length };
+    .sort((a, b) => Number(b.planned) - Number(a.planned) || b.weight - a.weight || (b.hook.plantedAtChapter ?? 0) - (a.hook.plantedAtChapter ?? 0) || a.index - b.index);
+  // Hooks the plan touches (and a planner's oldest ones) are never cut; the cap applies to the rest.
+  const planned = scored.filter((item) => item.planned);
+  const others = scored.filter((item) => !item.planned);
+  const kept = [...planned, ...others.slice(0, Math.max(0, HOOK_LIMIT - planned.length))];
+  return { shown: kept.map((item) => item.hook), omitted: active.length - scored.length, capped: scored.length - kept.length };
+}
+
+/** Known facts sharing words with the focus first, then the latest, up to WRITER_KNOWN_FACTS. */
+function selectFacts(facts, text, language) {
+  const terms = new Set(searchTerms(text, language));
+  const matching = facts.filter((fact) => typeof fact === 'string' && searchTerms(fact, language).some((term) => term.length >= 2 && terms.has(term)));
+  const chosen = [...matching.slice(-WRITER_KNOWN_FACTS)];
+  for (const fact of [...facts].reverse()) {
+    if (chosen.length >= WRITER_KNOWN_FACTS) break;
+    if (!chosen.includes(fact)) chosen.push(fact);
+  }
+  return facts.filter((fact) => chosen.includes(fact));
 }
 
 /**
@@ -175,11 +216,15 @@ function selectHooks(active, text, language, now, hookIds = new Set(), oldest = 
  * named character, most recent first, up to `limit`.
  */
 function selectTracked(tracked, text, ids, limit) {
-  const ranked = tracked.map((record, index) => ({ record, index, direct: textMatches(record, text), held: mentions(record, ids) }))
-    .filter((item) => item.direct || item.held)
-    .sort((a, b) => Number(b.direct) - Number(a.direct) || (b.record.updatedChapter ?? 0) - (a.record.updatedChapter ?? 0) || b.index - a.index)
+  const ranked = tracked.map((record, index) => {
+    const match = textMatches(record, text);
+    const held = mentions(record, ids);
+    // Named outright first, then held by a named character, then a shared field value.
+    return { record, index, rank: match === 2 ? 3 : held ? 2 : match };
+  }).filter((item) => item.rank > 0)
+    .sort((a, b) => b.rank - a.rank || (b.record.updatedChapter ?? 0) - (a.record.updatedChapter ?? 0) || b.index - a.index)
     .slice(0, limit);
-  return { shown: ranked.map((item) => item.record), omitted: tracked.length - ranked.length };
+  return { shown: ranked.map((item) => item.record), omitted: tracked.length - ranked.length, capped: Math.max(0, tracked.filter((record) => textMatches(record, text) || mentions(record, ids)).length - ranked.length) };
 }
 
 /**
@@ -221,7 +266,7 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
       if (value?.vitalStatus && t.vital[value.vitalStatus]) parts.push(t.vital[value.vitalStatus]);
       if (clean(value?.location)) parts.push(t.location(clean(value.location)));
       if (clean(value?.status)) parts.push(t.status(clean(value.status)));
-      const facts = asArray(value?.knownFacts).slice(-WRITER_KNOWN_FACTS);
+      const facts = selectFacts(asArray(value?.knownFacts), focus, kit.language);
       if (mode === 'writer' && facts.length) parts.push(t.knownFacts(facts.join('; ')));
       return parts.length ? t.person(name(id), id, parts.join(' · ')) : '';
     }).filter(Boolean);
@@ -240,26 +285,33 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
   if (address.length) lines.push(t.addressHeading, ...address);
 
   if (mode !== 'check') {
-    const { shown: hooks, omitted: hooksOmitted } = selectHooks(asArray(state.hooks).filter(isHookActive), focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
+    const { shown: hooks, omitted: hooksOmitted, capped: hooksCapped } = selectHooks(asArray(state.hooks).filter(isHookActive), focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
     if (hooks.length) {
       lines.push(t.hooksHeading, ...hooks.map((hook) => (mode === 'extract'
         ? t.hookKeyed(hook.id, hook.phase, hook.plantedAtChapter, hook.text ?? '')
         : t.hook(hook.text ?? hook.id, hook.phase))));
     }
+    if (hooksCapped > 0) lines.push(t.capped(hooksCapped));
     if (hooksOmitted > 0) lines.push(t.omitted(hooksOmitted));
 
     const relationIds = mode === 'extract' ? named : castIds;
+    // Both ends in focus first, then one end; most recent first within each; shown oldest first.
     const relations = asArray(state.relationships).map(directed).filter(Boolean)
-      .filter((item) => relationIds.has(item.from) || relationIds.has(item.to))
-      .slice(-(mode === 'extract' ? EXTRACT_RELATION_LIMIT : WRITER_RELATION_LIMIT));
+      .map((item, index) => ({ item, index, both: (relationIds.has(item.from) || named.has(item.from)) && (relationIds.has(item.to) || named.has(item.to)) }))
+      .filter(({ item }) => relationIds.has(item.from) || relationIds.has(item.to))
+      .sort((a, b) => Number(b.both) - Number(a.both) || b.index - a.index)
+      .slice(0, mode === 'extract' ? EXTRACT_RELATION_LIMIT : WRITER_RELATION_LIMIT)
+      .sort((a, b) => a.index - b.index)
+      .map(({ item }) => item);
     if (relations.length) lines.push(t.relationsHeading, ...relations.map((item) => t.relation(name(item.from), name(item.to), item.kind, item.state)));
 
     const body = (data) => flatBody(data, (v) => String(name(v)));
     const tracked = asArray(state.trackedEntities);
     if (mode === 'extract') {
-      const { shown, omitted } = selectTracked(tracked, focus, named, EXTRACT_TRACKED_LIMIT);
+      const { shown, omitted, capped } = selectTracked(tracked, focus, named, EXTRACT_TRACKED_LIMIT);
       if (shown.length) lines.push(t.trackedHeadingKeyed, ...shown.map((record) => t.trackedKeyed(record.kind, trackedRecordKey(record.data) || '-', body(record.data).slice(0, 160))));
-      if (omitted > 0) lines.push(t.omitted(omitted));
+      if (capped > 0) lines.push(t.capped(capped));
+      if (omitted - capped > 0) lines.push(t.omitted(omitted - capped));
     } else {
       const { shown } = selectTracked(tracked, focus, castIds, WRITER_TRACKED_LIMIT);
       if (shown.length) lines.push(t.trackedHeading, ...shown.map((record) => t.tracked(record.kind, body(record.data), record.updatedChapter)));
@@ -293,7 +345,7 @@ const CAST_NAME_LIMIT = 30;
  */
 export function renderCastBrief(foundation, kit, { focusText = '', chapter = 0 } = {}) {
   const t = kit.phrases.sections;
-  const all = asArray(foundation?.characters).filter((c) => c.disabled !== true);
+  const all = asArray(foundation?.characters).filter((c) => c.disabled !== true && (!chapter || (c.registeredAtChapter ?? 0) <= chapter));
   const selected = new Set(planningCast(foundation, { focusText, chapter }));
   const others = all.filter((c) => !selected.has(c.id));
   const lines = all.filter((c) => selected.has(c.id)).map((c) => t.castBrief(c.canonicalName, c.id, c.intrinsic?.role, c.contradiction));
@@ -381,8 +433,12 @@ export function renderCheckSections({ foundation, prevState, delta, povDesign = 
     ...asArray(delta?.trackedEntityOps).map((op, i) => t.deltaTracked(`delta.trackedEntityOps[${i}]`, op.kind, flatBody(op.data, name))),
   ];
   const invariants = asArray(foundation?.genreProfile?.invariants).map((inv) => t.invariant(inv.severity, `${inv.id}: ${inv.description}`));
+  // Ownership and tier invariants compare a change with the value before it.
+  const touchedKeys = new Set(asArray(delta?.trackedEntityOps).map((op) => `${op.kind}\u0000${trackedRecordKey(op.data)}`));
+  const before = asArray(prevState?.trackedEntities).filter((record) => touchedKeys.has(`${record.kind}\u0000${trackedRecordKey(record.data)}`));
+  const touchedTracked = before.length ? [t.trackedHeading, ...before.map((record) => t.tracked(record.kind, flatBody(record.data, name), record.updatedChapter))].join('\n') : '';
   return {
-    prev: renderCurrentState(prevState, foundation, { kit, mode: 'check', cast: [...onPage] }),
+    prev: [renderCurrentState(prevState, foundation, { kit, mode: 'check', cast: [...onPage] }), touchedTracked].filter(Boolean).join('\n'),
     foundation: foundationText,
     delta: deltaText.length ? deltaText.join('\n') : t.deltaEmpty,
     invariants: invariants.length ? invariants.join('\n') : '-',

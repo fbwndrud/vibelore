@@ -41,7 +41,7 @@ export function characterFidelityContext({ foundation, chapter, episodePlan, pre
 
 export async function runCharacterFidelity({ prose, chapter, foundation, context, episodePlan = null, prevState = null, dynamics = null, previousSummary = null, providers, kit: kitSource }) {
   const kit = asKit(kitSource ?? { foundation });
-  const castText = renderCharacters(foundation, episodePlan?.cast ?? [], chapter, kit, { appearance: false });
+  const castText = renderCharacters(foundation, episodePlan?.cast ?? [], chapter, kit, { appearance: false, description: true });
   const contextText = context ?? characterFidelityContext({ foundation, chapter, episodePlan, prevState, dynamics, previousSummary, kit });
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'character-fidelity',

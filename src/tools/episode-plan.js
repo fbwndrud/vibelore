@@ -219,7 +219,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };
-  const knownCharacterIds = foundation.characters.map((character) => character.id);
+  // A plan may use only characters registered by this chapter.
+  const knownCharacterIds = foundation.characters.filter((character) => (character.registeredAtChapter ?? 0) <= chapter).map((character) => character.id);
   const acceptPlan = (raw) => {
     const parsed = parse(raw);
     if (!parsed || !Array.isArray(parsed.scenes) || parsed.scenes.length < 2 || parsed.scenes.length > 4) throw new Error('episode-plan은 2~4개 scenes가 필요합니다.');

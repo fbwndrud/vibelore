@@ -13,6 +13,9 @@ const MODEL = { provider: 'host', modelId: 'host-agent' };
 const ARC_SUMMARY_CHARS = 800;
 const STORY_SO_FAR_CHARS = 2000;
 const RECENT_ARC_SUMMARIES = 2;
+const CURRENT_ARC_CHAPTER_CHARS = 160;
+// The draft and the chapter plan carry the last five chapter summaries themselves.
+const RECENT_WINDOW_CHAPTERS = 5;
 
 function parse(raw) {
   try { return JSON.parse(String(raw).replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim()); }
@@ -21,25 +24,36 @@ function parse(raw) {
 
 const clip = (value, max) => String(value ?? '').trim().slice(0, max);
 
-function finishedArcNumbers(arcPlan) {
+/**
+ * Completed arcs in order. A rejected or abandoned plan keeps its number in
+ * the archive, so status decides, not the number. An archive that is gone
+ * ends the list: every later summary would continue a story with a hole.
+ */
+async function completedArcs(store, workId, arcPlan) {
   const current = Number(arcPlan?.arcNumber ?? 0);
-  const last = arcPlan?.status === 'completed' ? current : current - 1;
-  return Array.from({ length: Math.max(0, last) }, (_, i) => i + 1);
+  const arcs = [];
+  for (let arcNumber = 1; arcNumber <= current; arcNumber += 1) {
+    const arc = arcNumber === current ? arcPlan : await store.loadArcArchive?.(workId, arcNumber);
+    if (!arc) return { arcs, missing: arcNumber };
+    if (arc.status === 'completed') arcs.push(arc);
+  }
+  return { arcs, missing: null };
 }
 
 /**
- * Summarizes the earliest finished arc that has no summary yet, one arc per
- * call because each summary continues the previous story so far. Returns
- * `{ pending: true }` while a host answer is outstanding.
+ * Summarizes completed arcs that have no summary yet, in order, because each
+ * summary continues the previous story so far. Returns `{ pending: true }`
+ * while a host answer is outstanding, `failed` when an answer was unusable
+ * (asked again next time) and `missing` when an arc's archive is gone.
  */
 export async function ensureArcSummaries({ store, workId, arcPlan, providers, kit: kitSource }) {
   if (typeof store.loadArcSummary !== 'function') return { pending: false };
   const kit = asKit(kitSource);
-  for (const arcNumber of finishedArcNumbers(arcPlan)) {
-    if (await store.loadArcSummary(workId, arcNumber)) continue;
-    const arc = arcNumber === Number(arcPlan?.arcNumber) ? arcPlan : await store.loadArcArchive(workId, arcNumber);
-    if (!arc) continue;
-    const previous = arcNumber > 1 ? await store.loadArcSummary(workId, arcNumber - 1) : null;
+  const { arcs, missing } = await completedArcs(store, workId, arcPlan);
+  let previous = null;
+  for (const arc of arcs) {
+    const existing = await store.loadArcSummary(workId, arc.arcNumber);
+    if (existing) { previous = existing; continue; }
     const summaries = [];
     for (const episode of arc.episodes ?? []) {
       const item = await store.loadChapterSummary(workId, episode.chapter);
@@ -55,14 +69,17 @@ export async function ensureArcSummaries({ store, workId, arcPlan, providers, ki
     });
     if ((providers.pending?.length ?? 0) > 0) return { pending: true };
     const obj = parse(response?.text);
-    if (!obj?.arcSummary || !obj?.storySoFar) return { pending: false, failed: arcNumber };
-    await store.saveArcSummary(workId, {
-      arcNumber, title: arc.title ?? '', chapters: (arc.episodes ?? []).map((e) => e.chapter),
-      summary: clip(obj.arcSummary, ARC_SUMMARY_CHARS), storySoFar: clip(obj.storySoFar, STORY_SO_FAR_CHARS),
+    const arcSummary = typeof obj?.arcSummary === 'string' ? obj.arcSummary.trim() : '';
+    const storySoFar = typeof obj?.storySoFar === 'string' ? obj.storySoFar.trim() : '';
+    if (!arcSummary || !storySoFar) return { pending: false, failed: arc.arcNumber, missing };
+    previous = {
+      arcNumber: arc.arcNumber, title: arc.title ?? '', chapters: (arc.episodes ?? []).map((e) => e.chapter),
+      summary: clip(arcSummary, ARC_SUMMARY_CHARS), storySoFar: clip(storySoFar, STORY_SO_FAR_CHARS),
       createdAt: new Date().toISOString(),
-    });
+    };
+    await store.saveArcSummary(workId, previous);
   }
-  return { pending: false };
+  return { pending: false, missing };
 }
 
 /**
@@ -73,10 +90,10 @@ export async function renderLongMemory({ store, workId, arcPlan, chapter, kit: k
   if (typeof store.loadArcSummary !== 'function') return '';
   const kit = asKit(kitSource);
   const t = kit.phrases.sections;
-  const done = finishedArcNumbers(arcPlan);
+  const { arcs } = await completedArcs(store, workId, arcPlan);
   const recent = [];
-  for (const arcNumber of done.slice(-RECENT_ARC_SUMMARIES)) {
-    const record = await store.loadArcSummary(workId, arcNumber);
+  for (const arc of arcs.slice(-RECENT_ARC_SUMMARIES)) {
+    const record = await store.loadArcSummary(workId, arc.arcNumber);
     if (record) recent.push(record);
   }
   const latest = recent.at(-1);
@@ -84,8 +101,16 @@ export async function renderLongMemory({ store, workId, arcPlan, chapter, kit: k
   if (latest?.storySoFar) lines.push(t.storySoFar(latest.storySoFar));
   lines.push(...recent.map((record) => t.arcSummaryLine(record.arcNumber, record.title ?? '', record.summary)));
   if (arcPlan?.status === 'active') {
-    const past = (arcPlan.episodes ?? []).filter((e) => e.chapter < chapter && (e.beat || e.goal));
-    if (past.length) lines.push(t.currentArcSoFar(arcPlan.title ?? '', past.map((e) => `${e.chapter}화 ${e.beat ?? e.goal}`).join(' / ')));
+    // What actually happened in this arc's finished chapters; the plan beat
+    // stands in, labelled, only where no summary was stored.
+    const past = [];
+    // Chapters in the recent summary window are shown there already.
+    for (const episode of (arcPlan.episodes ?? []).filter((e) => e.chapter < chapter - RECENT_WINDOW_CHAPTERS)) {
+      const stored = await store.loadChapterSummary?.(workId, episode.chapter);
+      if (stored?.summary) past.push(`${episode.chapter}화 ${clip(stored.summary, CURRENT_ARC_CHAPTER_CHARS)}`);
+      else if (episode.beat || episode.goal) past.push(t.plannedBeat(episode.chapter, episode.beat ?? episode.goal));
+    }
+    if (past.length) lines.push(t.currentArcSoFar(arcPlan.title ?? '', past.join(' / ')));
   }
   return lines.length ? [t.longMemoryHeading, ...lines].join('\n') : '';
 }

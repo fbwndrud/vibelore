@@ -114,11 +114,19 @@ base language가 `ko`면 한국어 특화 계열, 그 밖의 언어(영어 포�
 
 기존 StoryProfile, StoryIdentity, WriterSkill을 중복 없는 v2 NarrativeContract로 컴파일하고
 StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 모드를 한 번에 보여줍니다.
-구형 저장 데이터를 수정하지 않는 읽기 호환 도구입니다.
+구형 저장 데이터는 수정하지 않습니다. 선택 인자를 넘기면 작가 지원 설정만 저장합니다.
+
+- `disabledReviews`: 끌 매 화 검토 목록 전체(`story-profile-check`, `coherence-judge`,
+  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`). 꺼진 검토는
+  요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다.
+- `disabledDraftSections`: 초고에서 뺄 선택 섹션 목록 전체(`older-memory`, `previous-tail`,
+  `author-craft`, `style-anchor`).
+
+응답의 `reviewPolicy`와 `draftSections`가 현재 설정과 선택지를 보여줍니다. 모르는 이름은 거부합니다.
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project` |
+| `workId` | `project`, `disabledReviews`, `disabledDraftSections` |
 
 ### `lore_style_anchor`
 

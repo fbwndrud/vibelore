@@ -48,9 +48,10 @@ test('the long memory stays bounded however many arcs there are', async () => {
   const sizes = [];
   for (const arcs of [10, 100]) {
     const store = memoryStore();
+    for (let n = 1; n <= arcs; n += 1) store.arcs.set(n, { arcNumber: n, status: 'completed', episodes: [] });
     for (let n = 1; n <= arcs; n += 1) store.arcSummaries.set(n, { arcNumber: n, title: `아크${n}`, summary: `아크 ${String(n).padStart(3, '0')} 요약 `.repeat(40), storySoFar: `지금까지 ${String(n).padStart(3, '0')} `.repeat(150) });
-    const current = { arcNumber: arcs + 1, title: '현재', promise: 'NOW', status: 'active', episodes: [{ ...episode(1, 1) }, { chapter: 2, index: 2, title: '2화', beat: 'NEXT', status: 'planned' }] };
-    const text = await renderLongMemory({ store, workId: 'w', arcPlan: current, chapter: 2, kit });
+    const current = { arcNumber: arcs + 1, title: '현재', promise: 'NOW', status: 'active', episodes: [{ ...episode(1, 1) }, { chapter: 8, index: 2, title: '8화', beat: 'NEXT', status: 'planned' }] };
+    const text = await renderLongMemory({ store, workId: 'w', arcPlan: current, chapter: 8, kit });
     assert.match(text, new RegExp(`지금까지 ${String(arcs).padStart(3, '0')} `));
     assert.match(text, new RegExp(`아크 ${String(arcs).padStart(3, '0')} 요약`));
     assert.doesNotMatch(text, new RegExp(`아크 ${String(arcs - 2).padStart(3, '0')} 요약`), 'only the last two arc summaries');
@@ -77,4 +78,49 @@ test('lore_write summarizes a finished arc before planning and hands the story s
   assert.ok(steps.includes('arc-summary'), steps.join(','));
   const draft = requests.find((req) => req.step === 'draft');
   assert.match(draft.messages.map((m) => m.content).join('\n'), /STORY_SO_FAR_TOKEN/);
+});
+
+test('review fixes: only completed arcs are summarized, a gap stops the chain, blank answers are not stored', async () => {
+  const store = memoryStore();
+  store.arcs.set(1, { arcNumber: 1, title: 'A', promise: 'P1', status: 'completed', episodes: [episode(1, 1)] });
+  store.arcs.set(2, { arcNumber: 2, title: 'REJECTED', promise: 'P2', status: 'rejected', episodes: [] });
+  store.arcs.set(3, { arcNumber: 3, title: 'C', promise: 'P3', status: 'completed', episodes: [episode(2, 1)] });
+  const asked = [];
+  let answer = { arcSummary: '   ', storySoFar: ' ' };
+  const providers = { pending: [], async complete(req) { asked.push(req.messages[1].content); return { text: JSON.stringify(answer) }; } };
+  const blank = await ensureArcSummaries({ store, workId: 'w', arcPlan: { arcNumber: 4, status: 'active', episodes: [] }, providers, kit });
+  assert.equal(store.arcSummaries.size, 0, 'blank answer not stored');
+  assert.equal(blank.failed, 1);
+  answer = { arcSummary: 'S1', storySoFar: 'SO1' };
+  await ensureArcSummaries({ store, workId: 'w', arcPlan: { arcNumber: 4, status: 'active', episodes: [] }, providers, kit });
+  assert.ok(!asked.some((text) => /REJECTED/.test(text)), 'a rejected arc is not summarized');
+  assert.ok(store.arcSummaries.has(3));
+
+  const gap = memoryStore();
+  gap.arcs.set(2, { arcNumber: 2, title: 'B', promise: 'P', status: 'completed', episodes: [episode(1, 1)] });
+  const result = await ensureArcSummaries({ store: gap, workId: 'w', arcPlan: { arcNumber: 3, status: 'active', episodes: [] }, providers, kit });
+  assert.equal(result.missing, 1);
+  assert.equal(gap.arcSummaries.size, 0, 'no summary built on a missing earlier arc');
+});
+
+test('review fixes: the current arc so far uses stored chapter summaries, not plan beats', async () => {
+  const store = memoryStore();
+  store.summaries.set(1, 'ACTUAL_CH1');
+  const text = await renderLongMemory({ store, workId: 'w', arcPlan: { arcNumber: 1, title: 'T', status: 'active', episodes: [episode(1, 1), { chapter: 8, index: 2, beat: 'B2', status: 'planned' }] }, chapter: 8, kit });
+  assert.match(text, /ACTUAL_CH1/);
+  assert.doesNotMatch(text, /BEAT_1/);
+});
+
+test('an unusable arc summary answer does not stop the chapter; the result says so', async () => {
+  const store = await qualityStore();
+  const active = await store.loadArcPlan(workId);
+  await store.saveArcPlan(workId, { ...active, arcNumber: 1, status: 'completed', episodes: active.episodes.map((e) => ({ ...e, status: 'completed' })) });
+  await store.saveArcPlan(workId, { ...active, arcNumber: 2, status: 'active' });
+  const result = await runWriteWorkflow({ store, workId, autonomy: 'guided', providers: { async complete(req) {
+    const contract = contractResponse(req); if (contract) return contract;
+    if (req.step === 'arc-summary') return { text: '{"arcSummary":"","storySoFar":""}' };
+    return { text: outputs[req.step] ?? '{}' };
+  } } });
+  assert.equal(result.status, 'awaiting_approval', JSON.stringify(result).slice(0, 300));
+  assert.equal(result.quality.longMemory.failed, 1);
 });

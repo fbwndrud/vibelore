@@ -409,8 +409,9 @@ describe('Phase 2 generation pipeline', () => {
     for (const chapter of [3, 4, 5, 6, 7]) {
       assert.equal(prompt.match(new RegExp(`RECENT_SUMMARY_${chapter}\\b`, 'g'))?.length, 1, `${chapter}화 요약은 창에서 한 번만 들어간다`);
     }
-    assert.doesNotMatch(prompt, /UNMATCHED_SUMMARY_2/, 'a summary outside the window arrives only when retrieval selects it');
-    assert.match(prompt, /OLD_MEMORY_TOKEN/);
+    // Earlier chapters of the current arc arrive once, through the long memory, not through retrieval.
+    assert.equal(prompt.match(/UNMATCHED_SUMMARY_2/g)?.length, 1);
+    assert.equal(prompt.match(/OLD_MEMORY_TOKEN/g)?.length, 1);
     assert.deepEqual(result.contextAudit.recentSummaryChapters, [7, 6, 5, 4, 3]);
     assert.deepEqual(result.contextAudit.draftInputTrace.continuity.excluded, []);
     assert.equal(prompt.match(/ACTIVE_HOOK_TOKEN/g)?.length, 1, '활성 떡밥은 이전 상태에만 한 번 들어간다');
@@ -474,7 +475,8 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(on, /정확한 행동은 장면에서 발견한다/);
     await saveWriterSupportPolicy(store, 'tax-tower', { disabledDraftSections: ['older-memory', 'previous-tail', 'author-craft'] });
     const { result, prompt } = await draftPrompt(store, 8);
-    assert.doesNotMatch(prompt, /OLD_MEMORY_TOKEN/);
+    // Chapter one's summary still arrives through the current arc so far; retrieval adds nothing.
+    assert.deepEqual(result.contextAudit.olderMemoryRefs, []);
     assert.doesNotMatch(prompt, /윤재는 7번째 고지서를 접었다/);
     assert.doesNotMatch(prompt, /정확한 행동은 장면에서 발견한다/);
     assert.match(prompt, /RECENT_SUMMARY_7/, 'the summary window stays');

@@ -394,6 +394,12 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     await transition(store, workflow, 'awaiting_model', { operation: 'arc_summary' });
     return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'arc_summary' };
   }
+  // An unusable answer or a missing arc archive does not stop the chapter; it is
+  // shown with the result and the summary is asked again next time.
+  const longMemory = arcSummaries.failed || arcSummaries.missing
+    ? { ...(arcSummaries.failed ? { failed: arcSummaries.failed } : {}), ...(arcSummaries.missing ? { missingArchive: arcSummaries.missing } : {}) }
+    : null;
+  if (longMemory) await logOnce(store, workflow, `long-memory:${JSON.stringify(longMemory)}`, { at: now(), event: 'long_memory_incomplete', chapter, ...longMemory });
 
   // Per-chapter planning is an internal stage, not a caller checklist item.
   if (!episodePlan || episodePlan.status !== 'active') {
@@ -763,7 +769,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     attempt, draftProse: current.prose, castManifestRaw: current.castManifestRaw,
     checkId: receipt.checkId, summary: receipt.artifact.summary, title: receipt.artifact.title,
     boundary,
-    patternEntry, arcReview, quality: { disabledReviews, prosody: receipt.prosody, coherence: receipt.coherence, editorial: receipt.editorial, characterFidelity: receipt.characterFidelity, characterFlexibility: receipt.characterFlexibility, readerHook: readerHook.score, chars: receipt.chars, lengthBand: lengthAssessment.band, arcReview: arcReview?.score ?? null, advisories: surfacedAdvisories, styleContinuity: receipt.styleContinuity, hard: 0, attempts: attempt },
+    patternEntry, arcReview, quality: { ...(longMemory ? { longMemory } : {}), disabledReviews, prosody: receipt.prosody, coherence: receipt.coherence, editorial: receipt.editorial, characterFidelity: receipt.characterFidelity, characterFlexibility: receipt.characterFlexibility, readerHook: readerHook.score, chars: receipt.chars, lengthBand: lengthAssessment.band, arcReview: arcReview?.score ?? null, advisories: surfacedAdvisories, styleContinuity: receipt.styleContinuity, hard: 0, attempts: attempt },
   });
   workflow.quality.review = reviewAudit;
   delete workflow.degraded;

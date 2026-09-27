@@ -398,7 +398,10 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
   const result = await runRewrite({
     foundation: executionFoundation(foundation, workLanguage), prevState, chapterNumber: chapter,
     foundationRender: renderWriterFoundation(foundation, everyone, chapter, kit),
-    stateRender: chapter > 1 ? renderCurrentState(prevState, foundation, { cast: everyone, kit, mode: 'writer', focusText: artifact.prose }) : '',
+    stateRender: [
+      await renderLongMemory({ store, workId, arcPlan: await store.loadArcPlan(workId), chapter, kit }),
+      chapter > 1 ? renderCurrentState(prevState, foundation, { cast: everyone, kit, mode: 'writer', focusText: artifact.prose }) : '',
+    ].filter(Boolean).join('\n\n'),
     previousProse: artifact.prose, intentSummary: intent,
     continuityRender: continuity?.text ?? '',
     ...engineLanguageArgs(workLanguage), model: MODEL, providers,

@@ -259,7 +259,12 @@ export async function selectWriterContinuity({ store, workId, chapter }) {
   const snapshotId = store.publishedRevision?.head ?? 'legacy-working-tree';
   const searchLanguage = workLanguage.contract?.language;
   const memory = await retrieveMemory({ store, workId, query: retrievalQuery, currentChapter: chapter, language: searchLanguage });
-  const windowChapters = new Set(window.recentSummaries.map((summary) => summary.chapterNumber));
+  // The window carries its summaries, and the long memory carries this arc's
+  // earlier chapters; retrieval does not repeat either.
+  const windowChapters = new Set([
+    ...window.recentSummaries.map((summary) => summary.chapterNumber),
+    ...(arcPlan?.status === 'active' ? (arcPlan.episodes ?? []).map((episode) => episode.chapter).filter((n) => n < chapter) : []),
+  ]);
   const shown = new Set([
     ...foundation.worldFacts.map((fact) => `fact:${fact.id}`),
     ...(lastState?.hooks ?? []).filter(isHookActive).map((hook) => `hook:${hook.id}`),

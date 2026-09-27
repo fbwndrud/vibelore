@@ -114,11 +114,19 @@ is at native level.
 
 Compiles the existing StoryProfile, StoryIdentity and WriterSkill into a non-duplicated v2 NarrativeContract and
 shows the StorySpine, ArcIntent, the next EpisodeIntent and the current quality pipeline mode at once.
-It is a read-compatibility tool that does not change old stored data.
+It does not change old stored data. With the optional arguments it stores the writer-support settings only.
+
+- `disabledReviews`: the full list of per-chapter reviews to turn off (`story-profile-check`, `coherence-judge`,
+  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`). A review that is off is not
+  requested, is recorded as `disabled_by_user` and does not block auto commits.
+- `disabledDraftSections`: the full list of optional draft sections to leave out (`older-memory`,
+  `previous-tail`, `author-craft`, `style-anchor`).
+
+`reviewPolicy` and `draftSections` in the response show the current settings and choices. Unknown names are rejected.
 
 | Required | Optional |
 |---|---|
-| `workId` | `project` |
+| `workId` | `project`, `disabledReviews`, `disabledDraftSections` |
 
 ### `lore_style_anchor`
 
