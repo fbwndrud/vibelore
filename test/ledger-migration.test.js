@@ -51,30 +51,76 @@ test('an unusable answer is not stored, so the ledger is asked again', async () 
 
 test('a pending host answer is reported and nothing is stored', async () => {
   const { store, workId } = await legacyWorkWithDuplicates();
-  const providers = { pending: [{ id: 'x' }], complete: async () => ({ text: '{}' }) };
+  const pending = [];
+  const providers = { pending, complete: async (req) => { pending.push(req); return { text: '{}' }; } };
   assert.equal((await proposeLedgerMerges({ store, workId, providers, kit })).status, 'pending');
   assert.equal(await store.loadMergeCandidates(workId), null);
 });
 
-test('a ledger with fewer than two records in every feature is not asked', async () => {
-  const { store, workId } = await legacyWorkWithDuplicates();
+const record = (id, feature, name, extra = {}) => ({ id, feature, label: '', name, aliases: [], status: feature === 'knowledge' ? 'secret' : 'active', fields: {}, registeredAt: 1, recent: [], ...extra });
+async function saveLedgerState(store, workId, records) {
   const state = await store.loadStoryState(workId, 2);
-  await store.saveStoryState({ ...state, trackedEntities: [], ledger: { records: [
-    { id: 'o1', feature: 'objects', label: '', name: '서명 쪽지', aliases: [], status: 'active', fields: {}, registeredAt: 1, recent: [] },
-    { id: 'k1', feature: 'knowledge', label: '', name: '은빛 열쇠', aliases: [], status: 'secret', fields: {}, registeredAt: 1, recent: [] }] } });
+  await store.saveStoryState({ ...state, trackedEntities: [], ledger: { records } });
+}
+
+test('a ledger with no flagged pair and no legacy migration is not asked', async () => {
+  const { store, workId } = await legacyWorkWithDuplicates();
+  await saveLedgerState(store, workId, [record('o1', 'objects', '서명 쪽지'), record('o2', 'objects', '낡은 검')]);
   let asked = 0;
   const result = await proposeLedgerMerges({ store, workId, providers: { complete: async () => { asked += 1; return answer([]); } }, kit });
   assert.equal(result.status, 'none');
   assert.equal(asked, 0);
 });
 
-test('ensureLedgerLog builds the log of a legacy work once and says it was legacy', async () => {
+test('declined candidates are not asked again; a new flagged pair is asked about alone', async () => {
   const { store, workId } = await legacyWorkWithDuplicates();
-  const first = await ensureLedgerLog({ store, workId });
-  assert.deepEqual(first, { rebuilt: true, legacy: true });
+  const requests = [];
+  let groups = [{ into: 'o1', from: ['o2'], reason: '같은 쪽지' }];
+  const providers = { complete: async (req) => { requests.push(req); return answer(groups); } };
+  await proposeLedgerMerges({ store, workId, providers, kit });
+  assert.equal(requests.length, 1, 'the legacy migration is asked once');
+  // The user does not approve; the next chapter commits a ledger with the same flag.
+  await saveLedgerState(store, workId, [record('o1', 'objects', '서명 쪽지'), record('k1', 'knowledge', '은빛 열쇠'),
+    record('o2', 'objects', '재서명된 쪽지', { possibleDuplicateOf: 'o1' })]);
+  assert.equal((await proposeLedgerMerges({ store, workId, providers, kit })).status, 'none');
+  assert.equal(requests.length, 1, 'no new flag, nothing asked');
+  // A later chapter flags a new pair.
+  await saveLedgerState(store, workId, [record('o1', 'objects', '서명 쪽지'), record('k1', 'knowledge', '은빛 열쇠'),
+    record('o2', 'objects', '재서명된 쪽지', { possibleDuplicateOf: 'o1' }), record('o3', 'objects', '서명 쪽지 사본', { possibleDuplicateOf: 'o1' })]);
+  groups = [{ into: 'o1', from: ['o3'], reason: '사본도 같은 쪽지' }];
+  const third = await proposeLedgerMerges({ store, workId, providers, kit });
+  assert.equal(requests.length, 2);
+  const user = requests[1].messages.map((m) => m.content).join('\n');
+  assert.ok(user.includes('"o3"') && user.includes('"o1"'), user);
+  assert.ok(!user.includes('"o2"') && !user.includes('"k1"'), user);
+  assert.deepEqual(third.candidates, [{ into: 'o1', from: ['o2'], reason: '같은 쪽지' }, { into: 'o1', from: ['o3'], reason: '사본도 같은 쪽지' }]);
+  assert.deepEqual((await store.loadMergeCandidates(workId)).candidates, third.candidates);
+  assert.equal((await proposeLedgerMerges({ store, workId, providers, kit })).status, 'none');
+  assert.equal(requests.length, 2);
+});
+
+test('a group may not reuse a record already merged from or into', async () => {
+  const { store, workId } = await legacyWorkWithDuplicates();
+  const result = await proposeLedgerMerges({ store, workId, providers: { complete: async () => answer([
+    { into: 'o1', from: ['o2'], reason: 'a' },
+    { into: 'o2', from: ['o1'], reason: 'into was a from' },
+    { into: 'o1', from: ['o2'], reason: 'from reused' }]) }, kit });
+  assert.deepEqual(result.candidates, [{ into: 'o1', from: ['o2'], reason: 'a' }]);
+  const { store: other } = await legacyWorkWithDuplicates();
+  await saveLedgerState(other, workId, [record('o1', 'objects', '서명 쪽지'), record('o2', 'objects', '재서명된 쪽지', { possibleDuplicateOf: 'o1' }),
+    record('o3', 'objects', '쪽지 조각', { possibleDuplicateOf: 'o1' })]);
+  const chained = await proposeLedgerMerges({ store: other, workId, providers: { complete: async () => answer([
+    { into: 'o1', from: ['o2'], reason: 'a' },
+    { into: 'o3', from: ['o1'], reason: 'from was an into' }]) }, kit });
+  assert.deepEqual(chained.candidates, [{ into: 'o1', from: ['o2'], reason: 'a' }]);
+});
+
+test('ensureLedgerLog builds the log of a legacy work once', async () => {
+  const { store, workId } = await legacyWorkWithDuplicates();
+  assert.deepEqual(await ensureLedgerLog({ store, workId }), { rebuilt: true });
   assert.equal((await ledgerLogStatus({ store, workId })).ok, true);
   assert.ok((await store.loadLedgerEvents(workId)).some((event) => event.id === 'o2' && event.event === 'registered'));
-  assert.deepEqual(await ensureLedgerLog({ store, workId }), { rebuilt: false, legacy: true });
+  assert.deepEqual(await ensureLedgerLog({ store, workId }), { rebuilt: false });
 });
 
 test('lore_configure shows the stored candidates next to the approved merges', async () => {
@@ -85,6 +131,7 @@ test('lore_configure shows the stored candidates next to the approved merges', a
   assert.deepEqual(shown.merges, []);
   const approved = await runConfigureStatus({ store, workId, mergeRecords: [{ from: 'o2', into: 'o1' }] });
   assert.deepEqual(approved.merges, [{ from: 'o2', into: 'o1' }]);
+  assert.deepEqual(approved.mergeCandidates, [], 'an approved candidate is no longer offered');
 });
 
 async function legacyQualityStore() {
@@ -174,8 +221,13 @@ test('a state that carries a ledger is used as it is, without a replay', async (
 
 test('a work is legacy when its latest state has no ledger of its own, whatever it tracked', async () => {
   const { store, workId } = await legacyWorkWithDuplicates({ keepLast: [] });
-  assert.equal((await ensureLedgerLog({ store, workId })).legacy, true);
-  const state = await store.loadStoryState(workId, 2);
-  await store.saveStoryState({ ...state, trackedEntities: [{ kind: 'Artifact', data: { name: '서명 쪽지' } }], ledger: { records: [] } });
-  assert.equal((await ensureLedgerLog({ store, workId })).legacy, false);
+  let asked = 0;
+  const providers = { complete: async () => { asked += 1; return answer([]); } };
+  assert.equal((await proposeLedgerMerges({ store, workId, providers, kit })).status, 'done');
+  assert.equal(asked, 1, 'legacy: asked even though the last state tracked nothing');
+  const { store: current } = await legacyWorkWithDuplicates();
+  await current.saveStoryState({ ...(await current.loadStoryState(workId, 2)), trackedEntities: [{ kind: 'Artifact', data: { name: '서명 쪽지' } }],
+    ledger: { records: [record('o1', 'objects', '서명 쪽지'), record('o2', 'objects', '낡은 검')] } });
+  assert.equal((await proposeLedgerMerges({ store: current, workId, providers, kit })).status, 'none');
+  assert.equal(asked, 1);
 });

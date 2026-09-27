@@ -1,10 +1,11 @@
 /**
  * Existing works and the story ledger. The history log is rebuilt from the
- * chapter deltas without a model; record merges are only proposed — one model
- * request per ledger — and wait for the user's approval through
- * lore_configure(mergeRecords), which the reducer applies at the next commit.
+ * chapter deltas without a model; record merges are only proposed and wait for
+ * the user's approval through lore_configure(mergeRecords), which the reducer
+ * applies at the next commit. A legacy work is asked about once; after that,
+ * only a newly flagged near-duplicate pair is asked about, so a candidate the
+ * user left unapproved is not proposed again.
  */
-import { createHash } from 'node:crypto';
 import { asKit } from '../prompts/index.js';
 import { LEDGER_FEATURES } from '../../engine/src/continuity/ledger.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
@@ -19,6 +20,13 @@ function parse(raw) {
   catch { return null; }
 }
 
+/** Rebuilds the history log when it is missing or behind the chapters. Deterministic. */
+export async function ensureLedgerLog({ store, workId }) {
+  if ((await ledgerLogStatus({ store, workId })).ok) return { rebuilt: false };
+  await rebuildLedgerLog({ store, workId, config: await loadLedgerConfig(store, workId) });
+  return { rebuilt: true };
+}
+
 /**
  * The ledger the next chapter builds on, and whether the latest committed
  * state was written before the ledger (it has no `ledger` of its own).
@@ -26,27 +34,16 @@ function parse(raw) {
 async function latestLedger(store, workId) {
   const last = (await store.listChapters()).at(-1) ?? 0;
   const loaded = last ? await store.loadStoryState(workId, last) : null;
+  const legacy = Boolean(loaded) && isLegacyLedger(normalizeStoryState(loaded).ledger);
   const { ledger } = await ledgerBaseState({ store, workId, chapter: last });
-  return { ledger, legacy: Boolean(loaded) && isLegacyLedger(normalizeStoryState(loaded).ledger) };
+  return { records: ledger?.records ?? [], legacy };
 }
 
-/** Rebuilds the history log when it is missing or behind the chapters. Deterministic. */
-export async function ensureLedgerLog({ store, workId }) {
-  const { legacy } = await latestLedger(store, workId);
-  if ((await ledgerLogStatus({ store, workId })).ok) return { rebuilt: false, legacy };
-  await rebuildLedgerLog({ store, workId, config: await loadLedgerConfig(store, workId) });
-  return { rebuilt: true, legacy };
-}
-
-/** Whether the ledger is worth asking about: a flagged near-duplicate, or records converted from a legacy work. */
-export async function ledgerNeedsMergeReview({ store, workId }) {
-  const { ledger, legacy } = await latestLedger(store, workId);
-  return legacy || (ledger?.records ?? []).some((record) => record.possibleDuplicateOf);
-}
-
-function digestOf(records) {
-  const lines = records.map((record) => `${record.id}\t${record.name}`).sort();
-  return createHash('sha256').update(lines.join('\n')).digest('hex');
+/** `record → the record it may duplicate`, for flags whose target still exists. */
+function flaggedPairs(records) {
+  const ids = new Set(records.map((record) => record.id));
+  return records.filter((record) => record.possibleDuplicateOf && ids.has(record.possibleDuplicateOf))
+    .map((record) => ({ key: `${record.id}>${record.possibleDuplicateOf}`, ids: [record.id, record.possibleDuplicateOf] }));
 }
 
 function recordsText(records) {
@@ -63,7 +60,11 @@ function recordsText(records) {
   }).filter(Boolean).join('\n');
 }
 
-/** Groups whose ids all exist, share `into`'s feature and do not merge `into` into itself; each record is merged once. */
+/**
+ * Groups whose ids all exist, share `into`'s feature and do not merge `into`
+ * into itself. A record takes part in one group only, as `into` or `from`, so
+ * the list never chains or contradicts itself.
+ */
 function validGroups(groups, records) {
   const byId = new Map(records.map((record) => [record.id, record]));
   const used = new Set();
@@ -71,38 +72,54 @@ function validGroups(groups, records) {
   for (const group of Array.isArray(groups) ? groups : []) {
     const into = byId.get(group?.into);
     const from = [...new Set(Array.isArray(group?.from) ? group.from : [])];
-    if (!into || !from.length || from.includes(into.id)) continue;
+    if (!into || used.has(into.id) || !from.length || from.includes(into.id)) continue;
     if (!from.every((id) => byId.get(id)?.feature === into.feature && !used.has(id))) continue;
-    for (const id of from) used.add(id);
+    for (const id of [into.id, ...from]) used.add(id);
     kept.push({ into: into.id, from, reason: String(group.reason ?? '').trim() });
   }
   return kept;
 }
 
+const candidateKey = (candidate) => `${candidate.into}<${[...candidate.from].sort().join(',')}`;
+
 /**
- * Asks once per ledger (digest of record ids and names) which records name the
- * same thing. `pending` while a host answer is outstanding, `failed` when the
- * answer was unusable (asked again next time), `none` when no feature has two
- * records to compare.
+ * Asks which records name the same thing: once over every record of a legacy
+ * work, then only about flagged pairs not asked before, sending just the
+ * records they involve. New candidates join the stored ones. `pending` while
+ * a host answer is outstanding, `failed` when the answer was unusable (asked
+ * again next time), `none` when there is nothing new to ask.
  */
 export async function proposeLedgerMerges({ store, workId, providers, kit: kitSource }) {
-  const { ledger } = await latestLedger(store, workId);
-  const records = ledger?.records ?? [];
-  if (!LEDGER_FEATURES.some((feature) => records.filter((record) => record.feature === feature).length >= 2)) {
-    return { status: 'none', candidates: [] };
+  const { records, legacy } = await latestLedger(store, workId);
+  const stored = await store.loadMergeCandidates(workId) ?? {};
+  const known = stored.candidates ?? [];
+  const asked = new Set(stored.askedPairs ?? []);
+  const pairs = flaggedPairs(records);
+  const fresh = pairs.filter((pair) => !asked.has(pair.key));
+  const legacyAsk = legacy && !stored.legacyAsked;
+  if (!legacyAsk && !fresh.length) return { status: 'none', candidates: known };
+  const involved = new Set(fresh.flatMap((pair) => pair.ids));
+  const shown = legacyAsk ? records : records.filter((record) => involved.has(record.id));
+  const save = (candidates) => store.saveMergeCandidates(workId, {
+    candidates, askedPairs: [...new Set([...asked, ...(legacyAsk ? pairs : fresh).map((pair) => pair.key)])],
+    legacyAsked: Boolean(stored.legacyAsked || legacyAsk), updatedAt: new Date().toISOString(),
+  });
+  // Nothing to compare (a legacy work with fewer than two records of any feature).
+  if (!LEDGER_FEATURES.some((feature) => shown.filter((record) => record.feature === feature).length >= 2)) {
+    await save(known);
+    return { status: 'none', candidates: known };
   }
-  const digest = digestOf(records);
-  const stored = await store.loadMergeCandidates(workId);
-  if (stored?.digest === digest) return { status: 'done', candidates: stored.candidates ?? [] };
   const kit = asKit(kitSource);
+  const before = providers.pending?.length ?? 0;
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'ledger-merge',
-    messages: kit.messages('ledger-merge', { recordsText: recordsText(records) }),
+    messages: kit.messages('ledger-merge', { recordsText: recordsText(shown) }),
   });
-  if ((providers.pending?.length ?? 0) > 0) return { status: 'pending', candidates: [] };
+  if ((providers.pending?.length ?? 0) > before) return { status: 'pending', candidates: known };
   const obj = parse(response?.text);
-  if (!Array.isArray(obj?.groups)) return { status: 'failed', candidates: [] };
-  const candidates = validGroups(obj.groups, records);
-  await store.saveMergeCandidates(workId, { digest, candidates, createdAt: new Date().toISOString() });
+  if (!Array.isArray(obj?.groups)) return { status: 'failed', candidates: known };
+  const seen = new Set(known.map(candidateKey));
+  const candidates = [...known, ...validGroups(obj.groups, shown).filter((candidate) => !seen.has(candidateKey(candidate)))];
+  await save(candidates);
   return { status: 'done', candidates };
 }

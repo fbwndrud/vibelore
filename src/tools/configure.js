@@ -15,7 +15,10 @@ export async function runConfigureStatus({ store, workId, disabledReviews, disab
   const disabled = await loadDisabledReviews(store, workId);
   const draftSectionsOff = await loadDisabledDraftSections(store, workId);
   const ledgerConfig = await loadLedgerConfig(store, workId);
-  const mergeCandidates = (await store.loadMergeCandidates?.(workId))?.candidates ?? [];
+  // A candidate the user already approved is not offered again.
+  const approvedFrom = new Set(ledgerConfig.merges.map((merge) => merge.from));
+  const mergeCandidates = ((await store.loadMergeCandidates?.(workId))?.candidates ?? [])
+    .filter((candidate) => !candidate.from.every((id) => approvedFrom.has(id)));
   const [foundation, profile, identity, writerSkill, storySpine, arcPlan] = await Promise.all([
     store.loadFoundation(workId), store.loadStoryProfile(workId), store.loadStoryIdentity(workId),
     store.loadWriterSkill(workId), store.loadStorySpine(workId), store.loadArcPlan(workId),

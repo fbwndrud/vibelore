@@ -22,7 +22,7 @@ import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { renderSummaries } from '../core/prompt-sections.js';
 import { ensureArcSummaries } from './arc-summary.js';
-import { ensureLedgerLog, ledgerNeedsMergeReview, proposeLedgerMerges } from './ledger-migration.js';
+import { ensureLedgerLog, proposeLedgerMerges } from './ledger-migration.js';
 import { loadDisabledReviews, loadLedgerConfig } from '../core/review-policy.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
@@ -416,14 +416,14 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   if (longMemory) await logOnce(store, workflow, `long-memory:${JSON.stringify(longMemory)}`, { at: now(), event: 'long_memory_incomplete', chapter, ...longMemory });
 
   // An existing work gets its ledger history without a model. In guided mode a
-  // ledger with near-duplicates (or converted from a legacy work) is offered
+  // newly flagged near-duplicate pair (or a legacy work, once) is offered as
   // merge candidates for the user to approve; auto never asks. The request
   // rides with the chapter plan's round trip when a plan is still needed, and
   // a failure never stops the chapter.
   let mergePending = false;
   try {
     await ensureLedgerLog({ store, workId });
-    if (workflow.autonomy === 'guided' && await ledgerNeedsMergeReview({ store, workId })) {
+    if (workflow.autonomy === 'guided') {
       const merges = await proposeLedgerMerges({ store, workId, providers, kit });
       mergePending = merges.status === 'pending';
       if (merges.status === 'failed') await logOnce(store, workflow, 'ledger-merge:failed', { at: now(), event: 'ledger_merge_incomplete', chapter, reason: 'unusable_answer' });
