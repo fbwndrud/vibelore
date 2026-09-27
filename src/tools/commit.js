@@ -10,7 +10,7 @@
  */
 import { extractDelta, supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { isHookActive, normalizeStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
-import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
+import { ledgerEntitySnapshots, withLegacyEntities } from '../../engine/src/continuity/ledger.js';
 import { ledgerLogStatus, ledgerSeedState, rebuildLedgerLog } from './ledger-log.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { advanceArcAfterCommit } from './arc.js';
@@ -118,9 +118,12 @@ export async function runCommit({
   }
 
   // A state written before the ledger gets one from the entity snapshots; chapter 1 starts from the seeded entities.
+  // The working store may already have given a legacy state a ledger without them, so any snapshot no record
+  // holds is added too; otherwise the entities derived below would drop it from canon.
   const priorEntities = await canonicalStore.loadEntitySnapshots(workId);
   const loaded = await canonicalStore.loadStoryState(workId, chapter - 1);
-  const prev = loaded ? normalizeStoryState(loaded, { entities: priorEntities }) : ledgerSeedState(workId, priorEntities);
+  const seeded = loaded ? normalizeStoryState(loaded, { entities: priorEntities }) : ledgerSeedState(workId, priorEntities);
+  const prev = { ...seeded, ledger: withLegacyEntities(seeded.ledger, priorEntities) };
   let delta = contractCommit
     ? (contractArtifact.semanticDelta ?? checkReceipt.delta)
     : (presetDelta ?? checkReceipt?.delta ?? (await extractDelta({

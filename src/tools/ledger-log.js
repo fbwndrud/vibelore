@@ -29,14 +29,19 @@ export async function rebuildLedgerLog({ store, workId, config = {} }) {
     events.push(...step.events);
     state = { ...state, chapterNumber: chapter, ledger: step.ledger, hooks: step.hooks };
   }
-  await store.saveLedgerEvents(workId, events);
+  await store.saveLedgerEvents(workId, events, { throughChapter: chapters.at(-1) ?? null, chapters: chapters.length });
   return { events, chapters: chapters.length };
 }
 
+/**
+ * The log is current when it was built through the last committed chapter and
+ * reads cleanly. A work with no chapters has nothing to build.
+ */
 export async function ledgerLogStatus({ store, workId }) {
-  const events = await store.loadLedgerEvents(workId);
+  const { events, malformed, build } = await store.loadLedgerLog(workId);
   const chapters = await store.listChapters();
-  const lastChapter = events.length ? events.at(-1).chapter : null;
+  const lastChapter = events.length ? events.at(-1).chapter ?? null : null;
   const committed = chapters.at(-1) ?? null;
-  return { ok: committed === null || lastChapter === null || lastChapter <= committed, lastChapter, committed };
+  const ok = malformed === 0 && (committed === null ? (build?.throughChapter ?? null) === null : build?.throughChapter === committed);
+  return { ok, lastChapter, committed };
 }

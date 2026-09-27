@@ -178,6 +178,19 @@ export function ledgerFromLegacy({ trackedEntities = [], entities = [] } = {}) {
     }
     return state.ledger;
 }
+/**
+ * `ledger` plus the entity snapshots no record holds yet (by id, merged id or
+ * exact name), converted as `ledgerFromLegacy` converts them. Lets a state
+ * whose ledger was built without the snapshots pick them up. Pure; returns
+ * `ledger` itself when nothing is missing.
+ */
+export function withLegacyEntities(ledger, entities) {
+    const missing = (entities ?? []).filter((entity) => entity?.entityId && entity.canonicalName
+        && !findRecord(ledger, entity.entityId, 'objects') && !findRecord(ledger, entity.canonicalName, 'objects'));
+    if (!missing.length)
+        return ledger;
+    return { ...ledger, records: [...(ledger?.records ?? []), ...ledgerFromLegacy({ entities: missing }).records] };
+}
 
 export function trackingEnabled(config, feature) {
     return config?.tracking?.[feature] !== false;

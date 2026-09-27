@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -50,24 +50,51 @@ test('entity snapshots from before the first chapter seed the replay', async () 
   assert.deepEqual(events.map((e) => [e.id, e.event]), [['seed-1', 'changed']]);
 });
 
-test('an empty work has an empty log file and a log ahead of the chapters is not ok', async () => {
+test('status is ok only when the log was built through the last committed chapter', async () => {
   const store = await newStore();
   assert.deepEqual(await store.loadLedgerEvents(workId), []);
   assert.deepEqual(await ledgerLogStatus({ store, workId }), { ok: true, lastChapter: null, committed: null });
   await twoChapters(store);
+  assert.equal((await ledgerLogStatus({ store, workId })).ok, false, 'never built');
   await rebuildLedgerLog({ store, workId });
+  assert.deepEqual(JSON.parse(await readFile(join(store.rootDir, '.vibelore', 'ledger', 'built.json'), 'utf8')), { throughChapter: 2, chapters: 2 });
   assert.deepEqual(await ledgerLogStatus({ store, workId }), { ok: true, lastChapter: 2, committed: 2 });
-  await store.saveLedgerEvents(workId, [...await store.loadLedgerEvents(workId), { chapter: 3, target: 'hook', id: 'wrist', event: 'paid' }]);
+  // A commit whose rebuild failed leaves the log behind the chapters.
+  await store.saveArtifact({ workId, chapterNumber: 3, prose: '다', delta: { ...base(3), ledgerOps: [{ op: 'hook', id: 'wrist', event: 'paid' }] } });
   assert.equal((await ledgerLogStatus({ store, workId })).ok, false);
 });
 
-test('lore_sync rebuilds a missing or stale log', async () => {
+test('a malformed log line is skipped and makes the status not ok, without throwing', async () => {
+  const store = await newStore();
+  await twoChapters(store);
+  await rebuildLedgerLog({ store, workId });
+  const path = join(store.rootDir, '.vibelore', 'ledger', 'events.jsonl');
+  await writeFile(path, `${await readFile(path, 'utf8')}{broken\n`);
+  assert.equal((await store.loadLedgerEvents(workId)).length, 4);
+  assert.equal((await store.loadLedgerLog(workId)).malformed, 1);
+  assert.equal((await ledgerLogStatus({ store, workId })).ok, false);
+});
+
+test('lore_sync repairs a log that is behind, and only in paths that already write', async () => {
   const { runSyncStatus } = await import('../src/tools/sync.js');
   const store = await newStore();
   await twoChapters(store);
-  await runSyncStatus({ store, workId });
+  await runSyncStatus({ store, workId, action: 'inspect' });
+  assert.equal((await ledgerLogStatus({ store, workId })).ok, false, 'inspect is read-only');
+  await runSyncStatus({ store, workId, action: 'validate' });
   assert.equal((await store.loadLedgerEvents(workId)).length, 4);
-  await store.saveLedgerEvents(workId, [{ chapter: 9, target: 'hook', id: 'x', event: 'planted' }]);
-  await runSyncStatus({ store, workId });
-  assert.deepEqual((await ledgerLogStatus({ store, workId })).lastChapter, 2);
+  assert.equal((await ledgerLogStatus({ store, workId })).ok, true);
+});
+
+test('repeated sync does not rewrite the log of a work whose chapters produced no events', async () => {
+  const { runSyncStatus } = await import('../src/tools/sync.js');
+  const store = await newStore();
+  await store.saveArtifact({ workId, chapterNumber: 1, prose: '가', delta: base(1) });
+  await runSyncStatus({ store, workId, action: 'validate' });
+  const path = join(store.rootDir, '.vibelore', 'ledger', 'built.json');
+  const before = (await stat(path)).mtimeMs;
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await runSyncStatus({ store, workId, action: 'validate' });
+  await runSyncStatus({ store, workId, action: 'validate' });
+  assert.equal((await stat(path)).mtimeMs, before);
 });

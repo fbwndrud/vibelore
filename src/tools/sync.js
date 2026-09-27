@@ -197,18 +197,18 @@ async function applyDesign({ store, workId, candidate }) {
   return result.value;
 }
 
-// The ledger history is derived from the chapter deltas; a log that is missing
-// or runs past the last chapter (an interrupted commit or rollback) is rebuilt.
+// The ledger history is derived from the chapter deltas; a log that is missing,
+// damaged or not built through the last chapter (a commit whose rebuild failed,
+// an interrupted rollback) is rebuilt. Only the actions that already write do it.
 async function repairLedgerLog({ store, workId }) {
-  const log = await ledgerLogStatus({ store, workId });
-  if (log.ok && (log.committed === null || log.lastChapter !== null)) return;
+  if ((await ledgerLogStatus({ store, workId })).ok) return;
   await rebuildLedgerLog({ store, workId, config: await loadLedgerConfig(store, workId) });
 }
 
 export async function runSyncStatus({ store, workId, action = 'inspect', approvalId, providers }) {
-  await repairLedgerLog({ store, workId });
   if (action === 'inspect') return inspectSync({ store, workId });
   if (action === 'validate') {
+    await repairLedgerLog({ store, workId });
     const inspected = await inspectSync({ store, workId });
     if (inspected.classification === 'design_review_required') return validateDesign({ store, workId, inspected });
     if (inspected.classification !== 'latest_chapter_review_required') return inspected;
@@ -249,6 +249,7 @@ export async function runSyncStatus({ store, workId, action = 'inspect', approva
     };
   }
   if (action === 'apply') {
+    await repairLedgerLog({ store, workId });
     const candidate = await store.loadSyncCandidate(workId);
     if (!candidate || candidate.consumedAt || candidate.approvalId !== approvalId) throw new Error('유효한 미사용 sync approvalId가 없습니다.');
     if (candidate.kind === 'design') {

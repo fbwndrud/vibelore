@@ -364,16 +364,35 @@ export class MarkdownStateStore {
     await writeJson(this.sidecar('review-policy.json'), policy);
   }
 
-  /** Chapter event history of the ledger, rebuilt from the chapter deltas. */
-  async loadLedgerEvents(workId) {
+  /**
+   * Chapter event history of the ledger, rebuilt from the chapter deltas, and
+   * what it was built through. A malformed line is skipped and counted, so a
+   * damaged log reads as stale instead of breaking status and sync.
+   */
+  async loadLedgerLog(workId) {
     assertSafeId('workId', workId);
     const text = await readTextOrNull(this.sidecar('ledger', 'events.jsonl'));
-    return text ? text.split('\n').filter(Boolean).map((line) => JSON.parse(line)) : [];
+    const events = [];
+    let malformed = 0;
+    for (const line of (text ?? '').split('\n').filter(Boolean)) {
+      try { events.push(JSON.parse(line)); }
+      catch { malformed += 1; }
+    }
+    let build = null;
+    try { build = await readJsonOrNull(this.sidecar('ledger', 'built.json')); }
+    catch { malformed += 1; }
+    return { events, malformed, build };
   }
 
-  async saveLedgerEvents(workId, events) {
+  async loadLedgerEvents(workId) {
+    return (await this.loadLedgerLog(workId)).events;
+  }
+
+  /** Writes the log, then what it was built through, so a build record always describes a complete log. */
+  async saveLedgerEvents(workId, events, build = null) {
     assertSafeId('workId', workId);
     await writeAtomic(this.sidecar('ledger', 'events.jsonl'), events.map((event) => JSON.stringify(event)).join('\n') + (events.length ? '\n' : ''));
+    if (build) await writeJson(this.sidecar('ledger', 'built.json'), build);
   }
 
   async loadStyleAnchor(workId) {

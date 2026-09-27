@@ -157,3 +157,23 @@ test('commit keeps the ledger history and rollback cuts it back to the restored 
   assert.deepEqual((await store.loadLedgerEvents(workId)).map((e) => [e.chapter, e.id, e.event]), [[1, 'o1', 'registered']]);
   assert.deepEqual((await runStatus({ store, workId })).ledgerLog, { ok: true, lastChapter: 1, committed: 1 });
 });
+
+test('the first commit after upgrading an unpublished legacy work keeps its entity snapshots', async (t) => {
+  const { createPublicationUnit } = await import('../src/core/publication-unit.js');
+  const { emptyStoryState } = await import('../engine/src/continuity/story-state.js');
+  const root = await mkdtemp(join(tmpdir(), 'vibelore-legacy-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const store = new MarkdownStateStore(root);
+  await legacyWorkFixture({ store, workId, genre: 'other', worldFacts: ['문은 열쇠로 열린다.'] });
+  await store.saveArtifact({ workId, chapterNumber: 1, prose: '1번째 문을 열었다.', delta: delta(1) });
+  const { ledger: _ledger, ...legacyState } = { ...emptyStoryState(workId), chapterNumber: 1 };
+  await store.saveStoryState(legacyState);
+  await store.saveEntitySnapshots(workId, [{ entityId: 'seed-1', kind: '물건', canonicalName: '은 열쇠', aliases: [], status: 'active', attrs: {} }]);
+  const second = { ...delta(2), ledgerOps: [{ op: 'register', feature: 'objects', label: '물건', name: '금 열쇠' }] };
+  const result = await runCommit({ store, workId, chapter: 2, prose: '금 열쇠로 2번째 문을 열었다.', summary: '금 열쇠.', delta: second, providers: createHostRelay({}) });
+  assert.equal(result.state.records, 2);
+  const published = await createPublicationUnit({ rootDir: root }).readPublished();
+  assert.deepEqual(published.value.projections.entities.map((e) => e.entityId).sort(), ['o1', 'seed-1']);
+  assert.deepEqual((await store.loadEntitySnapshots(workId)).map((e) => e.entityId).sort(), ['o1', 'seed-1']);
+  assert.ok((await store.loadStoryState(workId, 2)).ledger.records.some((record) => record.id === 'seed-1'));
+});

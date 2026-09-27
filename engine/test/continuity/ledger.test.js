@@ -304,3 +304,20 @@ describe('ledger history and snapshots', () => {
         expect(ledgerEntitySnapshots(undefined)).toEqual([]);
     });
 });
+
+describe('withLegacyEntities', () => {
+    it('adds entity snapshots that no record has, by id or exact name', async () => {
+        const { withLegacyEntities } = await import('../../src/continuity/ledger.js');
+        const ledger = { records: [{ ...note, mergedIds: ['o9'] }] };
+        const next = withLegacyEntities(ledger, [
+            { entityId: 'o1', kind: '물건', canonicalName: '다른 이름' },
+            { entityId: 'o9', kind: '물건', canonicalName: '합쳐진 것' },
+            { entityId: 'seed-2', kind: '물건', canonicalName: '서명 쪽지' },
+            { entityId: 'seed-1', kind: '장소', canonicalName: '은 탑', aliases: ['탑'], attrs: { floor: 3 } },
+        ]);
+        expect(next.records.map((record) => record.id)).toEqual(['o1', 'seed-1']);
+        expect(next.records[1]).toEqual({ id: 'seed-1', feature: 'objects', label: '장소', name: '은 탑', aliases: [{ text: '탑' }], status: 'active', fields: { floor: 3 }, registeredAt: 0, lastEventAt: 0, recent: [] });
+        expect(ledger.records.length).toBe(1);
+        expect(withLegacyEntities(ledger, [])).toBe(ledger);
+    });
+});
