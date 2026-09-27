@@ -147,3 +147,24 @@ test('a generated ageBand is reviewed as work-language text; the unknown sentine
   assert.equal(out.ok, false);
   assert.equal(out.validation?.failureCode, 'OUTPUT_LANGUAGE_MISMATCH', JSON.stringify(out.validation?.failureDetails));
 });
+
+// 2026-09-28 ko sample: a second arc carries characterArcs[].sourceEvidence from the
+// first arc's influence events. Its proofStatus is the engine's behavioral-proof enum
+// (proposed / tested / tested-contested), and a pass was spent three times on it.
+test('an inherited character arc proofStatus does not block a passing arc review', () => {
+  const value = {
+    arcNumber: 2, title: 'The lamp that would not dim', promise: 'The keeper learns hiding costs someone else.',
+    characterArcs: [{ characterId: 'c1', promise: 'He stops carrying the gate alone.',
+      inheritedState: { previousBeat: 'attempt', previousPromise: 'He tried to dim his light.', unresolvedPressure: 'Will he admit the cost?' },
+      sourceEvidence: ['proposed', 'tested', 'tested-contested', null].map((proofStatus, index) => ({
+        anchor: 'He kept the lamp low.', chapter: 8, eventId: `influence:${index}`, observation: 'He chose the dark over the crowd.', proofStatus })),
+      beats: [{ beat: 'attempt', episodeIndex: 1, note: 'He asks for the stage to widen.' }] }],
+  };
+  const artifact = canonicalApprovalArtifact({ approvalKind: 'arc', revision: 1, value: projectApprovalValue(value) });
+  const result = evaluateLanguageCompliance({
+    compliance: { language: 'en', artifactHash: computeArtifactHash(artifact), verdict: 'pass', evidence: [], allowedExceptions: [] },
+    artifact, targetLanguage: 'en', languageFields: APPROVAL_LANGUAGE_FIELDS,
+  });
+  assert.equal(result.verdict, 'pass');
+  assert.equal(result.satisfied, true);
+});
