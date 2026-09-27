@@ -1,4 +1,5 @@
 import { asKit } from '../prompts/index.js';
+import { MAX_ACTIVE_CHARACTER_ARCS } from '../../engine/src/continuity/character-arc.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const DIMENSIONS = ['premisePressure', 'causalEscalation', 'expectationRenewal', 'characterAgency', 'oppositionAdaptation', 'payoffSurprise', 'serialMomentum'];
@@ -43,6 +44,35 @@ export function deterministicArcViolations(plan) {
 }
 
 const CHARACTER_ARC_ORDER = ['wound', 'attempt', 'collapse', 'companion', 'self-choice', 'echo'];
+
+/**
+ * Planned beats become the chapter's arcCursorOps, so the plan must fit the active
+ * personal-arc quota the cursor enforces. Replays the plan's beats in episode order
+ * over the cursor as of the chapter before the arc: a character without a cursor
+ * entry opens a new arc, and an arc that reaches echo frees its slot.
+ */
+export function characterArcQuotaViolations(plan, cursor = {}) {
+  const tracked = new Set(Object.keys(cursor ?? {}));
+  const active = new Set(Object.entries(cursor ?? {}).filter(([, entry]) => entry?.beat !== 'echo').map(([id]) => id));
+  const events = (plan?.characterArcs ?? []).flatMap((arc) => (arc.beats ?? [])
+    .map((item) => ({ characterId: arc.characterId, episodeIndex: item.episodeIndex, beat: item.beat })))
+    .sort((a, b) => a.episodeIndex - b.episodeIndex || (a.beat === 'echo' ? -1 : 0) - (b.beat === 'echo' ? -1 : 0));
+  const violations = [];
+  for (const event of events) {
+    if (!tracked.has(event.characterId)) {
+      if (active.size >= MAX_ACTIVE_CHARACTER_ARCS) {
+        violations.push({ code: 'CHARACTER_ARC_QUOTA_EXCEEDED',
+          message: `${[...active].sort().join(', ')}의 개인 아크가 이미 진행 중이라 ${event.characterId}의 새 개인 아크를 열 수 없다(동시 ${MAX_ACTIVE_CHARACTER_ARCS}명). 진행 중인 아크를 이어 가거나, 먼저 하나를 echo로 닫은 뒤 새 아크를 연다.` });
+        tracked.add(event.characterId);
+        continue;
+      }
+      tracked.add(event.characterId);
+      active.add(event.characterId);
+    }
+    if (event.beat === 'echo') active.delete(event.characterId);
+  }
+  return violations;
+}
 
 /**
  * 같은 회차에 감정 비트를 둘 이상 둔 원시 응답. 정규화는 회차당 첫 비트만 남기므로
