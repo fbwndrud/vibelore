@@ -289,6 +289,22 @@ describe('host round trips are batched by dependency', () => {
     assert.equal(requests.filter((req) => req.step === 'revise').length, 0);
   });
 
+  it('asks about author rules by item id and treats a coherence answer without authorRules as an incomplete review', async () => {
+    const store = await qualityStore();
+    store.loadReviewPolicy = async () => ({ customTracking: [{ id: 'u1', name: '리아', feature: 'objects', note: '리아는 어머니 이야기를 먼저 꺼내지 않는다' }] });
+    const requests = [];
+    const judge = JSON.stringify({ score: 88, reason: 'ok' });
+    const result = await runWriteWorkflow({ store, workId, autonomy: 'auto', providers: { async complete(req) { requests.push(req); const contract = contractResponse(req); if (contract) return contract; return { text: req.step === 'coherence-judge' ? judge : (outputs[req.step] ?? '{}') }; } } });
+    const user = requests.find((req) => req.step === 'coherence-judge').messages.find((m) => m.role === 'user').content;
+    assert.match(user, /- u1: 리아는 어머니 이야기를 먼저 꺼내지 않는다/);
+    const workflow = await store.loadWorkflow(workId);
+    const receipt = await store.loadCheckReceipt(workId, workflow.checkId);
+    const record = receipt.review.records.find((item) => item.step === 'coherence-judge');
+    assert.equal(record.status, 'failed');
+    assert.equal(record.failure, 'INCOMPLETE_REVIEW_RESULT');
+    assert.notEqual(result.status, 'committed', 'a failed critic demotes auto to guided approval');
+  });
+
   it('shows reviewers a plan view without bookkeeping fields', async () => {
     const store = await qualityStore();
     const plan = await store.loadEpisodePlan(workId, 1);

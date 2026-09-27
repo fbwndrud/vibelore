@@ -58,6 +58,16 @@ test('context counts only open hooks', async () => {
   assert.doesNotMatch(built.context, /PAID_HOOK|DORMANT_HOOK/);
 });
 
+test('context leaves out objects and hooks the author turned off', async () => {
+  const store = await workWithHooks();
+  await store.saveEntitySnapshots(workId, [{ entityId: 'o7', kind: '물건', canonicalName: 'SILVER_COMPASS', aliases: [], status: 'active', attrs: {}, registeredAtChapter: 1 }]);
+  const scene = { settings: [], characters: [], items: ['o7'], antagonists: [], additionalRefs: [] };
+  assert.match((await buildContext({ store, workId, chapter: 2, scene })).context, /SILVER_COMPASS/);
+  await store.saveReviewPolicy(workId, { tracking: { objects: false, hooks: false } });
+  const off = await buildContext({ store, workId, chapter: 2, scene });
+  assert.doesNotMatch(off.context, /SILVER_COMPASS|OPEN_HOOK/);
+});
+
 test('the fidelity context leaves out records of a feature the author turned off', () => {
   const prevState = ledgerState(3);
   const input = { foundation, chapter: 4, episodePlan: { cast: ['c1', 'c2'] }, prevState, kit };

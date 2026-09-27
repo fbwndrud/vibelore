@@ -14,6 +14,8 @@ import { ledgerBaseState, ledgerLogStatus, rebuildLedgerLog } from './ledger-log
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const SHOWN_FIELDS = 2;
+// A long legacy work is asked about its likeliest duplicates, not every record.
+const LEGACY_ASK_LIMIT = 150;
 
 function parse(raw) {
   try { return JSON.parse(String(raw).replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim()); }
@@ -53,7 +55,7 @@ function recordsText(records) {
     return [`[${feature}]`, ...own.map((record) => JSON.stringify({
       id: record.id, label: record.label ?? '', name: record.name,
       aliases: (record.aliases ?? []).map((alias) => alias.text).filter(Boolean),
-      status: record.status,
+      status: record.status, registeredAt: record.registeredAt ?? 0, lastEventAt: record.lastEventAt ?? record.registeredAt ?? 0,
       fields: Object.fromEntries(Object.entries(record.fields ?? {}).slice(0, SHOWN_FIELDS)),
       ...(record.possibleDuplicateOf ? { possibleDuplicateOf: record.possibleDuplicateOf } : {}),
     }))].join('\n');
@@ -80,6 +82,15 @@ function validGroups(groups, records) {
   return kept;
 }
 
+/** A legacy work's records to ask about: those in a flagged pair first, then the most recently moved, up to LEGACY_ASK_LIMIT. */
+function legacyShown(records, flagged) {
+  const ranked = records.map((record, index) => ({ record, index }))
+    .sort((a, b) => Number(flagged.has(b.record.id)) - Number(flagged.has(a.record.id))
+      || (b.record.lastEventAt ?? 0) - (a.record.lastEventAt ?? 0) || a.index - b.index);
+  const kept = new Set(ranked.slice(0, LEGACY_ASK_LIMIT).map((item) => item.record));
+  return records.filter((record) => kept.has(record));
+}
+
 const candidateKey = (candidate) => `${candidate.into}<${[...candidate.from].sort().join(',')}`;
 
 /**
@@ -98,8 +109,8 @@ export async function proposeLedgerMerges({ store, workId, providers, kit: kitSo
   const fresh = pairs.filter((pair) => !asked.has(pair.key));
   const legacyAsk = legacy && !stored.legacyAsked;
   if (!legacyAsk && !fresh.length) return { status: 'none', candidates: known };
-  const involved = new Set(fresh.flatMap((pair) => pair.ids));
-  const shown = legacyAsk ? records : records.filter((record) => involved.has(record.id));
+  const involved = new Set((legacyAsk ? pairs : fresh).flatMap((pair) => pair.ids));
+  const shown = legacyAsk ? legacyShown(records, involved) : records.filter((record) => involved.has(record.id));
   const save = (candidates) => store.saveMergeCandidates(workId, {
     candidates, askedPairs: [...new Set([...asked, ...(legacyAsk ? pairs : fresh).map((pair) => pair.key)])],
     legacyAsked: Boolean(stored.legacyAsked || legacyAsk), updatedAt: new Date().toISOString(),
@@ -122,4 +133,15 @@ export async function proposeLedgerMerges({ store, workId, providers, kit: kitSo
   const candidates = [...known, ...validGroups(obj.groups, shown).filter((candidate) => !seen.has(candidateKey(candidate)))];
   await save(candidates);
   return { status: 'done', candidates };
+}
+
+/**
+ * Stored merge candidates the user has not approved yet, as lore_configure and
+ * the guided approval screen show them.
+ */
+export async function openMergeCandidates({ store, workId }) {
+  const { merges } = await loadLedgerConfig(store, workId);
+  const approvedFrom = new Set(merges.map((merge) => merge.from));
+  return ((await store.loadMergeCandidates?.(workId))?.candidates ?? [])
+    .filter((candidate) => !candidate.from.every((id) => approvedFrom.has(id)));
 }

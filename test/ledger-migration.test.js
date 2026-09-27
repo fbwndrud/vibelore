@@ -39,6 +39,23 @@ test('the request lists every record by feature and a record merged into itself 
   for (const text of ['o1', '서명 쪽지', 'o2', '재서명된 쪽지', 'k1', '은빛 열쇠']) assert.ok(user.includes(text), text);
 });
 
+test('a long legacy work is asked about its flagged pairs and latest records, with when each was registered and last moved', async () => {
+  const { store, workId } = await legacyWorkWithDuplicates();
+  const { emptyStoryState } = await import('../engine/src/continuity/story-state.js');
+  const many = Array.from({ length: 200 }, (_, index) => ({ kind: 'Artifact', data: { name: String.fromCharCode(0xAC00 + index * 7, 0xB098 + index * 11) } }));
+  await store.saveArtifact({ workId, chapterNumber: 3, prose: '다', delta: { chapterNumber: 3, appearedCharacterIds: [], newAddressEntries: [], relationshipOps: [], mutableChanges: [], trackedEntityOps: many } });
+  const { ledger: _ledger, ...legacy } = emptyStoryState(workId);
+  await store.saveStoryState({ ...legacy, chapterNumber: 3, trackedEntities: [] });
+  const requests = [];
+  await proposeLedgerMerges({ store, workId, providers: { complete: async (req) => { requests.push(req); return answer([]); } }, kit });
+  const lines = requests[0].messages.map((m) => m.content).join('\n').split('\n').filter((line) => line.startsWith('{'));
+  assert.equal(lines.length, 150);
+  const shown = lines.map((line) => JSON.parse(line));
+  assert.ok(shown.some((record) => record.id === 'o1') && shown.some((record) => record.id === 'o2'), 'the flagged pair stays');
+  assert.deepEqual(Object.keys(shown.find((record) => record.id === 'o1')).filter((key) => key.endsWith('At')), ['registeredAt', 'lastEventAt']);
+  assert.match(requests[0].messages[0].content, /registeredAt/);
+});
+
 test('an unusable answer is not stored, so the ledger is asked again', async () => {
   const { store, workId } = await legacyWorkWithDuplicates();
   let asked = 0;
@@ -152,8 +169,12 @@ const workflowProviders = (steps) => ({ async complete(req) {
 test('guided lore_write on a legacy work asks for merge candidates before drafting; auto never asks', async () => {
   const guided = await legacyQualityStore();
   const steps = [];
-  await runWriteWorkflow({ store: guided, workId: qualityWorkId, autonomy: 'guided', providers: workflowProviders(steps) });
+  const shown = await runWriteWorkflow({ store: guided, workId: qualityWorkId, autonomy: 'guided', providers: workflowProviders(steps) });
   assert.ok(steps.includes('ledger-merge'), steps.join(','));
+  // The approval screen shows the candidates next to the draft, with how to approve them.
+  assert.equal(shown.status, 'awaiting_approval', JSON.stringify({ status: shown.status, code: shown.code }));
+  assert.deepEqual(shown.mergeCandidates, [{ into: 'o1', from: ['o2'], reason: '같은 쪽지' }]);
+  assert.match(shown.mergeHint, /lore_configure\(mergeRecords/);
   assert.ok(steps.indexOf('ledger-merge') < steps.indexOf('draft'));
   assert.deepEqual((await guided.loadMergeCandidates(qualityWorkId)).candidates, [{ into: 'o1', from: ['o2'], reason: '같은 쪽지' }]);
   assert.equal((await ledgerLogStatus({ store: guided, workId: qualityWorkId })).ok, true);

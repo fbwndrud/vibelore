@@ -24,6 +24,8 @@ import { createHash } from 'node:crypto';
 import { renderSceneCharacterPacket } from '../core/character-dynamics-adapter.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { isHookActive, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
+import { trackingEnabled } from '../../engine/src/continuity/ledger.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 import { PROMPT_FAMILY_KO, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { tokenUnits } from '../core/token-units.js';
@@ -68,8 +70,11 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
 
   const window = await buildSlidingWindow({ workId, currentChapter: chapter, state: store, promptFamily: kit.family });
   const lastState = normalizeStoryState(window.lastStoryState);
+  // A feature the author turned off is not put in front of the writer.
+  const ledgerConfig = await loadLedgerConfig(store, workId);
+  const activeHooks = trackingEnabled(ledgerConfig, 'hooks') ? (lastState?.hooks ?? []).filter(isHookActive) : [];
 
-  const snapshots = await store.loadEntitySnapshots(workId);
+  const snapshots = trackingEnabled(ledgerConfig, 'objects') ? await store.loadEntitySnapshots(workId) : [];
   const entity = resolveEntityContext({ snapshots, scene: scene ?? undefined, promptFamily: kit.family });
 
   const estimated = targetChapters ?? foundation.targetChapters ?? 0;
@@ -99,7 +104,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     .map((item) => ({ ...item, id: `${item.scope}:${item.ref}` }));
   const mandatory = [
     ...foundation.worldFacts.map((fact) => ({ id: `fact:${fact.id}`, kind: 'world_fact', text: fact.statement, active: true })),
-    ...(lastState?.hooks ?? []).filter(isHookActive).map((hook) => ({ id: `hook:${hook.id}`, kind: 'promise', text: hook.text ?? '', active: true })),
+    ...activeHooks.map((hook) => ({ id: `hook:${hook.id}`, kind: 'promise', text: hook.text ?? '', active: true })),
   ];
   const compiledMemory = compileMemory({
     snapshotId, expectedHead: snapshotId, storyTimeScope: { worldline: 'main', through: chapter - 1 },
@@ -163,7 +168,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
   if (address) sections.push('', t.addressHeading, address);
 
   // Only hooks still open; paid or parked ones are not promises to the reader.
-  const openHooks = (lastState?.hooks ?? []).filter(isHookActive);
+  const openHooks = activeHooks;
   if (openHooks.length) {
     sections.push('', t.hooksHeading,
       openHooks.map((h) => {

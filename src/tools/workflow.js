@@ -22,7 +22,7 @@ import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { renderSummaries } from '../core/prompt-sections.js';
 import { ensureArcSummaries } from './arc-summary.js';
-import { ensureLedgerLog, proposeLedgerMerges } from './ledger-migration.js';
+import { ensureLedgerLog, openMergeCandidates, proposeLedgerMerges } from './ledger-migration.js';
 import { loadDisabledReviews, loadLedgerConfig } from '../core/review-policy.js';
 import { detectWorkingTreeDrift } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
@@ -140,6 +140,16 @@ function manifestFrom(raw) {
   if (cleaned.leaked) throw new Error('초고에 제거되지 않은 내부 sentinel이 남았습니다.');
   assertProseIntegrity(cleaned.clean);
   return { prose: cleaned.clean.trim(), castManifestRaw: block?.body ?? '{"cast":[]}' };
+}
+
+/**
+ * Record merge candidates waiting for the user, shown with the draft on the
+ * guided approval screen (auto never asks for them). Nothing when none wait.
+ */
+async function mergeCandidatesForApproval(store, workId) {
+  const mergeCandidates = await openMergeCandidates({ store, workId }).catch(() => []);
+  return mergeCandidates.length ? { mergeCandidates,
+    mergeHint: '같은 대상으로 보이는 기록입니다. 합치려면 lore_configure(mergeRecords=[{from, into}])로 승인하세요. 승인하지 않으면 그대로 둡니다.' } : {};
 }
 
 const DRAMATIC_DIMENSIONS = {
@@ -371,6 +381,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       approvalId: workflow.approvalId, chapter, prose: workflow.draftProse,
       quality: workflow.quality, nextAction: 'lore_decide로 승인하거나 피드백과 함께 거절하세요.',
       ...(workflow.degraded ? { degraded: workflow.degraded } : {}),
+      ...await mergeCandidatesForApproval(store, workId),
     };
   }
 
@@ -620,7 +631,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     if (disabledReviews.includes('story-profile-check')) await reviews.run('story-profile-check', async () => null, null);
     const priorSummaries = await store.loadRecentChapterSummaries(workId, chapter, 2);
     const ledgerConfig = await loadLedgerConfig(store, workId);
-    const authorRules = ledgerConfig.customTracking.map((item) => item.note).filter(Boolean);
+    const authorRules = ledgerConfig.customTracking.filter((item) => item.note).map((item) => ({ id: item.id, text: item.note }));
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
       plan: renderEpisodePlan(episodePlan, kit), prevSummary: priorSummaries[0]?.summary ?? '',
@@ -830,6 +841,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       status: 'awaiting_approval', stage: workflow.stage, workflowId: workflow.workflowId,
       approvalId: workflow.approvalId, chapter, prose: current.prose, quality: workflow.quality,
       ...(workflow.degraded ? { degraded: workflow.degraded } : {}),
+      ...await mergeCandidatesForApproval(store, workId),
       nextAction: 'lore_decide로 승인하거나 피드백과 함께 수정 요청·보류·거절하세요.',
     };
   }
@@ -853,6 +865,7 @@ async function commitPassedWorkflow({ store, workflow, providers }) {
     await transition(store, workflow, 'awaiting_draft_approval', { operation: null });
     return { status: 'awaiting_approval', workflowId: workflow.workflowId, chapter: workflow.chapter,
       approvalId: workflow.approvalId, prose: workflow.draftProse, quality: workflow.quality, degraded: workflow.degraded,
+      ...await mergeCandidatesForApproval(store, workflow.workId),
       nextAction: '필수 검토가 완료되지 않았습니다. 원고와 검사 결과를 보고 lore_decide로 판단하세요.' };
   }
   const priorExperience = workflow.patternEntry

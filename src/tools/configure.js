@@ -3,6 +3,7 @@ import { TRACKING_FEATURES } from '../../engine/src/continuity/ledger.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract } from '../core/narrative-contract.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { episodeForChapter } from './arc.js';
+import { openMergeCandidates } from './ledger-migration.js';
 
 export async function runConfigureStatus({ store, workId, disabledReviews, disabledDraftSections, tracking, customTracking, mergeRecords }) {
   if (Array.isArray(disabledReviews) || Array.isArray(disabledDraftSections) || tracking !== undefined || customTracking !== undefined || mergeRecords !== undefined) {
@@ -16,9 +17,7 @@ export async function runConfigureStatus({ store, workId, disabledReviews, disab
   const draftSectionsOff = await loadDisabledDraftSections(store, workId);
   const ledgerConfig = await loadLedgerConfig(store, workId);
   // A candidate the user already approved is not offered again.
-  const approvedFrom = new Set(ledgerConfig.merges.map((merge) => merge.from));
-  const mergeCandidates = ((await store.loadMergeCandidates?.(workId))?.candidates ?? [])
-    .filter((candidate) => !candidate.from.every((id) => approvedFrom.has(id)));
+  const mergeCandidates = await openMergeCandidates({ store, workId });
   const [foundation, profile, identity, writerSkill, storySpine, arcPlan] = await Promise.all([
     store.loadFoundation(workId), store.loadStoryProfile(workId), store.loadStoryIdentity(workId),
     store.loadWriterSkill(workId), store.loadStorySpine(workId), store.loadArcPlan(workId),
