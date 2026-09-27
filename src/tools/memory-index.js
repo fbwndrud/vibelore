@@ -3,7 +3,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { isHookActive, normalizeHook } from '../../engine/src/continuity/story-state.js';
 import { searchTerms } from '../core/search-terms.js';
-import { ledgerPrevState } from './ledger-log.js';
+import { ledgerBaseState, ledgerPrevState } from './ledger-log.js';
 import { trackingEnabled } from '../../engine/src/continuity/ledger.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 
@@ -34,7 +34,8 @@ export async function rebuildMemoryIndex({ store, workId, language }) {
       if (summary?.summary) insert.run('summary', String(summary.chapterNumber), summary.chapterNumber, summary.summary);
     }
     const latest = chapters.at(-1) ?? 0;
-    const state = latest ? await store.loadStoryState(workId, latest) : null;
+    // A legacy work reads the records its delta replay ends with, the ids the event log uses.
+    const state = latest ? await ledgerBaseState({ store, workId, chapter: latest }) : null;
     // What the author stopped tracking is not brought back through memory either.
     const config = await loadLedgerConfig(store, workId);
     for (const hook of trackingEnabled(config, 'hooks') ? state?.hooks ?? [] : []) {
@@ -43,8 +44,8 @@ export async function rebuildMemoryIndex({ store, workId, language }) {
       if (status === 'paid' || status === 'closed') continue;
       insert.run('hook', hook.id ?? '', hook.plantedAtChapter ?? 0, hook.text ?? '');
     }
-    // A state written before the ledger (or no chapter yet) gets its records from the entity snapshots.
-    const ledger = ledgerPrevState(workId, state, await store.loadEntitySnapshots(workId)).ledger;
+    // No chapter yet: the records seeded from the entity snapshots.
+    const ledger = (state ?? ledgerPrevState(workId, null, await store.loadEntitySnapshots(workId))).ledger;
     const records = ledger?.records ?? [];
     const off = new Set(records.filter((record) => !trackingEnabled(config, record.feature)).flatMap((record) => [record.id, ...(record.mergedIds ?? [])]));
     for (const record of records.filter((item) => !off.has(item.id))) {

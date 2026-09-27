@@ -3,7 +3,8 @@
  * this file is rebuilt from them, so it follows commits, rollbacks and syncs
  * without its own bookkeeping.
  */
-import { emptyStoryState, ledgerStep, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
+import { emptyStoryState, isLegacyLedger, ledgerStep, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 import { ledgerHistory, withLegacyEntities } from '../../engine/src/continuity/ledger.js';
 
 export { ledgerHistory };
@@ -29,19 +30,45 @@ export function ledgerPrevState(workId, loaded, entities = []) {
   return { ...seeded, ledger: withLegacyEntities(seeded.ledger, entities) };
 }
 
-export async function rebuildLedgerLog({ store, workId, config = {} }) {
-  const chapters = await store.listChapters();
+/** Replays the chapter deltas (through `through`, or all) from the seeded state. */
+async function replayLedger({ store, workId, config = {}, through = null }) {
+  const chapters = (await store.listChapters()).filter((chapter) => through === null || chapter <= through);
   let state = ledgerSeedState(workId, await store.loadEntitySnapshots(workId));
   const events = [];
+  let replayed = 0;
   for (const chapter of chapters) {
     const artifact = await store.loadArtifact(workId, chapter);
     if (!artifact?.delta) continue;
     const step = ledgerStep(state, { ...artifact.delta, chapterNumber: chapter }, { config });
     events.push(...step.events);
     state = { ...state, chapterNumber: chapter, ledger: step.ledger, hooks: step.hooks };
+    replayed += 1;
   }
+  return { state, events, chapters, replayed };
+}
+
+export async function rebuildLedgerLog({ store, workId, config = {} }) {
+  const { events, chapters } = await replayLedger({ store, workId, config });
   await store.saveLedgerEvents(workId, events, { throughChapter: chapters.at(-1) ?? null, chapters: chapters.length });
   return { events, chapters: chapters.length };
+}
+
+/**
+ * The state the chapter after `chapter` builds on. A state written before the
+ * ledger kept only some tracked entities and would number them afresh, so a
+ * legacy work takes the ledger the delta replay ends with: the same records
+ * and ids as the history log, with the approved merges. Once a commit writes
+ * a state with a ledger, that ledger is used as it is.
+ */
+export async function ledgerBaseState({ store, workId, chapter, config = null }) {
+  const loaded = await store.loadStoryState(workId, chapter);
+  const entities = await store.loadEntitySnapshots(workId);
+  const base = ledgerPrevState(workId, loaded, entities);
+  if (!loaded || !isLegacyLedger(normalizeStoryState(loaded).ledger)) return base;
+  const replay = await replayLedger({ store, workId, through: chapter, config: config ?? await loadLedgerConfig(store, workId) });
+  // No delta to replay (a damaged work): the conversion of the last state is all there is.
+  if (!replay.replayed) return base;
+  return { ...base, ledger: withLegacyEntities(replay.state.ledger, entities) };
 }
 
 /**

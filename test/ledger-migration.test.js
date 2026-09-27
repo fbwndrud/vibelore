@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { ensureLedgerLog, proposeLedgerMerges } from '../src/tools/ledger-migration.js';
-import { ledgerLogStatus } from '../src/tools/ledger-log.js';
+import { ledgerBaseState, ledgerLogStatus, rebuildLedgerLog } from '../src/tools/ledger-log.js';
 import { runConfigureStatus } from '../src/tools/configure.js';
 import { runWriteWorkflow } from '../src/tools/workflow.js';
 import { promptKit } from '../src/prompts/index.js';
@@ -59,7 +59,9 @@ test('a pending host answer is reported and nothing is stored', async () => {
 test('a ledger with fewer than two records in every feature is not asked', async () => {
   const { store, workId } = await legacyWorkWithDuplicates();
   const state = await store.loadStoryState(workId, 2);
-  await store.saveStoryState({ ...state, ledger: undefined, trackedEntities: [{ kind: 'Artifact', data: { name: '서명 쪽지' }, updatedChapter: 1 }] });
+  await store.saveStoryState({ ...state, trackedEntities: [], ledger: { records: [
+    { id: 'o1', feature: 'objects', label: '', name: '서명 쪽지', aliases: [], status: 'active', fields: {}, registeredAt: 1, recent: [] },
+    { id: 'k1', feature: 'knowledge', label: '', name: '은빛 열쇠', aliases: [], status: 'secret', fields: {}, registeredAt: 1, recent: [] }] } });
   let asked = 0;
   const result = await proposeLedgerMerges({ store, workId, providers: { complete: async () => { asked += 1; return answer([]); } }, kit });
   assert.equal(result.status, 'none');
@@ -136,4 +138,44 @@ test('a pending merge request rides with the chapter plan in one host round trip
   assert.equal(result.preview, true, JSON.stringify(result).slice(0, 300));
   const steps = relay.pending.map((request) => request.step);
   assert.ok(steps.includes('ledger-merge') && steps.includes('episode-plan'), steps.join(','));
+});
+
+test('a legacy work builds on the ledger its delta replay ends with, ids and names as in the log', async () => {
+  // The last legacy state kept only the renamed note; ledgerFromLegacy alone would call it o1.
+  const { store, workId } = await legacyWorkWithDuplicates({ keepLast: [{ kind: 'Artifact', data: { name: '재서명된 쪽지', holder: 'c2' }, updatedChapter: 2 }] });
+  const base = await ledgerBaseState({ store, workId, chapter: 2 });
+  const { events } = await rebuildLedgerLog({ store, workId });
+  const registered = events.filter((event) => event.event === 'registered').map((event) => event.id);
+  assert.deepEqual(base.ledger.records.map((record) => [record.id, record.name]), [['o1', '서명 쪽지'], ['k1', '은빛 열쇠'], ['o2', '재서명된 쪽지']]);
+  assert.deepEqual(base.ledger.records.map((record) => record.id).sort(), registered.sort());
+  assert.equal(base.ledger.records.find((record) => record.id === 'o2').possibleDuplicateOf, 'o1');
+  assert.equal(base.chapterNumber, 2);
+  assert.deepEqual(base.hooks.map((hook) => hook.id), ['wrist']);
+
+  // A merge approved on a live id lands on the same record when the log is rebuilt.
+  await runConfigureStatus({ store, workId, mergeRecords: [{ from: 'o2', into: 'o1' }] });
+  const { loadLedgerConfig } = await import('../src/core/review-policy.js');
+  const rebuilt = await rebuildLedgerLog({ store, workId, config: await loadLedgerConfig(store, workId) });
+  assert.ok(rebuilt.events.some((event) => event.id === 'o2' && event.event === 'merged' && event.into === 'o1'));
+  const merged = (await ledgerBaseState({ store, workId, chapter: 2 })).ledger.records.find((record) => record.id === 'o1');
+  assert.equal(merged.name, '서명 쪽지');
+  assert.deepEqual(merged.mergedIds, ['o2']);
+});
+
+test('a state that carries a ledger is used as it is, without a replay', async () => {
+  const { store, workId } = await legacyWorkWithDuplicates();
+  const state = await store.loadStoryState(workId, 2);
+  const ledger = { records: [{ id: 'o7', feature: 'objects', label: '', name: '새 기록', aliases: [], status: 'active', fields: {}, registeredAt: 2, recent: [] }] };
+  await store.saveStoryState({ ...state, trackedEntities: [], ledger });
+  assert.deepEqual((await ledgerBaseState({ store, workId, chapter: 2 })).ledger.records.map((record) => record.id), ['o7']);
+  // No chapter yet: the seeded state.
+  assert.deepEqual((await ledgerBaseState({ store, workId, chapter: 0 })).ledger.records, []);
+});
+
+test('a work is legacy when its latest state has no ledger of its own, whatever it tracked', async () => {
+  const { store, workId } = await legacyWorkWithDuplicates({ keepLast: [] });
+  assert.equal((await ensureLedgerLog({ store, workId })).legacy, true);
+  const state = await store.loadStoryState(workId, 2);
+  await store.saveStoryState({ ...state, trackedEntities: [{ kind: 'Artifact', data: { name: '서명 쪽지' } }], ledger: { records: [] } });
+  assert.equal((await ensureLedgerLog({ store, workId })).legacy, false);
 });

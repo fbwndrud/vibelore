@@ -10,7 +10,7 @@ import { emptyStoryState, reduceStoryState } from '../../engine/src/continuity/s
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { selectWriterContinuity } from './context.js';
 import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
-import { ledgerSeedState, rebuildLedgerLog } from './ledger-log.js';
+import { ledgerBaseState, ledgerSeedState, rebuildLedgerLog } from './ledger-log.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { episodeForChapter, renderArcMap } from './arc.js';
 import { compileBriefWithProfile, profileToPromptOverride } from './story-profile.js';
@@ -163,7 +163,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   if (!arcEpisode) throw new Error('승인된 아크의 해당 회차 비트가 없습니다. lore_arc_plan으로 계획하고 승인하세요.');
   const detailedPlan = await store.loadEpisodePlan(workId, chapter);
   if (!detailedPlan || detailedPlan.status !== 'active') throw new Error('승인된 상세 EpisodePlan이 없습니다. lore_episode_plan을 먼저 실행하세요.');
-  const prevState = (await draftStore.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
+  const prevState = chapter > 1 ? await ledgerBaseState({ store: draftStore, workId, chapter: chapter - 1 }) : emptyStoryState(workId);
   const storyProfile = await store.loadStoryProfile(workId);
   const storyIdentity = await store.loadStoryIdentity(workId);
   const pilotContract = chapter === 1 ? await store.loadPilotContract(workId) : null;
@@ -378,7 +378,7 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
   const artifact = await store.loadArtifact(workId, chapter);
   if (!foundation || !artifact) throw new Error(`${chapter}화 원본 또는 작품 설정을 찾을 수 없습니다.`);
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });
-  const prevState = (await store.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
+  const prevState = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1 }) : emptyStoryState(workId);
   // A whole-chapter rewrite replaces the chapter, so it needs the same window
   // a draft of this chapter would get. Its Foundation carries every
   // registered character.

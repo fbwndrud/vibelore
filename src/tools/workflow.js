@@ -37,6 +37,7 @@ import { promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage, executionFoundationSnapshot } from '../core/work-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { normalizeModelProfile, withModelProfile } from '../core/model-profile.js';
+import { ledgerBaseState } from './ledger-log.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const MAX_ATTEMPTS = 3;
@@ -628,7 +629,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     }), { score: null, reason: null });
 
     const canon = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
-    const fidelityPrevState = chapter > 1 ? await canon.loadStoryState(workId, chapter - 1) : null;
+    const fidelityPrevState = chapter > 1 ? await ledgerBaseState({ store: canon, workId, chapter: chapter - 1 }) : null;
     const fidelityDynamics = await canon.loadCharacterDynamics?.(workId) ?? null;
     const fidelityHistory = await store.loadLedgerEvents?.(workId) ?? [];
     const editorialContext = renderSummaries(priorSummaries, kit);

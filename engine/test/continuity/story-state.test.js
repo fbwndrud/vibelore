@@ -1,6 +1,6 @@
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { emptyStoryState, reduceStoryState, } from '../../src/continuity/story-state.js';
-import { ledgerStep, legacyLedgerOps, normalizeStoryState, isHookActive } from '../../src/continuity/story-state.js';
+import { ledgerStep, legacyLedgerOps, normalizeStoryState, isHookActive, isLegacyLedger } from '../../src/continuity/story-state.js';
 const emptyDelta = (chapterNumber) => ({
     chapterNumber,
     appearedCharacterIds: [],
@@ -167,7 +167,6 @@ describe('reduceStoryState', () => {
         expect(next.trackedEntities).toEqual([]);
         expect(next.ledger.records.map((r) => [r.id, r.label, r.name, r.fields, r.lastEventAt])).toEqual([
             ['o1', 'Artifact', '검', { holder: 'c2' }, 2],
-            ['o2', 'PowerSystem', '불꽃', { tier: 2 }, 2],
         ]);
     });
     it('does not mutate prev (deep equality preserved after reduce)', () => {
@@ -330,6 +329,23 @@ describe('ledger in StoryState', () => {
         expect(state.hooks[0].status).toBe('dormant');
         expect(isHookActive(state.hooks[0])).toBe(false);
         expect(state.ledger.records.map((r) => r.id)).toEqual(['seed-1', 'o1']);
+    });
+    it('skips legacy RelationshipState and PowerSystem entries: relationships and rules are tracked elsewhere', () => {
+        const delta = { ...emptyDelta(3), trackedEntityOps: [
+            { kind: 'RelationshipState', data: { from: 'c1', to: 'c2', stance: '경계' } },
+            { kind: 'PowerSystem', data: { name: '청록빛 방패', cost: '체력' } },
+            { kind: 'Clue', data: { name: '표식' } }] };
+        expect(legacyLedgerOps(emptyStoryState('w'), delta)).toEqual([{ op: 'register', feature: 'objects', label: 'Clue', name: '표식' }]);
+        const state = normalizeStoryState({ ...emptyStoryState('w'), ledger: undefined, trackedEntities: delta.trackedEntityOps });
+        expect(state.ledger.records.map((r) => r.name)).toEqual(['표식']);
+    });
+    it('marks a ledger converted from a state written before the ledger, and only that one', () => {
+        const legacy = normalizeStoryState({ ...emptyStoryState('w'), ledger: undefined, trackedEntities: [] });
+        expect(isLegacyLedger(legacy.ledger)).toBe(true);
+        expect(isLegacyLedger(normalizeStoryState(legacy).ledger)).toBe(true);
+        expect(isLegacyLedger(normalizeStoryState(emptyStoryState('w')).ledger)).toBe(false);
+        expect(isLegacyLedger(ledgerStep(legacy, emptyDelta(1)).ledger)).toBe(false);
+        expect(JSON.stringify(legacy.ledger)).toBe('{"records":[]}');
     });
     it('exposes the ledger step with its history lines', () => {
         const prev = { ...emptyStoryState('w'), chapterNumber: 1 };

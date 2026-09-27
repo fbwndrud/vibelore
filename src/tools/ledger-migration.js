@@ -8,7 +8,8 @@ import { createHash } from 'node:crypto';
 import { asKit } from '../prompts/index.js';
 import { LEDGER_FEATURES } from '../../engine/src/continuity/ledger.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
-import { ledgerLogStatus, ledgerPrevState, rebuildLedgerLog } from './ledger-log.js';
+import { isLegacyLedger, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
+import { ledgerBaseState, ledgerLogStatus, rebuildLedgerLog } from './ledger-log.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const SHOWN_FIELDS = 2;
@@ -19,15 +20,14 @@ function parse(raw) {
 }
 
 /**
- * The latest committed state and the ledger the next chapter builds on. A
- * state written before the ledger still carries its tracked entities; states
- * written since always carry an empty list.
+ * The ledger the next chapter builds on, and whether the latest committed
+ * state was written before the ledger (it has no `ledger` of its own).
  */
 async function latestLedger(store, workId) {
   const last = (await store.listChapters()).at(-1) ?? 0;
-  const state = last ? await store.loadStoryState(workId, last) : null;
-  const ledger = ledgerPrevState(workId, state, await store.loadEntitySnapshots(workId)).ledger;
-  return { ledger, legacy: (state?.trackedEntities?.length ?? 0) > 0 };
+  const loaded = last ? await store.loadStoryState(workId, last) : null;
+  const { ledger } = await ledgerBaseState({ store, workId, chapter: last });
+  return { ledger, legacy: Boolean(loaded) && isLegacyLedger(normalizeStoryState(loaded).ledger) };
 }
 
 /** Rebuilds the history log when it is missing or behind the chapters. Deterministic. */

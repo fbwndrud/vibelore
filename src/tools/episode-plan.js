@@ -13,6 +13,7 @@ import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../core/wr
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
+import { ledgerBaseState } from './ledger-log.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
@@ -193,7 +194,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   if (storyProfile && storyProfile.status !== 'active') throw new Error('StoryProfile 승인 후 에피소드를 계획하세요.');
   const prior = await store.loadEpisodePlan(workId, chapter);
   const summaries = await store.loadRecentChapterSummaries(workId, chapter, 5);
-  const state = chapter > 1 ? await store.loadStoryState(workId, chapter - 1) : null;
+  const state = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1 }) : null;
   const identity = await store.loadStoryIdentity(workId);
   const pilotContract = chapter === 1 ? await store.loadPilotContract(workId) : null;
   const patternLedger = await store.loadPatternLedger(workId);

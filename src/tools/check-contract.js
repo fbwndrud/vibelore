@@ -3,7 +3,7 @@ import { renderCheckSections, renderCurrentState } from '../core/prompt-sections
 import { createHash } from 'node:crypto';
 import { extractDelta, continuityCheck, computeExtractionContextHash } from '../../engine/src/continuity/continuity-check.js';
 import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
-import { ledgerPrevState } from './ledger-log.js';
+import { ledgerBaseState } from './ledger-log.js';
 import { findRecord, reviewLedgerOps } from '../../engine/src/continuity/ledger.js';
 import { ledgerStep } from '../../engine/src/continuity/story-state.js';
 import { evaluateChapterQuality } from '../../engine/src/continuity/quality-gate.js';
@@ -159,7 +159,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     base.violations.push({ severity: 'soft', code: finding.code, chapterNumber: chapter, message: finding.message });
   }
   // The same state the commit reduces from, so the extractor sees the seeded and snapshot records by id.
-  const prevState = ledgerPrevState(workId, await canonicalStore.loadStoryState(workId, chapter - 1), entities);
+  const prevState = await ledgerBaseState({ store: canonicalStore, workId, chapter: chapter - 1 });
   const kit = promptKit({ contract: workContract });
   const ledgerConfig = await loadLedgerConfig(store, workId);
   const extractionInput = { prose: input.prose, chapterNumber: chapter, foundation, providers: wrapped, model: MODEL, prevState,

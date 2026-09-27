@@ -11,7 +11,7 @@
 import { extractDelta, supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
 import { isHookActive, normalizeStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
-import { ledgerLogStatus, ledgerPrevState, rebuildLedgerLog } from './ledger-log.js';
+import { ledgerBaseState, ledgerLogStatus, rebuildLedgerLog } from './ledger-log.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { advanceArcAfterCommit } from './arc.js';
 import { completeEpisodePlan, upgradeEpisodePlanningContract } from './episode-plan.js';
@@ -117,9 +117,8 @@ export async function runCommit({
     castManifestRaw = contractArtifact.castManifestRaw;
   }
 
-  // Every snapshot must reach the ledger; otherwise the entities derived below would drop it from canon.
-  const priorEntities = await canonicalStore.loadEntitySnapshots(workId);
-  const prev = ledgerPrevState(workId, await canonicalStore.loadStoryState(workId, chapter - 1), priorEntities);
+  // Every snapshot must reach the ledger (the base state adds them); otherwise the entities derived below would drop it from canon.
+  const prev = await ledgerBaseState({ store: canonicalStore, workId, chapter: chapter - 1 });
   let delta = contractCommit
     ? (contractArtifact.semanticDelta ?? checkReceipt.delta)
     : (presetDelta ?? checkReceipt?.delta ?? (await extractDelta({

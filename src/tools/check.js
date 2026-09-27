@@ -30,6 +30,7 @@ import { profileCheckInputs } from '../core/profile-check-input.js';
 import { promptKit } from '../prompts/index.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { runContractCheck, shouldUseContractCheck } from './check-contract.js';
+import { ledgerBaseState } from './ledger-log.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 
@@ -106,7 +107,7 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
   let unregisteredNamed = [];
   // The delta is read against the state the previous chapter left behind, so a
   // change only counts as a change relative to what was already true.
-  const prevState = (await store.loadStoryState(workId, chapter - 1)) ?? emptyStoryState(workId);
+  const prevState = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1 }) : emptyStoryState(workId);
   const extracted = await extractDelta({
     prose, chapterNumber: chapter, foundation, providers, model: MODEL, prevState,
     castManifestRaw: castManifestRaw ?? '',

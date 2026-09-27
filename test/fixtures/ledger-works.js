@@ -13,7 +13,7 @@ const base = (chapterNumber) => ({ chapterNumber, appearedCharacterIds: [], newA
  * note twice ('서명 쪽지', '재서명된 쪽지') and one knowledge record, and the
  * matching story states carry `trackedEntities` and no `ledger`.
  */
-export async function addLegacyChapters(store, workId = ledgerWorkId) {
+export async function addLegacyChapters(store, workId = ledgerWorkId, { keepLast = null } = {}) {
   const note = { kind: 'Artifact', data: { name: '서명 쪽지', holder: 'c1' } };
   const renamed = { kind: 'Artifact', data: { name: '재서명된 쪽지', holder: 'c2' } };
   const secret = { kind: 'KnowledgeMatrix', data: { name: '은빛 열쇠', knownBy: 'c1' } };
@@ -26,11 +26,12 @@ export async function addLegacyChapters(store, workId = ledgerWorkId) {
     return { ...state, chapterNumber, hooks: [{ id: 'wrist', text: '손목', phase: 'planted', plantedAtChapter: 1 }], trackedEntities };
   };
   await store.saveStoryState(legacyState(1, [tracked(note, 1), tracked(secret, 1)]));
-  await store.saveStoryState(legacyState(2, [tracked(note, 1), tracked(secret, 1), tracked(renamed, 2)]));
+  // Legacy reducers did not always keep every tracked entity in the last state.
+  await store.saveStoryState(legacyState(2, keepLast ?? [tracked(note, 1), tracked(secret, 1), tracked(renamed, 2)]));
 }
 
-export async function legacyWorkWithDuplicates() {
+export async function legacyWorkWithDuplicates(options = {}) {
   const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-ledger-legacy-')));
-  await addLegacyChapters(store);
+  await addLegacyChapters(store, ledgerWorkId, options);
   return { store, workId: ledgerWorkId };
 }

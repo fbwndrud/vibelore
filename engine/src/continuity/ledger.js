@@ -33,6 +33,9 @@ const LEGACY_HOOK_STATUS = Object.freeze({
 export const LEGACY_KNOWLEDGE_KINDS = new Set(['KnowledgeMatrix', 'RegressionKnowledge']);
 // Kinds that were used as a per-chapter event list; the event log replaces them.
 export const LEGACY_LOG_KINDS = new Set(['Timeline']);
+// Kinds that are not things a record tracks: relationships live in the address
+// map and character dynamics, power rules in the world facts.
+export const LEGACY_SKIPPED_KINDS = new Set(['RelationshipState', 'PowerSystem']);
 const LEGACY_NAME_FIELDS = ['name', 'item', 'ability', 'title', 'subject', 'fact', 'clue', 'event', 'key', 'id', 'label', 'canonicalName'];
 const PARTICLES = ['에게서', '에서는', '으로는', '에서', '에게', '한테', '으로', '까지', '부터', '처럼', '은', '는', '이', '가', '을', '를', '의', '에', '와', '과', '도', '로', '만'];
 const QUOTES = /["'“”‘’「」『』《》〈〉()[\]{}]/g;
@@ -158,7 +161,7 @@ export function ledgerFromLegacy({ trackedEntities = [], entities = [] } = {}) {
         });
     }
     for (const tracked of trackedEntities ?? []) {
-        if (!tracked?.kind || LEGACY_LOG_KINDS.has(tracked.kind))
+        if (!tracked?.kind || LEGACY_LOG_KINDS.has(tracked.kind) || LEGACY_SKIPPED_KINDS.has(tracked.kind))
             continue;
         const feature = LEGACY_KNOWLEDGE_KINDS.has(tracked.kind) ? 'knowledge' : 'objects';
         const { name, fields } = legacyRecord(tracked.data);

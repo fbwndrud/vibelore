@@ -7,7 +7,7 @@
  * containers so evaluating a candidate does not mutate the prior snapshot.
  */
 import { advanceCursor, CHARACTER_ARC_BEATS } from './character-arc.js';
-import { applyLedgerOps, applyMerges, emptyLedger, HOOK_HORIZONS, hookStatusOf, HOOK_STATUSES, LEGACY_KNOWLEDGE_KINDS, LEGACY_LOG_KINDS, ledgerFromLegacy, legacyRecord } from './ledger.js';
+import { applyLedgerOps, applyMerges, emptyLedger, HOOK_HORIZONS, hookStatusOf, HOOK_STATUSES, LEGACY_KNOWLEDGE_KINDS, LEGACY_LOG_KINDS, LEGACY_SKIPPED_KINDS, ledgerFromLegacy, legacyRecord } from './ledger.js';
 /**
  * Hook lifecycle. A hook is a narrative promise to the reader.
  *   open    — the reader is waiting on it
@@ -47,12 +47,26 @@ export function normalizeHook(raw) {
         recent: Array.isArray(raw.recent) ? raw.recent : [],
     };
 }
+// Ledgers converted from a state written before the ledger. Kept out of the
+// object so it is never persisted: a state reduced from one carries a new ledger.
+const LEGACY_LEDGERS = new WeakSet();
+/**
+ * Whether this ledger was converted from a state written before the ledger.
+ * Such a ledger holds only the tracked entities the last state kept, numbered
+ * afresh; callers that build on it replay the chapter deltas instead.
+ */
+export function isLegacyLedger(ledger) {
+    return Boolean(ledger) && typeof ledger === 'object' && LEGACY_LEDGERS.has(ledger);
+}
 /** Normalize a persisted StoryState (or null). A state written before the ledger gets one from its tracked entities and the entity snapshots. */
 export function normalizeStoryState(state, { entities = [] } = {}) {
     if (!state || typeof state !== 'object')
         return state;
     const hooks = Array.isArray(state.hooks) ? state.hooks.map(normalizeHook).filter(Boolean) : [];
-    const ledger = state.ledger?.records ? state.ledger : ledgerFromLegacy({ trackedEntities: state.trackedEntities, entities });
+    if (state.ledger?.records)
+        return { ...state, hooks, ledger: state.ledger };
+    const ledger = ledgerFromLegacy({ trackedEntities: state.trackedEntities, entities });
+    LEGACY_LEDGERS.add(ledger);
     return { ...state, hooks, ledger };
 }
 /**
@@ -137,6 +151,8 @@ export function legacyLedgerOps(prev, delta) {
                 ops.push({ op: 'chapter-note', note: String(note) });
             continue;
         }
+        if (LEGACY_SKIPPED_KINDS.has(op.kind))
+            continue;
         const { name, fields } = legacyRecord(op.data);
         if (!name)
             continue;
