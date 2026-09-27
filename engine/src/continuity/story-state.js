@@ -249,12 +249,22 @@ export function reduceStoryState(prev, delta, { config = {} } = {}) {
             }
         }
         else {
-            nextArcCursor = advanceCursor(nextArcCursor, {
-                characterId: op.characterId,
-                nextBeat: op.nextBeat,
-                chapterNumber: delta.chapterNumber,
-                note: op.note,
-            });
+            try {
+                nextArcCursor = advanceCursor(nextArcCursor, {
+                    characterId: op.characterId,
+                    nextBeat: op.nextBeat,
+                    chapterNumber: delta.chapterNumber,
+                    note: op.note,
+                });
+            }
+            catch (error) {
+                // The arc cursor is an advisory observation: an arc start over the
+                // active quota (e.g. an approved arc opening a third personal arc)
+                // is left out rather than failing the chapter commit. Order
+                // violations stay errors.
+                if (error?.code !== 'ACTIVE_ARC_QUOTA_EXCEEDED')
+                    throw error;
+            }
         }
     }
     const nextCharacterStates = {};

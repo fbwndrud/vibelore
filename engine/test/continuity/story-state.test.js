@@ -30,6 +30,29 @@ describe('reduceStoryState', () => {
         expect(next.arcCursor.hero.beat).toBe('companion');
         expect(next.arcCursor.hero.enteredAtChapter).toBe(4);
     });
+    // 2026-09-28 ko sample: an approved second arc opened a personal arc for a third
+    // character while two earlier arcs were still active. The arc cursor is an
+    // advisory observation, so the over-quota start is left out instead of
+    // failing the chapter commit; the other ops of the delta still apply.
+    it('leaves out an arc start over the active quota and keeps the rest of the delta', () => {
+        const prev = { ...emptyStoryState('w'), chapterNumber: 9, arcCursor: {
+            hero: { beat: 'attempt', enteredAtChapter: 2 }, ally: { beat: 'attempt', enteredAtChapter: 3 } } };
+        const delta = emptyDelta(10);
+        delta.arcCursorOps = [
+            { characterId: 'rival', nextBeat: 'wound', note: 'a third arc opens' },
+            { characterId: 'hero', nextBeat: 'collapse', note: 'hero falls' },
+        ];
+        const next = reduceStoryState(prev, delta);
+        expect(next.arcCursor.rival).toBe(undefined);
+        expect(next.arcCursor.hero.beat).toBe('collapse');
+        expect(next.chapterNumber).toBe(10);
+    });
+    it('still rejects an arc that regresses', () => {
+        const prev = { ...emptyStoryState('w'), chapterNumber: 3, arcCursor: { hero: { beat: 'collapse', enteredAtChapter: 2 } } };
+        const delta = emptyDelta(4);
+        delta.arcCursorOps = [{ characterId: 'hero', nextBeat: 'wound' }];
+        expect(() => reduceStoryState(prev, delta)).toThrow(/cannot regress/);
+    });
     it('throws chapter-out-of-order when delta.chapterNumber <= prev.chapterNumber', () => {
         const prev = { ...emptyStoryState('w'), chapterNumber: 3 };
         expect(() => reduceStoryState(prev, emptyDelta(3))).toThrow(/chapter-out-of-order: prev=3 expected delta>3/);
