@@ -227,4 +227,16 @@ describe('episode plan contracts are validated before drafting', () => {
     const planning = requests.find((req) => req.step === 'episode-plan');
     assert.match(planning.messages.map((m) => m.content).join('\n'), /PINNED_COIN/);
   });
+  it('shows the planner hook ids and keeps only existing ids in hooksTouched', async () => {
+    const store = await qualityStore();
+    await store.saveStoryState({ workId, chapterNumber: 1, characterStates: {}, addressMap: { entries: {} }, relationships: [],
+      hooks: [{ id: 'h4', text: 'HOOK_WITH_ID', status: 'open', plantedAtChapter: 1, lastMovedChapter: 1, recent: [] }], ledger: { records: [] } });
+    const requests = [];
+    const providers = sequenceProvider({ 'episode-plan': [JSON.stringify({ ...basePlan, hooksTouched: ['h4', 'HOOK_WITH_ID', 'h99'] })] }, requests);
+    const result = await runEpisodePlan({ store, workId, chapter: 2, mode: 'auto', providers });
+    const text = requests.find((req) => req.step === 'episode-plan').messages.map((m) => m.content).join('\n');
+    assert.match(text, /- `h4` HOOK_WITH_ID/);
+    assert.match(text, /hooksTouched에는 .*떡밥 id/);
+    assert.deepEqual(result.plan.hooksTouched, ['h4']);
+  });
 });

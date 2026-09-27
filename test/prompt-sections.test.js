@@ -164,10 +164,10 @@ test('planner render adds long-dormant hooks and pending scheduled events; the w
     { id: 's2', feature: 'scheduled', label: '예정', name: 'DONE_EVENT', aliases: [], status: 'happened', fields: {}, lastEventAt: 29, recent: [] },
   ] } };
   const planner = renderCurrentState(state, foundation, { kit, mode: 'planner', focusText: '' });
-  assert.match(planner, /잠복한 떡밥 \(다시 꺼낼 수 있음\):\n- DORMANT_OLD/);
+  assert.match(planner, /잠복한 떡밥 \(다시 꺼낼 수 있음\):\n- `d1` DORMANT_OLD/);
   assert.doesNotMatch(planner, /DORMANT_FRESH|PAID_ONE/);
   assert.match(planner, /아직 일어나지 않은 예정 사건:\n- \[예정\] 왕성 공성전 · 예정/);
-  assert.match(planner, /- DORMANT_OLD \(잠복\)/);
+  assert.match(planner, /- `d1` DORMANT_OLD \(잠복\)/);
   assert.doesNotMatch(planner, /DONE_EVENT/);
   const writer = renderCurrentState(state, foundation, { kit, mode: 'writer', focusText: '' });
   assert.doesNotMatch(writer, /DORMANT_OLD|잠복한 떡밥|PAID_ONE/);
@@ -231,4 +231,58 @@ test('English writer history labels chapters as in the rest of the table', () =>
   const text = renderCurrentState(state, foundation, { kit: en, mode: 'writer', focusText: 'the signed note', history });
   assert.match(text, /history: ch\. 4 registered, ch\. 5 odd-event/, 'unknown words fall back to the raw value');
   assert.match(text, /signed note · missing/);
+});
+
+test('the extractor sees dormant and paid hooks that bear on the chapter, with id and status', () => {
+  const state = { chapterNumber: 30, addressMap: { entries: {} }, relationships: [], ledger: { records: [] }, hooks: [
+    { id: 'h1', text: '은빛 열쇠의 주인', status: 'dormant', plantedAtChapter: 2, lastMovedChapter: 12 },
+    { id: 'h2', text: '손목의 흉터', status: 'paid', plantedAtChapter: 3, lastMovedChapter: 20 },
+    { id: 'h3', text: '다리 아래의 목소리', status: 'closed', plantedAtChapter: 4, lastMovedChapter: 20 },
+    { id: 'h4', text: '무관한 약속', status: 'dormant', plantedAtChapter: 4, lastMovedChapter: 10 },
+  ] };
+  const text = renderCurrentState(state, foundation, { kit, mode: 'extract', focusText: '은빛 열쇠의 주인이 손목의 흉터를 보였다. 다리 아래의 목소리.' });
+  assert.match(text, /`h1` · dormant/);
+  assert.match(text, /`h2` · paid/);
+  assert.doesNotMatch(text, /`h3`|`h4`/);
+});
+
+test('the planner sees hook ids so hooksTouched can name them', () => {
+  const state = { chapterNumber: 5, addressMap: { entries: {} }, relationships: [], ledger: { records: [] }, hooks: [
+    { id: 'h7', text: '누가 사슬을 박았나', status: 'open', plantedAtChapter: 4, lastMovedChapter: 4 },
+  ] };
+  assert.match(renderCurrentState(state, foundation, { kit, mode: 'planner' }), /- `h7` 누가 사슬을 박았나/);
+  assert.doesNotMatch(renderCurrentState(state, foundation, { kit, mode: 'writer' }), /`h7`/);
+});
+
+test('author items with no record yet are listed as things to track; a pinned item links to its record by name', () => {
+  const state = { chapterNumber: 9, addressMap: { entries: {} }, relationships: [], hooks: [], ledger: { records: [
+    { id: 'o4', feature: 'objects', label: '물건', name: '금화 주머니', aliases: [], status: 'active', fields: { amount: '10닢' }, lastEventAt: 1, recent: [] },
+  ] } };
+  const config = { customTracking: [
+    { id: 'u1', name: '금화 주머니', feature: 'objects', pinned: true },
+    { id: 'u2', name: '계절', feature: 'knowledge', pinned: true },
+    { id: 'u3', name: 'OFF_ITEM', feature: 'scheduled' },
+  ], tracking: { scheduled: false } };
+  const extract = renderCurrentState(state, foundation, { kit, mode: 'extract', focusText: '관련 없는 문장', config });
+  assert.match(extract, /`o4` \[물건\] 금화 주머니/);
+  assert.match(extract, /`u2` \[knowledge\] 계절 · 아직 기록 없음/);
+  assert.doesNotMatch(extract, /`u1`|OFF_ITEM/);
+  for (const mode of ['writer', 'planner']) {
+    const text = renderCurrentState(state, foundation, { kit, mode, focusText: '관련 없는 문장', config });
+    assert.match(text, /금화 주머니/, mode);
+    assert.match(text, /계절 · 추적 요청/, mode);
+  }
+  const english = renderCurrentState(state, foundation, { kit: en, mode: 'writer', focusText: 'x', config });
+  assert.match(english, /계절 · tracked on request/);
+});
+
+test('writers and planners see the speaker-only aliases of the records they are shown', () => {
+  const state = { chapterNumber: 9, addressMap: { entries: {} }, relationships: [], hooks: [], ledger: { records: [
+    { id: 'o3', feature: 'objects', label: '물건', name: '통행 장부', aliases: [{ text: '그 종이 쪼가리', by: 'c4', since: 5 }], status: 'active', fields: {}, lastEventAt: 8, recent: [] },
+  ] } };
+  const config = { customTracking: [{ id: 'u1', name: '통행 장부', feature: 'objects', rules: [{ type: 'speakerOnly', alias: '빚문서', by: 'c2' }] }] };
+  for (const mode of ['writer', 'planner']) {
+    const text = renderCurrentState(state, foundation, { kit, mode, focusText: '통행 장부', config });
+    assert.match(text, /화자 전용 별칭: "그 종이 쪼가리"\(마렌만\), "빚문서"\(도윤만\)/, mode);
+  }
 });

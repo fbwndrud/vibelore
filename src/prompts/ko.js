@@ -95,7 +95,7 @@ export const steps = {
   },
 
   'ledger-merge': {
-    system: '이야기 기록 목록에서 같은 대상을 다른 이름으로 적은 기록끼리 묶는다. 확실한 것만 묶고, 같은 기능(feature) 안에서만 묶는다. 순수 JSON만 출력한다.',
+    system: '이야기 기록 목록에서 같은 대상을 다른 이름으로 적은 기록끼리 묶는다. 확실한 것만 묶고, 같은 기능(feature) 안에서만 묶는다. into에는 묶음에서 가장 먼저 등록된(registeredAt이 가장 작은) 기록 id를 쓴다. 상태와 필드는 마지막 사건(lastEventAt)이 늦은 기록을 따르므로 into를 고를 때 상태를 고려하지 않아도 된다. 순수 JSON만 출력한다.',
     user: (c) => `기록:\n${c.recordsText}\nJSON: {"groups":[{"into":"id","from":["id"],"reason":""}]}`,
   },
 
@@ -115,6 +115,7 @@ export const steps = {
       '{"title":"가제","premise":"한 문장 상황","readerBridge":"사전 지식 없이도 붙잡을 즉시 상황과 결과","povCharacter":"id|null","cast":["등장 인물 id"],"foregroundCharacters":["실제로 선택 압력을 받는 중심 인물 id"],"locations":[""],"openingState":"","closingState":"","immediateGoal":"","obstacle":"","choice":"","outcome":"","nextQuestion":"","readerLoad":{"phase":"onboarding|expansion|focus","newConcepts":["낯선 핵심 개념"],"complexityReason":"focus일 때만 이유"},"scenes":[{"location":"","characters":["id"],"situation":"","choice":"","change":""}]}',
       '선택 모듈 JSON 스키마(필요 없으면 키 자체를 생략한다. 쓰기로 했다면 그 모듈의 모든 필드를 채운다. characterAgendas는 항목마다 goal·nextAction·deadline·resources·knowledge·misbelief·redLine·fallback이 전부 필요하고, revealContracts는 dualUseClues·recontextualizesSceneIds·changes.actions과 relationships 또는 costs가 비어 있으면 안 된다):',
       '{"characterAgendas":[{"characterId":"id","goal":"","hiddenPlan":"","nextAction":"","deadline":"","resources":[""],"knowledge":[""],"misbelief":"","redLine":"","fallback":""}],"characterCollisions":[{"agendaIds":["id","id"],"scarceConstraint":"","consequence":""}],"revealContracts":[{"id":"","inducedHypothesis":"","actualCause":"","dualUseClues":[""],"concealment":"","recontextualizesSceneIds":[""],"triggeredByChoice":"","changes":{"actions":[""],"relationships":[""],"costs":[""]}}],"episodeVoiceTargets":[{"characterId":"id","sceneOrder":1,"speakingPressure":"","surfaceIntent":"","hiddenIntent":"","sampleLine":"","narrationFilter":""}],"readerExpectation":{"likelyOutcome":"","evidenceOnPage":[""],"confidenceTarget":"low|medium|high"},"tension":{"ticking":"","stake":"","escalation":""},"costCreatedByResolution":{"immediate":"","deferred":"","beneficiary":"","payer":""},"reveals":[""],"withheld":[""],"powerChanges":[""],"artifacts":[""],"hooksTouched":[""],"carryForward":[""]}',
+      'hooksTouched에는 위 현재 상태에 보이는 떡밥 id(예: h3)만 쓴다. 새로 심을 떡밥은 적지 않는다.',
     ].join('\n'),
   },
 
@@ -554,6 +555,12 @@ export const phrases = {
     addressKeyed: (key, speaker, target, term, since) => `- \`${key}\` ${speaker} → ${target}: "${term}"${since ? ` (${since}화부터)` : ''}`,
     hooksHeading: '열린 떡밥:',
     hook: (text, phase) => `- ${text}${phase ? ` (${phase})` : ''}`,
+    hookWithId: (id, text, phase) => `- \`${id}\` ${text}${phase ? ` (${phase})` : ''}`,
+    hooksHeadingKeyed: '떡밥 (id로 갱신하세요. 잠복·회수된 떡밥이 다시 나오면 같은 id로 reopened 또는 mentioned):',
+    unregisteredKeyed: (id, feature, name) => `- \`${id}\` [${feature}] ${name} · 아직 기록 없음 (나오면 이 id로 event)`,
+    unregistered: (name) => `- ${name} · 추적 요청(아직 기록 없음)`,
+    recordSpeakerAliases: (items) => `  화자 전용 별칭: ${items}`,
+    speakerAliasItem: (alias, speaker) => `"${alias}"(${speaker}만)`,
     hookKeyed: (id, status, planted, text) => `- \`${id}\` · ${status ?? '-'} · ${planted ? `${planted}화 심음` : '심은 화 미상'} — ${text}`,
     relationsHeading: '관계 (A → B: A가 B를 보는 관계):',
     relation: (from, to, kind, state) => `- ${from} → ${to}: ${kind} — ${state}`,

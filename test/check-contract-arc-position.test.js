@@ -136,6 +136,10 @@ test('a destroyed record changed by the extraction is asked again once, without 
   assert.ok(!result.violations.some((v) => v.code === 'LEDGER_UPDATE_AFTER_DESTROY'));
   const session = await loadValidationSession(result.store, workId, 'manual-1');
   assert.equal(session.failures, 0);
+  const asked = (req) => req.messages.map((m) => m.content).join('\n').includes('Ledger records "낡은 검"');
+  assert.deepEqual(result.extractions.map(asked), [false, true]);
+  // The re-ask is spent once it is answered: later extractions in the session are not steered by it.
+  assert.equal(session.ledgerRecheck, undefined);
 });
 
 test('changing a destroyed record again after the re-ask is a hard violation that blocks the check', async () => {

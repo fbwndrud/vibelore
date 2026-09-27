@@ -178,7 +178,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       if (context.plans.episode?.characterArcBeats?.length) {
         extracted.delta = { ...extracted.delta, arcCursorOps: context.plans.episode.characterArcBeats.map(({ characterId, beat, note }) => ({ characterId, nextBeat: beat, ...(note !== undefined ? { note } : {}) })) };
       }
-      state.extracted = extracted; await save();
+      // A re-ask about named records applies to the extraction it asked for, not to later ones.
+      state.extracted = extracted; delete state.ledgerRecheck; await save();
       return null;
     };
     // Reviewed on every run from the stored extraction and the current config

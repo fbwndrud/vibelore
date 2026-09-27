@@ -87,7 +87,8 @@ export function createReviewAudit({ providers, prose, chapter, contractDigest, s
       try {
         const result = await action(auditedProvider);
         if ((providers.pending?.length ?? 0) === 0 && result !== null) {
-          const valid = step === 'pattern-ledger' ? Boolean(result?.solutionPattern) : score(result?.score);
+          // Author rules asked about and left unanswered leave the coherence review incomplete.
+          const valid = step === 'pattern-ledger' ? Boolean(result?.solutionPattern) : score(result?.score) && !result?.authorRulesMissing;
           const record = records.findLast((item) => item.step === step);
           if (!valid && record?.status === 'completed') Object.assign(record, { status: 'failed', failure: 'INCOMPLETE_REVIEW_RESULT' });
         }

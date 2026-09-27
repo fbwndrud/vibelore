@@ -95,7 +95,7 @@ export const steps = {
   },
 
   'ledger-merge': {
-    system: 'In a list of story records, group the records that name the same thing under different names. Group only what is certain, and only within the same feature. Output pure JSON only.',
+    system: 'In a list of story records, group the records that name the same thing under different names. Group only what is certain, and only within the same feature. For into, use the id of the record in the group registered first (the smallest registeredAt). The merged record takes its status and fields from whichever record has the later last event (lastEventAt), so status does not decide into. Output pure JSON only.',
     user: (c) => `Records:\n${c.recordsText}\nJSON: {"groups":[{"into":"id","from":["id"],"reason":""}]}`,
   },
 
@@ -115,6 +115,7 @@ export const steps = {
       '{"title":"working title","premise":"the situation in one sentence","readerBridge":"the immediate situation and consequence a reader can hold on to without prior knowledge","povCharacter":"id|null","cast":["character id"],"foregroundCharacters":["ids of the central characters actually under the pressure of a choice"],"locations":[""],"openingState":"","closingState":"","immediateGoal":"","obstacle":"","choice":"","outcome":"","nextQuestion":"","readerLoad":{"phase":"onboarding|expansion|focus","newConcepts":["unfamiliar core concept"],"complexityReason":"only when phase is focus"},"scenes":[{"location":"","characters":["id"],"situation":"","choice":"","change":""}]}',
       'Optional module JSON schema (omit the key entirely when it is not needed; once you use a module, fill every field of it. Each characterAgendas item needs goal, nextAction, deadline, resources, knowledge, misbelief, redLine and fallback; revealContracts must not leave dualUseClues, recontextualizesSceneIds or changes.actions empty, and needs relationships or costs):',
       '{"characterAgendas":[{"characterId":"id","goal":"","hiddenPlan":"","nextAction":"","deadline":"","resources":[""],"knowledge":[""],"misbelief":"","redLine":"","fallback":""}],"characterCollisions":[{"agendaIds":["id","id"],"scarceConstraint":"","consequence":""}],"revealContracts":[{"id":"","inducedHypothesis":"","actualCause":"","dualUseClues":[""],"concealment":"","recontextualizesSceneIds":[""],"triggeredByChoice":"","changes":{"actions":[""],"relationships":[""],"costs":[""]}}],"episodeVoiceTargets":[{"characterId":"id","sceneOrder":1,"speakingPressure":"","surfaceIntent":"","hiddenIntent":"","sampleLine":"","narrationFilter":""}],"readerExpectation":{"likelyOutcome":"","evidenceOnPage":[""],"confidenceTarget":"low|medium|high"},"tension":{"ticking":"","stake":"","escalation":""},"costCreatedByResolution":{"immediate":"","deferred":"","beneficiary":"","payer":""},"reveals":[""],"withheld":[""],"powerChanges":[""],"artifacts":[""],"hooksTouched":[""],"carryForward":[""]}',
+      'In hooksTouched write only hook ids shown in the current state above (such as h3); do not list hooks still to be planted.',
     ].join('\n'),
   },
 
@@ -563,6 +564,12 @@ export const phrases = {
     addressKeyed: (key, speaker, target, term, since) => `- \`${key}\` ${speaker} → ${target}: "${term}"${since ? ` (since ch. ${since})` : ''}`,
     hooksHeading: 'Open threads:',
     hook: (text, phase) => `- ${text}${phase ? ` (${phase})` : ''}`,
+    hookWithId: (id, text, phase) => `- \`${id}\` ${text}${phase ? ` (${phase})` : ''}`,
+    hooksHeadingKeyed: 'Hooks (update them by id; a dormant or paid hook that returns keeps its id: reopened or mentioned):',
+    unregisteredKeyed: (id, feature, name) => `- \`${id}\` [${feature}] ${name} · no record yet (when it appears, write event with this id)`,
+    unregistered: (name) => `- ${name} · tracked on request (no record yet)`,
+    recordSpeakerAliases: (items) => `  speaker-only aliases: ${items}`,
+    speakerAliasItem: (alias, speaker) => `"${alias}" (only ${speaker})`,
     hookKeyed: (id, status, planted, text) => `- \`${id}\` · ${status ?? '-'} · ${planted ? `planted ch. ${planted}` : 'planting chapter unknown'} — ${text}`,
     relationsHeading: 'Relationships (A → B: how A regards B):',
     relation: (from, to, kind, state) => `- ${from} → ${to}: ${kind} — ${state}`,

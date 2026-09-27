@@ -1,6 +1,6 @@
 import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { isHookActive, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
-import { findRecord, hookStatusOf, ledgerHistory, ledgerNameKey, recordNames, trackingEnabled } from '../../engine/src/continuity/ledger.js';
+import { customItemFor, findRecord, hookStatusOf, ledgerHistory, ledgerNameKey, recordNames, trackingEnabled } from '../../engine/src/continuity/ledger.js';
 import { searchTerms } from './search-terms.js';
 
 /**
@@ -216,12 +216,12 @@ function recordText(record, name) {
  * records with a recent event; most recent first within a rank, up to `limit`.
  * Pinned items are never cut by the cap.
  */
-function selectRecords(records, text, ids, limit, { pinnedIds = new Set(), now = NaN } = {}) {
+function selectRecords(records, text, ids, limit, { isPinned = () => false, now = NaN } = {}) {
   const ranked = records.map((record, index) => {
     const named = Boolean(text) && recordNames(record).some((item) => item.length >= 2 && text.includes(item));
     const held = Object.values(record.fields ?? {}).some((value) => (Array.isArray(value) ? value : [value]).some((item) => ids.has(item)));
     const recent = Number.isFinite(now) && Number(record.lastEventAt) >= now - RECENT_RECORD_CHAPTERS + 1;
-    return { record, index, rank: pinnedIds.has(record.id) ? 4 : named ? 3 : held ? 2 : recent ? 1 : 0 };
+    return { record, index, rank: isPinned(record) ? 4 : named ? 3 : held ? 2 : recent ? 1 : 0 };
   }).filter((item) => item.rank > 0)
     .sort((a, b) => b.rank - a.rank || (b.record.lastEventAt ?? 0) - (a.record.lastEventAt ?? 0) || b.index - a.index);
   const pinned = ranked.filter((item) => item.rank === 4);
@@ -236,13 +236,13 @@ function selectRecords(records, text, ids, limit, { pinnedIds = new Set(), now =
  * `speakers`.
  */
 function speakerAliases(records, config, speakers) {
-  const byId = new Map(records.map((record) => [record.id, record]));
+  const nameOf = (item) => records.find((record) => customItemFor({ customTracking: [item] }, record))?.name ?? item.name;
   const found = [
     ...records.flatMap((record) => asArray(record.aliases).filter((alias) => clean(alias?.by) && clean(alias?.text))
       .map((alias) => ({ by: alias.by, alias: alias.text, name: record.name }))),
     ...asArray(config.customTracking).filter((item) => trackingEnabled(config, item.feature)).flatMap((item) => asArray(item.rules).filter((rule) => rule?.type === 'speakerOnly' && clean(rule.by) && clean(rule.alias))
-      .map((rule) => ({ by: rule.by, alias: rule.alias, name: byId.get(item.id)?.name ?? item.name }))),
-  ].filter((item) => speakers.has(item.by));
+      .map((rule) => ({ by: rule.by, alias: rule.alias, name: nameOf(item) }))),
+  ].filter((item) => !speakers || speakers.has(item.by));
   const seen = new Set();
   return found.filter((item) => {
     const key = `${item.by}\u0000${ledgerNameKey(item.alias)}`;
@@ -259,18 +259,20 @@ function speakerAliases(records, config, speakers) {
  * check); characters named in it join `cast`.
  * `hookIds` (the plan's touched hooks) and the `oldestHooks` longest-open ones
  * (a planner's debt) are always listed, and so are pinned author items
- * (`config.customTracking`).
+ * (`config.customTracking`, linked to a record by id, name or alias). Author
+ * items no record holds yet are listed as things to track.
  * - `writer`: cast states, dead or missing characters the focus names or who
  *   were lost in the last chapters, address terms within the cast, open
  *   threads the focus touches or that just moved, directed relationships
  *   touching the cast, ledger records the cast holds or knows or the focus
- *   names. A record back after a long gap carries a short history from
- *   `history` (the ledger event log).
- * - `planner`: the writer's view, plus hooks dormant for a while and
- *   scheduled events still pending.
+ *   names, with the words only one speaker uses for them. A record back
+ *   after a long gap carries a short history from `history` (the ledger
+ *   event log).
+ * - `planner`: the writer's view with hook ids, plus hooks dormant for a
+ *   while and scheduled events still pending.
  * - `extract`: the same selection with record ids, aliases, duplicate
- *   candidates and hook ids, so the extractor updates existing records
- *   instead of inventing new ones.
+ *   candidates and hook ids, dormant and paid hooks included, so the
+ *   extractor updates existing records instead of inventing new ones.
  * - `check`: states, address terms and speaker-only aliases of the named
  *   characters.
  * What is left out is counted, never silently dropped.
@@ -324,11 +326,16 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
   if (address.length) lines.push(t.addressHeading, ...address);
 
   if (mode !== 'check') {
-    const { shown: hooks, omitted: hooksOmitted, capped: hooksCapped } = selectHooks(hooksOn ? asArray(state.hooks).filter(isHookActive) : [], focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
+    // The extractor also sees dormant and paid hooks that bear on the chapter, so one that returns keeps its id.
+    const hookPool = asArray(hooksOn ? state.hooks : []).filter((hook) => (mode === 'extract' ? hookStatusOf(hook) !== 'closed' : isHookActive(hook)));
+    const { shown: hooks, omitted: hooksOmitted, capped: hooksCapped } = selectHooks(hookPool, focus, kit.language, now, new Set(asArray(hookIds)), oldestHooks);
     if (hooks.length) {
-      lines.push(t.hooksHeading, ...hooks.map((hook) => (mode === 'extract'
-        ? t.hookKeyed(hook.id, hookStatusOf(hook), hook.plantedAtChapter, hook.text ?? '')
-        : t.hook(hook.text ?? hook.id, word('statusWords', hookStatusOf(hook))))));
+      lines.push(mode === 'extract' ? t.hooksHeadingKeyed : t.hooksHeading, ...hooks.map((hook) => {
+        if (mode === 'extract') return t.hookKeyed(hook.id, hookStatusOf(hook), hook.plantedAtChapter, hook.text ?? '');
+        // A planner names the hooks it touches by id.
+        if (mode === 'planner') return t.hookWithId(hook.id, hook.text ?? hook.id, word('statusWords', hookStatusOf(hook)));
+        return t.hook(hook.text ?? hook.id, word('statusWords', hookStatusOf(hook)));
+      }));
     }
     if (hooksCapped > 0) lines.push(t.capped(hooksCapped));
     if (hooksOmitted > 0) lines.push(t.omitted(hooksOmitted));
@@ -346,11 +353,15 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
 
     // A writer sees only scheduled events still to come; a planner gets those under their own heading.
     const records = allRecords.filter((record) => record.feature !== 'scheduled' || mode === 'extract' || (mode === 'writer' && record.status === 'pending'));
-    const pinnedIds = new Set(asArray(config.customTracking).filter((item) => item.pinned).map((item) => item.id));
+    // Author items apply to the record they name (by id, name or alias), whatever id it was registered under.
+    const isPinned = (record) => Boolean(customItemFor(config, record)?.pinned);
     const recordIds = mode === 'extract' ? named : castIds;
-    const { shown, omitted, capped } = selectRecords(records, focus, recordIds, mode === 'extract' ? EXTRACT_TRACKED_LIMIT : WRITER_TRACKED_LIMIT, { pinnedIds, now });
+    const { shown, omitted, capped } = selectRecords(records, focus, recordIds, mode === 'extract' ? EXTRACT_TRACKED_LIMIT : WRITER_TRACKED_LIMIT, { isPinned, now });
+    // Items the author asked to track that no record holds yet: shown so the extractor uses their id and the writer knows them.
+    const waiting = asArray(config.customTracking).filter((item) => trackingEnabled(config, item.feature)
+      && !allRecords.some((record) => customItemFor({ customTracking: [item] }, record)));
     const label = (record) => record.label || record.feature;
-    if (shown.length && mode === 'extract') {
+    if ((shown.length || waiting.length) && mode === 'extract') {
       lines.push(t.recordsHeadingKeyed, ...shown.flatMap((record) => {
         const last = asArray(record.recent).at(-1);
         return [
@@ -358,13 +369,16 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
             last ? t.historyItem(last.chapter, last.event, '') : ''),
           ...(record.possibleDuplicateOf ? [t.duplicateOf(record.possibleDuplicateOf)] : []),
         ];
-      }));
-    } else if (shown.length) {
+      }), ...waiting.map((item) => t.unregisteredKeyed(item.id, item.feature, item.name)));
+    } else if (shown.length || waiting.length) {
       lines.push(t.recordsHeading, ...shown.flatMap((record) => {
         const past = Number(record.lastEventAt) <= now - HISTORY_GAP ? ledgerHistory(asArray(history), record.id, HISTORY_ITEMS) : [];
+        // A word only one character uses for the thing, so the writer puts it in the right mouth.
+        const own = speakerAliases([record], { ...config, customTracking: asArray(config.customTracking).filter((item) => customItemFor({ customTracking: [item] }, record)) }, null);
         return [t.record(label(record), record.name, word('statusWords', record.status), recordText(record, name)),
+          ...(own.length ? [t.recordSpeakerAliases(own.map((item) => t.speakerAliasItem(item.alias, name(item.by))).join(', '))] : []),
           ...(past.length ? [t.recordHistory(past.map((event) => t.historyItem(event.chapter, word('eventWords', event.event), event.note ?? '')).join(', '))] : [])];
-      }));
+      }), ...waiting.map((item) => t.unregistered(item.name)));
     }
     if (capped > 0) lines.push(t.capped(capped));
     if (omitted - capped > 0) lines.push(t.omitted(omitted - capped));
@@ -372,7 +386,7 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
     if (mode === 'planner') {
       const dormant = asArray(hooksOn ? state.hooks : []).filter((hook) => hookStatusOf(hook) === 'dormant' && now - Number(hook.lastMovedChapter ?? hook.plantedAtChapter) >= DORMANT_AFTER)
         .sort((a, b) => (a.plantedAtChapter ?? 0) - (b.plantedAtChapter ?? 0));
-      if (dormant.length) lines.push(t.dormantHooksHeading, ...dormant.slice(0, PLANNER_LIST_LIMIT).map((hook) => t.hook(hook.text ?? hook.id, word('statusWords', 'dormant'))));
+      if (dormant.length) lines.push(t.dormantHooksHeading, ...dormant.slice(0, PLANNER_LIST_LIMIT).map((hook) => t.hookWithId(hook.id, hook.text ?? hook.id, word('statusWords', 'dormant'))));
       if (dormant.length > PLANNER_LIST_LIMIT) lines.push(t.capped(dormant.length - PLANNER_LIST_LIMIT));
       const pending = allRecords.filter((record) => record.feature === 'scheduled' && record.status === 'pending');
       if (pending.length) lines.push(t.pendingHeading, ...pending.slice(0, PLANNER_LIST_LIMIT).map((record) => t.record(label(record), record.name, word('statusWords', record.status), recordText(record, name))));

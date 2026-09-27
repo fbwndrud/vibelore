@@ -301,6 +301,8 @@ describe('ledger history and snapshots', () => {
         expect(snapshots[0]).toEqual({ entityId: 'o1', kind: '물건', canonicalName: '서명 쪽지', aliases: ['그 쪽지'], status: 'active', attrs: { holder: 'c2' }, registeredAtChapter: 4 });
         expect(snapshots.map((s) => [s.entityId, s.status])).toEqual([['o1', 'active'], ['o2', 'destroyed'], ['o3', 'retired']]);
         expect(snapshots[1].updatedAtChapter).toBe(6);
+        // A seed nothing has happened to yet keeps the shape it was created with.
+        expect(ledgerEntitySnapshots({ records: [{ ...lost, status: 'active', registeredAt: 0, lastEventAt: 0 }] })[0]).not.toHaveProperty('updatedAtChapter');
         expect(ledgerEntitySnapshots(undefined)).toEqual([]);
     });
 });

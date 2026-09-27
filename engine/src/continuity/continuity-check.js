@@ -34,7 +34,7 @@ import { computeLanguageContractHash } from '../core/language-policy.js';
 import { languageSystemLines, pickByFamily, promptFamilyCaptureContext, resolveStepPromptLanguage, } from '../core/prompt-language.js';
 import { scanLexicon, } from './lexicon-scan.js';
 import { isHookActive, normalizeHook, normalizeStoryState, VITAL_STATUSES } from './story-state.js';
-import { LEDGER_FEATURES, trackingEnabled } from './ledger.js';
+import { LEDGER_FEATURES, RECORD_STATUSES, trackingEnabled } from './ledger.js';
 // ───────────────────────────── cast-manifest parsing ──────────────────────
 /**
  * Parse the cast-manifest body emitted by the writer. The OutputSanitizer has
@@ -367,7 +367,8 @@ export const EXTRACT_DELTA_SYSTEM = [
     '제공된 회차 본문·이전 상태 요약·등장 캐스트 명단을 읽고, 구조화된 ChapterDelta JSON 한 개만 출력한다.',
     '본문 외 추론은 금지. 본문에서 직접 관찰되는 변화만 기록한다.',
     'characterId, speakerId, targetId에는 이번 회차 등장 캐스트에 제공된 정확한 ID만 사용한다. 이름·직책·역할명은 ID가 아니며 임의로 만들지 않는다.',
-    '이미 목록에 있는 기록과 떡밥은 그 id로 event/hook 을 쓰고, 목록에 없을 때만 register/plant 한다.',
+    '기록 목록에는 이번 화와 관련된 기록만 보인다. 이미 목록에 있는 기록과 떡밥은 그 id로 event/hook 을 쓴다. register 전에 목록의 이름과 별칭을 확인하고, 비슷하지만 같은지 확실하지 않으면 본문의 이름으로 register 한다(비슷한 기록은 검사기가 중복 후보로 표시한다).',
+    '잠복(dormant)하거나 회수(paid)된 떡밥이 다시 나오면 plant 하지 않고 그 id로 hook reopened 또는 mentioned 를 쓴다.',
     '출력은 코드 블록 없이 순수 JSON. 한국어 키/값을 사용해도 무방하나 스키마 키는 영문 그대로 유지한다.',
     '들여쓰기와 줄바꿈 없는 한 줄 compact JSON으로 출력한다.',
 ].join(' ');
@@ -380,7 +381,8 @@ export const EXTRACT_DELTA_SYSTEM_MULTILINGUAL = [
     'Read the chapter text, the previous state summary and the cast list, and output exactly one structured ChapterDelta JSON object.',
     'Do not infer beyond the text. Record only changes that are directly observable in the chapter.',
     'For characterId, speakerId and targetId use only the exact IDs given in this chapter\'s cast. Names, titles and role words are not IDs and must never be invented.',
-    'Use event/hook with the listed id for anything already listed; register or plant only what is not listed.',
+    'The record list shows only the records relevant to this chapter. Use event/hook with the listed id for anything already listed. Before a register, check the names and aliases listed; if something looks similar but you are not sure it is the same, register it under the name the chapter uses (the checker flags similar records as possible duplicates).',
+    'When a dormant or paid hook comes back, do not plant it again: write hook reopened or mentioned with its id.',
     'Output pure JSON with no code fence. Write natural-language values (descriptions, anchors, interpretations, reasons) in the target work language, and keep schema keys, enum values and IDs exactly as written here.',
     'Output the JSON as a single compact line with no indentation or line breaks.',
 ].join(' ');
@@ -399,6 +401,9 @@ const EXTRACT_LABELS_KO = Object.freeze({
     ledgerLabel: '물건·장소·단서·능력·비밀·예정된 일 등 자유 분류',
     ledgerNote: '이번 화에서 일어난 일 한 줄',
     hookEvidence: 'paid일 때만: 본문에서 그대로 옮긴 인용',
+    registerStatus: '처음부터 기본값과 다른 상태일 때만',
+    newValue: '새 값',
+    statusSet: '상태와 함께 바뀐 값(있을 때만)',
     anchor: '본문에서 확인 가능한 짧은 근거',
     interpretation: '이 사건을 인물이 어떻게 받아들였는가',
     dimensionId: '작품별_dimension_id',
@@ -425,6 +430,9 @@ const EXTRACT_LABELS_EN = Object.freeze({
     ledgerLabel: 'free label: item, place, clue, ability, secret, scheduled event…',
     ledgerNote: 'one line on what happened in this chapter',
     hookEvidence: 'only for paid: a quote copied from the chapter text',
+    registerStatus: 'only when first seen in a status other than the default',
+    newValue: 'new value',
+    statusSet: 'a value that changed with the status (only if any)',
     anchor: 'short evidence observable in the chapter text',
     interpretation: 'how the character took this event',
     dimensionId: 'work_specific_dimension_id',
@@ -463,17 +471,22 @@ function continuityStateSummary(loadedState, entities) {
  */
 function ledgerSchemaLines(labels, tracking) {
     const features = LEDGER_FEATURES.filter((feature) => trackingEnabled({ tracking }, feature));
-    return [
+    const statuses = features.map((feature) => `${feature}: ${RECORD_STATUSES[feature].join('|')}`).join(' · ');
+    const lines = [
         ...(features.length ? [
-            `    { "op": "register", "feature": "${features.join('|')}", "label": "${labels.ledgerLabel}", "name": "...", "aliases": [{ "text": "...", "by": "characterId (only if one character uses it)" }], "fields": {}, "note": "${labels.ledgerNote}" },`,
-            `    { "op": "event", "id": "existing record id", "event": "mentioned|changed|status|restored", "set": {}, "status": "...", "note": "${labels.ledgerNote}" },`,
-            '    { "op": "alias", "id": "existing record id", "alias": "...", "by": "characterId or omit" },',
+            `    { "op": "register", "feature": "${features.join('|')}", "label": "${labels.ledgerLabel}", "name": "...", "aliases": [{ "text": "...", "by": "characterId (only if one character uses it)" }], "status": "${labels.registerStatus} — ${statuses}", "fields": {}, "note": "${labels.ledgerNote}" }`,
+            `    { "op": "event", "id": "existing record id", "event": "changed", "set": { "field": "${labels.newValue}" }, "note": "${labels.ledgerNote}" }`,
+            `    { "op": "event", "id": "existing record id", "event": "status", "status": "${statuses}", "set": { "field": "${labels.statusSet}" }, "note": "${labels.ledgerNote}" }`,
+            `    { "op": "event", "id": "existing record id", "event": "mentioned|restored", "note": "${labels.ledgerNote}" }`,
+            '    { "op": "alias", "id": "existing record id", "alias": "...", "by": "characterId or omit" }',
         ] : []),
         ...(trackingEnabled({ tracking }, 'hooks') ? [
-            `    { "op": "plant", "text": "${labels.hookText}", "horizon": "next|soon|arc|long|finale" },`,
+            `    { "op": "plant", "text": "${labels.hookText}", "horizon": "next|soon|arc|long|finale" }`,
             `    { "op": "hook", "id": "existing hook id", "event": "mentioned|advanced|paid|reopened|parked|closed", "evidence": "${labels.hookEvidence}", "note": "${labels.ledgerNote}" }`,
         ] : []),
     ];
+    // Commas between the offered ops only, so the schema stays valid whichever features are off.
+    return lines.map((line, index) => (index < lines.length - 1 ? `${line},` : line));
 }
 function extractDeltaSchemaLines(labels, bindHash, tracking) {
     const lines = [
@@ -702,7 +715,8 @@ const NEW_CONTRACT_ENTRY_VALIDATORS = Object.freeze({
     mutableChanges: isCompleteMutableChange,
     influenceEvents: isCompleteInfluenceEvent,
     trackedEntityOps: (raw) => isCompleteTrackedEntityOp(raw),
-    ledgerOps: (raw) => isCompleteLedgerOp(raw),
+    // An op the schema does not offer (a leftover update/retire) is dropped by the parser; it does not spend an attempt.
+    ledgerOps: (raw) => isCompleteLedgerOp(raw) || (isRecord(raw) && isNonEmptyString(raw.op) && !Object.hasOwn(LEDGER_OP_KEYS, raw.op)),
 });
 /**
  * 신규 계약 추출의 원본 JSON. 관대한 parser 가 null/부분 레코드를 버리기 전에
@@ -761,7 +775,7 @@ function extractionValidationResult(status, contextHash, code) {
     return Object.freeze(result);
 }
 const LEDGER_OP_KEYS = Object.freeze({
-    register: ['op', 'feature', 'label', 'name', 'aliases', 'fields', 'note'],
+    register: ['op', 'feature', 'label', 'name', 'aliases', 'status', 'fields', 'note'],
     event: ['op', 'id', 'event', 'set', 'status', 'note'],
     alias: ['op', 'id', 'alias', 'by'],
     plant: ['op', 'text', 'horizon', 'note'],

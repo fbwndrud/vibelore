@@ -151,6 +151,21 @@ describe('runCoherenceJudge', () => {
         });
         expect(out.score).toBe(80);
         expect(out.authorRules).toHaveLength(1);
-        expect(out.authorRules[0]).toEqual({ rule: '유효', verdict: 'warn', evidence: 'x' });
+        expect(out.authorRules[0]).toEqual({ id: 'r1', rule: '유효', verdict: 'warn', evidence: 'x' });
+    });
+    it('asks for the whole JSON with a verdict per rule id, and flags a response without authorRules', async () => {
+        let seen = '';
+        const reply = (body) => ({ register: vi.fn(), has: vi.fn(), complete: async (req) => { seen = req.messages.at(-1).content; return { text: JSON.stringify(body) }; } });
+        const rules = [{ id: 'u1', text: '리아는 어머니 이야기를 먼저 꺼내지 않는다' }, { id: 'u3', text: '금화는 줄기만 한다' }];
+        const answered = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, authorRules: rules,
+            providers: reply({ score: 80, reason: 'ok', authorRules: [{ id: 'u3', verdict: 'warn', evidence: '금화가 늘었다' }, { id: 'u9', verdict: 'fail', evidence: 'x' }] }) });
+        expect(seen).toContain('- u1: 리아는 어머니 이야기를 먼저 꺼내지 않는다');
+        expect(seen).toContain('"authorRules": [{ "id":');
+        expect(seen).toContain('"score": <0-100>');
+        expect(answered.authorRules).toEqual([{ id: 'u3', rule: '금화는 줄기만 한다', verdict: 'warn', evidence: '금화가 늘었다' }]);
+        expect(answered.authorRulesMissing).toBeUndefined();
+        const missing = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, authorRules: rules, providers: reply({ score: 80, reason: 'ok' }) });
+        expect(missing.authorRules).toEqual([]);
+        expect(missing.authorRulesMissing).toBe(true);
     });
 });

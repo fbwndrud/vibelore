@@ -241,8 +241,10 @@ describe('extractDelta prompt families', () => {
             '  "influenceEvents": [{ "characterId": "...", "anchor": "본문에서 확인 가능한 짧은 근거", "interpretation": "이 사건을 인물이 어떻게 받아들였는가", "dimensionChanges": { "작품별_dimension_id": -1 }, "nextChoiceBias": "다음 선택에 생긴 편향", "behavioralProof": { "hypothesis": "성격 가설", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["선택A", "선택B"], "chosen": "실제 선택", "costPaid": "지불한 비용", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "from이 to를 어떻게 보게 됐는가" }] }],',
             '  "noInfluenceReason": "인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성. influenceEvents 가 있으면 빈 문자열",',
             '  "ledgerOps": [',
-            '    { "op": "register", "feature": "objects|knowledge|scheduled", "label": "물건·장소·단서·능력·비밀·예정된 일 등 자유 분류", "name": "...", "aliases": [{ "text": "...", "by": "characterId (only if one character uses it)" }], "fields": {}, "note": "이번 화에서 일어난 일 한 줄" },',
-            '    { "op": "event", "id": "existing record id", "event": "mentioned|changed|status|restored", "set": {}, "status": "...", "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "register", "feature": "objects|knowledge|scheduled", "label": "물건·장소·단서·능력·비밀·예정된 일 등 자유 분류", "name": "...", "aliases": [{ "text": "...", "by": "characterId (only if one character uses it)" }], "status": "처음부터 기본값과 다른 상태일 때만 — objects: active|lost|destroyed|retired · knowledge: secret|partial|public|retired · scheduled: pending|prevented|happened|altered|retired", "fields": {}, "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "event", "id": "existing record id", "event": "changed", "set": { "field": "새 값" }, "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "event", "id": "existing record id", "event": "status", "status": "objects: active|lost|destroyed|retired · knowledge: secret|partial|public|retired · scheduled: pending|prevented|happened|altered|retired", "set": { "field": "상태와 함께 바뀐 값(있을 때만)" }, "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "event", "id": "existing record id", "event": "mentioned|restored", "note": "이번 화에서 일어난 일 한 줄" },',
             '    { "op": "alias", "id": "existing record id", "alias": "...", "by": "characterId or omit" },',
             '    { "op": "plant", "text": "독자가 아직 답을 기다리는 약속", "horizon": "next|soon|arc|long|finale" },',
             '    { "op": "hook", "id": "existing hook id", "event": "mentioned|advanced|paid|reopened|parked|closed", "evidence": "paid일 때만: 본문에서 그대로 옮긴 인용", "note": "이번 화에서 일어난 일 한 줄" }',
@@ -449,6 +451,23 @@ describe('extractDelta extractionValidation', () => {
         expect(result.delta.influenceEvents[0].characterId).toBe('c1');
         expect(result.delta.trackedEntityOps).toEqual([{ kind: 'Timeline', data: { era: 'present' } }]);
         expect(result.delta.ledgerOps.map((op) => op.op)).toEqual(['register', 'plant']);
+    });
+    it('a ledger op the schema does not offer is dropped without failing the extraction', async () => {
+        const input = extractInput({ workContract: EN_CONTRACT });
+        const hash = computeExtractionContextHash(input);
+        const result = await extractDelta({ ...input, providers: capturing(completeEmptyExtraction(hash, {
+            ledgerOps: [{ op: 'update', entityId: 'e1', fields: {} }, { op: 'register', feature: 'objects', label: 'item', name: 'the jar', status: 'destroyed' }],
+        })).providers });
+        expect(result.extractionValidation.status).toBe('completed');
+        expect(result.delta.ledgerOps).toEqual([{ op: 'register', feature: 'objects', label: 'item', name: 'the jar', status: 'destroyed' }]);
+    });
+    it('the schema stays valid JSON when hooks are not tracked', async () => {
+        const cap = capturing('{}');
+        await extractDelta(extractInput({ providers: cap.providers, tracking: { hooks: false } }));
+        const { user } = partsOf(cap.requests[0]);
+        const schema = user.slice(user.indexOf('{\n  "newAddressEntries"'));
+        expect(() => JSON.parse(schema.replace(/"\.\.\."/g, '""'))).not.toThrow();
+        expect(user).not.toContain('"op": "plant"');
     });
     it('recorded influenceEvents make noInfluenceReason optional (ja sample, 43be593)', async () => {
         const input = extractInput({ workContract: EN_CONTRACT });

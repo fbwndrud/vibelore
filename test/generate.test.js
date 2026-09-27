@@ -259,6 +259,9 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(context, /행동 편향:/);
     assert.match(context, /말투 예시:/);
     assert.equal((await store.loadEntitySnapshots('tax-tower'))[0].canonicalName, '체납자 감별');
+    // The ledger replay starts from a seed the commits never rewrite.
+    const seed = await store.loadLedgerSeed('tax-tower');
+    assert.deepEqual(seed.entities.map((e) => [e.canonicalName, e.registeredAtChapter]), [['체납자 감별', 0]]);
   });
 
   it('refuses to publish a newly generated cast with a thin dramatic model', async () => {

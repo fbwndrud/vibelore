@@ -195,6 +195,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   const prior = await store.loadEpisodePlan(workId, chapter);
   const summaries = await store.loadRecentChapterSummaries(workId, chapter, 5);
   const state = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1 }) : null;
+  const knownHookIds = new Set((state?.hooks ?? []).map((hook) => hook.id));
   const identity = await store.loadStoryIdentity(workId);
   const pilotContract = chapter === 1 ? await store.loadPilotContract(workId) : null;
   const patternLedger = await store.loadPatternLedger(workId);
@@ -325,7 +326,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       powerChanges: strings(obj.powerChanges), artifacts: strings(obj.artifacts), absurdity: text(obj.absurdity),
       characterArcBeats: characterArcBeatsForEpisode(arcPlan, arcBeat.index),
       ...(pilotContract ? { pilotContract } : {}),
-      hooksTouched: strings(obj.hooksTouched), carryForward: strings(obj.carryForward),
+      // Only hooks that exist: the plan's hook ids pin them into the extraction and writer input.
+      hooksTouched: strings(obj.hooksTouched).filter((id) => knownHookIds.has(id)), carryForward: strings(obj.carryForward),
       status: mode === 'review' ? 'pending' : 'active', revision: Number(prior?.revision ?? 0) + 1,
       createdAt: new Date().toISOString(),
     };

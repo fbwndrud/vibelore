@@ -39,7 +39,7 @@ const JUDGE_LABELS_KO = {
     prevSummary: (summary) => `## 직전 화 요약\n${summary}`,
     request: '위 본문을 0-100 점으로 평가. JSON 한 개 출력.',
     authorRules: '## 작가 점검 규칙 (각각 pass|warn|fail과 본문 근거)',
-    authorRulesOutput: ', "authorRules": [{ "rule": "...", "verdict": "pass|warn|fail", "evidence": "..." }]',
+    authorRulesRequest: '위 본문을 0-100 점으로 평가하고, 위 규칙마다 id별로 한 항목씩 판정한다. JSON 한 개 출력: { "score": <0-100>, "reason": "한 줄", "authorRules": [{ "id": "규칙 id", "verdict": "pass|warn|fail", "evidence": "본문 근거" }] }',
 };
 const JUDGE_LABELS_EN = {
     proseHeading: (n) => `## Chapter ${n} text`,
@@ -47,7 +47,7 @@ const JUDGE_LABELS_EN = {
     prevSummary: (summary) => `## Previous chapter summary\n${summary}`,
     request: 'Score the chapter above from 0 to 100. Output one JSON object.',
     authorRules: '## Author rules (pass|warn|fail each, with evidence from the chapter)',
-    authorRulesOutput: ', "authorRules": [{ "rule": "...", "verdict": "pass|warn|fail", "evidence": "..." }]',
+    authorRulesRequest: 'Score the chapter above from 0 to 100 and judge each rule above, one entry per rule id. Output one JSON object: { "score": <0-100>, "reason": "one line", "authorRules": [{ "id": "rule id", "verdict": "pass|warn|fail", "evidence": "evidence from the chapter" }] }',
 };
 const AUTHOR_RULE_VERDICTS = new Set(['pass', 'warn', 'fail']);
 function tryParse(raw) {
@@ -62,7 +62,11 @@ function tryParse(raw) {
 export async function runCoherenceJudge(input) {
     const ctx = resolveStepPromptLanguage(input);
     const labels = pickByFamily(ctx, { ko: JUDGE_LABELS_KO, multilingual: JUDGE_LABELS_EN });
-    const hasAuthorRules = Array.isArray(input.authorRules) && input.authorRules.length > 0;
+    // Each rule has a stable id (the author item's), so a verdict names the rule it judges.
+    const rules = (Array.isArray(input.authorRules) ? input.authorRules : [])
+        .map((rule, index) => (typeof rule === 'string' ? { id: `r${index + 1}`, text: rule } : rule))
+        .filter((rule) => typeof rule?.id === 'string' && typeof rule.text === 'string' && rule.text.trim());
+    const hasAuthorRules = rules.length > 0;
     const userPrompt = [
         labels.proseHeading(input.chapterNumber),
         input.prose,
@@ -70,9 +74,9 @@ export async function runCoherenceJudge(input) {
         // A plan render that carries its own heading is used as is.
         input.plan ? (/^#/.test(input.plan.trim()) ? input.plan.trim() : labels.plan(input.plan)) : '',
         input.prevSummary ? labels.prevSummary(input.prevSummary) : '',
-        hasAuthorRules ? [labels.authorRules, ...input.authorRules.map((rule) => `- ${rule}`)].join('\n') : '',
+        hasAuthorRules ? [labels.authorRules, ...rules.map((rule) => `- ${rule.id}: ${rule.text}`)].join('\n') : '',
         ``,
-        hasAuthorRules ? `${labels.request}${labels.authorRulesOutput}` : labels.request,
+        hasAuthorRules ? labels.authorRulesRequest : labels.request,
     ]
         .filter((s) => s.length > 0)
         .join('\n');
@@ -111,15 +115,21 @@ export async function runCoherenceJudge(input) {
     const result = { score, reason };
     // Backward compatible: no key when the caller gave no rules to judge.
     if (hasAuthorRules) {
+        // A verdict names its rule by id (or, from older answers, by the rule text).
+        const ruleOf = (entry) => rules.find((rule) => rule.id === entry?.id) ?? rules.find((rule) => rule.text === entry?.rule) ?? null;
         result.authorRules = Array.isArray(obj.authorRules)
             ? obj.authorRules
-                .filter((entry) => entry && typeof entry.rule === 'string' && AUTHOR_RULE_VERDICTS.has(entry.verdict))
+                .filter((entry) => entry && ruleOf(entry) && AUTHOR_RULE_VERDICTS.has(entry.verdict))
                 .map((entry) => ({
-                    rule: entry.rule,
+                    id: ruleOf(entry).id,
+                    rule: ruleOf(entry).text,
                     verdict: entry.verdict,
                     evidence: typeof entry.evidence === 'string' ? entry.evidence.slice(0, 200) : '',
                 }))
             : [];
+        // No verdicts at all is an incomplete review, not a clean one.
+        if (!Array.isArray(obj.authorRules))
+            result.authorRulesMissing = true;
     }
     return result;
 }
