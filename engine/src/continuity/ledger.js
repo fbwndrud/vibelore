@@ -8,6 +8,7 @@
  * keeps current values and the last RECENT_EVENTS events, and the full
  * history is rebuilt from the deltas.
  */
+import { termOccursInText } from '../core/mention-scan.js';
 
 export const LEDGER_FEATURES = Object.freeze(['objects', 'knowledge', 'scheduled']);
 export const TRACKING_FEATURES = Object.freeze([...LEDGER_FEATURES, 'hooks']);
@@ -152,7 +153,6 @@ export function ledgerFromLegacy({ trackedEntities = [], entities = [] } = {}) {
     }
     return state.ledger;
 }
-
 
 export function trackingEnabled(config, feature) {
     return config?.tracking?.[feature] !== false;
@@ -356,4 +356,48 @@ export function applyMerges(ledger, merges, chapter) {
         events.push({ chapter, target: 'record', id: from.id, event: 'merged', into: into.id });
     }
     return { ledger: { records }, events };
+}
+
+const squash = (text) => String(text ?? '').normalize('NFC').replace(/\s+/g, ' ').trim();
+/**
+ * Check ops against the chapter text before they are stored: a paid hook must
+ * quote the prose (otherwise it is stored as advanced), a changed or mentioned
+ * record should be named, a speaker-only alias needs its speaker on the page,
+ * and a destroyed record named again is reported (it may be a memory).
+ */
+export function reviewLedgerOps({ state, ops = [], prose = '', cast = [], config = {} } = {}) {
+    const violations = [];
+    const text = squash(prose);
+    const reviewed = (ops ?? []).map((op) => {
+        if (op?.op === 'hook' && op.event === 'paid') {
+            const evidence = squash(op.evidence);
+            if (!evidence || !text.includes(evidence)) {
+                violations.push({ severity: 'soft', code: 'HOOK_PAID_WITHOUT_EVIDENCE', ledgerId: op.id, message: `hook "${op.id}" marked paid without a quote from the chapter; kept open as advanced` });
+                return { ...op, event: 'advanced' };
+            }
+        }
+        if (op?.op === 'event' && (op.event === 'changed' || op.event === 'mentioned')) {
+            const record = findRecord(state?.ledger, op.id);
+            if (record && !recordNames(record).some((name) => termOccursInText(prose, name)))
+                violations.push({ severity: 'soft', code: 'LEDGER_NAME_NOT_IN_PROSE', ledgerId: record.id, message: `"${record.name}" is ${op.event} but not named in the chapter` });
+        }
+        return op;
+    });
+    const present = new Set(cast ?? []);
+    const speakerAliases = [
+        ...(state?.ledger?.records ?? []).flatMap((record) => (record.aliases ?? []).filter((alias) => alias.by).map((alias) => ({ id: record.id, text: alias.text, by: alias.by }))),
+        ...(config?.customTracking ?? []).flatMap((item) => (item.rules ?? []).filter((rule) => rule.type === 'speakerOnly').map((rule) => ({ id: item.id, text: rule.alias, by: rule.by }))),
+    ];
+    for (const alias of speakerAliases) {
+        if (present.size && !present.has(alias.by) && termOccursInText(prose, alias.text))
+            violations.push({ severity: 'soft', code: 'LEDGER_ALIAS_OWNER_ABSENT', ledgerId: alias.id, message: `"${alias.text}" is ${alias.by}'s word, but ${alias.by} is not in this chapter` });
+    }
+    for (const record of state?.ledger?.records ?? []) {
+        if (record.status !== 'destroyed')
+            continue;
+        const name = recordNames(record).find((item) => termOccursInText(prose, item));
+        if (name)
+            violations.push({ severity: 'soft', code: 'DESTROYED_ENTITY_MENTION', ledgerId: record.id, entityId: record.id, message: `destroyed "${record.name}" (matched "${name}") is named again` });
+    }
+    return { ops: reviewed, violations };
 }

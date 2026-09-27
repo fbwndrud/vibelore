@@ -1,6 +1,7 @@
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { emptyLedger, findRecord, hookStatusOf, ledgerFromLegacy, ledgerNameKey, nextLedgerId, similarRecord } from '../../src/continuity/ledger.js';
 import { applyLedgerOps, applyMerges } from '../../src/continuity/ledger.js';
+import { reviewLedgerOps } from '../../src/continuity/ledger.js';
 
 const note = { id: 'o1', feature: 'objects', label: '물건', name: '서명 쪽지', aliases: [{ text: '그 쪽지' }], status: 'active', fields: {}, recent: [] };
 
@@ -137,5 +138,30 @@ describe('applyMerges', () => {
         expect(out.ledger.records[0].fields).toEqual({ holder: 'c1', state: '재서명' });
         expect(out.events).toEqual([{ chapter: 8, target: 'record', id: 'o3', event: 'merged', into: 'o1' }]);
         expect(applyMerges(out.ledger, [{ from: 'o3', into: 'o1' }], 9).events).toEqual([]);
+    });
+});
+
+describe('reviewLedgerOps', () => {
+    const state = () => ({ ...base(), ledger: { records: [
+        ...base().ledger.records,
+        { id: 'o3', feature: 'objects', label: '물건', name: '통행 장부', aliases: [{ text: '그 종이 쪼가리', by: 'c4', since: 5 }], status: 'active', fields: {}, recent: [] },
+    ] }, hooks: [{ id: 'h2', text: '누가 사슬을 박았나', status: 'open', recent: [] }] });
+    it('downgrades a paid hook whose evidence is not in the prose', () => {
+        const out = reviewLedgerOps({ state: state(), prose: '도윤은 사슬을 풀었다.', ops: [{ op: 'hook', id: 'h2', event: 'paid', evidence: '마렌이 사슬을 박았다' }] });
+        expect(out.ops).toEqual([{ op: 'hook', id: 'h2', event: 'advanced', evidence: '마렌이 사슬을 박았다' }]);
+        expect(out.violations.map((v) => v.code)).toEqual(['HOOK_PAID_WITHOUT_EVIDENCE']);
+    });
+    it('keeps a paid hook whose evidence is quoted from the prose', () => {
+        const out = reviewLedgerOps({ state: state(), prose: '그날 밤, 마렌이   사슬을 박았다고 털어놓았다.', ops: [{ op: 'hook', id: 'h2', event: 'paid', evidence: '마렌이 사슬을 박았다' }] });
+        expect(out.ops[0].event).toBe('paid');
+        expect(out.violations).toEqual([]);
+    });
+    it('flags a change to a record the prose never names', () => {
+        const out = reviewLedgerOps({ state: state(), prose: '리아는 걸었다.', ops: [{ op: 'event', id: 'o1', event: 'changed', set: { holder: 'c3' } }] });
+        expect(out.violations.map((v) => v.code)).toEqual(['LEDGER_NAME_NOT_IN_PROSE']);
+    });
+    it('flags a speaker-only alias when its owner is absent, and a destroyed record named again', () => {
+        const out = reviewLedgerOps({ state: state(), prose: '"그 종이 쪼가리 어디 뒀어?" 낡은 검이 벽에 걸려 있었다.', cast: ['c1', 'c2'], ops: [] });
+        expect(out.violations.map((v) => v.code).sort()).toEqual(['DESTROYED_ENTITY_MENTION', 'LEDGER_ALIAS_OWNER_ABSENT']);
     });
 });
