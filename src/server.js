@@ -138,6 +138,14 @@ const TOOLS = [
         description: '끌 검토 목록 전체(빈 배열이면 모두 켬). 꺼진 검토는 요청하지 않고 실패로 보지 않는다. 연속성 추출·검사는 끌 수 없다.' },
       disabledDraftSections: { type: 'array', items: { type: 'string', enum: ['older-memory', 'previous-tail', 'author-craft', 'style-anchor'] },
         description: '초고 요청에서 뺄 선택 섹션 목록 전체(빈 배열이면 모두 넣음): older-memory=오래된 관련 기억, previous-tail=직전 화 말미, author-craft=작법 묶음, style-anchor=문체 기준 예시. 계획·설정·현재 상태·최근 요약은 뺄 수 없다.' },
+      tracking: { type: 'object', properties: { objects: { type: 'boolean' }, knowledge: { type: 'boolean' }, scheduled: { type: 'boolean' }, hooks: { type: 'boolean' } }, additionalProperties: false,
+        description: '추적 기능 켜기/끄기. 기본은 모두 켜짐. objects=물건·장소·단서·능력, knowledge=누가 무엇을 아는가, scheduled=일어나기로 된 일(회귀 전생 사건·예언·예약), hooks=떡밥.' },
+      customTracking: { type: 'array', items: { type: 'object', properties: {
+        name: { type: 'string' }, feature: { type: 'string', enum: ['objects', 'knowledge', 'scheduled'] }, pinned: { type: 'boolean' },
+        rules: { type: 'array', items: { type: 'object' } }, note: { type: 'string' } }, required: ['name', 'feature'] },
+        description: '작가 정의 추적 항목 전체 목록(교체). pinned=매 화 입력에 항상 포함. rules: monotonic{field,direction:up|down,unless?}, frozenAfter{status}, speakerOnly{alias,by}; severity soft(기본)|hard. note=검토 모델에 보여줄 자연어 규칙(advisory).' },
+      mergeRecords: { type: 'array', items: { type: 'object', properties: { from: { type: 'string' }, into: { type: 'string' } }, required: ['from', 'into'] },
+        description: '같은 대상으로 확인된 기록 병합(from을 into에 흡수). 다음 커밋부터 반영.' },
     }, required: ['workId'] },
   },
   {
@@ -616,7 +624,7 @@ async function dispatchTool(store, name, args) {
     case 'lore_status':
       return runStatus({ store, workId: args.workId });
     case 'lore_configure':
-      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections });
+      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
     case 'lore_init':

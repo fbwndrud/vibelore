@@ -121,12 +121,23 @@ It does not change old stored data. With the optional arguments it stores the wr
   requested, is recorded as `disabled_by_user` and does not block auto commits.
 - `disabledDraftSections`: the full list of optional draft sections to leave out (`older-memory`,
   `previous-tail`, `author-craft`, `style-anchor`).
+- `tracking`: turns tracking features on/off (`objects`, `knowledge`, `scheduled`, `hooks`). All on
+  by default. objects=items/places/clues/abilities, knowledge=who knows what, scheduled=events set
+  to happen (regression/past-life events, prophecies, reservations), hooks=dangling threads.
+- `customTracking`: the full list of author-defined tracking items (replaces it). `{name, feature,
+  pinned?, rules?, note?}`. pinned=always included in the per-chapter input. rules:
+  `monotonic{field,direction:up|down,unless?}`, `frozenAfter{status}`, `speakerOnly{alias,by}`;
+  note=natural-language rule shown to the review model (advisory).
+- `mergeRecords`: records confirmed to be the same subject, to merge. `{from, into}` (absorbs
+  `from` into `into`). Takes effect from the next commit.
 
-`reviewPolicy` and `draftSections` in the response show the current settings and choices. Unknown names are rejected.
+`reviewPolicy` and `draftSections` in the response show the current settings and choices, and
+`tracking` (`enabled`, `available`), `customTracking` and `merges` show the tracking configuration.
+Unknown names are rejected.
 
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `disabledReviews`, `disabledDraftSections` |
+| `workId` | `project`, `disabledReviews`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
 
 ### `lore_style_anchor`
 

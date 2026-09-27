@@ -3,8 +3,39 @@ import assert from 'node:assert/strict';
 
 import { runWriteWorkflow } from '../src/tools/workflow.js';
 import { runConfigureStatus } from '../src/tools/configure.js';
+import { loadLedgerConfig, saveWriterSupportPolicy } from '../src/core/review-policy.js';
 import { qualityStore, outputs, workId } from './fixtures/quality-workflow.js';
 import { contractResponse } from './fixtures/contract-response.js';
+
+function memoryStore() {
+  let policy = null;
+  return { loadReviewPolicy: async () => policy, saveReviewPolicy: async (_w, next) => { policy = next; } };
+}
+
+test('stores tracking switches, author items with stable ids, and merges', async () => {
+  const store = memoryStore();
+  await saveWriterSupportPolicy(store, 'w', { tracking: { scheduled: false }, customTracking: [{ name: '금화', feature: 'objects', pinned: true, rules: [{ type: 'monotonic', field: 'amount', direction: 'down' }] }] });
+  await saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: '계절', feature: 'objects', pinned: true }, { name: '금화', feature: 'objects', pinned: true }], mergeRecords: [{ from: 'o3', into: 'o1' }] });
+  const config = await loadLedgerConfig(store, 'w');
+  assert.deepEqual(config.tracking, { scheduled: false });
+  assert.deepEqual(config.customTracking.map((item) => [item.id, item.name]), [['u2', '계절'], ['u1', '금화']]);
+  assert.deepEqual(config.merges, [{ from: 'o3', into: 'o1' }]);
+  await assert.rejects(saveWriterSupportPolicy(store, 'w', { tracking: { genre: true } }), /INVALID_TRACKING_FEATURE/);
+  await assert.rejects(saveWriterSupportPolicy(store, 'w', { customTracking: [{ name: 'x', feature: 'objects', rules: [{ type: 'magic' }] }] }), /INVALID_CUSTOM_TRACKING/);
+});
+
+test('lore_configure result exposes tracking switches, author items and merges', async () => {
+  const store = await qualityStore();
+  const status = await runConfigureStatus({
+    store, workId,
+    tracking: { scheduled: false },
+    customTracking: [{ name: '금화', feature: 'objects', pinned: true }],
+  });
+  assert.deepEqual(status.tracking.enabled, { objects: true, knowledge: true, scheduled: false, hooks: true });
+  assert.deepEqual(status.tracking.available, ['objects', 'knowledge', 'scheduled', 'hooks']);
+  assert.deepEqual(status.customTracking.map((item) => item.name), ['금화']);
+  assert.deepEqual(status.merges, []);
+});
 
 test('lore_configure stores which reviews are off and rejects names it does not know', async () => {
   const store = await qualityStore();
