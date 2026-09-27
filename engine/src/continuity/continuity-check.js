@@ -34,7 +34,7 @@ import { computeLanguageContractHash } from '../core/language-policy.js';
 import { languageSystemLines, pickByFamily, promptFamilyCaptureContext, resolveStepPromptLanguage, } from '../core/prompt-language.js';
 import { scanLexicon, } from './lexicon-scan.js';
 import { isHookActive, normalizeHook, VITAL_STATUSES } from './story-state.js';
-import { hookStatusOf } from './ledger.js';
+import { hookStatusOf, LEDGER_FEATURES, trackingEnabled } from './ledger.js';
 // ───────────────────────────── cast-manifest parsing ──────────────────────
 /**
  * Parse the cast-manifest body emitted by the writer. The OutputSanitizer has
@@ -194,7 +194,8 @@ function systemContent(ctx, staticText) {
  */
 export const CONTINUITY_CONTEXT_HASH_VERSION = 2;
 /** extractDelta 원천 바인딩 hash 의 버전. continuity hash 와 섞이지 않는다. */
-export const EXTRACTION_CONTEXT_HASH_VERSION = 1;
+/** v2: the requested schema follows `tracking` (ledgerOps per enabled feature), so it is bound too. */
+export const EXTRACTION_CONTEXT_HASH_VERSION = 2;
 /**
  * 키 정렬만 하는 정본 직렬화. **Unicode 정규화를 하지 않는다** — 정규화하면 서로
  * 다른 원고가 같은 hash 를 갖게 되고, 그 순간 "이전 응답이 바뀐 원고를 승인"한다.
@@ -251,6 +252,7 @@ function extractionHashPayload(input, contract) {
         prevState: canonicalValue(input.prevState ?? null),
         castManifestRaw: typeof input.castManifestRaw === 'string' ? input.castManifestRaw : '',
         workContractHash: computeLanguageContractHash(contract),
+        tracking: canonicalValue(input.tracking ?? null),
         // Known entities reach the prompt only when supplied; the key is absent
         // otherwise so existing bindings keep their hash.
         ...(Array.isArray(input.entities) && input.entities.length ? { entities: canonicalValue(input.entities) } : {}),
@@ -365,6 +367,7 @@ export const EXTRACT_DELTA_SYSTEM = [
     '제공된 회차 본문·이전 상태 요약·등장 캐스트 명단을 읽고, 구조화된 ChapterDelta JSON 한 개만 출력한다.',
     '본문 외 추론은 금지. 본문에서 직접 관찰되는 변화만 기록한다.',
     'characterId, speakerId, targetId에는 이번 회차 등장 캐스트에 제공된 정확한 ID만 사용한다. 이름·직책·역할명은 ID가 아니며 임의로 만들지 않는다.',
+    '이미 목록에 있는 기록과 떡밥은 그 id로 event/hook 을 쓰고, 목록에 없을 때만 register/plant 한다.',
     '출력은 코드 블록 없이 순수 JSON. 한국어 키/값을 사용해도 무방하나 스키마 키는 영문 그대로 유지한다.',
     '들여쓰기와 줄바꿈 없는 한 줄 compact JSON으로 출력한다.',
 ].join(' ');
@@ -377,6 +380,7 @@ export const EXTRACT_DELTA_SYSTEM_MULTILINGUAL = [
     'Read the chapter text, the previous state summary and the cast list, and output exactly one structured ChapterDelta JSON object.',
     'Do not infer beyond the text. Record only changes that are directly observable in the chapter.',
     'For characterId, speakerId and targetId use only the exact IDs given in this chapter\'s cast. Names, titles and role words are not IDs and must never be invented.',
+    'Use event/hook with the listed id for anything already listed; register or plant only what is not listed.',
     'Output pure JSON with no code fence. Write natural-language values (descriptions, anchors, interpretations, reasons) in the target work language, and keep schema keys, enum values and IDs exactly as written here.',
     'Output the JSON as a single compact line with no indentation or line breaks.',
 ].join(' ');
@@ -392,6 +396,9 @@ const EXTRACT_LABELS_KO = Object.freeze({
     bindHeading: '## 추출 검증 (extractionValidation)',
     bindEcho: '위 contextHash 를 extractionValidation.contextHash 에 글자 그대로 옮겨 적는다. 한 글자라도 다르면 추출은 확인된 것이 아니다.',
     hookText: '독자가 아직 답을 기다리는 약속',
+    ledgerLabel: '물건·장소·단서·능력·비밀·예정된 일 등 자유 분류',
+    ledgerNote: '이번 화에서 일어난 일 한 줄',
+    hookEvidence: 'paid일 때만: 본문에서 그대로 옮긴 인용',
     anchor: '본문에서 확인 가능한 짧은 근거',
     interpretation: '이 사건을 인물이 어떻게 받아들였는가',
     dimensionId: '작품별_dimension_id',
@@ -415,6 +422,9 @@ const EXTRACT_LABELS_EN = Object.freeze({
     bindHeading: '## Extraction validation (extractionValidation)',
     bindEcho: 'Copy the contextHash above into extractionValidation.contextHash character for character. If a single character differs the extraction is not confirmed.',
     hookText: 'a promise the reader is still waiting on',
+    ledgerLabel: 'free label: item, place, clue, ability, secret, scheduled event…',
+    ledgerNote: 'one line on what happened in this chapter',
+    hookEvidence: 'only for paid: a quote copied from the chapter text',
     anchor: 'short evidence observable in the chapter text',
     interpretation: 'how the character took this event',
     dimensionId: 'work_specific_dimension_id',
@@ -457,19 +467,35 @@ function continuityStateSummary(prevState, entities) {
         } : {}),
     };
 }
-function extractDeltaSchemaLines(labels, bindHash) {
+/**
+ * The ledger part of the schema offers only the features the work tracks, so a
+ * switched-off feature is never asked for (and never costs output tokens).
+ */
+function ledgerSchemaLines(labels, tracking) {
+    const features = LEDGER_FEATURES.filter((feature) => trackingEnabled({ tracking }, feature));
+    return [
+        ...(features.length ? [
+            `    { "op": "register", "feature": "${features.join('|')}", "label": "${labels.ledgerLabel}", "name": "...", "aliases": [{ "text": "...", "by": "characterId (only if one character uses it)" }], "fields": {}, "note": "${labels.ledgerNote}" },`,
+            `    { "op": "event", "id": "existing record id", "event": "mentioned|changed|status|restored", "set": {}, "status": "...", "note": "${labels.ledgerNote}" },`,
+            '    { "op": "alias", "id": "existing record id", "alias": "...", "by": "characterId or omit" },',
+        ] : []),
+        ...(trackingEnabled({ tracking }, 'hooks') ? [
+            `    { "op": "plant", "text": "${labels.hookText}", "horizon": "next|soon|arc|long|finale" },`,
+            `    { "op": "hook", "id": "existing hook id", "event": "mentioned|advanced|paid|reopened|parked|closed", "evidence": "${labels.hookEvidence}", "note": "${labels.ledgerNote}" }`,
+        ] : []),
+    ];
+}
+function extractDeltaSchemaLines(labels, bindHash, tracking) {
     const lines = [
         '{',
         '  "newAddressEntries": [{ "speakerId": "...", "targetId": "...", "term": "...", "register": "formal|intimate|subordinate|..." }],',
         '  "relationshipOps": [{ "from": "...", "to": "...", "kind": "...", "state": "..." }],',
-        `  "hookChanges": [{ "id": "...", "text": "${labels.hookText}", "plantedAtChapter": 0, "phase": "planted|advancing|paid|parked", "horizon": "next|soon|arc|long|finale", "lastMovedChapter": 0 }],`,
         '  "mutableChanges": [{ "characterId": "...", "vitalStatus": "alive|dead|missing", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
-        '  "entityOps": [{ "op": "register|update|retire", "entityId": "...", "kind": "...", "name": "...", "fields": {}, "cause": "retire|destroyed" }],',
         `  "influenceEvents": [{ "characterId": "...", "anchor": "${labels.anchor}", "interpretation": "${labels.interpretation}", "dimensionChanges": { "${labels.dimensionId}": -1 }, "nextChoiceBias": "${labels.nextChoiceBias}", "behavioralProof": { "hypothesis": "${labels.hypothesis}", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["${labels.alternatives[0]}", "${labels.alternatives[1]}"], "chosen": "${labels.chosen}", "costPaid": "${labels.costPaid}", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "${labels.belief}" }] }],`,
         `  "noInfluenceReason": "${labels.noInfluenceReason}",`,
-        bindHash
-            ? '  "trackedEntityOps": [{ "kind": "Timeline|RelationshipState|PowerSystem|Artifact|Clue|KnowledgeMatrix", "data": {} }],'
-            : '  "trackedEntityOps": [{ "kind": "Timeline|RelationshipState|PowerSystem|Artifact|Clue|KnowledgeMatrix", "data": {} }]',
+        '  "ledgerOps": [',
+        ...ledgerSchemaLines(labels, tracking),
+        bindHash ? '  ],' : '  ]',
     ];
     if (bindHash)
         lines.push('  "extractionValidation": { "contextHash": "copy the contextHash above exactly" }');
@@ -512,7 +538,7 @@ function buildExtractDeltaUserPrompt(input, manifest, ctx, bindHash) {
             ``,
         ] : []),
         labels.schema,
-        ...extractDeltaSchemaLines(labels, Boolean(bindHash)),
+        ...extractDeltaSchemaLines(labels, Boolean(bindHash), input.tracking),
     ].join('\n');
 }
 /**
@@ -524,8 +550,10 @@ const EXTRACT_REPAIR_EN = 'The previous response left both influenceEvents and n
 const EXTRACT_REPAIR_PREVIOUS_KO = '이전 응답:';
 const EXTRACT_REPAIR_PREVIOUS_EN = 'Previous response:';
 const EXTRACT_ARRAY_KEYS = Object.freeze([
-    'newAddressEntries', 'relationshipOps', 'hookChanges', 'mutableChanges', 'influenceEvents', 'trackedEntityOps',
+    'newAddressEntries', 'relationshipOps', 'mutableChanges', 'influenceEvents', 'ledgerOps',
 ]);
+/** No longer requested, but recorded answers may still carry them; they are checked when present. */
+const LEGACY_ARRAY_KEYS = Object.freeze(['hookChanges', 'hookOps', 'trackedEntityOps']);
 function isNonEmptyString(value) {
     return typeof value === 'string' && value.length > 0;
 }
@@ -548,7 +576,7 @@ function isStringArray(value) {
 function isLegacyWellFormedExtraction(parsed) {
     if (!isRecord(parsed))
         return false;
-    for (const key of [...EXTRACT_ARRAY_KEYS, 'hookOps']) {
+    for (const key of [...EXTRACT_ARRAY_KEYS, ...LEGACY_ARRAY_KEYS]) {
         if (key in parsed && !Array.isArray(parsed[key]))
             return false;
     }
@@ -630,6 +658,21 @@ function isCompleteTrackedEntityOp(raw) {
         return false;
     return true;
 }
+function isCompleteLedgerOp(raw) {
+    if (!isRecord(raw) || !isNonEmptyString(raw.op))
+        return false;
+    if (raw.op === 'register')
+        return isNonEmptyString(raw.feature) && isNonEmptyString(raw.name) && (!('fields' in raw) || isRecord(raw.fields));
+    if (raw.op === 'event')
+        return isNonEmptyString(raw.id) && isNonEmptyString(raw.event) && (!('set' in raw) || isRecord(raw.set));
+    if (raw.op === 'alias')
+        return isNonEmptyString(raw.id) && isNonEmptyString(raw.alias);
+    if (raw.op === 'plant')
+        return isNonEmptyString(raw.text);
+    if (raw.op === 'hook')
+        return isNonEmptyString(raw.id) && isNonEmptyString(raw.event);
+    return false;
+}
 function isCompleteRelationshipClaim(raw, resolveId) {
     if (!isRecord(raw))
         return false;
@@ -669,6 +712,7 @@ const NEW_CONTRACT_ENTRY_VALIDATORS = Object.freeze({
     mutableChanges: isCompleteMutableChange,
     influenceEvents: isCompleteInfluenceEvent,
     trackedEntityOps: (raw) => isCompleteTrackedEntityOp(raw),
+    ledgerOps: (raw) => isCompleteLedgerOp(raw),
 });
 /**
  * 신규 계약 추출의 원본 JSON. 관대한 parser 가 null/부분 레코드를 버리기 전에
@@ -686,12 +730,17 @@ function isNewContractDeltaComplete(parsed, resolveId) {
     if (typeof reason !== 'string' && !(Array.isArray(parsed.influenceEvents) && parsed.influenceEvents.length > 0))
         return false;
     for (const key of EXTRACT_ARRAY_KEYS) {
-        // The parser folds legacy `hookOps` into hookChanges, so either key satisfies it.
-        const rows = key === 'hookChanges' ? (parsed.hookChanges ?? parsed.hookOps) : parsed[key];
-        if (!Array.isArray(rows))
+        if (!Array.isArray(parsed[key]))
             return false;
-        const valid = NEW_CONTRACT_ENTRY_VALIDATORS[key];
-        for (const row of rows) {
+    }
+    for (const key of [...EXTRACT_ARRAY_KEYS, 'hookChanges', 'hookOps', 'trackedEntityOps']) {
+        if (!(key in parsed))
+            continue;
+        if (!Array.isArray(parsed[key]))
+            return false;
+        // The parser folds legacy `hookOps` into hookChanges, so both share its validator.
+        const valid = NEW_CONTRACT_ENTRY_VALIDATORS[key === 'hookOps' ? 'hookChanges' : key];
+        for (const row of parsed[key]) {
             if (!valid(row, resolveId))
                 return false;
         }
@@ -721,6 +770,13 @@ function extractionValidationResult(status, contextHash, code) {
         result.diagnostics = Object.freeze({ code });
     return Object.freeze(result);
 }
+const LEDGER_OP_KEYS = Object.freeze({
+    register: ['op', 'feature', 'label', 'name', 'aliases', 'fields', 'note'],
+    event: ['op', 'id', 'event', 'set', 'status', 'note'],
+    alias: ['op', 'id', 'alias', 'by'],
+    plant: ['op', 'text', 'horizon', 'note'],
+    hook: ['op', 'id', 'event', 'note', 'evidence', 'text', 'horizon'],
+});
 function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
     const obj = asRecord(parsed);
     const newAddressEntries = [];
@@ -815,6 +871,15 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
         const data = asRecord(e.data);
         trackedEntityOps.push({ kind, data });
     }
+    // Only the keys the extractor is offered survive: a model-chosen id on
+    // register/plant, a plantedAtChapter or a chapter-note is not its call.
+    const ledgerOps = [];
+    for (const raw of asArray(obj.ledgerOps)) {
+        if (!isCompleteLedgerOp(raw))
+            continue;
+        const keys = LEDGER_OP_KEYS[raw.op];
+        ledgerOps.push(Object.fromEntries(keys.filter((key) => raw[key] !== undefined && raw[key] !== null).map((key) => [key, raw[key]])));
+    }
     const influenceEvents = [];
     for (const raw of asArray(obj.influenceEvents)) {
         const e = asRecord(raw);
@@ -849,6 +914,7 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
         noInfluenceReason: asString(obj.noInfluenceReason) ?? '',
         trackedEntityOps,
         entityOps,
+        ledgerOps,
     };
 }
 function characterIdResolver(foundation) {

@@ -3,7 +3,7 @@
 export function contractResponse(req) {
   const text = req.messages.map(m => m.content).join('\n');
   const hash = text.match(/contextHash: ([a-f0-9]{64})/)?.[1];
-  if (req.step === 'continuity-extract' && hash) return { text: JSON.stringify({ appearedCharacterIds: [], newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], trackedEntityOps: [], noInfluenceReason: '지속되는 변화가 없다.', extractionValidation: { contextHash: hash } }) };
+  if (req.step === 'continuity-extract' && hash) return { text: JSON.stringify({ appearedCharacterIds: [], newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], ledgerOps: [], noInfluenceReason: '지속되는 변화가 없다.', extractionValidation: { contextHash: hash } }) };
   if (req.step === 'continuity-check' && hash) {
     const ids = text.match(/these invariants: ([A-Z_, ]+)\./)?.[1]?.split(', ') ?? text.match(/판정한다: ([A-Z_, ]+)\./)?.[1]?.split(', ') ?? [];
     return { text: JSON.stringify({ violations: [], semanticValidation: { contextHash: hash, verdicts: Object.fromEntries(ids.map(id=>[id, 'pass'])), evidence: [] } }) };

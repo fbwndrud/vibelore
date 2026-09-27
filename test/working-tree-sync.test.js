@@ -173,7 +173,7 @@ describe('working tree and experience generations', () => {
         if (request.step === 'chapter-summary') return { text: '{"summary":"손수정 요약","plotBeat":"opening","sceneTags":[],"povCharacter":null}' };
         if (request.step === 'chapter-title') return { text: '{"title":"손수정 화"}' };
         if (request.step === 'continuity-extract') return { text: JSON.stringify({
-          newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], trackedEntityOps: [],
+          newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], ledgerOps: [],
           noInfluenceReason: '지속되는 상태 변화가 없는 장면이다.', extractionValidation: { contextHash },
         }) };
         if (request.step === 'continuity-check') {

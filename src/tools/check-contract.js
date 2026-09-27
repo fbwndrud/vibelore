@@ -13,6 +13,7 @@ import { lexiconsForLanguage } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { promptKit } from '../prompts/index.js';
+import { loadLedgerConfig } from '../core/review-policy.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const pending = (providers) => Boolean(providers?.pending?.length);
@@ -154,8 +155,10 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   }
   const prevState = await canonicalStore.loadStoryState(workId, chapter - 1) ?? emptyStoryState(workId);
   const kit = promptKit({ contract: workContract });
+  const ledgerConfig = await loadLedgerConfig(store, workId);
   const extractionInput = { prose: input.prose, chapterNumber: chapter, foundation, providers: wrapped, model: MODEL, prevState,
     castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language,
+    tracking: ledgerConfig.tracking,
     // Only what the prose touches (and the planned cast): the index does not grow with the work.
     prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', entities, focusText: input.prose, cast: context.plans.episode?.cast ?? [], hookIds: context.plans.episode?.hooksTouched ?? [] }),
     ...(entities.length ? { entities } : {}) };

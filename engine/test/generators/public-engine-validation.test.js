@@ -181,7 +181,7 @@ function stubProviders(opts = {}) {
                     hookOps: [],
                     mutableChanges: [],
                     influenceEvents: [],
-                    trackedEntityOps: [],
+                    ledgerOps: [],
                     noInfluenceReason: '이번 회차에는 인물의 선택·비용·인식·관계 변화가 본문에 없다.',
                     extractionValidation: { contextHash },
                 });

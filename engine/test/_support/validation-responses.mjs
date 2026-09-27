@@ -10,7 +10,7 @@ export function validationFixtureResponse(req, fallback = '{}') {
         return JSON.stringify({ title: 'A chapter', summary: 'A character approaches the gate.' });
     if (req.step === 'continuity-extract' || req.step === 'continuity-extract-repair')
         return JSON.stringify({ newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [],
-            influenceEvents: [], trackedEntityOps: [], noInfluenceReason: 'No new enduring changes in this scene.',
+            influenceEvents: [], ledgerOps: [], noInfluenceReason: 'No new enduring changes in this scene.',
             extractionValidation: { contextHash: hash } });
     if (req.step === 'continuity-check') {
         const base = JSON.parse(fallback);

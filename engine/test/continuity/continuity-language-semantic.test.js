@@ -204,7 +204,7 @@ function completeEmptyExtraction(hash, extra = {}) {
         mutableChanges: [],
         influenceEvents: [],
         noInfluenceReason: '',
-        trackedEntityOps: [],
+        ledgerOps: [],
         extractionValidation: { contextHash: hash },
         ...extra,
     });
@@ -237,12 +237,16 @@ describe('extractDelta prompt families', () => {
             '{',
             '  "newAddressEntries": [{ "speakerId": "...", "targetId": "...", "term": "...", "register": "formal|intimate|subordinate|..." }],',
             '  "relationshipOps": [{ "from": "...", "to": "...", "kind": "...", "state": "..." }],',
-            '  "hookChanges": [{ "id": "...", "text": "독자가 아직 답을 기다리는 약속", "plantedAtChapter": 0, "phase": "planted|advancing|paid|parked", "horizon": "next|soon|arc|long|finale", "lastMovedChapter": 0 }],',
             '  "mutableChanges": [{ "characterId": "...", "vitalStatus": "alive|dead|missing", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
-            '  "entityOps": [{ "op": "register|update|retire", "entityId": "...", "kind": "...", "name": "...", "fields": {}, "cause": "retire|destroyed" }],',
             '  "influenceEvents": [{ "characterId": "...", "anchor": "본문에서 확인 가능한 짧은 근거", "interpretation": "이 사건을 인물이 어떻게 받아들였는가", "dimensionChanges": { "작품별_dimension_id": -1 }, "nextChoiceBias": "다음 선택에 생긴 편향", "behavioralProof": { "hypothesis": "성격 가설", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["선택A", "선택B"], "chosen": "실제 선택", "costPaid": "지불한 비용", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "from이 to를 어떻게 보게 됐는가" }] }],',
             '  "noInfluenceReason": "인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성. influenceEvents 가 있으면 빈 문자열",',
-            '  "trackedEntityOps": [{ "kind": "Timeline|RelationshipState|PowerSystem|Artifact|Clue|KnowledgeMatrix", "data": {} }]',
+            '  "ledgerOps": [',
+            '    { "op": "register", "feature": "objects|knowledge|scheduled", "label": "물건·장소·단서·능력·비밀·예정된 일 등 자유 분류", "name": "...", "aliases": [{ "text": "...", "by": "characterId (only if one character uses it)" }], "fields": {}, "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "event", "id": "existing record id", "event": "mentioned|changed|status|restored", "set": {}, "status": "...", "note": "이번 화에서 일어난 일 한 줄" },',
+            '    { "op": "alias", "id": "existing record id", "alias": "...", "by": "characterId or omit" },',
+            '    { "op": "plant", "text": "독자가 아직 답을 기다리는 약속", "horizon": "next|soon|arc|long|finale" },',
+            '    { "op": "hook", "id": "existing hook id", "event": "mentioned|advanced|paid|reopened|parked|closed", "evidence": "paid일 때만: 본문에서 그대로 옮긴 인용", "note": "이번 화에서 일어난 일 한 줄" }',
+            '  ]',
             '}',
         ].join('\n');
         expect(user).toBe(expectedUser);
@@ -261,7 +265,8 @@ describe('extractDelta prompt families', () => {
         expect(user).toContain('## Chapter number');
         expect(user).toContain('## Cast appearing in this chapter (writer manifest)');
         expect(user).toContain('- Identify each characterId by its name and aliases.');
-        expect(user).toContain('"trackedEntityOps"');
+        expect(user).toContain('"ledgerOps"');
+        expect(user).not.toContain('"trackedEntityOps"');
         expect(user).toContain('## Extraction validation (extractionValidation)');
         expect(user).toContain(`contextHash: ${computeExtractionContextHash(input)}`);
         // 프롬프트에 실린 한글은 작품 데이터(캐스트 호칭·본문)뿐이고 지시문은 영어다.
@@ -435,6 +440,7 @@ describe('extractDelta extractionValidation', () => {
             }],
             noInfluenceReason: '',
             trackedEntityOps: [{ kind: 'Timeline', data: { era: 'present' } }],
+            ledgerOps: [{ op: 'register', feature: 'objects', label: 'item', name: 'the letter' }, { op: 'plant', text: 'who wrote it', horizon: 'soon' }],
         }));
         const result = await extractDelta({ ...input, providers: cap.providers });
         expect(result.extractionValidation.status).toBe('completed');
@@ -442,13 +448,14 @@ describe('extractDelta extractionValidation', () => {
         expect(result.delta.hookChanges[0].id).toBe('h1');
         expect(result.delta.influenceEvents[0].characterId).toBe('c1');
         expect(result.delta.trackedEntityOps).toEqual([{ kind: 'Timeline', data: { era: 'present' } }]);
+        expect(result.delta.ledgerOps.map((op) => op.op)).toEqual(['register', 'plant']);
     });
     it('recorded influenceEvents make noInfluenceReason optional (ja sample, 43be593)', async () => {
         const input = extractInput({ workContract: EN_CONTRACT });
         const hash = computeExtractionContextHash(input);
         const event = { characterId: 'c1', anchor: 'He read the letter twice.', interpretation: 'he accepted the cost' };
         const omitted = JSON.stringify({
-            newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], trackedEntityOps: [],
+            newAddressEntries: [], relationshipOps: [], mutableChanges: [], ledgerOps: [],
             influenceEvents: [event],
             extractionValidation: { contextHash: hash },
         });
@@ -460,7 +467,7 @@ describe('extractDelta extractionValidation', () => {
         expect(nulled.extractionValidation.status).toBe('completed');
         // Without any event the reason is still the required substitute.
         const bare = JSON.stringify({
-            newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], trackedEntityOps: [], influenceEvents: [],
+            newAddressEntries: [], relationshipOps: [], mutableChanges: [], ledgerOps: [], influenceEvents: [],
             extractionValidation: { contextHash: hash },
         });
         const bareResult = await extractDelta({ ...input, providers: capturing(bare).providers });

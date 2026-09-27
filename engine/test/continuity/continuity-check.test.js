@@ -10,7 +10,7 @@ import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { createGenreProfileRegistry } from '../../src/continuity/genre-profile.js';
 import { DefaultHonorificLexicon } from '../../src/continuity/honorific-lexicon.js';
 import { emptyStoryState } from '../../src/continuity/story-state.js';
-import { continuityCheck, extractDelta, } from '../../src/continuity/continuity-check.js';
+import { computeExtractionContextHash, continuityCheck, EXTRACTION_CONTEXT_HASH_VERSION, extractDelta, } from '../../src/continuity/continuity-check.js';
 import { createProviderRegistry, } from '../../src/core/provider-registry.js';
 const registry = createGenreProfileRegistry();
 function makeFoundation(args) {
@@ -517,7 +517,7 @@ describe('extractDelta carries continuity state', () => {
             entities: [{ entityId: 'sword', kind: 'item', canonicalName: 'ENTITY_TOKEN', aliases: [], status: 'active' }],
         });
         const prompt = calls[0].messages.map((m) => m.content).join('\n');
-        for (const token of ['HOOK_TEXT_TOKEN', 'TRACKED_TOKEN', 'ENTITY_TOKEN', '"vitalStatus":"dead"', '"from"', '"entityOps"'])
+        for (const token of ['HOOK_TEXT_TOKEN', 'TRACKED_TOKEN', 'ENTITY_TOKEN', '"vitalStatus":"dead"', '"from"', '"ledgerOps"'])
             expect(prompt.includes(token)).toBe(true);
     });
     it('parses relationship direction, vital status and entity lifecycle ops', async () => {
@@ -584,5 +584,54 @@ describe('extractDelta address entries', () => {
             { speakerId: 'c1', targetId: 'c4', term: '마렌 씨', register: 'formal' },
         ]);
         expect(result.rejectedAddressEntries.map((entry) => entry.reason)).toEqual(['names-other-character', 'names-other-character', 'not-in-prose']);
+    });
+});
+// ─── story ledger ops ──────────────────────────────────────────────────────
+async function extractWithAnswer(answer, extra = {}) {
+    const calls = [];
+    const providers = createProviderRegistry([makeMockAdapter({ default: JSON.stringify(answer), recordCalls: calls })]);
+    const foundation = makeFoundation({ characters: [maleChar('c1', '이세종')] });
+    const result = await extractDelta({
+        prose: '평범한 회차였다.', castManifestRaw: '', chapterNumber: 3, foundation,
+        prevState: emptyStoryState('work-test'), providers, model: MODEL, ...extra,
+    });
+    const prompt = calls[0].messages.find((m) => m.role === 'user').content;
+    return { ...result, prompt };
+}
+describe('extractDelta ledger ops', () => {
+    it('asks for ledgerOps of enabled features only and parses them', async () => {
+        const answer = { newAddressEntries: [], relationshipOps: [], mutableChanges: [], influenceEvents: [], noInfluenceReason: '변화 없음',
+            ledgerOps: [{ op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지' }, { op: 'hook', id: 'h1', event: 'paid', evidence: '…' }, { op: 'bogus' }] };
+        const { delta, prompt } = await extractWithAnswer(answer, { tracking: { knowledge: false, scheduled: false } });
+        expect(prompt).toContain('"ledgerOps"');
+        expect(prompt).toContain('objects');
+        expect(prompt).not.toContain('knowledge|');
+        expect(prompt).not.toContain('trackedEntityOps');
+        expect(delta.ledgerOps).toEqual([{ op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지' }, { op: 'hook', id: 'h1', event: 'paid', evidence: '…' }]);
+    });
+    it('drops keys the extractor is not offered and leaves hooks out when hooks are off', async () => {
+        const answer = { ledgerOps: [
+            { op: 'register', feature: 'knowledge', label: '비밀', name: '출생', id: 'r9', extra: 1 },
+            { op: 'plant', text: '누가 쪽지를 썼나', horizon: 'soon', id: 'h9', plantedAtChapter: 1 },
+            { op: 'chapter-note', note: '…' },
+        ] };
+        const { delta, prompt } = await extractWithAnswer(answer, { tracking: { hooks: false } });
+        expect(prompt).toContain('objects|knowledge|scheduled');
+        expect(prompt).not.toContain('"plant"');
+        expect(delta.ledgerOps).toEqual([
+            { op: 'register', feature: 'knowledge', label: '비밀', name: '출생' },
+            { op: 'plant', text: '누가 쪽지를 썼나', horizon: 'soon' },
+        ]);
+    });
+    it('still reads legacy hookChanges and trackedEntityOps from recorded answers', async () => {
+        const { delta } = await extractWithAnswer({ hookChanges: [{ id: 'h1', text: '약속', phase: 'planted' }], trackedEntityOps: [{ kind: 'Clue', data: { name: '쪽지' } }] });
+        expect(delta.hookChanges.map((hook) => hook.id)).toEqual(['h1']);
+        expect(delta.trackedEntityOps).toEqual([{ kind: 'Clue', data: { name: '쪽지' } }]);
+        expect(delta.ledgerOps).toEqual([]);
+    });
+    it('binds the extraction hash to the tracking switches', async () => {
+        const base = { prose: '본문', chapterNumber: 1, foundation: makeFoundation({ characters: [] }), prevState: emptyStoryState('w'), castManifestRaw: '' };
+        expect(EXTRACTION_CONTEXT_HASH_VERSION).toBe(2);
+        expect(computeExtractionContextHash(base)).not.toBe(computeExtractionContextHash({ ...base, tracking: { hooks: false } }));
     });
 });

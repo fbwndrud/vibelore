@@ -17,7 +17,7 @@ function provider() {
   return { pending: [], async complete(req) {
     const content = req.messages.map((m) => m.content).join('\n');
     const hash = content.match(/contextHash: ([a-f0-9]{64})/)?.[1];
-    if (req.step === 'continuity-extract') return { text: JSON.stringify({ newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], trackedEntityOps: [], noInfluenceReason: 'No lasting change.', extractionValidation: { contextHash: hash } }) };
+    if (req.step === 'continuity-extract') return { text: JSON.stringify({ newAddressEntries: [], relationshipOps: [], hookOps: [], mutableChanges: [], influenceEvents: [], ledgerOps: [], noInfluenceReason: 'No lasting change.', extractionValidation: { contextHash: hash } }) };
     if (req.step === 'continuity-check') {
       const ids = content.match(/(?:these invariants|판정한다): ([A-Z_, ]+)\./)?.[1]?.split(', ') ?? [];
       return { text: JSON.stringify({ semanticValidation: { contextHash: hash, verdicts: Object.fromEntries(ids.map((id) => [id, 'pass'])), evidence: [] } }) };
