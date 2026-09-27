@@ -5,6 +5,7 @@ import { qualityStore, workId } from './fixtures/quality-workflow.js';
 import { SYNTHETIC_LONG_PROSE } from './fixtures/synthetic-prose.js';
 import { contractResponse } from './fixtures/contract-response.js';
 import { loadValidationSession, saveValidationSession } from '../src/core/validation-context.js';
+import { reviewLedgerOps } from '../engine/src/continuity/ledger.js';
 import { emptyStoryState } from '../engine/src/continuity/story-state.js';
 
 const providers = { pending: [], async complete(req) { return contractResponse(req) ?? { text: '{}' }; } };
@@ -87,18 +88,25 @@ test('the profile check reads the profile, beat and deferred results as text ins
 });
 
 // Runs the check with extra fields merged into the canned extraction answer,
-// on top of a saved chapter-0 state when one is given.
-async function checkWithExtraction(extraction, { prevState, issueReceipt = false, prose = SYNTHETIC_LONG_PROSE } = {}) {
-  const store = await qualityStore();
+// on top of a saved chapter-0 state when one is given. `extraction` may be a
+// function of the extraction call count, for answers that change on a re-ask.
+async function checkWithExtraction(extraction, { prevState, issueReceipt = false, prose = SYNTHETIC_LONG_PROSE, store: given } = {}) {
+  const store = given ?? await qualityStore();
   if (prevState) await store.saveStoryState({ ...emptyStoryState(workId), chapterNumber: 0, ...prevState });
+  const extractions = [];
   const provider = { pending: [], async complete(req) {
     const answer = contractResponse(req);
     if (req.step !== 'continuity-extract' || !answer) return answer ?? { text: '{}' };
-    return { text: JSON.stringify({ ...JSON.parse(answer.text), ...extraction }) };
+    extractions.push(req);
+    const extra = typeof extraction === 'function' ? extraction(extractions.length) : extraction;
+    return { text: JSON.stringify({ ...JSON.parse(answer.text), ...extra }) };
   } };
   const result = await runContractCheck({ store, workId, chapter: 1, prose, title: '첫 문', providers: provider, issueReceipt });
-  return { ...result, store };
+  return { ...result, store, extractions };
 }
+
+const destroyedSword = { ledger: { records: [{ id: 'o2', feature: 'objects', label: '물건', name: '낡은 검', aliases: [], status: 'destroyed', fields: {}, recent: [] }] } };
+const repairSword = { ledgerOps: [{ op: 'event', id: 'o2', event: 'changed', set: { state: '수리' } }] };
 
 test('a paid hook without a quote is stored as advanced and reported', async () => {
   const result = await checkWithExtraction({
@@ -106,6 +114,9 @@ test('a paid hook without a quote is stored as advanced and reported', async () 
   }, { prevState: { hooks: [{ id: 'h1', text: '누가', status: 'open' }] } });
   assert.equal(result.delta.ledgerOps[0].event, 'advanced');
   assert.ok(result.violations.some((v) => v.code === 'HOOK_PAID_WITHOUT_EVIDENCE' && v.severity === 'soft'), JSON.stringify(result.violations.map((v) => v.code)));
+  // Each run reviews the stored ops again; a reviewed list stays as it is.
+  const again = reviewLedgerOps({ state: { hooks: [{ id: 'h1', text: '누가', status: 'open' }] }, ops: result.delta.ledgerOps, prose: SYNTHETIC_LONG_PROSE });
+  assert.deepEqual(again.ops, result.delta.ledgerOps);
 });
 
 test('the receipt carries the reviewed ledger ops, so commit stores the downgraded hook', async () => {
@@ -118,10 +129,54 @@ test('the receipt carries the reviewed ledger ops, so commit stores the downgrad
   assert.equal(receipt.artifact.semanticDelta.ledgerOps[0].event, 'advanced');
 });
 
-test('changing a destroyed record is a hard violation', async () => {
-  const result = await checkWithExtraction({ ledgerOps: [{ op: 'event', id: 'o2', event: 'changed', set: { state: '수리' } }] },
-    { prevState: { ledger: { records: [{ id: 'o2', feature: 'objects', label: '물건', name: '낡은 검', aliases: [], status: 'destroyed', fields: {}, recent: [] }] } } });
-  assert.ok(result.violations.some((v) => v.code === 'LEDGER_UPDATE_AFTER_DESTROY' && v.severity === 'hard'), JSON.stringify(result.violations.map((v) => v.code)));
+test('a destroyed record changed by the extraction is asked again once, without spending an attempt', async () => {
+  const result = await checkWithExtraction((call) => (call === 1 ? repairSword : { ledgerOps: [] }), { prevState: destroyedSword });
+  assert.equal(result.extractions.length, 2);
+  assert.equal(result.validationComplete, true, JSON.stringify({ status: result.status, codes: result.violations.map((v) => v.code) }));
+  assert.ok(!result.violations.some((v) => v.code === 'LEDGER_UPDATE_AFTER_DESTROY'));
+  const session = await loadValidationSession(result.store, workId, 'manual-1');
+  assert.equal(session.failures, 0);
+});
+
+test('changing a destroyed record again after the re-ask is a hard violation that blocks the check', async () => {
+  const result = await checkWithExtraction(repairSword, { prevState: destroyedSword });
+  assert.equal(result.extractions.length, 2);
+  const hard = result.violations.find((v) => v.code === 'LEDGER_UPDATE_AFTER_DESTROY');
+  assert.equal(hard?.severity, 'hard', JSON.stringify(result.violations.map((v) => v.code)));
+  assert.match(hard.message, /낡은 검/);
+  assert.match(hard.message, /changed/);
+  assert.match(hard.message, /수리/);
+  assert.equal(result.status, 'validation_incomplete');
+  assert.notEqual(result.validationComplete, true);
+  assert.equal(result.validationAttempts, 1);
+});
+
+test('a hard custom rule blocks at once, without a re-ask', async () => {
+  const store = await qualityStore();
+  await store.saveReviewPolicy(workId, { customTracking: [{ id: 'o3', name: '금화', feature: 'objects', rules: [{ type: 'monotonic', field: 'amount', direction: 'down', severity: 'hard' }] }] });
+  const result = await checkWithExtraction({ ledgerOps: [{ op: 'event', id: 'o3', event: 'changed', set: { amount: '12' } }] }, { store,
+    prevState: { ledger: { records: [{ id: 'o3', feature: 'objects', label: '물건', name: '금화', aliases: [], status: 'present', fields: { amount: '10' }, recent: [] }] } } });
+  assert.equal(result.extractions.length, 1);
+  assert.ok(result.violations.some((v) => v.code === 'CUSTOM_RULE_MONOTONIC' && v.severity === 'hard'), JSON.stringify(result.violations.map((v) => v.code)));
+  assert.equal(result.status, 'validation_incomplete');
+});
+
+test('ledger findings follow the current config on every run of a session', async () => {
+  const store = await qualityStore();
+  await store.saveStoryState({ ...emptyStoryState(workId), chapterNumber: 0,
+    ledger: { records: [{ id: 'o3', feature: 'objects', label: '물건', name: '금화', aliases: [], status: 'present', fields: { amount: '10' }, recent: [] }] } });
+  const extraction = { ledgerOps: [{ op: 'event', id: 'o3', event: 'changed', set: { amount: '12' } }] };
+  const provider = { pending: [], async complete(req) {
+    const answer = contractResponse(req);
+    if (req.step !== 'continuity-extract' || !answer) return answer ?? { text: '{}' };
+    return { text: JSON.stringify({ ...JSON.parse(answer.text), ...extraction }) };
+  } };
+  const run = () => runContractCheck({ store, workId, chapter: 1, prose: SYNTHETIC_LONG_PROSE, title: '첫 문', providers: provider, issueReceipt: false, includeSemanticContinuity: false });
+  const before = await run();
+  assert.ok(!before.violations.some((v) => v.code === 'CUSTOM_RULE_MONOTONIC'));
+  await store.saveReviewPolicy(workId, { customTracking: [{ id: 'o3', name: '금화', feature: 'objects', rules: [{ type: 'monotonic', field: 'amount', direction: 'down' }] }] });
+  const after = await run();
+  assert.ok(after.violations.some((v) => v.code === 'CUSTOM_RULE_MONOTONIC' && v.severity === 'soft'), JSON.stringify(after.violations.map((v) => v.code)));
 });
 
 test('an extraction saved before ledger ops existed still checks when replayed', async () => {
@@ -130,8 +185,7 @@ test('an extraction saved before ledger ops existed still checks when replayed',
   await run({ includeSemanticContinuity: false });
   const session = await loadValidationSession(store, workId, 'manual-1');
   const { ledgerOps, ...legacyDelta } = session.extracted.delta;
-  const { ledgerFindings, ...legacy } = session.extracted;
-  await saveValidationSession(store, workId, 'manual-1', { ...session, extracted: { ...legacy, delta: legacyDelta } });
+  await saveValidationSession(store, workId, 'manual-1', { ...session, extracted: { ...session.extracted, delta: legacyDelta } });
   const result = await run();
   assert.equal(result.validationComplete, true, JSON.stringify({ status: result.status, code: result.code, error: result.validationError }));
   assert.ok(!result.violations.some((v) => v.code.startsWith('LEDGER_')), JSON.stringify(result.violations.map((v) => v.code)));

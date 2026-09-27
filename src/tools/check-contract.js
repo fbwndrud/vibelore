@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { extractDelta, continuityCheck, computeExtractionContextHash } from '../../engine/src/continuity/continuity-check.js';
 import { runChapterSummary } from '../../engine/src/generators/text/steps/chapter-summary.js';
 import { ledgerPrevState } from './ledger-log.js';
-import { reviewLedgerOps } from '../../engine/src/continuity/ledger.js';
+import { findRecord, reviewLedgerOps } from '../../engine/src/continuity/ledger.js';
 import { ledgerStep } from '../../engine/src/continuity/story-state.js';
 import { evaluateChapterQuality } from '../../engine/src/continuity/quality-gate.js';
 import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-language.js';
@@ -17,6 +17,10 @@ import { promptKit } from '../prompts/index.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
+// Hard ledger findings that usually come from the extractor's reading, not
+// from the prose: a remembered weapon logged as `changed`, a restore whose
+// reason the extractor left out. They get one re-extraction per epoch first.
+const EXTRACTION_LEDGER_CODES = new Set(['LEDGER_UPDATE_AFTER_DESTROY', 'LEDGER_RESTORE_NOTE_REQUIRED']);
 const pending = (providers) => Boolean(providers?.pending?.length);
 export async function shouldUseContractCheck({ store, workId, chapter, forceContract = false }) {
   const resolution = await resolveWorkLanguage({ store, workId });
@@ -122,8 +126,10 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     async complete(request) {
       if (!providers?.complete) throw new Error('MODEL_PROVIDER_REQUIRED');
       try {
+        const ledgerRecheck = request.step === 'continuity-extract' && state.ledgerRecheck?.length
+          ? ` Ledger records ${state.ledgerRecheck.map((name) => `"${name}"`).join(', ')}: record for them only what this chapter's prose shows happening to them now. A destroyed record that is only remembered is a mentioned event; a restore carries the prose's reason in note.` : '';
         return await providers.complete({ ...request, messages: [...request.messages,
-        { role: 'system', content: `Validation identity: ${scope}; epoch ${state.epoch}; attempt ${state.failures + 1}. This identifies this evaluation, not fictional content.${state.languageEvidence ? ` Previous output-language evidence; correct only the affected generated fields: ${JSON.stringify(state.languageEvidence)}` : ''}` }] });
+        { role: 'system', content: `Validation identity: ${scope}; epoch ${state.epoch}; attempt ${state.failures + 1}. This identifies this evaluation, not fictional content.${state.languageEvidence ? ` Previous output-language evidence; correct only the affected generated fields: ${JSON.stringify(state.languageEvidence)}` : ''}${ledgerRecheck}` }] });
       } catch (error) {
         if (error?.name !== 'PendingModelWork') providerFailure = error;
         throw error;
@@ -163,7 +169,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', config: ledgerConfig, focusText: input.prose, cast: context.plans.episode?.cast ?? [], hookIds: context.plans.episode?.hooksTouched ?? [] }),
     ...(entities.length ? { entities } : {}) };
   try {
-    if (!state.extracted) {
+    const extract = async () => {
       const extracted = await extractDelta(extractionInput);
       if (pending(wrapped)) return preview();
       if (providerFailure) return providerError();
@@ -172,17 +178,35 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       if (context.plans.episode?.characterArcBeats?.length) {
         extracted.delta = { ...extracted.delta, arcCursorOps: context.plans.episode.characterArcBeats.map(({ characterId, beat, note }) => ({ characterId, nextBeat: beat, ...(note !== undefined ? { note } : {}) })) };
       }
-      // Reviewed once per extraction: the downgraded ops are what the receipt
-      // carries and commit reduces. A destroyed record named again is often a
-      // memory, so that finding stays advisory like the other review findings.
-      const reviewed = reviewLedgerOps({ state: prevState, ops: extracted.delta.ledgerOps ?? [], prose: input.prose,
-        cast: extracted.delta.appearedCharacterIds ?? [], config: ledgerConfig });
-      extracted.delta = { ...extracted.delta, ledgerOps: reviewed.ops };
-      extracted.ledgerFindings = [...reviewed.violations, ...ledgerStep(prevState, extracted.delta, { config: ledgerConfig }).violations];
       state.extracted = extracted; await save();
+      return null;
+    };
+    // Reviewed on every run from the stored extraction and the current config
+    // (deterministic and cheap, so tracking, rule and merge changes apply).
+    // The reviewed ops replace the extracted ones: they are what the receipt
+    // carries and commit reduces, and reviewing them again changes nothing.
+    const reviewLedger = () => {
+      const delta = state.extracted.delta;
+      const reviewed = reviewLedgerOps({ state: prevState, ops: delta.ledgerOps ?? [], prose: input.prose,
+        cast: delta.appearedCharacterIds ?? [], config: ledgerConfig });
+      state.extracted.delta = { ...delta, ledgerOps: reviewed.ops };
+      const stepped = ledgerStep(prevState, state.extracted.delta, { config: ledgerConfig }).violations
+        .map((v) => (EXTRACTION_LEDGER_CODES.has(v.code) ? { ...v, message: ledgerSlipMessage(v, reviewed.ops, prevState) } : v));
+      const findings = [...reviewed.violations, ...stepped];
+      return { findings, slips: findings.filter((v) => EXTRACTION_LEDGER_CODES.has(v.code)) };
+    };
+    if (!state.extracted) { const early = await extract(); if (early) return early; }
+    let ledger = reviewLedger();
+    if (ledger.slips.length && state.ledgerReextracted !== state.epoch) {
+      state.ledgerReextracted = state.epoch;
+      state.ledgerRecheck = [...new Set(ledger.slips.map((v) => findRecord(prevState.ledger, v.ledgerId)?.name ?? v.ledgerId))];
+      state.extracted = null; await save();
+      const early = await extract(); if (early) return early;
+      ledger = reviewLedger();
     }
+    await save();
     base.delta = state.extracted.delta;
-    base.violations.push(...(state.extracted.ledgerFindings ?? []).map((v) => ({ ...v, chapterNumber: chapter })));
+    base.violations.push(...ledger.findings.map((v) => ({ ...v, chapterNumber: chapter })));
     base.extractionValidation = state.extracted.extractionValidation;
     base.unregisteredNamed = state.extracted.unregisteredNamed ?? [];
     for (const entry of state.extracted.rejectedAddressEntries ?? []) {
@@ -331,6 +355,20 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     }
     return fail(error.code ?? 'VALIDATION_INCOMPLETE', { validationError: error.message, validationDetails: error.details });
   }
+}
+
+/**
+ * A ledger slip that survived the re-extraction goes to the revise step, so it
+ * names the op the chapter was read as: record, event, set and evidence.
+ */
+function ledgerSlipMessage(violation, ops, prevState) {
+  const op = ops.find((item) => item?.op === 'event' && (item.id === violation.ledgerId || findRecord(prevState.ledger, item.id)?.id === violation.ledgerId)) ?? {};
+  const name = findRecord(prevState.ledger, violation.ledgerId)?.name ?? violation.ledgerId;
+  const detail = [`event ${op.event ?? '?'}`, op.set ? `set ${JSON.stringify(op.set)}` : '', op.evidence ? `evidence "${op.evidence}"` : ''].filter(Boolean).join(', ');
+  const ask = violation.code === 'LEDGER_RESTORE_NOTE_REQUIRED'
+    ? 'Show on the page why it is back, or keep it gone.'
+    : 'Keep it destroyed on the page (remembered, not changed), or show in the prose how it came back.';
+  return `"${name}" (${violation.ledgerId}): ${violation.message}; the chapter reads as ${detail}. ${ask}`;
 }
 
 /** Up to ten well-formed advisory findings; a malformed answer is an advisory miss. */
