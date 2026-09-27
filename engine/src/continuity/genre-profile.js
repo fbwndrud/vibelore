@@ -79,13 +79,6 @@ const ERA_RESEARCH_GENRES = new Set([
     'historical',
     'mystery-thriller',
 ]);
-const REGRESSION_ENTITIES = [
-    { kind: 'Timeline', description: '전생/현생 듀얼 타임라인 추적' },
-    {
-        kind: 'RegressionKnowledge',
-        description: '회귀 시점 이전 사건 지식 — 회귀 이후 활용 제한',
-    },
-];
 const REGRESSION_INVARIANTS = [
     {
         id: 'timeline-causality',
@@ -98,22 +91,12 @@ const REGRESSION_INVARIANTS = [
         description: '회귀 지식은 회귀 시점 이전 발생 사실로만',
     },
 ];
-const ROMANCE_ENTITIES = [
-    {
-        kind: 'RelationshipState',
-        description: '관계 단계 머신 (모름→인지→호감→연인→…)',
-    },
-];
 const ROMANCE_INVARIANTS = [
     {
         id: 'relationship-no-backwards',
         severity: 'soft',
         description: '관계 단계 역행은 명시 사건 동반 시만',
     },
-];
-const POWER_ENTITIES = [
-    { kind: 'PowerSystem', description: '경지 / 스탯 / 레벨 상태 추적' },
-    { kind: 'Artifact', description: '아이템/유물 소유자 및 속성 추적' },
 ];
 const POWER_INVARIANTS = [
     {
@@ -125,13 +108,6 @@ const POWER_INVARIANTS = [
         id: 'artifact-owner-tracked',
         severity: 'soft',
         description: '아이템 소유자 이동은 명시 사건 동반 필요',
-    },
-];
-const MYSTERY_ENTITIES = [
-    { kind: 'Clue', description: '단서 공개/미공개 상태 추적' },
-    {
-        kind: 'KnowledgeMatrix',
-        description: '캐릭터별 단서 인지 매트릭스 — 정보 비대칭',
     },
 ];
 const MYSTERY_INVARIANTS = [
@@ -169,18 +145,8 @@ const DIALOGUE_RATIO_RANGE = {
     other: [0.15, 0.5],
 };
 function buildProfile(genre) {
-    const trackedEntities = [];
     const invariants = [];
-    const seenKinds = new Set();
     const seenInvariantIds = new Set();
-    const pushEntities = (specs) => {
-        for (const spec of specs) {
-            if (seenKinds.has(spec.kind))
-                continue;
-            seenKinds.add(spec.kind);
-            trackedEntities.push(spec);
-        }
-    };
     const pushInvariants = (rules) => {
         for (const rule of rules) {
             if (seenInvariantIds.has(rule.id))
@@ -190,24 +156,22 @@ function buildProfile(genre) {
         }
     };
     if (REGRESSION_FAMILY.has(genre)) {
-        pushEntities(REGRESSION_ENTITIES);
         pushInvariants(REGRESSION_INVARIANTS);
     }
     if (ROMANCE_FAMILY.has(genre)) {
-        pushEntities(ROMANCE_ENTITIES);
         pushInvariants(ROMANCE_INVARIANTS);
     }
     if (POWER_FAMILY.has(genre)) {
-        pushEntities(POWER_ENTITIES);
         pushInvariants(POWER_INVARIANTS);
     }
     if (MYSTERY_FAMILY.has(genre)) {
-        pushEntities(MYSTERY_ENTITIES);
         pushInvariants(MYSTERY_INVARIANTS);
     }
     return {
         genre,
-        trackedEntities,
+        // Tracking is feature-based now (story ledger), not genre-derived.
+        // Kept as [] so stored foundations still project a trackedEntities field.
+        trackedEntities: [],
         invariants,
         dialogueRatioRange: DIALOGUE_RATIO_RANGE[genre],
         eraResearch: ERA_RESEARCH_GENRES.has(genre),

@@ -147,10 +147,8 @@ describe('performBookCreate', () => {
         // c2/c3 don't have visualHints in the script → fallback path (undefined).
         expect(foundation.characters[1]?.intrinsic.visualHints).toBeUndefined();
         expect(foundation.characters[2]?.intrinsic.visualHints).toBeUndefined();
-        // regression-hunter is in REGRESSION_FAMILY → Timeline + RegressionKnowledge entities
-        const trackedKinds = foundation.genreProfile.trackedEntities.map((t) => t.kind);
-        expect(trackedKinds).toContain('Timeline');
-        expect(trackedKinds).toContain('RegressionKnowledge');
+        // Tracking is feature-based now (story ledger), not genre-derived.
+        expect(foundation.genreProfile.trackedEntities).toEqual([]);
     });
     it('throws on unsupported genre — does NOT spend any LLM call', async () => {
         let calls = 0;

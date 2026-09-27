@@ -21,20 +21,16 @@ describe('GenreProfileRegistry', () => {
         expect(registry.has('REGRESSION-HUNTER')).toBe(false);
     });
     describe('regression family', () => {
-        it('regression-hunter tracks Timeline + RegressionKnowledge', () => {
-            expect(kinds('regression-hunter')).toEqual([
-                'Timeline',
-                'RegressionKnowledge',
-            ]);
+        it('regression-hunter no longer tracks genre-specific entities, but keeps its invariants', () => {
+            expect(kinds('regression-hunter')).toEqual([]);
             expect(invariantIds('regression-hunter')).toEqual([
                 'timeline-causality',
                 'regression-knowledge-bound',
             ]);
         });
-        it('noble-clan-regression and isekai also receive regression entities', () => {
-            expect(kinds('noble-clan-regression')).toContain('Timeline');
-            expect(kinds('noble-clan-regression')).toContain('RegressionKnowledge');
-            expect(kinds('isekai')).toContain('Timeline');
+        it('noble-clan-regression and isekai also have no tracked entities', () => {
+            expect(kinds('noble-clan-regression')).toEqual([]);
+            expect(kinds('isekai')).toEqual([]);
         });
         it('regression invariants are hard severity', () => {
             const profile = registry.get('regression-hunter');
@@ -45,8 +41,8 @@ describe('GenreProfileRegistry', () => {
         });
     });
     describe('romance family', () => {
-        it('romantasy tracks RelationshipState only', () => {
-            expect(kinds('romantasy')).toEqual(['RelationshipState']);
+        it('romantasy has no tracked entities but keeps its invariant', () => {
+            expect(kinds('romantasy')).toEqual([]);
             expect(invariantIds('romantasy')).toEqual(['relationship-no-backwards']);
         });
         it('relationship invariant is soft severity', () => {
@@ -55,14 +51,8 @@ describe('GenreProfileRegistry', () => {
         });
     });
     describe('composite ids', () => {
-        it('villainess-isekai unions regression + romance with no duplicates', () => {
-            const ks = kinds('villainess-isekai');
-            expect(ks).toContain('Timeline');
-            expect(ks).toContain('RegressionKnowledge');
-            expect(ks).toContain('RelationshipState');
-            expect(new Set(ks).size).toBe(ks.length);
-            // regression first
-            expect(ks.indexOf('Timeline')).toBeLessThan(ks.indexOf('RelationshipState'));
+        it('villainess-isekai has no tracked entities but unions regression + romance invariants with no duplicates', () => {
+            expect(kinds('villainess-isekai')).toEqual([]);
             const ids = invariantIds('villainess-isekai');
             expect(ids).toContain('timeline-causality');
             expect(ids).toContain('regression-knowledge-bound');
@@ -71,8 +61,8 @@ describe('GenreProfileRegistry', () => {
         });
     });
     describe('power family', () => {
-        it('cultivation tracks PowerSystem + Artifact', () => {
-            expect(kinds('cultivation')).toEqual(['PowerSystem', 'Artifact']);
+        it('cultivation has no tracked entities but keeps its invariants', () => {
+            expect(kinds('cultivation')).toEqual([]);
             expect(invariantIds('cultivation')).toEqual([
                 'power-no-backwards',
                 'artifact-owner-tracked',
@@ -85,7 +75,7 @@ describe('GenreProfileRegistry', () => {
             expect(power?.severity).toBe('hard');
             expect(artifact?.severity).toBe('soft');
         });
-        it('all 10 power-family ids tracked PowerSystem', () => {
+        it('all 10 power-family ids have no tracked entities', () => {
             for (const g of [
                 'cultivation',
                 'xianxia',
@@ -98,13 +88,13 @@ describe('GenreProfileRegistry', () => {
                 'academy-fantasy',
                 'streaming-litrpg',
             ]) {
-                expect(kinds(g)).toEqual(['PowerSystem', 'Artifact']);
+                expect(kinds(g)).toEqual([]);
             }
         });
     });
     describe('mystery family', () => {
-        it('mystery-thriller tracks Clue + KnowledgeMatrix', () => {
-            expect(kinds('mystery-thriller')).toEqual(['Clue', 'KnowledgeMatrix']);
+        it('mystery-thriller has no tracked entities but keeps its invariant', () => {
+            expect(kinds('mystery-thriller')).toEqual([]);
             expect(invariantIds('mystery-thriller')).toEqual([
                 'no-undisclosed-clue-leak',
             ]);
