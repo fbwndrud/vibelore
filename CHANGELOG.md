@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.2 — 2026-09-28
+
+- A continuity or language review that passes no longer ends the chapter in
+  `clean_fail`:
+  - `mutableChanges[].vitalStatus` (alive/dead/missing) and an inherited
+    arc's `sourceEvidence[].proofStatus` are classified as machine values;
+    before, every language-contract pass was rejected as
+    `unclassified_generated_field`.
+  - A pass keeps its verdict when a cited evidence entry is malformed (the
+    entry is dropped); evidence for fail and uncertain stays strict.
+- Personal character arcs keep to two active at a time across arcs:
+  - Arc planning replays the planned beats over the committed arc cursor and
+    rejects a new personal arc over the quota, naming the active arcs; the
+    message also says a character can stay out of `characterArcs` and be
+    carried by the episodes' events. The arc prompt states the rule.
+  - A character's current beat comes from the committed cursor, not the
+    previous plan, and an arc counts as in progress until its last stage is
+    `echo`. A chapter commit leaves out a beat the cursor has already passed
+    instead of failing on a regression; skipping ahead is still an error.
+  - A chapter whose delta opens an arc over the quota no longer fails the
+    commit: that arc start, and its later beats while the quota stays full,
+    are left out and the rest of the delta applies.
+
 ## 0.4.1 — 2026-09-27
 
 - Story ledger. Objects, knowledge, scheduled events and hooks are kept as
