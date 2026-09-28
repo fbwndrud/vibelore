@@ -25,7 +25,7 @@ vibelore は世界観・人物・伏線・時系列を記憶し、毎話チェ�
 
 どれも vibelore で書いた小説をウェブトゥーンにした実際の結果です。作品ごとに別の AI が作り、作ったときの vibelore バージョンも記しました。
 
-- **[ベスパー](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 最新)：ロッテワールドの夜のパレードのキャラクターを借りた非公式の二次創作です。全50話完結の小説から第1話のウェブトゥーンまで Claude Opus 5.5 が担当しました。
+- **[ベスパー](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 最新)：ロッテワールドの夜のパレードのキャラクターを借りた非公式の二次創作です。全50話完結の小説から第1〜2話のウェブトゥーンまで Claude Opus 5.5 が担当しました。第2話はベスパーの灯りがコマ枠の色と明るさを決める演出実験です。
 - **[処刑1分前の皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8)：設計から小説、ウェブトゥーン化まで GPT-6 Sol が担当しました。
 - **[判決LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8)：小説とウェブトゥーン化は Claude Opus 5.5、絵は Codex が担当しました。
 - **[道の上の稲妻](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8)：Codex・Claude・Grok が同じ小説をそれぞれ脚色しました。[モデル比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)もあります。

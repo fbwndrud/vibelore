@@ -52,7 +52,7 @@
     }
     sel.addEventListener('change', () => { location.hash = `#ep${sel.value}`; });
     box.append(sel);
-    if (DATA.episodes.length) box.append(el('a', { href: '#ep1/s1', class: 'eptab' + (state.ch === 1 ? ' active' : '') }, el('span', null, T('1화 웹툰'))));
+    for (const e of DATA.episodes) box.append(el('a', { href: `#ep${e.chapter}/s1`, class: 'eptab' + (state.ch === e.chapter ? ' active' : '') }, el('span', null, T('{n}화 웹툰', { n: e.chapter }))));
     for (const b of document.querySelectorAll('.seg button')) b.classList.toggle('active', b.dataset.mode === state.mode);
     for (const b of document.querySelectorAll('.sheet .mtools button')) b.classList.toggle('active', b.dataset.mode === state.mode);
   }
@@ -62,9 +62,13 @@
     $('#kicker').textContent = `EPISODE ${String(c.chapter).padStart(2, '0')} / ${DATA.chapters.length}` + (state.meta ? ` · vibelore ${v ? v.packageVersion + ' @ ' + v.commit : DATA.vibelore.label} · claude-opus-5-5` : '');
     $('#eptitle').textContent = c.title;
     const arcLine = a ? T('{n}아크 『{title}』', { n: a.n, title: a.title }) : '';
-    if (!e) $('#eplead').textContent = `${arcLine} · ${T('{n}자', { n: window.I18N ? I18N.num(c.chars) : c.chars.toLocaleString('ko-KR') })}. ` + T('웹툰은 1화만 만들었습니다. 이 화는 소설로 읽습니다.');
+    const toonList = DATA.episodes.map((x) => x.chapter).join('·');
+    if (!e) $('#eplead').textContent = `${arcLine} · ${T('{n}자', { n: window.I18N ? I18N.num(c.chars) : c.chars.toLocaleString('ko-KR') })}. ` + T('웹툰은 {list}화만 만들었습니다. 이 화는 소설로 읽습니다.', { list: toonList });
     else if (!state.meta) $('#eplead').textContent = `${arcLine}. ` + T('웹툰 {n}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.', { n: e.sceneCount });
-    else $('#eplead').textContent = T('{scenes}장면 {panels}칸. 검토에서 떨어진 장면은 서버가 결함 목록으로 다시 설계해 새로 그렸습니다(자동 재설계 최대 {limit}회). 검토 통과 {pass}/{scenes}. 끝내 통과하지 못한 두 장면은 캡션 글자만 후반 식자로 고쳐 싣고, 식자 전 원본과 서버 판정을 함께 공개합니다.', { scenes: e.sceneCount, panels: e.panelTotal, limit: e.regen.autoRevisionLimit, pass: e.passCount });
+    else $('#eplead').textContent = T('{scenes}장면 {panels}칸. 검토에서 떨어진 장면은 서버가 결함 목록으로 다시 설계해 새로 그렸습니다(자동 재설계 최대 {limit}회). 검토 통과 {pass}/{scenes}.', { scenes: e.sceneCount, panels: e.panelTotal, limit: e.regen.autoRevisionLimit, pass: e.passCount })
+      + (e.scenes.some((s) => s.lettering) ? ' ' + T('끝내 통과하지 못한 장면 {n}개는 틀린 글자만 후반 식자로 고쳐 싣고, 식자 전 원본과 서버 판정을 함께 공개합니다.', { n: e.scenes.filter((s) => s.lettering).length }) : '');
+    const dv = $('#epdevice');
+    if (e && e.device) { dv.hidden = false; dv.innerHTML = ''; dv.append(el('b', null, T('연출 실험 · ') + T(e.device.title)), el('span', null, T(e.device.summary))); } else dv.hidden = true;
     document.title = `${DATA.work} · ${T('{n}화', { n: c.chapter })}`;
     document.body.classList.toggle('novel-only', !e);
     $('#chip-novel').textContent = `Claude · claude-opus-5-5 · vibelore ${v ? v.packageVersion : DATA.vibelore.label}`;
@@ -107,7 +111,7 @@
     const box = el('div', { class: 'findings' }, head, ul);
     if (s.lettering) {
       const lt = el('div', { class: 'lettering' }, el('b', null, T('후반 식자 수정 · ')),
-        T('이미지 모델이 캡션의 받침 글자를 끝내 틀리게 그려서, 그림은 그대로 두고 틀린 캡션 상자만 흰 바탕에 원문대로 다시 식자했습니다({font}). vibelore 서버 판정은 “수정 필요”로 남아 있습니다.', { font: s.lettering.font }));
+        T('이미지 모델이 글자를 끝내 틀리게 그려서, 그림은 그대로 두고 틀린 글자 영역만 흰 바탕에 원문대로 다시 식자했습니다({font}). vibelore 서버 판정은 “수정 필요”로 남아 있습니다.', { font: s.lettering.font }));
       const fl = el('ul', { style: 'margin:6px 0 0;padding-left:18px' });
       for (const f of s.lettering.fixes) fl.append(el('li', { lang: 'ko' }, `${f.textId}: ${f.observed} → ${f.fixed}`));
       lt.append(fl, el('a', { href: s.lettering.raw, target: '_blank', rel: 'noopener' }, T('식자 전 원본 그림 보기')));

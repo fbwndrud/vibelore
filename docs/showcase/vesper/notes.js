@@ -32,12 +32,11 @@
       const cap = el('figcaption', null, r.description); cap.lang = 'ko'; f.append(img, cap); refs.append(f);
     }
 
-    const e = d.episodes[0];
-    $('#scenes').append(table(['장면', '제목', '칸', '시도', '문구 정확', '판정', '비고'], e.scenes.map((s) => {
-      const a = el('a', null, s.title); a.lang = 'ko'; a.href = `read.html#ep1/${s.id}`;
-      return { cells: [[String(s.n), 'n'], [a], [String(s.panelCount), 'n'], [s.attemptTotal > 1 ? T('{n}회 중 {c}번째', { n: s.attemptTotal, c: s.chosenAttempt }) : '1', 'n'], [`${s.textsOk}/${s.textsTotal}`, 'n'],
-        [s.verdict === 'pass' ? T('통과') : T('수정 필요')], [s.lettering ? T('캡션 {n}곳 후반 식자', { n: s.lettering.fixes.length }) : (s.attemptTotal > 1 ? T('자동 재설계 후 통과') : '')]] };
-    })));
+    $('#scenes').append(table(['화', '장면', '제목', '칸', '시도', '문구 정확', '판정', '비고'], d.episodes.flatMap((e) => e.scenes.map((s) => {
+      const a = el('a', null, s.title); a.lang = 'ko'; a.href = `read.html#ep${e.chapter}/${s.id}`;
+      return { cells: [[T('{n}화', { n: e.chapter }), 'n'], [String(s.n), 'n'], [a], [String(s.panelCount), 'n'], [s.attemptTotal > 1 ? T('{n}회 중 {c}번째', { n: s.attemptTotal, c: s.chosenAttempt }) : '1', 'n'], [`${s.textsOk}/${s.textsTotal}`, 'n'],
+        [s.verdict === 'pass' ? T('통과') : T('수정 필요')], [s.lettering ? T('글자 {n}곳 후반 식자', { n: s.lettering.fixes.length }) : (s.attemptTotal > 1 ? T('자동 재설계 후 통과') : '')]] };
+    }))));
 
     const c = d.costs; const h = (ms) => T('{n}시간', { n: (ms / 3600000).toFixed(1) });
     $('#cost').append(table(['항목', '호출', '입력 토큰', '출력 토큰', '모델 실행 시간', '비용'], [

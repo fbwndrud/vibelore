@@ -2,14 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script src="../i18n.js?v=2"></script>
+<script src="../i18n.js?v=3"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>베스퍼 · 제작 노트</title>
-<meta name="description" content="베스퍼 소설 50화·웹툰 1화 제작 노트: vibelore 버전, 아크와 심사 점수, 집필 중 고친 버그, 웹툰 검토와 후반 식자, 토큰·비용, 한계.">
+<meta name="description" content="베스퍼 소설 50화·웹툰 1~2화 제작 노트: vibelore 버전, 아크와 심사 점수, 집필 중 고친 버그, 웹툰 검토와 후반 식자, 토큰·비용, 한계.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="style.css?v=1">
-<link rel="stylesheet" href="vesper.css?v=1">
+<link rel="stylesheet" href="vesper.css?v=2">
 <link rel="stylesheet" href="notes.css?v=1">
 </head>
 <body data-page="notes">
@@ -27,7 +27,7 @@
       <li data-i18n="vs.notes.3"><b>설계.</b> 작품 생성, 이야기 뼈대(StorySpine), 작가 스킬, 아크 설계의 모델 응답은 모두 Claude Opus 5.5가 냈습니다. 요청마다 새 <code>claude -p</code> 프로세스를 띄우고(effort high, 도구 없음, 프롬프트 캐시 끔) 앞 요청의 맥락을 넘기지 않았습니다.</li>
       <li data-i18n="vs.notes.4"><b>7개 아크, 50화.</b> 아크를 하나 승인할 때마다 <code>lore_write</code> 자동 모드로 화별 계획 → 초고 → 결정론 검사 → critic 검토 → 필요한 최소 수정 → 커밋을 돌렸습니다. 50화 모두 자동 커밋됐습니다. 중간에 멈춘 워크플로 4개는 서버를 고치거나 집필 지시를 보강한 뒤 다시 시작했습니다.</li>
       <li data-i18n="vs.notes.5"><b>웹툰 인터뷰.</b> 사용자가 로판 코미디 컬러 화풍, 칸 수 auto, gpt-image-2.5-sunburst, AI로 만든 기준 이미지를 골랐습니다.</li>
-      <li data-i18n="vs.notes.6"><b>장면 웹툰 1화.</b> 호스트가 1화를 9장면으로 나누고, 장면마다 각색 → 사전 검증 → 이미지 API → 실제 이미지 검토를 돌렸습니다. 떨어진 장면은 서버가 결함 목록으로 다시 설계해 새로 그렸습니다(자동 재설계 최대 2회).</li>
+      <li data-i18n="vs.notes.6"><b>장면 웹툰 1~2화.</b> 호스트가 1화를 9장면으로 나누고, 장면마다 각색 → 사전 검증 → 이미지 API → 실제 이미지 검토를 돌렸습니다. 떨어진 장면은 서버가 결함 목록으로 다시 설계해 새로 그렸습니다(자동 재설계 최대 2회).</li>
     </ol>
   </section>
 
@@ -56,22 +56,34 @@
   </section>
 
   <section>
+    <h2>2화 연출 실험: 불빛이 곧 페이지의 조명</h2>
+    <p class="sub" data-i18n="vs.notes.x1">사용자가 2화에서 “내용이 아니라 연출·디자인으로 놀라게 하는 기법 하나”를 시도해 보자고 했습니다. 2화의 중심 사건은 베스퍼가 문에서 멀어질수록 불빛이 꺼져 가는 것이라, 그 불빛을 페이지 자체의 조명으로 삼았습니다.</p>
+    <ul class="defects">
+      <li data-i18n="vs.notes.x2"><b>규칙.</b> 칸 테두리를 검은 선 대신 베스퍼의 그 순간 불꽃 색으로 빛나는 가는 선으로 그리고, 칸 사이 여백도 같은 색으로 은은하게 빛나게 했습니다. 평온하면 호박색, 당황하면 분홍, 꺼져 갈 때는 차가운 파랑, 마지막은 따뜻한 주황입니다. 칸의 밝기와 채도도 그 순간 불빛의 세기를 따릅니다. 복도 형광등은 켜진 채로 그리되, 칸은 베스퍼가 느끼는 만큼 어둡게 했습니다.</li>
+      <li data-i18n="vs.notes.x3"><b>넣은 방법.</b> 이야기 사건은 바꾸지 않고, 2화 전 장면에 공통으로 붙는 연출 지시(direction)에 이 규칙을 “이야기 사건이 아닌 시각 표현 장치”로 적었습니다. 서버의 사전 검증은 이 지시로 막힌 장면이 없었습니다. 복도용·정비 구역용 기준 이미지 두 장을 새로 만들었습니다.</li>
+      <li data-i18n="vs.notes.x4"><b>결과.</b> 4장면(어두워지는 복도)에서 테두리가 호박색에서 파랑으로 식고 칸이 어두워지다가, 거의 검은 칸 안에 파란 점 하나만 남았습니다. 5장면에서는 다온이 몸을 돌리자 테두리가 파랑에서 노랑·호박색으로 돌아옵니다. 6장면의 “끝이요?” 칸 하나만 파랗게, 2장면과 8장면의 깜빡임 칸은 분홍으로 빛났습니다. 이야기의 감정 흐름을 테두리 색만으로 따라 읽을 수 있습니다.</li>
+      <li data-i18n="vs.notes.x5"><b>한계.</b> 이 기법 자체로 떨어진 장면은 없었습니다. 4장면 세 번째 시도는 첫 칸부터 테두리가 파래서 점점 식는 흐름이 사라졌고, 공개본은 흐름이 가장 선명한 두 번째 시도에 한 글자(겨의→거의)만 후반 식자로 고친 그림입니다.</li>
+    </ul>
+  </section>
+
+  <section>
     <h2>기준 이미지</h2>
     <p class="sub" data-i18n="vs.notes.15">장면을 만들 때 이미지 모델에 함께 보낸 참조입니다. 공식 캐릭터 이미지를 쓰지 않고 글 설명만으로 새로 그렸습니다.</p>
     <div class="refs" id="refs"></div>
   </section>
 
   <section>
-    <h2>웹툰 1화 장면별 결과</h2>
+    <h2>웹툰 장면별 결과</h2>
     <div class="tbl" id="scenes"></div>
   </section>
 
   <section>
     <h2>반복된 결함</h2>
     <ul class="defects">
-      <li data-i18n="vs.notes.16"><b>겹받침 글자.</b> 이미지 모델이 ‘앉혔다’를 ‘않혔다’로, ‘얹었다’를 ‘없었다’로, ‘너머’를 ‘너마’로 그렸습니다. 4장면은 네 번, 8장면은 세 번 그렸지만 같은 단어를 매번 틀렸습니다. 캡션을 나누고 해당 문구를 강조하는 수정도 소용이 없었습니다. 그래서 그림은 그대로 두고, 틀린 캡션 상자만 흰 바탕에 원문대로 다시 식자했습니다. 식자 전 원본과 서버 판정(수정 필요)은 리더에 함께 공개합니다.</li>
+      <li data-i18n="vs.notes.16"><b>1화 겹받침 글자.</b> 이미지 모델이 ‘앉혔다’를 ‘않혔다’로, ‘얹었다’를 ‘없었다’로, ‘너머’를 ‘너마’로 그렸습니다. 4장면은 네 번, 8장면은 세 번 그렸지만 같은 단어를 매번 틀렸습니다. 캡션을 나누고 해당 문구를 강조하는 수정도 소용이 없었습니다. 그래서 그림은 그대로 두고, 틀린 캡션 상자만 흰 바탕에 원문대로 다시 식자했습니다. 식자 전 원본과 서버 판정(수정 필요)은 리더에 함께 공개합니다.</li>
+      <li data-i18n="vs.notes.x6"><b>2화 한 글자 오자.</b> 1화의 겹받침과 달리 2화는 비슷한 모양의 글자로 바뀌는 오자가 장면마다 달랐습니다. ‘베스퍼→베스피’, ‘걱정받는→적정받는’, ‘거의→겨의’, ‘비추지→비추저’. 문장부호(마침표→쉼표)와 덧붙은 따옴표도 서버가 원문 불일치로 판정해 다시 그렸습니다. 3장면은 서버의 재설계가 이름이 들어간 문장을 줄여서 통과했습니다.</li>
       <li data-i18n="vs.notes.17"><b>인외 디자인.</b> 2장면 첫 시도에서 칸드라의 초에 불꽃이 둘 붙었습니다. 다시 설계해 그린 그림은 통과했습니다. 원문에 없는 얼굴 표정(불꽃 속 눈·입, 초의 홍조)은 참고 결함으로만 남겼습니다.</li>
-      <li data-i18n="vs.notes.18"><b>잘된 점.</b> 가스등 머리와 촛불 머리 두 인외, 퍼레이드 조명, 천막 뒤 공간이 9장면 내내 일관됐습니다. 대사와 자막 114줄 가운데 식자 전 기준으로 111줄이 원문과 글자 하나까지 같았습니다.</li>
+      <li data-i18n="vs.notes.18"><b>잘된 점.</b> 가스등 머리와 촛불 머리 두 인외, 퍼레이드 조명, 천막 뒤·복도·정비 구역 공간이 두 화 내내 일관됐습니다. 공개본 기준으로 1화는 114줄 중 111줄, 2화는 식자 전 기준 113줄 중 112줄이 원문과 글자 하나까지 같았습니다.</li>
     </ul>
   </section>
 
@@ -87,12 +99,12 @@
       <li data-i18n="vs.notes.20">critic 검토와 그림 검토는 같은 Claude Opus 5.5가 했습니다. 요청마다 새 프로세스로 분리했지만 독립 독자 평가는 아닙니다.</li>
       <li data-i18n="vs.notes.21">자동 모드에서 soft 판정과 critic 참고 의견은 커밋을 막지 않습니다. 28·31·40·46화에 남은 참고 의견은 아직 손보지 않았습니다.</li>
       <li data-i18n="vs.notes.22">37화는 퍼레이드 출발 시각(저녁 7시로 적음)과 등갓의 금(새로 생긴 것처럼 적음)이 세계 정본과 달라 검사에서 막혔습니다. 두 사실을 집필 지시에 적고 다시 썼습니다.</li>
-      <li data-i18n="vs.notes.23">웹툰은 1화만 만들었습니다. 4·8장면의 캡션 후반 식자는 vibelore 밖에서 한 수정이라, 서버 기록에는 수정 필요로 남아 있습니다.</li>
+      <li data-i18n="vs.notes.23">웹툰은 1~2화만 만들었습니다. 1화 4·8장면과 2화 4장면의 후반 식자는 vibelore 밖에서 한 수정이라, 서버 기록에는 수정 필요로 남아 있습니다.</li>
     </ul>
   </section>
 </main>
 <footer class="site" data-i18n="common.notesFooter">빌드 <span id="built"></span> · 데이터 <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a></footer>
 <script src="site.js?v=1"></script>
-<script src="notes.js?v=1"></script>
+<script src="notes.js?v=2"></script>
 </body>
 </html>

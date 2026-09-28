@@ -25,7 +25,7 @@ vibelore 負責記住世界觀、人物、伏筆與時間線，每一話都做�
 
 全都是把用 vibelore 寫的小說改編成網漫的實際成果。每部作品由不同的 AI 製作，並標明製作時使用的 vibelore 版本。
 
-- **[貝斯珀](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 最新)：借用樂天世界夜間遊行角色的非官方同人創作。從全 50 話完結的小說到第 1 話網漫，全由 Claude Opus 5.5 負責。
+- **[貝斯珀](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 最新)：借用樂天世界夜間遊行角色的非官方同人創作。從全 50 話完結的小說到第 1～2 話網漫，全由 Claude Opus 5.5 負責。第 2 話網漫是讓貝斯珀的燈光決定分格邊框顏色與亮度的演出實驗。
 - **[處刑前一分鐘的皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8)：從設計、小說到網漫改編，全由 GPT-6 Sol 負責。
 - **[判決 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8)：小說與網漫改編由 Claude Opus 5.5 負責，圖畫由 Codex 繪製。
 - **[路上的閃電](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8)：Codex、Claude、Grok 各自改編了同一部小說。另有[模型比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)。

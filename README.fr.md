@@ -25,7 +25,7 @@ vibelore mémorise l'univers, les personnages, les indices semés et la chronolo
 
 Ce sont tous des résultats réels de romans écrits avec vibelore puis adaptés en webtoon. Chaque œuvre a été réalisée par une IA différente et indique la version de vibelore utilisée.
 
-- **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, la plus récente) : Une œuvre de fan non officielle qui emprunte les personnages de la parade de nuit de Lotte World. Claude Opus 5.5 s’est chargé de tout, du roman complet en 50 épisodes au webtoon de l’épisode 1.
+- **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, la plus récente) : Une œuvre de fan non officielle qui emprunte les personnages de la parade de nuit de Lotte World. Claude Opus 5.5 s’est chargé de tout, du roman complet en 50 épisodes aux webtoons des épisodes 1 et 2. Le webtoon de l’épisode 2 est une expérience de mise en scène où la lumière de Vesper fixe la couleur des bordures de cases et leur luminosité.
 - **[La princesse une minute avant son exécution](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8) : GPT-6 Sol s'est chargé de tout, de la conception au roman et à l'adaptation en webtoon.
 - **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8) : Claude Opus 5.5 a écrit le roman et l'adaptation en webtoon, et Codex a dessiné les images.
 - **[L'Éclair sur la route](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8) : Codex, Claude et Grok ont chacun adapté le même roman. Il existe aussi une [comparaison des modèles](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).

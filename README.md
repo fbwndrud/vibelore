@@ -25,7 +25,7 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 
 모두 vibelore로 쓴 소설을 웹툰으로 옮긴 실제 결과입니다. 작품마다 다른 AI가 만들었고, 만들 때 쓴 vibelore 버전을 함께 적었습니다.
 
-- **[베스퍼](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 최신): 롯데월드 야간 퍼레이드 캐릭터를 빌린 비공식 팬 창작입니다. 50화 완결 소설부터 1화 웹툰까지 Claude Opus 5.5가 맡았습니다.
+- **[베스퍼](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 최신): 롯데월드 야간 퍼레이드 캐릭터를 빌린 비공식 팬 창작입니다. 50화 완결 소설부터 1~2화 웹툰까지 Claude Opus 5.5가 맡았습니다. 2화 웹툰은 베스퍼의 불빛이 칸 테두리 색과 밝기를 정하는 연출 실험입니다.
 - **[처형 1분 전의 황녀](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): 설계부터 소설, 웹툰 각색까지 GPT-6 Sol이 맡았습니다.
 - **[판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): 소설과 웹툰 각색은 Claude Opus 5.5가, 그림은 Codex가 맡았습니다.
 - **[길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8): Codex·Claude·Grok이 같은 소설을 각각 각색했습니다. [모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)도 있습니다.
