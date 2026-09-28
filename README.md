@@ -9,24 +9,26 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.md)
-[![Showcase](https://img.shields.io/badge/showcase-%EC%9E%91%ED%92%88%203%ED%8E%B8-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-%EC%9E%91%ED%92%88%204%ED%8E%B8-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 Claude Code, Codex, Grok CLI 같은 AI 코딩 도구에 MCP 서버로 붙여서 씁니다. 본문과 그림은 그 AI가 만들고,
 vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사하고, 승인 전에는 아무것도 확정하지 않습니다.
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="처형 1분 전의 황녀 1화 장면 9"></a><br><sub>『처형 1분 전의 황녀』 · 로판 회귀 복수극</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="판결 LIVE 1화 장면 6"></a><br><sub>『판결 LIVE』 · 사이버렉카 스릴러</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="길 위의 번개 1화 장면 1"></a><br><sub>『길 위의 번개』 · 판타지 로드 액션</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="베스퍼 1화 장면 6"></a><br><sub>『베스퍼』 · 인외 로맨틱 코미디</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="처형 1분 전의 황녀 1화 장면 9"></a><br><sub>『처형 1분 전의 황녀』 · 로판 회귀 복수극</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="판결 LIVE 1화 장면 6"></a><br><sub>『판결 LIVE』 · 사이버렉카 스릴러</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="길 위의 번개 1화 장면 1"></a><br><sub>『길 위의 번개』 · 판타지 로드 액션</sub></td>
 </tr>
 </table>
 
-모두 vibelore로 쓴 소설을 웹툰으로 옮긴 실제 결과입니다. 작품마다 다른 AI가 만들었습니다.
+모두 vibelore로 쓴 소설을 웹툰으로 옮긴 실제 결과입니다. 작품마다 다른 AI가 만들었고, 만들 때 쓴 vibelore 버전을 함께 적었습니다.
 
-- **[처형 1분 전의 황녀](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**: 설계부터 소설, 웹툰 각색까지 GPT-6 Sol이 맡았습니다.
-- **[판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**: 소설과 웹툰 각색은 Claude Opus 5.5가, 그림은 Codex가 맡았습니다.
-- **[길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**: Codex·Claude·Grok이 같은 소설을 각각 각색했습니다. [모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)도 있습니다.
+- **[베스퍼](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 최신): 롯데월드 야간 퍼레이드 캐릭터를 빌린 비공식 팬 창작입니다. 50화 완결 소설부터 1화 웹툰까지 Claude Opus 5.5가 맡았습니다.
+- **[처형 1분 전의 황녀](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): 설계부터 소설, 웹툰 각색까지 GPT-6 Sol이 맡았습니다.
+- **[판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): 소설과 웹툰 각색은 Claude Opus 5.5가, 그림은 Codex가 맡았습니다.
+- **[길 위의 번개](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8): Codex·Claude·Grok이 같은 소설을 각각 각색했습니다. [모델 비교](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)도 있습니다.
 
 잘된 장면만 고르지 않았습니다. 검토에서 떨어진 장면, 프롬프트, 비용까지 [작품 목록](https://fbwndrud.github.io/vibelore/showcase/)에서 그대로 볼 수 있습니다.
 

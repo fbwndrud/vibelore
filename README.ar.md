@@ -9,24 +9,26 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-3%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 تستخدمها بتوصيلها كخادم MCP بأداة برمجة بالذكاء الاصطناعي مثل Claude Code أو Codex أو Grok CLI. ذلك الذكاء الاصطناعي هو من يكتب النص ويرسم الصور،
 أما vibelore فتتذكر العالم والشخصيات والتلميحات المزروعة والخط الزمني، وتفحص كل فصل، ولا تعتمد شيئًا نهائيًا قبل موافقتك.
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="الأميرة قبل إعدامها بدقيقة، الفصل 1، المشهد 9"></a><br><sub><i>الأميرة قبل إعدامها بدقيقة</i> · فانتازيا رومانسية عن العودة بالزمن والانتقام</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="الحكم LIVE، الفصل 1، المشهد 6"></a><br><sub><i>الحكم LIVE</i> · إثارة عن التشهير الإلكتروني</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="برق على الطريق، الفصل 1، المشهد 1"></a><br><sub><i>برق على الطريق</i> · أكشن فانتازيا على الطريق</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="فيسبر، الفصل 1، المشهد 6"></a><br><sub><i>فيسبر</i> · كوميديا رومانسية عن كائن غير بشري</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="الأميرة قبل إعدامها بدقيقة، الفصل 1، المشهد 9"></a><br><sub><i>الأميرة قبل إعدامها بدقيقة</i> · فانتازيا رومانسية عن العودة بالزمن والانتقام</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="الحكم LIVE، الفصل 1، المشهد 6"></a><br><sub><i>الحكم LIVE</i> · إثارة عن التشهير الإلكتروني</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="برق على الطريق، الفصل 1، المشهد 1"></a><br><sub><i>برق على الطريق</i> · أكشن فانتازيا على الطريق</sub></td>
 </tr>
 </table>
 
-كلها نتائج حقيقية لتحويل روايات كُتبت بـ vibelore إلى ويبتون. صنع كلَّ عمل ذكاءٌ اصطناعي مختلف.
+كلها نتائج حقيقية لتحويل روايات كُتبت بـ vibelore إلى ويبتون. صنع كلَّ عمل ذكاءٌ اصطناعي مختلف، ويُذكر مع كل عمل إصدار vibelore الذي صُنع به.
 
-- **[الأميرة قبل إعدامها بدقيقة](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**: تولى GPT-6 Sol كل شيء من التصميم إلى الرواية ثم تحويلها إلى ويبتون.
-- **[الحكم LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**: كتب Claude Opus 5.5 الرواية وتحويلها إلى ويبتون، ورسم Codex الصور.
-- **[برق على الطريق](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**: حوّل كلٌّ من Codex وClaude وGrok الرواية نفسها على حدة. وتوجد أيضًا [مقارنة بين النماذج](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).
+- **[فيسبر](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, الأحدث): عمل معجبين غير رسمي يستعير شخصيات الموكب الليلي في لوتي وورلد. تولى Claude Opus 5.5 كل شيء، من الرواية المكتملة في 50 فصلًا إلى ويبتون الفصل الأول.
+- **[الأميرة قبل إعدامها بدقيقة](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): تولى GPT-6 Sol كل شيء من التصميم إلى الرواية ثم تحويلها إلى ويبتون.
+- **[الحكم LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): كتب Claude Opus 5.5 الرواية وتحويلها إلى ويبتون، ورسم Codex الصور.
+- **[برق على الطريق](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8): حوّل كلٌّ من Codex وClaude وGrok الرواية نفسها على حدة. وتوجد أيضًا [مقارنة بين النماذج](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).
 
 لم نختر المشاهد الناجحة وحدها. يمكن رؤية المشاهد التي رسبت في المراجعة والتعليمات (prompts) وحتى التكاليف كما هي في [قائمة الأعمال](https://fbwndrud.github.io/vibelore/showcase/). الأعمال وموقع العرض باللغة الكورية.
 

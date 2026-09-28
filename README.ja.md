@@ -9,24 +9,26 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-3%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 Claude Code、Codex、Grok CLI などの AI コーディングツールに MCP サーバーとしてつないで使います。本文と絵はその AI が作り、
 vibelore は世界観・人物・伏線・時系列を記憶し、毎話チェックし、承認されるまでは何も確定しません。
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="『処刑1分前の皇女』第1話 シーン9"></a><br><sub>『処刑1分前の皇女』 · ロマンスファンタジー回帰復讐劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="『判決LIVE』第1話 シーン6"></a><br><sub>『判決LIVE』 · サイバーレッカー・スリラー</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="『道の上の稲妻』第1話 シーン1"></a><br><sub>『道の上の稲妻』 · ファンタジー・ロードアクション</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="『ベスパー』第1話 シーン6"></a><br><sub>『ベスパー』 · 人外ロマンティックコメディ</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="『処刑1分前の皇女』第1話 シーン9"></a><br><sub>『処刑1分前の皇女』 · ロマンスファンタジー回帰復讐劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="『判決LIVE』第1話 シーン6"></a><br><sub>『判決LIVE』 · サイバーレッカー・スリラー</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="『道の上の稲妻』第1話 シーン1"></a><br><sub>『道の上の稲妻』 · ファンタジー・ロードアクション</sub></td>
 </tr>
 </table>
 
-どれも vibelore で書いた小説をウェブトゥーンにした実際の結果です。作品ごとに別の AI が作りました。
+どれも vibelore で書いた小説をウェブトゥーンにした実際の結果です。作品ごとに別の AI が作り、作ったときの vibelore バージョンも記しました。
 
-- **[処刑1分前の皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**：設計から小説、ウェブトゥーン化まで GPT-6 Sol が担当しました。
-- **[判決LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**：小説とウェブトゥーン化は Claude Opus 5.5、絵は Codex が担当しました。
-- **[道の上の稲妻](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**：Codex・Claude・Grok が同じ小説をそれぞれ脚色しました。[モデル比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)もあります。
+- **[ベスパー](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 最新)：ロッテワールドの夜のパレードのキャラクターを借りた非公式の二次創作です。全50話完結の小説から第1話のウェブトゥーンまで Claude Opus 5.5 が担当しました。
+- **[処刑1分前の皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8)：設計から小説、ウェブトゥーン化まで GPT-6 Sol が担当しました。
+- **[判決LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8)：小説とウェブトゥーン化は Claude Opus 5.5、絵は Codex が担当しました。
+- **[道の上の稲妻](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8)：Codex・Claude・Grok が同じ小説をそれぞれ脚色しました。[モデル比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)もあります。
 
 うまくいったシーンだけを選んだわけではありません。レビューで落ちたシーン、プロンプト、コストまで[作品一覧](https://fbwndrud.github.io/vibelore/showcase/)でそのまま見られます。ショーケースの作品とサイトは韓国語です。
 

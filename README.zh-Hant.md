@@ -9,24 +9,26 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-3%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 把它以 MCP 伺服器的形式接到 Claude Code、Codex、Grok CLI 等 AI 程式設計工具上使用。正文與圖畫由那個 AI 產生，
 vibelore 負責記住世界觀、人物、伏筆與時間線，每一話都做檢查，在你核准之前什麼都不會定案。
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="《處刑前一分鐘的皇女》第1話 場景9"></a><br><sub>《處刑前一分鐘的皇女》 · 浪漫奇幻回歸復仇劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="《判決 LIVE》第1話 場景6"></a><br><sub>《判決 LIVE》 · 網路公審驚悚劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="《路上的閃電》第1話 場景1"></a><br><sub>《路上的閃電》 · 奇幻公路動作</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="《貝斯珀》第1話 場景6"></a><br><sub>《貝斯珀》 · 非人類浪漫喜劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="《處刑前一分鐘的皇女》第1話 場景9"></a><br><sub>《處刑前一分鐘的皇女》 · 浪漫奇幻回歸復仇劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="《判決 LIVE》第1話 場景6"></a><br><sub>《判決 LIVE》 · 網路公審驚悚劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="《路上的閃電》第1話 場景1"></a><br><sub>《路上的閃電》 · 奇幻公路動作</sub></td>
 </tr>
 </table>
 
-全都是把用 vibelore 寫的小說改編成網漫的實際成果。每部作品由不同的 AI 製作。
+全都是把用 vibelore 寫的小說改編成網漫的實際成果。每部作品由不同的 AI 製作，並標明製作時使用的 vibelore 版本。
 
-- **[處刑前一分鐘的皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**：從設計、小說到網漫改編，全由 GPT-6 Sol 負責。
-- **[判決 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**：小說與網漫改編由 Claude Opus 5.5 負責，圖畫由 Codex 繪製。
-- **[路上的閃電](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**：Codex、Claude、Grok 各自改編了同一部小說。另有[模型比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)。
+- **[貝斯珀](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 最新)：借用樂天世界夜間遊行角色的非官方同人創作。從全 50 話完結的小說到第 1 話網漫，全由 Claude Opus 5.5 負責。
+- **[處刑前一分鐘的皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8)：從設計、小說到網漫改編，全由 GPT-6 Sol 負責。
+- **[判決 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8)：小說與網漫改編由 Claude Opus 5.5 負責，圖畫由 Codex 繪製。
+- **[路上的閃電](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8)：Codex、Claude、Grok 各自改編了同一部小說。另有[模型比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)。
 
 我們沒有只挑成功的場景。審查沒通過的場景、提示詞，甚至成本，都能在[作品列表](https://fbwndrud.github.io/vibelore/showcase/)中原樣查看。展示作品與網站為韓文。
 

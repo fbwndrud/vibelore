@@ -9,24 +9,26 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-3%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 You attach it as an MCP server to an AI coding tool such as Claude Code, Codex or Grok CLI. That AI writes the prose and draws the pictures;
 vibelore remembers the world, characters, foreshadowing and timeline, checks every chapter, and finalizes nothing before you approve it.
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="The Princess One Minute Before Her Execution, chapter 1, scene 9"></a><br><sub><i>The Princess One Minute Before Her Execution</i> · romance fantasy regression revenge</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="Verdict LIVE, chapter 1, scene 6"></a><br><sub><i>Verdict LIVE</i> · cyber-wrecker thriller</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="Lightning on the Road, chapter 1, scene 1"></a><br><sub><i>Lightning on the Road</i> · fantasy road action</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="Vesper, chapter 1, scene 6"></a><br><sub><i>Vesper</i> · non-human romantic comedy</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="The Princess One Minute Before Her Execution, chapter 1, scene 9"></a><br><sub><i>The Princess One Minute Before Her Execution</i> · romance fantasy regression revenge</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="Verdict LIVE, chapter 1, scene 6"></a><br><sub><i>Verdict LIVE</i> · cyber-wrecker thriller</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="Lightning on the Road, chapter 1, scene 1"></a><br><sub><i>Lightning on the Road</i> · fantasy road action</sub></td>
 </tr>
 </table>
 
-These are all real results of adapting novels written with vibelore into webtoons. A different AI made each work.
+These are all real results of adapting novels written with vibelore into webtoons. A different AI made each work, and each is labeled with the vibelore version it was made with.
 
-- **[The Princess One Minute Before Her Execution](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**: GPT-6 Sol handled everything from the design to the novel and the webtoon adaptation.
-- **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**: Claude Opus 5.5 wrote the novel and the webtoon adaptation, and Codex drew the pictures.
-- **[Lightning on the Road](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**: Codex, Claude and Grok each adapted the same novel. There is also a [model comparison](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).
+- **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, latest): An unofficial fan work borrowing Lotte World’s night-parade characters. Claude Opus 5.5 handled everything, from the complete 50-chapter novel to the chapter 1 webtoon.
+- **[The Princess One Minute Before Her Execution](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): GPT-6 Sol handled everything from the design to the novel and the webtoon adaptation.
+- **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): Claude Opus 5.5 wrote the novel and the webtoon adaptation, and Codex drew the pictures.
+- **[Lightning on the Road](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8): Codex, Claude and Grok each adapted the same novel. There is also a [model comparison](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).
 
 We didn't pick only the scenes that came out well. Scenes that failed review, the prompts and even the costs are all visible in the [work list](https://fbwndrud.github.io/vibelore/showcase/). The showcase works and site are in Korean.
 

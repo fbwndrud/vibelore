@@ -9,24 +9,26 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-3%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 ใช้งานโดยเชื่อมต่อเป็นเซิร์ฟเวอร์ MCP เข้ากับเครื่องมือเขียนโค้ดด้วย AI อย่าง Claude Code, Codex หรือ Grok CLI ตัว AI นั้นเป็นผู้เขียนเนื้อเรื่องและวาดภาพ
 ส่วน vibelore จดจำโลก ตัวละคร ปมที่วางไว้ และลำดับเวลา ตรวจทุกตอน และจะไม่ยืนยันสิ่งใดก่อนที่คุณจะอนุมัติ
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="260" alt="องค์หญิงหนึ่งนาทีก่อนถูกประหาร ตอนที่ 1 ฉาก 9"></a><br><sub><i>องค์หญิงหนึ่งนาทีก่อนถูกประหาร</i> · โรแมนซ์แฟนตาซีย้อนเวลาล้างแค้น</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="260" alt="คำตัดสิน LIVE ตอนที่ 1 ฉาก 6"></a><br><sub><i>คำตัดสิน LIVE</i> · ระทึกขวัญเรื่องการล่าแม่มดออนไลน์</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="260" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 1"></a><br><sub><i>สายฟ้าบนเส้นทาง</i> · แอ็กชันแฟนตาซีบนท้องถนน</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="เวสเปอร์ ตอนที่ 1 ฉาก 6"></a><br><sub><i>เวสเปอร์</i> · โรแมนติกคอมเมดีอมนุษย์</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="องค์หญิงหนึ่งนาทีก่อนถูกประหาร ตอนที่ 1 ฉาก 9"></a><br><sub><i>องค์หญิงหนึ่งนาทีก่อนถูกประหาร</i> · โรแมนซ์แฟนตาซีย้อนเวลาล้างแค้น</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="คำตัดสิน LIVE ตอนที่ 1 ฉาก 6"></a><br><sub><i>คำตัดสิน LIVE</i> · ระทึกขวัญเรื่องการล่าแม่มดออนไลน์</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 1"></a><br><sub><i>สายฟ้าบนเส้นทาง</i> · แอ็กชันแฟนตาซีบนท้องถนน</sub></td>
 </tr>
 </table>
 
-ทั้งหมดคือผลงานจริงที่นำนิยายซึ่งเขียนด้วย vibelore มาทำเป็นเว็บตูน แต่ละเรื่องสร้างโดย AI คนละตัว
+ทั้งหมดคือผลงานจริงที่นำนิยายซึ่งเขียนด้วย vibelore มาทำเป็นเว็บตูน แต่ละเรื่องสร้างโดย AI คนละตัว และระบุเวอร์ชัน vibelore ที่ใช้สร้างไว้ด้วย
 
-- **[องค์หญิงหนึ่งนาทีก่อนถูกประหาร](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)**: GPT-6 Sol รับผิดชอบทั้งหมด ตั้งแต่การออกแบบ นิยาย ไปจนถึงการดัดแปลงเป็นเว็บตูน
-- **[คำตัดสิน LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)**: Claude Opus 5.5 เขียนนิยายและดัดแปลงเป็นเว็บตูน ส่วน Codex วาดภาพ
-- **[สายฟ้าบนเส้นทาง](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)**: Codex, Claude และ Grok ต่างดัดแปลงนิยายเรื่องเดียวกัน มี[การเปรียบเทียบโมเดล](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)ด้วย
+- **[เวสเปอร์](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, ล่าสุด): ผลงานแฟนเมดที่ไม่เป็นทางการ ยืมตัวละครจากขบวนพาเหรดกลางคืนของล็อตเต้เวิลด์ Claude Opus 5.5 รับผิดชอบทั้งหมด ตั้งแต่นิยายจบครบ 50 ตอนจนถึงเว็บตูนตอนที่ 1
+- **[องค์หญิงหนึ่งนาทีก่อนถูกประหาร](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): GPT-6 Sol รับผิดชอบทั้งหมด ตั้งแต่การออกแบบ นิยาย ไปจนถึงการดัดแปลงเป็นเว็บตูน
+- **[คำตัดสิน LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): Claude Opus 5.5 เขียนนิยายและดัดแปลงเป็นเว็บตูน ส่วน Codex วาดภาพ
+- **[สายฟ้าบนเส้นทาง](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8): Codex, Claude และ Grok ต่างดัดแปลงนิยายเรื่องเดียวกัน มี[การเปรียบเทียบโมเดล](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)ด้วย
 
 เราไม่ได้เลือกเฉพาะฉากที่ออกมาดี ฉากที่ไม่ผ่านการตรวจ พรอมต์ และแม้แต่ค่าใช้จ่าย ก็ดูได้ตามจริงใน[รายชื่อผลงาน](https://fbwndrud.github.io/vibelore/showcase/) ผลงานและเว็บไซต์ตัวอย่างเป็นภาษาเกาหลี
 
