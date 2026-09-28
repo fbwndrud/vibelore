@@ -80,7 +80,7 @@ export const MACHINE_CONTRACT_FIELD_NAMES = Object.freeze([
     'speakerId',
     'scope', 'sentinel', 'serialization', 'severity', 'sha', 'slug', 'sourceHead', 'status',
     'storyTime', 'tag', 'target', 'targetId', 'timestamp', 'to', 'toBeat', 'transactionTime', 'type',
-    'unit', 'updatedAt', 'uri', 'url', 'validationEpoch', 'version', 'worldline', 'workId',
+    'unit', 'updatedAt', 'uri', 'url', 'validationEpoch', 'version', 'vitalStatus', 'worldline', 'workId',
 ]);
 
 /**

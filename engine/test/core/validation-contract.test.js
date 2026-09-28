@@ -2095,7 +2095,8 @@ describe('semantic delta influence fields', () => {
         newAddressEntries: [{ speakerId: 'c2', targetId: 'c1', term: '千尋', register: 'casual' }],
         relationshipOps: [{ to: 'c2', kind: 'working_relationship', state: '千尋は律の提案に距離を置き、自分の確認作業を優先する' }],
         hookOps: [{ hookId: 'hook_repair_shortage', description: '板材の到着が次の便に回された', startChapter: 1, status: 'open', payoffTiming: 'near-term', lastAdvancedChapter: 1 }],
-        mutableChanges: [{ characterId: 'c1', location: '旧港の水路', status: '板の点検作業中', knownFactsAdded: ['赤い紐の印が十本を超えた'] }],
+        // 2026-09-28 ko 1화 표본: extraction 이 채운 vitalStatus('alive' enum)가 미분류로 pass 를 3회 소진했다.
+        mutableChanges: [{ characterId: 'c1', location: '旧港の水路', status: '板の点検作業中', vitalStatus: 'alive', knownFactsAdded: ['赤い紐の印が十本を超えた'] }],
         influenceEvents: [{
             characterId: 'c1', anchor: '千尋は「後で見る」と言い、律の提案を保留にした', interpretation: '自分の目で確認することを最優先した',
             dimensionChanges: { self_reliance: 1 }, nextChoiceBias: '次回も実地確認を優先しやすくなる',

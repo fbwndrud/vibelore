@@ -879,6 +879,31 @@ describe('continuityCheck semanticValidation', () => {
         expect(cap.requests).toHaveLength(1);
         expect(result.semanticValidation.status).toBe('invalid');
     });
+    // 2026-09-28 ko sample: three all-pass answers were each discarded because a pass
+    // carried a decorative citation (a quote rendered from delta.appearedCharacterIds).
+    // A pass needs no evidence, so such a citation is dropped; a fail still needs a real one.
+    it('a pass keeps its verdict when its supporting citation is not verbatim', async () => {
+        const input = checkInput({ workContract: EN_CONTRACT, checkerPlan: planFor(['REGISTRATION', 'WORLD']) });
+        const hash = computeContinuityContextHash(input);
+        const cap = capturing(semanticReply(hash, { REGISTRATION: 'pass', WORLD: 'pass' }, [
+            { invariantId: 'REGISTRATION', fieldPath: 'delta.appearedCharacterIds', quote: 'Ann (c1), Ben (c2)', reason: 'Every named speaker is registered.' },
+            { invariantId: 'WORLD', fieldPath: 'prose', quote: 'He read the letter twice.', reason: 'Nothing contradicts the world facts.' },
+        ]));
+        const result = await continuityCheck({ ...input, providers: cap.providers });
+        expect(cap.requests).toHaveLength(1);
+        expect(result.semanticValidation.status).toBe('completed');
+        expect(result.semanticValidation.verdicts).toEqual({ REGISTRATION: 'pass', WORLD: 'pass' });
+        expect(result.semanticValidation.evidence.map((e) => e.invariantId)).toEqual(['WORLD']);
+    });
+    it('an uncertain verdict with a non-verbatim citation stays invalid', async () => {
+        const input = checkInput({ workContract: EN_CONTRACT, checkerPlan: planFor(['WORLD']) });
+        const hash = computeContinuityContextHash(input);
+        const cap = capturing(semanticReply(hash, { WORLD: 'uncertain' }, [
+            { invariantId: 'WORLD', fieldPath: 'prose', quote: 'a sentence the chapter never contains', reason: 'The world rule may be broken here.' },
+        ]));
+        const result = await continuityCheck({ ...input, providers: cap.providers });
+        expect(result.semanticValidation.status).toBe('invalid');
+    });
     it('a reason that only repeats machine tokens is not evidence', async () => {
         const input = checkInput({ workContract: EN_CONTRACT, checkerPlan: planFor(['ADDRESSING']) });
         const hash = computeContinuityContextHash(input);

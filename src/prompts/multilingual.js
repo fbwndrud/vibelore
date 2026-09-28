@@ -54,6 +54,7 @@ export const steps = {
       `Revision feedback: ${c.feedback}`, '', 'World facts:', ...c.worldFacts.map((f) => `- ${f}`),
       '', 'Main characters:', ...c.characters.map((line) => `- ${line}`),
       '', 'Accumulated character-history candidates (optional planning evidence drawn from accepted canon):', c.seedsRender,
+      'A candidate whose previous personal arc stopped at a stage other than echo has a personal arc in progress. At most 2 personal arcs run at once, across arcs. Put an in-progress character in characterArcs and continue from its last stage or the next one, never back at wound; open a new character\'s arc at wound only from the chapter after an in-progress arc closes at echo.',
       '', 'Recent summaries:', ...c.summaries.map((s) => `- ${s}`), '',
       'Editorial review of the previous arc (observed evidence, not a binding rule):',
       c.previousArcReviewJson,

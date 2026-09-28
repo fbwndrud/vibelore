@@ -14,7 +14,7 @@ import { phrases as multilingualPhrases } from '../prompts/multilingual.js';
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const MAX_ATTEMPTS = 3;
 const CONTROL = new Set(['createdAt', 'updatedAt', 'approvedAt', 'rejectedAt', 'activeAt', 'completedAt', 'status', 'approvalId', 'approvedBy', 'approvalLanguage', 'validationReceipt', 'confirmedByUser']);
-const ENUMS = new Set(['recontextualizesSceneIds', 'sceneOrder', 'depthMode', 'surfaceEase', 'conceptPacing', 'inferenceLoad', 'complexityRamp', 'phase', 'hookType', 'confidenceTarget', 'selectedCandidate', 'winnerId', 'candidateId', 'askedQuestionIds', 'weakDimensions', 'povCharacter', 'foregroundCharacters', 'cast', 'charactersPresent', 'choiceOwner', 'agendaIds', 'hooksTouched', 'sourceStep', 'salienceClass', 'tier', 'viewpoint', 'scopePolicy', 'runtimeVersion', 'contractVersion', 'policyRevision', 'memoryVisibility', 'addressForm', 'relationType']);
+const ENUMS = new Set(['recontextualizesSceneIds', 'sceneOrder', 'depthMode', 'surfaceEase', 'conceptPacing', 'inferenceLoad', 'complexityRamp', 'phase', 'hookType', 'confidenceTarget', 'selectedCandidate', 'winnerId', 'candidateId', 'askedQuestionIds', 'weakDimensions', 'povCharacter', 'foregroundCharacters', 'cast', 'charactersPresent', 'choiceOwner', 'agendaIds', 'hooksTouched', 'sourceStep', 'salienceClass', 'tier', 'viewpoint', 'scopePolicy', 'runtimeVersion', 'contractVersion', 'policyRevision', 'memoryVisibility', 'addressForm', 'relationType', 'proofStatus']);
 const PROVENANCE = new Set(['sourceBrief', 'feedback', 'direction', 'userAnswerEvidence', 'userQuote', 'userSource']);
 // Schema-owned engine configuration is not generated fiction. Its exact value is
 // still bound to the artifact under a machine leaf.

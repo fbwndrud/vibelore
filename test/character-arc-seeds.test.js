@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { compileCharacterArcSeeds, renderCharacterArcSeeds } from '../src/core/character-arc-seeds.js';
-import { deterministicArcViolations } from '../src/tools/arc-quality.js';
+import { characterArcQuotaViolations, deterministicArcViolations } from '../src/tools/arc-quality.js';
 
 const foundation = { characters: [
   { id: 'lua', canonicalName: '루아', contradiction: '버려질까 두려워 위험을 따라간다.' },
@@ -60,6 +60,31 @@ describe('CharacterArcSeed compiler', () => {
     assert.equal(complicated[0].unresolvedPressure, '독립과 신뢰를 함께 지킬 수 있는가');
   });
 
+  it('takes the last beat from the committed cursor, not the previous plan', () => {
+    const previousArcPlan = {
+      status: 'completed', characterArcs: [{
+        characterId: 'lua', promise: '보호받는 아이에서 선택하는 사람으로 움직인다.',
+        beats: [{ episodeIndex: 1, beat: 'wound' }, { episodeIndex: 3, beat: 'attempt' }],
+      }],
+    };
+    assert.equal(compileCharacterArcSeeds({ foundation, projection: projection(), previousArcPlan })[0].previousArc.lastBeat, 'attempt');
+    // The reducer left lua's planned arc out (quota), so it never opened.
+    const unopened = compileCharacterArcSeeds({ foundation, projection: projection(), previousArcPlan, arcCursor: {} });
+    assert.equal(unopened[0].previousArc.lastBeat, null);
+    const behind = compileCharacterArcSeeds({
+      foundation, projection: projection(), previousArcPlan, arcCursor: { lua: { beat: 'wound', enteredAtChapter: 1 } },
+    });
+    assert.equal(behind[0].previousArc.lastBeat, 'wound');
+    // An arc the last plan left out still stands on the cursor.
+    const carried = compileCharacterArcSeeds({
+      foundation, projection: projection(), previousArcPlan: { status: 'completed', characterArcs: [] },
+      arcCursor: { lua: { beat: 'attempt', enteredAtChapter: 6 } },
+    });
+    assert.equal(carried[0].status, 'active');
+    assert.equal(carried[0].previousArc.lastBeat, 'attempt');
+    assert.match(renderCharacterArcSeeds(carried), /마지막 단계=attempt/);
+  });
+
   it('allows a grounded character beat to continue across episode arcs without restarting at wound', () => {
     const violations = deterministicArcViolations({
       episodes: [],
@@ -75,5 +100,31 @@ describe('CharacterArcSeed compiler', () => {
       episodes: [],
       characterArcs: [{ characterId: 'lua', beats: [{ episodeIndex: 2, beat: 'attempt' }] }],
     })[0].code, 'CHARACTER_ARC_START_INVALID');
+  });
+
+  // 2026-09-28 ko sample: arc 2 opened a personal arc for c2 while the arcs of c1
+  // and c3 were still active, and the chapter that played it failed on the quota.
+  it('rejects a new personal arc while two arcs are already active', () => {
+    const cursor = { c1: { beat: 'attempt' }, c3: { beat: 'attempt' } };
+    const plan = { characterArcs: [
+      { characterId: 'c1', inheritedState: { previousBeat: 'attempt' }, beats: [{ episodeIndex: 1, beat: 'attempt' }] },
+      { characterId: 'c2', beats: [{ episodeIndex: 2, beat: 'wound' }] },
+    ] };
+    const violations = characterArcQuotaViolations(plan, cursor);
+    assert.equal(violations.length, 1);
+    assert.equal(violations[0].code, 'CHARACTER_ARC_QUOTA_EXCEEDED');
+    assert.match(violations[0].message, /c2/);
+    assert.match(violations[0].message, /c1, c3/);
+    assert.match(violations[0].message, /characterArcs에서 빼고/);
+  });
+
+  it('allows a new personal arc once an active arc reaches echo earlier in the plan', () => {
+    const cursor = { c1: { beat: 'attempt' }, c3: { beat: 'self-choice' } };
+    const plan = { characterArcs: [
+      { characterId: 'c3', inheritedState: { previousBeat: 'self-choice' }, beats: [{ episodeIndex: 1, beat: 'echo' }] },
+      { characterId: 'c2', beats: [{ episodeIndex: 2, beat: 'wound' }] },
+    ] };
+    assert.deepEqual(characterArcQuotaViolations(plan, cursor), []);
+    assert.deepEqual(characterArcQuotaViolations(plan, { c1: { beat: 'attempt' }, c3: { beat: 'echo' } }), []);
   });
 });
