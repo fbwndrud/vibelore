@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<script src="../i18n.js?v=2"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>베스퍼 · 작품 읽기</title>
+<meta name="description" content="롯데월드 야간 퍼레이드의 가로등 신사 베스퍼를 빌린 비공식 팬 창작 소설 50화와 1화 장면 웹툰. vibelore 0.4.2와 Claude Opus 5.5로 설계·집필·각색했습니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="vesper.css?v=1">
+</head>
+<body data-page="read" class="reader-page">
+<header class="topbar">
+  <a class="brand" href="./" lang="ko">베스퍼</a>
+  <div class="grow eptabs" id="eptabs"></div>
+  <div class="seg" role="group" aria-label="보기 방식">
+    <button data-mode="webtoon">웹툰</button>
+    <button data-mode="both">나란히</button>
+    <button data-mode="novel">소설</button>
+  </div>
+  <button class="metatog" id="meta-toggle" type="button" aria-pressed="false" title="검토 판정·모델·버전·프롬프트 표시">제작 정보</button>
+</header>
+
+<section class="ephead">
+  <div class="lead">
+    <div class="kicker" id="kicker">EPISODE</div>
+    <h1 id="eptitle" lang="ko">…</h1>
+    <p id="eplead"></p>
+  </div>
+  <div class="chips">
+    <div class="chip"><span>소설</span><span id="chip-novel"></span></div>
+    <div class="chip toon"><span>웹툰 각색·연출</span><span id="chip-adapt"></span></div>
+    <div class="chip toon"><span>이미지</span><span id="chip-image"></span></div>
+    <div class="chip toon"><span>그림 검토</span><span id="chip-review"></span></div>
+  </div>
+</section>
+
+<main class="reader mode-both" id="reader">
+  <nav class="rail" id="rail" aria-label="장면"></nav>
+  <div class="toon-col" id="toon"></div>
+  <aside class="prose-col">
+    <div class="prose-tools">
+      <span id="prose-label">소설 원문</span>
+      <span class="sizes">글자 크기 <button data-size="s">가</button><button data-size="m">가</button><button data-size="l">가</button></span>
+    </div>
+    <div class="prose" id="prose" lang="ko"></div>
+  </aside>
+</main>
+
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="sh"><span id="sheet-label">원문 보기</span><button id="sheet-toggle">위로 펼치기</button></div>
+  <div class="body" id="sheet-body" lang="ko"></div>
+  <div class="mtools"><button data-mode="webtoon">웹툰</button><button data-mode="novel">소설</button><button class="metatog" id="meta-toggle-m" type="button" aria-pressed="false">제작 정보</button></div>
+</div>
+
+<dialog class="modal" id="modal">
+  <div class="modal-head"><b id="modal-title"></b><button id="modal-close">닫기</button></div>
+  <div class="modal-body" id="modal-body"></div>
+</dialog>
+
+<footer class="site">
+  <span data-i18n="vs.read.footer">소설 설계·집필과 웹툰 각색·연출은 Claude Opus 5.5(claude-opus-5-5, Claude Code CLI)가 vibelore 0.4.2로, 그림은 OpenAI 이미지 API(gpt-image-2.5-sunburst)가 만들었습니다. 그림 검토는 제작을 조율한 같은 모델의 다른 세션이 했으므로 독립 평가가 아닙니다.<br>
+  비공식 팬 창작물입니다. 롯데월드 어드벤처와 야간 퍼레이드 캐릭터 베스퍼·칸드라의 이름을 빌렸을 뿐 롯데월드와 관계가 없고 승인·후원을 받지 않았습니다. 상업적 목적이 없으며 로고와 공식 이미지를 쓰지 않았습니다. 인물의 성격과 사건, 문 너머 설정, 한다온 등 나머지 인물은 모두 허구입니다.</span><br>
+  <span data-i18n="common.builtData">빌드</span> <span id="built"></span> · <span data-i18n="common.data">데이터</span> <a href="data.json">data.json</a> · <span data-i18n="common.madeWith">제작 도구</span> <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
+</footer>
+<script src="site.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>

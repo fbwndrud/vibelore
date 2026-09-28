@@ -1,0 +1,5507 @@
+{
+"work": "베스퍼, 롯데월드의 가로등 신사",
+"workId": "vesper",
+"vibelore": {
+"label": "0.4.2",
+"novel": [
+{
+"from": 1,
+"to": 8,
+"packageVersion": "0.4.1",
+"commit": "1002abf"
+},
+{
+"from": 9,
+"to": 9,
+"packageVersion": "0.4.1",
+"commit": "2dabbac"
+},
+{
+"from": 10,
+"to": 10,
+"packageVersion": "0.4.1",
+"commit": "f594088"
+},
+{
+"from": 11,
+"to": 17,
+"packageVersion": "0.4.1",
+"commit": "c422470"
+},
+{
+"from": 18,
+"to": 20,
+"packageVersion": "0.4.1",
+"commit": "360bd91"
+},
+{
+"from": 21,
+"to": 38,
+"packageVersion": "0.4.1",
+"commit": "e63098e"
+},
+{
+"from": 39,
+"to": 44,
+"packageVersion": "0.4.1",
+"commit": "8e6f383"
+},
+{
+"from": 45,
+"to": 50,
+"packageVersion": "0.4.1",
+"commit": "5ef3d2b"
+}
+],
+"webtoon": {
+"packageVersion": "0.4.2",
+"commit": "f440f71"
+},
+"note": "소설은 0.4.1에서 시작해 집필 중 고친 아크 수정(PR #9)을 반영하며 썼고, 그 수정은 모두 0.4.2 릴리스에 들어갔습니다. 웹툰은 0.4.2로 만들었습니다."
+},
+"imageModel": "gpt-image-2.5-sunburst",
+"imageHost": "OpenAI 이미지 API",
+"reviewer": {
+"host": "Claude Code",
+"model": "claude-opus-5-5"
+},
+"builtAt": "2026-09-28T12:53:04+00:00",
+"chapters": [
+{
+"chapter": 1,
+"title": "천만 회 다음 날의 셀카 폭격",
+"chars": 4195,
+"paragraphs": 87
+},
+{
+"chapter": 2,
+"title": "소화기는 환영 선물이 아닙니다",
+"chars": 4355,
+"paragraphs": 112
+},
+{
+"chapter": 3,
+"title": "근무 평가 조항 제1조",
+"chars": 5074,
+"paragraphs": 115
+},
+{
+"chapter": 4,
+"title": "재미없는 인형탈 작전",
+"chars": 4498,
+"paragraphs": 94
+},
+{
+"chapter": 5,
+"title": "칭찬 한마디, 황금색",
+"chars": 4327,
+"paragraphs": 101
+},
+{
+"chapter": 6,
+"title": "조명 오작동 문의 1건",
+"chars": 4713,
+"paragraphs": 117
+},
+{
+"chapter": 7,
+"title": "부끄러움 타는 조명남",
+"chars": 4416,
+"paragraphs": 89
+},
+{
+"chapter": 8,
+"title": "심지 없는 불꽃",
+"chars": 4092,
+"paragraphs": 109
+},
+{
+"chapter": 9,
+"title": "비어 있는 요청자 칸",
+"chars": 4213,
+"paragraphs": 108
+},
+{
+"chapter": 10,
+"title": "카메라가 등을 돌린 밤",
+"chars": 4513,
+"paragraphs": 96
+},
+{
+"chapter": 11,
+"title": "촛불 앞에서 비는 소원",
+"chars": 4380,
+"paragraphs": 106
+},
+{
+"chapter": 12,
+"title": "문이 숨을 쉰 밤",
+"chars": 4259,
+"paragraphs": 99
+},
+{
+"chapter": 13,
+"title": "동선 밖 세 걸음",
+"chars": 4242,
+"paragraphs": 82
+},
+{
+"chapter": 14,
+"title": "혼자 받은 박수",
+"chars": 4887,
+"paragraphs": 111
+},
+{
+"chapter": 15,
+"title": "사람이 없는 것 같다",
+"chars": 4250,
+"paragraphs": 85
+},
+{
+"chapter": 16,
+"title": "무전 착오",
+"chars": 4677,
+"paragraphs": 97
+},
+{
+"chapter": 17,
+"title": "제자리 표시",
+"chars": 4123,
+"paragraphs": 95
+},
+{
+"chapter": 18,
+"title": "호숫가 가로등 1기 증설(?)",
+"chars": 4603,
+"paragraphs": 80
+},
+{
+"chapter": 19,
+"title": "#우울한가로등",
+"chars": 4540,
+"paragraphs": 88
+},
+{
+"chapter": 20,
+"title": "걷는 가로등 목격담",
+"chars": 5033,
+"paragraphs": 100
+},
+{
+"chapter": 21,
+"title": "두 사람 몫 다음의 무대",
+"chars": 4489,
+"paragraphs": 102
+},
+{
+"chapter": 22,
+"title": "손전등 하나, 발소리 둘",
+"chars": 4576,
+"paragraphs": 101
+},
+{
+"chapter": 23,
+"title": "같은 높이로",
+"chars": 4190,
+"paragraphs": 114
+},
+{
+"chapter": 24,
+"title": "천막 안의 성에",
+"chars": 4591,
+"paragraphs": 97
+},
+{
+"chapter": 25,
+"title": "심지가 다하는 곳",
+"chars": 4508,
+"paragraphs": 89
+},
+{
+"chapter": 26,
+"title": "120프레임의 발자국",
+"chars": 4937,
+"paragraphs": 107
+},
+{
+"chapter": 27,
+"title": "번아웃의 정확한 뜻",
+"chars": 4477,
+"paragraphs": 101
+},
+{
+"chapter": 28,
+"title": "돌아가는 길은 없어요",
+"chars": 4423,
+"paragraphs": 100
+},
+{
+"chapter": 29,
+"title": "불화설(不火說)",
+"chars": 4547,
+"paragraphs": 95
+},
+{
+"chapter": 30,
+"title": "한 걸음 바깥",
+"chars": 4497,
+"paragraphs": 81
+},
+{
+"chapter": 31,
+"title": "폐장 후 타임랩스",
+"chars": 4658,
+"paragraphs": 92
+},
+{
+"chapter": 32,
+"title": "제출 마감 23:59",
+"chars": 4114,
+"paragraphs": 78
+},
+{
+"chapter": 33,
+"title": "입구 아래로 선이 지나가오",
+"chars": 4377,
+"paragraphs": 110
+},
+{
+"chapter": 34,
+"title": "떼창의 박자",
+"chars": 4231,
+"paragraphs": 85
+},
+{
+"chapter": 35,
+"title": "가로등이 너무 많은 금요일",
+"chars": 4306,
+"paragraphs": 95
+},
+{
+"chapter": 36,
+"title": "20시 20분, 수만 개의 불빛",
+"chars": 4169,
+"paragraphs": 92
+},
+{
+"chapter": 37,
+"title": "꺼진 목마 한 줄",
+"chars": 4700,
+"paragraphs": 95
+},
+{
+"chapter": 38,
+"title": "의자에 앉는 가로등",
+"chars": 4778,
+"paragraphs": 105
+},
+{
+"chapter": 39,
+"title": "그러니, 뭐요",
+"chars": 4393,
+"paragraphs": 120
+},
+{
+"chapter": 40,
+"title": "제 판단입니다",
+"chars": 4339,
+"paragraphs": 115
+},
+{
+"chapter": 41,
+"title": "천막 안의 부탁",
+"chars": 4754,
+"paragraphs": 121
+},
+{
+"chapter": 42,
+"title": "소리 없는 불빛",
+"chars": 4586,
+"paragraphs": 115
+},
+{
+"chapter": 43,
+"title": "수천 개의 작은 가로등",
+"chars": 4337,
+"paragraphs": 100
+},
+{
+"chapter": 44,
+"title": "빈 자리의 모양",
+"chars": 4196,
+"paragraphs": 113
+},
+{
+"chapter": 45,
+"title": "가등 선생님, 그 인사는 청혼이에요",
+"chars": 4780,
+"paragraphs": 103
+},
+{
+"chapter": 46,
+"title": "모의 면접관의 질문은 너무 무겁다",
+"chars": 4277,
+"paragraphs": 122
+},
+{
+"chapter": 47,
+"title": "심지 잇기는 커플 굿즈가 아닙니다",
+"chars": 4258,
+"paragraphs": 89
+},
+{
+"chapter": 48,
+"title": "천막에 비친 건 레이디가 아니었다",
+"chars": 4522,
+"paragraphs": 94
+},
+{
+"chapter": 49,
+"title": "모두가 건 것",
+"chars": 4331,
+"paragraphs": 134
+},
+{
+"chapter": 50,
+"title": "가로등 신사는 남기로 했습니다",
+"chars": 4104,
+"paragraphs": 87
+}
+],
+"arcs": [
+{
+"n": 1,
+"title": "불을 끄려 할수록 밝아지는 신사",
+"promise": "들키지 않으려 빛을 낮추면 지켜진다고 믿던 베스퍼가 인간 공범을 얻는다. 그러나 억누른 빛이 오히려 더 큰 시선을 부르는 것을 직접 겪고, 다음 해법으로 시선을 떠넘기는 쪽을 택한다.",
+"start": 1,
+"reviews": [
+{
+"chapter": 5,
+"score": 65
+},
+{
+"chapter": 8,
+"score": 65
+}
+],
+"end": 8
+},
+{
+"n": 2,
+"title": "시선을 넘긴 밤들",
+"promise": "숨으려고 칸드라에게 시선을 넘긴 문지기가, 그 빛값을 칸드라의 초와 다온의 기록이 대신 치르는 것을 본다. 그 끝에 공연 중에는 더 이상 문을 지킬 수 없는 자리까지 밀려난다.",
+"start": 9,
+"reviews": [
+{
+"chapter": 13,
+"score": 71
+},
+{
+"chapter": 17,
+"score": 61
+}
+],
+"end": 17
+},
+{
+"n": 3,
+"title": "폐장 뒤의 가로등",
+"promise": "공연 중 문을 지킬 길이 막힌 문지기는 밤마다 혼자 빛을 태워 이긴다. 그 승리가 낮의 흐림과 남의 이름으로 되돌아오는 것을 겪으며, 아무도 들이지 않던 순찰길에 처음으로 한 사람의 발소리를 허락한다. 그리고 묻지 않는 대신 불을 낮춰 곁에 머무는 쪽을 스스로 고른다.",
+"start": 18,
+"reviews": [
+{
+"chapter": 22,
+"score": 70
+},
+{
+"chapter": 23,
+"score": 70
+}
+],
+"end": 23
+},
+{
+"n": 4,
+"title": "가장자리에서 온 촛불",
+"promise": "곁을 허락하기 시작한 문지기가 위협의 정체와 칸드라가 넘어온 이유를 마주한다. 그는 지키려고 밀어내는 방식도 결국 혼자 짊어지기의 다른 얼굴임을 겪는다. 동시에 제 판단으로 움직이던 다온은 그 판단이 연달아 제 기록으로 되돌아오는 한계에 부딪힌다.",
+"start": 24,
+"reviews": [
+{
+"chapter": 28,
+"score": 72
+},
+{
+"chapter": 32,
+"score": 62
+}
+],
+"end": 32
+},
+{
+"n": 5,
+"title": "핼러윈 주말, 가장 넓은 문",
+"promise": "말을 삼켜 곁을 지키던 문지기와, 혼자 이름을 걸던 공범이 판단을 나누기 시작한다. 그 끝에서 베스퍼는 혼자의 불빛으로는 문을 막을 수 없다고 처음으로 입 밖에 낸다.",
+"start": 33,
+"reviews": [
+{
+"chapter": 37,
+"score": 65
+},
+{
+"chapter": 38,
+"score": 64
+}
+],
+"end": 38
+},
+{
+"n": 6,
+"title": "도와주시오, 그리고 빛의 방패",
+"promise": "혼자 빛을 낮추고 막던 문지기가 처음으로 도움을 청한다. 사람들의 빛이 모여 방패가 되는 밤을 겪고, 문을 닫는 값이 결국 자기 불꽃이라는 사실 앞에 선다.",
+"start": 39,
+"reviews": [
+{
+"chapter": 43,
+"score": 66
+},
+{
+"chapter": 44,
+"score": 73
+}
+],
+"end": 44
+},
+{
+"n": 7,
+"title": "나눈 불, 남는 자리",
+"promise": "사명의 셈 뒤에 욕망을 숨기던 문지기가 제 불을 나누겠다고 먼저 말한다. 끝까지 혼자 타 없어지려던 레이디는 누군가 오래 들여다보는 불을 받아들인다. 마지막 밤의 선택은 네 사람이 각자 건 값 위에서 내려진다.",
+"start": 45,
+"reviews": [
+{
+"chapter": 49,
+"score": 67
+},
+{
+"chapter": 50,
+"score": 69
+}
+],
+"end": 50
+}
+],
+"episodes": [
+{
+"chapter": 1,
+"title": "천만 회 다음 날의 셀카 폭격",
+"host": "Claude",
+"model": "claude-opus-5-5",
+"effort": "high",
+"novelHost": "Claude",
+"novelModel": "claude-opus-5-5",
+"sceneCount": 9,
+"panelTotal": 56,
+"passCount": 7,
+"blockingTotal": 3,
+"advisoryTotal": 11,
+"imageCalls": 15,
+"regen": {
+"autoRevisionLimit": 2
+},
+"reviewer": {
+"host": "Claude Code",
+"model": "claude-opus-5-5"
+},
+"scenes": [
+{
+"id": "s1",
+"n": 1,
+"title": "천만 조회수의 가스등",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-1-p-1",
+"n": 1,
+"text": "대기 공간 천막 아래에는 늘 퍼레이드 직전의 냄새가 고여 있었다. 분장용 스프레이와 식은 츄러스 설탕 냄새, 그리고 발전기 기름 냄새였다."
+},
+{
+"id": "ch-1-p-2",
+"n": 2,
+"text": "베스퍼는 그 한가운데에 허리를 곧게 펴고 서 있었다. 키가 이 미터 가까이 되다 보니 천막 지붕 이음새가 등갓 바로 위에서 펄럭였다. 그는 조심스럽게 고개를 한 치쯤 숙였다."
+},
+{
+"id": "ch-1-p-3",
+"n": 3,
+"text": "\"천만이래, 천만. 하루 만에.\""
+},
+{
+"id": "ch-1-p-4",
+"n": 4,
+"text": "\"가스등 오빠 미쳤다니까. 댓글 봐, '저 탈 안에 무용 전공자 있음'이래.\""
+},
+{
+"id": "ch-1-p-5",
+"n": 5,
+"text": "스태프 몇이 휴대폰을 맞대고 킥킥거렸다. 작은 검은 판 속에서 누군가가 빛나고 있었다. 황동 테두리와 유리 등갓, 그 안에서 활활 타는 불꽃. 관객에게 손등 인사를 하느라 허리를 반쯤 접은 모습이었다."
+},
+{
+"id": "ch-1-p-6",
+"n": 6,
+"text": "자기였다."
+},
+{
+"id": "ch-1-p-7",
+"n": 7,
+"text": "베스퍼는 그 '천만'이 무엇을 센 숫자인지 정확히 알지 못했다. 다만 어젯밤 퍼레이드가 끝난 뒤로 사람들이 그를 보는 눈길이 한 겹 두꺼워졌다는 것만은 알았다. 문지기는 두꺼운 눈길에 걸려서는 안 되는 존재였다."
+},
+{
+"id": "ch-1-p-8",
+"n": 8,
+"text": "그는 숨을 가늘게 들이쉬고 불꽃을 눌렀다. 호박색 빛이 촛농 한 방울 떨어질 동안 천천히 줄어들어, 바람 부는 밤의 골목등쯤이 되었다."
+},
+{
+"id": "ch-1-p-9",
+"n": 9,
+"text": "이만하면 배경이다."
+}
+],
+"pFrom": 1,
+"pTo": 9,
+"panelCount": 6,
+"plannedPanels": 6,
+"image": "img/ep01-s1.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2·4칸 가운데 스태프 엑스트라가 반묶음 단발, 남색 재킷, 눈썹 옆 점으로 그려져 다음 장면부터 나오는 한다온 기준 이미지와 닮아 보입니다.",
+"en": "The central staff extra in panels 2 and 4 has a half-up dark bob, navy jacket and a small mole near the eyebrow, which reads close to the Han Daon reference although Daon does not appear until the next scenes."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸의 불꽃이 아직 꽤 커서, 바람 부는 골목 가로등처럼 흐려진 느낌은 6칸에서야 분명해집니다.",
+"en": "The flame in panel 5 is still fairly large; the windy-alley-lamp dimness reads more clearly only in panel 6."
+}
+],
+"textsTotal": 8,
+"textsOk": 8,
+"timings": {
+"planS": [
+50
+],
+"preflightS": [
+47
+],
+"imageS": 40,
+"imageCalls": 1
+},
+"imageUsd": 0.103,
+"imageUsdEstimated": true,
+"chosenAttempt": 1,
+"attemptTotal": 1,
+"attempts": [],
+"lettering": null,
+"plan": {
+"intent": "The reader moves from the cozy, crowded backstage tent to Vesper's quiet alarm. Staff giggle over a viral clip of the lamp-headed gentleman, and he is the one in it. Vesper does not understand the number, but he does understand that the looks have thickened. The comedy stays soft; the dramatic turn is his private decision to hide. He deliberately presses his own flame down to the dimness of a windy alley lamp and judges that this is enough to be background. The scene should end on the dimmed flame, a small self-erasure that the reader feels as both funny and a little sad.",
+"staging": "Interior of the backstage waiting tent, before the evening parade. Vesper stands near the center of the tent. His lamp head sits just below the tent roof seam, which flaps close above the shade; his head is dipped slightly. The staff huddle is somewhere in the same tent, near enough that Vesper can take in their talk and see the screen. Their exact distance and direction from him are open. Their phones are held together, with a small screen showing a clip of Vesper glowing mid-bow. The screen carries no UI labels or readable text. The spoken lines in text-2 and text-3 must use balloons with tails to the unnamed staff huddle, never narrator boxes, even though the speaker field reads narrator. Which staff member says which line is open. Only ordinary human staff are present besides Vesper. Kandra, Daon and Taerim do not appear. Across the scene, Vesper's flame goes from its normal amber glow to a clearly smaller, dimmer amber, comparable to an alley lamp on a windy night. The source does not state a color change, only a loss of brightness. The camera, panel division and where the dimming is shown are left to the artist.",
+"uncertainties": [
+"The source does not identify or count the staff who speak ch-1-p-3 and ch-1-p-4. They are unregistered extras, so the speaker field uses narrator only because of validator limits; these lines are spoken dialogue from the staff, not narration. Whether one person or two speak is also unknown.",
+"The source does not say whether the staff notice that Vesper is standing nearby, or whether anyone notices his flame dimming.",
+"The source does not state how Vesper physically presses the flame down beyond a thin breath. No gesture, strain or visible mechanism should be invented. World fact wf4 says forced dimming cannot last long, but this scene does not show it failing.",
+"The duration in ch-1-p-8 is given as the time of one wax drop falling, an in-world measure, not a clock time.",
+"The exact time of this scene is unstated. It is only implied to be after last night's parade and before a parade, since the tent smells of the moment before a parade.",
+"Whether Vesper understands the dance-major comment, or knows the nickname used for him, is not stated. The source only says he does not know what the ten million counted.",
+"The number ten million is not explicitly called view count in this excerpt. The screen should not display a number or label."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-1",
+"kind": "caption",
+"speaker": "narrator",
+"text": "대기 공간 천막 아래에는 늘 퍼레이드 직전의 냄새가 고여 있었다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-3",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "천만이래, 천만. 하루 만에."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-4",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "가스등 오빠 미쳤다니까. 댓글 봐, '저 탈 안에 무용 전공자 있음'이래."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-6",
+"kind": "caption",
+"speaker": "narrator",
+"text": "자기였다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-7",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 그 '천만'이 무엇을 센 숫자인지 정확히 알지 못했다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-7",
+"kind": "caption",
+"speaker": "narrator",
+"text": "문지기는 두꺼운 눈길에 걸려서는 안 되는 존재였다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-8",
+"kind": "caption",
+"speaker": "narrator",
+"text": "호박색 빛이 촛농 한 방울 떨어질 동안 천천히 줄어들어, 바람 부는 밤의 골목등쯤이 되었다."
+},
+{
+"id": "text-8",
+"sourceId": "ch-1-p-9",
+"kind": "thought",
+"speaker": "c1",
+"text": "이만하면 배경이다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-1",
+"ch-1-p-2"
+],
+"action": "The backstage tent is established: pre-parade clutter and smell. Vesper stands upright at its center, so tall the flapping roof seam nearly brushes his lamp shade. He dips his head a fraction, politely making room for the tent.",
+"textIds": [
+"text-1"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-3",
+"ch-1-p-4",
+"ch-1-p-5"
+],
+"action": "Nearby, a small huddle of staff put their phones together and giggle. They trade excited lines about ten million views in a day and a comment about a dance major inside the costume.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-5",
+"ch-1-p-6"
+],
+"action": "The phone screen is revealed. It shows the lamp-headed gentleman blazing bright, bent half at the waist in a back-of-hand greeting to the crowd. The narration confirms the figure is Vesper himself.",
+"textIds": [
+"text-4"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-7"
+],
+"action": "Vesper does not understand what the number counts. He does register that people's gazes on him have thickened since last night. He recalls that a gatekeeper must not be caught in such gazes, and this moves him from bystander to someone deciding to act.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-1-p-8",
+"ch-1-p-9"
+],
+"action": "Vesper breathes in thinly and deliberately presses his flame down. The amber glow dwindles slowly to the dimness of a windy-night alley lamp. He concludes privately that this is enough to pass as background.",
+"textIds": [
+"text-7",
+"text-8"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-1"
+],
+"statement": "The scene is under the waiting-area tent. It always smells like the moment before the parade: makeup spray, cold churro sugar and generator oil."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-2"
+],
+"statement": "Vesper stands in the middle of the tent with his back straight. He is close to two meters tall, so the tent roof seam flaps just above his lamp shade. He carefully lowers his head by a tiny amount."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-3",
+"ch-1-p-4",
+"ch-1-p-5"
+],
+"statement": "Several staff members have their phones pressed together and are giggling. They say something reached ten million in one day and quote a comment claiming there is a dance major inside the costume. These lines belong to unnamed staff extras, not to any registered character."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-5",
+"ch-1-p-6"
+],
+"statement": "On the small black screen, a figure is glowing: a brass frame, a glass shade and a blazing flame inside. The figure is bent halfway at the waist, giving the audience a back-of-hand greeting. The figure is Vesper himself."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-7"
+],
+"statement": "Vesper does not know exactly what the ten million counted. He only knows that since last night's parade ended, the way people look at him has grown one layer thicker. He also believes a gatekeeper is a being who must not get caught in thick looks."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-8"
+],
+"statement": "Vesper takes a thin breath and presses his flame down. The amber light shrinks slowly, over about the time one drop of candle wax takes to fall, until it is about as bright as an alley lamp on a windy night."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-9"
+],
+"statement": "Vesper judges that at this level he counts as background."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy comedy webtoon, clean expressive linework, soft cel shading, warm night palette with Vesper's amber gas-lamp flame as key light.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-1",
+"ch-1-p-2"
+],
+"action": "Cluttered backstage parade tent with equipment cases and a generator. Very tall Vesper stands straight at center, lamp head dipped slightly beneath the flapping roof seam, flame glowing normal amber.",
+"textIds": [
+"text-1"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-3",
+"ch-1-p-4",
+"ch-1-p-5"
+],
+"action": "A small huddle of ordinary human staff press their phones together, giggling excitedly. Speech balloons tail to the staff.",
+"textIds": [
+"text-2",
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-5",
+"ch-1-p-6"
+],
+"action": "Close on the small phone screen held in staff hands. It shows only a glowing brass-framed lamp-headed gentleman, flame blazing, bent halfway at the waist in a back-of-hand greeting to a crowd.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-7"
+],
+"action": "Vesper stands very still near the giggling staff, lamp head slightly dipped, flame at normal amber, quietly unsettled.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-8"
+],
+"action": "Vesper holds still as his amber flame shrinks inside the glass shade, visibly lower and softer than before.",
+"textIds": [
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-9"
+],
+"action": "Vesper in the busy tent, his lamp now a small dim amber flame like a windy-night alley lamp. Thought balloon linked to his glass lamp head.",
+"textIds": [
+"text-8"
+]
+}
+]
+},
+"review": {
+"continuity": null,
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "대기 공간 천막 아래에는 늘 퍼레이드 직전의 냄새가 고여 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Top-left caption box in panel 1, verbatim."
+},
+{
+"id": "text-2",
+"observedText": "천만이래, 천만. 하루 만에.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Left speech balloon in panel 2, tail to the giggling staff on the left."
+},
+{
+"id": "text-3",
+"observedText": "가스등 오빠 미쳤다니까. 댓글 봐, '저 탈 안에 무용 전공자 있음'이래.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Right speech balloon in panel 2 with curly quotes around the comment, tail to the staff huddle."
+},
+{
+"id": "text-4",
+"observedText": "자기였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption box at top-left of panel 3 over the phone screen showing the lamp-headed gentleman."
+},
+{
+"id": "text-5",
+"observedText": "베스퍼는 그 '천만'이 무엇을 센 숫자인지 정확히 알지 못했다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Upper caption box on the right of panel 4."
+},
+{
+"id": "text-6",
+"observedText": "문지기는 두꺼운 눈길에 걸려서는 안 되는 존재였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Lower caption box on the right of panel 4."
+},
+{
+"id": "text-7",
+"observedText": "호박색 빛이 촛농 한 방울 떨어질 동안 천천히 줄어들어, 바람 부는 밤의 골목등쯤이 되었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption box top-left of panel 5 above the close-up of the dimming flame."
+},
+{
+"id": "text-8",
+"observedText": "이만하면 배경이다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Thought bubble with trailing circles toward Vesper in panel 6."
+}
+],
+"evidence": "Six panels read top to bottom: wide tent shot with Vesper standing tall among costume racks and equipment cases; staff huddle giggling over a phone; the phone screen showing Vesper bowing with a back-of-hand greeting to a crowd; Vesper looking toward the giggling staff; close-up of his lamp head with a small amber flame and the upper-left crack visible; Vesper from behind with the dimmed flame and a thought bubble. All eight quoted lines are verbatim with no invented text or name labels.",
+"observedPanelCount": 6
+}
+},
+{
+"id": "s2",
+"n": 2,
+"title": "기울어진 촛불",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-1-p-10",
+"n": 10,
+"text": "\"요즘 당신 불이 너무 작아요.\""
+},
+{
+"id": "ch-1-p-11",
+"n": 11,
+"text": "옆에서 칸드라가 말했다. 상아색 초 꼭대기의 불꽃이 그를 향해 살짝 기울어 있었다. 늘 곧게 서던 불이 오늘은 자꾸 옆으로 누웠다. 베스퍼는 그것을 먼저 보았지만 묻지 않았다. 대신 자기 불을 한 번 더 낮췄다."
+},
+{
+"id": "ch-1-p-12",
+"n": 12,
+"text": "\"어제 그 영상 때문이죠? 사람들이 당신더러 오빠래요, 오빠.\""
+},
+{
+"id": "ch-1-p-13",
+"n": 13,
+"text": "\"오빠라는 것은 어떤 직위요?\""
+},
+{
+"id": "ch-1-p-14",
+"n": 14,
+"text": "\"음, 그건 나중에요. 아무튼 그렇게 줄이면 멀리서는 꺼진 줄 알겠어요.\""
+},
+{
+"id": "ch-1-p-15",
+"n": 15,
+"text": "\"전혀 개의치 않소, 레이디. 오늘 밤 나는 조명 소품 하나에 지나지 않을 것이오.\""
+},
+{
+"id": "ch-1-p-16",
+"n": 16,
+"text": "말은 반듯했다."
+},
+{
+"id": "ch-1-p-17",
+"n": 17,
+"text": "등갓 안의 불꽃이 분홍색으로 세 번 깜빡였다."
+},
+{
+"id": "ch-1-p-18",
+"n": 18,
+"text": "칸드라가 손으로 입을 가렸다. 웃음이 새어 나오는 모양이었다. 베스퍼는 목깃을 바로잡는 척 고개를 돌렸다. 걱정받는 게 반갑다는 사실까지 불빛이 떠벌릴 필요는 없었다."
+}
+],
+"pFrom": 10,
+"pTo": 18,
+"panelCount": 5,
+"plannedPanels": 5,
+"image": "img/ep01-s2.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "4칸의 분홍 불꽃 안에 웃는 눈과 입이 그려졌습니다. 원문은 감정을 불빛 색과 깜박임으로만 보여 줍니다.",
+"en": "Panel 4 draws smiling eyes and mouth inside the pink flame; the source shows his emotion through color and blinking only."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "5칸의 칸드라 초 몸통에 홍조 표시가 들어갔습니다.",
+"en": "Panel 5 adds blush marks on Kandra's candle body."
+}
+],
+"textsTotal": 9,
+"textsOk": 9,
+"timings": {
+"planS": [
+57,
+47
+],
+"preflightS": [
+62,
+48
+],
+"imageS": 42,
+"imageCalls": 2
+},
+"imageUsd": 0.206,
+"imageUsdEstimated": true,
+"chosenAttempt": 2,
+"attemptTotal": 2,
+"attempts": [
+{
+"n": 1,
+"image": "img/ep01-s2-try1.webp",
+"plannedPanels": 6,
+"observedPanels": 6,
+"textsOk": 9,
+"textsTotal": 9,
+"raw": false,
+"after": false,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "2칸에서 칸드라의 초에 심지가 둘, 불꽃이 둘로 그려졌습니다. 기준 이미지와 1·3·6칸은 심지 하나에 불꽃 하나입니다.",
+"en": "Panel 2 draws Kandra's candle with two wicks and two flames; she has a single flame on one wick in the reference and in panels 1, 3 and 6."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "3칸의 초 몸통에 웃는 입 모양이 들어갔습니다. 설정에 없는 표정입니다.",
+"en": "Panel 3 adds a small smiling mouth mark on the candle body, an expression feature the character does not have."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸에서 내레이션 상자가 칸드라의 말풍선 위에 있어 먼저 읽힙니다. 원문은 칸드라의 대사가 먼저입니다.",
+"en": "In panel 1 the narration caption is placed above Kandra's balloon, so it is read before her line, although the source puts her line first."
+}
+],
+"emphasis": {
+"focusTextIds": null,
+"corrections": null
+}
+}
+],
+"lettering": null,
+"plan": {
+"intent": "This picks up right after Vesper dimmed his flame to hide. The reader should feel the joke turn tender. Kandra, beside him, notices the dimness and teases him about the viral nickname. Vesper answers with stiff, formal dignity, but his own flame betrays him by blinking pink. The comedy lives in the gap between his upright words and his traitorous light. Under the comedy sit two quiet signals. Kandra's flame keeps leaning sideways, a sign of unease; Vesper sees it and deliberately does not ask. By the end both are hiding something small from each other and the reader senses it, even though neither says it.",
+"staging": "Same backstage waiting tent as the previous scene, continuous in time: Vesper has just dimmed his flame, and it stays small and dim amber throughout, never fully out. Kandra stands beside Vesper, close enough to converse quietly; which side she stands on is open. Vesper is far taller than Kandra. Kandra's head is one thick ivory pillar candle with hardened wax drips and exactly ONE wick carrying exactly ONE flame in every panel; never two wicks or two flames. Her candle has no face: no mouth, eyes or smile marks drawn on the wax. Emotion shows only through the flame and body language. In the opening exchange her single flame leans sideways, tilted toward Vesper, rather than standing upright. Reading order in the opening moment: Kandra's line text-1 must be read before the narration caption text-2, so place her balloon first in the reading path and the caption after it. Vesper has no mouth; his balloons point to the glass lamp head. The pink three-blink happens inside his glass shade and is the comedic peak; the source gives the color pink and the count three, and nothing else about the mechanism. At the close, Kandra's hand is raised to the lower front of her candle where a mouth would be, without drawing a mouth, and Vesper's head is turned away while a gloved hand works at his collar. No other named characters appear. Unnamed staff may exist in the background as ordinary humans but do not speak. No readable text anywhere except the listed lines; no speaker labels. Camera choices, panel division and where each beat lands are left to the artist.",
+"uncertainties": [
+"The source does not say which side of Vesper Kandra stands on, or how far apart they are beyond being beside each other.",
+"Whether other staff are still nearby in the tent, or whether anyone besides Kandra sees the pink blinking, is not stated.",
+"The source says the laughter only seems to be leaking out (ch-1-p-18 is phrased as appearance); whether Kandra is laughing aloud is unknown, so no laughter sfx should be added.",
+"Kandra has no mouth, yet ch-1-p-18 says she covers her mouth with her hand; the gesture should be read as a hand raised to where a mouth would be, without inventing facial features.",
+"How far Vesper lowers his flame the second time is not quantified. Kandra's warning in ch-1-p-14 implies it only risks looking extinguished from afar; it does not go out.",
+"The source does not explain why Kandra's flame leans. Per the character's emotion code a sideways lean signals unease, but the cause is deliberately hidden and must not be shown or hinted beyond the lean itself.",
+"Pink is not in Vesper's registered light-color code; the source states pink directly for this moment and it should be used as written without inventing a meaning label.",
+"The nickname in ch-1-p-12 is left unexplained on purpose; Kandra defers it, so no visual gloss or explanation should be added.",
+"The exact clock time is unstated; it is before tonight's parade, continuing from the previous scene."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-10",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "요즘 당신 불이 너무 작아요."
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-11",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 그것을 먼저 보았지만 묻지 않았다. 대신 자기 불을 한 번 더 낮췄다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-12",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "어제 그 영상 때문이죠? 사람들이 당신더러 오빠래요, 오빠."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-13",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "오빠라는 것은 어떤 직위요?"
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-14",
+"kind": "dialogue",
+"speaker": "c2",
+"text": "음, 그건 나중에요. 아무튼 그렇게 줄이면 멀리서는 꺼진 줄 알겠어요."
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-15",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "전혀 개의치 않소, 레이디. 오늘 밤 나는 조명 소품 하나에 지나지 않을 것이오."
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-16",
+"kind": "caption",
+"speaker": "narrator",
+"text": "말은 반듯했다."
+},
+{
+"id": "text-8",
+"sourceId": "ch-1-p-17",
+"kind": "caption",
+"speaker": "narrator",
+"text": "등갓 안의 불꽃이 분홍색으로 세 번 깜빡였다."
+},
+{
+"id": "text-9",
+"sourceId": "ch-1-p-18",
+"kind": "caption",
+"speaker": "narrator",
+"text": "걱정받는 게 반갑다는 사실까지 불빛이 떠벌릴 필요는 없었다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-10",
+"ch-1-p-11"
+],
+"action": "Kandra, at Vesper's side, remarks on how small his light has become. Her single flame leans sideways toward him instead of standing straight. Vesper sees the lean, chooses not to ask, and quietly dims his own flame one notch further.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-12",
+"ch-1-p-13"
+],
+"action": "Kandra shifts to teasing: it must be yesterday's video, and people are calling him by the affectionate nickname. Vesper, earnest and literal, asks what rank that is.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-14",
+"ch-1-p-15"
+],
+"action": "Kandra waves the question off for later and warns that from a distance his light will look extinguished. Vesper answers with formal composure that he does not mind and will be a mere lighting prop tonight.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-16",
+"ch-1-p-17"
+],
+"action": "The narration grants that his words were proper. Then his flame betrays him: it blinks pink three times inside the glass shade.",
+"textIds": [
+"text-7",
+"text-8"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-1-p-18"
+],
+"action": "Kandra covers the lower front of her candle with her hand, laughter leaking out. Vesper turns his lamp head aside, fussing with his collar, embarrassed that his light gave away his gladness at being worried about.",
+"textIds": [
+"text-9"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-10",
+"ch-1-p-11"
+],
+"statement": "Kandra, standing beside Vesper, speaks first. She tells him his light has been far too small lately."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-11"
+],
+"statement": "The flame on top of Kandra's ivory candle is tilted slightly toward Vesper. It usually stands straight, but today it keeps lying over to the side."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-11"
+],
+"statement": "Vesper notices the leaning flame first but does not ask about it. Instead he lowers his own flame one more time."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-12"
+],
+"statement": "Kandra guesses it is because of yesterday's video and tells him people are calling him by a Korean affectionate term for an older man, repeating the term twice."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-13"
+],
+"statement": "Vesper asks what kind of rank or position that term is."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-14"
+],
+"statement": "Kandra defers the explanation to later. She warns that if he shrinks his light like that, people far away will think it has gone out."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-15"
+],
+"statement": "Vesper replies that he does not mind at all, addressing her as lady, and says that tonight he will be nothing more than a lighting prop."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-1-p-16",
+"ch-1-p-17"
+],
+"statement": "His words are proper and upright, but the flame inside his lamp shade blinks pink three times."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-1-p-18"
+],
+"statement": "Kandra covers the place of her mouth with her hand, apparently because laughter is leaking out. Vesper turns his head away, pretending to straighten his collar. He feels his light did not need to broadcast that he is glad to be worried about."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy comedy webtoon, clean expressive linework, soft cel shading, warm night palette, backstage parade tent lit by flame glow.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-10",
+"ch-1-p-11"
+],
+"action": "Backstage tent. Kandra stands beside tall Vesper, her single candle flame leaning sideways toward him. Vesper's small, dim amber flame glows low as his lamp head angles toward her tilted flame.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-12",
+"ch-1-p-13"
+],
+"action": "Kandra leans in playfully, one hand lifted in teasing. Vesper stands upright and earnest, his dim lamp head tilted toward her in puzzled formality.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-14",
+"ch-1-p-15"
+],
+"action": "Kandra waves a hand breezily. Vesper stands straight with a gloved hand on his chest, his dim amber flame steady, answering with stiff gentlemanly dignity.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-16",
+"ch-1-p-17"
+],
+"action": "Close-up of Vesper's brass-framed glass lamp head: the small flame inside glows bright pink, with three soft pink blink bursts around it.",
+"textIds": [
+"text-7",
+"text-8"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-18"
+],
+"action": "Kandra raises one hand to the lower front of her candle, stifling a laugh. Vesper turns his lamp head away, one gloved hand straightening his high collar.",
+"textIds": [
+"text-9"
+]
+}
+],
+"corrections": [
+"Kandra's candle has one wick carrying one flame in every panel.",
+"Kandra's candle stays smooth ivory wax, with her flame and body as her only expression.",
+"In the first panel, Kandra's balloon comes first in the reading path and the narration caption follows."
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Kandra has one wick and one flame in every panel, ivory candle with wax drips and plum gown; Vesper keeps the brass lamp head with the upper-left crack, dark tailcoat and white gloves, matching the previous scene."
+},
+"setting": {
+"passed": true,
+"evidence": "Same tent as the previous scene: bulb-lit mirror, costume racks, black flight cases and the open flap onto the park."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "The previous scene ended with Vesper dimming his flame; here Kandra beside him remarks that his light is too small."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "요즘 당신 불이 너무 작아요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Balloon at the top-left of panel 1 with its tail to Kandra's candle."
+},
+{
+"id": "text-2",
+"observedText": "베스퍼는 그것을 먼저 보았지만 묻지 않았다. 대신 자기 불을 한 번 더 낮췄다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption box at the top-right of panel 1, read after Kandra's line."
+},
+{
+"id": "text-3",
+"observedText": "어제 그 영상 때문이죠? 사람들이 당신더러 오빠래요, 오빠.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Balloon at the left of panel 2 pointing to Kandra."
+},
+{
+"id": "text-4",
+"observedText": "오빠라는 것은 어떤 직위요?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Balloon at the right of panel 2 pointing to Vesper's lamp head."
+},
+{
+"id": "text-5",
+"observedText": "음, 그건 나중에요. 아무튼 그렇게 줄이면 멀리서는 꺼진 줄 알겠어요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Balloon at the left of panel 3 pointing to Kandra, who waves a hand."
+},
+{
+"id": "text-6",
+"observedText": "전혀 개의치 않소, 레이디. 오늘 밤 나는 조명 소품 하나에 지나지 않을 것이오.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Balloon at the right of panel 3 pointing to Vesper, hand on chest."
+},
+{
+"id": "text-7",
+"observedText": "말은 반듯했다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption box at the left of panel 4."
+},
+{
+"id": "text-8",
+"observedText": "등갓 안의 불꽃이 분홍색으로 세 번 깜빡였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption box at the right of panel 4 beside the close-up of the pink flame with blink marks."
+},
+{
+"id": "text-9",
+"observedText": "걱정받는 게 반갑다는 사실까지 불빛이 떠벌릴 필요는 없었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption box at the top-right of panel 5."
+}
+],
+"evidence": "Five panels in the backstage tent: Kandra beside Vesper with her single flame leaning toward him; the nickname exchange; Kandra waving off the question and Vesper answering formally with a hand on his chest; a close-up of his lamp with a pink flame and blink marks; Kandra hiding a laugh behind her gloved hand while Vesper adjusts his collar and turns aside. All nine lines are verbatim with no name labels.",
+"observedPanelCount": 5
+}
+},
+{
+"id": "s3",
+"n": 3,
+"title": "신입 스태프의 삼 분",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-1-p-19",
+"n": 19,
+"text": "\"신사님, 촛불님, 스탠바이 오 분 전이요!\""
+},
+{
+"id": "ch-1-p-20",
+"n": 20,
+"text": "반묶음 머리의 스태프가 무전기를 쥔 채 천막 안으로 뛰어들었다. 명찰에 '한다온'이라고 적혀 있었다. 다들 그녀를 신입이라고 불렀던 것 같다."
+},
+{
+"id": "ch-1-p-21",
+"n": 21,
+"text": "\"그리고 신사님, 오늘 C구간 셀카존은 삼 분이에요. 삼 분. 사 분 아니고요. 어제 칠 분 하셔서 뒤에 행렬이 다 밀렸거든요. 오늘은 딱 끊어 주세요. 그쵸?\""
+},
+{
+"id": "ch-1-p-22",
+"n": 22,
+"text": "\"분부대로 하겠소.\""
+},
+{
+"id": "ch-1-p-23",
+"n": 23,
+"text": "\"……분부요? 아, 네. 네, 분부요.\""
+},
+{
+"id": "ch-1-p-24",
+"n": 24,
+"text": "그녀는 무전기 안테나를 두 번 만지작거리더니 다시 뛰어나갔다."
+}
+],
+"pFrom": 19,
+"pTo": 24,
+"panelCount": 4,
+"plannedPanels": 4,
+"image": "img/ep01-s3.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·2칸의 다온은 머리를 풀어 내렸습니다. 자막과 기준 이미지는 반묶음이고, 3칸은 반쯤 묶었습니다.",
+"en": "In panels 1 and 2 Daon's hair falls loose rather than tied half-up as the caption and reference state; panel 3 shows it partly tied."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "무전기 안테나를 두 번 만지작거리는 동작이 보이지 않습니다. 4칸은 뛰어나가는 모습만 있습니다.",
+"en": "The action of fiddling with the radio antenna twice is not visible; panel 4 shows only her running out."
+}
+],
+"textsTotal": 7,
+"textsOk": 7,
+"timings": {
+"planS": [
+47
+],
+"preflightS": [
+42
+],
+"imageS": 41,
+"imageCalls": 1
+},
+"imageUsd": 0.103,
+"imageUsdEstimated": true,
+"chosenAttempt": 1,
+"attemptTotal": 1,
+"attempts": [],
+"lettering": null,
+"plan": {
+"intent": "The quiet, embarrassed moment between Vesper and Kandra is broken by a rushing staff member, and the scene becomes workplace comedy. Han Daon, a new hire, bursts in with a radio and delivers a fast, number-heavy briefing. She repeats the three-minute limit several times and ends by asking for his agreement. Vesper answers with an archaic, courtly acceptance, treating her instruction as a command. Daon stalls on the unfamiliar word and then accepts it, repeating it. The humor comes from her modern, clock-driven speech meeting his old-fashioned courtesy. Underneath, the reader learns that Vesper stretched yesterday's selfie zone to seven minutes, a small figure that hints at future exposure risk. The narration keeps a slightly distant, uncertain view of Daon, as if Vesper barely knows her yet.",
+"staging": "The scene continues directly in the same backstage waiting tent as the previous scene, before tonight's parade.\n\nVesper and Kandra are already inside, near each other. Daon enters from outside through the tent opening and leaves the same way at the end. Her half-up tied bob, radio in hand and staff jacket must read clearly. Her name tag may be visible but must carry no readable lettering, because the caption supplies the name.\n\nText order and balloon tails:\n- Her opening shout addresses both performers, so it should read as directed at both of them.\n- She says the selfie-zone lines to Vesper.\n- Vesper has no mouth, so his single reply balloon points to his glass lamp head.\n- Her halting reply comes after his.\n\nKandra stays present but does not speak in this scene. Her head is one thick ivory pillar candle with hardened wax drips. It has exactly one wick and one flame, and no drawn face, mouth, eyes or blush marks on the wax.\n\nVesper's lamp head must not show a face, smile marks or eyes inside the flame. Emotion shows only through flame color, brightness and body language. Vesper is far taller than Daon and Kandra.\n\nThe antenna fiddle is two touches, per the source. The exit follows it.\n\nOther staff may appear only as ordinary humans who do not speak. Add no readable text beyond the listed lines and no speaker labels.\n\nPanel division, camera and where each beat lands are left to the artist.",
+"uncertainties": [
+"The source does not name the speaker of ch-1-p-19. Attributing it to Daon rests on ch-1-p-20, which immediately describes her running in. It is a strong inference, not an explicit tag.",
+"Whether Daon shouts ch-1-p-19 while still outside the tent, at the threshold, or already inside is not stated. The order of shout and entry is left open.",
+"The source does not say whether Vesper's flame is still dimmed or still pink from the previous scene when Daon enters. His flame state during this scene is unstated and should not be given a new color meaning.",
+"The source does not say what Kandra does or how her flame looks during this exchange. She is only addressed by the opening call.",
+"The source does not explain why Vesper ran seven minutes yesterday. His tendency to accept selfie requests is a character trait, not a fact of this scene. Do not depict the cause.",
+"The source does not explain why Daon fiddles with the antenna. It may reflect tension or mere habit, and should be shown as action without an emotion label.",
+"The phrase in ch-1-p-20 is hedged, as if the viewpoint only half remembers. Whether Vesper knows her name beyond reading the tag is unclear.",
+"The exact clock time is not given. The source states only that standby is five minutes away.",
+"Whether Daon knows Vesper's true nature at this point is not stated in this excerpt. Nothing here should suggest she does."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-19",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "신사님, 촛불님, 스탠바이 오 분 전이요!"
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-20",
+"kind": "caption",
+"speaker": "narrator",
+"text": "반묶음 머리의 스태프가 무전기를 쥔 채 천막 안으로 뛰어들었다. 명찰에 '한다온'이라고 적혀 있었다. 다들 그녀를 신입이라고 불렀던 것 같다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-21",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "그리고 신사님, 오늘 C구간 셀카존은 삼 분이에요. 삼 분. 사 분 아니고요."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-21",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "어제 칠 분 하셔서 뒤에 행렬이 다 밀렸거든요. 오늘은 딱 끊어 주세요. 그쵸?"
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-22",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "분부대로 하겠소."
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-23",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "……분부요? 아, 네. 네, 분부요."
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-24",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그녀는 무전기 안테나를 두 번 만지작거리더니 다시 뛰어나갔다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-19",
+"ch-1-p-20"
+],
+"action": "The standby call comes in as a staff member rushes through the tent opening, radio in hand, and interrupts Vesper and Kandra. The narration then introduces her, keeping a faintly unsure memory of her nickname. Her shout must be read before the introduction caption.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-21"
+],
+"action": "Daon turns to Vesper and delivers the selfie-zone rule quickly. She hammers the three-minute limit and cites yesterday's seven-minute overrun that backed up the line. She closes with a request for his agreement.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-22",
+"ch-1-p-23"
+],
+"action": "Vesper accepts with courtly formality. Daon stalls on his archaic word, then goes along with it and repeats it back.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-24"
+],
+"action": "Daon touches the radio antenna twice and dashes back out of the tent. She leaves the two performers behind.",
+"textIds": [
+"text-7"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-19"
+],
+"statement": "Someone calls out to the gentleman and the candle performer that standby is five minutes away."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-20"
+],
+"statement": "A staff member with half-up tied hair runs into the tent holding a radio. Her name tag bears the name Han Daon. The narration recalls, without certainty, that everyone seemed to call her the new hire."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-21"
+],
+"statement": "She tells Vesper that today's C-zone selfie zone is three minutes. She repeats three and says it is not four."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-21"
+],
+"statement": "She explains that yesterday he did seven minutes and the parade line behind was pushed back. She asks him to cut it off cleanly today and seeks his agreement."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-22"
+],
+"statement": "Vesper replies that he will do as commanded, using an archaic phrase that treats her instruction as an order."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-23"
+],
+"statement": "After a trailing pause, she repeats his word back as a question and then accepts it, saying yes twice and repeating the word once more."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-24"
+],
+"statement": "She fiddles with the radio antenna twice, then runs back out."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy comedy webtoon, clean expressive linework, soft cel shading, warm night palette lit by lamp and candle glow inside a backstage festival tent.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-19",
+"ch-1-p-20"
+],
+"action": "Daon bursts through the tent opening, radio in hand, calling out to Vesper and Kandra standing together inside; Kandra's plain ivory candle holds one flame.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-21"
+],
+"action": "Small Daon faces towering Vesper, radio in hand, speaking fast and emphatic about the selfie-zone limit while Kandra stands quietly nearby.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-22",
+"ch-1-p-23"
+],
+"action": "Vesper gives a small courtly bow, balloon tail pointing to his faceless glass lamp head; Daon looks up at him, briefly stalled, her reply following his.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-24"
+],
+"action": "Daon, fingers on her radio antenna, dashes out through the tent opening mid-stride, leaving Vesper and Kandra standing inside.",
+"textIds": [
+"text-7"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Vesper and Kandra match the previous scene (single-flame candle, plum gown, brass lamp head with the upper-left crack, tailcoat, white gloves). Daon matches her reference: black shoulder-length hair, round brown eyes, navy staff windbreaker, radio."
+},
+"setting": {
+"passed": true,
+"evidence": "Same tent: bulb-lit mirror, costume racks, stacked flight cases and the open flap showing the lit park and Ferris wheel."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "The previous scene ended with Kandra laughing and Vesper fixing his collar; here the standby call interrupts them as Daon rushes in."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "신사님, 촛불님, 스탠바이 오 분 전이요!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Balloon at the top of panel 1 pointing to Daon as she bursts through the tent flap holding a radio."
+},
+{
+"id": "text-2",
+"observedText": "반묶음 머리의 스태프가 무전기를 쥔 채 천막 안으로 뛰어들었다. 명찰에 '한다온'이라고 적혀 있었다. 다들 그녀를 신입이라고 불렀던 것 같다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption box at the lower left of panel 1."
+},
+{
+"id": "text-3",
+"observedText": "그리고 신사님, 오늘 C구간 셀카존은 삼 분이에요. 삼 분. 사 분 아니고요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Left balloon in panel 2 pointing to Daon."
+},
+{
+"id": "text-4",
+"observedText": "어제 칠 분 하셔서 뒤에 행렬이 다 밀렸거든요. 오늘은 딱 끊어 주세요. 그쵸?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Right balloon in panel 2 pointing to Daon, read after text-3."
+},
+{
+"id": "text-5",
+"observedText": "분부대로 하겠소.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Balloon in panel 3 pointing to Vesper, gloved hand on his chest."
+},
+{
+"id": "text-6",
+"observedText": "……분부요? 아, 네. 네, 분부요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Balloon at the right of panel 3 pointing to Daon."
+},
+{
+"id": "text-7",
+"observedText": "그녀는 무전기 안테나를 두 번 만지작거리더니 다시 뛰어나갔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption box at the top-right of panel 4 while Daon runs out through the flap."
+}
+],
+"evidence": "Four panels: Daon bursts into the tent through the flap with a radio while Kandra and Vesper stand by the costume racks; Daon explains the three-minute selfie rule to Vesper; Vesper answers formally and Daon repeats his archaic word; Daon runs back out through the flap past the flight cases. All seven lines are verbatim; her name tag is blank, so no invented text.",
+"observedPanelCount": 4
+}
+},
+{
+"id": "s4",
+"n": 4,
+"title": "퍼레이드와 첫 번째 의식",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-1-p-25",
+"n": 25,
+"text": "여덟 시 이십 분."
+},
+{
+"id": "ch-1-p-26",
+"n": 26,
+"text": "인간의 시계는 볼 줄 몰라도 베스퍼의 몸은 그 순간을 알았다. 발밑에서 음악이 차오르고, 조명이 한꺼번에 켜지고, 동선 저 끝 어딘가에서 문이 크게 숨을 들이쉬는 순간이었다."
+},
+{
+"id": "ch-1-p-27",
+"n": 27,
+"text": "행렬이 움직였다."
+},
+{
+"id": "ch-1-p-28",
+"n": 28,
+"text": "\"가등 선생님!\""
+},
+{
+"id": "ch-1-p-29",
+"n": 29,
+"text": "\"가스등 오빠 여기 좀 봐 주세요!\""
+},
+{
+"id": "ch-1-p-30",
+"n": 30,
+"text": "함성이 파도처럼 밀려와 등갓에 부딪혔다. 불꽃이 저절로 솟으려 했다. 베스퍼는 속으로 수를 세며 그것을 눌러 앉혔다. 배경이다. 소품이다. 가로등은 원래 말이 없다."
+},
+{
+"id": "ch-1-p-31",
+"n": 31,
+"text": "C구간에 들어서자 음악이 느려지고 행렬이 멈췄다. 셀카존이었다."
+},
+{
+"id": "ch-1-p-32",
+"n": 32,
+"text": "맨 앞의 젊은 여인이 검은 판을 두 손으로 내밀었다."
+},
+{
+"id": "ch-1-p-33",
+"n": 33,
+"text": "\"저, 사진 한 장만 같이 찍어 주시면 안 될까요?\""
+},
+{
+"id": "ch-1-p-34",
+"n": 34,
+"text": "베스퍼는 그 판을 내려다보았다. 어제도 그는 이 의식을 스물몇 번 치렀다. 인간들은 판을 얼굴 앞에 들고 무언가를 '담는다'고 했다. 담는다면 무엇을 담는가. 문 너머의 오래된 이야기에는 그림자를 떼어 가는 거울이 있었다. 이것도 그런 종류일지 몰랐다."
+},
+{
+"id": "ch-1-p-35",
+"n": 35,
+"text": "하지만 숙녀분이 정중히 청했다. 청을 거절하는 것은 무례였다."
+},
+{
+"id": "ch-1-p-36",
+"n": 36,
+"text": "\"영광이오, 숙녀분.\""
+},
+{
+"id": "ch-1-p-37",
+"n": 37,
+"text": "그는 모자를 벗는 시늉으로 허리를 숙이고 몸을 기울였다. 판이 등갓 바로 앞까지 다가왔다. 베스퍼는 불꽃의 색을 아주 조금 희게 틀었다. 화면 속 그의 얼굴 자리에 부드러운 빛이 번지면서 황동 이음새와 목 아래의 텅 빈 어둠이 하얗게 지워졌다."
+},
+{
+"id": "ch-1-p-38",
+"n": 38,
+"text": "\"와, 빛 번짐 감성 미쳤다. 진짜 영화 같아요!\""
+},
+{
+"id": "ch-1-p-39",
+"n": 39,
+"text": "칭찬이 등갓을 톡 두드렸다. 불꽃이 한 단계 밝아졌다."
+}
+],
+"pFrom": 25,
+"pTo": 39,
+"panelCount": 8,
+"plannedPanels": 8,
+"image": "img/ep01-s4.webp",
+"blocking": 2,
+"advisory": 0,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-8이 ‘그것을 눌러 않혔다’입니다. 원문은 ‘앉혔다’입니다.",
+"en": "text-8 reads 그것을 눌러 않혔다; the source word is 앉혔다."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-13 첫머리가 ‘문 너마의’입니다. 원문은 ‘문 너머의’입니다.",
+"en": "text-13 begins with 문 너마의; the source reads 문 너머의."
+}
+],
+"textsTotal": 19,
+"textsOk": 17,
+"timings": {
+"planS": [
+75,
+93,
+62,
+72
+],
+"preflightS": [
+62,
+57,
+42,
+72
+],
+"imageS": 42,
+"imageCalls": 4
+},
+"imageUsd": 0.411,
+"imageUsdEstimated": true,
+"chosenAttempt": 4,
+"attemptTotal": 4,
+"attempts": [
+{
+"n": 1,
+"image": "img/ep01-s4-try1.webp",
+"plannedPanels": 7,
+"observedPanels": 7,
+"textsOk": 13,
+"textsTotal": 15,
+"raw": false,
+"after": false,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-2가 ‘발밑에서 움악이 차오로고’로 그려졌습니다(음악이→움악이, 차오르고→차오로고).",
+"en": "text-2 is drawn as 발밑에서 움악이 차오로고: 음악이 became 움악이 and 차오르고 became 차오로고."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-6이 ‘행설이 … 눌러 않혔다’로 그려졌습니다(함성이→행설이, 앉혔다→않혔다).",
+"en": "text-6 is drawn as 행설이 ... 눌러 않혔다: 함성이 became 행설이 and 앉혔다 became 않혔다."
+}
+],
+"emphasis": {
+"focusTextIds": null,
+"corrections": null
+}
+},
+{
+"n": 2,
+"image": "img/ep01-s4-try2.webp",
+"plannedPanels": 6,
+"observedPanels": 6,
+"textsOk": 15,
+"textsTotal": 16,
+"raw": false,
+"after": false,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-6 끝이 ‘눌러 않혔다’입니다. 원문은 ‘앉혔다’입니다.",
+"en": "text-6 ends with 눌러 않혔다; the source word is 앉혔다."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸 행렬에 가스등 머리 신사와 촛불 머리 숙녀가 여럿 더 걸어갑니다. 원문에서 등불·촛불 짝은 베스퍼와 칸드라뿐이고, 다른 공연자와 관객은 사람입니다.",
+"en": "Panel 1 shows several additional gas-lamp-headed gentlemen and candle-headed ladies walking in the procession; the source has only Vesper and Kandra as the lamp and candle pair, and the other performers and crowd are human."
+}
+],
+"emphasis": {
+"focusTextIds": null,
+"corrections": null
+}
+},
+{
+"n": 3,
+"image": "img/ep01-s4-try3.webp",
+"plannedPanels": 7,
+"observedPanels": 7,
+"textsOk": 14,
+"textsTotal": 16,
+"raw": false,
+"after": false,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-6 끝이 ‘눌러 않혔다’입니다. 원문은 ‘앉혔다’이며, 세 시도 모두 같은 오자가 나왔습니다.",
+"en": "text-6 ends with 눌러 않혔다; the source word is 앉혔다. The same misspelling appeared in all three attempts."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-11 첫머리가 ‘문 너마의’입니다. 원문은 ‘문 너머의’입니다.",
+"en": "text-11 begins with 문 너마의; the source reads 문 너머의."
+}
+],
+"emphasis": {
+"focusTextIds": null,
+"corrections": null
+}
+}
+],
+"lettering": {
+"fixes": [
+{
+"textId": "text-8",
+"observed": "그것을 눌러 않혔다.",
+"fixed": "그것을 눌러 앉혔다."
+},
+{
+"textId": "text-13",
+"observed": "문 너마의 오래된 이야기에는 그림자를 떼어 가는 거울이 있었다.",
+"fixed": "문 너머의 오래된 이야기에는 그림자를 떼어 가는 거울이 있었다."
+}
+],
+"raw": "img/ep01-s4-try4.webp",
+"font": "Apple SD Gothic Neo"
+},
+"plan": {
+"intent": "The 8:20 parade begins, and the reader feels it through Vesper's body rather than a clock: music rising, lights snapping on, the door far down the route drawing breath. Fans shout his nicknames, and the cheering pushes his flame upward on its own. He counts silently and forces it back down, telling himself he is only scenery. At the C-zone selfie stop a young woman politely holds out her phone. Vesper quietly weighs the device against an old tale of a mirror that steals shadows. His etiquette wins over his caution, because refusing a polite request would be rude. He bows and tints his flame slightly whiter so the phone image blurs away the brass seams and the empty dark below his collar. That hides him from the camera, but her delighted praise makes his flame brighten one step anyway. The comedy and the tension come from the same place: his light obeys his feelings more than his duty. Narration is split into short, separate captions so each line can be lettered large and exactly.",
+"staging": "Same night parade route as the previous finished attempt, starting at the moment the 8:20 parade begins and ending at the C-zone selfie stop. Keep that staging.\n\nOnly Vesper and Kandra have lamp and candle heads. All other parade performers are ordinary humans in gothic costumes; fans, the young woman and any staff are ordinary people. Kandra is present in the procession near Vesper but does not speak and has no scripted action here. Her head is one thick ivory pillar candle with hardened wax drips, exactly one wick and one flame, and no drawn face.\n\nVesper is far taller than the humans. His glass lamp head shows no face, eyes or mouth; emotion shows only through flame brightness, color and posture. The crack on the upper left of the glass stays visible. His speech balloon (text-15) points to his lamp head. His thoughts (text-9, text-12) are thought balloons or thought-style captions tied to him.\n\nFan shouts (text-4, text-5) come from unnamed fans behind the rope line; tails point into the crowd, not to any named character. text-11 and text-17 are spoken by the same young woman at the front of the crowd; tails point to her.\n\nRequired causal order: flame tries to rise (text-6) before the counting and suppression captions (text-7, text-8). text-7 and text-8 are two separate short captions, read in that order. text-13 is its own caption, not merged with any other line. text-14 comes before his reply text-15.\n\nThe phone: the woman holds it out with both hands; during the photo it comes right up to his lamp glass. If the phone screen is shown, it displays a soft white glow where his face would be, with the brass seams and the dark space below his collar washed out to white. No UI, icons or lettering on the screen.\n\nThe flame whitening in beat 5 is a very slight shift, not a dramatic flash. The brightening in beat 6 is one step up from that.\n\nThe mirror in text-13 is part of an old tale; do not draw scenery of the world beyond the door. Whether to show any mirror image at all is left to the artist.\n\nNo readable text beyond the listed lines, no speaker names or labels, no signs or brand marks. Panel division, camera and beat placement are the artist's choice; prefer fewer, larger panels with large, crisp captions.",
+"uncertainties": [
+"The door's exact location on the route and what 'taking a breath' looks like are not described in ch-1-p-26. Do not invent a visible door or effect; it may stay off-panel.",
+"Vesper's flame color while suppressing in ch-1-p-30 is not stated. The source says only that he presses it down; no new color meaning should be assigned.",
+"The fans who shout ch-1-p-28 and ch-1-p-29 are unnamed. Whether they are one or two people, and their positions, are not stated.",
+"Kandra is not mentioned anywhere in this excerpt. Her presence follows the established parade pairing, but her position and flame state are unstated.",
+"Daon does not appear in this excerpt; whether she is on the route is unknown and she should not be given any action.",
+"The source does not say whether the photo is taken as a selfie from the woman's arm or by another person; only that the device came right up to his lamp glass.",
+"The source does not say whether the woman or anyone notices the whitening. Only the washed-out screen result and her praise are stated.",
+"Whether the brighter flame in ch-1-p-39 is caught by the camera or causes any exposure risk is not stated in this excerpt.",
+"The previous scene's staff instruction about a three-minute limit is not referenced here; do not show a timer or imply a timing violation."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-25",
+"kind": "caption",
+"speaker": "narrator",
+"text": "여덟 시 이십 분."
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-26",
+"kind": "caption",
+"speaker": "narrator",
+"text": "동선 저 끝 어딘가에서 문이 크게 숨을 들이쉬는 순간이었다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-27",
+"kind": "caption",
+"speaker": "narrator",
+"text": "행렬이 움직였다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-28",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "가등 선생님!"
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-29",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "가스등 오빠 여기 좀 봐 주세요!"
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-30",
+"kind": "caption",
+"speaker": "narrator",
+"text": "불꽃이 저절로 솟으려 했다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-30",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 속으로 수를 세며"
+},
+{
+"id": "text-8",
+"sourceId": "ch-1-p-30",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그것을 눌러 앉혔다."
+},
+{
+"id": "text-9",
+"sourceId": "ch-1-p-30",
+"kind": "thought",
+"speaker": "c1",
+"text": "배경이다. 소품이다. 가로등은 원래 말이 없다."
+},
+{
+"id": "text-10",
+"sourceId": "ch-1-p-31",
+"kind": "caption",
+"speaker": "narrator",
+"text": "C구간에 들어서자 음악이 느려지고 행렬이 멈췄다. 셀카존이었다."
+},
+{
+"id": "text-11",
+"sourceId": "ch-1-p-33",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "저, 사진 한 장만 같이 찍어 주시면 안 될까요?"
+},
+{
+"id": "text-12",
+"sourceId": "ch-1-p-34",
+"kind": "thought",
+"speaker": "c1",
+"text": "담는다면 무엇을 담는가."
+},
+{
+"id": "text-13",
+"sourceId": "ch-1-p-34",
+"kind": "caption",
+"speaker": "narrator",
+"text": "문 너머의 오래된 이야기에는 그림자를 떼어 가는 거울이 있었다."
+},
+{
+"id": "text-14",
+"sourceId": "ch-1-p-35",
+"kind": "caption",
+"speaker": "narrator",
+"text": "청을 거절하는 것은 무례였다."
+},
+{
+"id": "text-15",
+"sourceId": "ch-1-p-36",
+"kind": "dialogue",
+"speaker": "c1",
+"text": "영광이오, 숙녀분."
+},
+{
+"id": "text-16",
+"sourceId": "ch-1-p-37",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 불꽃의 색을 아주 조금 희게 틀었다."
+},
+{
+"id": "text-17",
+"sourceId": "ch-1-p-38",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "와, 빛 번짐 감성 미쳤다. 진짜 영화 같아요!"
+},
+{
+"id": "text-18",
+"sourceId": "ch-1-p-39",
+"kind": "caption",
+"speaker": "narrator",
+"text": "칭찬이 등갓을 톡 두드렸다."
+},
+{
+"id": "text-19",
+"sourceId": "ch-1-p-39",
+"kind": "caption",
+"speaker": "narrator",
+"text": "불꽃이 한 단계 밝아졌다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-25",
+"ch-1-p-26",
+"ch-1-p-27"
+],
+"action": "The parade starts. The time caption comes first, then the felt signals of music, lights and the distant door breathing, then the procession begins to move with Vesper and Kandra in it.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-28",
+"ch-1-p-29",
+"ch-1-p-30"
+],
+"action": "Fans behind the rope line shout his nicknames. His flame tries to surge on its own; he counts inwardly and forces it back down, repeating to himself that he is scenery. The cause (flame rising) must be read before the suppression captions.",
+"textIds": [
+"text-4",
+"text-5",
+"text-6",
+"text-7",
+"text-8",
+"text-9"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-31",
+"ch-1-p-32",
+"ch-1-p-33"
+],
+"action": "The procession halts at the C-zone selfie stop. A young woman at the front of the crowd holds her phone out with both hands and asks politely for a photo.",
+"textIds": [
+"text-10",
+"text-11"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-34",
+"ch-1-p-35"
+],
+"action": "Vesper looks down at the phone and wonders what it captures, recalling the tale of a shadow-taking mirror. Then courtesy settles it: refusing would be rude.",
+"textIds": [
+"text-12",
+"text-13",
+"text-14"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-1-p-36",
+"ch-1-p-37"
+],
+"action": "Vesper accepts, bows with a mimed hat-doff and leans toward the phone. He tints his flame slightly whiter, and the phone screen shows a soft glow where his face would be, with brass seams and the dark below his collar washed to white.",
+"textIds": [
+"text-15",
+"text-16"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-1-p-38",
+"ch-1-p-39"
+],
+"action": "The woman gushes over the result. The praise lands on his lamp glass and his flame brightens one step, undoing a little of his restraint.",
+"textIds": [
+"text-17",
+"text-18",
+"text-19"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-25",
+"ch-1-p-26"
+],
+"statement": "It is 8:20. Vesper cannot read human clocks, but his body knows the moment: music rises underfoot, the lights come on all at once, and somewhere at the far end of the route the door takes a deep breath."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-27"
+],
+"statement": "The parade procession starts moving."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-28",
+"ch-1-p-29"
+],
+"statement": "Unnamed fans shout to Vesper using two affectionate nicknames, asking him to look their way."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-30"
+],
+"statement": "The cheering washes against his lamp glass and his flame tries to rise by itself. Vesper counts inwardly and presses it back down, reminding himself that he is background, a prop, and that streetlamps do not speak."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-31"
+],
+"statement": "On entering the C zone the music slows and the procession stops. It is the selfie zone."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-32",
+"ch-1-p-33"
+],
+"statement": "The young woman at the front holds out a black flat device (a phone) with both hands and politely asks to take one photo together."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-34"
+],
+"statement": "Vesper looks down at the device. Yesterday he went through this ritual twenty-some times. Humans say they 'capture' something with it, and he wonders what is captured. An old tale from beyond the door tells of a mirror that takes away shadows, and this might be something of that kind."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-1-p-35"
+],
+"statement": "Because a lady asked politely, and refusing a request would be rude, he decides to accept."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-1-p-36",
+"ch-1-p-37"
+],
+"statement": "Vesper says it is an honor, bows at the waist with a gesture as if doffing a hat, and leans in. The device comes right up to his lamp glass. He shifts his flame color very slightly whiter; on the screen, soft light spreads over the place where his face would be and washes out the brass seams and the empty darkness below his neck."
+},
+{
+"id": "fact-10",
+"sourceIds": [
+"ch-1-p-38",
+"ch-1-p-39"
+],
+"statement": "The woman praises the light-bleed mood as being just like a movie. The praise taps his lamp glass and his flame brightens by one step."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy comedy webtoon, clean expressive linework, soft cel shading, warm night palette; flame glow as key light and emotion cue; large crisp Korean lettering.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-25",
+"ch-1-p-26"
+],
+"action": "Night theme-park parade route: parade lights snap on all at once; tall lamp-headed Vesper stands poised at the start, Kandra's candle head nearby among human gothic-costumed performers.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-27",
+"ch-1-p-28",
+"ch-1-p-29"
+],
+"action": "The procession walks forward; ordinary fans behind the rope line wave phones and shout toward Vesper.",
+"textIds": [
+"text-3",
+"text-4",
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-30"
+],
+"action": "Close on Vesper's cracked glass lamp head as cheers wash over it: his flame leaps upward on its own.",
+"textIds": [
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-30"
+],
+"action": "Vesper stands rigid and composed like scenery, his flame pressed back down small inside the glass.",
+"textIds": [
+"text-7",
+"text-8",
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-31",
+"ch-1-p-32",
+"ch-1-p-33"
+],
+"action": "Procession halted at the selfie stop; a young woman at the front of the crowd holds a black phone out to Vesper with both hands.",
+"textIds": [
+"text-10",
+"text-11"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-34",
+"ch-1-p-35"
+],
+"action": "Vesper's lamp head tilts down toward the black phone in the woman's hands, his tall figure still.",
+"textIds": [
+"text-12",
+"text-13",
+"text-14"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-36",
+"ch-1-p-37"
+],
+"action": "Vesper bows, leaning in, white glove raised as if doffing a hat; flame faintly whiter; the phone at his lamp glass shows a soft white glow where his face would be.",
+"textIds": [
+"text-15",
+"text-16"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-38",
+"ch-1-p-39"
+],
+"action": "The young woman beams at her phone screen in delight while beside her Vesper's flame glows one step brighter.",
+"textIds": [
+"text-17",
+"text-18",
+"text-19"
+]
+}
+],
+"focusTextIds": [
+"text-8",
+"text-13"
+],
+"corrections": [
+"Caption text-8 ends with anhyeotda, its first syllable carrying the n-j double final consonant.",
+"Caption text-13 begins mun neomeoui, the second word's syllables both using the eo vowel.",
+"Captions text-7 and text-8 sit as two separate short captions, read in that order."
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Vesper keeps the brass lamp head with the crack, tailcoat and white gloves; Kandra keeps one flame and the plum gown; other performers are human in masks and hats."
+},
+"setting": {
+"passed": true,
+"evidence": "Night parade route with lanterns, banners, rope barriers and phone crowds."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "The previous scene ended with Daon running out after the standby call; here the parade begins at 8:20."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "여덟 시 이십 분.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-2",
+"observedText": "동선 저 끝 어딘가에서 문이 크게 숨을 들이쉬는 순간이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-3",
+"observedText": "행렬이 움직였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-4",
+"observedText": "가등 선생님!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-5",
+"observedText": "가스등 오빠 여기 좀 봐 주세요!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-6",
+"observedText": "불꽃이 저절로 솟으려 했다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-7",
+"observedText": "베스퍼는 속으로 수를 세며",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-8",
+"observedText": "그것을 눌러 않혔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Short caption in panel 4; zoomed, it reads 않혔다 for 앉혔다."
+},
+{
+"id": "text-9",
+"observedText": "배경이다. 소품이다. 가로등은 원래 말이 없다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-10",
+"observedText": "C구간에 들어서자 음악이 느려지고 행렬이 멈췄다. 셀카존이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-11",
+"observedText": "저, 사진 한 장만 같이 찍어 주시면 안 될까요?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-12",
+"observedText": "담는다면 무엇을 담는가.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-13",
+"observedText": "문 너마의 오래된 이야기에는 그림자를 떼어 가는 거울이 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption in panel 6; zoomed, it reads 너마의 for 너머의."
+},
+{
+"id": "text-14",
+"observedText": "청을 거절하는 것은 무례였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-15",
+"observedText": "영광이오, 숙녀분.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-16",
+"observedText": "베스퍼는 불꽃의 색을 아주 조금 희게 틀었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-17",
+"observedText": "와, 빛 번짐 감성 미쳤다. 진짜 영화 같아요!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-18",
+"observedText": "칭찬이 등갓을 톡 두드렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-19",
+"observedText": "불꽃이 한 단계 밝아졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+}
+],
+"evidence": "Eight panels: the 8:20 parade start with human masked performers and Vesper with Kandra; fans shouting; a close-up of the surging flame; Vesper holding it down with his thought; the C-zone selfie request; his thoughts on the phone; the bow with a whiter flame; the praise and brighter flame. Seventeen lines are verbatim; two captions still misspell one word each.",
+"observedPanelCount": 8
+}
+},
+{
+"id": "s5",
+"n": 5,
+"title": "채우는 의식",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-1-p-40",
+"n": 40,
+"text": "베스퍼는 당황했다. 그리고 두 번째 사람이 판을 내밀었을 때, 이상한 점을 깨달았다."
+},
+{
+"id": "ch-1-p-41",
+"n": 41,
+"text": "아무것도 빠져나가지 않았다."
+},
+{
+"id": "ch-1-p-42",
+"n": 42,
+"text": "오히려 무언가가 들어왔다."
+},
+{
+"id": "ch-1-p-43",
+"n": 43,
+"text": "\"목소리 너무 좋으세요.\""
+},
+{
+"id": "ch-1-p-44",
+"n": 44,
+"text": "한 단계."
+},
+{
+"id": "ch-1-p-45",
+"n": 45,
+"text": "\"허리 숙이는 거 봐, 신사야 진짜.\""
+},
+{
+"id": "ch-1-p-46",
+"n": 46,
+"text": "또 한 단계. 의식 하나를 치를 때마다 가스통에 기름을 붓는 것처럼 속이 차올랐다."
+},
+{
+"id": "ch-1-p-47",
+"n": 47,
+"text": "그는 추론을 고쳤다. 이 의식은 빼앗는 쪽이 아니었다. 채우는 쪽이었다."
+},
+{
+"id": "ch-1-p-48",
+"n": 48,
+"text": "그래서 더 곤란했다."
+},
+{
+"id": "ch-1-p-49",
+"n": 49,
+"text": "\"하트 해 주세요, 하트!\""
+},
+{
+"id": "ch-1-p-50",
+"n": 50,
+"text": "베스퍼는 그 말을 몰랐다. 곁에 있던 꼬마가 엄지와 검지를 겹쳐 보여 주었다. 그는 흰 장갑 낀 손가락으로 그 모양을 한 치의 오차도 없이 따라 했다. 손가락 끝의 각도까지 맞췄다."
+},
+{
+"id": "ch-1-p-51",
+"n": 51,
+"text": "비명이 터졌다. 좋은 쪽으로."
+},
+{
+"id": "ch-1-p-52",
+"n": 52,
+"text": "불꽃이 황금색으로 번쩍 솟았다. 베스퍼는 황급히 그것을 눌렀다. 누른 자리에서 빛이 옆으로 튀었고, 가장 가까이 있던 판에 새하얀 줄이 그어졌다. 빛을 고르게 틀던 손이 어긋난 것이었다."
+},
+{
+"id": "ch-1-p-53",
+"n": 53,
+"text": "\"삼 분이요! 신사님, 삼 분 됐어요!\""
+},
+{
+"id": "ch-1-p-54",
+"n": 54,
+"text": "인파 너머에서 다온의 목소리가 날아왔다. 베스퍼는 마지막 판을 향해 깊이 고개를 숙이고 몸을 돌렸다. 등갓 안이 뜨거웠다. 누른 불이 빠져나갈 데를 찾지 못한 채 유리 안쪽을 핥고 있었다."
+}
+],
+"pFrom": 40,
+"pTo": 54,
+"panelCount": 8,
+"plannedPanels": 8,
+"image": "img/ep01-s5.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸에서 베스퍼가 장갑 낀 손을 들어 가리키는 동작을 합니다. 요청을 따라 하는 손가락 하트 모양은 또렷하지 않습니다.",
+"en": "Panel 6 shows Vesper raising a gloved hand in a pointing gesture; the finger-heart shape he copies from the request is not clearly drawn."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "7칸에 휴대폰 옆에서 등갓 유리를 누르는 맨손이 나오는데, 누구의 손인지 모호합니다. 원문은 그가 치솟는 빛을 서둘러 눌렀다고만 합니다.",
+"en": "Panel 7 shows a bare hand pressing against the lamp glass next to a phone; whose hand it is reads ambiguous, while the source only says he hurriedly pressed the surge down."
+}
+],
+"textsTotal": 15,
+"textsOk": 15,
+"timings": {
+"planS": [
+59
+],
+"preflightS": [
+69
+],
+"imageS": 40,
+"imageCalls": 1
+},
+"imageUsd": 0.103,
+"imageUsdEstimated": true,
+"chosenAttempt": 1,
+"attemptTotal": 1,
+"attempts": [],
+"lettering": null,
+"plan": {
+"intent": "At the selfie stop, Vesper finds that his assumption was wrong. He had braced for the phone to take something from him, but with the second request he realizes that each small ritual feeds him instead. Each compliment raises his flame one step, like fuel poured into a tank. That makes it harder to hide, not easier. The comedy builds as he earnestly copies a finger heart shown by a child, down to the exact angle of the fingertips. The crowd's delighted scream then pushes his flame into a golden flare. When he hurriedly presses it down, the light spills sideways and leaves a white streak on the nearest phone: the first visible mistake of his concealment. Daon calls time from beyond the crowd, and he bows and turns away. His flame is still trapped and burning hot inside the glass. The reader should leave with a mix of warmth and pressure: being loved is filling him up, and there is nowhere safe for it to go.",
+"staging": "Setting: continuous with the previous scene. The procession is halted at the C-zone selfie stop of the fictional park's night parade. Fans with phones crowd behind a barrier. There is no readable signage, logo, festival title, or on-screen UI text anywhere.\n\nNON-HUMAN COUNT: Vesper is the only gas-lamp-headed figure in the scene. Kandra is not in this excerpt; if she appears at all, she is the only candle-headed figure, stays in the background, and does not act or speak. Every fan, child, performer, and staff member is an ordinary human with a normal human head.\n\nVesper: very tall and slender, towering over the crowd. His head is a brass-framed glass gas lamp with one living flame and a thin crack at the upper left of the glass. He wears a dark high-collared tailcoat and white gloves, with empty darkness below the collar. There is no face, eye, mouth, or smile mark on the lamp; emotion reads only through flame color, brightness, and posture.\n\nFlame progression, all relative, in this order:\n- Beat-2: one step brighter after text-4, then one more step after text-6.\n- Beat-5: a golden flare, then visibly pressed back down.\n- Beat-6: the flame looks contained, but heat and motion are pressed against the inside of the glass, as if licking the inner surface.\nDo not add other color meanings. The gas-tank comparison in ch-1-p-46 is a metaphor only; never draw a tank, canister, or oil.\n\nThe finger heart: an unnamed human child near the barrier shows a crossed thumb-and-index finger heart. Vesper copies it with one white-gloved hand, stiffly exact, matching the fingertip angle. The contrast between the casual child gesture and his precise imitation is the comic beat. The child has no lines.\n\nThe white streak: when he presses the golden flare down, the light jumps sideways, and a single pure white line appears on the phone nearest to him. Keep this one clear, small, readable mark tied visually to the sideways spill of light. It is not an explosion and does not damage anything else.\n\nSpeakers:\n- text-4, text-6, and text-10 are spoken by unnamed human fans. Each is a spoken balloon with a tail to a fan, never a caption box. They may be different fans; tails decide who speaks.\n- text-14 is Daon (c3), calling from beyond the crowd. She may be small or partly hidden behind heads, holding her radio, or only her balloon tail may come from off-panel toward the crowd's far side. Keep her identity (black half-up bob, staff jacket) if she is shown.\n- Vesper speaks no line in this scene.\n\nRequired order:\n1. text-1 through text-3.\n2. text-4, then text-5, then text-6, then text-7.\n3. text-8 and text-9.\n4. text-10, then text-11 attached to the child's demonstration.\n5. text-12 with the crowd's delighted reaction, then text-13 with the press-down and the white streak.\n6. text-14, then the deep bow to the last phone and the turn away, with text-15 last.\n\nLETTERING: previous attempts misspelled look-alike syllables. Copy every text id character for character, including quotation marks, commas, and periods. Pay special attention to:\n- the doubled-consonant syllables in text-2 and text-15;\n- the final syllables of text-9 and text-13;\n- the honorific ending in text-4.\nNever substitute a visually similar syllable. Never write speaker names or labels in balloons.\n\nPanel count, sizes, cameras, and which beats share a panel are left to the artist.",
+"uncertainties": [
+"ch-1-p-43 praises his voice, implying Vesper spoke during an earlier photo, but his words are not given. Do not add a line for him.",
+"Whether the compliments in ch-1-p-43, ch-1-p-45, and ch-1-p-49 come from the second fan, the child's companions, or different people is unstated. They are unnamed humans, not Woo Taerim (c4); the speaker field reads narrator only because of the host constraint.",
+"ch-1-p-52 says a white line was drawn on the nearest phone but does not state whether it is on the screen, in the captured photo, or on the device surface. It is also unstated whether its owner notices it. Show it as a light mark associated with the phone; do not depict any reaction to it.",
+"The source does not say whether anyone besides Vesper notices the golden flare as unusual. The scream is described as delight, so do not draw alarm.",
+"The child's relation to the fan who asked for a heart is unstated.",
+"Daon's exact position and whether she is visible are unstated; only that her voice comes from beyond the crowd. Do not show her doing anything else.",
+"The number of photos taken before the last phone is unstated. Do not show a count or a timer.",
+"The exact color after the flame is pressed down, and in the final beat, is unstated. Only the heat and the trapped, licking motion inside the glass are fixed.",
+"Kandra is not mentioned in ch-1-p-40 through ch-1-p-54, and her presence or actions here are unknown."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-40",
+"kind": "caption",
+"speaker": "narrator",
+"text": "두 번째 사람이 판을 내밀었을 때, 이상한 점을 깨달았다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-41",
+"kind": "caption",
+"speaker": "narrator",
+"text": "아무것도 빠져나가지 않았다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-42",
+"kind": "caption",
+"speaker": "narrator",
+"text": "오히려 무언가가 들어왔다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-43",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "\"목소리 너무 좋으세요.\""
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-44",
+"kind": "caption",
+"speaker": "narrator",
+"text": "한 단계."
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-45",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "\"허리 숙이는 거 봐, 신사야 진짜.\""
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-46",
+"kind": "caption",
+"speaker": "narrator",
+"text": "또 한 단계."
+},
+{
+"id": "text-8",
+"sourceId": "ch-1-p-47",
+"kind": "caption",
+"speaker": "narrator",
+"text": "이 의식은 빼앗는 쪽이 아니었다. 채우는 쪽이었다."
+},
+{
+"id": "text-9",
+"sourceId": "ch-1-p-48",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그래서 더 곤란했다."
+},
+{
+"id": "text-10",
+"sourceId": "ch-1-p-49",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "\"하트 해 주세요, 하트!\""
+},
+{
+"id": "text-11",
+"sourceId": "ch-1-p-50",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 그 말을 몰랐다."
+},
+{
+"id": "text-12",
+"sourceId": "ch-1-p-51",
+"kind": "caption",
+"speaker": "narrator",
+"text": "비명이 터졌다. 좋은 쪽으로."
+},
+{
+"id": "text-13",
+"sourceId": "ch-1-p-52",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 황급히 그것을 눌렀다."
+},
+{
+"id": "text-14",
+"sourceId": "ch-1-p-53",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "\"삼 분이요! 신사님, 삼 분 됐어요!\""
+},
+{
+"id": "text-15",
+"sourceId": "ch-1-p-54",
+"kind": "caption",
+"speaker": "narrator",
+"text": "등갓 안이 뜨거웠다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-40",
+"ch-1-p-41",
+"ch-1-p-42"
+],
+"action": "Still flustered from the first photo, Vesper faces a second fan's phone and realizes that nothing is being taken from him. Something is coming in instead.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-43",
+"ch-1-p-44",
+"ch-1-p-45",
+"ch-1-p-46"
+],
+"action": "Fan compliments land in succession, first on his voice and then on his gentlemanly bow. With each one his flame climbs a step, filling like a tank.",
+"textIds": [
+"text-4",
+"text-5",
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-47",
+"ch-1-p-48"
+],
+"action": "Vesper corrects his theory: the ritual fills rather than steals. The correction makes his problem worse, because hiding just got harder.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-49",
+"ch-1-p-50"
+],
+"action": "A fan asks for a heart. Vesper does not understand. A child beside the barrier shows a finger heart, and Vesper replicates it with exact precision in his white gloves.",
+"textIds": [
+"text-10",
+"text-11"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-1-p-51",
+"ch-1-p-52"
+],
+"action": "The crowd shrieks happily. His flame spikes golden, and he rushes to press it down. The light jerks sideways and leaves a stark white streak on the nearest phone.",
+"textIds": [
+"text-12",
+"text-13"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-1-p-53",
+"ch-1-p-54"
+],
+"action": "Daon's time call cuts through the crowd. Vesper bows deeply to the final phone and turns away, the pent-up fire still licking the inside of his glass.",
+"textIds": [
+"text-14",
+"text-15"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-40"
+],
+"statement": "Vesper is flustered. When a second person holds out a phone for a photo, he notices something strange."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-41",
+"ch-1-p-42"
+],
+"statement": "Nothing drains out of him during the ritual. Instead, something flows in."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-43",
+"ch-1-p-44",
+"ch-1-p-45",
+"ch-1-p-46"
+],
+"statement": "Unnamed fans praise his voice and then the way he bows like a true gentleman. Each compliment fills him one more step. The source compares it to pouring oil into a gas tank, one ritual at a time."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-47",
+"ch-1-p-48"
+],
+"statement": "Vesper revises his reasoning: the ritual does not take, it fills. This makes his situation more difficult."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-49",
+"ch-1-p-50"
+],
+"statement": "A fan asks him to make a heart. Vesper does not know the term. A child nearby demonstrates by crossing thumb and index finger, and Vesper copies the shape exactly with his white-gloved fingers, matching even the angle of the fingertips."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-51"
+],
+"statement": "The crowd screams in delight."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-52"
+],
+"statement": "His flame flares golden. He hurriedly presses it down. At the pressed spot the light jumps sideways, and a pure white line appears on the nearest phone. The hand that had been tuning his light evenly slipped."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-1-p-53",
+"ch-1-p-54"
+],
+"statement": "Daon's voice carries from beyond the crowd, announcing that the three minutes are up. Vesper bows deeply toward the last phone and turns away."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-1-p-54"
+],
+"statement": "Inside his lamp shade it is hot. The suppressed fire has nowhere to escape and licks the inner surface of the glass."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy comedy webtoon, clean expressive linework, soft cel shading, warm night theme-park palette, flame glow as key light and emotion cue.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-40",
+"ch-1-p-41",
+"ch-1-p-42"
+],
+"action": "A second fan behind the barrier holds out her phone to towering Vesper, who looks down at it with startled, flustered posture, his lamp flame steady.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-43",
+"ch-1-p-44"
+],
+"action": "A smiling fan gushes up at Vesper beside the raised phone; his lamp flame glows one step brighter.",
+"textIds": [
+"text-4",
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-45",
+"ch-1-p-46"
+],
+"action": "Vesper bows low at the waist toward the phone while another fan points at him in delight; his flame burns one more step brighter.",
+"textIds": [
+"text-6",
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-47",
+"ch-1-p-48"
+],
+"action": "Vesper stands rigid amid the cheerful crowd, shoulders tense, his noticeably brighter flame filling the glass.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-49",
+"ch-1-p-50"
+],
+"action": "A fan calls out eagerly; a small human child beside Vesper casually shows a thumb-and-index finger heart as Vesper bends down, studying it intently.",
+"textIds": [
+"text-10",
+"text-11"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-50",
+"ch-1-p-51"
+],
+"action": "Vesper holds up one white-gloved hand in a stiffly exact finger heart matching the child's angle, while fans behind the barrier scream with joy.",
+"textIds": [
+"text-12"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-52"
+],
+"action": "Vesper's golden flare is squashed low inside his glass; one thin ray of light spills sideways, leaving a single small pure-white streak on the nearest phone.",
+"textIds": [
+"text-13"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-53",
+"ch-1-p-54"
+],
+"action": "Daon calls from beyond the crowd, small behind heads; Vesper turns away from the last phone, his contained flame pressed hot against the inner glass.",
+"textIds": [
+"text-14",
+"text-15"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Vesper keeps the brass lamp head with the upper-left crack, tailcoat and white gloves; Daon in the last panel matches her navy staff jacket, radio and dark hair."
+},
+"setting": {
+"passed": true,
+"evidence": "Same night parade route and selfie stop as the previous scene, with lanterns, banners and phone-holding crowds."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "The previous scene ended with the first fan's praise brightening his flame; here the second fan holds out a phone."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "두 번째 사람이 판을 내밀었을 때, 이상한 점을 깨달았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-2",
+"observedText": "아무것도 빠져나가지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "오히려 무언가가 들어왔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "목소리 너무 좋으세요.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-5",
+"observedText": "한 단계.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-6",
+"observedText": "허리 숙이는 거 봐, 신사야 진짜.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-7",
+"observedText": "또 한 단계.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-8",
+"observedText": "이 의식은 빼앗는 쪽이 아니었다. 채우는 쪽이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-9",
+"observedText": "그래서 더 곤란했다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-10",
+"observedText": "하트 해 주세요, 하트!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-11",
+"observedText": "베스퍼는 그 말을 몰랐다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-12",
+"observedText": "비명이 터졌다. 좋은 쪽으로.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-13",
+"observedText": "베스퍼는 황급히 그것을 눌렀다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-14",
+"observedText": "삼 분이요! 신사님, 삼 분 됐어요!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+},
+{
+"id": "text-15",
+"observedText": "등갓 안이 뜨거웠다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its balloon or caption; dialogue is drawn as a speech balloon without quotation marks."
+}
+],
+"evidence": "Eight panels at the C-zone selfie stop: a second fan holds out a phone and Vesper realizes nothing is taken; praise for his voice and one step brighter; praise for his bow and another step; the narration that the ritual fills rather than takes, with fans cheering; a child asking for a heart while Vesper does not know the word; fans screaming happily at his hand gesture; a close-up of the flame pressed down beside a phone; Daon calling time with her radio while the lamp is hot. All fifteen lines are verbatim with no name labels.",
+"observedPanelCount": 8
+}
+},
+{
+"id": "s6",
+"n": 6,
+"title": "광장의 볼 뽀뽀",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-1-p-55",
+"n": 55,
+"text": "광장에 이르자 조명이 한 점으로 모였다."
+},
+{
+"id": "ch-1-p-56",
+"n": 56,
+"text": "칸드라와 함께하는 순서였다. 안무 표에는 '볼 뽀뽀'라고 적혀 있었다. 촛불 아가씨가 발끝을 들고 가로등 신사의 등갓에 입을 맞추는 시늉을 하면, 신사가 불빛으로 답하는 장면이었다. 어제 이 장면에서 관객석이 무너질 듯 들썩였다고 했다."
+},
+{
+"id": "ch-1-p-57",
+"n": 57,
+"text": "칸드라가 다가왔다. 발끝이 들렸다. 초 꼭대기의 불꽃이 그의 유리에 닿을 듯 말 듯 가까워졌다."
+},
+{
+"id": "ch-1-p-58",
+"n": 58,
+"text": "그 순간 그녀의 불꽃이 옆으로 눕는 것이 보였다. 촛농 한 방울이 흘러내려 그의 장갑 위에 떨어졌다."
+},
+{
+"id": "ch-1-p-59",
+"n": 59,
+"text": "베스퍼의 불이 튀었다."
+},
+{
+"id": "ch-1-p-60",
+"n": 60,
+"text": "청백색으로 한 번, 황금색으로 한 번. 다시 청백색. 등갓이 제멋대로 깜빡였다. 광장이 함성으로 뒤집혔다."
+},
+{
+"id": "ch-1-p-61",
+"n": 61,
+"text": "\"연출 미쳤다, 불 깜빡이는 거 봐!\""
+},
+{
+"id": "ch-1-p-62",
+"n": 62,
+"text": "칸드라는 이미 한 발 물러나 관객에게 손을 흔들고 있었다. 누워 있던 불꽃이 다시 곧게 서 있었다. 베스퍼는 묻지 않았다. 불을 낮추고 그녀 곁에 섰다. 장갑 위의 촛농은 아직 따뜻했다."
+}
+],
+"pFrom": 55,
+"pTo": 62,
+"panelCount": 7,
+"plannedPanels": 7,
+"image": "img/ep01-s6.webp",
+"blocking": 0,
+"advisory": 0,
+"findings": [],
+"textsTotal": 10,
+"textsOk": 10,
+"timings": {
+"planS": [
+57
+],
+"preflightS": [
+44
+],
+"imageS": 39,
+"imageCalls": 1
+},
+"imageUsd": 0.103,
+"imageUsdEstimated": true,
+"chosenAttempt": 1,
+"attemptTotal": 1,
+"attempts": [],
+"lettering": null,
+"plan": {
+"intent": "A choreographed pretend kiss, the crowd-pleaser from the night before, becomes a private moment the audience cannot read. The reader should feel the lights narrow onto the two lamp-headed performers. Then, in the closest instant, Kandra's flame tips sideways and a single drop of wax lands on Vesper's glove. Vesper's own fire jumps and he loses control of his color, flickering between blue-white and gold. That flicker betrays both alarm and something warmer, and the plaza roars, taking it as a brilliant effect. The comedy of the misread cheer sits on top of a quiet sting. Kandra has already stepped back, waving, her flame upright again as if nothing happened. Vesper does not ask. He lowers his light and simply stands beside her, and the scene closes on the one piece of evidence that it did happen: the wax on his glove is still warm. The reader leaves with warmth that has a cost underneath it, and a question he chose not to voice.",
+"staging": "Setting: the plaza on the parade route of the fictional park, at night, during the 8:20 PM parade. This picks up after the C-zone selfie stop from the previous scene. Parade lighting converges on one spot where Vesper and Kandra perform. An audience of ordinary humans surrounds the plaza, many holding phones. There is no readable signage, logo, festival title, or on-screen UI text anywhere. The choreography sheet named in text-2 exists only as narration and does not need to be drawn.\n\nNON-HUMAN COUNT: Exactly two non-human figures appear.\n- Vesper (c1) is the only gas-lamp-headed figure. He is about 2 m tall and slender. His head is a brass-framed glass gas lamp with one living flame and a thin crack at the upper left of the glass. He wears a dark high-collared tailcoat and white gloves, with empty darkness below the collar.\n- Kandra (c2) is the only candle-headed figure. Her head is a thick ivory pillar candle with a flame on top and hardened wax drips down its sides. She is about 175 cm tall, noticeably shorter than Vesper, and wears a dark Victorian gown.\n- Neither has a face, eyes, mouth, or expression marks. Emotion reads only through flame shape, color, brightness, and posture.\n- Every audience member, staff member, and other performer is an ordinary human with a normal human head.\n\nNecessary spatial facts:\n- Because of their height difference, Kandra rises on tiptoe to bring her candle flame near his lamp glass.\n- The flame comes very close to the glass without clearly touching it, and it is this closeness that must read.\n- The wax drop falls onto one of Vesper's white gloves. The source does not say where his hand is, so place the glove wherever the drop can fall onto it naturally, and keep the drop small and legible against the white glove.\n\nFlame states, in this order:\n1. Kandra's flame tips sideways, which signals anxiety.\n2. Vesper's flame jumps.\n3. Vesper's lamp flickers blue-white, then gold, then blue-white.\n4. Kandra's flame stands straight again while she waves.\n5. Vesper's light is visibly lowered as he stands beside her.\nDo not add sparks striking anything, damage, or other color meanings. The source does not say what, if anything, the jumping fire did beyond flickering.\n\nCrowd reaction: text-8 is spoken by an unnamed human in the audience, as a spoken balloon with a tail to that person and never a caption box. The crowd's mood is delight, not alarm.\n\nSpeakers: Vesper and Kandra speak no lines. Daon is not in this excerpt; do not show her acting or speaking.\n\nRequired order:\n1. text-1 and text-2 with the convergence of light and the pair in position.\n2. text-3 with the approach and tiptoe.\n3. text-4 with the sideways flame and the wax drop.\n4. text-5, then text-6 with the flicker.\n5. text-7 and text-8 with the roaring plaza.\n6. text-9 with Kandra already waving and Vesper dimming beside her.\n7. text-10 last, tied to the wax on his glove.\n\nLETTERING: Copy every text id character for character, including quotation marks, single quotes, commas, and periods. Never write speaker names or labels inside balloons.\n\nPanel count, sizes, cameras, and which beats share a panel are left to the artist.",
+"uncertainties": [
+"The source never states why Kandra's flame lies sideways, or why the wax drop falls. Per the character notes a sideways flame reads as anxiety and running wax as sadness or strong feeling, but the scene must not explain her reason or hint at a cause.",
+"It is unstated whether Vesper's flicker is caused by alarm at her flame, by the closeness of the pretend kiss, by the wax touching him, or by a mix of these. Show the color sequence only; do not add a thought line assigning a motive.",
+"Whether the candle flame actually touches the glass is unstated; the source says it came close enough that it almost did. Do not depict contact.",
+"Where Vesper's hand is when the wax lands, and whether the two are holding hands during this number, is not stated in this excerpt.",
+"Whether the audience or anyone besides Vesper notices Kandra's sideways flame or the wax drop is unstated. Only the flicker is explicitly misread as staging, by the shouting fan.",
+"The speaker of text-8 is an unnamed audience member, not Woo Taerim (c4) or Daon (c3). The speaker field reads narrator only because of the host constraint.",
+"Whether Vesper performs the choreographed light answer described in ch-1-p-56 before or instead of the uncontrolled flicker is unstated. Do not draw a separate planned light cue.",
+"How far Kandra steps back, and exactly when her flame straightens, is unstated. The source only says she had already stepped back and was waving by the time Vesper looked.",
+"The exact color Vesper settles into after lowering his light is unstated. Show only that it is dimmer.",
+"The claim about the previous night's audience in ch-1-p-56 is hearsay that Vesper was told. Do not depict it as a flashback."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-55",
+"kind": "caption",
+"speaker": "narrator",
+"text": "광장에 이르자 조명이 한 점으로 모였다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-56",
+"kind": "caption",
+"speaker": "narrator",
+"text": "칸드라와 함께하는 순서였다. 안무 표에는 '볼 뽀뽀'라고 적혀 있었다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-57",
+"kind": "caption",
+"speaker": "narrator",
+"text": "초 꼭대기의 불꽃이 그의 유리에 닿을 듯 말 듯 가까워졌다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-58",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그 순간 그녀의 불꽃이 옆으로 눕는 것이 보였다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-59",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼의 불이 튀었다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-60",
+"kind": "caption",
+"speaker": "narrator",
+"text": "청백색으로 한 번, 황금색으로 한 번. 다시 청백색."
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-60",
+"kind": "caption",
+"speaker": "narrator",
+"text": "광장이 함성으로 뒤집혔다."
+},
+{
+"id": "text-8",
+"sourceId": "ch-1-p-61",
+"kind": "dialogue",
+"speaker": "narrator",
+"text": "\"연출 미쳤다, 불 깜빡이는 거 봐!\""
+},
+{
+"id": "text-9",
+"sourceId": "ch-1-p-62",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 묻지 않았다."
+},
+{
+"id": "text-10",
+"sourceId": "ch-1-p-62",
+"kind": "caption",
+"speaker": "narrator",
+"text": "장갑 위의 촛농은 아직 따뜻했다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-55",
+"ch-1-p-56"
+],
+"action": "The procession arrives at the plaza and the lights narrow onto one spot where Vesper and Kandra stand. Their duet is the next number: the choreographed cheek kiss that the audience reportedly went wild for the previous night.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-57"
+],
+"action": "Kandra comes closer and rises on tiptoe. Her candle flame edges toward Vesper's glass until only a hair's breadth separates them.",
+"textIds": [
+"text-3"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-58"
+],
+"action": "In the closest instant Vesper sees her flame tip over sideways. A single bead of wax slides down and drops onto his white glove.",
+"textIds": [
+"text-4"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-59",
+"ch-1-p-60"
+],
+"action": "Vesper's fire jumps. His lamp flickers out of his control, cycling from blue-white to gold and back to blue-white.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-1-p-60",
+"ch-1-p-61"
+],
+"action": "The plaza erupts. An unnamed fan shouts delighted praise, taking the involuntary flicker for brilliant staging.",
+"textIds": [
+"text-7",
+"text-8"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-1-p-62"
+],
+"action": "Kandra has already stepped back and is waving to the crowd, her flame upright again. Vesper asks nothing. He dims his light and takes his place beside her, and the wax on his glove is still warm.",
+"textIds": [
+"text-9",
+"text-10"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-55"
+],
+"statement": "When the procession reaches the plaza, the lighting converges on a single point."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-56"
+],
+"statement": "This is the segment Vesper performs with Kandra. The choreography sheet labels it a cheek kiss. In it, the candle lady rises on tiptoe and mimes kissing the gas-lamp gentleman's lamp shade, and the gentleman answers with his light."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-56"
+],
+"statement": "Vesper has been told that on the previous night the audience erupted at this moment, as if the stands might collapse."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-57"
+],
+"statement": "Kandra approaches and rises onto her toes. The flame at the top of her candle comes so close to his glass that it almost touches, but the source does not say that it actually touches."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-58"
+],
+"statement": "At that moment Vesper sees her flame lie down sideways. One drop of wax runs down and falls onto his glove."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-59",
+"ch-1-p-60"
+],
+"statement": "Vesper's fire jumps. His lamp flickers uncontrolled: blue-white once, golden once, then blue-white again. Per the established color code, blue-white means tension and alarm, gold means joy or excitement, and uncontrolled blinking means being flustered."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-60",
+"ch-1-p-61"
+],
+"statement": "The plaza bursts into a roar. An unnamed audience member shouts praise for the staging, pointing out the blinking light, and reads it as a deliberate effect."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-1-p-62"
+],
+"statement": "By then Kandra has already stepped back and is waving to the audience. Her flame, which had been lying down, is standing straight again."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-1-p-62"
+],
+"statement": "Vesper does not ask her anything. He lowers his light and stands beside her. The wax on his glove is still warm."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy comedy webtoon, clean expressive linework, soft cel shading, warm night palette where flames and parade lights are the key light.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-55",
+"ch-1-p-56"
+],
+"action": "Night plaza: parade spotlights converge on one spot where tall lamp-headed Vesper and shorter candle-headed Kandra stand together, surrounded by a human crowd holding phones.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-57"
+],
+"action": "Kandra on tiptoe beside Vesper, her candle flame a hair's breadth from his lamp glass, almost touching.",
+"textIds": [
+"text-3"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-58"
+],
+"action": "Close view: Kandra's candle flame lies sideways as one small wax drop lands on Vesper's white glove.",
+"textIds": [
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-59",
+"ch-1-p-60"
+],
+"action": "Vesper's flame leaps inside his lamp, the glass flickering in blue-white and gold.",
+"textIds": [
+"text-5",
+"text-6"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-60",
+"ch-1-p-61"
+],
+"action": "Delighted human crowd roars. One fan points at Vesper's flickering lamp and shouts in a speech balloon.",
+"textIds": [
+"text-7",
+"text-8"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-62"
+],
+"action": "Kandra, a step back, waves to the crowd with her flame upright. Vesper stands quietly beside her, his lamp glowing dimly.",
+"textIds": [
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-62"
+],
+"action": "Close-up of Vesper's white glove with the small wax drop softly lit by warm light.",
+"textIds": [
+"text-10"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Vesper keeps the brass lamp head with the upper-left crack, tailcoat and white gloves; Kandra keeps one flame on her ivory candle and the plum gown."
+},
+"setting": {
+"passed": true,
+"evidence": "The procession has moved from the selfie stop to the plaza with spotlights, banners, lanterns and phone-holding crowds."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "The previous scene ended with Daon calling time at the selfie stop; here the procession reaches the plaza for the duet."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "광장에 이르자 조명이 한 점으로 모였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-2",
+"observedText": "칸드라와 함께하는 순서였다. 안무 표에는 '볼 뽀뽀'라고 적혀 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-3",
+"observedText": "초 꼭대기의 불꽃이 그의 유리에 닿을 듯 말 듯 가까워졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-4",
+"observedText": "그 순간 그녀의 불꽃이 옆으로 눕는 것이 보였다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-5",
+"observedText": "베스퍼의 불이 튀었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-6",
+"observedText": "청백색으로 한 번, 황금색으로 한 번. 다시 청백색.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-7",
+"observedText": "광장이 함성으로 뒤집혔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-8",
+"observedText": "연출 미쳤다, 불 깜빡이는 거 봐!",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-9",
+"observedText": "베스퍼는 묻지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+},
+{
+"id": "text-10",
+"observedText": "장갑 위의 촛농은 아직 따뜻했다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon; the fan's line is a speech balloon without quotation marks."
+}
+],
+"evidence": "Seven panels: the plaza spotlight on Vesper and Kandra with the cheek-kiss cue caption; Kandra's candle flame close to his glass; her flame tipping sideways with a wax bead falling onto his white glove; his flame bursting blue-white and gold; the crowd cheering and a fan praising the flicker; Kandra waving upright beside Vesper; the close-up of the warm wax bead on his glove. All ten lines are verbatim with no name labels.",
+"observedPanelCount": 7
+}
+},
+{
+"id": "s7",
+"n": 7,
+"title": "늦게 켜진 넷째 칸",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-1-p-63",
+"n": 63,
+"text": "행렬이 문 앞을 지나갔다."
+},
+{
+"id": "ch-1-p-64",
+"n": 64,
+"text": "그 지점에 가까워지자 베스퍼의 불꽃이 저절로 한쪽으로 기울었다. 가스 냄새가 짙어졌다. 음악이 가장 크게 울리는 이 자리에서 문은 늘 가장 넓게 열렸다. 그는 걸음을 늦추지 않고 박자를 셌다."
+},
+{
+"id": "ch-1-p-65",
+"n": 65,
+"text": "발밑의 바닥 조명이 행렬을 따라 한 칸씩 켜졌다. 하나, 둘, 셋."
+},
+{
+"id": "ch-1-p-66",
+"n": 66,
+"text": "넷째 칸이 늦었다."
+},
+{
+"id": "ch-1-p-67",
+"n": 67,
+"text": "반 박자. 사람의 눈으로는 알아차릴 수 없는 틈이었다. 하지만 베스퍼는 수백 번의 겨울 동안 한 번도 틀리지 않고 그 박자를 들어 왔다."
+},
+{
+"id": "ch-1-p-68",
+"n": 68,
+"text": "그는 고개를 돌리지 않았다. 불꽃만이 그쪽으로 조금 더 기울었다. 어둠 속에서 넘어오는 것은 없었다. 적어도 그의 눈에는 보이지 않았다."
+},
+{
+"id": "ch-1-p-69",
+"n": 69,
+"text": "다음 칸은 제때 켜졌다."
+}
+],
+"pFrom": 63,
+"pTo": 69,
+"panelCount": 6,
+"plannedPanels": 6,
+"image": "img/ep01-s7.webp",
+"blocking": 0,
+"advisory": 1,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "6칸에서 빛나는 타일 옆에 어두운 타일이 있어, 다음 타일이 제때 켜졌는지 조금 모호하게 읽힙니다.",
+"en": "In panel 6 a dark tile sits beside the glowing one, so it reads slightly ambiguous that the next tile lit on time."
+}
+],
+"textsTotal": 13,
+"textsOk": 13,
+"timings": {
+"planS": [
+69
+],
+"preflightS": [
+42
+],
+"imageS": 41,
+"imageCalls": 1
+},
+"imageUsd": 0.103,
+"imageUsdEstimated": true,
+"chosenAttempt": 1,
+"attemptTotal": 1,
+"attempts": [],
+"lettering": null,
+"plan": {
+"intent": "After the loud warmth of the kiss number, the scene narrows into Vesper's private watch as the procession passes the door. The reader should feel two tempos at once: the parade keeps moving to its music, and underneath it Vesper keeps a centuries-old count. His flame leans toward the door on its own. He keeps walking and counts the floor lights as they come on beneath the procession. The fourth light is late by half a beat. No human could catch the gap, but he does, and the silence that follows is the tension. He does not turn his head. Only his flame leans a little further. Nothing visibly crosses out of the dark, and the next light comes on exactly on time. The scene ends on that ordinary, correct beat, which reads less like relief than like an unanswered question. The reader should leave unsure whether the delay was a glitch or a sign, and aware that Vesper alone noticed it.",
+"staging": "Setting: the same 8:20 PM night parade in the fictional park, continuing directly after the kiss number in the previous scene. The procession is moving along its route past the point where the door lies. This is the loudest stretch of the parade music, and human spectators with phones line the route. Keep the fictional park free of signage, logos, festival titles and UI text.\n\nIDENTITY: Vesper (c1) is the only gas-lamp-headed figure. He is a very tall, slender gentleman whose head is a brass-framed glass gas lamp with one living flame and a thin crack at the upper left of the glass. He wears a dark high-collared tailcoat and white gloves, with empty darkness below the collar. He has no face, eyes or mouth. His emotion reads only through flame posture and brightness. Every other visible person is an ordinary human with a normal human head.\n\nKANDRA: ch-1-p-63 to ch-1-p-69 do not mention Kandra (c2). She may appear only as an unobtrusive background presence in the procession. If she is drawn, keep her in the original design (ivory pillar candle head with hardened wax drips, dark Victorian gown), do not give her any action, and draw no change in her flame. Daon (c3) and Taerim (c4) do not appear or act in this excerpt.\n\nNecessary spatial facts:\n- The floor lights are set into the ground along the route in sequential sections. They switch on one at a time, following the procession, directly under or around the performers' feet.\n- Show the first three sections lighting in rhythm, then the fourth section still dark or just catching up for a held instant. That instant should be subtle and should not read as an obvious malfunction. No spectator reacts to it.\n- Vesper's lamp-head faces forward along the route the whole time. He never turns toward the door. Only his flame leans sideways, first a little (text-2), then a little further (text-11), toward the door side.\n- He keeps walking at an unbroken pace. Do not show him stopping, slowing or leaving the route.\n- The door's point is only a region beside the route where darkness sits. The source gives it no described form, so do not draw a portal, ring, rift, glow or any visual effect. Show nothing crossing out of that darkness.\n- The gas smell (text-3) is carried by the caption alone. Do not draw gas clouds or smoke.\n- Do not add any color change to Vesper's light. Carry over the lowered, dimmer state from the end of the previous scene, and let the lean be the only flame change.\n- The final floor section (text-13) lights normally, and the procession continues.\n\nCaptions are narration, so there are no speech balloons in this scene. text-7 is a narration caption, not a spoken line. Captions must follow the text-id order text-1 through text-13. Copy every caption character for character, including commas and periods. Never write speaker names or labels.\n\nPanel count, sizes, framing, and how captions group into panels are left to the artist. The artist may give the late fourth section and the single held beat room to breathe.",
+"uncertainties": [
+"What the door looks like, or whether it is visible at all, is not stated in this excerpt. Only a region of darkness is implied (ch-1-p-68). Do not invent a portal design.",
+"In ch-1-p-68 the word for 'that direction' is unclear. It may point toward the door or dark side, or toward the late fourth floor section. The staging assumes the door side as the most likely reading; this is inference, not stated fact.",
+"Whether the fourth floor section sits at the door's point is not stated.",
+"The source never says why the fourth section was late. It could be an ordinary glitch or a sign connected to the door. Draw no cause.",
+"ch-1-p-67 can read two ways. It may mean Vesper never misjudged the beat, or that the beat itself was never wrong in hundreds of winters. How a centuries-old beat relates to this new festival's lighting system is also unexplained.",
+"Whether the counting in text-7 is Vesper's inner count or the narrator's is ambiguous. It is kept as a narrator caption rather than a thought.",
+"The qualifier in ch-1-p-68 ('at least not visible to his eyes') leaves open whether something invisible crossed over. Do not depict or rule out anything.",
+"Why Vesper's flame leans on its own near the door, and whether this happens every night, is not stated beyond what text-2 says.",
+"Kandra's position and state during this passage are not stated in the excerpt.",
+"Vesper's flame color during this excerpt is not stated. Because the color code (blue-white means tension) is not invoked by the source, it is not applied."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-63",
+"kind": "caption",
+"speaker": "narrator",
+"text": "행렬이 문 앞을 지나갔다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-64",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그 지점에 가까워지자 베스퍼의 불꽃이 저절로 한쪽으로 기울었다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-64",
+"kind": "caption",
+"speaker": "narrator",
+"text": "가스 냄새가 짙어졌다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-64",
+"kind": "caption",
+"speaker": "narrator",
+"text": "음악이 가장 크게 울리는 이 자리에서 문은 늘 가장 넓게 열렸다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-64",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그는 걸음을 늦추지 않고 박자를 셌다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-65",
+"kind": "caption",
+"speaker": "narrator",
+"text": "발밑의 바닥 조명이 행렬을 따라 한 칸씩 켜졌다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-65",
+"kind": "caption",
+"speaker": "narrator",
+"text": "하나, 둘, 셋."
+},
+{
+"id": "text-8",
+"sourceId": "ch-1-p-66",
+"kind": "caption",
+"speaker": "narrator",
+"text": "넷째 칸이 늦었다."
+},
+{
+"id": "text-9",
+"sourceId": "ch-1-p-67",
+"kind": "caption",
+"speaker": "narrator",
+"text": "반 박자. 사람의 눈으로는 알아차릴 수 없는 틈이었다."
+},
+{
+"id": "text-10",
+"sourceId": "ch-1-p-67",
+"kind": "caption",
+"speaker": "narrator",
+"text": "하지만 베스퍼는 수백 번의 겨울 동안 한 번도 틀리지 않고 그 박자를 들어 왔다."
+},
+{
+"id": "text-11",
+"sourceId": "ch-1-p-68",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그는 고개를 돌리지 않았다. 불꽃만이 그쪽으로 조금 더 기울었다."
+},
+{
+"id": "text-12",
+"sourceId": "ch-1-p-68",
+"kind": "caption",
+"speaker": "narrator",
+"text": "어둠 속에서 넘어오는 것은 없었다. 적어도 그의 눈에는 보이지 않았다."
+},
+{
+"id": "text-13",
+"sourceId": "ch-1-p-69",
+"kind": "caption",
+"speaker": "narrator",
+"text": "다음 칸은 제때 켜졌다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-63",
+"ch-1-p-64"
+],
+"action": "The procession, still moving to the loudest stretch of parade music, passes the door's point on the route. As Vesper nears it, his flame tips to one side on its own. The gas smell thickens, and this is where the door always opens widest.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-64",
+"ch-1-p-65"
+],
+"action": "Vesper keeps walking at full pace and counts the beat. Beneath the procession the floor lights come on section by section in rhythm: one, two, three.",
+"textIds": [
+"text-5",
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-66",
+"ch-1-p-67"
+],
+"action": "The fourth section is late by half a beat. It is a gap no human eye can catch, but Vesper has heard this beat for hundreds of winters and registers the error.",
+"textIds": [
+"text-8",
+"text-9",
+"text-10"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-68"
+],
+"action": "Vesper keeps his lamp-head facing forward. Only his flame leans a little further toward that side. Nothing emerges from the darkness that he can see.",
+"textIds": [
+"text-11",
+"text-12"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-1-p-69"
+],
+"action": "The next floor section lights exactly on time, and the procession moves on as if nothing happened.",
+"textIds": [
+"text-13"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-63"
+],
+"statement": "The procession passes in front of the door."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-64"
+],
+"statement": "As they near that point, Vesper's flame leans to one side by itself, without his doing."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-64"
+],
+"statement": "The smell of gas grows stronger."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-64"
+],
+"statement": "This is the spot where the parade music plays loudest, and the door has always opened widest here."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-64"
+],
+"statement": "Vesper does not slow his pace. He counts the beat."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-65"
+],
+"statement": "The floor lights under their feet come on one section at a time, following the procession. The narration counts the first three sections: one, two, three."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-66",
+"ch-1-p-67"
+],
+"statement": "The fourth section lights up late, by half a beat."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-1-p-67"
+],
+"statement": "The gap is too small for human eyes to notice."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-1-p-67"
+],
+"statement": "Vesper has been hearing that beat for hundreds of winters, never once getting it wrong."
+},
+{
+"id": "fact-10",
+"sourceIds": [
+"ch-1-p-68"
+],
+"statement": "Vesper does not turn his head. Only his flame leans a little further in that direction."
+},
+{
+"id": "fact-11",
+"sourceIds": [
+"ch-1-p-68"
+],
+"statement": "Nothing comes across out of the darkness, at least nothing visible to his eyes."
+},
+{
+"id": "fact-12",
+"sourceIds": [
+"ch-1-p-69"
+],
+"statement": "The next section lights up on time."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy webtoon, clean expressive linework, soft cel shading, warm night palette with glowing flames and parade lights as key light.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-63",
+"ch-1-p-64"
+],
+"action": "Night parade procession passes a patch of darkness beside the route; Vesper walks forward in stride, his gas-lamp flame tipped slightly sideways toward the dark side.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-64"
+],
+"action": "Loudest stretch of the parade: bright procession lights, human spectators holding up phones along the route, a deep empty darkness open beside the path.",
+"textIds": [
+"text-3",
+"text-4"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-64",
+"ch-1-p-65"
+],
+"action": "Vesper's steady stride along the route as three in-ground floor light sections glow in a row beneath the procession's feet.",
+"textIds": [
+"text-5",
+"text-6",
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-66",
+"ch-1-p-67"
+],
+"action": "Close on the route floor: three lit sections, the fourth still dark for a quiet held instant under a stepping foot; spectators smile, unaware.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-67",
+"ch-1-p-68"
+],
+"action": "Vesper walks on, lamp-head facing straight ahead along the route, his flame leaning a little further toward the dark side.",
+"textIds": [
+"text-10",
+"text-11"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-68",
+"ch-1-p-69"
+],
+"action": "The darkness beside the route stays empty and still; the next floor section glows on time as the procession moves onward.",
+"textIds": [
+"text-12",
+"text-13"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Vesper and Kandra keep the same lamp head with the crack, tailcoat, gloves, single-flame candle and plum gown as the previous scene."
+},
+"setting": {
+"passed": true,
+"evidence": "Same night parade route with rope barriers, banners and crowds; the door point is shown as a darker haze at the route edge."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "The previous scene ended at the plaza after the duet; here the procession continues past the door point."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "행렬이 문 앞을 지나갔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-2",
+"observedText": "그 지점에 가까워지자 베스퍼의 불꽃이 저절로 한쪽으로 기울었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-3",
+"observedText": "가스 냄새가 짙어졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-4",
+"observedText": "음악이 가장 크게 울리는 이 자리에서 문은 늘 가장 넓게 열렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-5",
+"observedText": "그는 걸음을 늦추지 않고 박자를 셌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-6",
+"observedText": "발밑의 바닥 조명이 행렬을 따라 한 칸씩 켜졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-7",
+"observedText": "하나, 둘, 셋.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-8",
+"observedText": "넷째 칸이 늦었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-9",
+"observedText": "반 박자. 사람의 눈으로는 알아차릴 수 없는 틈이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-10",
+"observedText": "하지만 베스퍼는 수백 번의 겨울 동안 한 번도 틀리지 않고 그 박자를 들어 왔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-11",
+"observedText": "그는 고개를 돌리지 않았다. 불꽃만이 그쪽으로 조금 더 기울었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-12",
+"observedText": "어둠 속에서 넘어오는 것은 없었다. 적어도 그의 눈에는 보이지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+},
+{
+"id": "text-13",
+"observedText": "다음 칸은 제때 켜졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box; text-6 and text-7 share one box in panel 3."
+}
+],
+"evidence": "Six panels: the procession passing the door point with a purple-black haze at the right edge while Vesper's flame leans; a wide shot of the loudest stretch with the haze; close-up of feet over floor-light tiles lighting one by one; the fourth tile still dark while the others glow; Vesper facing forward with his flame leaning further; the dark edge with nothing crossing and the next tile glowing. All thirteen captions are verbatim.",
+"observedPanelCount": 6
+}
+},
+{
+"id": "s8",
+"n": 8,
+"title": "굴뚝 캡을 열다",
+"status": "scene_needs_revision",
+"verdict": "revise",
+"units": [
+{
+"id": "ch-1-p-70",
+"n": 70,
+"text": "퍼레이드가 끝났을 때 베스퍼의 머리는 끓는 주전자 같았다."
+},
+{
+"id": "ch-1-p-71",
+"n": 71,
+"text": "유리 등갓이 손을 댈 수 없을 만큼 달아올랐다. 눌러 둔 빛과 쏟아진 칭찬과 튀어 버린 불꽃이 한데 엉켜 안에서 웅웅 울렸다. 생각이 흐릿했다. 이대로 천막에 들어가면 누군가는 그의 머리가 인형탈답지 않게 뜨겁다는 걸 눈치챌 것이다."
+},
+{
+"id": "ch-1-p-72",
+"n": 72,
+"text": "그는 천막 뒤편, 장비 케이스가 벽처럼 쌓인 구석으로 들어갔다. 조명 받침대와 둘둘 말린 전선 사이였다. 칸드라는 보이지 않았다. 사람도 없었다."
+},
+{
+"id": "ch-1-p-73",
+"n": 73,
+"text": "베스퍼는 등갓 꼭대기의 작은 황동 뚜껑에 손을 얹었다. 굴뚝 캡이었다. 문 너머에서는 굳이 열 일이 없던 것이었다."
+},
+{
+"id": "ch-1-p-74",
+"n": 74,
+"text": "그가 뚜껑을 비틀어 열었다."
+},
+{
+"id": "ch-1-p-75",
+"n": 75,
+"text": "회색 연기가 한꺼번에 솟았다. 뭉게뭉게, 제법 성대하게 피어올랐다. 속이 가벼워졌다. 불꽃이 비로소 제 크기로 숨을 쉬었다. 그는 눈을 감는 대신 불빛을 가늘게 낮추고 긴 숨을 한 번 더 내쉬었다."
+}
+],
+"pFrom": 70,
+"pTo": 75,
+"panelCount": 5,
+"plannedPanels": 5,
+"image": "img/ep01-s8.webp",
+"blocking": 1,
+"advisory": 0,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-8 끝이 ‘손을 없었다’입니다. 원문은 ‘얹었다’입니다.",
+"en": "text-8 ends with 손을 없었다; the source word is 얹었다."
+}
+],
+"textsTotal": 15,
+"textsOk": 14,
+"timings": {
+"planS": [
+63,
+55,
+50
+],
+"preflightS": [
+43,
+48,
+35
+],
+"imageS": 37,
+"imageCalls": 3
+},
+"imageUsd": 0.308,
+"imageUsdEstimated": true,
+"chosenAttempt": 2,
+"attemptTotal": 3,
+"attempts": [
+{
+"n": 1,
+"image": "img/ep01-s8-try1.webp",
+"plannedPanels": 5,
+"observedPanels": 5,
+"textsOk": 13,
+"textsTotal": 15,
+"raw": false,
+"after": false,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-6이 ‘장비 케이스가 버처럼 쌓인’입니다. 원문은 ‘벽처럼’입니다.",
+"en": "text-6 reads 장비 케이스가 버처럼 쌓인; the source word is 벽처럼."
+},
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-8 끝이 ‘손을 없었다’입니다. 원문은 ‘얹었다’입니다.",
+"en": "text-8 ends with 손을 없었다; the source word is 얹었다."
+}
+],
+"emphasis": {
+"focusTextIds": null,
+"corrections": null
+}
+},
+{
+"n": 3,
+"image": "img/ep01-s8-try3.webp",
+"plannedPanels": 6,
+"observedPanels": 6,
+"textsOk": 14,
+"textsTotal": 15,
+"raw": false,
+"after": true,
+"findings": [
+{
+"severity": "blocking",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "text-8이 ‘베스퍼는 동갓 꼭대가의 작은 황동 뚜껑에 손을 없었다’입니다. 원문은 ‘등갓 꼭대기의’, ‘손을 얹었다’이며, ‘얹었다’는 세 시도 모두 잘못 그려졌습니다.",
+"en": "text-8 reads 베스퍼는 동갓 꼭대가의 작은 황동 뚜껑에 손을 없었다; the source reads 등갓 꼭대기의 and 손을 얹었다. The word 얹었다 was misdrawn in all three attempts."
+}
+],
+"emphasis": {
+"focusTextIds": null,
+"corrections": null
+}
+}
+],
+"lettering": {
+"fixes": [
+{
+"textId": "text-8",
+"observed": "베스퍼는 등갓 꼭대기의 작은 황동 뚜껑에 손을 없었다.",
+"fixed": "베스퍼는 등갓 꼭대기의 작은 황동 뚜껑에 손을 얹었다."
+}
+],
+"raw": "img/ep01-s8-try2.webp",
+"font": "Apple SD Gothic Neo"
+},
+"plan": {
+"intent": "The parade is over, and the warmth the reader just shared with the crowd has become Vesper's private problem. He is overheated: suppressed light, the flood of praise and a stray spark are all trapped inside his glass. The reader should feel the pressure of a body that cannot pass as a costume much longer, then his quiet choice to hide rather than enter the tent. The mood tightens as he slips into a walled-off, empty corner and checks that no one, not even Kandra, can see him. It releases with gentle comedy when he twists open a small cap he never needed back home and a grand, slightly absurd plume of grey smoke rolls out. The scene ends small and relieved. His flame breathes at its proper size, and he dims it to a thin glow and lets out one more long breath. It is a private maintenance ritual the reader alone witnesses.",
+"staging": "Setting: the same fictional park on parade night, just after the 8:20 PM parade has finished. The scene moves from near the backstage waiting tent to a dark corner behind it. Keep everything free of signage, logos, festival titles, labels on the cases and UI text.\n\nIDENTITY: Vesper (c1) is the only figure who must appear. He is a very tall, slender gentleman whose head is a brass-framed glass gas lamp with one living flame and a thin crack at the upper left of the glass. He wears a dark high-collared tailcoat and white gloves, with empty darkness below the collar. He has no face, eyes or mouth. His state reads only through flame size, brightness and posture. The small brass chimney cap sits at the very top of the lamp, matching his reference. Kandra (c2), Daon (c3) and Taerim (c4) do not appear. The source says Kandra is not in sight, so do not draw her anywhere, even in the background. If any humans are visible near the tent at the start, they are ordinary people with normal heads who do not react to him. From the corner onward, nobody else is present.\n\nNecessary spatial facts:\n- The corner is behind the tent. Equipment cases are stacked high enough to form a wall-like barrier, with light stands and coiled cables around it. It is empty and hidden.\n- The overheated state before the cap opens may be shown with heat shimmer, a cramped, swollen-looking flame and an inner glow in the glass. The kettle comparison in text-1 is narration, so do not draw a literal kettle. Do not show smoke until the cap is opened.\n- The source says the shade is too hot to touch, but it does not say whether he flinches, uses his gloves for protection or is hurt. Draw no reaction to the heat.\n- He rests one gloved hand on the cap first (text-8), then twists it open (text-10). Whether the cap is fully removed or only swung open is not stated. Either reads acceptably as long as it clearly opens.\n- Grey smoke rises from the chimney opening all at once, in a big billowing plume. Gentle comedy is welcome. The smoke only rises from the chimney; the source does not say anyone outside the corner sees it.\n- Afterward, the flame settles to a natural, relaxed size, then is lowered to a thin, dim glow. The source states no flame color, so do not introduce a specific color shift.\n- He has no eyes or mouth. Do not draw eyelids, a mouth or a face to show him closing his eyes or breathing. Convey the long exhale through posture (shoulders dropping) and perhaps a last faint wisp from the chimney.\n\nLETTERING (blocking fixes from the previous render): every caption is narration in a caption box with no speaker label. Keep text-1 through text-15 in order and copy each one character for character from texts[].text. Two captions were misspelled last time and must be checked glyph by glyph. In text-6, the word before the verb meaning 'stacked' is the simile meaning 'like a wall'. Its first syllable is the one used for 'wall', not a similar-looking syllable. In text-8, the final verb means 'rested/placed (a hand) on'. It must not be rendered as the unrelated word meaning 'did not exist'. Give both captions enough box space and a large, clean font so every syllable block is legible.\n\nThe artist chooses the panel count, sizes, framing and how captions are grouped. Prefer fewer, larger panels, and give the smoke release room to land.",
+"uncertainties": [
+"The source does not say how Vesper touches a cap on a shade described as too hot to touch (ch-1-p-71, ch-1-p-73). It is unstated whether the gloves protect him or the cap is cooler. Draw no explanation.",
+"The meaning of ch-1-p-73's remark that there was no reason to open the cap beyond the door is unexplained. It may be that he never overheated there, or that praise and suppression are new to him. Do not visualize a cause.",
+"Whether the cap is fully removed or hinged open is not stated (ch-1-p-74).",
+"The phrases about closing eyes and breathing in ch-1-p-75 are figurative for a being without eyes or a mouth. How the exhale looks physically is unstated.",
+"Vesper's flame color during this scene is not stated, so no color code is applied.",
+"Whether anyone outside the corner can see or smell the smoke is not stated.",
+"The kettle image in ch-1-p-70 is a narrator simile. Whether steam or sound actually leaks before the cap opens is not stated.",
+"The source does not say where Kandra is, only that she is not in sight (ch-1-p-72)."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-70",
+"kind": "caption",
+"speaker": "narrator",
+"text": "퍼레이드가 끝났을 때 베스퍼의 머리는 끓는 주전자 같았다."
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-71",
+"kind": "caption",
+"speaker": "narrator",
+"text": "유리 등갓이 손을 댈 수 없을 만큼 달아올랐다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-71",
+"kind": "caption",
+"speaker": "narrator",
+"text": "눌러 둔 빛과 쏟아진 칭찬과 튀어 버린 불꽃이 한데 엉켜 안에서 웅웅 울렸다."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-71",
+"kind": "caption",
+"speaker": "narrator",
+"text": "생각이 흐릿했다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-71",
+"kind": "caption",
+"speaker": "narrator",
+"text": "이대로 천막에 들어가면 누군가는 그의 머리가 인형탈답지 않게 뜨겁다는 걸 눈치챌 것이다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-72",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그는 천막 뒤편, 장비 케이스가 벽처럼 쌓인 구석으로 들어갔다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-72",
+"kind": "caption",
+"speaker": "narrator",
+"text": "칸드라는 보이지 않았다. 사람도 없었다."
+},
+{
+"id": "text-8",
+"sourceId": "ch-1-p-73",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 등갓 꼭대기의 작은 황동 뚜껑에 손을 얹었다."
+},
+{
+"id": "text-9",
+"sourceId": "ch-1-p-73",
+"kind": "caption",
+"speaker": "narrator",
+"text": "굴뚝 캡이었다. 문 너머에서는 굳이 열 일이 없던 것이었다."
+},
+{
+"id": "text-10",
+"sourceId": "ch-1-p-74",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그가 뚜껑을 비틀어 열었다."
+},
+{
+"id": "text-11",
+"sourceId": "ch-1-p-75",
+"kind": "caption",
+"speaker": "narrator",
+"text": "회색 연기가 한꺼번에 솟았다."
+},
+{
+"id": "text-12",
+"sourceId": "ch-1-p-75",
+"kind": "caption",
+"speaker": "narrator",
+"text": "뭉게뭉게, 제법 성대하게 피어올랐다."
+},
+{
+"id": "text-13",
+"sourceId": "ch-1-p-75",
+"kind": "caption",
+"speaker": "narrator",
+"text": "속이 가벼워졌다."
+},
+{
+"id": "text-14",
+"sourceId": "ch-1-p-75",
+"kind": "caption",
+"speaker": "narrator",
+"text": "불꽃이 비로소 제 크기로 숨을 쉬었다."
+},
+{
+"id": "text-15",
+"sourceId": "ch-1-p-75",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그는 눈을 감는 대신 불빛을 가늘게 낮추고 긴 숨을 한 번 더 내쉬었다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-70",
+"ch-1-p-71"
+],
+"action": "The parade has ended. Vesper is overheated: the glass shade is too hot to touch, and the held-down light, the praise and the flared flame hum together inside. His thoughts blur.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3",
+"text-4"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-71"
+],
+"action": "He realizes that walking into the tent like this would let someone notice his head is too hot for a costume, so he does not go in.",
+"textIds": [
+"text-5"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-72"
+],
+"action": "He slips behind the tent into a corner walled off by stacked equipment cases, among light stands and coiled cables, and finds it empty. No Kandra, no people.",
+"textIds": [
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-73",
+"ch-1-p-74"
+],
+"action": "He rests a gloved hand on the small brass chimney cap at the top of his shade, a part he never needed to open back home, and twists it open.",
+"textIds": [
+"text-8",
+"text-9",
+"text-10"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-1-p-75"
+],
+"action": "Grey smoke gushes up in a big, almost ceremonious billow. The pressure inside eases and the flame settles to its proper size.",
+"textIds": [
+"text-11",
+"text-12",
+"text-13",
+"text-14"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-1-p-75"
+],
+"action": "Rather than closing eyes he does not have, he narrows his light to a thin, low glow and exhales one more long breath, alone in the corner.",
+"textIds": [
+"text-15"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-70"
+],
+"statement": "When the parade ended, Vesper's head was like a boiling kettle."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-71"
+],
+"statement": "His glass lamp shade had grown too hot to touch."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-71"
+],
+"statement": "The light he had held down, the praise poured on him and the flame that had flared were tangled together and humming inside."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-71"
+],
+"statement": "His thoughts were hazy."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-71"
+],
+"statement": "If he entered the tent in this state, someone would notice his head was hotter than a costume head should be."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-72"
+],
+"statement": "He went into a corner behind the tent where equipment cases were stacked up like a wall, between light stands and coiled cables."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-72"
+],
+"statement": "Kandra was not in sight, and there was nobody else there either."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-1-p-73"
+],
+"statement": "Vesper placed his hand on the small brass cap at the very top of his lamp shade. It was a chimney cap."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-1-p-73"
+],
+"statement": "On the other side of the door, he had never had any particular reason to open it."
+},
+{
+"id": "fact-10",
+"sourceIds": [
+"ch-1-p-74"
+],
+"statement": "He twisted the cap open."
+},
+{
+"id": "fact-11",
+"sourceIds": [
+"ch-1-p-75"
+],
+"statement": "Grey smoke rose all at once, billowing up in a fairly grand plume."
+},
+{
+"id": "fact-12",
+"sourceIds": [
+"ch-1-p-75"
+],
+"statement": "He felt lighter inside, and his flame finally breathed at its proper size."
+},
+{
+"id": "fact-13",
+"sourceIds": [
+"ch-1-p-75"
+],
+"statement": "Instead of closing his eyes, he lowered his light to a thin glow and let out one more long breath."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy comedy webtoon, clean expressive linework, soft cel shading, warm night palette with the gas-lamp flame as key light; dark backstage corner behind a festival tent.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-70",
+"ch-1-p-71"
+],
+"action": "Just after the parade, Vesper stands at the backstage tent edge, turned away from its entrance; his glass lamp head glows hot with heat shimmer and a cramped, swollen flame.",
+"textIds": [
+"text-1",
+"text-2",
+"text-3",
+"text-4",
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-72"
+],
+"action": "Vesper alone in a dim corner behind the tent, walled in by stacked equipment cases among light stands and coiled cables; nobody else anywhere in view.",
+"textIds": [
+"text-6",
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-73"
+],
+"action": "Vesper's white-gloved hand rests on the small brass chimney cap at the very top of his glowing lamp head.",
+"textIds": [
+"text-8",
+"text-9"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-74",
+"ch-1-p-75"
+],
+"action": "Chimney cap twisted open, a big, grand billow of grey smoke rolls up from the opening atop Vesper's lamp head, gently comic.",
+"textIds": [
+"text-10",
+"text-11",
+"text-12"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-75"
+],
+"action": "Vesper alone in the corner, shoulders dropped in relief, his flame lowered to a thin, dim glow, a faint wisp curling from the open chimney.",
+"textIds": [
+"text-13",
+"text-14",
+"text-15"
+]
+}
+],
+"focusTextIds": [
+"text-6",
+"text-8"
+],
+"corrections": [
+"Captions text-6 and text-8 sit in roomy boxes with large, clean, evenly spaced lettering."
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Vesper keeps the brass lamp head with the upper-left crack, chimney cap, tailcoat and white gloves."
+},
+"setting": {
+"passed": true,
+"evidence": "Moves from the tent edge facing the lit park to the back corner with stacked flight cases, light stands and coiled cables."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "The previous scene ended mid-parade; here the parade has ended and he retreats behind the tent."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "퍼레이드가 끝났을 때 베스퍼의 머리는 끓는 주전자 같았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-2",
+"observedText": "유리 등갓이 손을 댈 수 없을 만큼 달아올랐다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-3",
+"observedText": "눌러 둔 빛과 쏟아진 칭찬과 튀어 버린 불꽃이 한데 엉켜 안에서 웅웅 울렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-4",
+"observedText": "생각이 흐릿했다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-5",
+"observedText": "이대로 천막에 들어가면 누군가는 그의 머리가 인형탈답지 않게 뜨겁다는 걸 눈치챌 것이다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-6",
+"observedText": "그는 천막 뒤편, 장비 케이스가 벽처럼 쌓인 구석으로 들어갔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-7",
+"observedText": "칸드라는 보이지 않았다. 사람도 없었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-8",
+"observedText": "베스퍼는 등갓 꼭대기의 작은 황동 뚜껑에 손을 없었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Caption at the top-left of panel 3; zoomed, it still reads 없었다 for 얹었다."
+},
+{
+"id": "text-9",
+"observedText": "굴뚝 캡이었다. 문 너머에서는 굳이 열 일이 없던 것이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-10",
+"observedText": "그가 뚜껑을 비틀어 열었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-11",
+"observedText": "회색 연기가 한꺼번에 솟았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-12",
+"observedText": "뭉게뭉게, 제법 성대하게 피어올랐다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-13",
+"observedText": "속이 가벼워졌다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-14",
+"observedText": "불꽃이 비로소 제 크기로 숨을 쉬었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+},
+{
+"id": "text-15",
+"observedText": "그는 눈을 감는 대신 불빛을 가늘게 낮추고 긴 숨을 한 번 더 내쉬었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption box."
+}
+],
+"evidence": "Five panels: Vesper from behind at the tent edge after the parade with an overheated flaring lamp; walking alone into the corner walled with flight cases, light stands and cables; a gloved hand resting on the brass chimney cap; the cap twisted off with grey smoke billowing; Vesper in the corner with the flame settled and a wisp of smoke. Fourteen captions are verbatim; text-6 now reads 벽처럼 correctly; text-8 still misspells one word.",
+"observedPanelCount": 5
+}
+},
+{
+"id": "s9",
+"n": 9,
+"title": "소화기를 든 목격자",
+"status": "completed",
+"verdict": "pass",
+"units": [
+{
+"id": "ch-1-p-76",
+"n": 76,
+"text": "\"여기서 탄내 난다던데…….\""
+},
+{
+"id": "ch-1-p-77",
+"n": 77,
+"text": "케이스 벽 모퉁이에서 발소리가 멈췄다."
+},
+{
+"id": "ch-1-p-78",
+"n": 78,
+"text": "반묶음 머리. 오른쪽 눈썹 끝의 작은 점. 그리고 두 손에 쥔 빨간 소화기. 안전핀이 반쯤 뽑혀 있었다."
+},
+{
+"id": "ch-1-p-79",
+"n": 79,
+"text": "한다온이었다."
+},
+{
+"id": "ch-1-p-80",
+"n": 80,
+"text": "그녀의 동그란 눈이 베스퍼의 등갓으로 올라갔다. 열린 굴뚝 캡을 지나, 아직도 뭉게뭉게 피어오르는 연기로 향했다. 그리고 그 아래, 목깃 위로 있어야 할 무언가가 텅 비어 있는 자리에서 멈췄다."
+},
+{
+"id": "ch-1-p-81",
+"n": 81,
+"text": "베스퍼는 할 수 있는 유일한 일을 했다."
+},
+{
+"id": "ch-1-p-82",
+"n": 82,
+"text": "멈췄다. 숨도, 불빛의 떨림도. 가로등이 그러하듯 완전히. 인간의 눈에는 이제 그가 구석에 세워 둔 조명 소품으로 보일 것이다."
+},
+{
+"id": "ch-1-p-83",
+"n": 83,
+"text": "연기만은 멈추지 않았다."
+},
+{
+"id": "ch-1-p-84",
+"n": 84,
+"text": "\"……저기요?\""
+},
+{
+"id": "ch-1-p-85",
+"n": 85,
+"text": "그녀의 목소리가 떨렸다. 말을 거는 순간 멈춤이 풀렸다. 불꽃이 저 혼자 흠칫 흔들렸다."
+},
+{
+"id": "ch-1-p-86",
+"n": 86,
+"text": "소화기를 든 인간과 연기를 뿜는 가스등이 장비 더미 사이에서 서로를 마주 보았다. 둘 다 움직이지 않았다."
+},
+{
+"id": "ch-1-p-87",
+"n": 87,
+"text": "천막 너머에서 폐장을 알리는 음악이 느리게 흘러나오고 있었다."
+}
+],
+"pFrom": 76,
+"pTo": 87,
+"panelCount": 7,
+"plannedPanels": 7,
+"image": "img/ep01-s9.webp",
+"blocking": 0,
+"advisory": 2,
+"findings": [
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1칸에서 내레이션 상자가 왼쪽 위, 다온의 화면 밖 대사가 오른쪽에 있어 내레이션이 먼저 읽힙니다. 원문은 다온의 대사가 먼저입니다.",
+"en": "In panel 1 the narration caption sits at the top-left and Daon's off-panel line at the right, so the caption reads first, while the source gives her line first."
+},
+{
+"severity": "advisory",
+"layer": "render",
+"layerLabel": "이미지 모델",
+"ko": "1·4칸에서 굴뚝 뚜껑이 닫힌 채 연기가 오릅니다. 원문은 이 순간 뚜껑이 열려 있습니다.",
+"en": "Panels 1 and 4 show the chimney cap seated on the lamp while smoke still rises; the source has the cap open at this moment."
+}
+],
+"textsTotal": 18,
+"textsOk": 18,
+"timings": {
+"planS": [
+65
+],
+"preflightS": [
+52
+],
+"imageS": 38,
+"imageCalls": 1
+},
+"imageUsd": 0.103,
+"imageUsdEstimated": true,
+"chosenAttempt": 1,
+"attemptTotal": 1,
+"attempts": [],
+"lettering": null,
+"plan": {
+"intent": "The relief of the previous scene turns into discovery. The reader first only hears a voice: someone has come looking for a burning smell, and the footsteps stop at the corner of the case wall. The reveal lands in three quick visual notes (half-up hair, the mole at the end of the right eyebrow, a red extinguisher held in both hands with the pin half pulled) before the name confirms it: it is Han Daon, and she came ready to put out a fire, not to find a creature. Her round eyes climb the way a reader's would: up to the glass shade, past the open chimney cap, up the still-billowing smoke, then back down to the empty space above the collar where a head should be. Vesper's answer is the only one he has, and it is comic and a little sad at once: he freezes completely, like a street lamp, betting that human eyes will read him as a lighting prop propped in the corner. The joke is that the smoke will not freeze with him. Her trembling call breaks the spell, and his flame flinches on its own, which betrays him because his light cannot hide feeling. The scene ends on a held standoff between a human with an extinguisher and a smoking gas lamp among the equipment, with the slow closing music drifting in from beyond the tent. The reader should laugh at the failed disguise and feel the weight of the moment: someone has now seen him.",
+"staging": "Setting continues directly from the previous finished scene: same night, same dark corner behind the backstage tent, walled in by stacked equipment cases, with light stands and coiled cables. Lit mainly by Vesper's own lamp; the tent is nearby but its interior is not the stage here. No signage, logos, festival titles, name tags or UI text anywhere; the extinguisher carries no printed words.\n\nIDENTITY: Vesper (c1) is the only lamp-headed figure: very tall, slender, brass-framed glass gas-lamp head with one living flame and a thin crack at the upper left of the glass, small brass chimney cap at the very top, dark high-collared tailcoat, white gloves, empty darkness below the collar. No face, eyes or mouth. Han Daon (c3): small young woman, shoulder-length black bob tied half-up, round dark-brown eyes, tiny mole at the end of her RIGHT eyebrow, staff jacket and radio. Kandra (c2) and Taerim (c4) do not appear. No other people are in the corner.\n\nNecessary spatial and continuity facts:\n- The chimney cap is OPEN throughout this scene (ch-1-p-80 names it open). Grey smoke keeps rising from the top opening in every moment of the scene; it never stops (text-12). Smoke comes only from that top opening.\n- Daon arrives at the corner of the case wall (text-2). text-1 may be placed as an off-panel or edge-of-panel balloon before she is fully seen; its tail points toward where she enters.\n- Daon holds a red fire extinguisher in both hands with the safety pin pulled about halfway out. She does NOT spray it at any point; the source only shows her holding it ready.\n- Her eyeline in text-6/text-7 travels up the shade, past the open cap and smoke, then settles on the empty darkness above his collar. The artist may show this as one gaze or several; the endpoint must be the empty collar.\n- The freeze (text-8 to text-12): Vesper goes perfectly still, standing in the corner like a prop lamp; his flame is motionless, no flicker. Do not change his flame color or brightness during the freeze; the source states only that breath and trembling stop. The comic contrast is the still body under a smoke plume that keeps billowing.\n- text-13 is Daon's line; draw her balloon with a slightly shaky outline to carry her trembling voice (ch-1-p-85). Right after, his flame gives a small involuntary start (text-15). No color code is stated, so show only a jump or wobble of the flame.\n- Final standoff (text-16 to text-18): the two face each other among the equipment piles, neither moving, extinguisher still in her hands, smoke still rising. The closing music is only a caption; do not draw musical notes with text or any speaker labels.\n\nText kinds: text-1 and text-13 are Daon's speech balloons (tails to Daon, never to Vesper). All other texts are narration captions. Vesper has no lines in this scene. Keep texts in id order text-1 through text-18 and copy each character for character, including ellipsis characters, commas and periods. Never write speaker names inside balloons or captions.\n\nPanel count, sizes, cameras, caption grouping and reveal pacing are the artist's choice. The standoff may take a large closing panel.",
+"uncertainties": [
+"ch-1-p-76 does not name its speaker. Attributing text-1 to Daon (c3) is an inference from the footsteps stopping and her reveal right after; it is not stated outright.",
+"Who told Daon about the burning smell (the reported-speech ending of ch-1-p-76) is not stated. Do not show another informant.",
+"The distance between Daon and Vesper and whether she steps any closer after stopping are not stated.",
+"What Daon concludes from the empty space above the collar is not stated. She may or may not already suspect he is not a costume; draw her reaction as fear or tension without a stated conclusion.",
+"Whether Daon recognizes him as the parade's lamp gentleman at this moment is not stated.",
+"Vesper's flame color and brightness during the freeze and the flinch are not given in this excerpt; only stillness and then an involuntary start are stated.",
+"Whether the freeze actually fools her at any point is not stated; the narration only says how he should look to human eyes, and the unstopped smoke undercuts it.",
+"Whether Daon later uses the extinguisher is not stated in this excerpt; she only holds it with the pin half pulled.",
+"The exact source of the closing music and how far it carries are not stated beyond 'beyond the tent'."
+],
+"texts": [
+{
+"id": "text-1",
+"sourceId": "ch-1-p-76",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "여기서 탄내 난다던데……."
+},
+{
+"id": "text-2",
+"sourceId": "ch-1-p-77",
+"kind": "caption",
+"speaker": "narrator",
+"text": "케이스 벽 모퉁이에서 발소리가 멈췄다."
+},
+{
+"id": "text-3",
+"sourceId": "ch-1-p-78",
+"kind": "caption",
+"speaker": "narrator",
+"text": "반묶음 머리. 오른쪽 눈썹 끝의 작은 점. 그리고 두 손에 쥔 빨간 소화기."
+},
+{
+"id": "text-4",
+"sourceId": "ch-1-p-78",
+"kind": "caption",
+"speaker": "narrator",
+"text": "안전핀이 반쯤 뽑혀 있었다."
+},
+{
+"id": "text-5",
+"sourceId": "ch-1-p-79",
+"kind": "caption",
+"speaker": "narrator",
+"text": "한다온이었다."
+},
+{
+"id": "text-6",
+"sourceId": "ch-1-p-80",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그녀의 동그란 눈이 베스퍼의 등갓으로 올라갔다."
+},
+{
+"id": "text-7",
+"sourceId": "ch-1-p-80",
+"kind": "caption",
+"speaker": "narrator",
+"text": "그리고 그 아래, 목깃 위로 있어야 할 무언가가 텅 비어 있는 자리에서 멈췄다."
+},
+{
+"id": "text-8",
+"sourceId": "ch-1-p-81",
+"kind": "caption",
+"speaker": "narrator",
+"text": "베스퍼는 할 수 있는 유일한 일을 했다."
+},
+{
+"id": "text-9",
+"sourceId": "ch-1-p-82",
+"kind": "caption",
+"speaker": "narrator",
+"text": "멈췄다."
+},
+{
+"id": "text-10",
+"sourceId": "ch-1-p-82",
+"kind": "caption",
+"speaker": "narrator",
+"text": "숨도, 불빛의 떨림도. 가로등이 그러하듯 완전히."
+},
+{
+"id": "text-11",
+"sourceId": "ch-1-p-82",
+"kind": "caption",
+"speaker": "narrator",
+"text": "인간의 눈에는 이제 그가 구석에 세워 둔 조명 소품으로 보일 것이다."
+},
+{
+"id": "text-12",
+"sourceId": "ch-1-p-83",
+"kind": "caption",
+"speaker": "narrator",
+"text": "연기만은 멈추지 않았다."
+},
+{
+"id": "text-13",
+"sourceId": "ch-1-p-84",
+"kind": "dialogue",
+"speaker": "c3",
+"text": "……저기요?"
+},
+{
+"id": "text-14",
+"sourceId": "ch-1-p-85",
+"kind": "caption",
+"speaker": "narrator",
+"text": "말을 거는 순간 멈춤이 풀렸다."
+},
+{
+"id": "text-15",
+"sourceId": "ch-1-p-85",
+"kind": "caption",
+"speaker": "narrator",
+"text": "불꽃이 저 혼자 흠칫 흔들렸다."
+},
+{
+"id": "text-16",
+"sourceId": "ch-1-p-86",
+"kind": "caption",
+"speaker": "narrator",
+"text": "소화기를 든 인간과 연기를 뿜는 가스등이 장비 더미 사이에서 서로를 마주 보았다."
+},
+{
+"id": "text-17",
+"sourceId": "ch-1-p-86",
+"kind": "caption",
+"speaker": "narrator",
+"text": "둘 다 움직이지 않았다."
+},
+{
+"id": "text-18",
+"sourceId": "ch-1-p-87",
+"kind": "caption",
+"speaker": "narrator",
+"text": "천막 너머에서 폐장을 알리는 음악이 느리게 흘러나오고 있었다."
+}
+],
+"beats": [
+{
+"id": "beat-1",
+"sourceIds": [
+"ch-1-p-76",
+"ch-1-p-77"
+],
+"action": "While Vesper stands in the corner with his cap open and smoke rising, a voice approaches asking about a burning smell, and the footsteps halt at the corner of the case wall.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"id": "beat-2",
+"sourceIds": [
+"ch-1-p-78",
+"ch-1-p-79"
+],
+"action": "The newcomer is revealed piece by piece: half-up hair, the eyebrow mole, a red extinguisher gripped in both hands with its pin half pulled. It is Han Daon, armed for a fire.",
+"textIds": [
+"text-3",
+"text-4",
+"text-5"
+]
+},
+{
+"id": "beat-3",
+"sourceIds": [
+"ch-1-p-80"
+],
+"action": "Daon's gaze climbs the glass shade, the open chimney cap and the rising smoke, then drops and stops at the empty darkness above his collar.",
+"textIds": [
+"text-6",
+"text-7"
+]
+},
+{
+"id": "beat-4",
+"sourceIds": [
+"ch-1-p-81",
+"ch-1-p-82",
+"ch-1-p-83"
+],
+"action": "Vesper freezes totally, flame dead still like a street lamp, trying to pass as a corner lighting prop. The smoke keeps billowing from his open cap regardless, undoing the disguise.",
+"textIds": [
+"text-8",
+"text-9",
+"text-10",
+"text-11",
+"text-12"
+]
+},
+{
+"id": "beat-5",
+"sourceIds": [
+"ch-1-p-84",
+"ch-1-p-85"
+],
+"action": "Daon speaks to him in a shaky voice. Her address breaks his freeze, and his flame gives an involuntary start.",
+"textIds": [
+"text-13",
+"text-14",
+"text-15"
+]
+},
+{
+"id": "beat-6",
+"sourceIds": [
+"ch-1-p-86",
+"ch-1-p-87"
+],
+"action": "Standoff: extinguisher-holding human and smoking gas lamp face each other among the equipment, both motionless, while slow closing music drifts in from beyond the tent.",
+"textIds": [
+"text-16",
+"text-17",
+"text-18"
+]
+}
+],
+"facts": [
+{
+"id": "fact-1",
+"sourceIds": [
+"ch-1-p-76"
+],
+"statement": "A voice says that people reportedly smell something burning here. The line is heard before the speaker is shown."
+},
+{
+"id": "fact-2",
+"sourceIds": [
+"ch-1-p-77"
+],
+"statement": "Footsteps stop at the corner of the wall of stacked cases."
+},
+{
+"id": "fact-3",
+"sourceIds": [
+"ch-1-p-78"
+],
+"statement": "The arrival has half-up hair, a small mole at the end of the right eyebrow, and holds a red fire extinguisher in both hands with its safety pin pulled halfway out."
+},
+{
+"id": "fact-4",
+"sourceIds": [
+"ch-1-p-79"
+],
+"statement": "The arrival is Han Daon (c3)."
+},
+{
+"id": "fact-5",
+"sourceIds": [
+"ch-1-p-80"
+],
+"statement": "Her round eyes rise to Vesper's glass shade, pass the open chimney cap, follow the smoke that is still billowing up, and then stop at the empty place above his collar where something should be."
+},
+{
+"id": "fact-6",
+"sourceIds": [
+"ch-1-p-81",
+"ch-1-p-82"
+],
+"statement": "Vesper does the only thing he can: he freezes completely, stopping both his breath and the trembling of his light, as a street lamp would be still."
+},
+{
+"id": "fact-7",
+"sourceIds": [
+"ch-1-p-82"
+],
+"statement": "The narration states that to human eyes he should now look like a lighting prop left standing in the corner."
+},
+{
+"id": "fact-8",
+"sourceIds": [
+"ch-1-p-83"
+],
+"statement": "Only the smoke does not stop."
+},
+{
+"id": "fact-9",
+"sourceIds": [
+"ch-1-p-84",
+"ch-1-p-85"
+],
+"statement": "Daon calls out a hesitant excuse-me, and her voice trembles."
+},
+{
+"id": "fact-10",
+"sourceIds": [
+"ch-1-p-85"
+],
+"statement": "The moment she speaks to him, his freeze breaks, and his flame flinches by itself."
+},
+{
+"id": "fact-11",
+"sourceIds": [
+"ch-1-p-86"
+],
+"statement": "The human holding the extinguisher and the smoke-puffing gas lamp face each other among the piles of equipment. Neither moves."
+},
+{
+"id": "fact-12",
+"sourceIds": [
+"ch-1-p-87"
+],
+"statement": "Beyond the tent, closing-time music is slowly playing."
+}
+]
+},
+"brief": {
+"style": "Full-color Korean romance-fantasy comedy webtoon, clean expressive linework, soft cel shading, warm night palette lit by Vesper's gas-lamp flame, dark corner of stacked equipment cases.",
+"moments": [
+{
+"sourceIds": [
+"ch-1-p-76",
+"ch-1-p-77"
+],
+"action": "In a dim corner walled by stacked equipment cases, Vesper stands with his brass chimney cap open, grey smoke rising; an off-panel speech balloon enters from the case-wall corner, tail toward the approach.",
+"textIds": [
+"text-1",
+"text-2"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-78",
+"ch-1-p-79"
+],
+"action": "Han Daon stops at the case-wall corner: half-up black bob, tiny mole at her right eyebrow's end, both hands gripping a red fire extinguisher with its safety pin pulled halfway out.",
+"textIds": [
+"text-3",
+"text-4",
+"text-5"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-80"
+],
+"action": "Daon's round eyes fix on the empty darkness above Vesper's collar, his glowing glass lamp head and billowing smoke plume above it.",
+"textIds": [
+"text-6",
+"text-7"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-81",
+"ch-1-p-82"
+],
+"action": "Vesper stands rigidly still in the corner like a street lamp, his flame perfectly steady inside the glass, smoke rising from his open cap.",
+"textIds": [
+"text-8",
+"text-9",
+"text-10"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-82",
+"ch-1-p-83"
+],
+"action": "Motionless Vesper looks like a lighting prop left among light stands and cables, while grey smoke keeps billowing up from his open chimney cap.",
+"textIds": [
+"text-11",
+"text-12"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-84",
+"ch-1-p-85"
+],
+"action": "Daon calls out in a shaky-outlined speech balloon, extinguisher still in both hands; inside Vesper's glass, his flame gives a small involuntary jump.",
+"textIds": [
+"text-13",
+"text-14",
+"text-15"
+]
+},
+{
+"sourceIds": [
+"ch-1-p-86",
+"ch-1-p-87"
+],
+"action": "Wide standoff among the equipment piles: Daon holding the red extinguisher and smoking Vesper face each other, both motionless, smoke still rising.",
+"textIds": [
+"text-16",
+"text-17",
+"text-18"
+]
+}
+]
+},
+"review": {
+"continuity": {
+"inspectedPreviousImage": true,
+"identity": {
+"passed": true,
+"evidence": "Vesper keeps the brass lamp head with the crack, tailcoat and white gloves; Daon matches her reference with the half-up dark hair, mole at the right eyebrow and navy staff jacket."
+},
+"setting": {
+"passed": true,
+"evidence": "Same back corner of the tent with stacked flight cases, cables and light stands as the previous scene."
+},
+"actionTransition": {
+"passed": true,
+"evidence": "The previous scene ended with Vesper venting smoke in the corner; here footsteps stop and Daon appears with an extinguisher."
+}
+},
+"textObservations": [
+{
+"id": "text-1",
+"observedText": "여기서 탄내 난다던데…….",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-2",
+"observedText": "케이스 벽 모퉁이에서 발소리가 멈췄다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-3",
+"observedText": "반묶음 머리. 오른쪽 눈썹 끝의 작은 점. 그리고 두 손에 쥔 빨간 소화기.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-4",
+"observedText": "안전핀이 반쯤 뽑혀 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-5",
+"observedText": "한다온이었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-6",
+"observedText": "그녀의 동그란 눈이 베스퍼의 등갓으로 올라갔다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-7",
+"observedText": "그리고 그 아래, 목깃 위로 있어야 할 무언가가 텅 비어 있는 자리에서 멈췄다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-8",
+"observedText": "베스퍼는 할 수 있는 유일한 일을 했다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-9",
+"observedText": "멈췄다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-10",
+"observedText": "숨도, 불빛의 떨림도. 가로등이 그러하듯 완전히.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-11",
+"observedText": "인간의 눈에는 이제 그가 구석에 세워 둔 조명 소품으로 보일 것이다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-12",
+"observedText": "연기만은 멈추지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-13",
+"observedText": "……저기요?",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-14",
+"observedText": "말을 거는 순간 멈춤이 풀렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-15",
+"observedText": "불꽃이 저 혼자 흠칫 흔들렸다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-16",
+"observedText": "소화기를 든 인간과 연기를 뿜는 가스등이 장비 더미 사이에서 서로를 마주 보았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-17",
+"observedText": "둘 다 움직이지 않았다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+},
+{
+"id": "text-18",
+"observedText": "천막 너머에서 폐장을 알리는 음악이 느리게 흘러나오고 있었다.",
+"readable": true,
+"speakerCorrect": true,
+"evidence": "Visible verbatim in its caption or balloon."
+}
+],
+"evidence": "Seven panels: Vesper in the corner with smoke while an off-panel voice mentions a burning smell; Daon holding a red fire extinguisher with the pin half pulled; Daon's round eyes rising to his smoking lamp; Vesper freezing; a wide shot of him standing like a prop with smoke still rising; Daon calling out and his flame flinching; a wide shot of Daon with the extinguisher and Vesper facing each other among the equipment with the lit park through the tent opening. All eighteen lines are verbatim.",
+"observedPanelCount": 7
+}
+}
+]
+}
+],
+"references": [
+{
+"id": "ref-vesper",
+"image": "img/ref-vesper.webp",
+"description": "베스퍼: 머리 대신 황동 테두리의 유리 가스등, 약 2m의 가늘고 긴 신사. 등갓 왼쪽 위에 가느다란 금 한 줄."
+},
+{
+"id": "ref-kandra",
+"image": "img/ref-kandra.webp",
+"description": "칸드라: 머리 대신 굵은 상아색 기둥 초, 심지 하나에 불꽃 하나. 늘씬한 숙녀."
+},
+{
+"id": "ref-daon",
+"image": "img/ref-daon.webp",
+"description": "한다온: 퍼레이드 무대 스태프. 반묶음 검은 단발, 무전기."
+},
+{
+"id": "ref-tent",
+"image": "img/ref-tent.webp",
+"description": "퍼레이드 대기 천막: 의상 행거, 분장대, 발전기."
+},
+{
+"id": "ref-parade",
+"image": "img/ref-parade.webp",
+"description": "밤 퍼레이드 길: 가상의 테마파크 광장과 조명."
+}
+],
+"costs": {
+"novel": {
+"calls": 1046,
+"input": 18128103,
+"output": 5053176,
+"usd": 173.58,
+"ms": 54652790
+},
+"webtoon": {
+"calls": 46,
+"input": 913528,
+"output": 171111,
+"usd": 7.08,
+"ms": 1706753
+},
+"images": {
+"scene": 15,
+"reference": 5,
+"usdEstimated": 2.06
+}
+}
+}

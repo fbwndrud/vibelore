@@ -1,0 +1,75 @@
+/* 베스퍼 — 밤 퍼레이드 팔레트: 남색 밤하늘, 호박색 가스등 불빛. style.css 토큰만 덮어쓴다. */
+:root{
+  --paper:#0E1120;--card:#161A2D;--ink:#F3EBDA;--moss:#F2A93B;--gold:#FFD27A;
+  --line:#2A3050;--line2:#222844;--muted:#9097B3;--sub:#C7C3B8;--band:#1C2138;--chip:#3C4468;
+  --warnbg:#3A2C12;--warn:#FFD27A;--okbg:#14302A;--ok:#7FD8B0;--redbg:#3A1720;--red:#FF8A9E;
+}
+body{background:var(--paper);color:var(--ink)}
+a:hover{color:var(--gold)}
+.hub-hero{position:relative}
+.hub-hero::before{content:"";position:absolute;inset:-40px 0 auto 55%;height:520px;background:radial-gradient(closest-side,rgba(242,169,59,.22),rgba(242,169,59,0));pointer-events:none}
+.hub-hero h1{letter-spacing:-.03em}
+.hub-hero h1 .lamp{display:inline-block;margin-left:10px;padding:2px 12px;border-radius:8px;background:var(--moss);color:#1A1405;font-family:var(--sans);font-size:.36em;vertical-align:middle;letter-spacing:.06em}
+.hub-cover{box-shadow:0 18px 60px rgba(242,169,59,.28);border-color:#4A3E24}
+.hcard.primary{background:linear-gradient(135deg,#F2A93B,#B8661C);border-color:#F2A93B;color:#1A1405}
+.hcard.primary:hover{color:#1A1405}
+.hcard.primary .hk{color:#3A2408}
+.hcard.primary .hd{color:#3A2408}
+.hcard.primary .go{color:#1A1405}
+.vline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--sub)}
+.vtag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:14px;border:1px solid #6B5220;background:#241C0E;color:var(--gold);font-weight:700;letter-spacing:.04em}
+.vtag.latest{background:var(--moss);color:#1A1405;border-color:var(--moss)}
+.disclaimer{font-size:12.5px;line-height:1.7;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--card);max-width:640px;word-break:keep-all}
+.eptab.active{background:var(--moss);border-color:var(--moss);color:#1A1405}
+.eptab.active small{color:#1A1405}
+.snav-links a.on{background:var(--moss);color:#1A1405}
+.metatog[aria-pressed="true"]{background:var(--moss);color:#1A1405;border-color:var(--moss)}
+.seg button.active{color:#1A1405}
+.rail a.current{color:#1A1405}
+.snav{background:#080A14;border-bottom:1px solid var(--line)}
+.findings,.findings li{color:var(--ink)}
+.chsel{height:40px;border-radius:20px;border:1px solid var(--chip);background:var(--card);color:var(--ink);padding:0 14px;font:inherit;font-size:14px;max-width:340px}
+.chnav{display:flex;justify-content:space-between;gap:12px;margin:8px 0 0;font-size:14px}
+.chnav a{padding:10px 16px;border:1px solid var(--chip);border-radius:20px;text-decoration:none;color:var(--ink)}
+.chnav a:hover{border-color:var(--moss);color:var(--moss)}
+.novel-only .seg,.novel-only .chip.toon{display:none}
+.novel-only #rail{visibility:hidden}
+.lettering{margin-top:10px;padding:10px 12px;border-left:3px solid var(--moss);background:#241C0E;border-radius:6px;font-size:12.5px;line-height:1.7}
+.lettering b{color:var(--gold)}
+.lettering a{color:var(--gold)}
+.arcs{display:flex;flex-direction:column;gap:8px}
+.arc{display:grid;grid-template-columns:92px 1fr 64px;gap:14px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.65}
+.arc .r{color:var(--muted);font-variant-numeric:tabular-nums}
+.arc b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:2px}
+.arc span{color:var(--sub);word-break:keep-all}
+.arc .s{text-align:right;font-family:var(--serif);font-size:18px;color:var(--gold)}
+.arc .s small{display:block;font-family:var(--sans);font-size:11px;color:var(--muted)}
+@media (max-width:960px){
+  body.hub,body[data-page="notes"]{background:var(--paper);color:var(--ink)}
+  .chip{background:var(--card);border-color:var(--line);color:var(--ink)}
+  .findings{background:var(--card);color:var(--ink)}
+  .sheet{background:var(--card)}
+  .novel-only .sheet{display:none}
+  /* style.css의 모바일 반전(잉크 배경)을 이 팔레트에서는 쓰지 않는다: 원래 밤색 그대로 */
+  body,body.reader-page{background:var(--paper);color:var(--ink)}
+  .topbar{background:#080A14;color:var(--ink);border-bottom:1px solid var(--line)}
+  .topbar .brand,.ephead h1,.scene-title b,.eptab{color:var(--ink)}
+  .ephead p,.scene-head,.scene-title span,.chip span:first-child,.reader.mode-novel .prose-tools{color:var(--sub)}
+  .scene-actions button,.scene-actions a{color:var(--ink);border-color:var(--chip)}
+  .eptab{border-color:var(--chip)}
+  footer.site{color:var(--muted);border-top-color:var(--line)}
+  .chsel{max-width:180px;height:34px;font-size:13px}
+  .arc{grid-template-columns:1fr 54px}.arc .r{grid-column:1/-1}
+}
+.attempts{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.attempts summary{cursor:pointer;font-weight:600;font-size:13px}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:10px}
+.agrid figure{margin:0;display:flex;flex-direction:column;gap:6px}
+.agrid img{width:100%;height:auto;border-radius:6px;display:block}
+.agrid figcaption{font-size:12px;line-height:1.5;display:flex;flex-direction:column;gap:4px}
+.agrid figcaption ul{margin:0;padding-left:16px}
+.agrid .emph{color:var(--muted)}
+@media (max-width:640px){.agrid{grid-template-columns:1fr 1fr;gap:8px}.agrid figcaption{font-size:11px}}
+.agrid figcaption li{font-size:12px;line-height:1.5;margin:2px 0;padding:0;border:0}
+.findings{flex-wrap:wrap}.findings .attempts{flex-basis:100%}
+.snav-home{color:var(--ink)!important}.snav a:hover{color:var(--gold)}

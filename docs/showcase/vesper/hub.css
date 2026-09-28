@@ -1,0 +1,34 @@
+.hub-hero{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:48px;align-items:center;padding:48px 40px 40px;max-width:1200px;margin:0 auto}
+.hub-copy{display:flex;flex-direction:column;gap:14px}
+.hub-hero h1{margin:0;font-family:var(--serif);font-size:56px;letter-spacing:-.04em;line-height:1.1}
+.lede{margin:0;font-size:17px;line-height:1.8;color:var(--sub);max-width:640px;word-break:keep-all}
+.hub-stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.hs{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;display:flex;flex-direction:column}
+.hs b{font-family:var(--serif);font-size:20px}
+.hs span{font-size:12px;color:var(--muted)}
+.hub-cover{display:block;border-radius:12px;overflow:hidden;border:1px solid var(--line);box-shadow:0 16px 40px rgba(31,46,41,.18);aspect-ratio:2/3;background:var(--band)}
+.hub-cover img{width:100%;height:100%;object-fit:cover;object-position:top;transition:transform .3s}
+.hub-cover:hover img{transform:scale(1.02)}
+.hub-main{max-width:1200px;margin:0 auto;padding:0 40px 56px;display:flex;flex-direction:column;gap:18px}
+.hub-main h2{margin:0;font-family:var(--serif);font-size:26px;letter-spacing:-.02em}
+.hub-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.hcard{display:flex;flex-direction:column;gap:8px;padding:20px;border-radius:14px;background:var(--card);border:1px solid var(--line);color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
+.hcard:hover{border-color:var(--ink);transform:translateY(-2px);color:var(--ink)}
+.hcard.primary{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.hcard.primary:hover{color:var(--card)}
+.hk{font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--gold)}
+.hcard b{font-size:17px;line-height:1.4;word-break:keep-all}
+.hd{font-size:13px;line-height:1.65;color:var(--sub);flex-grow:1;word-break:keep-all}
+.hcard.primary .hd{color:#C9C2AE}
+.go{font-size:13px;font-weight:700;color:var(--moss)}
+.hcard.primary .go{color:var(--gold)}
+.hub-note{font-size:12px;color:var(--muted);line-height:1.7;margin:6px 0 0}
+@media (max-width:960px){
+  body.hub{background:var(--paper);color:var(--ink)}
+  .hub-hero{grid-template-columns:1fr;padding:24px 16px 20px;gap:20px}
+  .hub-hero h1{font-size:36px}
+  .lede{font-size:15px}
+  .hub-cover{aspect-ratio:auto;max-height:52vh}
+  .hub-main{padding:0 16px 40px}
+  .hub-main h2{font-size:21px}
+}

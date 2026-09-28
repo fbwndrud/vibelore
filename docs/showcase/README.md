@@ -4,7 +4,8 @@
 
 | 경로 | 내용 |
 |---|---|
-| `index.html` | 작품 목록. |
+| `index.html` | 작품 목록. 최신 vibelore 릴리스로 만든 작품을 맨 위 대표 카드로 두고, 나머지는 “이전 버전으로 만든 작품”으로 묶어 카드마다 실행한 vibelore 버전(마우스를 올리면 실행 커밋)과 모델을 적음. 버전은 워크플로 기록의 `runtime.packageVersion`·`gitCommit` 기준. |
+| `vesper/` | 『베스퍼』(롯데월드 야간 퍼레이드 캐릭터를 빌린 비공식 팬 창작, 인외 로맨틱 코미디) 소설 50화 완결 + 1화 장면 웹툰. vibelore 0.4.2(소설은 0.4.1에서 시작해 PR #9 수정을 반영하며 집필), 설계·집필·각색 Claude Opus 5.5, 이미지 OpenAI 이미지 API(gpt-image-2.5-sunburst). 허브·리더(아크별 회차 선택, 2화부터 소설 전용)·제작 노트(버전표·아크 심사·버그 수정·후반 식자·비용), `data.json`, `novel/NNN.txt`(정본 본문), `img/`(장면 9장 + 다른 시도·식자 전 원본 6장 + 기준 이미지 5장). 팔레트 `vesper.css`. |
 | `i18n.js` | 모든 페이지 공통 한국어/영어 UI 사전과 토글. 기본 언어는 `navigator.language`, 선택은 `localStorage`(`vibelore.lang`)에 저장하고 `?lang=ko|en`으로 공유. 작품 본문·대사는 번역하지 않음. 새 UI 문자열은 한국어 원문을 키로 이 파일에 추가. |
 | `multilingual/` | 8개 언어(ko·en·ja·zh-Hant·es·fr·ar·th) 소설 1화 발췌·사실과 장면 웹툰 한 장·판정. `data.json`, `img/`(WebP), `ml.js`·`ml.css`. 기본 웹툰 실행은 3207b83, 비교용 “프롬프트 수정 전” 52e5aee. |
 | `verdict-live/` | 『판결 LIVE』(사이버렉카 스릴러) 1~3화. 허브(`index.html`), 리더(`read.html`, thundertrail 리더 복제), 제작 노트(`notes.html`: 기준 이미지·회차별 결과·결함 유형·연출 지시 변경·비용·한계), `data.json`, `img/`(장면 24장 + 1화 재생성 이전 시도 4장 + 기준 이미지 6장). 1화는 자동 재설계 서버(vibelore PR #5)로 다시 만든 결과. 집필·각색 Claude Opus 5.5, 이미지 생성 Codex(gpt-image-2.5-sunburst). |
@@ -20,7 +21,7 @@
 | `thundertrail/data.json` | 리더·비교 페이지 데이터. 장면별 원문 단락, 계획(plan), 렌더 브리프, 시각 검토, 타이밍, 판정. |
 | `thundertrail/img/` | 장면 이미지 55장(WebP, 1024×1536). 원본 PNG는 저장소 밖 제작 폴더에 보관. |
 
-`multilingual/data.json`·`img/`는 `tmp/showcase-multilingual/build-multilingual.py`가 다국어 수락 테스트 증거(`--webtoon-run`, `--before`로 실행 선택)에서 만듭니다. `executionprincess/data.json`은 `tmp/scene-20260924-sol/build-site.py`가 `tmp/scene-20260924-sol/`·`tmp/novel-20260924-sol/` 실행 기록에서 만듭니다. `verdict-live/data.json`은 `tmp/verdict-scene-opus/build-site.py`가 `tmp/verdict-scene-opus/`·`tmp/verdict-scene-opus-v2/`(1화 재생성)·`tmp/verdict-20260923-opus/`·`tmp/verdict-webtoon-opus/` 실행 기록에서 만듭니다. thundertrail의 `data.json`·`process.json`·`costs.json`은 저장소에 포함되지 않는 제작 실행 산출물(`tmp/scene-20260921/`·`tmp/scene-20260922/`·`tmp/scene-20260923-opus/`·`tmp/scene-20260923-gpt6/`·`tmp/novel-20260923-gpt6/`, `works/thundertrail/production-workspaces/`)에서 생성합니다. 수치는 모두 CLI·API 실행 기록에서 읽은 값이며, 검토 판정은 오케스트레이션 호스트의 자기검토입니다.
+`multilingual/data.json`·`img/`는 `tmp/showcase-multilingual/build-multilingual.py`가 다국어 수락 테스트 증거(`--webtoon-run`, `--before`로 실행 선택)에서 만듭니다. `vesper/data.json`·`novel/`·`img/`는 `tmp/vesper-scene-opus/build-site.py`가 `works/vesper/`·`tmp/vesper-20260928-opus/`·`tmp/vesper-scene-opus/` 실행 기록에서 만듭니다. `executionprincess/data.json`은 `tmp/scene-20260924-sol/build-site.py`가 `tmp/scene-20260924-sol/`·`tmp/novel-20260924-sol/` 실행 기록에서 만듭니다. `verdict-live/data.json`은 `tmp/verdict-scene-opus/build-site.py`가 `tmp/verdict-scene-opus/`·`tmp/verdict-scene-opus-v2/`(1화 재생성)·`tmp/verdict-20260923-opus/`·`tmp/verdict-webtoon-opus/` 실행 기록에서 만듭니다. thundertrail의 `data.json`·`process.json`·`costs.json`은 저장소에 포함되지 않는 제작 실행 산출물(`tmp/scene-20260921/`·`tmp/scene-20260922/`·`tmp/scene-20260923-opus/`·`tmp/scene-20260923-gpt6/`·`tmp/novel-20260923-gpt6/`, `works/thundertrail/production-workspaces/`)에서 생성합니다. 수치는 모두 CLI·API 실행 기록에서 읽은 값이며, 검토 판정은 오케스트레이션 호스트의 자기검토입니다.
 
 로컬 확인:
 
