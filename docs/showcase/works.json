@@ -97,6 +97,8 @@
     },
     {
       "id": "thundertrail",
+      "pages": { "notes": "process.html" },
+      "tabs": [["cost", "비용·시간 상세", "cost.html"], ["compare", "모델 비교", "compare.html"]],
       "lore": "thundertrail/lore.json",
       "href": "thundertrail/",
       "title": "길 위의 번개",

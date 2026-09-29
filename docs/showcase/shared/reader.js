@@ -273,7 +273,10 @@
     }
     if (s) renderSheet(s);
     if (history.replaceState) history.replaceState(null, '', `#ep${e.chapter}/${sid}`);
+    remember(`#ep${e.chapter}/${sid}`);
   }
+  // 작품 개요의 ‘이어 읽기’ 버튼이 읽는다(shared/workpage.js)
+  function remember(h) { if (OPT.work) store.set('reader.last.' + OPT.work, h); }
   function observe() {
     if (observer) observer.disconnect();
     if (!toon()) return;
@@ -332,7 +335,7 @@
   function renderAll() {
     applyMeta(); renderPicker(); renderHead(); renderScenes(); applyMode(); applySize();
     return renderProse().then(() => {
-      const e = toon(); if (!e) return;
+      const e = toon(); if (!e) { remember(`#ep${state.ch}`); return; }
       const s = e.scenes.find((x) => x.id === state.scene) || e.scenes[0];
       setCurrent(s.id, { force: true });
       const target = $(`#scene-${s.id}`);
