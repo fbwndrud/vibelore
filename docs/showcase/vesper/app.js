@@ -67,6 +67,8 @@
     else if (!state.meta) $('#eplead').textContent = `${arcLine}. ` + T('웹툰 {n}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.', { n: e.sceneCount });
     else $('#eplead').textContent = T('{scenes}장면 {panels}칸. 검토에서 떨어진 장면은 서버가 결함 목록으로 다시 설계해 새로 그렸습니다(자동 재설계 최대 {limit}회). 검토 통과 {pass}/{scenes}.', { scenes: e.sceneCount, panels: e.panelTotal, limit: e.regen.autoRevisionLimit, pass: e.passCount })
       + (e.scenes.some((s) => s.lettering) ? ' ' + T('끝내 통과하지 못한 장면 {n}개는 틀린 글자만 후반 식자로 고쳐 싣고, 식자 전 원본과 서버 판정을 함께 공개합니다.', { n: e.scenes.filter((s) => s.lettering).length }) : '');
+    const hint = $('#ephint');
+    if (e && e.device && e.device.hint) { hint.hidden = false; hint.textContent = T(e.device.hint); } else hint.hidden = true;
     const dv = $('#epdevice');
     if (e && e.device) { dv.hidden = false; dv.innerHTML = ''; dv.append(el('b', null, T('연출 실험 · ') + T(e.device.title)), el('span', null, T(e.device.summary))); } else dv.hidden = true;
     document.title = `${DATA.work} · ${T('{n}화', { n: c.chapter })}`;
@@ -147,7 +149,8 @@
     for (const s of e.scenes) {
       rail.append(el('a', { href: `#ep${e.chapter}/${s.id}`, class: s.verdict, 'data-scene': s.id, title: s.title }, s.n));
       const badge = el('span', { class: 'badge ' + s.verdict }, s.verdict === 'pass' ? T('검토: 통과') : T('검토: 수정 필요 · 식자 수정'));
-      col.append(el('section', { class: 'scene', id: `scene-${s.id}`, 'data-scene': s.id },
+      const g = e.device && e.device.glow && e.device.glow[s.id];
+      col.append(el('section', { class: 'scene' + (g ? ' glow' : ''), id: `scene-${s.id}`, 'data-scene': s.id, style: g ? `--g:linear-gradient(to bottom,${g.join(',')})` : null },
         el('div', { class: 'scene-head' },
           el('div', { class: 'scene-title' }, el('b', null, T('장면 {n}', { n: s.n }) + ' · ', el('bdi', { lang: 'ko' }, s.title)), el('span', null, sceneMeta(s))),
           badge),
