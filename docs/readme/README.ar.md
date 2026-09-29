@@ -1,14 +1,14 @@
 # vibelore
 
-[한국어](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | العربية
+[한국어](../../README.md) | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | العربية
 
 **أداة محلية لكتابة روايات الويب بالذكاء الاصطناعي ثم تحويلها إلى ويبتون، تحافظ على تماسك عالم القصة حتى بعد مئات الفصول.**
 
 *Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into webtoon scenes. Local, Markdown, no extra API keys for writing.*
 
-[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
+[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
 [![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 تستخدمها بتوصيلها كخادم MCP بأداة برمجة بالذكاء الاصطناعي مثل Claude Code أو Codex أو Grok CLI. ذلك الذكاء الاصطناعي هو من يكتب النص ويرسم الصور،
@@ -16,10 +16,10 @@
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="فيسبر، الفصل 1، المشهد 6"></a><br><sub><i>فيسبر</i> · كوميديا رومانسية عن كائن غير بشري</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="الأميرة قبل إعدامها بدقيقة، الفصل 1، المشهد 9"></a><br><sub><i>الأميرة قبل إعدامها بدقيقة</i> · فانتازيا رومانسية عن العودة بالزمن والانتقام</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="الحكم LIVE، الفصل 1، المشهد 6"></a><br><sub><i>الحكم LIVE</i> · إثارة عن التشهير الإلكتروني</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="برق على الطريق، الفصل 1، المشهد 1"></a><br><sub><i>برق على الطريق</i> · أكشن فانتازيا على الطريق</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="فيسبر، الفصل 1، المشهد 6"></a><br><sub><i>فيسبر</i> · كوميديا رومانسية عن كائن غير بشري</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="الأميرة قبل إعدامها بدقيقة، الفصل 1، المشهد 9"></a><br><sub><i>الأميرة قبل إعدامها بدقيقة</i> · فانتازيا رومانسية عن العودة بالزمن والانتقام</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="الحكم LIVE، الفصل 1، المشهد 6"></a><br><sub><i>الحكم LIVE</i> · إثارة عن التشهير الإلكتروني</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="برق على الطريق، الفصل 1، المشهد 1"></a><br><sub><i>برق على الطريق</i> · أكشن فانتازيا على الطريق</sub></td>
 </tr>
 </table>
 
@@ -165,7 +165,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 > أريد أن أبدأ رواية جديدة. إنها قصة سائق حافلة ليلية يستمع إلى ندم ركّابه. ابدأ بمقابلة العمل.
 
 لا تسأل المقابلة إلا عن التفضيلات التي تغيّر النتيجة، من 4 إلى 5 أسئلة في كل مرة. لتخطيها قل «قرّر تلقائيًا
-من دون أن تسألني». وإن تعثرت، راجع [دليل البدء](docs/GETTING_STARTED.en.md).
+من دون أن تسألني». وإن تعثرت، راجع [دليل البدء](../GETTING_STARTED.en.md).
 
 ## ماذا تفعل
 
@@ -194,14 +194,14 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 | أريد تحويل رواية موجودة إلى ويبتون | «حوّل الفصل 1 إلى ويبتون. اسألني عن اتجاه الإنتاج أولًا» |
 | أريد إعادة رسم مشهد في الويبتون | «أعد رسم هذا المشهد من الفصل 1 [هكذا]» |
 
-للتصحيح والاستئناف والنسخ الاحتياطي راجع [استكشاف الأخطاء والنسخ الاحتياطي](docs/TROUBLESHOOTING.en.md).
+للتصحيح والاستئناف والنسخ الاحتياطي راجع [استكشاف الأخطاء والنسخ الاحتياطي](../TROUBLESHOOTING.en.md).
 
 ## كيف يُصنع الويبتون
 
 <table>
 <tr>
-<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="برق على الطريق، الفصل 1، المشهد 4"></td>
-<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="برق على الطريق، الفصل 2، المشهد 6"></td>
+<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="برق على الطريق، الفصل 1، المشهد 4"></td>
+<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="برق على الطريق، الفصل 2، المشهد 6"></td>
 <td valign="top">
 
 تحوّل رواية كتبتها بالفعل إلى ويبتون كما هي. ملامح الشخصيات والعالم والوضع حتى ذلك الفصل تؤخذ من العمل الأصلي، فلا حاجة إلى شرحها من جديد.
@@ -217,7 +217,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 </table>
 
 تُرسم الصور بنموذج صور OpenAI الذي يختاره المستخدم (`gpt-image-2` أو `gpt-image-2.5-sunburst` (الافتراضي) أو `gpt-image-2.5-flare`)، ويستدعيه المضيف عبر API. يلزم مفتاح API وفوترة منفصلان، وقبل المشهد الأول يُعرض عليك النموذج والتكلفة وما سيُرسل، ثم يُثبَّت الاختيار لكل عمل بناءً على جوابك. تُحفظ نتائج الويبتون منفصلة عن النسخة المرجعية للرواية ولا تغيّر الرواية.
-للخطوات المفصلة راجع [دليل إنتاج الويبتون](docs/WEBTOON.en.md).
+للخطوات المفصلة راجع [دليل إنتاج الويبتون](../WEBTOON.en.md).
 
 ## لماذا vibelore
 
@@ -235,7 +235,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 | vibelore | تمرير النسخة المرجعية والخطط، وضمان الترتيب، وفحص التعارضات، وتسجيل أدلة المراجعة، والاعتماد والاسترداد |
 | النسخة المرجعية بصيغة Markdown | الحقائق النهائية للعالم والشخصيات والنص والملخصات |
 
-للاتجاه العام راجع [الفلسفة](docs/PHILOSOPHY.en.md)، وللبنية راجع [المعمارية](docs/ARCHITECTURE.en.md).
+للاتجاه العام راجع [الفلسفة](../PHILOSOPHY.en.md)، وللبنية راجع [المعمارية](../ARCHITECTURE.en.md).
 
 ## الأنواع المدعومة
 
@@ -275,7 +275,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 جرى التحقق من كتابة الرواية ومن مسار الويبتون بالمشهد بعيّنة قبول في 8 لغات: الإنجليزية والإسبانية واليابانية والفرنسية
 والكورية والعربية والصينية التقليدية والتايلاندية. وكان النموذج المضيف في هذه العيّنة Claude Sonnet 5. لتفاصيل عقد
-المعاملات راجع [لغة العمل ووحدات الطول](docs/TOOLS.en.md#work-language-and-length-units).
+المعاملات راجع [لغة العمل ووحدات الطول](../TOOLS.en.md#work-language-and-length-units).
 
 ## أين الملفات
 
@@ -290,7 +290,7 @@ my-novel/
 ```
 
 تبقى المخطوطات وسجلات الإنتاج على حاسوبك. وقد تُرسل المخطوطة والصور المرجعية اللازمة لطلبٍ ما إلى المضيف
-وخدمة النماذج المتصلة. الحدود مذكورة في [دليل الأمان](SECURITY.md).
+وخدمة النماذج المتصلة. الحدود مذكورة في [دليل الأمان](../../SECURITY.md).
 حقوق نشر المخطوطة لمؤلفها، ولا تنطبق عليها رخصة هذا المستودع.
 
 ## النماذج والتكلفة
@@ -299,7 +299,7 @@ my-novel/
 - **صور الويبتون** تأتي من واجهة OpenAI API للصور (`gpt-image-2` و`gpt-image-2.5-sunburst` (الافتراضي) و`gpt-image-2.5-flare`)، ويستدعيها المضيف، ولها مفتاحها وفوترتها الخاصة. يُحفظ النموذج المؤكد لكل عمل ولا يُغيَّر ولا يُستبدل من تلقاء نفسه.
 - **نماذج النص المحلية** يمكن توصيلها بنقطة نهاية متوافقة مع OpenAI عبر متغيرات البيئة.
 
-للإعدادات المفصلة راجع [إعدادات النماذج](docs/MODELS.en.md).
+للإعدادات المفصلة راجع [إعدادات النماذج](../MODELS.en.md).
 
 ## أسئلة شائعة
 
@@ -318,7 +318,7 @@ my-novel/
 <details>
 <summary>إذا توقف العمل في المنتصف، هل أبدأ من جديد؟</summary>
 
-لا. سير العمل محفوظ، فتكفي كلمة «تابع» للاستئناف من الموضع نفسه. لا تُعتمد إلا المخطوطات التي اجتازت الفحص، ويمكن الرجوع باللقطات المحفوظة لكل فصل. راجع [استكشاف الأخطاء](docs/TROUBLESHOOTING.en.md#work-stopped-midway).
+لا. سير العمل محفوظ، فتكفي كلمة «تابع» للاستئناف من الموضع نفسه. لا تُعتمد إلا المخطوطات التي اجتازت الفحص، ويمكن الرجوع باللقطات المحفوظة لكل فصل. راجع [استكشاف الأخطاء](../TROUBLESHOOTING.en.md#work-stopped-midway).
 </details>
 
 <details>
@@ -343,12 +343,12 @@ my-novel/
 
 روابط الوثائق تشير إلى النسخ الإنجليزية. والأصل الكوري موجود في ملف `.md` الذي يحمل الاسم نفسه.
 
-- [دليل البدء](docs/GETTING_STARTED.en.md) — التسجيل، والعمل الأول، والفصل التالي، وعند التعثر
-- [إنتاج الويبتون](docs/WEBTOON.en.md) — نطاق العمل الأصلي والخيارات الإلزامية، والإنتاج بالمشهد الكامل والمراجعة
-- [استكشاف الأخطاء والنسخ الاحتياطي](docs/TROUBLESHOOTING.en.md) — استئناف العمل، والتعديل اليدوي، والرجوع، وحفظ الملفات
-- [إعدادات النماذج](docs/MODELS.en.md) — اختيار نماذج النص والصور، ومسارات التكلفة، والنماذج المحلية
-- [مرجع الأدوات](docs/TOOLS.en.md) — العقد الكامل للأدوات التي يستدعيها المضيف
-- [المعمارية](docs/ARCHITECTURE.en.md) — بنية إنتاج الرواية والويبتون، ودور الذكاء الاصطناعي والخادم، وحدود التخزين
-- [كل الوثائق](docs/README.en.md) · [سجلات التحقق لكل مضيف](HOSTS.en.md) · [المساهمة](CONTRIBUTING.md) · [الأمان](SECURITY.md)
+- [دليل البدء](../GETTING_STARTED.en.md) — التسجيل، والعمل الأول، والفصل التالي، وعند التعثر
+- [إنتاج الويبتون](../WEBTOON.en.md) — نطاق العمل الأصلي والخيارات الإلزامية، والإنتاج بالمشهد الكامل والمراجعة
+- [استكشاف الأخطاء والنسخ الاحتياطي](../TROUBLESHOOTING.en.md) — استئناف العمل، والتعديل اليدوي، والرجوع، وحفظ الملفات
+- [إعدادات النماذج](../MODELS.en.md) — اختيار نماذج النص والصور، ومسارات التكلفة، والنماذج المحلية
+- [مرجع الأدوات](../TOOLS.en.md) — العقد الكامل للأدوات التي يستدعيها المضيف
+- [المعمارية](../ARCHITECTURE.en.md) — بنية إنتاج الرواية والويبتون، ودور الذكاء الاصطناعي والخادم، وحدود التخزين
+- [كل الوثائق](../README.en.md) · [سجلات التحقق لكل مضيف](../../HOSTS.en.md) · [المساهمة](../../CONTRIBUTING.md) · [الأمان](../../SECURITY.md)
 
 Apache-2.0. حقوق المخطوطات والصور لمن صنعها.

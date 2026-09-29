@@ -1,14 +1,14 @@
 # vibelore
 
-[한국어](README.md) | [English](README.en.md) | 日本語 | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
+[한국어](../../README.md) | [English](README.en.md) | 日本語 | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
 
 **AIでWeb小説を書き、その小説をウェブトゥーンにするローカルツール。数百話を重ねても設定は崩れません。**
 
 *Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into webtoon scenes. Local, Markdown, no extra API keys for writing.*
 
-[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
+[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
 [![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 Claude Code、Codex、Grok CLI などの AI コーディングツールに MCP サーバーとしてつないで使います。本文と絵はその AI が作り、
@@ -16,10 +16,10 @@ vibelore は世界観・人物・伏線・時系列を記憶し、毎話チェ�
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="『ベスパー』第1話 シーン6"></a><br><sub>『ベスパー』 · 人外ロマンティックコメディ</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="『処刑1分前の皇女』第1話 シーン9"></a><br><sub>『処刑1分前の皇女』 · ロマンスファンタジー回帰復讐劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="『判決LIVE』第1話 シーン6"></a><br><sub>『判決LIVE』 · サイバーレッカー・スリラー</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="『道の上の稲妻』第1話 シーン1"></a><br><sub>『道の上の稲妻』 · ファンタジー・ロードアクション</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="『ベスパー』第1話 シーン6"></a><br><sub>『ベスパー』 · 人外ロマンティックコメディ</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="『処刑1分前の皇女』第1話 シーン9"></a><br><sub>『処刑1分前の皇女』 · ロマンスファンタジー回帰復讐劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="『判決LIVE』第1話 シーン6"></a><br><sub>『判決LIVE』 · サイバーレッカー・スリラー</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="『道の上の稲妻』第1話 シーン1"></a><br><sub>『道の上の稲妻』 · ファンタジー・ロードアクション</sub></td>
 </tr>
 </table>
 
@@ -143,7 +143,7 @@ Claude Code 用の執筆ループのスキルは `hosts/claude/skills/novel/`、
 > 新しい小説を始めたい。深夜バスで乗客の後悔を聞く運転手の話だよ。作品インタビューから始めて。
 
 インタビューは結果を変える好みだけを一度に4〜5個ずつ尋ねます。飛ばしたいときは「聞かずに自動で」と
-言えば大丈夫です。行き詰まったら[スタートガイド](docs/GETTING_STARTED.en.md)を見てください。
+言えば大丈夫です。行き詰まったら[スタートガイド](../GETTING_STARTED.en.md)を見てください。
 
 ## 何をしてくれるか
 
@@ -172,14 +172,14 @@ Claude Code 用の執筆ループのスキルは `hosts/claude/skills/novel/`、
 | 既存の小説をウェブトゥーンにしたい | 「1話をウェブトゥーンに脚色して。制作の方向性から聞いて」 |
 | ウェブトゥーンのシーンを描き直したい | 「1話のこのシーンを［こう］描き直して」 |
 
-修正・再開・バックアップは[トラブルシューティングとバックアップ](docs/TROUBLESHOOTING.en.md)を見てください。
+修正・再開・バックアップは[トラブルシューティングとバックアップ](../TROUBLESHOOTING.en.md)を見てください。
 
 ## ウェブトゥーンはどう作るか
 
 <table>
 <tr>
-<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="『道の上の稲妻』第1話 シーン4"></td>
-<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="『道の上の稲妻』第2話 シーン6"></td>
+<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="『道の上の稲妻』第1話 シーン4"></td>
+<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="『道の上の稲妻』第2話 シーン6"></td>
 <td valign="top">
 
 すでに書いた小説をそのままウェブトゥーンにします。人物の外見、世界観、その話までの状況は原作から引き継ぐので、説明し直す必要はありません。
@@ -195,7 +195,7 @@ Claude Code 用の執筆ループのスキルは `hosts/claude/skills/novel/`、
 </table>
 
 絵は、ユーザーが選んだ OpenAI の画像モデル（`gpt-image-2`、`gpt-image-2.5-sunburst`（既定）、`gpt-image-2.5-flare`）をホストが API で呼び出して描きます。別途の API キーと課金が必要で、最初のシーンの前にモデル・費用・送信範囲を示し、ユーザーの答えを受けて作品ごとに確定します。ウェブトゥーンの結果は小説の正本とは別に保存され、小説を変えません。
-詳しい手順は[ウェブトゥーン制作ガイド](docs/WEBTOON.en.md)を見てください。
+詳しい手順は[ウェブトゥーン制作ガイド](../WEBTOON.en.md)を見てください。
 
 ## なぜ vibelore か
 
@@ -213,7 +213,7 @@ Claude Code 用の執筆ループのスキルは `hosts/claude/skills/novel/`、
 | vibelore | 正本・計画の受け渡し、順序の保証、衝突チェック、レビュー根拠の記録、コミットと復旧 |
 | Markdown 正本 | 世界・人物・本文・要約の最終的な事実 |
 
-全体の方向性は[哲学](docs/PHILOSOPHY.en.md)、構造は[アーキテクチャ](docs/ARCHITECTURE.en.md)を見てください。
+全体の方向性は[哲学](../PHILOSOPHY.en.md)、構造は[アーキテクチャ](../ARCHITECTURE.en.md)を見てください。
 
 ## 対応ジャンル
 
@@ -253,7 +253,7 @@ Claude Code 用の執筆ループのスキルは `hosts/claude/skills/novel/`、
 
 小説の執筆とシーンのウェブトゥーンの流れは、英語、スペイン語、日本語、フランス語、韓国語、アラビア語、
 繁体字中国語、タイ語の8言語の受け入れサンプルで確認しました。このサンプルのホストモデルは Claude Sonnet 5 でした。引数の契約の
-詳細は[作品の言語と分量の単位](docs/TOOLS.en.md#work-language-and-length-units)を参照してください。
+詳細は[作品の言語と分量の単位](../TOOLS.en.md#work-language-and-length-units)を参照してください。
 
 ## ファイルはどこに
 
@@ -268,7 +268,7 @@ my-novel/
 ```
 
 原稿と制作記録は自分のコンピューターに残ります。接続したホストやモデルのサービスには、リクエストに必要な原稿と
-参照画像が送られることがあります。境界は[セキュリティガイド](SECURITY.md)にあります。
+参照画像が送られることがあります。境界は[セキュリティガイド](../../SECURITY.md)にあります。
 原稿の著作権は作者にあり、このリポジトリのライセンスは適用されません。
 
 ## モデルとコスト
@@ -277,7 +277,7 @@ my-novel/
 - **ウェブトゥーンの画像**は OpenAI の画像 API（`gpt-image-2`、`gpt-image-2.5-sunburst`（既定）、`gpt-image-2.5-flare`）をホストが呼び出して作り、別途キーと課金がかかります。確認したモデルは作品ごとに保存し、勝手に変えたり代替したりしません。
 - **ローカルのテキストモデル**は、OpenAI 互換のエンドポイントを環境変数でつなげられます。
 
-詳しい設定は[モデル設定](docs/MODELS.en.md)を見てください。
+詳しい設定は[モデル設定](../MODELS.en.md)を見てください。
 
 ## よくある質問
 
@@ -296,7 +296,7 @@ my-novel/
 <details>
 <summary>途中で止まったら最初からやり直しですか？</summary>
 
-いいえ。ワークフローが保存されるので「続けて」で同じ場所から再開します。チェックを通った原稿だけがコミットされ、話単位のスナップショットで巻き戻せます。[トラブルシューティング](docs/TROUBLESHOOTING.en.md#work-stopped-midway)を見てください。
+いいえ。ワークフローが保存されるので「続けて」で同じ場所から再開します。チェックを通った原稿だけがコミットされ、話単位のスナップショットで巻き戻せます。[トラブルシューティング](../TROUBLESHOOTING.en.md#work-stopped-midway)を見てください。
 </details>
 
 <details>
@@ -321,12 +321,12 @@ hard 違反は確定した事実との衝突なので直しますが、本当に
 
 ドキュメントのリンク先は英語版です。韓国語の原文は同じ名前の `.md` ファイルにあります。
 
-- [スタートガイド](docs/GETTING_STARTED.en.md) — 登録、最初の作品、次の話、行き詰まったとき
-- [ウェブトゥーン制作](docs/WEBTOON.en.md) — 原作の範囲と必須の選択、シーン統合制作とレビュー
-- [トラブルシューティングとバックアップ](docs/TROUBLESHOOTING.en.md) — 作業の再開、手直し、巻き戻し、ファイルの保管
-- [モデル設定](docs/MODELS.en.md) — テキスト・画像モデルの選択、コストの経路、ローカルモデル
-- [ツールリファレンス](docs/TOOLS.en.md) — ホストが呼び出すツールの全契約
-- [アーキテクチャ](docs/ARCHITECTURE.en.md) — 小説・ウェブトゥーン制作の構造、AI とサーバーの役割、保存の境界
-- [全ドキュメント](docs/README.en.md) · [ホスト別の検証記録](HOSTS.en.md) · [コントリビュート](CONTRIBUTING.md) · [セキュリティ](SECURITY.md)
+- [スタートガイド](../GETTING_STARTED.en.md) — 登録、最初の作品、次の話、行き詰まったとき
+- [ウェブトゥーン制作](../WEBTOON.en.md) — 原作の範囲と必須の選択、シーン統合制作とレビュー
+- [トラブルシューティングとバックアップ](../TROUBLESHOOTING.en.md) — 作業の再開、手直し、巻き戻し、ファイルの保管
+- [モデル設定](../MODELS.en.md) — テキスト・画像モデルの選択、コストの経路、ローカルモデル
+- [ツールリファレンス](../TOOLS.en.md) — ホストが呼び出すツールの全契約
+- [アーキテクチャ](../ARCHITECTURE.en.md) — 小説・ウェブトゥーン制作の構造、AI とサーバーの役割、保存の境界
+- [全ドキュメント](../README.en.md) · [ホスト別の検証記録](../../HOSTS.en.md) · [コントリビュート](../../CONTRIBUTING.md) · [セキュリティ](../../SECURITY.md)
 
 Apache-2.0。原稿と絵の権利は作った人にあります。

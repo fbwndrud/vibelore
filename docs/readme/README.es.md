@@ -1,14 +1,14 @@
 # vibelore
 
-[한국어](README.md) | [English](README.en.md) | [日本語](README.ja.md) | Español | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
+[한국어](../../README.md) | [English](README.en.md) | [日本語](README.ja.md) | Español | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
 
 **Una herramienta local para escribir novelas web con IA y convertirlas en webtoons. El canon no se derrumba ni después de cientos de capítulos.**
 
 *Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into webtoon scenes. Local, Markdown, no extra API keys for writing.*
 
-[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
+[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
 [![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 Se usa conectándolo como servidor MCP a una herramienta de programación con IA como Claude Code, Codex o Grok CLI. Esa IA escribe el texto y dibuja las imágenes;
@@ -16,10 +16,10 @@ vibelore recuerda el mundo, los personajes, los presagios y la línea temporal, 
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="Vesper, capítulo 1, escena 6"></a><br><sub><i>Vesper</i> · comedia romántica no humana</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="La princesa un minuto antes de su ejecución, capítulo 1, escena 9"></a><br><sub><i>La princesa un minuto antes de su ejecución</i> · fantasía romántica de regresión y venganza</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="Veredicto LIVE, capítulo 1, escena 6"></a><br><sub><i>Veredicto LIVE</i> · thriller de ciberacoso mediático</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="Relámpago en el camino, capítulo 1, escena 1"></a><br><sub><i>Relámpago en el camino</i> · acción fantástica de carretera</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="Vesper, capítulo 1, escena 6"></a><br><sub><i>Vesper</i> · comedia romántica no humana</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="La princesa un minuto antes de su ejecución, capítulo 1, escena 9"></a><br><sub><i>La princesa un minuto antes de su ejecución</i> · fantasía romántica de regresión y venganza</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="Veredicto LIVE, capítulo 1, escena 6"></a><br><sub><i>Veredicto LIVE</i> · thriller de ciberacoso mediático</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="Relámpago en el camino, capítulo 1, escena 1"></a><br><sub><i>Relámpago en el camino</i> · acción fantástica de carretera</sub></td>
 </tr>
 </table>
 
@@ -143,7 +143,7 @@ Una vez instalado, empieza tu primera obra. Basta con contar en una o dos frases
 > Quiero empezar una novela nueva. Es la historia de un conductor de autobús nocturno que escucha los remordimientos de sus pasajeros. Empieza por la entrevista de la obra.
 
 La entrevista solo pregunta por las preferencias que cambian el resultado, 4 o 5 cada vez. Para saltarla, di «decide automáticamente
-sin preguntar». Si te atascas, consulta la [guía de inicio](docs/GETTING_STARTED.en.md).
+sin preguntar». Si te atascas, consulta la [guía de inicio](../GETTING_STARTED.en.md).
 
 ## Qué hace
 
@@ -172,14 +172,14 @@ edición simultánea o multiinquilino, ni división automática en PNG/JPEG para
 | Quiero convertir una novela existente en webtoon | «Adapta el capítulo 1 a webtoon. Pregúntame primero por la dirección de producción» |
 | Quiero redibujar una escena del webtoon | «Redibuja esta escena del capítulo 1 [así]» |
 
-Para correcciones, reanudación y copias de seguridad, consulta [Solución de problemas y copias de seguridad](docs/TROUBLESHOOTING.en.md).
+Para correcciones, reanudación y copias de seguridad, consulta [Solución de problemas y copias de seguridad](../TROUBLESHOOTING.en.md).
 
 ## Cómo se hace un webtoon
 
 <table>
 <tr>
-<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="Relámpago en el camino, capítulo 1, escena 4"></td>
-<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="Relámpago en el camino, capítulo 2, escena 6"></td>
+<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="Relámpago en el camino, capítulo 1, escena 4"></td>
+<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="Relámpago en el camino, capítulo 2, escena 6"></td>
 <td valign="top">
 
 Convierte tal cual en webtoon una novela que ya escribiste. El aspecto de los personajes, el mundo y la situación hasta ese capítulo se toman del original, así que no hace falta volver a explicarlos.
@@ -195,7 +195,7 @@ El método de aprobar primero bocetos por viñeta está deprecated y solo contin
 </table>
 
 Las imágenes las dibuja el modelo de imagen de OpenAI que elijas (`gpt-image-2`, `gpt-image-2.5-sunburst` (predeterminado) o `gpt-image-2.5-flare`), al que el host llama por la API. Requiere su propia clave de API y facturación; antes de la primera escena se te muestran el modelo, el coste y lo que se envía, y tu respuesta fija la elección para la obra. Los resultados del webtoon se guardan aparte del canon de la novela y nunca la modifican.
-Para los pasos detallados, consulta la [guía de producción de webtoon](docs/WEBTOON.en.md).
+Para los pasos detallados, consulta la [guía de producción de webtoon](../WEBTOON.en.md).
 
 ## Por qué vibelore
 
@@ -213,7 +213,7 @@ y se responsabiliza solo de la memoria, la causalidad, la coherencia, la aprobac
 | vibelore | Pasar el canon y los planes, garantizar el orden, comprobar conflictos, registrar la evidencia de revisión, commit y recuperación |
 | Canon en Markdown | Los hechos finales del mundo, los personajes, el texto y los resúmenes |
 
-Para la dirección general, consulta la [filosofía](docs/PHILOSOPHY.en.md); para la estructura, la [arquitectura](docs/ARCHITECTURE.en.md).
+Para la dirección general, consulta la [filosofía](../PHILOSOPHY.en.md); para la estructura, la [arquitectura](../ARCHITECTURE.en.md).
 
 ## Géneros compatibles
 
@@ -253,7 +253,7 @@ escribir una obra en japonés mientras conversas en coreano.
 
 La escritura de novelas y el flujo de webtoon por escena se comprobaron con una muestra de aceptación en 8 idiomas: inglés, español,
 japonés, francés, coreano, árabe, chino tradicional y tailandés. El modelo host de esa muestra fue Claude Sonnet 5. Para los detalles del contrato de
-argumentos, consulta [Idioma de la obra y unidades de extensión](docs/TOOLS.en.md#work-language-and-length-units).
+argumentos, consulta [Idioma de la obra y unidades de extensión](../TOOLS.en.md#work-language-and-length-units).
 
 ## Dónde están los archivos
 
@@ -268,7 +268,7 @@ my-novel/
 ```
 
 Los manuscritos y los registros de producción se quedan en tu ordenador. Al host y al servicio de modelos conectados se les pueden enviar el manuscrito y las
-imágenes de referencia que necesite una petición. Los límites están en la [guía de seguridad](SECURITY.md).
+imágenes de referencia que necesite una petición. Los límites están en la [guía de seguridad](../../SECURITY.md).
 Los derechos de autor del manuscrito pertenecen a su autor, y la licencia de este repositorio no se le aplica.
 
 ## Modelos y costes
@@ -277,7 +277,7 @@ Los derechos de autor del manuscrito pertenecen a su autor, y la licencia de est
 - **Las imágenes del webtoon** salen de la API de imagen de OpenAI (`gpt-image-2`, `gpt-image-2.5-sunburst` (predeterminado), `gpt-image-2.5-flare`), a la que llama el host, con su propia clave y facturación. El modelo confirmado se guarda por obra y no se cambia ni se sustituye por cuenta propia.
 - **Los modelos de texto locales** se pueden conectar mediante variables de entorno a un endpoint compatible con OpenAI.
 
-Para la configuración detallada, consulta [Configuración de modelos](docs/MODELS.en.md).
+Para la configuración detallada, consulta [Configuración de modelos](../MODELS.en.md).
 
 ## Preguntas frecuentes
 
@@ -296,7 +296,7 @@ La escritura de la novela funciona dentro de la suscripción o los créditos del
 <details>
 <summary>Si se detiene a medias, ¿tengo que empezar de nuevo?</summary>
 
-No. Los flujos de trabajo se guardan, así que con «continúa» se reanuda en el mismo punto. Solo se confirman los manuscritos que pasan las comprobaciones, y las instantáneas por capítulo permiten volver atrás. Consulta [Solución de problemas](docs/TROUBLESHOOTING.en.md#work-stopped-midway).
+No. Los flujos de trabajo se guardan, así que con «continúa» se reanuda en el mismo punto. Solo se confirman los manuscritos que pasan las comprobaciones, y las instantáneas por capítulo permiten volver atrás. Consulta [Solución de problemas](../TROUBLESHOOTING.en.md#work-stopped-midway).
 </details>
 
 <details>
@@ -321,12 +321,12 @@ Sí. El idioma de escritura se fija al crear la obra (en el perfil o con `lore_c
 
 Los enlaces a la documentación llevan a las versiones en inglés. El original en coreano está en el archivo `.md` del mismo nombre.
 
-- [Guía de inicio](docs/GETTING_STARTED.en.md) — registro, primera obra, siguiente capítulo, cuando te atascas
-- [Producción de webtoon](docs/WEBTOON.en.md) — rango del original y elecciones obligatorias, producción por escena completa y revisión
-- [Solución de problemas y copias de seguridad](docs/TROUBLESHOOTING.en.md) — reanudar el trabajo, ediciones a mano, vuelta atrás, conservar archivos
-- [Configuración de modelos](docs/MODELS.en.md) — elección de modelos de texto e imagen, vías de coste, modelos locales
-- [Referencia de herramientas](docs/TOOLS.en.md) — el contrato completo de las herramientas que llama el host
-- [Arquitectura](docs/ARCHITECTURE.en.md) — estructura de producción de novela y webtoon, papel de la IA y del servidor, límites de almacenamiento
-- [Toda la documentación](docs/README.en.md) · [Registros de verificación por host](HOSTS.en.md) · [Contribuir](CONTRIBUTING.md) · [Seguridad](SECURITY.md)
+- [Guía de inicio](../GETTING_STARTED.en.md) — registro, primera obra, siguiente capítulo, cuando te atascas
+- [Producción de webtoon](../WEBTOON.en.md) — rango del original y elecciones obligatorias, producción por escena completa y revisión
+- [Solución de problemas y copias de seguridad](../TROUBLESHOOTING.en.md) — reanudar el trabajo, ediciones a mano, vuelta atrás, conservar archivos
+- [Configuración de modelos](../MODELS.en.md) — elección de modelos de texto e imagen, vías de coste, modelos locales
+- [Referencia de herramientas](../TOOLS.en.md) — el contrato completo de las herramientas que llama el host
+- [Arquitectura](../ARCHITECTURE.en.md) — estructura de producción de novela y webtoon, papel de la IA y del servidor, límites de almacenamiento
+- [Toda la documentación](../README.en.md) · [Registros de verificación por host](../../HOSTS.en.md) · [Contribuir](../../CONTRIBUTING.md) · [Seguridad](../../SECURITY.md)
 
 Apache-2.0. Los derechos de los manuscritos y las imágenes pertenecen a quienes los crearon.

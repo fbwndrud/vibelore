@@ -1,8 +1,8 @@
 {
   "status": "approved",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "targetLicense": "Apache-2.0",
-  "reason": "0.4.2 fixes passing continuity and language reviews that ended in clean_fail (machine-value classification of vitalStatus and inherited proofStatus; a pass keeps its verdict over a malformed citation) and keeps personal character arcs to two active at a time (quota checked at arc planning, beats seeded from the committed cursor, commits no longer fail on a passed beat or an arc over the quota). The npm package ships the files listed in package.json `files`, including the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
+  "reason": "0.4.3 moves the translated READMEs to docs/readme/ so the npm page shows the Korean README.md, and adds a Dockerfile that runs the MCP server over stdio for directory inspection. No server behaviour changes. The npm package ships the files listed in package.json `files`, including the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
   "approvedBy": "JoungKyoung Lyoo",
-  "approvedAt": "2026-09-28"
+  "approvedAt": "2026-09-29"
 }
