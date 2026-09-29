@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<script src="../i18n.js?v=9"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>소설 한 화 · 만드는 방식 · vibelore 제작 예시</title>
+<meta name="description" content="vibelore가 소설 한 화를 계획·초고·검사·수정·승인·커밋하는 순서.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="../shared/site.css?v=1">
+<link rel="stylesheet" href="../shared/how.css?v=1">
+</head>
+<body data-page="how" data-sub="novel" data-root="../">
+<div class="shell">
+<header id="top"></header>
+<div class="wrap page-h">
+  <div>
+    <h1>소설 한 화가 만들어지는 길</h1>
+    <p>사용자는 “다음 화 써 줘” 한마디면 됩니다. 그 뒤에서 한 화는 일곱 단계를 순서대로 지나며, 검사를 통과해 영수증을 받은 원고만 정본이 됩니다.</p>
+  </div>
+  <div class="legend"><span class="who human">사람 결정</span><span class="who ai">AI 판단</span><span class="who code">코드 검사</span></div>
+</div>
+
+<section class="wrap" aria-label="작품·아크·화">
+  <div class="tiers">
+    <div class="card tier">
+      <span class="kicker">작품마다 한 번</span><b>작품 설계 승인</b>
+      <div class="whos"><span class="who human">사람</span><span class="who ai">AI</span></div>
+      <p>발견 인터뷰로 독서 계약(StoryProfile)을 정하고, 전체 이야기와 문체도 승인합니다. 셋이 모두 승인돼야 집필이 열립니다.</p>
+    </div>
+    <div class="arrow"><svg width="32" height="18" viewBox="0 0 32 18" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9h26M22 3l6 6-6 6"/></svg></div>
+    <div class="card tier">
+      <span class="kicker">아크마다 · 3~20화</span><b>아크 계획 → 사용자 승인</b>
+      <div class="whos"><span class="who ai">AI</span><span class="who human">사람</span></div>
+      <p>아크의 약속과 화별 사건·압력·전환·다음 상태. 활성 아크가 있어야 화를 씁니다.</p>
+    </div>
+    <div class="arrow"><svg width="32" height="18" viewBox="0 0 32 18" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9h26M22 3l6 6-6 6"/></svg></div>
+    <div class="card tier dark">
+      <span class="kicker" data-i18n="how.novel.everyEp">화마다 · <span translate="no">lore_write</span> 하나</span><b>아래 일곱 단계를 한 워크플로로</b>
+      <p>시작할 때 손으로 고친 정본이 있는지 먼저 봅니다. 있으면 동기화부터. 중간에 끊겨도 같은 자리에서 이어갑니다.</p>
+    </div>
+  </div>
+</section>
+
+<div class="wrap cols">
+<ol class="spine">
+  <li class="step"><div class="rail"><span class="num">1</span></div><div class="body"><div class="card box">
+    <div class="h"><b>이번 화 계획</b><span class="whos"><span class="who ai">AI</span><span class="who code">코드</span></span></div>
+    <p>아크의 이번 화 비트를 2~4개 장면, 인물의 선택, 독자가 예상할 것과 실제 전환으로 풀어 씁니다. 코드가 필수 항목, 등장인물 ID, 집필 묶음 예산(4,000토큰)을 확인하고, 어긋나면 한 번 고쳐 받습니다.</p>
+    <span class="io">받는 것 아크 비트 · 직전 화 요약 · 열린 떡밥 → 내놓는 것 화별 계획</span>
+  </div></div></li>
+
+  <li class="step"><div class="rail"><span class="num">2</span></div><div class="body"><div class="card box">
+    <div class="h"><b>초고</b><span class="whos"><span class="who ai">AI</span></span></div>
+    <p>계획을 압축한 집필 묶음에, 이번 화에 나오는 인물과 세계 설정·불변식, 이야기 등록부의 현재 값과 긴 기억, 직전 화 끝 2,400자, 문체 기준을 붙여 한 화를 씁니다.</p>
+    <span class="io">일부 입력(오래된 기억·직전 화 끝·작가 기법·문체 기준)은 작품별로 뺄 수 있습니다.</span>
+  </div></div></li>
+
+  <li class="step"><div class="rail"><span class="num">3</span></div><div class="body"><div class="card box">
+    <div class="h"><b>검사와 검토</b><span class="muted" style="font-size:12.5px">서로 기다리지 않는 요청은 한 왕복에 묶어 병렬로</span></div>
+    <div class="subs">
+      <div class="sub"><span class="who code">코드</span><b>규칙 검사</b><span class="t">분량·형식·계획 이행을 모델 없이 판정. 추출이 끝나면 이야기 등록부와의 충돌도.</span></div>
+      <div class="sub"><span class="who ai">AI</span><b>상태 추출 → 의미 연속성</b><span class="t">위치·부상·소지품·알게 된 사실을 뽑고, 다음 왕복에서 정본과 뜻이 맞는지 검사.</span></div>
+      <div class="sub"><span class="who ai">AI</span><b>비평가 6종</b><span class="t">프로필 이탈·논리·장면의 힘·인물·독자 훅·반복. 추출과 같은 왕복. 작품별로 끌 수 있습니다.</span></div>
+      <div class="sub"><span class="who ai">AI</span><b>아크 검토</b><span class="t">아크의 5화마다와 마지막 화에만. 앞 화들과 이어 읽습니다.</span></div>
+    </div>
+    <span class="io">작품 언어와 원고 언어가 다르면 막는 언어 검사도 같이 돌아갑니다.</span>
+  </div></div></li>
+
+  <li class="step"><div class="rail"><span class="num">4</span></div><div class="body">
+    <div class="card box">
+      <div class="h"><b>판정</b><span class="whos"><span class="who code">코드</span></span></div>
+      <p>막는 것은 확정 사실과의 충돌(hard), 분량 미달, 웹소설 줄바꿈 형식 셋입니다. 의미 검사가 원문을 근거로 실패하면 hard가 됩니다. 나머지 soft 위반과 비평가 의견은 기록만 하고 작가 판단에 남깁니다.</p>
+    </div>
+    <div class="loop">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      <div><b>막히면 최소 수정 → 3으로 다시 검사</b><span>원고를 다시 쓰지 않고 걸린 곳만 고칩니다. 검사 실패는 세 번까지, 수정은 앞의 두 번 실패 뒤에만. 바뀌지 않은 문단이 75% 이상이어야 하고(분량 수정 65%, 형식 수정 50%) 못 지키면 멈춥니다.</span></div>
+    </div>
+  </div></li>
+
+  <li class="step"><div class="rail"><span class="num">5</span></div><div class="body"><div class="card box">
+    <div class="h"><b>통과 → 제목·요약·다음 화 판단, 영수증</b><span class="whos"><span class="who ai">AI</span><span class="who code">코드</span></span></div>
+    <p>통과한 원고만 읽고 제목과 요약, 아크를 계속할지 닫을지의 판단을 만듭니다. 서버는 통과한 원고의 해시로 검사 영수증을 발급합니다.</p>
+  </div></div></li>
+
+  <li class="step"><div class="rail"><span class="num human">6</span></div><div class="body"><div class="card box">
+    <b style="font-size:18px">저장 방식 · 두 가지</b>
+    <div class="subs">
+      <div class="sub warm"><div class="h"><b>guided · 기본</b><span class="who human">사람</span></div><span class="t">원고와 검토 의견을 보여 주고 사용자가 승인, 수정 요청, 보류, 거절 중에서 고릅니다.</span></div>
+      <div class="sub"><div class="h"><b>auto</b><span class="who code">코드</span></div><span class="t">켜 둔 검토가 모두 끝나고 문체 이탈이 없을 때만 자동 저장. 아니면 guided로 내려갑니다.</span></div>
+    </div>
+  </div></div></li>
+
+  <li class="step"><div class="rail"><span class="num">7</span></div><div class="body">
+    <div class="card box">
+      <div class="h"><b>커밋</b><span class="whos"><span class="who code">코드</span></span></div>
+      <p>영수증의 해시와 통과 판정이 저장할 원고와 같은지 다시 확인한 뒤 정본에 씁니다. 이야기 등록부·요약·스냅샷을 갱신하고, 5에서 정한 다음 화 판단을 적용합니다.</p>
+      <span class="io">내놓는 것 chapters/ 원고 · 검사 영수증 · 이야기 등록부 · 복구용 스냅샷</span>
+    </div>
+    <div class="loop next">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      <span data-i18n="how.novel.next"><b style="display:inline;color:inherit;font-size:inherit">다음 화는 1로.</b> 아크가 끝났으면 새 아크를 승인받고, 끝난 아크의 요약은 다음 화를 시작할 때 긴 기억으로 만듭니다.</span>
+    </div>
+  </div></li>
+</ol>
+
+<aside class="side">
+  <div class="card panel">
+    <b>다음 화가 기억하는 것</b>
+    <div>
+      <div class="kv"><span>정본 원고</span><span>chapters/ · 직전 화 끝 2,400자</span></div>
+      <div class="kv"><span>화별 요약</span><span>최근 5화는 그대로, 더 오래된 화는 검색으로</span></div>
+      <div class="kv"><span>이야기 등록부</span><span>물건·지식·예정 사건·떡밥의 현재 값과 최근 3화 사건</span></div>
+      <div class="kv"><span>긴 기억</span><span>끝난 아크의 요약</span></div>
+      <div class="kv"><span>작품 설계</span><span>독서 계약 · 전체 이야기 · 문체</span></div>
+    </div>
+    <p class="note">화가 늘어도 입력은 크게 늘지 않습니다. 전체 이력 대신 현재 값을 넘기고, 20화 넘게 쉬던 기록이 돌아오면 이력을 최대 5줄 붙입니다.</p>
+  </div>
+  <div class="card panel">
+    <b>지키는 원칙</b>
+    <p class="rule-line"><b>hard는 고친다.</b> <span>확정 사실과의 충돌</span></p>
+    <p class="rule-line"><b>soft는 묻는다.</b> <span>문체·전개는 작가의 의도일 수 있음</span></p>
+    <p class="rule-line"><b>영수증 없이는 저장하지 않는다.</b></p>
+    <p class="rule-line"><b>손으로 고친 정본이 먼저다.</b> <span>바뀌었으면 동기화하고 이어 씀</span></p>
+  </div>
+  <div class="stats-dark" id="stats" hidden>
+    <div class="row"><b style="font-size:17px" data-i18n="how.novel.statsHead">실측 · <span lang="ko">베스퍼</span> <span data-n="chapters"></span>화</b><span class="note">vibelore 0.4.1 · Claude Opus 5.5</span></div>
+    <div class="grid">
+      <div><b class="n" data-n="calls"></b><span class="l" data-n="callsPer"></span></div>
+      <div><b class="n" data-n="usd"></b><span class="l" data-n="usdPer"></span></div>
+      <div><b class="n" data-n="hours"></b><span class="l" data-n="minPer"></span></div>
+      <div><b class="n" data-n="arcs"></b><span class="l">아크 · 모두 승인 후 집필</span></div>
+    </div>
+    <a href="../vesper/notes.html">베스퍼 제작 노트에서 화별 기록 보기 →</a>
+  </div>
+</aside>
+</div>
+
+<footer class="foot">
+  <span>현재 vibelore 코드(src/tools/workflow.js, check-contract.js)와 docs/ARCHITECTURE.md 기준입니다. 실측은 vesper/data.json.</span>
+  <span data-i18n="common.madeWithLink">제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a></span>
+</footer>
+</div>
+<script src="../shared/chrome.js?v=1"></script>
+<script>
+(function () {
+  'use strict';
+  const T = Showcase.T;
+  fetch('../vesper/data.json').then((r) => r.json()).then((d) => {
+    const c = d.costs.novel; const n = d.chapters.length; const num = (x, o) => I18N.num(x, o);
+    const set = { chapters: n, calls: num(c.calls), callsPer: T('모델 호출 · 화당 약 {n}회', { n: Math.round(c.calls / n) }),
+      usd: '$' + num(c.usd, { minimumFractionDigits: 2 }), usdPer: T('소설 비용 · 화당 약 ${n}', { n: (c.usd / n).toFixed(1) }),
+      hours: T('{n}시간', { n: (c.ms / 3.6e6).toFixed(1) }), minPer: T('호출 시간 · 화당 약 {n}분', { n: Math.round(c.ms / 6e4 / n) }),
+      arcs: T('{n}개', { n: d.arcs.length }) };
+    const box = document.getElementById('stats');
+    for (const x of box.querySelectorAll('[data-n]')) x.textContent = set[x.dataset.n];
+    box.hidden = false;
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>

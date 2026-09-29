@@ -133,7 +133,7 @@
   }
   function renderProse() {
     const e = ep();
-    const box = $('#prose'); box.innerHTML = '';
+    const box = $('#prose'); box.innerHTML = ''; box.dataset.chapter = e.chapter;
     let chars = 0;
     for (const s of e.scenes) {
       box.append(el('div', { class: 'pdiv', id: `pdiv-${s.id}` }, el('span'), el('b', { lang: LANG }, `${T('장면 {n}', { n: s.n })} · p${s.pFrom}–${s.pTo}`), el('span')));

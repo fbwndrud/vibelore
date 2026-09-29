@@ -3,7 +3,7 @@
   'use strict';
   const T = window.T || ((s) => s);
   if (window.I18N) I18N.apply(document.body);
-  const PAGES = [['read', 'read.html', '작품 읽기'], ['notes', 'notes.html', '제작 노트'], ['all', '../', '다른 작품']];
+  const PAGES = [['read', 'read.html', '작품 읽기'], ['notes', 'notes.html', '제작 노트'], ['lore', '../lore.html?work=vesper', '인물·설정'], ['all', '../', '다른 작품']];
   const cur = document.body.dataset.page || '';
   const nav = document.createElement('nav');
   nav.className = 'snav'; nav.setAttribute('aria-label', T('사이트'));

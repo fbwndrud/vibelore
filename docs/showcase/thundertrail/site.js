@@ -5,6 +5,7 @@
   if (window.I18N) I18N.apply(document.body);
   const PAGES = [
     ['read', 'read.html', '작품 읽기'],
+    ['lore', '../lore.html?work=thundertrail', '인물·설정'],
     ['process', 'process.html', '제작 기록'],
     ['workflow', 'workflow.html', '워크플로 해설'],
     ['cost', 'cost.html', '비용·시간'],

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<script src="i18n.js?v=9"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>인물·설정 사전 · vibelore 제작 예시</title>
+<meta name="description" content="작품 정본과 vibelore가 매 화 쌓은 기록에서 뽑은 인물·장소·물건·떡밥. 고른 화까지만 보여줍니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="shared/site.css?v=1">
+<link rel="stylesheet" href="shared/lore.css?v=2">
+<style>
+.lx-work{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.lx-work img{width:56px;height:56px;border-radius:10px;object-fit:cover;object-position:top}
+.lx-work b{display:block;font-size:17px}
+.lx-work .gl{font-size:13px;color:var(--muted)}
+.lx-work a{font-size:13px}
+.lx-bar{margin-top:24px;padding:16px 18px;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;position:sticky;top:0;z-index:5}
+.lx-bar label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub)}
+.lx-bar label>span{white-space:nowrap}
+.lx-bar select,.lx-bar input{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.lx-bar input{width:min(220px,100%)}
+.lx-tabs{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+.lx-tabs button{font:inherit;font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--sub);cursor:pointer}
+.lx-tabs button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.lx-tabs small{opacity:.7;margin-left:4px}
+.lx-note{margin:14px 0 0;font-size:13px;color:var(--muted)}
+.lx-list{display:grid;gap:8px;margin:18px 0 56px}
+.lx-item{padding:0}
+.lx-item>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;padding:14px 18px}
+.lx-item>summary::-webkit-details-marker{display:none}
+.lx-item>summary .nm{font-weight:700;font-size:15.5px;overflow-wrap:anywhere}
+.lx-item>summary .nm.hook{font-weight:500;font-family:'Noto Serif KR',serif}
+.lx-item>summary .mt{font-size:12px;color:var(--muted);white-space:nowrap}
+.lx-item>summary .al{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.lx-item[open]>summary{border-bottom:1px solid var(--line2)}
+.lx-item .lore-card{padding:14px 18px 18px}
+.lx-item:target{outline:2px solid var(--gold);outline-offset:2px}
+.lx-empty{padding:28px;text-align:center;color:var(--muted)}
+.lx-addr{overflow-x:auto;padding:16px}
+.lx-addr table{border-collapse:collapse;font-size:13.5px;min-width:520px}
+.lx-addr th,.lx-addr td{border:1px solid var(--line2);padding:8px 10px;text-align:left;vertical-align:top}
+.lx-addr th{background:var(--band);font-size:12.5px}
+.lx-addr td small{display:block;color:var(--muted);font-size:11.5px}
+@media (max-width:720px){.lx-bar{position:static}}
+</style>
+</head>
+<body data-page="works" data-root="">
+<div class="shell">
+<header id="top"></header>
+<div class="wrap page-h">
+  <div>
+    <h1>인물·설정 사전</h1>
+    <p data-i18n="lore.lead">작품 정본의 인물 파일과, vibelore가 매 화를 커밋할 때 쌓은 기록(설정 원장·이야기 상태)에서 그대로 뽑았습니다. <b>고른 화까지의 기록만</b> 보여주므로 뒷화 내용은 가려집니다. 항목은 눌러야 펼쳐집니다.</p>
+  </div>
+</div>
+<div class="wrap">
+  <div class="card lx-bar">
+    <div class="lx-work" id="work"></div>
+    <label><span>작품</span><select id="pick-work"></select></label>
+    <label><span>어디까지 읽었나요</span><select id="pick-ch"></select></label>
+    <label><span>찾기</span><input id="q" type="search" placeholder="이름·내용"></label>
+    <div class="lx-tabs" id="tabs" role="group" aria-label="분류"></div>
+  </div>
+  <p class="lx-note" id="note"></p>
+  <div class="lx-list" id="list"></div>
+</div>
+<footer class="foot">
+  <span data-i18n="lore.foot">데이터는 작품마다 <code>lore.json</code> 하나이며 <code>scripts/build-showcase-lore.py</code>가 만듭니다. 극적 모델·말투 프로필은 연재 전 작품 설계 값입니다.</span>
+  <span data-i18n="common.madeWithLink">제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a></span>
+</footer>
+</div>
+<script src="shared/chrome.js?v=1"></script>
+<script src="shared/lore.js?v=6"></script>
+<script>
+(function () {
+  'use strict';
+  const { el, loadCatalog } = window.Showcase;
+  const T = (s, v) => window.T(s, v);
+  const $ = (s) => document.querySelector(s);
+  const params = new URLSearchParams(location.search);
+  const state = { work: params.get('work'), ch: params.get('ch'), g: params.get('g') || 'character', q: '' };
+  const GROUPS = ['character', 'objects', 'knowledge', 'scheduled', 'hook', 'address'];
+  const GLABEL = Object.assign({}, Lore.GROUP, { address: '호칭표' });
+  let works = []; let db = null;
+
+  function sync() {
+    const p = new URLSearchParams(location.search);
+    p.set('work', state.work); p.set('ch', state.ch); p.set('g', state.g);
+    history.replaceState(null, '', '?' + p.toString() + location.hash);
+    try { localStorage.setItem('lore.read.' + state.work, String(state.ch)); } catch (e) { /* 저장 불가 */ }
+  }
+  function entries(g) {
+    if (!db) return [];
+    if (g === 'character') return db.characters;
+    if (g === 'hook') return db.hooks;
+    return db.records.filter((r) => r.group === g);
+  }
+  const visible = (e) => (e.kind === 'character' ? Math.max(e.since, 1) : e.since) <= Math.max(state.ch, e.kind === 'character' ? 1 : 0);
+  function textOf(e) {
+    if (e.kind === 'hook') { const t = Lore.latest(e.text, state.ch); return t ? t.v : ''; }
+    return e.name;
+  }
+  function matches(e) {
+    if (!state.q) return true;
+    const q = state.q.toLowerCase();
+    return JSON.stringify([textOf(e), e.aliases, e.kind === 'objects' || e.kind === 'knowledge' || e.kind === 'scheduled' ? Lore.recordState(e, state.ch).fields : e.description]).toLowerCase().includes(q);
+  }
+
+  function renderTabs() {
+    const box = $('#tabs'); box.innerHTML = '';
+    for (const g of GROUPS) {
+      const n = g === 'address' ? db.address.filter((a) => Lore.latest(a.ch, state.ch)).length : entries(g).filter(visible).length;
+      if (!n && g !== 'character') continue;
+      box.append(el('button', { type: 'button', 'aria-pressed': String(g === state.g), onclick: () => { state.g = g; sync(); render(); } }, T(GLABEL[g]), el('small', null, String(n))));
+    }
+  }
+  function renderAddress() {
+    const cs = db.characters.filter(visible);
+    const t = el('table');
+    t.append(el('tr', null, el('th', null, T('부르는 사람 ↓ · 불리는 사람 →')), cs.map((c) => el('th', { lang: 'ko' }, c.name))));
+    for (const a of cs) t.append(el('tr', null, el('th', { lang: 'ko' }, a.name), cs.map((b) => {
+      const x = db.address.find((r) => r.from === a.id && r.to === b.id);
+      const s = x && Lore.latest(x.ch, state.ch);
+      return el('td', null, s ? [el('span', { lang: 'ko' }, '“' + s.term + '”'), el('small', null, Lore.label({ formal: '존대', polite: '공손', intimate: '친밀', playful: '장난', 'playful-formal': '장난 섞인 존대', plain: '평어', subordinate: '아랫사람 말투' }, s.register) + ' · ' + T('{n}화부터', { n: s.ch }))] : '');
+    })));
+    return el('div', { class: 'card lx-addr' }, t);
+  }
+  function item(e) {
+    const hook = e.kind === 'hook';
+    const since = hook ? e.planted : e.since;
+    const paid = hook && e.ev.find((x) => x.e === 'paid' && x.ch <= state.ch);
+    const meta = [hook || e.kind === 'character' ? null : T(e.label), since ? T('{n}화 처음', { n: since }) : T('작품 설계'), paid ? T('{n}화에 회수', { n: paid.ch }) : null].filter(Boolean).join(' · ');
+    const al = e.kind === 'character' ? e.aliases : (e.aliases || []).filter((a) => a.ch <= state.ch).map((a) => a.t);
+    const d = el('details', { class: 'card lx-item', id: e.id },
+      el('summary', null, el('span', { class: 'nm' + (hook ? ' hook' : ''), lang: 'ko' }, textOf(e)), el('span', { class: 'mt' }, meta), al.length ? el('span', { class: 'al', lang: 'ko' }, al.join(' · ')) : null));
+    d.addEventListener('toggle', () => {
+      if (d.open && !d.dataset.done) { d.dataset.done = '1'; const c = Lore.card(db, e, state.ch); for (const x of c.querySelectorAll(hook ? 'header, .lore-hook' : '.lore-kind, header h3, .lore-alias')) x.remove(); d.append(c); I18N.apply(c); }
+    });
+    return d;
+  }
+  function render() {
+    renderTabs();
+    const list = $('#list'); list.innerHTML = '';
+    const note = $('#note');
+    note.textContent = state.ch > 0 ? T('{n}화까지의 기록입니다. {more}', { n: state.ch, more: state.ch < db.through ? T('{n}화 이후 내용은 가렸습니다.', { n: state.ch + 1 }) : T('공개된 마지막 화입니다.') }) : T('연재 전 작품 설계만 보여줍니다.');
+    if (!db.hasLedger && state.g !== 'character' && state.g !== 'hook' && state.g !== 'address') note.textContent += ' ' + T('이 작품은 화별 설정 원장이 없던 버전이라 장소·물건은 연재 전 설계값만 있습니다.');
+    if (state.g === 'address') { list.append(renderAddress()); I18N.apply(list); return; }
+    const xs = entries(state.g).filter(visible).filter(matches);
+    if (!xs.length) list.append(el('div', { class: 'card lx-empty' }, T('이 화까지 해당하는 항목이 없습니다.')));
+    for (const e of xs) list.append(item(e));
+    I18N.apply(list);
+    const id = decodeURIComponent(location.hash.slice(1));
+    const target = id && document.getElementById(id);
+    if (target && target.tagName === 'DETAILS') { target.open = true; target.scrollIntoView({ block: 'start' }); }
+  }
+  function renderWork(w) {
+    const box = $('#work'); box.innerHTML = '';
+    box.append(el('img', { src: w.cover, alt: '' }), el('div', null, el('b', { lang: 'ko' }, w.title), el('span', { class: 'gl en-only' }, w.gloss), el('a', { href: w.links && w.links.read ? w.links.read : w.href }, T('작품 읽으러 가기 →'))));
+    const sel = $('#pick-ch'); sel.innerHTML = '';
+    sel.append(el('option', { value: '0' }, T('연재 전 설계')));
+    for (let i = 1; i <= db.through; i++) sel.append(el('option', { value: String(i) }, T('{n}화까지', { n: i })));
+    sel.value = String(state.ch);
+    document.title = `${I18N.lang === 'en' && w.gloss ? w.gloss : w.title} · ${T('인물·설정 사전')}`;
+    I18N.apply(box);
+  }
+  function open(wid) {
+    const w = works.find((x) => x.id === wid) || works[0];
+    state.work = w.id;
+    return Lore.load(w.lore).then((d) => {
+      db = d;
+      let ch = state.ch != null ? +state.ch : NaN;
+      if (Number.isNaN(ch)) { try { ch = +localStorage.getItem('lore.read.' + w.id); } catch (e) { ch = NaN; } }
+      state.ch = Number.isFinite(ch) && ch >= 0 ? Math.min(ch, d.through) : 1;
+      if (!GROUPS.includes(state.g)) state.g = 'character';
+      if (location.hash) { const e = d.byId[decodeURIComponent(location.hash.slice(1))]; if (e) state.g = e.kind; }
+      renderWork(w); sync(); render();
+    });
+  }
+
+  loadCatalog().then((cat) => {
+    works = cat.works.filter((w) => w.lore);
+    const sel = $('#pick-work');
+    for (const w of works) sel.append(el('option', { value: w.id, lang: 'ko' }, w.title));
+    sel.value = state.work || works[0].id;
+    sel.addEventListener('change', () => { state.ch = null; state.q = ''; $('#q').value = ''; history.replaceState(null, '', location.pathname + location.search); open(sel.value); });
+    $('#pick-ch').addEventListener('change', (e) => { state.ch = +e.target.value; sync(); render(); });
+    $('#q').addEventListener('input', (e) => { state.q = e.target.value.trim(); render(); });
+    return open(state.work);
+  }).catch((err) => { $('#list').textContent = T('데이터를 불러오지 못했습니다: ') + err; });
+})();
+</script>
+</body>
+</html>
