@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- Every MCP tool declares `annotations` (`readOnlyHint`, `destructiveHint`,
+  `idempotentHint`, `openWorldHint`); only `lore_rollback` had them before.
+  The eight status and history tools are marked read-only, and the tools
+  that replace an existing plan or profile are marked destructive.
+- Public tool descriptions now say what each tool writes, when to use it
+  instead of a sibling, what it returns, and when it stops for
+  `needs_model`. Every public input parameter has a description.
+- `lore_init` no longer says to call it first for every new novel: it makes
+  a hand-filled foundation, and `lore_create` refuses to run after it. The
+  description points AI-designed works to `lore_profile` → `lore_create`.
+- `lore_create`'s `chapterWordCount` is documented as legacy code units, not
+  words, and `genre` as ignored when a StoryProfile exists.
+
 ## 0.4.3 — 2026-09-29
 
 - The npm page shows the Korean `README.md` again. The translated READMEs

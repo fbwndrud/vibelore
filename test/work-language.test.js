@@ -562,8 +562,9 @@ describe('생성 이후 도구의 언어 전달', () => {
 describe('MCP schema 와 dispatch', () => {
   it('language 와 length 는 schema/dispatch 에 기본값을 두지 않는다', async () => {
     const source = await readFile(new URL('../src/server.js', import.meta.url), 'utf8');
-    const languageProperties = source.match(/language: \{ type: 'string'[^}]*\}/g) ?? [];
-    assert.ok(languageProperties.length >= 5, 'language 인자가 노출되지 않았다');
+    const languageProperties = source.match(/language(?:: | ?Arg = )\{ type: 'string'[^}]*\}/g) ?? [];
+    const sharedUses = source.match(/language: (?:\{ \.\.\.)?languageArg/g) ?? [];
+    assert.ok(languageProperties.length + sharedUses.length >= 5, 'language 인자가 노출되지 않았다');
     for (const property of languageProperties) assert.doesNotMatch(property, /default/);
     assert.match(source, /length: args\.length/);
     assert.match(source, /language: args\.language/);
