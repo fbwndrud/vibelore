@@ -1,6 +1,6 @@
 {
   "name": "vibelore-plugin",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Write consistent fiction and adapt existing novels into webtoon scenes, one image per scene with dialogue in the work language, through a local MCP server.",
   "author": {
     "name": "JoungKyoungLyoo",

@@ -1,14 +1,14 @@
 # vibelore
 
-[한국어](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | 繁體中文 | [ไทย](README.th.md) | [العربية](README.ar.md)
+[한국어](../../README.md) | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | 繁體中文 | [ไทย](README.th.md) | [العربية](README.ar.md)
 
 **用 AI 寫網路小說，再把小說做成網漫的本機工具。連載數百話，設定也不會崩壞。**
 
 *Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into webtoon scenes. Local, Markdown, no extra API keys for writing.*
 
-[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
+[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
 [![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 把它以 MCP 伺服器的形式接到 Claude Code、Codex、Grok CLI 等 AI 程式設計工具上使用。正文與圖畫由那個 AI 產生，
@@ -16,10 +16,10 @@ vibelore 負責記住世界觀、人物、伏筆與時間線，每一話都做�
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="《貝斯珀》第1話 場景6"></a><br><sub>《貝斯珀》 · 非人類浪漫喜劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="《處刑前一分鐘的皇女》第1話 場景9"></a><br><sub>《處刑前一分鐘的皇女》 · 浪漫奇幻回歸復仇劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="《判決 LIVE》第1話 場景6"></a><br><sub>《判決 LIVE》 · 網路公審驚悚劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="《路上的閃電》第1話 場景1"></a><br><sub>《路上的閃電》 · 奇幻公路動作</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="《貝斯珀》第1話 場景6"></a><br><sub>《貝斯珀》 · 非人類浪漫喜劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="《處刑前一分鐘的皇女》第1話 場景9"></a><br><sub>《處刑前一分鐘的皇女》 · 浪漫奇幻回歸復仇劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="《判決 LIVE》第1話 場景6"></a><br><sub>《判決 LIVE》 · 網路公審驚悚劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="《路上的閃電》第1話 場景1"></a><br><sub>《路上的閃電》 · 奇幻公路動作</sub></td>
 </tr>
 </table>
 
@@ -141,7 +141,7 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 > 我想開始寫一部新小說。是一個在深夜公車上聆聽乘客悔恨的司機的故事。先從作品訪談開始。
 
 訪談只會詢問會改變結果的偏好，每次 4～5 個。想跳過就說「不用問，自動決定」
-即可。遇到困難時請看[入門指南](docs/GETTING_STARTED.en.md)。
+即可。遇到困難時請看[入門指南](../GETTING_STARTED.en.md)。
 
 ## 它能做什麼
 
@@ -170,14 +170,14 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 | 想把既有小說做成網漫 | 「把第1話改編成網漫。先問我製作方向」 |
 | 想重畫網漫的某個場景 | 「把第1話的這個場景〔這樣〕重畫」 |
 
-修正、繼續與備份請看[疑難排解與備份](docs/TROUBLESHOOTING.en.md)。
+修正、繼續與備份請看[疑難排解與備份](../TROUBLESHOOTING.en.md)。
 
 ## 網漫怎麼做
 
 <table>
 <tr>
-<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="《路上的閃電》第1話 場景4"></td>
-<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="《路上的閃電》第2話 場景6"></td>
+<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="《路上的閃電》第1話 場景4"></td>
+<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="《路上的閃電》第2話 場景6"></td>
 <td valign="top">
 
 把已經寫好的小說原樣做成網漫。人物外貌、世界觀和到那一話為止的情況都從原作沿用，不必重新說明。
@@ -193,7 +193,7 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 </table>
 
 圖畫由主機透過 API 呼叫使用者選擇的 OpenAI 圖片模型（`gpt-image-2`、`gpt-image-2.5-sunburst`（預設）、`gpt-image-2.5-flare`）繪製。需要另外的 API 金鑰與計費；在第一個場景之前會顯示模型、費用與傳送範圍，依使用者的回答按作品確定。網漫結果與小說正本分開儲存，不會改動小說。
-詳細步驟請看[網漫製作指南](docs/WEBTOON.en.md)。
+詳細步驟請看[網漫製作指南](../WEBTOON.en.md)。
 
 ## 為什麼是 vibelore
 
@@ -211,7 +211,7 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 | vibelore | 傳遞正典與計畫、保證順序、衝突檢查、記錄審查依據、提交與復原 |
 | Markdown 正典 | 世界、人物、正文、摘要的最終事實 |
 
-整體方向請看[理念](docs/PHILOSOPHY.en.md)，結構請看[架構](docs/ARCHITECTURE.en.md)。
+整體方向請看[理念](../PHILOSOPHY.en.md)，結構請看[架構](../ARCHITECTURE.en.md)。
 
 ## 支援類型
 
@@ -251,7 +251,7 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 
 小說寫作與場景網漫流程已用英語、西班牙語、日語、法語、韓語、阿拉伯語、繁體中文、泰語
 8 種語言的驗收樣本確認，該樣本的主機模型為 Claude Sonnet 5。參數契約的
-細節請參考[作品語言與分量單位](docs/TOOLS.en.md#work-language-and-length-units)。
+細節請參考[作品語言與分量單位](../TOOLS.en.md#work-language-and-length-units)。
 
 ## 檔案在哪裡
 
@@ -266,7 +266,7 @@ my-novel/
 ```
 
 稿件與製作紀錄都留在你的電腦上。請求所需的稿件與參考圖片可能會傳送到連接的主機與模型服務。
-界線請看[安全指南](SECURITY.md)。
+界線請看[安全指南](../../SECURITY.md)。
 稿件的著作權屬於作者，本儲存庫的授權不適用於稿件。
 
 ## 模型與費用
@@ -275,7 +275,7 @@ my-novel/
 - **網漫圖片**由主機呼叫 OpenAI 圖片 API（`gpt-image-2`、`gpt-image-2.5-sunburst`（預設）、`gpt-image-2.5-flare`）生成，另有金鑰與計費。確認過的模型按作品儲存，不會擅自更改或替換。
 - **本機文字模型**可以透過環境變數連接到相容 OpenAI 的端點。
 
-詳細設定請看[模型設定](docs/MODELS.en.md)。
+詳細設定請看[模型設定](../MODELS.en.md)。
 
 ## 常見問題
 
@@ -294,7 +294,7 @@ my-novel/
 <details>
 <summary>中途停下來就要從頭再來嗎？</summary>
 
-不用。工作流程會被儲存，說「繼續」就能從原處恢復。只有通過檢查的稿件才會提交，也能用各話快照回溯。請看[疑難排解](docs/TROUBLESHOOTING.en.md#work-stopped-midway)。
+不用。工作流程會被儲存，說「繼續」就能從原處恢復。只有通過檢查的稿件才會提交，也能用各話快照回溯。請看[疑難排解](../TROUBLESHOOTING.en.md#work-stopped-midway)。
 </details>
 
 <details>
@@ -319,12 +319,12 @@ hard 違規是與既定事實的衝突，所以會修正；若真的是反轉，
 
 文件連結指向英文版。韓文原文位於同名的 `.md` 檔案。
 
-- [入門指南](docs/GETTING_STARTED.en.md) — 註冊、第一部作品、下一話、卡住時
-- [網漫製作](docs/WEBTOON.en.md) — 原作範圍與必選項目、整場景製作與審查
-- [疑難排解與備份](docs/TROUBLESHOOTING.en.md) — 恢復工作、手動修改、回溯、保存檔案
-- [模型設定](docs/MODELS.en.md) — 文字與圖片模型的選擇、費用路徑、本機模型
-- [工具參考](docs/TOOLS.en.md) — 主機呼叫的工具完整契約
-- [架構](docs/ARCHITECTURE.en.md) — 小說與網漫的製作結構、AI 與伺服器的角色、儲存界線
-- [全部文件](docs/README.en.md) · [各主機驗證紀錄](HOSTS.en.md) · [貢獻](CONTRIBUTING.md) · [安全](SECURITY.md)
+- [入門指南](../GETTING_STARTED.en.md) — 註冊、第一部作品、下一話、卡住時
+- [網漫製作](../WEBTOON.en.md) — 原作範圍與必選項目、整場景製作與審查
+- [疑難排解與備份](../TROUBLESHOOTING.en.md) — 恢復工作、手動修改、回溯、保存檔案
+- [模型設定](../MODELS.en.md) — 文字與圖片模型的選擇、費用路徑、本機模型
+- [工具參考](../TOOLS.en.md) — 主機呼叫的工具完整契約
+- [架構](../ARCHITECTURE.en.md) — 小說與網漫的製作結構、AI 與伺服器的角色、儲存界線
+- [全部文件](../README.en.md) · [各主機驗證紀錄](../../HOSTS.en.md) · [貢獻](../../CONTRIBUTING.md) · [安全](../../SECURITY.md)
 
 Apache-2.0。稿件與圖畫的權利屬於創作者。

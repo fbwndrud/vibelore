@@ -1,6 +1,6 @@
 # vibelore
 
-한국어 | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
+한국어 | [English](docs/readme/README.en.md) | [日本語](docs/readme/README.ja.md) | [Español](docs/readme/README.es.md) | [Français](docs/readme/README.fr.md) | [繁體中文](docs/readme/README.zh-Hant.md) | [ไทย](docs/readme/README.th.md) | [العربية](docs/readme/README.ar.md)
 
 **AI로 웹소설을 쓰고, 그 소설을 웹툰으로 만드는 로컬 도구. 수백 화가 지나도 설정은 무너지지 않게.**
 

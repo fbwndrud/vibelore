@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.3 — 2026-09-29
+
+- The npm page shows the Korean `README.md` again. The translated READMEs
+  moved to `docs/readme/`; npm picked whichever `README.*` file it found
+  first, and 0.4.1 and 0.4.2 were published with the Traditional Chinese one.
+- A `Dockerfile` runs the MCP server over stdio, so directories that build
+  and inspect servers (such as Glama) can list its tools.
+
 ## 0.4.2 — 2026-09-28
 
 - A continuity or language review that passes no longer ends the chapter in

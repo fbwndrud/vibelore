@@ -1,14 +1,14 @@
 # vibelore
 
-[한국어](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | ไทย | [العربية](README.ar.md)
+[한국어](../../README.md) | [English](README.en.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | ไทย | [العربية](README.ar.md)
 
 **เครื่องมือแบบโลคัลสำหรับเขียนนิยายออนไลน์ด้วย AI แล้วนำนิยายนั้นไปทำเป็นเว็บตูน แม้ผ่านไปหลายร้อยตอน ฉากหลังและข้อมูลในเรื่องก็ไม่พัง**
 
 *Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into webtoon scenes. Local, Markdown, no extra API keys for writing.*
 
-[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
+[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
 [![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 ใช้งานโดยเชื่อมต่อเป็นเซิร์ฟเวอร์ MCP เข้ากับเครื่องมือเขียนโค้ดด้วย AI อย่าง Claude Code, Codex หรือ Grok CLI ตัว AI นั้นเป็นผู้เขียนเนื้อเรื่องและวาดภาพ
@@ -16,10 +16,10 @@
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="เวสเปอร์ ตอนที่ 1 ฉาก 6"></a><br><sub><i>เวสเปอร์</i> · โรแมนติกคอมเมดีอมนุษย์</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="องค์หญิงหนึ่งนาทีก่อนถูกประหาร ตอนที่ 1 ฉาก 9"></a><br><sub><i>องค์หญิงหนึ่งนาทีก่อนถูกประหาร</i> · โรแมนซ์แฟนตาซีย้อนเวลาล้างแค้น</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="คำตัดสิน LIVE ตอนที่ 1 ฉาก 6"></a><br><sub><i>คำตัดสิน LIVE</i> · ระทึกขวัญเรื่องการล่าแม่มดออนไลน์</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 1"></a><br><sub><i>สายฟ้าบนเส้นทาง</i> · แอ็กชันแฟนตาซีบนท้องถนน</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="เวสเปอร์ ตอนที่ 1 ฉาก 6"></a><br><sub><i>เวสเปอร์</i> · โรแมนติกคอมเมดีอมนุษย์</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="องค์หญิงหนึ่งนาทีก่อนถูกประหาร ตอนที่ 1 ฉาก 9"></a><br><sub><i>องค์หญิงหนึ่งนาทีก่อนถูกประหาร</i> · โรแมนซ์แฟนตาซีย้อนเวลาล้างแค้น</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="คำตัดสิน LIVE ตอนที่ 1 ฉาก 6"></a><br><sub><i>คำตัดสิน LIVE</i> · ระทึกขวัญเรื่องการล่าแม่มดออนไลน์</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 1"></a><br><sub><i>สายฟ้าบนเส้นทาง</i> · แอ็กชันแฟนตาซีบนท้องถนน</sub></td>
 </tr>
 </table>
 
@@ -143,7 +143,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 > อยากเริ่มนิยายเรื่องใหม่ เป็นเรื่องของคนขับรถเมล์กะดึกที่รับฟังความเสียใจของผู้โดยสาร เริ่มจากการสัมภาษณ์งานเขียนก่อนเลย
 
 การสัมภาษณ์จะถามเฉพาะความชอบที่เปลี่ยนผลลัพธ์ ครั้งละ 4–5 ข้อ หากต้องการข้าม ให้พูดว่า "ไม่ต้องถาม ตัดสินใจ
-อัตโนมัติเลย" หากติดขัด ดู[คู่มือเริ่มต้น](docs/GETTING_STARTED.en.md)
+อัตโนมัติเลย" หากติดขัด ดู[คู่มือเริ่มต้น](../GETTING_STARTED.en.md)
 
 ## ทำอะไรให้บ้าง
 
@@ -172,14 +172,14 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 | อยากทำนิยายที่มีอยู่เป็นเว็บตูน | "ดัดแปลงตอนที่ 1 เป็นเว็บตูน ถามทิศทางการผลิตก่อน" |
 | อยากวาดฉากในเว็บตูนใหม่ | "วาดฉากนี้ของตอนที่ 1 ใหม่ [แบบนี้]" |
 
-การแก้ไข การทำต่อ และการสำรองข้อมูล ดู[การแก้ปัญหาและการสำรองข้อมูล](docs/TROUBLESHOOTING.en.md)
+การแก้ไข การทำต่อ และการสำรองข้อมูล ดู[การแก้ปัญหาและการสำรองข้อมูล](../TROUBLESHOOTING.en.md)
 
 ## เว็บตูนทำอย่างไร
 
 <table>
 <tr>
-<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 4"></td>
-<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="สายฟ้าบนเส้นทาง ตอนที่ 2 ฉาก 6"></td>
+<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 4"></td>
+<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="สายฟ้าบนเส้นทาง ตอนที่ 2 ฉาก 6"></td>
 <td valign="top">
 
 นำนิยายที่เขียนไว้แล้วมาทำเป็นเว็บตูนตามเดิม รูปลักษณ์ตัวละคร โลก และสถานการณ์จนถึงตอนนั้นดึงมาจากต้นฉบับ จึงไม่ต้องอธิบายใหม่
@@ -195,7 +195,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 </table>
 
 ภาพวาดโดยโมเดลภาพของ OpenAI ที่ผู้ใช้เลือก (`gpt-image-2`, `gpt-image-2.5-sunburst` (ค่าเริ่มต้น) หรือ `gpt-image-2.5-flare`) ซึ่งโฮสต์เรียกผ่าน API ต้องมี API key และการเรียกเก็บเงินแยก ก่อนฉากแรกจะแสดงโมเดล ค่าใช้จ่าย และขอบเขตข้อมูลที่ส่ง แล้วยืนยันแยกตามงานเขียนตามคำตอบของผู้ใช้ ผลลัพธ์เว็บตูนเก็บแยกจากต้นฉบับหลักของนิยายและไม่เปลี่ยนนิยาย
-ขั้นตอนโดยละเอียด ดู[คู่มือการผลิตเว็บตูน](docs/WEBTOON.en.md)
+ขั้นตอนโดยละเอียด ดู[คู่มือการผลิตเว็บตูน](../WEBTOON.en.md)
 
 ## ทำไมต้อง vibelore
 
@@ -213,7 +213,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 | vibelore | ส่งต่อต้นฉบับหลักและแผน รับประกันลำดับ ตรวจความขัดแย้ง บันทึกหลักฐานการตรวจทาน คอมมิตและกู้คืน |
 | ต้นฉบับหลัก Markdown | ข้อเท็จจริงสุดท้ายของโลก ตัวละคร เนื้อเรื่อง และบทสรุป |
 
-ทิศทางโดยรวม ดู[ปรัชญา](docs/PHILOSOPHY.en.md) ส่วนโครงสร้าง ดู[สถาปัตยกรรม](docs/ARCHITECTURE.en.md)
+ทิศทางโดยรวม ดู[ปรัชญา](../PHILOSOPHY.en.md) ส่วนโครงสร้าง ดู[สถาปัตยกรรม](../ARCHITECTURE.en.md)
 
 ## ประเภทที่รองรับ
 
@@ -253,7 +253,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 การเขียนนิยายและขั้นตอนเว็บตูนแบบรายฉากได้รับการยืนยันด้วยชุดตัวอย่างสำหรับการตรวจรับใน 8 ภาษา ได้แก่ อังกฤษ สเปน
 ญี่ปุ่น ฝรั่งเศส เกาหลี อาหรับ จีนตัวเต็ม และไทย โมเดลโฮสต์ของชุดตัวอย่างนี้คือ Claude Sonnet 5 รายละเอียดของสัญญา
-อาร์กิวเมนต์ ดู[ภาษาของงานเขียนและหน่วยความยาว](docs/TOOLS.en.md#work-language-and-length-units)
+อาร์กิวเมนต์ ดู[ภาษาของงานเขียนและหน่วยความยาว](../TOOLS.en.md#work-language-and-length-units)
 
 ## ไฟล์อยู่ที่ไหน
 
@@ -268,7 +268,7 @@ my-novel/
 ```
 
 ต้นฉบับและบันทึกการผลิตอยู่ในคอมพิวเตอร์ของคุณ ต้นฉบับและภาพอ้างอิงที่คำขอต้องใช้อาจถูกส่งไปยังโฮสต์
-และบริการโมเดลที่เชื่อมต่อ ขอบเขตอยู่ใน[คู่มือความปลอดภัย](SECURITY.md)
+และบริการโมเดลที่เชื่อมต่อ ขอบเขตอยู่ใน[คู่มือความปลอดภัย](../../SECURITY.md)
 ลิขสิทธิ์ของต้นฉบับเป็นของผู้เขียน และสัญญาอนุญาตของรีโพสิทอรีนี้ไม่มีผลกับต้นฉบับ
 
 ## โมเดลและค่าใช้จ่าย
@@ -277,7 +277,7 @@ my-novel/
 - **ภาพเว็บตูน** สร้างด้วย OpenAI image API (`gpt-image-2`, `gpt-image-2.5-sunburst` (ค่าเริ่มต้น), `gpt-image-2.5-flare`) ที่โฮสต์เรียก และมี key และการเรียกเก็บเงินแยก โมเดลที่ยืนยันแล้วจะบันทึกแยกตามงานเขียนและไม่เปลี่ยนหรือแทนที่เอง
 - **โมเดลข้อความแบบโลคัล** เชื่อมต่อกับเอ็นด์พอยต์ที่เข้ากันได้กับ OpenAI ผ่านตัวแปรสภาพแวดล้อมได้
 
-การตั้งค่าโดยละเอียด ดู[การตั้งค่าโมเดล](docs/MODELS.en.md)
+การตั้งค่าโดยละเอียด ดู[การตั้งค่าโมเดล](../MODELS.en.md)
 
 ## คำถามที่พบบ่อย
 
@@ -296,7 +296,7 @@ my-novel/
 <details>
 <summary>ถ้าหยุดกลางคัน ต้องเริ่มใหม่ทั้งหมดไหม</summary>
 
-ไม่ต้อง เวิร์กโฟลว์ถูกบันทึกไว้ พูดว่า "ทำต่อ" ก็กลับมาทำต่อจากจุดเดิม คอมมิตเฉพาะต้นฉบับที่ผ่านการตรวจ และย้อนกลับได้ด้วยสแนปชอตรายตอน ดู[การแก้ปัญหา](docs/TROUBLESHOOTING.en.md#work-stopped-midway)
+ไม่ต้อง เวิร์กโฟลว์ถูกบันทึกไว้ พูดว่า "ทำต่อ" ก็กลับมาทำต่อจากจุดเดิม คอมมิตเฉพาะต้นฉบับที่ผ่านการตรวจ และย้อนกลับได้ด้วยสแนปชอตรายตอน ดู[การแก้ปัญหา](../TROUBLESHOOTING.en.md#work-stopped-midway)
 </details>
 
 <details>
@@ -321,12 +321,12 @@ my-novel/
 
 ลิงก์เอกสารชี้ไปยังฉบับภาษาอังกฤษ ต้นฉบับภาษาเกาหลีอยู่ในไฟล์ `.md` ชื่อเดียวกัน
 
-- [คู่มือเริ่มต้น](docs/GETTING_STARTED.en.md) — การลงทะเบียน งานเขียนเรื่องแรก ตอนถัดไป เมื่อติดขัด
-- [การผลิตเว็บตูน](docs/WEBTOON.en.md) — ช่วงต้นฉบับและตัวเลือกที่จำเป็น การผลิตแบบรวมฉากและการตรวจ
-- [การแก้ปัญหาและการสำรองข้อมูล](docs/TROUBLESHOOTING.en.md) — ทำงานต่อ แก้ด้วยมือ ย้อนกลับ เก็บไฟล์
-- [การตั้งค่าโมเดล](docs/MODELS.en.md) — การเลือกโมเดลข้อความและภาพ เส้นทางค่าใช้จ่าย โมเดลโลคัล
-- [ข้อมูลอ้างอิงเครื่องมือ](docs/TOOLS.en.md) — สัญญาทั้งหมดของเครื่องมือที่โฮสต์เรียก
-- [สถาปัตยกรรม](docs/ARCHITECTURE.en.md) — โครงสร้างการผลิตนิยายและเว็บตูน บทบาทของ AI และเซิร์ฟเวอร์ ขอบเขตการจัดเก็บ
-- [เอกสารทั้งหมด](docs/README.en.md) · [บันทึกการยืนยันรายโฮสต์](HOSTS.en.md) · [การมีส่วนร่วม](CONTRIBUTING.md) · [ความปลอดภัย](SECURITY.md)
+- [คู่มือเริ่มต้น](../GETTING_STARTED.en.md) — การลงทะเบียน งานเขียนเรื่องแรก ตอนถัดไป เมื่อติดขัด
+- [การผลิตเว็บตูน](../WEBTOON.en.md) — ช่วงต้นฉบับและตัวเลือกที่จำเป็น การผลิตแบบรวมฉากและการตรวจ
+- [การแก้ปัญหาและการสำรองข้อมูล](../TROUBLESHOOTING.en.md) — ทำงานต่อ แก้ด้วยมือ ย้อนกลับ เก็บไฟล์
+- [การตั้งค่าโมเดล](../MODELS.en.md) — การเลือกโมเดลข้อความและภาพ เส้นทางค่าใช้จ่าย โมเดลโลคัล
+- [ข้อมูลอ้างอิงเครื่องมือ](../TOOLS.en.md) — สัญญาทั้งหมดของเครื่องมือที่โฮสต์เรียก
+- [สถาปัตยกรรม](../ARCHITECTURE.en.md) — โครงสร้างการผลิตนิยายและเว็บตูน บทบาทของ AI และเซิร์ฟเวอร์ ขอบเขตการจัดเก็บ
+- [เอกสารทั้งหมด](../README.en.md) · [บันทึกการยืนยันรายโฮสต์](../../HOSTS.en.md) · [การมีส่วนร่วม](../../CONTRIBUTING.md) · [ความปลอดภัย](../../SECURITY.md)
 
 Apache-2.0 สิทธิ์ในต้นฉบับและภาพเป็นของผู้สร้าง

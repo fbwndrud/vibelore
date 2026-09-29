@@ -19,7 +19,7 @@ If you are new, read [Installation and your first work](GETTING_STARTED.en.md) f
 | Continue stopped work, apply hand edits, back up | [Troubleshooting and backups](TROUBLESHOOTING.en.md) |
 | Check where manuscripts and images are sent | [Data and security](../SECURITY.md) |
 | Write a work in a language other than Korean | [TOOLS.en.md — Work language and length units](TOOLS.en.md#work-language-and-length-units) |
-| Read the README in another language | [한국어](../README.md) · [English](../README.en.md) · [日本語](../README.ja.md) · [Español](../README.es.md) · [Français](../README.fr.md) · [繁體中文](../README.zh-Hant.md) · [ไทย](../README.th.md) · [العربية](../README.ar.md) |
+| Read the README in another language | [한국어](../README.md) · [English](readme/README.en.md) · [日本語](readme/README.ja.md) · [Español](readme/README.es.md) · [Français](readme/README.fr.md) · [繁體中文](readme/README.zh-Hant.md) · [ไทย](readme/README.th.md) · [العربية](readme/README.ar.md) |
 
 A novel proceeds as settings and plan → draft and review → approval and save.
 A webtoon goes existing novel → confirm direction, references and panel count → scene adaptation and English direction → pre-generation check → scene image → visual review.

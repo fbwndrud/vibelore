@@ -1,14 +1,14 @@
 # vibelore
 
-[한국어](README.md) | English | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
+[한국어](../../README.md) | English | [日本語](README.ja.md) | [Español](README.es.md) | [Français](README.fr.md) | [繁體中文](README.zh-Hant.md) | [ไทย](README.th.md) | [العربية](README.ar.md)
 
 **A local tool for writing web novels with AI and turning them into webtoons. The lore holds up even after hundreds of chapters.**
 
 *Write serial fiction with your AI coding agent, keep the lore consistent for hundreds of chapters, then adapt it into webtoon scenes. Local, Markdown, no extra API keys for writing.*
 
-[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.en.md)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.en.md)
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
+[![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
 [![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 You attach it as an MCP server to an AI coding tool such as Claude Code, Codex or Grok CLI. That AI writes the prose and draws the pictures;
@@ -16,10 +16,10 @@ vibelore remembers the world, characters, foreshadowing and timeline, checks eve
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="Vesper, chapter 1, scene 6"></a><br><sub><i>Vesper</i> · non-human romantic comedy</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="The Princess One Minute Before Her Execution, chapter 1, scene 9"></a><br><sub><i>The Princess One Minute Before Her Execution</i> · romance fantasy regression revenge</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="Verdict LIVE, chapter 1, scene 6"></a><br><sub><i>Verdict LIVE</i> · cyber-wrecker thriller</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="Lightning on the Road, chapter 1, scene 1"></a><br><sub><i>Lightning on the Road</i> · fantasy road action</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="Vesper, chapter 1, scene 6"></a><br><sub><i>Vesper</i> · non-human romantic comedy</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="The Princess One Minute Before Her Execution, chapter 1, scene 9"></a><br><sub><i>The Princess One Minute Before Her Execution</i> · romance fantasy regression revenge</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="Verdict LIVE, chapter 1, scene 6"></a><br><sub><i>Verdict LIVE</i> · cyber-wrecker thriller</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="Lightning on the Road, chapter 1, scene 1"></a><br><sub><i>Lightning on the Road</i> · fantasy road action</sub></td>
 </tr>
 </table>
 
@@ -143,7 +143,7 @@ Once installed, start your first work. Describe the story you want to write in a
 > I want to start a new novel. It's about a late-night bus driver who listens to passengers' regrets. Start with the story interview.
 
 The interview asks only about preferences that change the result, 4-5 at a time. To skip it, say "decide automatically
-without asking". If you get stuck, see [Getting started](docs/GETTING_STARTED.en.md).
+without asking". If you get stuck, see [Getting started](../GETTING_STARTED.en.md).
 
 ## What it does
 
@@ -172,14 +172,14 @@ concurrent editing or multi-tenancy, and automatic splitting into PNG/JPEG for p
 | I want to turn an existing novel into a webtoon | "Adapt chapter 1 into a webtoon. Ask me about the production direction first" |
 | I want to redraw a webtoon scene | "Redraw this scene of chapter 1 [like this]" |
 
-For revisions, resuming and backups, see [Troubleshooting and backups](docs/TROUBLESHOOTING.en.md).
+For revisions, resuming and backups, see [Troubleshooting and backups](../TROUBLESHOOTING.en.md).
 
 ## How a webtoon is made
 
 <table>
 <tr>
-<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="Lightning on the Road, chapter 1, scene 4"></td>
-<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="Lightning on the Road, chapter 2, scene 6"></td>
+<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="Lightning on the Road, chapter 1, scene 4"></td>
+<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="Lightning on the Road, chapter 2, scene 6"></td>
 <td valign="top">
 
 It turns a novel you already wrote into a webtoon as it is. Character looks, the world and the situation up to that chapter come from the source, so there is nothing to explain again.
@@ -195,7 +195,7 @@ The method of approving per-panel roughs first is deprecated and only continues 
 </table>
 
 The pictures are drawn by the OpenAI image model you choose (`gpt-image-2`, `gpt-image-2.5-sunburst` (default) or `gpt-image-2.5-flare`), which the host calls through the API. It needs its own API key and billing; before the first scene you are shown the model, the cost and what gets sent, and your answer fixes the choice for the work. Webtoon results are stored apart from the novel canon and never change the novel.
-For the detailed steps, see the [webtoon production guide](docs/WEBTOON.en.md).
+For the detailed steps, see the [webtoon production guide](../WEBTOON.en.md).
 
 ## Why vibelore
 
@@ -213,7 +213,7 @@ and takes responsibility only for the memory, causality, consistency, approval a
 | vibelore | Passing on canon and plans, guaranteeing order, conflict checks, recording review evidence, commit and recovery |
 | Markdown canon | The final facts of the world, characters, prose and summaries |
 
-For the overall direction see the [philosophy](docs/PHILOSOPHY.en.md); for the structure see the [architecture](docs/ARCHITECTURE.en.md).
+For the overall direction see the [philosophy](../PHILOSOPHY.en.md); for the structure see the [architecture](../ARCHITECTURE.en.md).
 
 ## Supported genres
 
@@ -253,7 +253,7 @@ write a Japanese work while talking in Korean.
 
 Novel writing and the scene webtoon flow were checked with an acceptance sample in 8 languages: English, Spanish, Japanese, French,
 Korean, Arabic, Traditional Chinese and Thai. The host model in that sample was Claude Sonnet 5. For the details of the argument
-contract, see [Work language and length units](docs/TOOLS.en.md#work-language-and-length-units).
+contract, see [Work language and length units](../TOOLS.en.md#work-language-and-length-units).
 
 ## Where the files are
 
@@ -268,7 +268,7 @@ my-novel/
 ```
 
 Manuscripts and production records stay on your computer. The manuscript and reference images needed for a request may be sent
-to the connected host and model service. The boundaries are in the [security guide](SECURITY.md).
+to the connected host and model service. The boundaries are in the [security guide](../../SECURITY.md).
 The copyright of the manuscript belongs to its author, and this repository's license does not apply to it.
 
 ## Models and cost
@@ -277,7 +277,7 @@ The copyright of the manuscript belongs to its author, and this repository's lic
 - **Webtoon images** come from the OpenAI image API (`gpt-image-2`, `gpt-image-2.5-sunburst` (default), `gpt-image-2.5-flare`), called by the host, with its own key and billing. The confirmed model is saved per work and never changed or substituted arbitrarily.
 - **Local text models** can be connected through environment variables to an OpenAI-compatible endpoint.
 
-For detailed settings, see [Model settings](docs/MODELS.en.md).
+For detailed settings, see [Model settings](../MODELS.en.md).
 
 ## FAQ
 
@@ -296,7 +296,7 @@ Novel writing runs within the host's subscription or credits. By default vibelor
 <details>
 <summary>If it stops midway, do I start over?</summary>
 
-No. Workflows are saved, so "continue" resumes from the same point. Only manuscripts that pass the checks are committed, and per-chapter snapshots let you roll back. See [Troubleshooting](docs/TROUBLESHOOTING.en.md#work-stopped-midway).
+No. Workflows are saved, so "continue" resumes from the same point. Only manuscripts that pass the checks are committed, and per-chapter snapshots let you roll back. See [Troubleshooting](../TROUBLESHOOTING.en.md#work-stopped-midway).
 </details>
 
 <details>
@@ -319,12 +319,12 @@ Yes. The writing language is set when the work is created (in the profile or wit
 
 ## Further reading
 
-- [Getting started](docs/GETTING_STARTED.en.md) — registration, first work, next chapter, when you get stuck
-- [Webtoon production](docs/WEBTOON.en.md) — source range and required choices, whole-scene production and review
-- [Troubleshooting and backups](docs/TROUBLESHOOTING.en.md) — resuming work, hand edits, rollbacks, keeping files
-- [Model settings](docs/MODELS.en.md) — choosing text and image models, cost paths, local models
-- [Tool reference](docs/TOOLS.en.md) — the full contract of the tools the host calls
-- [Architecture](docs/ARCHITECTURE.en.md) — novel and webtoon production structure, the roles of the AI and the server, storage boundaries
-- [All documents](docs/README.en.md) · [Per-host verification records](HOSTS.en.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+- [Getting started](../GETTING_STARTED.en.md) — registration, first work, next chapter, when you get stuck
+- [Webtoon production](../WEBTOON.en.md) — source range and required choices, whole-scene production and review
+- [Troubleshooting and backups](../TROUBLESHOOTING.en.md) — resuming work, hand edits, rollbacks, keeping files
+- [Model settings](../MODELS.en.md) — choosing text and image models, cost paths, local models
+- [Tool reference](../TOOLS.en.md) — the full contract of the tools the host calls
+- [Architecture](../ARCHITECTURE.en.md) — novel and webtoon production structure, the roles of the AI and the server, storage boundaries
+- [All documents](../README.en.md) · [Per-host verification records](../../HOSTS.en.md) · [Contributing](../../CONTRIBUTING.md) · [Security](../../SECURITY.md)
 
 Apache-2.0. The rights to manuscripts and images belong to the people who made them.
