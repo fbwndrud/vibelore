@@ -173,7 +173,7 @@
   }
   function renderProse() {
     const e = toon(); const c = chap();
-    const box = $('#prose'); box.innerHTML = '';
+    const box = $('#prose'); box.innerHTML = ''; box.dataset.chapter = c.chapter;
     $('#prose-label').textContent = T('소설 원문 · 정본 {ch}화 · {n}자', { ch: c.chapter, n: window.I18N ? I18N.num(c.chars) : c.chars.toLocaleString('ko-KR') });
     if (e) {
       for (const s of e.scenes) {
