@@ -37,7 +37,7 @@
     const e1 = d.episodes.find((e) => e.regen);
     if (e1) {
       const rt = el('table');
-      const h = el('tr'); for (const x of ['장면', '시도', '최종 판정', '시도별 계획/그림 칸', '시도별 문구 정확']) h.append(el('th', null, T(x))); rt.append(h);
+      const h = el('tr'); for (const x of ['장면 · 제목', '시도', '최종 판정', '시도별 계획/그림 칸', '시도별 문구 정확']) h.append(el('th', null, T(x))); rt.append(h);
       for (const s of e1.scenes) {
         const all = [...s.attempts.map((a) => [a.plannedPanels, a.observedPanels, a.textsOk, a.textsTotal]), [s.panelCount, s.review.observedPanelCount, s.textsOk, s.textsTotal]];
         const a = el('a', null, `${s.n} · ${s.title}`); a.lang = 'ko'; a.href = `read.html#ep1/${s.id}`; const td = el('td'); td.append(a);

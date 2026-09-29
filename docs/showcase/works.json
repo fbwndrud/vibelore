@@ -29,6 +29,8 @@
       "version": { "label": "0.4.2", "from": "0.4.1", "to": "0.4.2", "detail": "소설 0.4.1(1002abf~5ef3d2b, PR #9 수정 반영), 웹툰 0.4.2(f440f71)" },
       "bar": ["소설 50화 0.4.1", "웹툰 0.4.2"],
       "cover": "vesper/img/ep01-s6.webp",
+      "thumb": "vesper/thumb.webp",
+      "thumbSq": "vesper/thumb-sq.webp",
       "alt": "베스퍼 1화 장면 6",
       "tone": "#8A5A0C",
       "bg": "#13162A"
@@ -49,6 +51,8 @@
       "version": { "label": "0.4.0", "from": "0.4.0", "to": "0.4.0", "detail": "소설 9edfae6·9b507c4·6a24561·52e5aee, 웹툰 52e5aee·3207b83 (0.4.0 릴리스 직후 수락 테스트 커밋)" },
       "bar": ["수락 테스트"],
       "cover": "multilingual/img/th.webp",
+      "thumb": "multilingual/thumb.webp",
+      "thumbSq": "multilingual/thumb-sq.webp",
       "alt": "태국어 웹툰 1화 첫 장면",
       "tone": "#2F6456",
       "bg": "#1F3B34"
@@ -70,6 +74,8 @@
       "version": { "label": "0.3.8", "from": "0.3.8", "to": "0.3.8", "detail": "소설·웹툰 a1217ff (0.3.8 릴리스 직전 커밋)" },
       "bar": ["GPT-6 Sol"],
       "cover": "executionprincess/img/ep01-s9.webp",
+      "thumb": "executionprincess/thumb.webp",
+      "thumbSq": "executionprincess/thumb-sq.webp",
       "alt": "처형 1분 전의 황녀 1화 장면 9",
       "tone": "#8E3558",
       "bg": "#4A1C30"
@@ -91,6 +97,8 @@
       "version": { "label": "0.3.7–0.3.8", "from": "0.3.7", "to": "0.3.8", "detail": "소설 4c38e4c(0.3.8), 웹툰 0.3.7 · 1화 자동 재설계 재생성 0.3.8" },
       "bar": ["웹툰 0.3.7", "소설·1화 재생성 0.3.8"],
       "cover": "verdict-live/img/ep01-s6.webp",
+      "thumb": "verdict-live/thumb.webp",
+      "thumbSq": "verdict-live/thumb-sq.webp",
       "alt": "판결 LIVE 1화 장면 6",
       "tone": "#B3243E",
       "bg": "#0D1017"
@@ -114,6 +122,8 @@
       "version": { "label": "0.3.0–0.3.8", "from": "0.3.0", "to": "0.3.8", "detail": "소설 1~3화 0.3.0(e3555bd), 4화 0.3.7(8df9a63), 5화 0.3.8(760ee3a), 6~7화 0.3.8(8e20f24)" },
       "bar": ["1~3화 0.3.0", "4화 0.3.7", "5~7화 0.3.8"],
       "cover": "thundertrail/img/ep01-s1.webp",
+      "thumb": "thundertrail/thumb.webp",
+      "thumbSq": "thundertrail/thumb-sq.webp",
       "alt": "길 위의 번개 1화 장면 1",
       "tone": "#2F5A7A",
       "bg": "#1D3A52"

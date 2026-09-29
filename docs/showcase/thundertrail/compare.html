@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script src="../i18n.js?v=11"></script>
+<script src="../i18n.js?v=12"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>길 위의 번개 · 모델 비교</title>
 <meta name="description" content="Codex·Claude·Grok·GPT-6이 회차별로 만든 소설과 장면 웹툰(1~7화)의 결과, 비용, 검토 판정, 결함 귀속을 한 페이지에서 비교합니다.">
@@ -98,7 +98,7 @@ claude mcp add vibelore -- node src/server.js</pre></div>
 
     /* scorecard */
     const sc = $('#scorecard');
-    for (const h of ['회차', '소설 · 각색 호스트', '장면 · 칸', '검토 판정', '차단 근거 귀속', '비용 (소설 · 웹툰 각색 + 이미지)', '직접 해보기']) sc.append(el('div', { class: 'th' }, T(h)));
+    for (const h of ['화', '소설 · 각색 호스트', '장면 · 칸', '검토 판정', '차단 근거 귀속', '비용 (소설 · 웹툰 각색 + 이미지)', '직접 해보기']) sc.append(el('div', { class: 'th' }, T(h)));
     for (const e of d.episodes) {
       const L = e.blockingByLayer || {};
       const avgPlan = Math.round(e.scenes.reduce((a, s) => a + s.timings.planS.reduce((x, y) => x + y, 0) + s.timings.preflightS.reduce((x, y) => x + y, 0), 0) / e.sceneCount);

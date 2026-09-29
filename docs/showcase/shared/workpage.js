@@ -51,7 +51,7 @@
           older ? link(older, '이전 작품') : el('span', { class: 'none' }, '이전 작품 없음'),
           newer ? link(newer, '다음 작품', true) : el('span', { class: 'none' }, '다음 작품 없음'))),
       el('div', { class: 'wrap wband-hero' },
-        el('a', { class: 'cover', href: 'read.html', 'aria-label': '1화부터 읽기' }, el('img', { src: root + w.cover, alt: w.alt })),
+        el('a', { class: 'cover', href: 'read.html', 'aria-label': '1화부터 읽기' }, el('img', { src: root + (w.thumb || w.cover), alt: w.alt })),
         el('div', { class: 'info' },
           el('span', { class: 'genre' }, w.genre),
           el('h1', { lang: 'ko' }, w.title),

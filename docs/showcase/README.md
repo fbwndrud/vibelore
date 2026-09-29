@@ -5,7 +5,8 @@
 | 경로 | 내용 |
 |---|---|
 | `index.html` | 작품 목록. `works.json`을 읽어 최신작(가장 늦은 버전으로 끝난 작품)을 맨 위에 크게, 나머지를 세로 카드로 그린다. 형식·모델 필터, 정렬(버전·분량·제목), 카드/목록 전환. 필터 상태는 `?format=&model=&sort=&view=`로 주소에 남아 링크 하나로 같은 화면을 공유한다. 버전에 마우스를 올리면 실행 커밋. |
-| `works.json` | 작품 목록·버전 연혁의 단일 원본. `versions`(버전·날짜·CHANGELOG 요약)와 `works`(제목·장르·분량·모델·`family`·`formats`·버전 범위 `from`/`to`와 실행 커밋 `detail`·연혁 막대 문구 `bar`·표지). 새 작품은 여기에 항목 하나를 더하면 목록과 연혁에 함께 나온다. |
+| `works.json` | 작품 목록·버전 연혁의 단일 원본. `versions`(버전·날짜·CHANGELOG 요약)와 `works`(제목·장르·분량·모델·`family`·`formats`·버전 범위 `from`/`to`와 실행 커밋 `detail`·연혁 막대 문구 `bar`·표지 `cover`와 썸네일 `thumb`·`thumbSq`). 새 작품은 여기에 항목 하나를 더하면 목록과 연혁에 함께 나온다. |
+| `<작품>/thumb.webp`·`thumb-sq.webp` | 목록·버전 연혁·작품 띠·사전용 표지 썸네일(600px 폭 / 128px 정사각). `scripts/build-showcase-thumbs.py`가 `works.json`의 `cover` 원본에서 만든다. 표지를 바꾸면 다시 실행한다. |
 | `versions.html` | 버전 연혁. `works.json`의 버전을 가로축으로, 작품을 만든 버전 범위만큼의 막대로 그린다. |
 | `how/` | 만드는 방식. `index.html`(사용자·호스트·vibelore·작품 폴더와 한 번의 왕복), `novel.html`(소설 한 화의 일곱 단계), `webtoon.html`(웹툰 한 장면의 여섯 단계와 베스퍼 1화 장면 8의 시도 기록). 단계 설명은 현재 `src/tools/workflow.js`·`check-contract.js`·`webtoon-scene.js` 기준이고, 실측 칸은 `vesper/data.json`에서 읽는다. |
 | `shared/` | 목록·연혁·만드는 방식 공통 `site.css`(색·머리글·바닥글), `how.css`(흐름도), `chrome.js`(머리글 메뉴와 `works.json` 읽기). |
