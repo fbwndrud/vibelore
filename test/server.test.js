@@ -207,7 +207,17 @@ describe('MCP surface', () => {
     for (const t of tools) {
       assert.ok(t.description.length > 20, `${t.name} needs a real description`);
       assert.equal(t.inputSchema.type, 'object');
+      // Directories such as Glama grade tools on these hints and on schema
+      // description coverage; an agent reads the same fields to decide what is safe.
+      for (const hint of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint']) {
+        assert.equal(typeof t.annotations?.[hint], 'boolean', `${t.name} needs annotations.${hint}`);
+      }
+      for (const [param, schema] of Object.entries(t.inputSchema.properties)) {
+        assert.ok(schema.description?.length > 0, `${t.name}.${param} needs a description`);
+      }
     }
+    const readOnly = tools.filter((t) => t.annotations.readOnlyHint).map((t) => t.name).sort();
+    assert.deepEqual(readOnly, ['lore_arc_status', 'lore_profile_status', 'lore_snapshot_status', 'lore_status', 'lore_story_status', 'lore_workflow_history', 'lore_workflow_status', 'lore_writer_status']);
   });
 
   it('keeps low-level primitives behind the explicit advanced surface', async () => {
