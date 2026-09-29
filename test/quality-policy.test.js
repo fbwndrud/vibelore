@@ -46,6 +46,13 @@ describe('quality policy and approval state', () => {
     assert.equal(autoCommitDecision({ autonomy: 'auto', reviewStatus: 'completed', styleDrift: false }).allowed, true);
   });
 
+  it('asks the author before auto-committing a chapter that brings a dead character back', () => {
+    assert.deepEqual(autoCommitDecision({ autonomy: 'auto', reviewStatus: 'completed', revivals: [{ characterId: 'c2' }] }), {
+      allowed: false, code: 'REVIVAL_CONFIRMATION',
+    });
+    assert.equal(autoCommitDecision({ autonomy: 'auto', reviewStatus: 'completed', revivals: [] }).allowed, true);
+  });
+
   it('deduplicates identical scanner findings without collapsing distinct evidence', () => {
     const repeated = { severity: 'soft', code: 'CAST_MANIFEST_MISMATCH', chapterNumber: 3, message: "호칭 '그' 모호" };
     const distinct = { ...repeated, message: "호칭 '그녀' 모호" };

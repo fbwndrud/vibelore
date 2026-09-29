@@ -237,7 +237,7 @@ describe('extractDelta prompt families', () => {
             '{',
             '  "newAddressEntries": [{ "speakerId": "...", "targetId": "...", "term": "...", "register": "formal|intimate|subordinate|..." }],',
             '  "relationshipOps": [{ "from": "...", "to": "...", "kind": "...", "state": "..." }],',
-            '  "mutableChanges": [{ "characterId": "...", "vitalStatus": "alive|dead|missing", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
+            '  "mutableChanges": [{ "characterId": "...", "vitalStatus": "alive|dead|missing", "evidence": "사망으로 기록된 인물을 다시 살아 있다고 적을 때만: 본문에서 그대로 옮긴 인용", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
             '  "influenceEvents": [{ "characterId": "...", "anchor": "본문에서 확인 가능한 짧은 근거", "interpretation": "이 사건을 인물이 어떻게 받아들였는가", "dimensionChanges": { "작품별_dimension_id": -1 }, "nextChoiceBias": "다음 선택에 생긴 편향", "behavioralProof": { "hypothesis": "성격 가설", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["선택A", "선택B"], "chosen": "실제 선택", "costPaid": "지불한 비용", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "from이 to를 어떻게 보게 됐는가" }] }],',
             '  "noInfluenceReason": "인물의 선택·비용·인식·관계 변화가 정말 없을 때만 구체적으로 작성. influenceEvents 가 있으면 빈 문자열",',
             '  "ledgerOps": [',

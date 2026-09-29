@@ -36,9 +36,12 @@ export function qualityDecision({ violations }) {
   };
 }
 
-export function autoCommitDecision({ autonomy, styleDrift = false, reviewStatus }) {
+export function autoCommitDecision({ autonomy, styleDrift = false, reviewStatus, revivals = [] }) {
   if (autonomy !== 'auto') return { allowed: false, code: 'GUIDED_REVIEW' };
   if (reviewStatus !== 'completed') return { allowed: false, code: 'CRITIC_INCOMPLETE' };
   if (styleDrift) return { allowed: false, code: 'STYLE_ANCHOR_DRIFT' };
+  // A character recorded dead coming back is either the reveal the author
+  // planned or a slip; only the author can tell which.
+  if (revivals.length) return { allowed: false, code: 'REVIVAL_CONFIRMATION' };
   return { allowed: true, code: null };
 }

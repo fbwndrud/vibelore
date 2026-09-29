@@ -832,6 +832,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     autonomy: workflow.autonomyLock ?? autonomy,
     styleDrift: styleReviewRequired,
     reviewStatus: reviewAudit.status,
+    revivals: surfacedAdvisories.filter((item) => item.code === 'DEAD_CHARACTER_REVIVED'),
   });
   if (!autoCommit.allowed) {
     if ((workflow.autonomyLock ?? autonomy) === 'auto') workflow.degraded = { code: autoCommit.code, autoCommitSuppressed: true };

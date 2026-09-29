@@ -401,6 +401,7 @@ const EXTRACT_LABELS_KO = Object.freeze({
     ledgerLabel: '물건·장소·단서·능력·비밀·예정된 일 등 자유 분류',
     ledgerNote: '이번 화에서 일어난 일 한 줄',
     hookEvidence: 'paid일 때만: 본문에서 그대로 옮긴 인용',
+    vitalEvidence: '사망으로 기록된 인물을 다시 살아 있다고 적을 때만: 본문에서 그대로 옮긴 인용',
     registerStatus: '처음부터 기본값과 다른 상태일 때만',
     newValue: '새 값',
     statusSet: '상태와 함께 바뀐 값(있을 때만)',
@@ -430,6 +431,7 @@ const EXTRACT_LABELS_EN = Object.freeze({
     ledgerLabel: 'free label: item, place, clue, ability, secret, scheduled event…',
     ledgerNote: 'one line on what happened in this chapter',
     hookEvidence: 'only for paid: a quote copied from the chapter text',
+    vitalEvidence: 'only when a character recorded dead is alive again: a quote copied from the chapter text',
     registerStatus: 'only when first seen in a status other than the default',
     newValue: 'new value',
     statusSet: 'a value that changed with the status (only if any)',
@@ -493,7 +495,7 @@ function extractDeltaSchemaLines(labels, bindHash, tracking) {
         '{',
         '  "newAddressEntries": [{ "speakerId": "...", "targetId": "...", "term": "...", "register": "formal|intimate|subordinate|..." }],',
         '  "relationshipOps": [{ "from": "...", "to": "...", "kind": "...", "state": "..." }],',
-        '  "mutableChanges": [{ "characterId": "...", "vitalStatus": "alive|dead|missing", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],',
+        `  "mutableChanges": [{ "characterId": "...", "vitalStatus": "alive|dead|missing", "evidence": "${labels.vitalEvidence}", "location": "...", "status": "...", "knownFactsAdded": ["..."] }],`,
         `  "influenceEvents": [{ "characterId": "...", "anchor": "${labels.anchor}", "interpretation": "${labels.interpretation}", "dimensionChanges": { "${labels.dimensionId}": -1 }, "nextChoiceBias": "${labels.nextChoiceBias}", "behavioralProof": { "hypothesis": "${labels.hypothesis}", "voluntary": true, "alternativesKnown": true, "alternativesAvailable": ["${labels.alternatives[0]}", "${labels.alternatives[1]}"], "chosen": "${labels.chosen}", "costPaid": "${labels.costPaid}", "competingHypotheses": [] }, "relationshipClaims": [{ "from": "...", "to": "...", "dimensions": { "trust": 1 }, "belief": "${labels.belief}" }] }],`,
         `  "noInfluenceReason": "${labels.noInfluenceReason}",`,
         '  "ledgerOps": [',
@@ -827,6 +829,9 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
         const vitalStatus = asString(e.vitalStatus);
         if (vitalStatus && VITAL_STATUSES.has(vitalStatus))
             entry.vitalStatus = vitalStatus;
+        const evidence = asString(e.evidence);
+        if (entry.vitalStatus && evidence)
+            entry.evidence = evidence;
         const location = asString(e.location);
         if (location)
             entry.location = location;
@@ -1037,6 +1042,7 @@ export async function extractDelta(input) {
     });
     resolveCharacterIds(delta, resolveId);
     const rejectedAddressEntries = filterAddressEntries(delta, input.foundation, input.prose);
+    const rejectedRevivals = filterRevivals(delta, input.prevState, input.prose);
     let extraction;
     if (validated.ok)
         extraction = extractionValidationResult('completed', contextHash);
@@ -1044,7 +1050,7 @@ export async function extractDelta(input) {
         extraction = extractionValidationResult('invalid', contextHash, validated.code);
     else
         extraction = extractionValidationResult('error', contextHash, sawThrow ? 'provider_error' : 'malformed');
-    return { delta, manifest, unregisteredNamed, unregisteredNamedScan, rejectedAddressEntries, extractionValidation: extraction };
+    return { delta, manifest, unregisteredNamed, unregisteredNamedScan, rejectedAddressEntries, rejectedRevivals, extractionValidation: extraction };
 }
 /**
  * Keep only address entries the prose can support: the term must occur in the
@@ -1073,6 +1079,30 @@ export function supportedAddressEntries(entries, foundation, prose) {
 function filterAddressEntries(delta, foundation, prose) {
     const { entries, rejected } = supportedAddressEntries(delta.newAddressEntries, foundation, prose);
     delta.newAddressEntries = entries;
+    return rejected;
+}
+const MIN_REVIVAL_EVIDENCE_LENGTH = 8;
+const squashText = (text) => String(text ?? '').normalize('NFC').replace(/\s+/g, ' ').trim();
+/**
+ * A character recorded dead comes back only on a quote the chapter text
+ * contains. The extractor reports both the appearance and the vital status, so
+ * without the quote a writer's slip ("c3 speaks in chapter 80") is recorded as
+ * its own justification.
+ */
+export function quotedRevival(change, prose) {
+    const evidence = squashText(change?.evidence);
+    return [...evidence].length >= MIN_REVIVAL_EVIDENCE_LENGTH && squashText(prose).includes(evidence);
+}
+function filterRevivals(delta, prevState, prose) {
+    const rejected = [];
+    delta.mutableChanges = delta.mutableChanges.map((change) => {
+        const before = prevState?.characterStates?.[change.characterId];
+        if (before?.vitalStatus !== 'dead' || !change.vitalStatus || change.vitalStatus === 'dead' || quotedRevival(change, prose))
+            return change;
+        rejected.push({ characterId: change.characterId, vitalStatus: change.vitalStatus, sinceChapter: before.sinceChapter });
+        const { vitalStatus: _vital, evidence: _evidence, ...rest } = change;
+        return rest;
+    });
     return rejected;
 }
 // Exported for ADR-0006 promptManifest collection.
@@ -1261,6 +1291,7 @@ const CHECK_FALLBACK_KO = Object.freeze({
     mutable: 'mutable 변경에 서사적 근거 부족',
     unregistered: (id) => `Foundation 에 미등록된 캐릭터 "${id}" 의 knownFacts 변경 시도`,
     deadOnStage: (id, since) => `${since}화에 사망으로 기록된 캐릭터 "${id}" 가 이번 화 cast manifest 에 등장한다. 살아 있음을 밝히는 장면이 아니면 회상·언급으로 바꾸고 manifest 에서 뺀다.`,
+    revived: (id, since) => `${since}화에 사망으로 기록된 캐릭터 "${id}" 가 이번 화에 살아 돌아왔다. 의도한 반전인지 작가 확인이 필요하다.`,
 });
 const CHECK_FALLBACK_EN = Object.freeze({
     intrinsic: 'the chapter text contradicts a Foundation intrinsic',
@@ -1268,6 +1299,7 @@ const CHECK_FALLBACK_EN = Object.freeze({
     mutable: 'the mutable change is not grounded in the chapter text',
     unregistered: (id) => `knownFacts change attempted for character "${id}" which is not registered in Foundation`,
     deadOnStage: (id, since) => `character "${id}", recorded dead in chapter ${since}, is in this chapter's cast manifest. Unless the chapter reveals them alive, make it a memory or mention and drop them from the manifest.`,
+    revived: (id, since) => `character "${id}", recorded dead in chapter ${since}, comes back alive in this chapter. The author should confirm the reveal is intended.`,
 });
 function normaliseGender(value) {
     if (value === 'male' || value === 'female')
@@ -1539,9 +1571,23 @@ export async function continuityCheck(input) {
     }
     // ─── Structural: a character recorded dead appears on stage ───────────
     // The cast manifest lists only characters who act, speak or hold the POV
-    // in this chapter; memories are not appearances. A chapter that records
-    // the character alive again (a reveal) is its own justification.
-    const revived = new Set(input.delta.mutableChanges.filter((change) => change.vitalStatus && change.vitalStatus !== 'dead').map((change) => change.characterId));
+    // in this chapter; memories are not appearances. A reveal counts only when
+    // the chapter records the character alive with a quote from the text, and
+    // the author confirms it: missing is not alive, and the extractor's word
+    // alone is not a reveal.
+    const revived = new Set(input.delta.mutableChanges
+        .filter((change) => change.vitalStatus === 'alive' && input.prevState?.characterStates?.[change.characterId]?.vitalStatus === 'dead' && quotedRevival(change, input.prose))
+        .map((change) => change.characterId));
+    for (const characterId of revived) {
+        violations.push({
+            severity: 'soft',
+            code: 'DEAD_CHARACTER_REVIVED',
+            chapterNumber: input.chapterNumber,
+            characterId,
+            origin: 'structural',
+            message: fallback.revived(characterId, input.prevState.characterStates[characterId].sinceChapter),
+        });
+    }
     for (const characterId of input.delta.appearedCharacterIds ?? []) {
         const state = input.prevState?.characterStates?.[characterId];
         if (state?.vitalStatus !== 'dead' || revived.has(characterId))
