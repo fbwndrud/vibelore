@@ -251,8 +251,10 @@ write a Japanese work while talking in Korean.
 - Webtoons follow the work language too. Dialogue is not translated; it goes into the image as the original text in the work language,
   and the image prompt states the language, script and reading direction (right to left for Arabic).
 
-Novel writing and the scene webtoon flow were checked with an acceptance sample in 8 languages: English, Spanish, Japanese, French,
-Korean, Arabic, Traditional Chinese and Thai. The host model in that sample was Claude Sonnet 5. For the details of the argument
+There is no allowlist of languages. Any language a BCP 47 tag identifies (one the runtime's `Intl` recognizes) is accepted, and only
+tags that can't be identified are rejected with `UNKNOWN_LANGUAGE`. Output quality follows the connected model's ability in that language.
+The acceptance sample that was actually run covered 8 languages: English, Spanish, Japanese, French, Korean, Arabic, Traditional Chinese
+and Thai. The host model in that sample was Claude Sonnet 5. For the details of the argument
 contract, see [Work language and length units](../TOOLS.en.md#work-language-and-length-units).
 
 ## Where the files are
