@@ -1,5 +1,5 @@
 /* 인물·설정 사전 — 리더 본문 링크·카드 패널, 사전 페이지(lore.html) 공용. 색은 작품 style.css·site.css 토큰을 따른다. */
-.lore-toggle{border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-size:12px;letter-spacing:.04em;padding:3px 10px;border-radius:999px;cursor:pointer;opacity:.8}
+.lore-toggle{white-space:nowrap;flex-shrink:0;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-size:12px;letter-spacing:.04em;padding:3px 10px;border-radius:999px;cursor:pointer;opacity:.8}
 .lore-toggle[aria-pressed="true"],.sheet .mtools .lore-toggle[aria-pressed="true"]{background:var(--gold,#C98A1B);border-color:var(--gold,#C98A1B);color:#fff;opacity:1}
 .lore-toggle:disabled{opacity:.4;cursor:not-allowed}
 .lore-term{all:unset;cursor:pointer;border-bottom:1.5px dotted var(--gold,#C98A1B);text-decoration:none}

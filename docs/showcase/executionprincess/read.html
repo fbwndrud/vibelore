@@ -8,8 +8,8 @@
 <meta name="description" content="칼날이 떨어지기 1분 전으로 돌아온 황녀의 회귀 복수극. GPT-6 Sol이 설계·집필·각색한 소설과 장면 웹툰 1~3화. 첫 결과와 검토 판정을 그대로 공개합니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=9">
-<link rel="stylesheet" href="../shared/lore.css?v=2">
+<link rel="stylesheet" href="../shared/work.css?v=1">
+<link rel="stylesheet" href="../shared/lore.css?v=3">
 <link rel="stylesheet" href="princess.css?v=2">
 </head>
 <body data-page="read" class="reader-page">
@@ -67,9 +67,10 @@
   그림 검토는 제작을 조율한 Claude Opus 5.5가 했습니다. 각색 모델과 다른 모델이지만 독립 평가는 아닙니다. 판정이 “수정 필요”여도 재생성 없이 첫 결과를 그대로 실었습니다.</span><br>
   <span data-i18n="common.builtData">빌드</span> <span id="built"></span> · <span data-i18n="common.data">데이터</span> <a href="data.json">data.json</a> · <span data-i18n="common.madeWith">제작 도구</span> <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
 </footer>
-<script src="site.js?v=5"></script>
+<script src="../shared/worknav.js?v=1"></script>
+<script src="site.js?v=6"></script>
 <script src="../shared/lore.js?v=6"></script>
-<script src="app.js?v=11"></script>
-<script>Lore.attachReader({ work: 'executionprincess', lore: 'lore.json', dict: '../lore.html?work=executionprincess' });</script>
+<script src="../shared/reader.js?v=2"></script>
+<script>Reader.start({ work: 'executionprincess', store: 'vl' });</script>
 </body>
 </html>

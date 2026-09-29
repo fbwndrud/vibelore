@@ -12,8 +12,8 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=9">
-<link rel="stylesheet" href="hub.css?v=1">
+<link rel="stylesheet" href="../shared/work.css?v=1">
+<link rel="stylesheet" href="../shared/hub.css?v=1">
 </head>
 <body data-page="home" class="hub">
 <header class="hub-hero">
@@ -62,7 +62,8 @@
   </div>
   <p class="hub-note" data-i18n="tt.hub.note">모든 결과는 자동 재생성 없이 첫 결과와 검토 판정을 그대로 공개합니다. 검토는 제작에 쓴 호스트의 자기검토이며 독립 평가가 아닙니다. 제작 도구: <a href="https://github.com/fbwndrud/vibelore">vibelore</a> · 다른 작품: <a href="../verdict-live/">판결 LIVE</a> · 다국어: <a href="../multilingual/">8개 언어 소설·웹툰</a></p>
 </main>
-<script src="site.js?v=5"></script>
+<script src="../shared/worknav.js?v=1"></script>
+<script src="site.js?v=6"></script>
 <script>
 (function () {
   Promise.all([fetch('data.json').then((r) => r.json()), fetch('costs.json').then((r) => r.json()).catch(() => null)]).then(([d, c]) => {
