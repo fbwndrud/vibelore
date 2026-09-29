@@ -570,7 +570,7 @@
 "pTo": 9,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep01-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s1.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -978,7 +978,7 @@
 "pTo": 18,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep01-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s2.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -1018,7 +1018,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep01-s2-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s2-try1.webp",
 "plannedPanels": 6,
 "observedPanels": 6,
 "textsOk": 9,
@@ -1452,7 +1452,7 @@
 "pTo": 24,
 "panelCount": 4,
 "plannedPanels": 4,
-"image": "img/ep01-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s3.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -1857,7 +1857,7 @@
 "pTo": 39,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep01-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s4.webp",
 "blocking": 2,
 "advisory": 0,
 "findings": [
@@ -1901,7 +1901,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep01-s4-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s4-try1.webp",
 "plannedPanels": 7,
 "observedPanels": 7,
 "textsOk": 13,
@@ -1931,7 +1931,7 @@
 },
 {
 "n": 2,
-"image": "img/ep01-s4-try2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s4-try2.webp",
 "plannedPanels": 6,
 "observedPanels": 6,
 "textsOk": 15,
@@ -1961,7 +1961,7 @@
 },
 {
 "n": 3,
-"image": "img/ep01-s4-try3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s4-try3.webp",
 "plannedPanels": 7,
 "observedPanels": 7,
 "textsOk": 14,
@@ -2003,7 +2003,7 @@
 "fixed": "문 너머의 오래된 이야기에는 그림자를 떼어 가는 거울이 있었다."
 }
 ],
-"raw": "img/ep01-s4-try4.webp",
+"raw": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s4-try4.webp",
 "font": "Apple SD Gothic Neo"
 },
 "plan": {
@@ -2664,7 +2664,7 @@
 "pTo": 54,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep01-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s5.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -3246,7 +3246,7 @@
 "pTo": 62,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep01-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -3705,7 +3705,7 @@
 "pTo": 69,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep01-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s7.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -4220,7 +4220,7 @@
 "pTo": 75,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep01-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s8.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -4255,7 +4255,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep01-s8-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s8-try1.webp",
 "plannedPanels": 5,
 "observedPanels": 5,
 "textsOk": 13,
@@ -4285,7 +4285,7 @@
 },
 {
 "n": 3,
-"image": "img/ep01-s8-try3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s8-try3.webp",
 "plannedPanels": 6,
 "observedPanels": 6,
 "textsOk": 14,
@@ -4315,7 +4315,7 @@
 "fixed": "베스퍼는 등갓 꼭대기의 작은 황동 뚜껑에 손을 얹었다."
 }
 ],
-"raw": "img/ep01-s8-try2.webp",
+"raw": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s8-try2.webp",
 "font": "Apple SD Gothic Neo"
 },
 "plan": {
@@ -4873,7 +4873,7 @@
 "pTo": 87,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep01-s9.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s9.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -5602,7 +5602,7 @@
 "pTo": 12,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep02-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s1.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -5635,7 +5635,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep02-s1-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s1-try1.webp",
 "plannedPanels": 7,
 "observedPanels": 7,
 "textsOk": 10,
@@ -6149,7 +6149,7 @@
 "pTo": 22,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep02-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s2.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -6622,7 +6622,7 @@
 "pTo": 35,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep02-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s3.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -6657,7 +6657,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep02-s3-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s3-try1.webp",
 "plannedPanels": 6,
 "observedPanels": 6,
 "textsOk": 11,
@@ -6687,7 +6687,7 @@
 },
 {
 "n": 2,
-"image": "img/ep02-s3-try2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s3-try2.webp",
 "plannedPanels": 7,
 "observedPanels": 7,
 "textsOk": 12,
@@ -7235,7 +7235,7 @@
 "pTo": 46,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep02-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s4.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -7277,7 +7277,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep02-s4-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s4-try1.webp",
 "plannedPanels": 7,
 "observedPanels": 7,
 "textsOk": 14,
@@ -7307,7 +7307,7 @@
 },
 {
 "n": 3,
-"image": "img/ep02-s4-try3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s4-try3.webp",
 "plannedPanels": 7,
 "observedPanels": 7,
 "textsOk": 14,
@@ -7358,7 +7358,7 @@
 "fixed": "네, 거의 다 왔어요. 저기서 꺾으면—"
 }
 ],
-"raw": "img/ep02-s4-try2.webp",
+"raw": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s4-try2.webp",
 "font": "Apple SD Gothic Neo"
 },
 "plan": {
@@ -7969,7 +7969,7 @@
 "pTo": 53,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep02-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s5.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -8479,7 +8479,7 @@
 "pTo": 69,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep02-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s6.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -9104,7 +9104,7 @@
 "pTo": 84,
 "panelCount": 9,
 "plannedPanels": 9,
-"image": "img/ep02-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s7.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -9129,7 +9129,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep02-s7-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s7-try1.webp",
 "plannedPanels": 8,
 "observedPanels": 8,
 "textsOk": 16,
@@ -9788,7 +9788,7 @@
 "pTo": 97,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep02-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s8.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -10302,7 +10302,7 @@
 "pTo": 112,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep02-s9.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s9.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -10327,7 +10327,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep02-s9-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep02-s9-try1.webp",
 "plannedPanels": 7,
 "observedPanels": 7,
 "textsOk": 9,
@@ -10909,7 +10909,7 @@
 "pTo": 11,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep03-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s1.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -11418,7 +11418,7 @@
 "pTo": 25,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep03-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s2.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -12063,7 +12063,7 @@
 "pTo": 40,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep03-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s3.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -12621,7 +12621,7 @@
 "pTo": 46,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep03-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s4.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -12663,7 +12663,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep03-s4-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s4-try1.webp",
 "plannedPanels": 5,
 "observedPanels": 5,
 "textsOk": 4,
@@ -12686,7 +12686,7 @@
 },
 {
 "n": 2,
-"image": "img/ep03-s4-try2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s4-try2.webp",
 "plannedPanels": 5,
 "observedPanels": 5,
 "textsOk": 4,
@@ -12723,7 +12723,7 @@
 "fixed": "귀에…… 아."
 }
 ],
-"raw": "img/ep03-s4-try3.webp",
+"raw": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s4-try3.webp",
 "font": "Apple SD Gothic Neo"
 },
 "plan": {
@@ -13042,7 +13042,7 @@
 "pTo": 56,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep03-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s5.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -13495,7 +13495,7 @@
 "pTo": 72,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep03-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s6.webp",
 "blocking": 2,
 "advisory": 0,
 "findings": [
@@ -13537,7 +13537,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep03-s6-try1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s6-try1.webp",
 "plannedPanels": 8,
 "observedPanels": 9,
 "textsOk": 17,
@@ -13567,7 +13567,7 @@
 },
 {
 "n": 2,
-"image": "img/ep03-s6-try2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s6-try2.webp",
 "plannedPanels": 8,
 "observedPanels": 8,
 "textsOk": 16,
@@ -13609,7 +13609,7 @@
 "fixed": "한다온 씨. 방금 접촉 건, 호출 왜 안 했어요?"
 }
 ],
-"raw": "img/ep03-s6-try3.webp",
+"raw": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s6-try3.webp",
 "font": "Apple SD Gothic Neo"
 },
 "plan": {
@@ -14324,7 +14324,7 @@
 "pTo": 85,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep03-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s7.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -14941,7 +14941,7 @@
 "pTo": 102,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep03-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s8.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -15588,7 +15588,7 @@
 "pTo": 115,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep03-s9.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s9.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -15623,7 +15623,7 @@
 "attempts": [
 {
 "n": 2,
-"image": "img/ep03-s9-try2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s9-try2.webp",
 "plannedPanels": 7,
 "observedPanels": 6,
 "textsOk": 10,
@@ -15660,7 +15660,7 @@
 },
 {
 "n": 3,
-"image": "img/ep03-s9-try3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s9-try3.webp",
 "plannedPanels": 7,
 "observedPanels": 7,
 "textsOk": 11,
@@ -15697,7 +15697,7 @@
 "fixed": "베스퍼는 그것을 보았다."
 }
 ],
-"raw": "img/ep03-s9-try1.webp",
+"raw": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep03-s9-try1.webp",
 "font": "Apple SD Gothic Neo"
 },
 "plan": {
@@ -16165,37 +16165,37 @@
 "references": [
 {
 "id": "ref-vesper",
-"image": "img/ref-vesper.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ref-vesper.webp",
 "description": "베스퍼: 머리 대신 황동 테두리의 유리 가스등, 약 2m의 가늘고 긴 신사. 등갓 왼쪽 위에 가느다란 금 한 줄."
 },
 {
 "id": "ref-kandra",
-"image": "img/ref-kandra.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ref-kandra.webp",
 "description": "칸드라: 머리 대신 굵은 상아색 기둥 초, 심지 하나에 불꽃 하나. 늘씬한 숙녀."
 },
 {
 "id": "ref-daon",
-"image": "img/ref-daon.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ref-daon.webp",
 "description": "한다온: 퍼레이드 무대 스태프. 반묶음 검은 단발, 무전기."
 },
 {
 "id": "ref-tent",
-"image": "img/ref-tent.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ref-tent.webp",
 "description": "퍼레이드 대기 천막: 의상 행거, 분장대, 발전기."
 },
 {
 "id": "ref-parade",
-"image": "img/ref-parade.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ref-parade.webp",
 "description": "밤 퍼레이드 길: 가상의 테마파크 광장과 조명."
 },
 {
 "id": "ref-corridor",
-"image": "img/ref-corridor.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ref-corridor.webp",
 "description": "직원 전용 통로(2화): 형광등이 이어진 회색 복도, 글자 없는 점검표."
 },
 {
 "id": "ref-maint",
-"image": "img/ref-maint.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ref-maint.webp",
 "description": "퍼레이드 정비 구역(2화): 덮개 씌운 퍼레이드 차량, 장비 상자, 빈 퍼레이드 동선."
 }
 ],

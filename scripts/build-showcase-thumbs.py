@@ -3,18 +3,20 @@
 
     python3 scripts/build-showcase-thumbs.py
 
-읽는 것: docs/showcase/works.json의 `cover`(원본 장면 이미지). 쓰는 것: works.json의 `thumb`·`thumbSq` 경로.
+읽는 것: docs/showcase/works.json의 `cover`(이미지 저장소 기준 원본 경로, 로컬에 없으면 MEDIA 주소에서 받음). 쓰는 것: works.json의 `thumb`·`thumbSq` 경로.
 - thumb: 폭 600px(2배 화면의 대표 작품 300px 기준), 원본 비율 그대로(목록 대표 작품·카드·작품 페이지 띠).
 - thumbSq: 128×128, 위쪽 기준 정사각 자르기(목록 행·버전 연혁 아이콘).
 표지를 바꾸면 다시 실행한다. 결과가 같으면 파일을 다시 쓰지 않는다.
 """
 import io
 import json
+import urllib.request
 from pathlib import Path
 
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent / 'docs' / 'showcase'
+MEDIA = 'https://fbwndrud.github.io/vibelore-showcase-media/'  # scripts/split-showcase-media.py와 같음
 WIDE = 600
 SQ = 128
 
@@ -37,7 +39,8 @@ def main():
         if not w.get('thumb') or not w.get('thumbSq'):
             print(w['id'], '· thumb/thumbSq 경로 없음, 건너뜀')
             continue
-        src = Image.open(ROOT / w['cover']).convert('RGB')
+        local = ROOT / w['cover']
+        src = Image.open(local if local.exists() else io.BytesIO(urllib.request.urlopen(MEDIA + w['cover']).read())).convert('RGB')
         wide = src.resize((WIDE, round(src.height * WIDE / src.width)), Image.LANCZOS)
         side = min(src.width, src.height)
         sq = src.crop(((src.width - side) // 2, 0, (src.width + side) // 2, side)).resize((SQ, SQ), Image.LANCZOS)

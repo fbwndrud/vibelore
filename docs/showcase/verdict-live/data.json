@@ -130,7 +130,7 @@
 "pFrom": 1,
 "pTo": 14,
 "panelCount": 7,
-"image": "img/ep01-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s1.webp",
 "blocking": 5,
 "advisory": 1,
 "findings": [
@@ -203,7 +203,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep01-s1-a1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s1-a1.webp",
 "plannedPanels": 8,
 "observedPanels": 9,
 "textsOk": 10,
@@ -256,7 +256,7 @@
 },
 {
 "n": 2,
-"image": "img/ep01-s1-a2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s1-a2.webp",
 "plannedPanels": 8,
 "observedPanels": 8,
 "textsOk": 10,
@@ -855,7 +855,7 @@
 "pFrom": 15,
 "pTo": 29,
 "panelCount": 8,
-"image": "img/ep01-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s2.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -1527,7 +1527,7 @@
 "pFrom": 30,
 "pTo": 41,
 "panelCount": 7,
-"image": "img/ep01-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s3.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -2068,7 +2068,7 @@
 "pFrom": 42,
 "pTo": 50,
 "panelCount": 7,
-"image": "img/ep01-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s4.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -2580,7 +2580,7 @@
 "pFrom": 51,
 "pTo": 62,
 "panelCount": 8,
-"image": "img/ep01-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s5.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -3215,7 +3215,7 @@
 "pFrom": 63,
 "pTo": 73,
 "panelCount": 7,
-"image": "img/ep01-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -3710,7 +3710,7 @@
 "pFrom": 74,
 "pTo": 81,
 "panelCount": 8,
-"image": "img/ep01-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s7.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -4238,7 +4238,7 @@
 "pFrom": 82,
 "pTo": 85,
 "panelCount": 4,
-"image": "img/ep01-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s8.webp",
 "blocking": 2,
 "advisory": 1,
 "findings": [
@@ -4286,7 +4286,7 @@
 "attempts": [
 {
 "n": 1,
-"image": "img/ep01-s8-a1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s8-a1.webp",
 "plannedPanels": 5,
 "observedPanels": 6,
 "textsOk": 8,
@@ -4318,7 +4318,7 @@
 },
 {
 "n": 2,
-"image": "img/ep01-s8-a2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s8-a2.webp",
 "plannedPanels": 4,
 "observedPanels": 5,
 "textsOk": 9,
@@ -4734,7 +4734,7 @@
 "pFrom": 1,
 "pTo": 8,
 "panelCount": 6,
-"image": "img/ep02-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep02-s1.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -5216,7 +5216,7 @@
 "pFrom": 9,
 "pTo": 21,
 "panelCount": 7,
-"image": "img/ep02-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep02-s2.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -5964,7 +5964,7 @@
 "pFrom": 22,
 "pTo": 35,
 "panelCount": 7,
-"image": "img/ep02-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep02-s3.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -6729,7 +6729,7 @@
 "pFrom": 36,
 "pTo": 50,
 "panelCount": 8,
-"image": "img/ep02-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep02-s4.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -7430,7 +7430,7 @@
 "pFrom": 51,
 "pTo": 64,
 "panelCount": 7,
-"image": "img/ep02-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep02-s5.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -8117,7 +8117,7 @@
 "pFrom": 65,
 "pTo": 74,
 "panelCount": 8,
-"image": "img/ep02-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep02-s6.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -8663,7 +8663,7 @@
 "pFrom": 75,
 "pTo": 87,
 "panelCount": 7,
-"image": "img/ep02-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep02-s7.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -9292,7 +9292,7 @@
 "pFrom": 88,
 "pTo": 96,
 "panelCount": 8,
-"image": "img/ep02-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep02-s8.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -9892,7 +9892,7 @@
 "pFrom": 1,
 "pTo": 13,
 "panelCount": 8,
-"image": "img/ep03-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep03-s1.webp",
 "blocking": 2,
 "advisory": 1,
 "findings": [
@@ -10462,7 +10462,7 @@
 "pFrom": 14,
 "pTo": 25,
 "panelCount": 8,
-"image": "img/ep03-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep03-s2.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -11040,7 +11040,7 @@
 "pFrom": 26,
 "pTo": 36,
 "panelCount": 7,
-"image": "img/ep03-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep03-s3.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -11591,7 +11591,7 @@
 "pFrom": 37,
 "pTo": 44,
 "panelCount": 6,
-"image": "img/ep03-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep03-s4.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -12070,7 +12070,7 @@
 "pFrom": 45,
 "pTo": 53,
 "panelCount": 7,
-"image": "img/ep03-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep03-s5.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -12555,7 +12555,7 @@
 "pFrom": 54,
 "pTo": 64,
 "panelCount": 6,
-"image": "img/ep03-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep03-s6.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -13047,7 +13047,7 @@
 "pFrom": 65,
 "pTo": 74,
 "panelCount": 7,
-"image": "img/ep03-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep03-s7.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -13521,7 +13521,7 @@
 "pFrom": 75,
 "pTo": 86,
 "panelCount": 7,
-"image": "img/ep03-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep03-s8.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -13958,32 +13958,32 @@
 "references": [
 {
 "id": "ref-jaeyun",
-"image": "img/ref-jaeyun.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ref-jaeyun.webp",
 "description": "Jaeyun (c1): ash-brown hair with black roots, scar at end of left eyebrow, bloodshot narrow eyes, navy blazer over black tee, in-ear cable. Identity and clothing only. The scar and dark roots must stay visible in close-ups."
 },
 {
 "id": "ref-seoa",
-"image": "img/ref-seoa.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ref-seoa.webp",
 "description": "Seoa (c2): shoulder-length black bob, mole under right eye, narrow eyes like her brother, oversized grey hoodie, camera on neck strap. Identity and clothing only."
 },
 {
 "id": "ref-pharmacy-street",
-"image": "img/ref-pharmacy-street.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ref-pharmacy-street.webp",
 "description": "Night alley in front of Seoa's brick villa building: blinking green-cross pharmacy sign with the Korean shop name from the source, crossed diagonally by a power line; glass shared entrance. Environment only. Do not copy the convenience-store logo; no real brand marks."
 },
 {
 "id": "ref-seoa-room",
-"image": "img/ref-seoa-room.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ref-seoa-room.webp",
 "description": "Seoa's small studio apartment: bed, desk with laptop, ring light and tripod, blinds. Environment only."
 },
 {
 "id": "ref-cheri",
-"image": "img/ref-cheri.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ref-cheri.webp",
 "description": "Cheri (c3): very short two-block cut, black horn-rimmed glasses, film-camera wrist tattoo, black shirt, large studio headset. Identity and clothing only."
 },
 {
 "id": "ref-studio",
-"image": "img/ref-studio.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ref-studio.webp",
 "description": "Basement streaming studio: defendant chair under white light, host desk with monitors and red end-broadcast button beneath, producer console, waiting sofa, steel stairs to steel door. Environment only."
 }
 ],

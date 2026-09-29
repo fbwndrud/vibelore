@@ -157,7 +157,7 @@
   }
   function renderWork(w) {
     const box = $('#work'); box.innerHTML = '';
-    box.append(el('img', { src: w.thumbSq || w.cover, alt: '' }), el('div', null, el('b', { lang: 'ko' }, w.title), el('span', { class: 'gl en-only' }, w.gloss), el('a', { href: w.links && w.links.read ? w.links.read : w.href }, T('작품 읽으러 가기 →'))));
+    box.append(el('img', { src: w.thumbSq, alt: '' }), el('div', null, el('b', { lang: 'ko' }, w.title), el('span', { class: 'gl en-only' }, w.gloss), el('a', { href: w.links && w.links.read ? w.links.read : w.href }, T('작품 읽으러 가기 →'))));
     const sel = $('#pick-ch'); sel.innerHTML = '';
     sel.append(el('option', { value: '0' }, T('연재 전 설계')));
     for (let i = 1; i <= db.through; i++) sel.append(el('option', { value: String(i) }, T('{n}화까지', { n: i })));
