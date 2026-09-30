@@ -1,6 +1,6 @@
 {
   "name": "vibelore",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "type": "module",
   "description": "Local MCP server for writing consistent serial fiction with continuity checks and approval workflows, then adapting chapters into webtoon scenes: one image per scene with dialogue in the work language, pre-generation checks and visual review.",
   "keywords": [
