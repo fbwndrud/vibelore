@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- 발행 뒤 후처리가 중단된 화는 다음 `lore_write` 또는 guided `lore_decide` 승인
+  재시도에서 같은 워크플로로 복구합니다. 발행 전 누적 PatternLedger 입력을 보존하고,
+  경계 적용과 완료 이벤트를 중복 없이 마무리하며 반환값과 감사 이벤트에 복구를 표시합니다.
+  복구 호출은 해당 화의 완료 결과를 반환하며 다음 호출에서 새 화를 시작합니다.
+- 스냅샷 생성이 실패해도 발행과 `completed` 상태는 유지합니다. 반환값의 `nextAction`에
+  해당 화의 최신 상태로 rollback할 지점이 없다는 안내와 실패 원인을 포함합니다.
+
 ## 0.4.6 — 2026-09-30
 
 - A character recorded dead comes back only on a quote from the chapter.

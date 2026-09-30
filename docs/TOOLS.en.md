@@ -605,7 +605,9 @@ The order to apply it is `lore_rewrite → lore_check → lore_commit → lore_r
 
 ### `lore_refold`
 
-Refolds every delta from the revised earlier chapter onward to compute the StoryState and entity lifecycles.
+Replays the ledger from the seed through every chapter delta to compute the StoryState and entity lifecycles.
+Each chapter uses the tracking configuration recorded for that chapter (`trackingHistory`).
+`fromChapter` only reports the reconstructed range; it does not change where replay starts.
 
 | Required | Optional |
 |---|---|
