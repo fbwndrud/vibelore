@@ -15,7 +15,7 @@ For how to start see [Getting started](GETTING_STARTED.en.md); for webtoon usage
 flowchart TB
     U["User · requests and approvals"] <--> H["Connected AI · chat and tool execution"]
     H <--> V["vibelore MCP · work order and state management"]
-    H <--> G["OpenAI image API chosen by the user"]
+    H <--> G["Drawing path chosen by the user · host built-in tool or image API"]
     V <--> N["Novel production · design → writing → checks"]
     V <--> W["Webtoon production · adaptation → English direction → pre-generation check → scene image → visual review"]
     N <--> C["Source files · world / characters / manuscript"]
@@ -26,8 +26,8 @@ flowchart TB
 ```
 
 The one that calls the image generation tool is **the connected AI (the host)**. The vibelore server does not
-run an image API itself. So even with MCP connected, if the host has no image capability,
-the drawing steps cannot proceed.
+generate images itself. So even with MCP connected, if the host has no usable drawing path (a built-in image tool or
+an environment that can run an image API), the drawing steps cannot proceed.
 
 | Component | Responsible for | Not responsible for |
 |---|---|---|
@@ -107,14 +107,20 @@ New webtoon work generates each whole scene as one image, dialogue included, wit
 
 ```mermaid
 flowchart TD
-    S["Pinned source version"] --> I["Confirm direction, references, panel count, image model"]
-    I --> D["Scene adaptation · English direction"]
+    S["Pinned source version"] --> I["Confirm direction, references, panel count"]
+    I --> R["Host reports usable drawing paths · user choice (saved per work)"]
+    R --> D["Scene adaptation · English direction"]
     D --> C["Pre-generation check · source fidelity, space/physics, causality, information load"]
     C --> J["Request for a scene image with lettering"]
-    J --> H["Host attaches the references and generates the image"]
+    J --> H["Host generates the image on the chosen path (built-in tool or API), references attached"]
     H --> V2["Visual review of the actual image · wording, speaker, reading order"]
     V2 --> O["Save webtoon image, plan and review JSON"]
 ```
+
+For a work with no drawing path chosen yet, the host reports the paths and models it can really use at the first scene
+(`needs_image_runtime`), and once the user confirms one (`needs_image_choice`) it is saved per work and used for later scenes and
+episodes. The built-in path is requested with `hostRequest` and the API path with `apiRequest`, and each imported picture records the
+chosen path and the model information the host actually saw. A failure never switches to another path or model automatically.
 
 If the pre-generation check or the visual review fails, the server uses the cause as feedback and designs, checks and generates again,
 within the automatic redesign budget you set. A continuing scene inherits the previous

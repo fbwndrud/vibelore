@@ -27,7 +27,7 @@ vibelore 負責記住世界觀、人物、伏筆與時間線，每一話都做�
 
 - **[貝斯珀](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, 最新)：借用樂天世界夜間遊行角色的非官方同人創作。從全 50 話完結的小說到第 1～3 話網漫，全由 Claude Opus 5.5 負責。第 2 話網漫是讓貝斯珀的燈光決定分格邊框顏色與亮度的演出實驗；第 3 話網漫則把耳機裡的無線電放進分格之間的薄荷色帶，而不是對話框。
 - **[處刑前一分鐘的皇女](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8)：從設計、小說到網漫改編，全由 GPT-6 Sol 負責。
-- **[判決 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8)：小說與網漫改編由 Claude Opus 5.5 負責，圖畫由 Codex 繪製。
+- **[判決 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8)：小說與網漫改編由 Claude Opus 5.5 負責，圖畫由 Codex (OpenAI API `gpt-image-2.5-sunburst`) 繪製。
 - **[路上的閃電](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8)：Codex、Claude、Grok 各自改編了同一部小說。另有[模型比較](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html)。
 
 我們沒有只挑成功的場景。審查沒通過的場景、提示詞，甚至成本，都能在[作品列表](https://fbwndrud.github.io/vibelore/showcase/)中原樣查看。展示作品與網站為韓文。
@@ -76,9 +76,9 @@ vibelore 負責記住世界觀、人物、伏筆與時間線，每一話都做�
 ```
 
 格數是整數（1～12）或 `auto`，參考圖由使用者指定自己持有的人物與背景圖片檔。
-圖片模型從 OpenAI API 的 `gpt-image-2`、`gpt-image-2.5-sunburst`（預設）、`gpt-image-2.5-flare` 中選擇，
-由主機呼叫。生成前驗證或圖片審查不合格時，會根據缺陷重新設計並生成（預設 2 次、最多 3 次，
-每次都會產生圖片費用）。結果是場景圖片與 `scene.html`，存放在 `.vibelore/webtoon/candidates/` 之下。
+圖畫依使用者選擇的路徑繪製：主機的內建圖片工具（例如 Codex `image_gen`）或圖片 API（例如 OpenAI `gpt-image-2.5-sunburst`）。
+生成前驗證或圖片審查不合格時，會根據缺陷重新設計並生成（預設 2 次、最多 3 次，
+每次都是新的圖片呼叫）。結果是場景圖片與 `scene.html`，存放在 `.vibelore/webtoon/candidates/` 之下。
 
 ## 安裝
 
@@ -152,8 +152,8 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 - **回溯。** 把整部作品回溯到特定一話的時間點，再從下一話重新寫起（回溯前的狀態會保留以便復原）。
 - **網漫改編。** 沿用原作狀態，確認原作範圍、畫風、參考圖、格數與圖片模型後，把每個場景連同對白完成為一張圖片。
 
-**不做的事。** 網頁 GUI（主機聊天框就是介面）、由 MCP 伺服器本身呼叫付費 API（圖片 API
-由主機執行）、用預設工具重寫前面的話或重新計算之後的狀態（只有 `VIBELORE_MCP_SURFACE=advanced` 的
+**不做的事。** 網頁 GUI（主機聊天框就是介面）、由 MCP 伺服器本身呼叫付費 API（圖畫
+由主機繪製）、用預設工具重寫前面的話或重新計算之後的狀態（只有 `VIBELORE_MCP_SURFACE=advanced` 的
 復原工具 `lore_rewrite`、`lore_refold` 能做到）、文學品質保證、
 同時編輯與多租戶、針對平台的 PNG/JPEG 自動切割。
 
@@ -184,7 +184,7 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 
 1. **原作範圍與方向。** 詢問要改編的話與段落範圍，以及畫風、文字呈現與版面自由度，整理成英文演出指示請你確認。
 2. **參考圖。** 由使用者指定人物與背景的參考圖片檔（至少 1 張）。接續的場景也會參考前一個場景的完成圖。
-3. **格數與圖片模型。** 選擇格數（1～12 或 auto）以及圖片模型與費用。模型選擇按作品保留。
+3. **格數與繪圖路徑。** 選擇格數（1～12 或 auto），再從主機實際能用的繪圖路徑（內建工具、API）中，看過模型與費用後選擇。選擇按作品保留。
 4. **完成。** 場景演出 → 生成前驗證 → 連同對白的一張場景圖 → 審查實際的圖。不合格時會自動重新設計並重畫（預設 2 次、最多 3 次）。上面的製作範例都是這種方式。
 
 先逐格核准草圖的方式已 deprecated，只用於繼續已在進行中的工作。
@@ -192,7 +192,7 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 </tr>
 </table>
 
-圖畫由主機透過 API 呼叫使用者選擇的 OpenAI 圖片模型（`gpt-image-2`、`gpt-image-2.5-sunburst`（預設）、`gpt-image-2.5-flare`）繪製。需要另外的 API 金鑰與計費；在第一個場景之前會顯示模型、費用與傳送範圍，依使用者的回答按作品確定。網漫結果與小說正本分開儲存，不會改動小說。
+圖畫由主機依使用者選擇的路徑繪製。在第一個場景之前，會先確認主機實際能用的路徑，優先建議內建圖片工具（不另外計費），同時列出 API 模型（另需金鑰與計費）。依使用者的回答按作品確定，只有在你說要更改時才會再次詢問。網漫結果與小說正本分開儲存，不會改動小說。
 詳細步驟請看[網漫製作指南](../WEBTOON.en.md)。
 
 ## 為什麼是 vibelore
@@ -271,9 +271,56 @@ my-novel/
 
 ## 模型與費用
 
-- **小說**直接由你在主機工作階段中選擇的模型撰寫，不需要另外的 API 金鑰。可以給出把規劃、初稿與審查階段交給較輕量模型的分階段提示（在主機中繼時只是提示，只有本機模型會實際切換）；抽取既定事實的階段若未另外指定，仍維持基準模型。
-- **網漫圖片**由主機呼叫 OpenAI 圖片 API（`gpt-image-2`、`gpt-image-2.5-sunburst`（預設）、`gpt-image-2.5-flare`）生成，另有金鑰與計費。確認過的模型按作品儲存，不會擅自更改或替換。
-- **本機文字模型**可以透過環境變數連接到相容 OpenAI 的端點。
+小說與網漫圖畫分別選擇模型。
+
+### 小說：你用來寫作的 AI 應用程式的訂閱
+
+小說由接上 vibelore 的 AI 應用程式（主機）中目前選擇的模型撰寫。不需要另外給 vibelore API 金鑰，
+而是在該應用程式的訂閱或 API 點數範圍內運作。因此你需要的是想使用的主機的使用權限。
+
+| 主機 | 需要的東西 |
+|---|---|
+| Claude Code | Claude 訂閱或 Anthropic API 金鑰 |
+| Codex CLI | ChatGPT 方案或 OpenAI API 金鑰 |
+| Grok CLI | xAI 帳號 |
+
+**實際用過的模型。** 下列模型都是實際把作品寫到最後的組合，可以大致估量品質。
+所有成果都能在[作品列表](https://fbwndrud.github.io/vibelore/showcase/)中查看。
+
+| 模型 | 路徑 | 寫過的作品 |
+|---|---|---|
+| Claude Opus 5.5 | Claude Code | 《貝斯珀》全 50 話完結、《判決 LIVE》第 1～3 話、《路上的閃電》第 5 話 |
+| Claude Opus 5 | Claude Code | 《路上的閃電》第 2 話 |
+| Claude Sonnet 5 | Claude Code | 8 種語言的多語版第 1 話 |
+| GPT-6 Sol | OpenAI API | 《處刑前一分鐘的皇女》第 1～3 話、《路上的閃電》第 7 話 |
+| GPT-6 Luna | OpenAI API | 《路上的閃電》第 6 話 |
+| GPT-6 Astra | Codex CLI | 《路上的閃電》第 1 話 |
+| Grok 4.6 · 4.7 | Grok CLI | 《路上的閃電》第 3、4 話 |
+
+**可以接上，但我們沒有親自確認的。** 不保證品質，但可以試試看。
+若用 issue 告訴我們使用結果，我們會加進上表。
+
+- **其他 MCP 主機。** 像 Gemini CLI 這樣能呼叫 MCP 工具的應用程式，都可以連接並用該應用程式的模型（Google Gemini 等）寫作。
+- **本機模型。** 透過環境變數連接 Ollama、LM Studio 這類開放相容 OpenAI 端點的本機伺服器。模型必須能穩定產出長篇稿件與結構化回應。網漫圖片審查請求會附上圖檔一起送出，所以能看圖的模型也能負責審查。
+
+**分階段指派模型。** 可以給出把規劃、初稿與審查階段交給不同模型的提示（`modelProfile`），
+但哪些組合效果好還沒有測試過。目前建議用同一個模型跑完所有階段。
+
+### 網漫：主機內建工具或圖片 API
+
+圖畫由主機依使用者選擇的路徑繪製。在第一個場景之前，會確認主機實際能用的繪圖路徑與模型並全部列出，
+再把你的選擇按作品儲存。改編、場景演出與圖片審查由與小說相同的主機模型負責。
+
+| 路徑 | 費用 | 模型 |
+|---|---|---|
+| 主機內建圖片工具（例如 Codex `image_gen`） | 在主機訂閱的用量範圍內，不需另外的金鑰 | 由主機決定。Codex 0.159.2 的 `image_gen` 沒有選擇模型的參數，因此由 Codex 選擇 |
+| OpenAI 圖片 API | 執行環境中的 `OPENAI_API_KEY` 與另外計費 | `gpt-image-2.5-sunburst`（推薦）、`gpt-image-2.5-flare`、`gpt-image-2` 等帳號可用的模型 |
+
+- 在有內建工具的主機上會優先建議該路徑。若像 Claude Code 一樣沒有內建工具，則列出 API 路徑。
+- 如果你說要更改，例如「之後改用 API 畫」，會重新顯示模型與費用，只把確認過的選擇用在該作品。
+- 即使執行失敗或超過上限，也不會擅自改用其他路徑或模型。
+- 已公開作品的圖畫全部使用 OpenAI API 的 `gpt-image-2.5-sunburst` 繪製。每部作品使用的模型與費用可在作品列表的各作品頁面查看。
+- Gemini 等其他供應商的圖片模型，只要主機回報路徑，也能用同樣方式選擇，但我們沒有親自確認過。
 
 詳細設定請看[模型設定](../MODELS.en.md)。
 
@@ -288,7 +335,7 @@ my-novel/
 <details>
 <summary>需要另外付費嗎？</summary>
 
-小說寫作在主機的訂閱或點數範圍內運作，預設設定下 vibelore 不會直接呼叫模型（連接本機模型時除外）。網漫圖片由主機呼叫 OpenAI 圖片 API，依該帳號的計費方式收費。
+小說寫作在主機的訂閱或點數範圍內運作，預設設定下 vibelore 不會直接呼叫模型（連接本機模型時除外）。網漫圖畫若選擇主機內建圖片工具，會在該主機的用量範圍內繪製；若選擇圖片 API，則由該帳號另外計費。
 </details>
 
 <details>

@@ -155,8 +155,8 @@ not converted to this structure automatically, so decide first how much to reorg
 
 > Make chapter 1 into a webtoon. Ask me about the art style and lettering first, and draw each scene as one image, dialogue included.
 
-The host draws through the OpenAI image API (its own key and billing), and you need character and background reference image files.
-The source range, panel count, image model and cost are confirmed with you first, and the novel and the webtoon are saved separately.
+The host draws on the path you choose, its built-in image tool or an image API (own key and billing), and you need character and
+background reference image files. The source range, panel count, drawing path, model and cost are confirmed with you first, and the novel and the webtoon are saved separately.
 The finished result is one PNG/JPEG image per scene with the dialogue drawn in, plus `scene.html`, under `.vibelore/webtoon/candidates/`.
 
 For the detailed steps, see [Making a webtoon](WEBTOON.en.md).

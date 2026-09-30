@@ -16,24 +16,40 @@ separate provider API key for normal novel writing.
 vibelore's checks and approval steps stay the same whatever model you choose.
 This document does not guarantee quality rankings or speed for any model.
 
-## How is the webtoon image model chosen?
+## Which path draws the webtoon pictures?
 
-The default path (whole scene) uses only the OpenAI image API. The model is one of `gpt-image-2`, `gpt-image-2.5-sunburst` (default)
-and `gpt-image-2.5-flare`. When the first scene starts, the AI shows the model, execution path, separate billing and what gets sent,
-and your answer is saved as the choice for the work. The same choice is used for the next scenes and chapters of that work.
+The host draws the pictures on the path you choose. There are two kinds of path.
 
-| Execution path | What it needs | Who runs it |
+| Path | What it needs | Model |
 |---|---|---|
-| OpenAI image API | A tool that can call the chosen model, `OPENAI_API_KEY` in the execution environment, account permission and consent to separate billing | The host AI's API execution environment |
-| Host built-in image tool | Only for work already started on the per-panel path (deprecated) | The host AI |
+| Host built-in image tool | Access to that host. No separate key or billing | The host decides. If the tool takes a model argument, you choose among those |
+| Image API | An API key in the execution environment (e.g. `OPENAI_API_KEY`), account permission and separate billing | The models that account can use |
 
-Every automatic redesign and every redraw you ask for is a new image call and costs money.
-The vibelore server manages image requests, references, imports and reviews, and never calls an API directly.
-The server accepting a model name does not mean your account can actually use it.
-Images are generated after the model and path are confirmed to be runnable. When a path can't run or a limit is exceeded,
-it does not switch to another model or a paid path automatically.
+When the first scene starts, the AI first checks and reports the paths and models it can really use on this host.
+vibelore keeps no per-host model list of its own and shows you every option reported.
+If there is a built-in tool, that path is proposed first; among API models, `gpt-image-2.5-sunburst` is proposed when it is offered.
+Your answer is saved as the choice for the work and used for the next scenes and chapters of that work.
 
-> Check the image model to use for the webtoon and which execution paths are runnable. Explain first whether there is a separate cost, and keep my choice for this work.
+What was checked on Codex CLI 0.159.2:
+
+- The built-in `image_gen` takes only `prompt`, reference image paths and whether the background is transparent, and has no model argument. Codex decides which model draws,
+  and the C2PA signature of the output PNG says only `ChatGPT / gpt-image`.
+- The API path runs through the CLI that comes with Codex's `imagegen` skill (`image_gen.py --model`) and needs `OPENAI_API_KEY`.
+  You can choose `gpt-image-2.5-sunburst`, `gpt-image-2.5-flare`, `gpt-image-2` and others.
+
+On a host without a built-in image tool, such as Claude Code, only the API path appears. Image models from other providers such as Gemini
+can be chosen the same way if the host reports the path, but we haven't checked this ourselves.
+
+> Check which drawing paths and models this host can use and show them to me. Tell me too whether there is a separate cost.
+
+> From now on, draw this work with the API.
+
+When you ask for a change as in the second example, the options are shown again and only the choice you confirm is saved.
+
+Every automatic redesign and every redraw you ask for is a new image call. The built-in path uses the host's usage and the API path
+bills that account. The vibelore server manages drawing requests, references, imports and reviews, and never generates images itself.
+When a path can't run or a limit is exceeded, it does not switch to another path or model automatically. Each imported picture records
+the chosen path and model, plus the model information the host actually saw, as they are.
 
 For the actual production steps, see [Making a webtoon](WEBTOON.en.md).
 
@@ -51,7 +67,10 @@ node /absolute/path/to/vibelore/src/server.js
 Replace `your-installed-model` with the actual ID of the model you installed. When both values are set, that endpoint is
 used instead of the host's text answers. This is not an image generation setting.
 
-The current adapter does not support authentication or passing a thinking level. Use it only with a trusted local endpoint,
+For requests that need to see pictures, such as webtoon image review, the picture files are attached as images to the last user message.
+Whether a model can see pictures depends on the model; if it can't, the error that endpoint returns is shown as it is.
+
+The current adapter does not support authentication. Use it only with a trusted local endpoint,
 and check first that the model's long-form and structured answers are suitable for the work.
 
 ## Advanced: per-stage model hints for writing

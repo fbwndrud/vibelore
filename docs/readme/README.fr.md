@@ -27,7 +27,7 @@ Ce sont tous des résultats réels de romans écrits avec vibelore puis adaptés
 
 - **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, la plus récente) : Une œuvre de fan non officielle qui emprunte les personnages de la parade de nuit de Lotte World. Claude Opus 5.5 s’est chargé de tout, du roman complet en 50 épisodes aux webtoons des épisodes 1 à 3. Le webtoon de l’épisode 2 est une expérience de mise en scène où la lumière de Vesper fixe la couleur des bordures de cases et leur luminosité ; dans celui de l’épisode 3, la radio de l’oreillette passe par des bandes vert menthe entre les cases au lieu de bulles.
 - **[La princesse une minute avant son exécution](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8) : GPT-6 Sol s'est chargé de tout, de la conception au roman et à l'adaptation en webtoon.
-- **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8) : Claude Opus 5.5 a écrit le roman et l'adaptation en webtoon, et Codex a dessiné les images.
+- **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8) : Claude Opus 5.5 a écrit le roman et l'adaptation en webtoon, et Codex (OpenAI API `gpt-image-2.5-sunburst`) a dessiné les images.
 - **[L'Éclair sur la route](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8) : Codex, Claude et Grok ont chacun adapté le même roman. Il existe aussi une [comparaison des modèles](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).
 
 Nous n'avons pas choisi que les scènes réussies. Les scènes recalées à la revue, les prompts et même les coûts sont visibles tels quels dans la [liste des œuvres](https://fbwndrud.github.io/vibelore/showcase/). Les œuvres et le site de la vitrine sont en coréen.
@@ -77,9 +77,9 @@ Portion·style·références·cases·modèle d'image ─▶ Mise en scène ─�
 ```
 
 Le nombre de cases est un entier (1-12) ou `auto`, et les références sont des fichiers d'image de personnages et de décors que vous fournissez.
-Le modèle d'image se choisit parmi les modèles de l'API OpenAI `gpt-image-2`, `gpt-image-2.5-sunburst` (par défaut) et
-`gpt-image-2.5-flare`, et c'est l'hôte qui l'appelle. Si la vérification avant génération ou la revue de l'image échoue, la scène est
-replanifiée à partir des défauts puis régénérée (2 fois par défaut, 3 au maximum, chaque fois un appel d'image payant). Le résultat est
+Les images sont dessinées par la voie que vous choisissez : l'outil d'image intégré de l'hôte (comme `image_gen` de Codex) ou une API d'image
+(comme `gpt-image-2.5-sunburst` d'OpenAI). Si la vérification avant génération ou la revue de l'image échoue, la scène est
+replanifiée à partir des défauts puis régénérée (2 fois par défaut, 3 au maximum, chaque fois un nouvel appel d'image). Le résultat est
 l'image de la scène plus `scene.html`, sous `.vibelore/webtoon/candidates/`.
 
 ## Installation
@@ -154,8 +154,8 @@ sans me demander ». En cas de blocage, consultez le [guide de démarrage](../GE
 - **Retour en arrière.** Ramenez toute l'œuvre au point d'un épisode donné et réécrivez à partir du suivant (l'état antérieur est conservé pour pouvoir être restauré).
 - **Adaptation en webtoon.** Il reprend l'état de l'original, confirme la portion de l'original, le style graphique, les références, le nombre de cases et le modèle d'image, puis termine chaque scène en une seule image, dialogues compris.
 
-**Ce qu'il ne fait pas.** Une interface web (le chat de l'hôte sert d'interface), des appels d'API payants par le serveur MCP lui-même (les API d'image
-sont exécutées par l'hôte), la réécriture d'un épisode antérieur ou le recalcul de l'état suivant avec les outils par défaut (seuls les outils
+**Ce qu'il ne fait pas.** Une interface web (le chat de l'hôte sert d'interface), des appels d'API payants par le serveur MCP lui-même (les images
+sont dessinées par l'hôte), la réécriture d'un épisode antérieur ou le recalcul de l'état suivant avec les outils par défaut (seuls les outils
 de reprise `lore_rewrite` et `lore_refold` de `VIBELORE_MCP_SURFACE=advanced` le font), une garantie de qualité littéraire,
 l'édition simultanée ou le multi-locataire, ni le découpage automatique en PNG/JPEG pour les plateformes.
 
@@ -186,7 +186,7 @@ Il transforme tel quel en webtoon un roman déjà écrit. L'apparence des person
 
 1. **Portion de l'original et direction.** Il demande quel épisode et quels paragraphes adapter, le style graphique, le lettrage et la liberté de composition, puis résume le tout en mise en scène en anglais à valider.
 2. **Références.** Vous indiquez des fichiers d'image de référence des personnages et des décors (au moins un). Une scène qui en suit une autre utilise aussi l'image finie de la scène précédente.
-3. **Cases et modèle d'image.** Vous choisissez le nombre de cases (1-12 ou auto) et le modèle d'image avec son coût. Le choix du modèle est conservé par œuvre.
+3. **Cases et voie de dessin.** Vous choisissez le nombre de cases (1-12 ou auto), puis une voie de dessin parmi celles que l'hôte peut réellement utiliser (outil intégré, API), avec ses modèles et son coût. Le choix est conservé par œuvre.
 4. **Finition.** Mise en scène → vérification avant génération → une image de scène avec les dialogues dessinés → revue de l'image réelle. En cas d'échec, il replanifie et redessine automatiquement (2 fois par défaut, 3 au maximum). Les exemples ci-dessus ont été faits ainsi.
 
 La méthode consistant à faire d'abord approuver des crayonnés case par case est deprecated et ne sert qu'à poursuivre les travaux déjà en cours.
@@ -194,7 +194,7 @@ La méthode consistant à faire d'abord approuver des crayonnés case par case e
 </tr>
 </table>
 
-Les images sont dessinées par le modèle d'image OpenAI que vous choisissez (`gpt-image-2`, `gpt-image-2.5-sunburst` (par défaut) ou `gpt-image-2.5-flare`), que l'hôte appelle par l'API. Il faut une clé d'API et une facturation propres ; avant la première scène, on vous montre le modèle, le coût et ce qui est envoyé, et votre réponse fixe le choix pour l'œuvre. Les résultats du webtoon sont stockés à part du canon du roman et ne le modifient jamais.
+Les images sont dessinées par l'hôte selon la voie que vous choisissez. Avant la première scène, il vérifie quelles voies l'hôte peut réellement utiliser, propose d'abord l'outil d'image intégré (sans facturation supplémentaire) et montre aussi les modèles d'API (clé et facturation propres). Votre réponse fixe le choix pour l'œuvre, et la question ne vous est reposée que si vous demandez à le changer. Les résultats du webtoon sont stockés à part du canon du roman et ne le modifient jamais.
 Pour le détail des étapes, consultez le [guide de production de webtoon](../WEBTOON.en.md).
 
 ## Pourquoi vibelore
@@ -273,9 +273,56 @@ Le droit d'auteur du manuscrit appartient à son auteur, et la licence de ce dé
 
 ## Modèles et coûts
 
-- **Le roman** est écrit par le modèle choisi dans la session de l'hôte, tel quel. Pas de clé d'API séparée. On peut donner des indications par étape qui confient les étapes de planification, de brouillon et de revue à un modèle plus léger (en relais par l'hôte ce sont des indications ; seul un modèle local change réellement) ; les étapes qui extraient les faits établis restent sur le modèle de base sauf réglage explicite.
-- **Les images du webtoon** viennent de l'API d'image OpenAI (`gpt-image-2`, `gpt-image-2.5-sunburst` (par défaut), `gpt-image-2.5-flare`), appelée par l'hôte, avec sa propre clé et sa propre facturation. Le modèle confirmé est enregistré par œuvre et n'est jamais changé ni remplacé d'office.
-- **Les modèles de texte locaux** peuvent être branchés par variables d'environnement sur un point de terminaison compatible OpenAI.
+Le roman et les images du webtoon choisissent leurs modèles séparément.
+
+### Roman : l'abonnement de l'application d'IA avec laquelle vous écrivez
+
+Le roman est écrit par le modèle actuellement choisi dans l'application d'IA (l'hôte) à laquelle vibelore est branché. Vous ne donnez pas
+à vibelore de clé d'API propre ; il tourne dans le cadre de l'abonnement ou des crédits d'API de cette application. Il vous faut donc simplement un accès à l'hôte que vous voulez utiliser.
+
+| Hôte | Ce qu'il vous faut |
+|---|---|
+| Claude Code | Un abonnement Claude ou une clé d'API Anthropic |
+| Codex CLI | Une formule ChatGPT ou une clé d'API OpenAI |
+| Grok CLI | Un compte xAI |
+
+**Modèles que nous avons utilisés.** Ces combinaisons ont écrit de vraies œuvres jusqu'au bout, ce qui donne une idée de la qualité.
+Tous les résultats sont dans la [liste des œuvres](https://fbwndrud.github.io/vibelore/showcase/).
+
+| Modèle | Voie | Œuvres écrites |
+|---|---|---|
+| Claude Opus 5.5 | Claude Code | Vesper, 50 épisodes (terminé) ; Verdict LIVE ép. 1-3 ; L'Éclair sur la route ép. 5 |
+| Claude Opus 5 | Claude Code | L'Éclair sur la route ép. 2 |
+| Claude Sonnet 5 | Claude Code | Épisode 1 en 8 langues |
+| GPT-6 Sol | API OpenAI | La princesse une minute avant son exécution ép. 1-3 ; L'Éclair sur la route ép. 7 |
+| GPT-6 Luna | API OpenAI | L'Éclair sur la route ép. 6 |
+| GPT-6 Astra | Codex CLI | L'Éclair sur la route ép. 1 |
+| Grok 4.6 · 4.7 | Grok CLI | L'Éclair sur la route ép. 3 et 4 |
+
+**Branchables, mais non vérifiés par nous.** La qualité n'est pas garantie, mais vous pouvez les essayer.
+Si vous nous racontez le résultat dans une issue, nous l'ajouterons au tableau ci-dessus.
+
+- **Autres hôtes MCP.** Toute application capable d'appeler des outils MCP, comme Gemini CLI, peut être branchée et écrire avec le modèle de cette application (Google Gemini, etc.).
+- **Modèles locaux.** Branchez par variables d'environnement un serveur local qui ouvre un point de terminaison compatible OpenAI, comme Ollama ou LM Studio. Le modèle doit produire de façon fiable de longs manuscrits et des réponses structurées. Les demandes de revue d'image du webtoon partent avec les fichiers d'image en pièce jointe : un modèle capable de voir les images peut donc aussi se charger de la revue.
+
+**Attribution des modèles par étape.** On peut donner des indications (`modelProfile`) qui confient les étapes de planification, de brouillon et de revue à des modèles différents,
+mais nous n'avons pas encore testé quelles combinaisons fonctionnent bien. Pour l'instant, nous recommandons de faire tourner toutes les étapes sur un seul modèle.
+
+### Webtoon : l'outil intégré de l'hôte ou une API d'image
+
+Les images sont dessinées par l'hôte selon la voie que vous choisissez. Avant la première scène, il vérifie les voies de dessin et les modèles que l'hôte peut réellement utiliser,
+les montre tous et enregistre votre choix par œuvre. L'adaptation, la mise en scène et la revue d'image sont assurées par le même modèle de l'hôte que le roman.
+
+| Voie | Coût | Modèle |
+|---|---|---|
+| Outil d'image intégré de l'hôte (ex. `image_gen` de Codex) | Dans le cadre de l'usage de l'abonnement de l'hôte, sans clé séparée | C'est l'hôte qui décide. L'outil `image_gen` de Codex 0.159.2 n'a pas d'argument de modèle : c'est donc Codex qui choisit |
+| API d'image OpenAI | `OPENAI_API_KEY` dans l'environnement d'exécution et facturation séparée | Les modèles accessibles à votre compte, comme `gpt-image-2.5-sunburst` (recommandé), `gpt-image-2.5-flare` et `gpt-image-2` |
+
+- Sur un hôte doté d'un outil intégré, cette voie est proposée en premier. Sur un hôte qui n'en a pas, comme Claude Code, c'est la voie API qui est présentée.
+- Si vous demandez à changer, par exemple « Désormais, dessine avec l'API », les modèles et le coût sont présentés de nouveau, et seul le choix que vous confirmez est utilisé pour cette œuvre.
+- Si une exécution échoue ou atteint une limite, il ne bascule jamais de lui-même vers une autre voie ou un autre modèle.
+- Toutes les images des œuvres publiées ont été dessinées avec `gpt-image-2.5-sunburst` de l'API OpenAI. Le modèle et le coût utilisés pour chaque œuvre figurent sur sa page dans la liste des œuvres.
+- Les modèles d'image d'autres fournisseurs, comme Gemini, peuvent être choisis de la même façon si l'hôte signale la voie, mais nous ne l'avons pas vérifié nous-mêmes.
 
 Pour la configuration détaillée, voir [Réglages des modèles](../MODELS.en.md).
 
@@ -290,7 +337,7 @@ Non. Le chat de Claude Code, Codex ou Grok CLI sert d'interface, et les résulta
 <details>
 <summary>Est-ce que cela coûte en plus ?</summary>
 
-L'écriture du roman tourne dans le cadre de l'abonnement ou des crédits de l'hôte. Par défaut, vibelore n'appelle aucun modèle directement (sauf si vous branchez un modèle local). Les images du webtoon viennent de l'API d'image OpenAI, appelée par l'hôte, et suivent la facturation de ce compte.
+L'écriture du roman tourne dans le cadre de l'abonnement ou des crédits de l'hôte. Par défaut, vibelore n'appelle aucun modèle directement (sauf si vous branchez un modèle local). Les images du webtoon sont dessinées dans le cadre de l'usage de cet hôte si vous choisissez son outil d'image intégré, ou facturées séparément à ce compte si vous choisissez une API d'image.
 </details>
 
 <details>

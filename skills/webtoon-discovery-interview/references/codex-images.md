@@ -1,25 +1,46 @@
 # Codex image execution
 
-Vibelore handles the plan, state and review, and the host calls the image API. The `jobs` a tool returns are execution requests, not records of finished generation.
+Vibelore handles the plan, state and review, and the host draws with the path the user chose: its built-in image tool or an API. The `jobs` a tool returns are execution requests, not records of finished generation.
 
 ## Scene path (`needs_scene_image`)
 
-This is the default path (`lore_webtoon_scene`). It runs only on the OpenAI image API; there is no built-in image tool path.
+This is the default path (`lore_webtoon_scene`). The user picks how images are drawn: a built-in image tool of the host, or an API.
+The server never generates images and holds no per-host model list; you report what this host really has.
 
-1. The model and billing choice comes from `needs_image_choice` at `start` (see the skill); it is kept for the work's later scenes.
-2. `needs_scene_image` returns one job, `jobs[0]`, only after the pre-generation check passed. Run `jobs[0].prompt` with `jobs[0].apiRequest.model`
-   on `jobs[0].apiRequest.endpoint`, which is `/v1/images/edits` when references exist. Attach every file in `jobs[0].referenceImages`
-   as an actual image, in the listed order (the prompt calls them Image 1, Image 2, ...). Use the host's `imagegen` skill and its
-   bundled CLI, and follow the key and retry rules under [Actual execution](#actual-execution).
-3. Keep the returned PNG/JPEG inside the work folder without overwriting an existing file.
-4. Import it with `lore_webtoon_scene` for the same `workId` and `workflowId`, passing `asset: { path, inputHash: jobs[0].inputHash,
-   provenance: { kind: "openai-api", requestedModel: jobs[0].apiRequest.model, selectionId: jobs[0].apiRequest.selectionId } }`.
-   Add `observedModel` only when the actual response shows it. Any other provenance fails with `IMAGE_EXECUTION_PROVENANCE_REQUIRED`.
-5. The server then asks for the image review as `needs_model`; open the actual image before answering.
+1. **Report the host's image paths (`needs_image_runtime`).** Call `start` again with `imageRuntime`. In Codex, checked on
+   codex-cli 0.159.2:
+   - built-in: `{ id: "codex-image-gen", execution: "host-built-in", provider: "codex", tool: "image_gen", modelSelectable: false,
+     models: [], note: "<what you actually know>" }`. `image_gen` takes `prompt`, `referenced_image_paths`,
+     `num_last_images_to_include` and `transparent_background` and no model argument; Codex picks the model. Say that in `note`.
+     Re-check the tool's real arguments in the running version; if a model argument appears, set `modelSelectable: true` and list
+     the models it accepts.
+   - API: `{ id: "openai-api", execution: "api", provider: "openai", modelSelectable: true, models: [...], credential: "OPENAI_API_KEY" }`,
+     run through the `imagegen` skill's bundled CLI (`scripts/image_gen.py --model`). List the models the user's account can use, or leave `models` empty
+     when you cannot tell (the user then names one, for example `gpt-image-2.5-sunburst`); the CLI accepts any `gpt-image*` id.
+   Another host lists its own tools the same way. Never report a path you have not checked.
+2. **Confirm the choice (`needs_image_choice`).** Show every option, the proposal (built-in first) and the notice. Confirm with
+   `confirmImageChoice` and the user's own answer. The choice is kept for the work's later scenes; to switch later, start with
+   `changeImageChoice=true`.
+3. **Draw.** `needs_scene_image` returns one job, `jobs[0]`, only after the pre-generation check passed. Attach every file in
+   `jobs[0].referenceImages` as an actual image, in the listed order (the prompt calls them Image 1, Image 2, ...).
+   - `jobs[0].hostRequest` (built-in): call `hostRequest.tool` with `jobs[0].prompt` and the references
+     (`referenced_image_paths` in Codex). Do not add arguments the tool lacks and do not write a model name into the prompt.
+   - `jobs[0].apiRequest` (API): run `jobs[0].prompt` with `apiRequest.model` on `apiRequest.endpoint` (`/v1/images/edits` when
+     references exist) through the bundled CLI, and follow [Actual execution](#actual-execution) for keys and retries.
+4. Copy the returned PNG/JPEG into the work folder without overwriting an existing file (Codex saves built-in output under
+   `$CODEX_HOME/generated_images/` first).
+5. Import it with `lore_webtoon_scene` for the same `workId` and `workflowId`, passing `asset: { path, inputHash: jobs[0].inputHash, provenance }`:
+   - built-in: `{ kind: "host-built-in", provider: hostRequest.provider, tool: hostRequest.tool, selectionId: hostRequest.selectionId }`
+   - API: `{ kind: "api", provider: apiRequest.provider, requestedModel: apiRequest.model, selectionId: apiRequest.selectionId }`
+   - a work confirmed before this contract keeps `{ kind: "openai-api", requestedModel, selectionId }`.
+   Add `observedModel` only with what you actually saw, for example the response's model field or the image's C2PA
+   `softwareAgent` (Codex built-in output reads `ChatGPT` / `gpt-image`). Any other provenance fails with
+   `IMAGE_EXECUTION_PROVENANCE_REQUIRED`.
+6. The server then asks for the image review as `needs_model`; open the actual image before answering.
 
 The lettering is part of the image; there is no separate text layer or SVG. Every automatic re-plan after a failed check or review,
-and every user `revise`, issues a new job with a new `inputHash` and is another paid call. Don't resend a paid request on your own
-after an uncertain failure.
+and every user `revise`, issues a new job with a new `inputHash`: another host-usage call on the built-in path, another paid call on
+the API path. Don't resend a request on your own after an uncertain failure, and never switch paths without the user's choice.
 
 ## Per-panel path (deprecated)
 

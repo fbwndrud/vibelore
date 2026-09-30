@@ -77,7 +77,13 @@ its relative-path reference documents can break, so read the original inside the
 Actual drawing needs image generation, reference image attachment, local file storage, and viewing images and composites.
 The Codex execution contract follows the [image connection guide](skills/webtoon-discovery-interview/references/codex-images.md).
 For other hosts, check that they actually provide equivalent capabilities before running requests.
-The scene path calls only the OpenAI image API model the user chose and never substitutes another model. On the per-panel path (deprecated), if the chosen model can't be specified, it stops at `needs_image_runtime` and doesn't substitute a paid path automatically.
+For a work with no drawing path chosen yet, the scene path first asks the host, through `needs_image_runtime`, to report the paths it really has
+(built-in image tool, image API) and their models, and then uses only the path and model the user confirms at `needs_image_choice`, saved per work.
+The server keeps no per-host model list, and a failure never substitutes another path or model automatically.
+As checked on codex-cli 0.159.2 (2026-09-30), the built-in `image_gen` takes only `prompt`, reference image paths, the number of last images to include
+and whether the background is transparent; it has no model argument, so Codex picks the model. The C2PA signature of the output PNG says only
+`ChatGPT / gpt-image`. The API path runs through the CLI of Codex's `imagegen` skill (`image_gen.py --model`) and needs `OPENAI_API_KEY`.
+Claude Code has no built-in image tool, so it reports only the API path. On the per-panel path (deprecated), if the chosen model can't be specified, it stops at `needs_image_runtime` and doesn't substitute a paid path automatically.
 
 This branch's regression tests check, with synthetic images, the scene path's MCP round trip, pre-generation check and image review, and the per-panel path's (deprecated) rough approval and final approval.
 The novel host live-call records at the top don't mean live image generation or aesthetic verification for webtoons.

@@ -339,14 +339,18 @@ test('render brief emphasis is bounded, positive English and names only known te
   for (const focusTextIds of [['t2'], ['t1', 't1'], 't1']) assert.throws(() => validateSceneRenderBrief({ ...texted, focusTextIds }, withText), /INVALID_SCENE_TEXT_ASSIGNMENT/);
 });
 
+const apiRuntime = { host: 'claude-code', options: [{ id: 'openai-api', execution: 'api', provider: 'openai', modelSelectable: true,
+  models: ['gpt-image-2', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'], credential: 'OPENAI_API_KEY' }] };
+
 test('a new work confirms the API image selection inside the scene tool before any model call', async () => {
-  const { store, repo, args } = await setup();
+  const { store, repo, args: base } = await setup();
   await writeFile(repo.path('image-selection.json'), '{}');
+  const args = { ...base, imageRuntime: apiRuntime };
   const providers = { complete() { throw new Error('Must not call model'); } };
   const proposed = await runWebtoonSceneTool({ store, args, providers });
   assert.equal(proposed.status, 'needs_image_choice'); assert.deepEqual(proposed.jobs, []); assert.equal(await repo.load(), null);
-  assert.equal(proposed.imageChoice.policy.execution, 'openai-api'); assert.equal(proposed.imageChoice.policy.targetModel, 'gpt-image-2.5-sunburst');
-  assert.match(proposed.imageChoice.notice, /별도 OpenAI API 과금/);
+  assert.equal(proposed.imageChoice.policy.execution, 'api'); assert.equal(proposed.imageChoice.policy.targetModel, 'gpt-image-2.5-sunburst');
+  assert.match(proposed.imageChoice.notice, /별도 API 과금/);
   await assert.rejects(runWebtoonSceneTool({ store, args: { ...args, confirmImageChoice: 'wic-other', feedback: '승인' }, providers }), /STALE_IMAGE_CHOICE/);
   await assert.rejects(runWebtoonSceneTool({ store, args: { ...args, confirmImageChoice: proposed.imageChoice.id }, providers }), /IMAGE_CHOICE_USER_ANSWER_REQUIRED/);
   await assert.rejects(runWebtoonSceneTool({ store, args: { ...args, imageModel: 'gpt-image-2', confirmImageChoice: proposed.imageChoice.id, feedback: '승인' }, providers }), /STALE_IMAGE_CHOICE/);
@@ -360,16 +364,19 @@ test('a new work confirms the API image selection inside the scene tool before a
 test('the image-choice notice and next action carry the work language: English work has no Hangul, Korean work keeps it', async () => {
   const en = await setup({ language: 'en', prose: 'Yun stopped at the closed door.\n\n"Is anyone inside?"' });
   await writeFile(en.repo.path('image-selection.json'), '{}');
-  const enProposed = await runWebtoonSceneTool({ store: en.store, args: en.args, providers: { complete() { throw new Error('Must not call model'); } } });
+  const enAsked = await runWebtoonSceneTool({ store: en.store, args: en.args, providers: { complete() { throw new Error('Must not call model'); } } });
+  assert.equal(enAsked.status, 'needs_image_runtime');
+  assert.doesNotMatch(enAsked.nextAction, /[가-힣]/u);
+  const enProposed = await runWebtoonSceneTool({ store: en.store, args: { ...en.args, imageRuntime: apiRuntime }, providers: { complete() { throw new Error('Must not call model'); } } });
   assert.equal(enProposed.status, 'needs_image_choice');
   assert.doesNotMatch(enProposed.imageChoice.notice, /[가-힣]/u);
   assert.doesNotMatch(enProposed.nextAction, /[가-힣]/u);
 
   const ko = await setup();
   await writeFile(ko.repo.path('image-selection.json'), '{}');
-  const koProposed = await runWebtoonSceneTool({ store: ko.store, args: ko.args, providers: { complete() { throw new Error('Must not call model'); } } });
+  const koProposed = await runWebtoonSceneTool({ store: ko.store, args: { ...ko.args, imageRuntime: apiRuntime }, providers: { complete() { throw new Error('Must not call model'); } } });
   assert.equal(koProposed.status, 'needs_image_choice');
-  assert.match(koProposed.imageChoice.notice, /별도 OpenAI API 과금/);
+  assert.match(koProposed.imageChoice.notice, /별도 API 과금/);
   assert.match(koProposed.nextAction, /confirmImageChoice ID와 원답 feedback/);
 });
 
@@ -397,4 +404,15 @@ test('non-Korean works get English scene chrome and Korean works keep Korean', a
   const ko = await setup();
   const koAsked = await runWebtoonSceneTool({ store: ko.store, args: { ...ko.args, panelCount: undefined }, providers: provider() });
   assert.match(koAsked.questions[0].question, /몇 칸/);
+});
+
+test('the image review request names the actual image files so an adapter can attach them', async () => {
+  const { store, args } = await setup();
+  const r = await runWebtoonSceneTool({ store, args, providers: provider() });
+  const p = provider(), complete = p.complete; let review;
+  p.complete = async (req) => { if (req.step === 'webtoon-scene-image-review') review = req; return complete(req); };
+  const done = await runWebtoonSceneTool({ store, args: { workId, asset: { path: args.references[0].path, inputHash: r.jobs[0].inputHash,
+    provenance: { kind: 'openai-api', requestedModel: 'gpt-image-2.5-sunburst', selectionId: 'selected-api' } } }, providers: p });
+  assert.equal(done.status, 'completed');
+  assert.deepEqual(review.images, [{ path: done.image.path, mime: 'image/png' }]);
 });

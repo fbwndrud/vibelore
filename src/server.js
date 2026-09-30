@@ -543,7 +543,7 @@ const TOOLS = [
     name: 'lore_webtoon_scene',
     annotations: writes(),
     description: '기본 웹툰 제작 경로. 소설 정본의 한 장면을 대사가 작품 언어 원문으로 들어간 이미지 한 장으로 만든다. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토 순서이며 컷 배치와 카메라는 이미지 모델에 맡긴다. 호출 전에 webtoon-discovery-interview로 원작 범위·화풍·참조·칸 수·이미지 모델을 사용자와 정한다. '
-      + '서버는 이미지 API를 부르지 않는다: needs_scene_image일 때 jobs의 요청을 호스트가 OpenAI API(별도 과금)로 실행하고 결과 파일을 asset으로 넘긴다. 선택이 없는 작품은 start에서 needs_image_choice로 과금 선택을 사용자에게 확인하며, 승인된 선택은 재사용한다. 모델 단계(연출·검증·시각 검토)는 needs_model→lore_resume, 칸 수가 없으면 needs_interview. '
+      + '서버는 이미지를 직접 생성하지 않는다: needs_scene_image일 때 jobs의 요청을 호스트가 사용자가 고른 경로(hostRequest=호스트 내장 도구, apiRequest=API·별도 과금)로 실행하고 결과 파일을 asset으로 넘긴다. 선택이 없는 작품은 start가 needs_image_runtime으로 호스트의 실제 이미지 경로 보고(imageRuntime)를 받고, needs_image_choice로 선택지 전체를 사용자에게 보여 확정한다(내장 경로를 먼저 제안). 확정한 선택은 changeImageChoice로 바꾸기 전까지 재사용한다. 모델 단계(연출·검증·시각 검토)는 needs_model→lore_resume, 칸 수가 없으면 needs_interview. '
       + '상태는 .vibelore/webtoon/에 저장하고 소설 정본과 프로젝트 webtoon/ 폴더는 건드리지 않는다. 진행 중 워크플로가 있으면 start는 WEBTOON_WORKFLOW_ACTIVE로 거부되므로 revise나 retry로 끝낸다. 시각 검토를 통과하면 status=completed. 기존 컷별 workflow는 변경하지 않는다.',
     inputSchema: { type: 'object', properties: { ...projectArg,
       workflowId: { type: 'string', description: '대상 장면 워크플로 id. 생략하면 현재 워크플로.' }, revision: webtoonRevisionArg,
@@ -556,9 +556,13 @@ const TOOLS = [
       references: { type: 'array', description: 'start 필수. 사용자가 지정한 인물·배경 참조 이미지 1개 이상(직전 장면 포함 최대 16개). description은 영어, id에 previous-scene은 쓸 수 없다.', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'path', 'hash', 'description'] } },
       autoRevisions: { type: 'integer', minimum: 0, maximum: SCENE_AUTO_REVISIONS.max, description: `start 전용. 생성 전 검증 또는 이미지 검토가 불합격이면 관측 결함을 feedback으로 자동 재설계하는 횟수(기본 ${SCENE_AUTO_REVISIONS.default}). 재설계마다 새 이미지 요청이 나가며 실패한 시도는 attempts에 남는다. 0이면 기존처럼 scene_needs_revision에서 멈춘다.` },
       feedback: { type: 'string', description: 'revise에 필수인 수정 요청. confirmImageChoice와 함께 start할 때는 과금 선택에 대한 사용자 원답을 넣는다.' },
-      asset: { type: 'object', description: 'needs_scene_image 단계에서 호스트가 생성한 장면 이미지. path는 프로젝트 안의 PNG/JPEG, inputHash는 job의 inputHash, provenance는 {kind:"openai-api", requestedModel, selectionId}.', properties: { path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object' } }, required: ['path', 'inputHash', 'provenance'] },
-      imageModel: { type: 'string', enum: ['gpt-image-2', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'], description: '확정된 API 선택이 없는 작품의 start에서 제안할 OpenAI API 모델. 기본 2.5 Sunburst.' },
-      confirmImageChoice: { type: 'string', description: 'needs_image_choice로 받은 imageChoice.id. 사용자의 원답을 feedback에 넣어 같은 start를 다시 호출하면 이 작품의 API 선택으로 확정한다.' },
+      asset: { type: 'object', description: 'needs_scene_image 단계에서 호스트가 생성한 장면 이미지. path는 프로젝트 안의 PNG/JPEG, inputHash는 job의 inputHash, provenance는 선택한 경로대로 내장이면 {kind:"host-built-in", provider, tool, selectionId, observedModel?}, API면 {kind:"api", provider, requestedModel, selectionId, observedModel?}(기존 OpenAI 선택 작품은 {kind:"openai-api", requestedModel, selectionId}). observedModel은 호스트가 실제로 본 것만 적는다.', properties: { path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object' } }, required: ['path', 'inputHash', 'provenance'] },
+      imageRuntime: { type: 'object', description: 'start 전용. needs_image_runtime에 답해 호스트가 실제로 쓸 수 있는 이미지 경로를 보고한다. {host, options:[{id, execution:"host-built-in"|"api", provider, tool?, modelSelectable, models[], credential?, note?}]}. 내장 도구와 API 경로를 모두 적고, 모르는 것은 추측하지 말고 note에 쓴다. 모델 인자는 받지만 계정 모델을 모르면 models를 비운다(고를 때 imageModel 필요). 키 값은 넣지 않는다.',
+        properties: { host: { type: 'string' }, options: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, execution: { type: 'string', enum: ['host-built-in', 'api'] }, provider: { type: 'string' }, tool: { type: 'string' }, modelSelectable: { type: 'boolean' }, models: { type: 'array', items: { type: 'string' } }, credential: { type: 'string' }, note: { type: 'string' } }, required: ['id', 'execution', 'provider', 'modelSelectable'] } } }, required: ['host', 'options'] },
+      imageOption: { type: 'string', description: 'start 전용. 사용자가 고른 imageRuntime.options[].id. 생략하면 내장 경로를 먼저 제안한다.' },
+      imageModel: { type: 'string', description: 'start 전용. 고른 경로가 모델을 받을 때 사용자가 고른 모델(그 경로의 models 중 하나). 생략하면 gpt-image-2.5-sunburst가 있으면 그것, 없으면 첫 모델.' },
+      changeImageChoice: { type: 'boolean', description: 'start 전용. 사용자가 이 작품의 이미지 경로·모델을 바꾸겠다고 했을 때만 true. 저장된 선택을 두고 새 선택을 다시 묻는다.' },
+      confirmImageChoice: { type: 'string', description: 'needs_image_choice로 받은 imageChoice.id. 사용자의 원답을 feedback에 넣어 같은 start를 다시 호출하면 이 작품의 선택으로 확정한다. imageRuntime을 다시 보낼 필요는 없다.' },
     }, required: ['workId'] },
   },
   {
