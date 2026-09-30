@@ -12,11 +12,11 @@ You don't need to write tool calls yourself. Just talk to the AI as in the examp
 - **vibelore connected:** install it as in [Getting started](GETTING_STARTED.en.md) and check that the tools are visible.
 - **The source:** a work written with vibelore and the chapter to adapt. For a novel written elsewhere, first do
   [Continue a novel you already wrote](GETTING_STARTED.en.md#5-continue-a-novel-you-already-wrote).
-- **An AI that can open images:** the host must call the image API and be able to open the images it made to review them.
+- **An AI that can open images:** the host must draw the images and be able to open the images it made to review them.
   Connecting vibelore does not add a drawing capability.
-- **The OpenAI image API:** the host draws with one of the OpenAI image models `gpt-image-2`, `gpt-image-2.5-sunburst` (default)
-  and `gpt-image-2.5-flare`, called through the API. The AI tool's built-in image feature is not used on this path.
-  The API needs its own key and billing. Don't paste the key into the chat; set it in the execution environment.
+- **A drawing path:** the host draws on the path you choose: its built-in image tool (such as Codex `image_gen`) or an image API
+  (such as OpenAI `gpt-image-2.5-sunburst`). The built-in tool runs within the host's usage; an API needs its own key and billing.
+  Don't paste an API key into the chat; set it in the execution environment. For how the paths differ, see [Model settings](MODELS.en.md).
 - **Reference art:** at least one character or background reference image file (PNG/JPEG) inside the work folder.
 
 The finished result is one PNG/JPEG image per scene with the dialogue drawn in, plus `scene.html` that shows it.
@@ -60,19 +60,21 @@ show it**.
 | Lettering, page format and layout freedom | "Inner thoughts in light boxes, actual speech in balloons. Draw it as one tall vertical image." |
 | Reference art | "Use `refs/hero.png` for the character and `refs/street.png` for the street." |
 | Panel count | "Use auto." |
-| Image model and cost | "Use the default model; I know every redraw costs money." |
+| Drawing path, model and cost | "Use the proposed built-in tool; I know every redraw uses more of my usage." |
 
 Lettering, page format and layout freedom are not separate menu choices; they go into the English direction (`direction`).
 When the AI shows your answers summed up in English, check that they mean what you meant.
 
-Even if you say "just go ahead", the panel count and the image model and its cost are confirmed with you. The image model is kept
-once chosen, for this work's later scenes and episodes too, and when it can't run it is not secretly switched to another model.
+Even if you say "just go ahead", the panel count and the drawing path, model and cost are confirmed with you. The AI first checks
+the paths and models it can really use on this host, shows them all, and proposes the built-in tool first if there is one. The choice is kept
+once made, for this work's later scenes and episodes too, and you are asked again only when you say to change it, as in "From now on draw with the API".
+When it can't run, it is not secretly switched to another path or model.
 Reference art is named each time a scene starts.
 
 ## Whole scene: one image, dialogue included
 
 The source paragraph range is split into scenes, and each scene goes through direction → pre-generation check → image → review of the actual
-image. The image model chosen earlier is reused, and the drawing follows the character and background reference art you name.
+image. The drawing path and model chosen earlier are reused, and the drawing follows the character and background reference art you name.
 
 > Draw the first scene of chapter 1 as one image. Use auto for the panel count, and if there is a previous scene, review it as a continuation.
 
@@ -84,7 +86,7 @@ At the start you are asked for the **panel count**. Choose from `4, 6, 8, 9, aut
 
 Panel sizes and layout are left to the image model. If you name the previous scene, the two images are reviewed side by side
 for continuity of characters, background and action. If the pre-generation check or the image review fails, the AI re-plans from
-the faults and redraws (2 times by default, at most 3, and each one costs an image call). If it still fails, you are shown the result
+the faults and redraws (2 times by default, at most 3, and each one is a new image call). If it still fails, you are shown the result
 and the evidence and asked how to fix it. There is no separate approval step; a scene that passes the review is done.
 
 ## Per panel (deprecated): what you check at each step
@@ -114,7 +116,7 @@ that need a new composition from the rough and the reference art. For the detail
 
 On the whole-scene method, dialogue, inner thoughts, sound effects and sign text are all drawn inside the image by the image model.
 Dialogue is not translated; it goes in as the original text in the work language. The AI opens the actual image to check the text
-and who is speaking. Fixing even one word means redrawing the scene, which is a new image cost.
+and who is speaking. Fixing even one word means redrawing the scene, which is a new image call.
 
 ### Lettering on the per-panel method (deprecated)
 
@@ -158,7 +160,7 @@ On the per-panel method, don't edit the text in the SVG or HTML directly either;
 For an episode in progress, just say **what to change**.
 
 For a whole-scene job, say something like "fix the problems the review observed in this scene (panel count, lettering, continuity) and redraw it",
-and it adapts, checks and generates again from that feedback (each time is a new image cost). The automatic redesign budget is
+and it adapts, checks and generates again from that feedback (each time is a new image call). The automatic redesign budget is
 spent only on failed checks and reviews.
 
 For the per-panel method (deprecated), ask with the scope separated like this.

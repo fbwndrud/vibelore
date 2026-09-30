@@ -27,7 +27,7 @@ These are all real results of adapting novels written with vibelore into webtoon
 
 - **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, latest): An unofficial fan work borrowing Lotte World’s night-parade characters. Claude Opus 5.5 handled everything, from the complete 50-chapter novel to the chapter 1–3 webtoons. The chapter 2 webtoon is a presentation experiment where Vesper’s light sets the panel-border color and brightness; the chapter 3 webtoon letters earpiece radio in mint bands between panels instead of speech balloons.
 - **[The Princess One Minute Before Her Execution](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): GPT-6 Sol handled everything from the design to the novel and the webtoon adaptation.
-- **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): Claude Opus 5.5 wrote the novel and the webtoon adaptation, and Codex drew the pictures.
+- **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): Claude Opus 5.5 wrote the novel and the webtoon adaptation, and Codex (OpenAI API `gpt-image-2.5-sunburst`) drew the pictures.
 - **[Lightning on the Road](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8): Codex, Claude and Grok each adapted the same novel. There is also a [model comparison](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).
 
 We didn't pick only the scenes that came out well. Scenes that failed review, the prompts and even the costs are all visible in the [work list](https://fbwndrud.github.io/vibelore/showcase/). The showcase works and site are in Korean.
@@ -77,9 +77,9 @@ Range·style·references·panels·image model ─▶ Scene direction ─▶ Pre-
 ```
 
 The panel count is an integer (1-12) or `auto`, and the reference art is character and background image files you supply.
-The image model is one of the OpenAI API models `gpt-image-2`, `gpt-image-2.5-sunburst` (default) and `gpt-image-2.5-flare`,
-and the host calls it. If the pre-generation check or the image review fails, it re-plans from the findings and generates
-again (2 times by default, at most 3, and each one is a paid image call). The result is the scene image plus `scene.html`
+The pictures are drawn on the path you choose: the host's built-in image tool (such as Codex `image_gen`) or an image API
+(such as OpenAI `gpt-image-2.5-sunburst`). If the pre-generation check or the image review fails, it re-plans from the findings and generates
+again (2 times by default, at most 3, and each one is a new image call). The result is the scene image plus `scene.html`
 under `.vibelore/webtoon/candidates/`.
 
 ## Installation
@@ -154,7 +154,7 @@ without asking". If you get stuck, see [Getting started](../GETTING_STARTED.en.m
 - **Rollbacks.** Roll the whole work back to a given chapter and write again from the next one (the state before the rollback is kept so it can be restored).
 - **Webtoon adaptation.** It takes the source state, confirms the source range, art style, reference art, panel count and image model, then finishes each scene as one image, dialogue included.
 
-**What it doesn't do.** A web GUI (the host chat is the interface), paid API calls by the MCP server itself (the host runs image APIs),
+**What it doesn't do.** A web GUI (the host chat is the interface), paid API calls by the MCP server itself (the host draws the pictures),
 rewriting an earlier chapter or recomputing the later state with the default tools (only the recovery tools `lore_rewrite` and
 `lore_refold` on `VIBELORE_MCP_SURFACE=advanced` do that), guarantees of literary quality,
 concurrent editing or multi-tenancy, and automatic splitting into PNG/JPEG for platforms.
@@ -186,7 +186,7 @@ It turns a novel you already wrote into a webtoon as it is. Character looks, the
 
 1. **Source range and direction.** It asks which chapter and paragraphs to adapt, the art style, the lettering and how much layout freedom to give, and sums it up as English direction for you to confirm.
 2. **Reference art.** You point to character and background reference image files (at least one). A continuing scene also uses the finished image of the scene before it.
-3. **Panel count and image model.** You choose the panel count (1-12 or auto) and the image model and its cost. The model choice is kept per work.
+3. **Panel count and drawing path.** You choose the panel count (1-12 or auto), then pick from the drawing paths the host can really use (built-in tool, API) with their models and cost. The choice is kept per work.
 4. **Finish.** Scene direction → pre-generation check → one scene image with the dialogue drawn in → review of the actual image. If it fails, it re-plans and draws again automatically (2 times by default, at most 3). The production examples above were made this way.
 
 The method of approving per-panel roughs first is deprecated and only continues work already in progress.
@@ -194,7 +194,7 @@ The method of approving per-panel roughs first is deprecated and only continues 
 </tr>
 </table>
 
-The pictures are drawn by the OpenAI image model you choose (`gpt-image-2`, `gpt-image-2.5-sunburst` (default) or `gpt-image-2.5-flare`), which the host calls through the API. It needs its own API key and billing; before the first scene you are shown the model, the cost and what gets sent, and your answer fixes the choice for the work. Webtoon results are stored apart from the novel canon and never change the novel.
+The host draws the pictures on the path you choose. Before the first scene it checks which paths the host can really use, proposes the built-in image tool first (no extra billing) and shows the API models (own key and billing) alongside. Your answer fixes the choice for the work, and you are asked again only when you say to change it. Webtoon results are stored apart from the novel canon and never change the novel.
 For the detailed steps, see the [webtoon production guide](../WEBTOON.en.md).
 
 ## Why vibelore
@@ -275,9 +275,56 @@ The copyright of the manuscript belongs to its author, and this repository's lic
 
 ## Models and cost
 
-- **The novel** is written by whatever model you chose in the host session. There is no separate API key. You can give per-stage hints that hand the planning, draft and review stages to a lighter model (in host relay they are hints; only a local model actually switches); the stages that extract established facts stay on the base model unless you set them.
-- **Webtoon images** come from the OpenAI image API (`gpt-image-2`, `gpt-image-2.5-sunburst` (default), `gpt-image-2.5-flare`), called by the host, with its own key and billing. The confirmed model is saved per work and never changed or substituted arbitrarily.
-- **Local text models** can be connected through environment variables to an OpenAI-compatible endpoint.
+The novel and the webtoon pictures choose their models separately.
+
+### Novel: the subscription of the AI app you write in
+
+The novel is written by the model currently chosen in the AI app (host) that vibelore is attached to. You don't give vibelore
+an API key of its own; it runs within that app's subscription or API credits. So what you need is access to the host you want to use.
+
+| Host | What you need |
+|---|---|
+| Claude Code | A Claude subscription or an Anthropic API key |
+| Codex CLI | A ChatGPT plan or an OpenAI API key |
+| Grok CLI | An xAI account |
+
+**Models we have used.** These combinations have written real works to the end, so you can get some sense of the quality.
+All the results are in the [catalog of works](https://fbwndrud.github.io/vibelore/showcase/).
+
+| Model | Route | Works written |
+|---|---|---|
+| Claude Opus 5.5 | Claude Code | Vesper, 50 chapters complete; Verdict LIVE ch. 1-3; Lightning on the Road ch. 5 |
+| Claude Opus 5 | Claude Code | Lightning on the Road ch. 2 |
+| Claude Sonnet 5 | Claude Code | Chapter 1 in 8 languages |
+| GPT-6 Sol | OpenAI API | The Princess One Minute Before Execution ch. 1-3; Lightning on the Road ch. 7 |
+| GPT-6 Luna | OpenAI API | Lightning on the Road ch. 6 |
+| GPT-6 Astra | Codex CLI | Lightning on the Road ch. 1 |
+| Grok 4.6 · 4.7 | Grok CLI | Lightning on the Road ch. 3 and 4 |
+
+**Can be attached, but not checked by us.** Quality isn't guaranteed, but you can try them.
+If you tell us how it went in an issue, we'll add it to the table above.
+
+- **Other MCP hosts.** Any app that can call MCP tools, such as Gemini CLI, can be connected and write with that app's model (Google Gemini and so on).
+- **Local models.** Connect a local server that opens an OpenAI-compatible endpoint, such as Ollama or LM Studio, through environment variables. The model has to produce long manuscripts and structured responses reliably. Webtoon image review requests are sent with the picture files attached, so a model that can see images can take on the review as well.
+
+**Per-stage model assignment.** You can give hints (`modelProfile`) that hand the planning, draft and review stages to different models,
+but we haven't yet tested which combinations work well. For now we recommend running every stage on one model.
+
+### Webtoon: the host's built-in tool or an image API
+
+The host draws the pictures on the path you choose. Before the first scene it checks the drawing paths and models the host can really use,
+shows them all, and saves your choice per work. Adaptation, scene direction and image review are done by the same host model as the novel.
+
+| Path | Cost | Model |
+|---|---|---|
+| Host built-in image tool (e.g. Codex `image_gen`) | Within the host subscription's usage, no separate key | The host decides. Codex 0.159.2's `image_gen` has no model argument, so Codex picks |
+| OpenAI image API | `OPENAI_API_KEY` in the execution environment and separate billing | Models your account can use, such as `gpt-image-2.5-sunburst` (recommended), `gpt-image-2.5-flare` and `gpt-image-2` |
+
+- On a host with a built-in tool, that path is proposed first. On a host without one, such as Claude Code, the API path is shown.
+- If you say to change it, as in "From now on draw with the API", the models and cost are shown again and only the choice you confirm is used for that work.
+- If a run fails or hits a limit, it never switches to another path or model on its own.
+- Every picture in the published works was drawn with the OpenAI API `gpt-image-2.5-sunburst`. The model and cost used for each work are on its page in the catalog.
+- Image models from other providers such as Gemini can be chosen the same way if the host reports the path, but we haven't checked this ourselves.
 
 For detailed settings, see [Model settings](../MODELS.en.md).
 
@@ -292,7 +339,7 @@ No. The chat of Claude Code, Codex or Grok CLI is the interface, and the results
 <details>
 <summary>Does it cost extra?</summary>
 
-Novel writing runs within the host's subscription or credits. By default vibelore doesn't call a model directly (unless you connect a local model). Webtoon images come from the OpenAI image API, called by the host, and follow that account's billing.
+Novel writing runs within the host's subscription or credits. By default vibelore doesn't call a model directly (unless you connect a local model). Webtoon pictures are drawn within that host's usage if you choose the host's built-in image tool, or billed separately to that account if you choose an image API.
 </details>
 
 <details>
