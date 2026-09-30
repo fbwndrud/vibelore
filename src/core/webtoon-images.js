@@ -48,6 +48,88 @@ export function validateImageProvenance(workflow, provenance) {
     !(provenance.observedModel === policy.targetModel || provenance.observedModel.startsWith(`${policy.targetModel}-`)))) throw new Error('IMAGE_OBSERVED_MODEL_MISMATCH');
 }
 
+// Scene path: the host reports the image paths it really has, the user picks one, and the server keeps it per work.
+// The server holds no host-specific model list; a built-in tool without a model argument is recorded as exactly that.
+export const SCENE_IMAGE_EXECUTIONS = Object.freeze(['host-built-in', 'api']);
+export const PREFERRED_API_IMAGE_MODEL = 'gpt-image-2.5-sunburst';
+const IMAGE_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}$/;
+const shortText = (value, max) => typeof value === 'string' && value.trim() && value.length <= max;
+
+function imageRuntimeOption(option, index) {
+  const need = (ok, field) => { if (!ok) throw new Error(`INVALID_IMAGE_RUNTIME: options[${index}].${field}`); };
+  need(option && IMAGE_ID.test(option.id), 'id');
+  need(SCENE_IMAGE_EXECUTIONS.includes(option.execution), 'execution');
+  need(IMAGE_ID.test(option.provider), 'provider');
+  const builtIn = option.execution === 'host-built-in';
+  need(!builtIn || IMAGE_ID.test(option.tool), 'tool');
+  const models = option.models ?? [];
+  // An empty list on a selectable path means "takes a model argument, account models unknown": the user names one.
+  need(Array.isArray(models) && models.every((m) => IMAGE_ID.test(m)) && new Set(models).size === models.length, 'models');
+  need(typeof option.modelSelectable === 'boolean' && (builtIn || option.modelSelectable), 'modelSelectable');
+  need(option.note === undefined || shortText(option.note, 500), 'note');
+  need(option.credential === undefined || IMAGE_ID.test(option.credential), 'credential');
+  return { id: option.id, execution: option.execution, provider: option.provider, tool: builtIn ? option.tool : null,
+    modelSelectable: option.modelSelectable, models: [...models], billing: builtIn ? 'host-usage' : 'api',
+    credential: option.credential ?? null, note: option.note ?? null };
+}
+
+/** Normalize the host's own report of its image paths; unknown or malformed entries are refused, never guessed. */
+export function validateImageRuntime(runtime) {
+  if (!runtime || !IMAGE_ID.test(runtime.host)) throw new Error('INVALID_IMAGE_RUNTIME: host');
+  if (!Array.isArray(runtime.options) || !runtime.options.length || runtime.options.length > 10) throw new Error('INVALID_IMAGE_RUNTIME: options');
+  const options = runtime.options.map(imageRuntimeOption);
+  if (new Set(options.map((o) => o.id)).size !== options.length) throw new Error('INVALID_IMAGE_RUNTIME: options.id');
+  return { host: runtime.host, options };
+}
+
+/** Proposed policy for one reported option: the built-in tool first unless the user named another option or model. */
+export function sceneImagePolicy(runtime, optionId, model) {
+  const option = optionId === undefined ? runtime.options.find((o) => o.execution === 'host-built-in') ?? runtime.options[0]
+    : runtime.options.find((o) => o.id === optionId);
+  if (!option) throw new Error('IMAGE_OPTION_NOT_OFFERED');
+  if (model !== undefined && !option.modelSelectable) throw new Error('IMAGE_MODEL_NOT_SELECTABLE');
+  if (model !== undefined && !(option.models.length ? option.models.includes(model) : IMAGE_ID.test(model))) throw new Error('IMAGE_MODEL_NOT_OFFERED');
+  if (option.modelSelectable && model === undefined && !option.models.length) throw new Error('IMAGE_MODEL_REQUIRED');
+  const targetModel = !option.modelSelectable ? null
+    : model ?? (option.models.includes(PREFERRED_API_IMAGE_MODEL) ? PREFERRED_API_IMAGE_MODEL : option.models[0]);
+  return { version: 4, execution: option.execution, host: runtime.host, provider: option.provider, tool: option.tool, optionId: option.id,
+    modelSelectable: option.modelSelectable, targetModel, hostModels: option.models, hostNote: option.note,
+    billing: option.billing, credential: option.credential, fallback: 'ask-user' };
+}
+
+const isScenePolicy = (policy) => policy?.version === 4 && SCENE_IMAGE_EXECUTIONS.includes(policy.execution);
+
+/** A saved per-work selection the scene path may keep using: the older OpenAI API choice or a host-reported one. */
+export function savedSceneSelection(saved, workId) {
+  if (!saved?.policy || !saved.selection) return null;
+  const policy = saved.policy.execution === 'openai-api' ? imagePolicyFor(saved.policy.targetModel, 'openai-api') : isScenePolicy(saved.policy) ? saved.policy : null;
+  return policy && imageSelectionConfirmed({ workId, imagePolicy: policy, imageSelection: saved.selection }) ? { policy, saved } : null;
+}
+
+/** The execution request for one scene image, in the shape the chosen path needs. */
+export function sceneImageRequest(workflow, hasReferences) {
+  const policy = workflow.imagePolicy, selectionId = workflow.imageSelection.id;
+  const endpoint = hasReferences ? '/v1/images/edits' : '/v1/images/generations';
+  if (!isScenePolicy(policy)) return { apiRequest: { model: policy.targetModel, endpoint, selectionId, executionOwner: 'host' } };
+  if (policy.execution === 'host-built-in') return { hostRequest: { host: policy.host, provider: policy.provider, tool: policy.tool, model: policy.targetModel, selectionId, executionOwner: 'host' } };
+  return { apiRequest: { provider: policy.provider, model: policy.targetModel, ...(policy.provider === 'openai' ? { endpoint } : {}),
+    selectionId, executionOwner: 'host', ...(policy.credential ? { credential: policy.credential } : {}) } };
+}
+
+/** The imported scene must say it came from the chosen path; observedModel is what the host saw, kept as reported. */
+export function validateSceneImageProvenance(workflow, provenance) {
+  const policy = workflow.imagePolicy;
+  if (!isScenePolicy(policy)) return validateImageProvenance(workflow, provenance);
+  if (!imageSelectionConfirmed(workflow)) throw new Error('WEBTOON_IMAGE_RUNTIME_REQUIRED');
+  const builtIn = policy.execution === 'host-built-in';
+  const same = provenance?.kind === (builtIn ? 'host-built-in' : 'api') && provenance.provider === policy.provider
+    && provenance.selectionId === workflow.imageSelection.id && (!builtIn || provenance.tool === policy.tool)
+    && (policy.targetModel === null ? provenance.requestedModel == null : provenance.requestedModel === policy.targetModel);
+  if (!same) throw new Error('IMAGE_EXECUTION_PROVENANCE_REQUIRED');
+  if (provenance.observedModel != null && !shortText(provenance.observedModel, 200)) throw new Error('IMAGE_OBSERVED_MODEL_MISMATCH');
+  if (!builtIn && provenance.observedModel != null && !(provenance.observedModel === policy.targetModel || provenance.observedModel.startsWith(`${policy.targetModel}-`))) throw new Error('IMAGE_OBSERVED_MODEL_MISMATCH');
+}
+
 const apiRequest = (workflow, edit = false) => effectiveImagePolicy(workflow).execution === 'openai-api'
   ? { apiRequest: { model: workflow.imagePolicy.targetModel, endpoint: edit ? '/v1/images/edits' : '/v1/images/generations',
     selectionId: workflow.imageSelection.id, executionOwner: 'host', credential: 'OPENAI_API_KEY',

@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- `lore_webtoon_scene` no longer hard-codes the OpenAI image API. A work
+  without a saved image choice first gets `needs_image_runtime`: the host
+  reports the image paths it really has as `imageRuntime` (built-in tools
+  and API paths, with the models each accepts). `needs_image_choice` then
+  shows every option and proposes the built-in path first; the user's answer
+  is kept per work and changes only with `changeImageChoice`.
+- Scene jobs carry `hostRequest` for a built-in tool (for example Codex
+  `image_gen`, which has no model argument) or `apiRequest` for an API.
+  Imports record `host-built-in` or `api` provenance, and `observedModel`
+  keeps what the host actually saw. Works confirmed on the OpenAI API before
+  this change keep their saved choice.
+- The local OpenAI-compatible adapter attaches the image files a request
+  names (the webtoon image review) to the last user message, so a model that
+  can see images reviews the actual picture.
+
 ## 0.4.4 — 2026-09-30
 
 - Every MCP tool declares `annotations` (`readOnlyHint`, `destructiveHint`,

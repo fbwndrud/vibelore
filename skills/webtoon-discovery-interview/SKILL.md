@@ -43,11 +43,17 @@ translation instructions in the interview.
 4. **`panelCount`.** An integer 1-12 or `"auto"`. The user chooses. If not chosen, the result is
    `needs_interview` (options `4, 6, 8, 9, auto`); `auto` lets the AI choose 3-12 panels anew for each adaptation, and fewer
    than 3 panels are shown as a continuity warning in the response `warnings`.
-5. **Image model, execution path and cost.** If this work has no confirmed API choice, the `action="start"` call
-   returns `needs_image_choice` (`imageChoice.id`, the model, execution path and billing in
-   `imageChoice.policy`, and the notice text `imageChoice.notice`). Show it as is, take the user's own answer, then
-   call again with the same `start` arguments plus `confirmImageChoice=imageChoice.id` and `feedback=<the user's own answer>`;
-   this confirms it as this work's choice. A displayed default or no answer is not treated as approval.
+5. **Image path, model and cost.** If this work has no confirmed choice, `action="start"` first returns
+   `needs_image_runtime`. Check what this host really offers and call the same `start` again with
+   `imageRuntime={host, options:[...]}`: every built-in image tool (`execution="host-built-in"`, its `tool` name, whether it takes a
+   model argument, the models it accepts) and every API path (`execution="api"`, `provider`, `models`, the `credential` name, never
+   its value). Leave `models` empty when a path takes a model argument but you cannot tell which models the account can use. Report only what you checked; write anything unknown, such as which model a built-in tool uses, in `note`.
+   The result is `needs_image_choice`: show every entry of `imageChoice.options`, the proposal (`imageChoice.proposed`, the
+   built-in path first) and `imageChoice.notice` as they are. If the user picks another path or model, call again with
+   `imageOption` and `imageModel` for a new proposal. Once they choose, call the same `start` again with
+   `confirmImageChoice=imageChoice.id` and `feedback=<the user's own answer>` (the runtime report need not be resent); this becomes the work's choice. A displayed
+   default or no answer is not approval. When the user later says to switch (for example "from now on use the API"), start with
+   `changeImageChoice=true` plus a fresh `imageRuntime` and repeat the same confirmation.
 
 The detailed contract follows the [default path](../../docs/reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작).
 For `needs_model` (`webtoon-scene-plan`, `webtoon-scene-preflight`,
@@ -122,7 +128,7 @@ If the preference itself changes, update the answer to that question in `lore_we
 - `needs_model`: read the request's system/user and the actual evidence, and pass the exact `runId` and JSON per request ID to `lore_resume`. This is model work; keep it separate from questions for the user. If you don't answer, the work waits.
 - `webtoon-editorial`: read [Scene selection and adaptation review](references/editorial-selection.md) first. It is an editorial candidate that comes before the panel plan, choosing scenes based on the inherited reader promise and the user's answers. Don't interpret the source mapping as an obligation to draw every scene.
 - A visual critic answers `inspectedImages=true` only after actually opening the images and HTML in `artifacts`. Put the shot IDs read into `coveredIds`, and don't hide failures or findings. Don't call a review by the same host an independent reader evaluation.
-- `needs_image_choice`, `needs_image_runtime`, `needs_reference_images` or `needs_images`: read [Codex image execution](references/codex-images.md). Confirm the model, built-in/API path and cost choice, and reuse it within the same work. Generate, fix, keep and import only the current `jobs`. Pass reference images in `references` and panels in `assets`, with the exact `inputHash`.
+- `needs_image_runtime`, `needs_image_choice`, `needs_scene_image`, `needs_reference_images` or `needs_images`: read [Codex image execution](references/codex-images.md). Report the host's real image paths, confirm the user's path, model and cost choice, and reuse it within the same work. Generate, fix, keep and import only the current `jobs`. Pass reference images in `references` and panels in `assets`, with the exact `inputHash`.
 - `webtoon-layout-analyze`: look at the images in the actual request and return the speaker's mouth, the point where a sound effect originates, the protected areas of faces and key actions, and placement candidates. Already-confirmed evidence for the same image hash can be reused. Record low confidence as it is. The server computes actual font metrics, occlusion, reading order and tail visibility, and meaning and aesthetics are reviewed separately on the composite.
 - To change only balloon or sound effect positions, read [Lettering v2 revision flow](../../docs/reference/WEBTOON_WORKFLOW.md#조판-v2--그림을-다시-그리지-않는-수정) and specify `revisionTarget.kind="lettering"` with the target panels and feedback. `layout_blocked` is a state to check the reason and re-review candidates; it is not approval to regenerate images.
 - The exporter provides the SVG master, the HTML preview and the lettering JSON. v2 text is outline paths of a fixed font, and wording changes go through the original plan and a lettering recomputation. Splitting into PNG/JPEG for platforms, arbitrary fonts, curved tails and independent reader verification are out of the current scope.
