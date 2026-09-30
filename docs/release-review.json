@@ -1,8 +1,8 @@
 {
   "status": "approved",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "targetLicense": "Apache-2.0",
-  "reason": "0.4.4 adds MCP tool annotations (readOnlyHint, destructiveHint, idempotentHint, openWorldHint) to every tool and rewrites the public tool and parameter descriptions to state side effects, sibling tools, return values and needs_model stops. No server behaviour changes. The npm package ships the files listed in package.json `files`, including the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
+  "reason": "0.4.5 changes the webtoon scene image choice: the host reports the image paths it really has (needs_image_runtime), the user picks one with the host built-in tool proposed first, and the choice is kept per work; jobs carry hostRequest or apiRequest and imports record host-built-in or api provenance. Earlier OpenAI API selections keep working. The local OpenAI-compatible adapter attaches review images. README and docs separate novel and webtoon models. The npm package ships the files listed in package.json `files`, including the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
   "approvedBy": "JoungKyoung Lyoo",
   "approvedAt": "2026-09-30"
 }

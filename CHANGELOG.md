@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.5 — 2026-09-30
 
+- The README images load from the showcase media repository again; they had
+  pointed at files moved out of `docs/showcase/`, so GitHub and npm showed
+  broken pictures.
 - `lore_webtoon_scene` no longer hard-codes the OpenAI image API. A work
   without a saved image choice first gets `needs_image_runtime`: the host
   reports the image paths it really has as `imageRuntime` (built-in tools
