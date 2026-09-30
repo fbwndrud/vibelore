@@ -72,6 +72,12 @@ async function safeMachineRoot(store) {
   await directory(store.sidecar(), true);
 }
 
+export function snapshotFailureNotice(chapter, snapshot) {
+  return snapshot?.created === false
+    ? `${chapter}화의 최신 상태로 rollback할 지점이 없습니다. 스냅샷 생성 실패 원인: ${snapshot.error}`
+    : null;
+}
+
 export async function createChapterSnapshot({ store, workId, chapter }) {
   assertArguments(workId, chapter);
   await safeMachineRoot(store);

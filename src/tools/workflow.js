@@ -13,7 +13,7 @@ import { editorialQualityAdvisories, runEditorialQuality } from './editorial-qua
 import { ensurePilotContract, ensureStoryIdentity, patternViolations, readerHookAdvisories, runPatternAnalysis, runReaderHook } from './story-experience.js';
 import { assertProseIntegrity } from './prose-integrity.js';
 import { chooseBestRevision, makeRevisionCandidate, publicRevisionCandidate } from './revision-selection.js';
-import { createChapterSnapshot } from './snapshots.js';
+import { snapshotFailureNotice, createChapterSnapshot } from './snapshots.js';
 import { characterFidelityAdvisories, characterFidelityViolations, runCharacterFidelity } from './character-fidelity.js';
 import { arcReviewAdvisories, arcReviewViolations, runArcReview } from './arc-review.js';
 import { assessContractLength, assessChapterLength, chapterDensityViolations } from './chapter-density.js';
@@ -973,6 +973,10 @@ async function finalizeCommittedWorkflow({ store, workflow, publication, recover
   });
   try { result.snapshot = await createChapterSnapshot({ store, workId: workflow.workId, chapter: workflow.chapter }); }
   catch (error) { result.snapshot = { created: false, error: error.message }; }
+  // The final snapshot replaces the earlier runCommit snapshot and notice.
+  delete result.nextAction;
+  const snapshotNotice = snapshotFailureNotice(workflow.chapter, result.snapshot);
+  if (snapshotNotice) result.nextAction = snapshotNotice;
   if (workflow.finalization.recovered) await finalizationEvent(store, workflow, {
     at: now(), event: 'commit_postprocess_recovered', chapter: workflow.chapter, publishedHead: publication.head,
   });
@@ -984,8 +988,10 @@ async function finalizeCommittedWorkflow({ store, workflow, publication, recover
   workflow.finalization.finished = true;
   await store.saveWorkflow(workflow.workId, workflow);
   return { status: 'completed', workflowId: workflow.workflowId, chapter: workflow.chapter, quality: workflow.quality,
-    boundary: workflow.boundary, commit: result, ...(recovered ? { recovered: true,
-      nextAction: '발행된 화의 미완료 후처리를 복구했습니다. lore_write를 다시 호출하면 다음 화를 진행합니다.' } : {}) };
+    boundary: workflow.boundary, commit: result, ...(recovered ? { recovered: true } : {}),
+    ...((recovered || snapshotNotice) ? { nextAction: [snapshotNotice, recovered
+      ? '발행된 화의 미완료 후처리를 복구했습니다. lore_write를 다시 호출하면 다음 화를 진행합니다.' : null].filter(Boolean).join(' ') } : {}),
+  };
 }
 
 export async function runWorkflowDecide({ store, workId, approvalId, action, feedback = '', providers: baseProviders }) {
