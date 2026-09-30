@@ -22,3 +22,13 @@ code{background:var(--band);padding:1px 6px;border-radius:4px;font-size:12.5px}
 .log b{color:var(--ink)}
 footer.site{text-align:center}
 @media (max-width:960px){.notes{padding:20px 16px 40px;gap:32px}.nhead h1{font-size:30px}}
+
+/* 아크 점수 표(베스퍼 제작 노트) */
+.arcs{display:flex;flex-direction:column;gap:8px}
+.arc{display:grid;grid-template-columns:92px 1fr 64px;gap:14px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.65}
+.arc .r{color:var(--muted);font-variant-numeric:tabular-nums}
+.arc b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:2px}
+.arc span{color:var(--sub);word-break:keep-all}
+.arc .s{text-align:right;font-family:var(--serif);font-size:18px;color:var(--gold)}
+.arc .s small{display:block;font-family:var(--sans);font-size:11px;color:var(--muted)}
+@media (max-width:720px){.arc{grid-template-columns:1fr 54px}.arc .r{grid-column:1/-1}}

@@ -96,7 +96,7 @@
     ]
    },
    "webtoon": {
-    "image": "img/ko.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ko.webp",
     "imageBytes": 232916,
     "width": 1000,
     "height": 1500,
@@ -280,7 +280,7 @@
     "imageUsd": 0.058
    },
    "webtoonBefore": {
-    "image": "img/ko-52e5aee.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ko-52e5aee.webp",
     "imageBytes": 111932,
     "width": 640,
     "height": 960,
@@ -495,7 +495,7 @@
     ]
    },
    "webtoon": {
-    "image": "img/en.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/en.webp",
     "imageBytes": 273708,
     "width": 1000,
     "height": 1500,
@@ -645,7 +645,7 @@
     "imageUsd": 0.057
    },
    "webtoonBefore": {
-    "image": "img/en-52e5aee.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/en-52e5aee.webp",
     "imageBytes": 120090,
     "width": 640,
     "height": 960,
@@ -825,7 +825,7 @@
     ]
    },
    "webtoon": {
-    "image": "img/ja.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ja.webp",
     "imageBytes": 180524,
     "width": 1000,
     "height": 1500,
@@ -929,7 +929,7 @@
     "imageUsd": 0.057
    },
    "webtoonBefore": {
-    "image": "img/ja-52e5aee.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ja-52e5aee.webp",
     "imageBytes": 91644,
     "width": 640,
     "height": 960,
@@ -1086,7 +1086,7 @@
     ]
    },
    "webtoon": {
-    "image": "img/zh-Hant.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/zh-Hant.webp",
     "imageBytes": 209792,
     "width": 1000,
     "height": 1500,
@@ -1288,7 +1288,7 @@
     "imageUsd": 0.058
    },
    "webtoonBefore": {
-    "image": "img/zh-Hant-52e5aee.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/zh-Hant-52e5aee.webp",
     "imageBytes": 94858,
     "width": 640,
     "height": 960,
@@ -1500,7 +1500,7 @@
     ]
    },
    "webtoon": {
-    "image": "img/es.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/es.webp",
     "imageBytes": 222218,
     "width": 1000,
     "height": 1500,
@@ -1641,7 +1641,7 @@
     "imageUsd": 0.058
    },
    "webtoonBefore": {
-    "image": "img/es-52e5aee.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/es-52e5aee.webp",
     "imageBytes": 113622,
     "width": 640,
     "height": 960,
@@ -1821,7 +1821,7 @@
     ]
    },
    "webtoon": {
-    "image": "img/fr.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/fr.webp",
     "imageBytes": 232336,
     "width": 1000,
     "height": 1500,
@@ -2007,7 +2007,7 @@
     "imageUsd": 0.057
    },
    "webtoonBefore": {
-    "image": "img/fr-52e5aee.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/fr-52e5aee.webp",
     "imageBytes": 111840,
     "width": 640,
     "height": 960,
@@ -2231,7 +2231,7 @@
     ]
    },
    "webtoon": {
-    "image": "img/ar.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ar.webp",
     "imageBytes": 199812,
     "width": 1000,
     "height": 1500,
@@ -2370,7 +2370,7 @@
     "imageUsd": 0.058
    },
    "webtoonBefore": {
-    "image": "img/ar-52e5aee.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ar-52e5aee.webp",
     "imageBytes": 101714,
     "width": 640,
     "height": 960,
@@ -2536,7 +2536,7 @@
     ]
    },
    "webtoon": {
-    "image": "img/th.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/th.webp",
     "imageBytes": 296046,
     "width": 1000,
     "height": 1500,
@@ -2718,7 +2718,7 @@
     "imageUsd": 0.058
    },
    "webtoonBefore": {
-    "image": "img/th-52e5aee.webp",
+    "image": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/th-52e5aee.webp",
     "imageBytes": 123310,
     "width": 640,
     "height": 960,

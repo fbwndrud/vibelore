@@ -1,0 +1,96 @@
+/* 작품 페이지 공통 틀 — 테마 띠(이동 경로·이전/다음 작품·표지·제목·버튼·탭)와 개요·비용·데이터 본문. 작품 색은 띠에만 쓴다(--wb·--wt). */
+.wband{background:var(--wb,#13162A);color:#F3EBDA;min-height:340px}
+.wband a{color:inherit}
+.wband-top{display:flex;justify-content:space-between;gap:8px 24px;flex-wrap:wrap;padding-top:20px;font-size:13px;color:#B7BCD0}
+.wband-top nav{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center}
+.wband-top a{color:#B7BCD0}.wband-top a:hover{color:#fff}
+.wband-top .here{color:#F3EBDA}
+.wband-top .none{color:#6E7596}
+.wband-hero{display:grid;grid-template-columns:180px minmax(0,1fr);gap:20px 40px;padding-top:26px;padding-bottom:28px;align-items:end}
+.wband-hero .cover img{width:180px;height:252px;object-fit:cover;object-position:top;border-radius:12px;display:block;background:#2A2F48}
+.wband-hero .info{display:flex;flex-direction:column;gap:10px;min-width:0}
+.wband-hero .genre{font-size:12px;font-weight:700;letter-spacing:.12em;color:#FFD27A}
+.wband-hero h1{margin:0;font-family:'Noto Serif KR',serif;font-size:clamp(34px,4.2vw,50px);letter-spacing:-.03em;line-height:1.12}
+.wband-hero .gl{font-size:15px;color:#DCD5C4}
+.wband-hero p{margin:0;font-size:15.5px;line-height:1.7;color:#DCD5C4;max-width:760px}
+.wband-hero .ctas{display:flex;gap:10px 12px;flex-wrap:wrap;margin-top:4px}
+.wband-hero .btn{display:inline-flex;white-space:nowrap;align-items:center;min-height:44px;padding:0 20px;border-radius:10px;font-size:15px}
+.wband-hero .btn.primary{background:#F2A93B;color:#1A1405;font-weight:700}
+.wband-hero .btn.primary:hover{color:#1A1405;filter:brightness(1.06)}
+.wband-hero .btn.ghost{border:1px solid rgba(243,235,218,.35)}
+.wband-hero .btn.ghost:hover{border-color:#F3EBDA;color:#fff}
+.wtabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;font-size:15px}
+.wtabs a{padding:12px 18px;color:#DCD5C4;border-radius:10px 10px 0 0;white-space:nowrap}
+.wtabs a:hover{color:#fff}
+.wtabs a[aria-current=page]{background:var(--paper);color:var(--ink);font-weight:700}
+.wtabs .sep{width:1px;margin:10px 6px;background:rgba(243,235,218,.22);flex-shrink:0}
+
+/* 개요 */
+.wp-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:40px;padding-top:36px;padding-bottom:56px;align-items:start}
+.wp-body{display:flex;flex-direction:column;gap:36px;min-width:0}
+.wp-body h2,.wp-data h2{margin:0 0 14px;font-family:'Noto Serif KR',serif;font-size:23px;letter-spacing:-.02em}
+.wp-intro p{margin:0 0 12px;font-size:15.5px;line-height:1.85;color:var(--sub)}
+.wp-intro p.small{font-size:14px}
+.wp-intro .disclaimer{font-size:13px;color:var(--muted)}
+.wp-eps{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.wp-ep{display:flex;flex-direction:column;gap:4px;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.wp-ep b{font-size:15px}
+.wp-ep span{font-size:13px;color:var(--sub)}
+.wp-ep small{font-size:12px;color:var(--muted)}
+.wp-arcs{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14px}
+.wp-arcs a{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:12px;padding:11px 16px;border-top:1px solid var(--line2);align-items:center}
+.wp-arcs a:first-child{border-top:0}
+.wp-arcs .n{font-size:12px;font-weight:700;color:var(--gold)}
+.wp-arcs .r{color:var(--muted);text-align:right;white-space:nowrap}
+.wp-devs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.wp-dev{display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.wp-dev img{width:110px;height:150px;object-fit:cover;object-position:top;border-radius:8px;display:block}
+.wp-dev div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.wp-dev .k{font-size:12px;font-weight:700;color:var(--gold)}
+.wp-dev b{font-size:16.5px}
+.wp-dev span:last-child{font-size:13px;line-height:1.6;color:var(--sub)}
+.wp-note{font-size:13px;line-height:1.75;color:var(--muted);margin:0}
+.wp-note a{text-decoration:underline}
+
+/* 제작 정보 표 */
+.wp-facts{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+.wp-facts .hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.wp-facts h2{margin:0;font-size:17px;font-family:inherit}
+.wp-facts .hd span{font-size:12px;color:var(--muted)}
+.wp-facts dl{margin:0}
+.wp-facts .row{display:grid;grid-template-columns:88px minmax(0,1fr);gap:12px;padding:11px 0;border-top:1px solid var(--line2);font-size:14px;line-height:1.55}
+.wp-facts dt{color:var(--muted)}
+.wp-facts dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.wp-facts dd small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.wp-facts dd.none{color:var(--muted)}
+.wp-facts .more{display:inline-block;margin-top:10px;font-size:13.5px;font-weight:700;color:var(--gold)}
+
+/* 비용·데이터 */
+.wp-data{max-width:1080px;padding-top:36px;padding-bottom:56px;display:flex;flex-direction:column;gap:40px}
+.wp-data .lead{margin:-6px 0 14px;font-size:14.5px;color:var(--sub);line-height:1.75}
+.wp-cmp{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.wp-cmp table{border-collapse:collapse;width:100%;min-width:760px;font-size:13px}
+.wp-cmp th,.wp-cmp td{padding:10px 12px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top}
+.wp-cmp tr:last-child td{border-bottom:0}
+.wp-cmp thead th{font-size:13.5px}
+.wp-cmp thead th.me{background:var(--paper)}
+.wp-cmp tbody th{color:var(--muted);font-weight:500;white-space:nowrap}
+.wp-cmp td small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.wp-cmp td.me{background:var(--paper)}
+.wp-files{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.wp-files li{display:grid;grid-template-columns:minmax(160px,auto) minmax(0,1fr);gap:4px 16px;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:14px}
+.wp-files code{font-size:13px}
+.wp-files span{color:var(--sub)}
+.wp-go{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-weight:700}
+
+@media (max-width:1100px){.wp-grid{grid-template-columns:1fr}}
+@media (max-width:720px){
+  .wband{min-height:0}
+  .wband-hero{grid-template-columns:96px minmax(0,1fr);gap:16px;padding-top:18px;padding-bottom:18px;align-items:start}
+  .wband-hero .cover img{width:96px;height:134px}
+  .wband-hero p{display:none}
+  .wband-hero .btn{flex:1 1 auto;justify-content:center;min-height:42px;padding:0 12px;font-size:14px}
+  .wtabs{font-size:14px}.wtabs a{padding:11px 13px}
+  .wp-dev{grid-template-columns:84px minmax(0,1fr)}.wp-dev img{width:84px;height:116px}
+  .wp-files li{grid-template-columns:1fr}
+}

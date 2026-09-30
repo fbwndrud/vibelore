@@ -41,7 +41,7 @@
   function epTable() {
     const t = $('#ep-table');
     t.append(el('tr', { class: 'grp' }, el('th'), el('th', { colspan: 4 }, T('소설 쓰기')), el('th', { colspan: 4 }, T('웹툰 각색')), el('th', { colspan: 2 }, T('이미지')), el('th')));
-    t.append(el('tr', null, ['회차', '모델', '토큰', '비용', '시간', '모델', '토큰', '비용', '시간', '비용', '시간', '합계 비용'].map((h) => el('th', null, T(h)))));
+    t.append(el('tr', null, ['화', '모델', '토큰', '비용', '시간', '모델', '토큰', '비용', '시간', '비용', '시간', '합계 비용'].map((h) => el('th', null, T(h)))));
     for (const e of C.episodes) {
       const ch = e.chapter; const nv = row(ch, 'novel'); const wt = row(ch, 'webtoon'); const im = imgs(ch);
       let nvCost = costOf(nv); if (!nv && e.cost && e.cost.novelUsd != null) nvCost = { v: e.cost.novelUsd, k: 'est' };
@@ -134,7 +134,7 @@
   /* ---------- 이미지 ---------- */
   function imgTable() {
     const t = $('#img-table');
-    t.append(el('tr', null, ['회차', '장면(장)', '총 비용', '장당 비용', '장당 시간'].map((h) => el('th', null, T(h)))));
+    t.append(el('tr', null, ['화', '장면(장)', '총 비용', '장당 비용', '장당 시간'].map((h) => el('th', null, T(h)))));
     for (const e of C.episodes) {
       const im = imgs(e.chapter); if (!im.length) continue;
       const u = im.reduce((a, i) => a + (i.usd || 0), 0); const s = im.reduce((a, i) => a + (i.sec || 0), 0);

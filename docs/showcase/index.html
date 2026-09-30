@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script src="i18n.js?v=9"></script>
+<script src="i18n.js?v=12"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>vibelore 제작 예시</title>
 <meta name="description" content="vibelore로 AI가 설계·집필·각색한 소설과 장면 웹툰 제작 예시 모음.">
@@ -139,7 +139,7 @@
   function hero(w) {
     const box = document.getElementById('hero');
     box.append(
-      el('a', { class: 'cover', href: w.href }, el('img', { src: w.cover, alt: w.alt })),
+      el('a', { class: 'cover', href: w.href }, el('img', { src: w.thumb, alt: w.alt })),
       el('div', { class: 'body' },
         el('div', { class: 'badges' }, el('span', { class: 'badge' }, T('최신 작품 · vibelore {v}', { v: w.version.label })), el('span', { class: 'genre' }, w.genre)),
         el('h1', { lang: 'ko' }, w.title), w.gloss ? el('span', { class: 'gl en-only' }, w.gloss) : null,
@@ -181,14 +181,14 @@
 
   function card(w) {
     return el('a', { class: 'wcard', href: w.href },
-      el('div', { class: 'img' }, el('img', { src: w.cover, alt: w.alt, loading: 'lazy' }), versionTag(w, 'v')),
+      el('div', { class: 'img' }, el('img', { src: w.thumb, alt: w.alt, loading: 'lazy' }), versionTag(w, 'v')),
       el('span', { class: 'g', style: 'color:' + w.tone }, w.genre),
       el('b', { lang: 'ko' }, w.title), w.gloss ? el('span', { class: 'gl en-only' }, w.gloss) : null,
       el('span', { class: 's' }, w.scope), el('span', { class: 'm' }, w.model));
   }
   function row(w) {
     return el('a', { class: 'lrow', href: w.href },
-      el('img', { src: w.cover, alt: w.alt, loading: 'lazy' }),
+      el('img', { src: w.thumbSq, alt: w.alt, loading: 'lazy' }),
       el('span', null, el('b', { lang: 'ko' }, w.title), w.gloss ? el('span', { class: 'gl en-only' }, w.gloss) : null),
       el('span', { class: 'c' }, w.genre), el('span', { class: 'c' }, w.scope),
       el('span', { style: 'font-weight:700', title: w.version.detail }, w.version.label), el('span', { class: 'c' }, w.model));

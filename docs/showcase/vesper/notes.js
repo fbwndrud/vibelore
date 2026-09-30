@@ -32,7 +32,7 @@
       const cap = el('figcaption', null, r.description); cap.lang = 'ko'; f.append(img, cap); refs.append(f);
     }
 
-    $('#scenes').append(table(['화', '장면', '제목', '칸', '시도', '문구 정확', '판정', '비고'], d.episodes.flatMap((e) => e.scenes.map((s) => {
+    $('#scenes').append(table(['화', '장면 번호', '제목', '칸', '시도', '문구 정확', '판정', '비고'], d.episodes.flatMap((e) => e.scenes.map((s) => {
       const a = el('a', null, s.title); a.lang = 'ko'; a.href = `read.html#ep${e.chapter}/${s.id}`;
       return { cells: [[T('{n}화', { n: e.chapter }), 'n'], [String(s.n), 'n'], [a], [String(s.panelCount), 'n'], [s.attemptTotal > 1 ? T('{n}회 중 {c}번째', { n: s.attemptTotal, c: s.chosenAttempt }) : '1', 'n'], [`${s.textsOk}/${s.textsTotal}`, 'n'],
         [s.verdict === 'pass' ? T('통과') : T('수정 필요')], [s.lettering ? T('글자 {n}곳 후반 식자', { n: s.lettering.fixes.length }) : (s.attemptTotal > 1 ? T('자동 재설계 후 통과') : '')]] };

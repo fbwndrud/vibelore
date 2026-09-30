@@ -2,20 +2,25 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script src="../i18n.js?v=9"></script>
+<script src="../i18n.js?v=12"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>길 위의 번개 · 제작 과정</title>
 <meta name="description" content="소설 설계부터 장면 웹툰 검토까지, AI가 어떤 단계를 거쳐 무엇을 만들고 어떻게 판단했는지 실제 기록으로 따라가 봅니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="../shared/work.css?v=1">
+<link rel="stylesheet" href="../shared/site.css?v=1">
+<link rel="stylesheet" href="../shared/workpage.css?v=1">
 <link rel="stylesheet" href="process.css?v=3">
 </head>
-<body class="proc" data-page="process">
+<body class="proc" data-page="works" data-root="../" data-work="thundertrail" data-tab="notes">
+<div class="shell">
+<header id="top"></header>
+<section id="work-band"></section>
 <section class="phero">
   <div class="kicker">제작 기록</div>
   <h1>이 화는 실제로 어떻게 만들어졌나</h1>
-  <p data-i18n="tt.proc.lede">회차를 고르면 그 화의 계획, 초고, 비평가 지적, 수정, 장면별 사실 추출·검증·재설계, 그림 검토까지 실제 작업 기록 그대로 보여 줍니다. 단계가 각각 무슨 역할인지는 <a href="workflow.html">워크플로 해설</a>, 토큰과 비용은 <a href="cost.html">비용·시간</a>에 있습니다.</p>
+  <p data-i18n="tt.proc.lede">회차를 고르면 그 화의 계획, 초고, 비평가 지적, 수정, 장면별 사실 추출·검증·재설계, 그림 검토까지 실제 작업 기록 그대로 보여 줍니다. 단계가 각각 무슨 역할인지는 <a href="../how/">만드는 방식</a>, 토큰과 비용은 <a href="cost.html">비용·시간</a>에 있습니다.</p>
   <div class="pstats" id="pstats"></div>
 </section>
 
@@ -55,8 +60,9 @@
   비평·검토는 같은 오케스트레이션 호스트 안에서 이루어진 자기검토이며 독립 평가가 아닙니다. 소요 시간은 호스트 중계를 포함한 실제 경과 시간입니다.<br>
   빌드 <span id="built"></span> · 데이터 <a href="process.json">process.json</a>, <a href="data.json">data.json</a> · 제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a>
 </footer>
-<script src="../shared/worknav.js?v=1"></script>
-<script src="site.js?v=6"></script>
+</div>
+<script src="../shared/chrome.js?v=1"></script>
+<script src="../shared/workpage.js?v=1"></script>
 <script src="process.js?v=9"></script>
 </body>
 </html>

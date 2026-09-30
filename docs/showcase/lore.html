@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script src="i18n.js?v=9"></script>
+<script src="i18n.js?v=12"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>인물·설정 사전 · vibelore 제작 예시</title>
 <meta name="description" content="작품 정본과 vibelore가 매 화 쌓은 기록에서 뽑은 인물·장소·물건·떡밥. 고른 화까지만 보여줍니다.">
@@ -157,7 +157,7 @@
   }
   function renderWork(w) {
     const box = $('#work'); box.innerHTML = '';
-    box.append(el('img', { src: w.cover, alt: '' }), el('div', null, el('b', { lang: 'ko' }, w.title), el('span', { class: 'gl en-only' }, w.gloss), el('a', { href: w.links && w.links.read ? w.links.read : w.href }, T('작품 읽으러 가기 →'))));
+    box.append(el('img', { src: w.thumbSq, alt: '' }), el('div', null, el('b', { lang: 'ko' }, w.title), el('span', { class: 'gl en-only' }, w.gloss), el('a', { href: w.links && w.links.read ? w.links.read : w.href }, T('작품 읽으러 가기 →'))));
     const sel = $('#pick-ch'); sel.innerHTML = '';
     sel.append(el('option', { value: '0' }, T('연재 전 설계')));
     for (let i = 1; i <= db.through; i++) sel.append(el('option', { value: String(i) }, T('{n}화까지', { n: i })));

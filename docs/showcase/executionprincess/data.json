@@ -120,7 +120,7 @@
 "pTo": 12,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep01-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s1.webp",
 "blocking": 0,
 "advisory": 3,
 "findings": [
@@ -593,7 +593,7 @@
 "pTo": 23,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep01-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s2.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -1095,7 +1095,7 @@
 "pTo": 35,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep01-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s3.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -1498,7 +1498,7 @@
 "pTo": 48,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep01-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s4.webp",
 "blocking": 2,
 "advisory": 2,
 "findings": [
@@ -2057,7 +2057,7 @@
 "pTo": 63,
 "panelCount": 7,
 "plannedPanels": 6,
-"image": "img/ep01-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s5.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -2530,7 +2530,7 @@
 "pTo": 76,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep01-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s6.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -2975,7 +2975,7 @@
 "pTo": 91,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep01-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s7.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -3363,7 +3363,7 @@
 "pTo": 101,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep01-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s8.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -3713,7 +3713,7 @@
 "pTo": 108,
 "panelCount": 6,
 "plannedPanels": 5,
-"image": "img/ep01-s9.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -4114,7 +4114,7 @@
 "pTo": 11,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep02-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s1.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -4560,7 +4560,7 @@
 "pTo": 20,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep02-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s2.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -4902,7 +4902,7 @@
 "pTo": 31,
 "panelCount": 6,
 "plannedPanels": 5,
-"image": "img/ep02-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s3.webp",
 "blocking": 3,
 "advisory": 1,
 "findings": [
@@ -5307,7 +5307,7 @@
 "pTo": 44,
 "panelCount": 8,
 "plannedPanels": 7,
-"image": "img/ep02-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s4.webp",
 "blocking": 3,
 "advisory": 1,
 "findings": [
@@ -5820,7 +5820,7 @@
 "pTo": 60,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep02-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s5.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -6345,7 +6345,7 @@
 "pTo": 78,
 "panelCount": 9,
 "plannedPanels": 9,
-"image": "img/ep02-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s6.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -6897,7 +6897,7 @@
 "pTo": 93,
 "panelCount": 9,
 "plannedPanels": 9,
-"image": "img/ep02-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s7.webp",
 "blocking": 3,
 "advisory": 0,
 "findings": [
@@ -7442,7 +7442,7 @@
 "pTo": 106,
 "panelCount": 8,
 "plannedPanels": 8,
-"image": "img/ep02-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s8.webp",
 "blocking": 2,
 "advisory": 0,
 "findings": [
@@ -7906,7 +7906,7 @@
 "pTo": 111,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep02-s9.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep02-s9.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -8266,7 +8266,7 @@
 "pTo": 9,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep03-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s1.webp",
 "blocking": 0,
 "advisory": 0,
 "findings": [],
@@ -8670,7 +8670,7 @@
 "pTo": 19,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep03-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s2.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -9038,7 +9038,7 @@
 "pTo": 28,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep03-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s3.webp",
 "blocking": 0,
 "advisory": 1,
 "findings": [
@@ -9437,7 +9437,7 @@
 "pTo": 40,
 "panelCount": 8,
 "plannedPanels": 7,
-"image": "img/ep03-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s4.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -9910,7 +9910,7 @@
 "pTo": 50,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep03-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s5.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -10284,7 +10284,7 @@
 "pTo": 56,
 "panelCount": 5,
 "plannedPanels": 5,
-"image": "img/ep03-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s6.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -10652,7 +10652,7 @@
 "pTo": 64,
 "panelCount": 6,
 "plannedPanels": 6,
-"image": "img/ep03-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s7.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -11039,7 +11039,7 @@
 "pTo": 74,
 "panelCount": 7,
 "plannedPanels": 7,
-"image": "img/ep03-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s8.webp",
 "blocking": 1,
 "advisory": 0,
 "findings": [
@@ -11507,7 +11507,7 @@
 "pTo": 81,
 "panelCount": 7,
 "plannedPanels": 6,
-"image": "img/ep03-s9.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep03-s9.webp",
 "blocking": 2,
 "advisory": 1,
 "findings": [
@@ -11861,37 +11861,37 @@
 "references": [
 {
 "id": "ref-adelia",
-"image": "img/ref-adelia.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ref-adelia.webp",
 "description": "아델리아 라비엔: 은백색 머리, 보랏빛 눈, 왼쪽 눈 밑 점, 처형일의 찢긴 흰 드레스와 손목의 밧줄 자국."
 },
 {
 "id": "ref-kardan",
-"image": "img/ref-kardan.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ref-kardan.webp",
 "description": "카르단 베르크: 북부 대공이자 집행관. 검푸른 머리, 잿빛 눈, 왼쪽 눈썹 흉터, 검은 군복과 모피 망토."
 },
 {
 "id": "ref-rowen",
-"image": "img/ref-rowen.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ref-rowen.webp",
 "description": "로웬 세르티스: 재판 기록 담당 백작. 적갈색 머리, 연녹색 눈, 콧등 오른쪽 점, 크림색 연미복과 호박색 브로치."
 },
 {
 "id": "ref-edrian",
-"image": "img/ref-edrian.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ref-edrian.webp",
 "description": "에드리안 라비엔: 황태자이자 아델리아의 오빠. 짙은 밤색 머리, 보랏빛 눈, 입가 흉터, 남색 황실 예복."
 },
 {
 "id": "ref-scaffold",
-"image": "img/ref-scaffold.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ref-scaffold.webp",
 "description": "정오의 처형 광장: 붉은 천을 두른 처형대와 단두대, 금빛 모래시계, 귀족석."
 },
 {
 "id": "ref-banquet",
-"image": "img/ref-banquet.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ref-banquet.webp",
 "description": "황실 연회장: 샹들리에, 흰 식탁보, 좌석 카드, 기록 담당자의 책상."
 },
 {
 "id": "ref-ballroom",
-"image": "img/ref-ballroom.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ref-ballroom.webp",
 "description": "황실 무도회장: 샹들리에, 흰 돌바닥, 악단석, 평의회가 선 높은 단."
 }
 ],
