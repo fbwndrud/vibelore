@@ -214,6 +214,10 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       base.violations.push({ severity: 'soft', code: 'ADDRESS_ENTRY_REJECTED', chapterNumber: chapter, characterId: entry.speakerId,
         message: `Address entry ${entry.speakerId}->${entry.targetId} "${entry.term}" was not recorded (${entry.reason}).` });
     }
+    for (const entry of state.extracted.rejectedRevivals ?? []) {
+      base.violations.push({ severity: 'soft', code: 'REVIVAL_WITHOUT_EVIDENCE', chapterNumber: chapter, characterId: entry.characterId,
+        message: `${entry.characterId} (dead since chapter ${entry.sinceChapter}) was not recorded ${entry.vitalStatus}: no quote from the chapter supports it.` });
+    }
     if (!includeSemanticContinuity) return fail('VALIDATION_INCOMPLETE');
     const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan, lexicon: lexiconsForLanguage(workContract.language).honorific,
       // The reviewer judges POV against the profile's viewpoint design, not only

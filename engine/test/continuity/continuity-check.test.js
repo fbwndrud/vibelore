@@ -573,11 +573,54 @@ describe('continuityCheck character presence', () => {
         expect(hit?.characterId).toBe('c2');
         expect(hit?.origin).toBe('structural');
     });
-    it('accepts the appearance when the same chapter records the character alive again', async () => {
+    it('accepts a revival quoted from the chapter and flags it for the author', async () => {
         const delta = emptyDelta(5, ['c2']);
-        delta.mutableChanges = [{ characterId: 'c2', vitalStatus: 'alive' }];
+        delta.mutableChanges = [{ characterId: 'c2', vitalStatus: 'alive', evidence: '소영이 문을 열었다' }];
         const result = await check(delta);
         expect(result.violations.some((v) => v.code === 'DEAD_CHARACTER_ON_STAGE')).toBe(false);
+        const revived = result.violations.find((v) => v.code === 'DEAD_CHARACTER_REVIVED');
+        expect(revived?.severity).toBe('soft');
+        expect(revived?.characterId).toBe('c2');
+    });
+    it('keeps the block when the revival has no quote from the chapter', async () => {
+        for (const change of [
+            { characterId: 'c2', vitalStatus: 'alive' },
+            { characterId: 'c2', vitalStatus: 'alive', evidence: '소영은 사실 살아 있었다' },
+        ]) {
+            const delta = emptyDelta(5, ['c2']);
+            delta.mutableChanges = [change];
+            const result = await check(delta);
+            expect(result.violations.find((v) => v.code === 'DEAD_CHARACTER_ON_STAGE')?.severity).toBe('hard');
+        }
+    });
+    it('does not treat missing as a revival of a character on stage', async () => {
+        const delta = emptyDelta(5, ['c2']);
+        delta.mutableChanges = [{ characterId: 'c2', vitalStatus: 'missing', evidence: '소영이 문을 열었다' }];
+        const result = await check(delta);
+        expect(result.violations.find((v) => v.code === 'DEAD_CHARACTER_ON_STAGE')?.severity).toBe('hard');
+    });
+});
+describe('extractDelta revivals', () => {
+    it('keeps a quoted revival and drops the vital status of an unquoted one', async () => {
+        const providers = createProviderRegistry([makeMockAdapter({ default: JSON.stringify({
+                mutableChanges: [
+                    { characterId: 'c2', vitalStatus: 'alive', evidence: '소영이 숨을 몰아쉬며 일어났다', location: '성당' },
+                    { characterId: 'c3', vitalStatus: 'alive', location: '광장' },
+                    { characterId: 'c1', vitalStatus: 'dead', evidence: '없는 문장' },
+                ],
+            }) })]);
+        const foundation = makeFoundation({ characters: [maleChar('c1', '이세종'), femaleChar('c2', '소영'), maleChar('c3', '도윤')] });
+        const prevState = { ...emptyStoryState('work-test'), chapterNumber: 4, characterStates: {
+                c2: { vitalStatus: 'dead', knownFacts: [], sinceChapter: 3 },
+                c3: { vitalStatus: 'dead', knownFacts: [], sinceChapter: 2 },
+            } };
+        const result = await extractDelta({ prose: '종이 울렸다. 소영이 숨을 몰아쉬며 일어났다.', castManifestRaw: '', chapterNumber: 5, foundation, prevState, providers, model: MODEL });
+        expect(result.delta.mutableChanges).toEqual([
+            { characterId: 'c2', vitalStatus: 'alive', evidence: '소영이 숨을 몰아쉬며 일어났다', location: '성당' },
+            { characterId: 'c3', location: '광장' },
+            { characterId: 'c1', vitalStatus: 'dead', evidence: '없는 문장' },
+        ]);
+        expect(result.rejectedRevivals).toEqual([{ characterId: 'c3', vitalStatus: 'alive', sinceChapter: 2 }]);
     });
 });
 describe('extractDelta address entries', () => {

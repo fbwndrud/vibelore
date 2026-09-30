@@ -34,6 +34,14 @@
   description points AI-designed works to `lore_profile` → `lore_create`.
 - `lore_create`'s `chapterWordCount` is documented as legacy code units, not
   words, and `genre` as ignored when a StoryProfile exists.
+- A character recorded dead comes back only on a quote from the chapter.
+  The extraction asks for `evidence` with a revival; a revival whose quote
+  is not in the chapter text is not recorded (`REVIVAL_WITHOUT_EVIDENCE`),
+  and a dead character on stage without one stays a hard
+  `DEAD_CHARACTER_ON_STAGE`. `missing` no longer counts as a revival.
+- A quoted revival is reported as `DEAD_CHARACTER_REVIVED` and an `auto`
+  chapter waits for the author's approval (`REVIVAL_CONFIRMATION`) instead of
+  committing, since only the author knows whether the reveal is intended.
 
 ## 0.4.3 — 2026-09-29
 
