@@ -16,10 +16,10 @@ vibelore recuerda el mundo, los personajes, los presagios y la línea temporal, 
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="Vesper, capítulo 1, escena 6"></a><br><sub><i>Vesper</i> · comedia romántica no humana</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="La princesa un minuto antes de su ejecución, capítulo 1, escena 9"></a><br><sub><i>La princesa un minuto antes de su ejecución</i> · fantasía romántica de regresión y venganza</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="Veredicto LIVE, capítulo 1, escena 6"></a><br><sub><i>Veredicto LIVE</i> · thriller de ciberacoso mediático</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="Relámpago en el camino, capítulo 1, escena 1"></a><br><sub><i>Relámpago en el camino</i> · acción fantástica de carretera</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="Vesper, capítulo 1, escena 6"></a><br><sub><i>Vesper</i> · comedia romántica no humana</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="La princesa un minuto antes de su ejecución, capítulo 1, escena 9"></a><br><sub><i>La princesa un minuto antes de su ejecución</i> · fantasía romántica de regresión y venganza</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp" width="200" alt="Veredicto LIVE, capítulo 1, escena 6"></a><br><sub><i>Veredicto LIVE</i> · thriller de ciberacoso mediático</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp" width="200" alt="Relámpago en el camino, capítulo 1, escena 1"></a><br><sub><i>Relámpago en el camino</i> · acción fantástica de carretera</sub></td>
 </tr>
 </table>
 
@@ -178,8 +178,8 @@ Para correcciones, reanudación y copias de seguridad, consulta [Solución de pr
 
 <table>
 <tr>
-<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="Relámpago en el camino, capítulo 1, escena 4"></td>
-<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="Relámpago en el camino, capítulo 2, escena 6"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp" width="180" alt="Relámpago en el camino, capítulo 1, escena 4"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp" width="180" alt="Relámpago en el camino, capítulo 2, escena 6"></td>
 <td valign="top">
 
 Convierte tal cual en webtoon una novela que ya escribiste. El aspecto de los personajes, el mundo y la situación hasta ese capítulo se toman del original, así que no hace falta volver a explicarlos.

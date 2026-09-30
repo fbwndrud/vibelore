@@ -16,10 +16,10 @@
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="เวสเปอร์ ตอนที่ 1 ฉาก 6"></a><br><sub><i>เวสเปอร์</i> · โรแมนติกคอมเมดีอมนุษย์</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="องค์หญิงหนึ่งนาทีก่อนถูกประหาร ตอนที่ 1 ฉาก 9"></a><br><sub><i>องค์หญิงหนึ่งนาทีก่อนถูกประหาร</i> · โรแมนซ์แฟนตาซีย้อนเวลาล้างแค้น</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="คำตัดสิน LIVE ตอนที่ 1 ฉาก 6"></a><br><sub><i>คำตัดสิน LIVE</i> · ระทึกขวัญเรื่องการล่าแม่มดออนไลน์</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 1"></a><br><sub><i>สายฟ้าบนเส้นทาง</i> · แอ็กชันแฟนตาซีบนท้องถนน</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="เวสเปอร์ ตอนที่ 1 ฉาก 6"></a><br><sub><i>เวสเปอร์</i> · โรแมนติกคอมเมดีอมนุษย์</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="องค์หญิงหนึ่งนาทีก่อนถูกประหาร ตอนที่ 1 ฉาก 9"></a><br><sub><i>องค์หญิงหนึ่งนาทีก่อนถูกประหาร</i> · โรแมนซ์แฟนตาซีย้อนเวลาล้างแค้น</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp" width="200" alt="คำตัดสิน LIVE ตอนที่ 1 ฉาก 6"></a><br><sub><i>คำตัดสิน LIVE</i> · ระทึกขวัญเรื่องการล่าแม่มดออนไลน์</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp" width="200" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 1"></a><br><sub><i>สายฟ้าบนเส้นทาง</i> · แอ็กชันแฟนตาซีบนท้องถนน</sub></td>
 </tr>
 </table>
 
@@ -178,8 +178,8 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 <table>
 <tr>
-<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 4"></td>
-<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="สายฟ้าบนเส้นทาง ตอนที่ 2 ฉาก 6"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp" width="180" alt="สายฟ้าบนเส้นทาง ตอนที่ 1 ฉาก 4"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp" width="180" alt="สายฟ้าบนเส้นทาง ตอนที่ 2 ฉาก 6"></td>
 <td valign="top">
 
 นำนิยายที่เขียนไว้แล้วมาทำเป็นเว็บตูนตามเดิม รูปลักษณ์ตัวละคร โลก และสถานการณ์จนถึงตอนนั้นดึงมาจากต้นฉบับ จึงไม่ต้องอธิบายใหม่

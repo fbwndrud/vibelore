@@ -16,10 +16,10 @@ vibelore は世界観・人物・伏線・時系列を記憶し、毎話チェ�
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="『ベスパー』第1話 シーン6"></a><br><sub>『ベスパー』 · 人外ロマンティックコメディ</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="『処刑1分前の皇女』第1話 シーン9"></a><br><sub>『処刑1分前の皇女』 · ロマンスファンタジー回帰復讐劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="『判決LIVE』第1話 シーン6"></a><br><sub>『判決LIVE』 · サイバーレッカー・スリラー</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="『道の上の稲妻』第1話 シーン1"></a><br><sub>『道の上の稲妻』 · ファンタジー・ロードアクション</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="『ベスパー』第1話 シーン6"></a><br><sub>『ベスパー』 · 人外ロマンティックコメディ</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="『処刑1分前の皇女』第1話 シーン9"></a><br><sub>『処刑1分前の皇女』 · ロマンスファンタジー回帰復讐劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp" width="200" alt="『判決LIVE』第1話 シーン6"></a><br><sub>『判決LIVE』 · サイバーレッカー・スリラー</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp" width="200" alt="『道の上の稲妻』第1話 シーン1"></a><br><sub>『道の上の稲妻』 · ファンタジー・ロードアクション</sub></td>
 </tr>
 </table>
 
@@ -178,8 +178,8 @@ Claude Code 用の執筆ループのスキルは `hosts/claude/skills/novel/`、
 
 <table>
 <tr>
-<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="『道の上の稲妻』第1話 シーン4"></td>
-<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="『道の上の稲妻』第2話 シーン6"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp" width="180" alt="『道の上の稲妻』第1話 シーン4"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp" width="180" alt="『道の上の稲妻』第2話 シーン6"></td>
 <td valign="top">
 
 すでに書いた小説をそのままウェブトゥーンにします。人物の外見、世界観、その話までの状況は原作から引き継ぐので、説明し直す必要はありません。

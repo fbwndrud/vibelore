@@ -16,10 +16,10 @@ vibelore 負責記住世界觀、人物、伏筆與時間線，每一話都做�
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="《貝斯珀》第1話 場景6"></a><br><sub>《貝斯珀》 · 非人類浪漫喜劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="《處刑前一分鐘的皇女》第1話 場景9"></a><br><sub>《處刑前一分鐘的皇女》 · 浪漫奇幻回歸復仇劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="《判決 LIVE》第1話 場景6"></a><br><sub>《判決 LIVE》 · 網路公審驚悚劇</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="《路上的閃電》第1話 場景1"></a><br><sub>《路上的閃電》 · 奇幻公路動作</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="《貝斯珀》第1話 場景6"></a><br><sub>《貝斯珀》 · 非人類浪漫喜劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="《處刑前一分鐘的皇女》第1話 場景9"></a><br><sub>《處刑前一分鐘的皇女》 · 浪漫奇幻回歸復仇劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp" width="200" alt="《判決 LIVE》第1話 場景6"></a><br><sub>《判決 LIVE》 · 網路公審驚悚劇</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp" width="200" alt="《路上的閃電》第1話 場景1"></a><br><sub>《路上的閃電》 · 奇幻公路動作</sub></td>
 </tr>
 </table>
 
@@ -176,8 +176,8 @@ Claude Code 用的寫作迴圈技能在 `hosts/claude/skills/novel/`，作品與
 
 <table>
 <tr>
-<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="《路上的閃電》第1話 場景4"></td>
-<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="《路上的閃電》第2話 場景6"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp" width="180" alt="《路上的閃電》第1話 場景4"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp" width="180" alt="《路上的閃電》第2話 場景6"></td>
 <td valign="top">
 
 把已經寫好的小說原樣做成網漫。人物外貌、世界觀和到那一話為止的情況都從原作沿用，不必重新說明。

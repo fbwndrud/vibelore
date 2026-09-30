@@ -16,10 +16,10 @@ vibelore mémorise l'univers, les personnages, les indices semés et la chronolo
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="Vesper, épisode 1, scène 6"></a><br><sub><i>Vesper</i> · comédie romantique non humaine</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="La princesse une minute avant son exécution, épisode 1, scène 9"></a><br><sub><i>La princesse une minute avant son exécution</i> · fantasy romantique, régression et vengeance</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="Verdict LIVE, épisode 1, scène 6"></a><br><sub><i>Verdict LIVE</i> · thriller sur le lynchage en ligne</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="L'Éclair sur la route, épisode 1, scène 1"></a><br><sub><i>L'Éclair sur la route</i> · road movie d'action fantastique</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="Vesper, épisode 1, scène 6"></a><br><sub><i>Vesper</i> · comédie romantique non humaine</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="La princesse une minute avant son exécution, épisode 1, scène 9"></a><br><sub><i>La princesse une minute avant son exécution</i> · fantasy romantique, régression et vengeance</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp" width="200" alt="Verdict LIVE, épisode 1, scène 6"></a><br><sub><i>Verdict LIVE</i> · thriller sur le lynchage en ligne</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp" width="200" alt="L'Éclair sur la route, épisode 1, scène 1"></a><br><sub><i>L'Éclair sur la route</i> · road movie d'action fantastique</sub></td>
 </tr>
 </table>
 
@@ -178,8 +178,8 @@ Pour les corrections, la reprise et les sauvegardes, consultez [Dépannage et sa
 
 <table>
 <tr>
-<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="L'Éclair sur la route, épisode 1, scène 4"></td>
-<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="L'Éclair sur la route, épisode 2, scène 6"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp" width="180" alt="L'Éclair sur la route, épisode 1, scène 4"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp" width="180" alt="L'Éclair sur la route, épisode 2, scène 6"></td>
 <td valign="top">
 
 Il transforme tel quel en webtoon un roman déjà écrit. L'apparence des personnages, l'univers et la situation jusqu'à cet épisode viennent de l'original : inutile de les réexpliquer.

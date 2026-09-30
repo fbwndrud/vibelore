@@ -16,10 +16,10 @@
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="فيسبر، الفصل 1، المشهد 6"></a><br><sub><i>فيسبر</i> · كوميديا رومانسية عن كائن غير بشري</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="الأميرة قبل إعدامها بدقيقة، الفصل 1، المشهد 9"></a><br><sub><i>الأميرة قبل إعدامها بدقيقة</i> · فانتازيا رومانسية عن العودة بالزمن والانتقام</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="الحكم LIVE، الفصل 1، المشهد 6"></a><br><sub><i>الحكم LIVE</i> · إثارة عن التشهير الإلكتروني</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="برق على الطريق، الفصل 1، المشهد 1"></a><br><sub><i>برق على الطريق</i> · أكشن فانتازيا على الطريق</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="فيسبر، الفصل 1، المشهد 6"></a><br><sub><i>فيسبر</i> · كوميديا رومانسية عن كائن غير بشري</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="الأميرة قبل إعدامها بدقيقة، الفصل 1، المشهد 9"></a><br><sub><i>الأميرة قبل إعدامها بدقيقة</i> · فانتازيا رومانسية عن العودة بالزمن والانتقام</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp" width="200" alt="الحكم LIVE، الفصل 1، المشهد 6"></a><br><sub><i>الحكم LIVE</i> · إثارة عن التشهير الإلكتروني</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp" width="200" alt="برق على الطريق، الفصل 1، المشهد 1"></a><br><sub><i>برق على الطريق</i> · أكشن فانتازيا على الطريق</sub></td>
 </tr>
 </table>
 
@@ -200,8 +200,8 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 <table>
 <tr>
-<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="برق على الطريق، الفصل 1، المشهد 4"></td>
-<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="برق على الطريق، الفصل 2، المشهد 6"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp" width="180" alt="برق على الطريق، الفصل 1، المشهد 4"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp" width="180" alt="برق على الطريق، الفصل 2، المشهد 6"></td>
 <td valign="top">
 
 تحوّل رواية كتبتها بالفعل إلى ويبتون كما هي. ملامح الشخصيات والعالم والوضع حتى ذلك الفصل تؤخذ من العمل الأصلي، فلا حاجة إلى شرحها من جديد.

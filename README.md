@@ -16,10 +16,10 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="docs/showcase/vesper/img/ep01-s6.webp" width="200" alt="베스퍼 1화 장면 6"></a><br><sub>『베스퍼』 · 인외 로맨틱 코미디</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="docs/showcase/executionprincess/img/ep01-s9.webp" width="200" alt="처형 1분 전의 황녀 1화 장면 9"></a><br><sub>『처형 1분 전의 황녀』 · 로판 회귀 복수극</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="docs/showcase/verdict-live/img/ep01-s6.webp" width="200" alt="판결 LIVE 1화 장면 6"></a><br><sub>『판결 LIVE』 · 사이버렉카 스릴러</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="docs/showcase/thundertrail/img/ep01-s1.webp" width="200" alt="길 위의 번개 1화 장면 1"></a><br><sub>『길 위의 번개』 · 판타지 로드 액션</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="베스퍼 1화 장면 6"></a><br><sub>『베스퍼』 · 인외 로맨틱 코미디</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="처형 1분 전의 황녀 1화 장면 9"></a><br><sub>『처형 1분 전의 황녀』 · 로판 회귀 복수극</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp" width="200" alt="판결 LIVE 1화 장면 6"></a><br><sub>『판결 LIVE』 · 사이버렉카 스릴러</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp" width="200" alt="길 위의 번개 1화 장면 1"></a><br><sub>『길 위의 번개』 · 판타지 로드 액션</sub></td>
 </tr>
 </table>
 
@@ -178,8 +178,8 @@ Claude Code용 집필 루프 스킬은 `hosts/claude/skills/novel/`, 작품·웹
 
 <table>
 <tr>
-<td><img src="docs/showcase/thundertrail/img/ep01-s4.webp" width="180" alt="길 위의 번개 1화 장면 4"></td>
-<td><img src="docs/showcase/thundertrail/img/ep02-s6.webp" width="180" alt="길 위의 번개 2화 장면 6"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp" width="180" alt="길 위의 번개 1화 장면 4"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp" width="180" alt="길 위의 번개 2화 장면 6"></td>
 <td valign="top">
 
 이미 쓴 소설을 그대로 웹툰으로 옮깁니다. 인물 외모, 세계관, 그 화까지의 상황을 원작에서 가져오니 다시 설명할 필요가 없습니다.

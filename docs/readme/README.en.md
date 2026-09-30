@@ -16,10 +16,10 @@ vibelore remembers the world, characters, foreshadowing and timeline, checks eve
 
 <table>
 <tr>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="../showcase/vesper/img/ep01-s6.webp" width="200" alt="Vesper, chapter 1, scene 6"></a><br><sub><i>Vesper</i> · non-human romantic comedy</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="../showcase/executionprincess/img/ep01-s9.webp" width="200" alt="The Princess One Minute Before Her Execution, chapter 1, scene 9"></a><br><sub><i>The Princess One Minute Before Her Execution</i> · romance fantasy regression revenge</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="../showcase/verdict-live/img/ep01-s6.webp" width="200" alt="Verdict LIVE, chapter 1, scene 6"></a><br><sub><i>Verdict LIVE</i> · cyber-wrecker thriller</sub></td>
-<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="../showcase/thundertrail/img/ep01-s1.webp" width="200" alt="Lightning on the Road, chapter 1, scene 1"></a><br><sub><i>Lightning on the Road</i> · fantasy road action</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="Vesper, chapter 1, scene 6"></a><br><sub><i>Vesper</i> · non-human romantic comedy</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="The Princess One Minute Before Her Execution, chapter 1, scene 9"></a><br><sub><i>The Princess One Minute Before Her Execution</i> · romance fantasy regression revenge</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/verdict-live/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/verdict-live/img/ep01-s6.webp" width="200" alt="Verdict LIVE, chapter 1, scene 6"></a><br><sub><i>Verdict LIVE</i> · cyber-wrecker thriller</sub></td>
+<td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/thundertrail/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp" width="200" alt="Lightning on the Road, chapter 1, scene 1"></a><br><sub><i>Lightning on the Road</i> · fantasy road action</sub></td>
 </tr>
 </table>
 
@@ -178,8 +178,8 @@ For revisions, resuming and backups, see [Troubleshooting and backups](../TROUBL
 
 <table>
 <tr>
-<td><img src="../showcase/thundertrail/img/ep01-s4.webp" width="180" alt="Lightning on the Road, chapter 1, scene 4"></td>
-<td><img src="../showcase/thundertrail/img/ep02-s6.webp" width="180" alt="Lightning on the Road, chapter 2, scene 6"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp" width="180" alt="Lightning on the Road, chapter 1, scene 4"></td>
+<td><img src="https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp" width="180" alt="Lightning on the Road, chapter 2, scene 6"></td>
 <td valign="top">
 
 It turns a novel you already wrote into a webtoon as it is. Character looks, the world and the situation up to that chapter come from the source, so there is nothing to explain again.
