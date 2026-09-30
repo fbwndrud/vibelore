@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.4 — 2026-09-30
 
 - Every MCP tool declares `annotations` (`readOnlyHint`, `destructiveHint`,
   `idempotentHint`, `openWorldHint`); only `lore_rollback` had them before.
