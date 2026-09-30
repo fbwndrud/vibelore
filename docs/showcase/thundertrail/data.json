@@ -127,7 +127,7 @@
 "pFrom": 1,
 "pTo": 13,
 "panelCount": 8,
-"image": "img/ep01-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s1.webp",
 "blocking": 2,
 "advisory": 2,
 "findings": [
@@ -618,7 +618,7 @@
 "pFrom": 14,
 "pTo": 27,
 "panelCount": 7,
-"image": "img/ep01-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s2.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -1110,7 +1110,7 @@
 "pFrom": 28,
 "pTo": 40,
 "panelCount": 7,
-"image": "img/ep01-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s3.webp",
 "blocking": 2,
 "advisory": 3,
 "findings": [
@@ -1589,7 +1589,7 @@
 "pFrom": 41,
 "pTo": 51,
 "panelCount": 8,
-"image": "img/ep01-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s4.webp",
 "blocking": 2,
 "advisory": 3,
 "findings": [
@@ -2068,7 +2068,7 @@
 "pFrom": 52,
 "pTo": 65,
 "panelCount": 7,
-"image": "img/ep01-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s5.webp",
 "blocking": 1,
 "advisory": 3,
 "findings": [
@@ -2522,7 +2522,7 @@
 "pFrom": 66,
 "pTo": 77,
 "panelCount": 8,
-"image": "img/ep01-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s6.webp",
 "blocking": 2,
 "advisory": 2,
 "findings": [
@@ -2995,7 +2995,7 @@
 "pFrom": 78,
 "pTo": 88,
 "panelCount": 7,
-"image": "img/ep01-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s7.webp",
 "blocking": 1,
 "advisory": 3,
 "findings": [
@@ -3448,7 +3448,7 @@
 "pFrom": 89,
 "pTo": 100,
 "panelCount": 5,
-"image": "img/ep01-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep01-s8.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -3923,7 +3923,7 @@
 "pFrom": 1,
 "pTo": 13,
 "panelCount": 8,
-"image": "img/ep02-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s1.webp",
 "blocking": 0,
 "advisory": 4,
 "findings": [
@@ -4409,7 +4409,7 @@
 "pFrom": 14,
 "pTo": 21,
 "panelCount": 7,
-"image": "img/ep02-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s2.webp",
 "blocking": 0,
 "advisory": 4,
 "findings": [
@@ -4814,7 +4814,7 @@
 "pFrom": 22,
 "pTo": 27,
 "panelCount": 6,
-"image": "img/ep02-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s3.webp",
 "blocking": 0,
 "advisory": 3,
 "findings": [
@@ -5204,7 +5204,7 @@
 "pFrom": 28,
 "pTo": 35,
 "panelCount": 7,
-"image": "img/ep02-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s4.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -5680,7 +5680,7 @@
 "pFrom": 36,
 "pTo": 43,
 "panelCount": 6,
-"image": "img/ep02-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s5.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -6149,7 +6149,7 @@
 "pFrom": 44,
 "pTo": 47,
 "panelCount": 6,
-"image": "img/ep02-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s6.webp",
 "blocking": 0,
 "advisory": 3,
 "findings": [
@@ -6590,7 +6590,7 @@
 "pFrom": 48,
 "pTo": 55,
 "panelCount": 7,
-"image": "img/ep02-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s7.webp",
 "blocking": 1,
 "advisory": 3,
 "findings": [
@@ -7030,7 +7030,7 @@
 "pFrom": 56,
 "pTo": 64,
 "panelCount": 5,
-"image": "img/ep02-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s8.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -7479,7 +7479,7 @@
 "pFrom": 65,
 "pTo": 78,
 "panelCount": 7,
-"image": "img/ep02-s9.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep02-s9.webp",
 "blocking": 0,
 "advisory": 3,
 "findings": [
@@ -8001,7 +8001,7 @@
 "pFrom": 1,
 "pTo": 6,
 "panelCount": 7,
-"image": "img/ep03-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep03-s1.webp",
 "blocking": 1,
 "advisory": 3,
 "findings": [
@@ -8523,7 +8523,7 @@
 "pFrom": 7,
 "pTo": 13,
 "panelCount": 6,
-"image": "img/ep03-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep03-s2.webp",
 "blocking": 1,
 "advisory": 1,
 "findings": [
@@ -8980,7 +8980,7 @@
 "pFrom": 14,
 "pTo": 21,
 "panelCount": 4,
-"image": "img/ep03-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep03-s3.webp",
 "blocking": 2,
 "advisory": 2,
 "findings": [
@@ -9404,7 +9404,7 @@
 "pFrom": 22,
 "pTo": 27,
 "panelCount": 4,
-"image": "img/ep03-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep03-s4.webp",
 "blocking": 0,
 "advisory": 3,
 "findings": [
@@ -9829,7 +9829,7 @@
 "pFrom": 28,
 "pTo": 34,
 "panelCount": 5,
-"image": "img/ep03-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep03-s5.webp",
 "blocking": 2,
 "advisory": 2,
 "findings": [
@@ -10360,7 +10360,7 @@
 "pFrom": 35,
 "pTo": 41,
 "panelCount": 6,
-"image": "img/ep03-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep03-s6.webp",
 "blocking": 4,
 "advisory": 2,
 "findings": [
@@ -11040,7 +11040,7 @@
 "pFrom": 42,
 "pTo": 48,
 "panelCount": 5,
-"image": "img/ep03-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep03-s7.webp",
 "blocking": 2,
 "advisory": 3,
 "findings": [
@@ -11530,7 +11530,7 @@
 "pFrom": 49,
 "pTo": 57,
 "panelCount": 5,
-"image": "img/ep03-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep03-s8.webp",
 "blocking": 3,
 "advisory": 2,
 "findings": [
@@ -12190,7 +12190,7 @@
 "pFrom": 1,
 "pTo": 9,
 "panelCount": 10,
-"image": "img/ep04-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep04-s1.webp",
 "blocking": 2,
 "advisory": 3,
 "findings": [
@@ -12702,7 +12702,7 @@
 "pFrom": 10,
 "pTo": 15,
 "panelCount": 10,
-"image": "img/ep04-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep04-s2.webp",
 "blocking": 2,
 "advisory": 3,
 "findings": [
@@ -13161,7 +13161,7 @@
 "pFrom": 16,
 "pTo": 25,
 "panelCount": 7,
-"image": "img/ep04-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep04-s3.webp",
 "blocking": 1,
 "advisory": 3,
 "findings": [
@@ -13582,7 +13582,7 @@
 "pFrom": 26,
 "pTo": 32,
 "panelCount": 5,
-"image": "img/ep04-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep04-s4.webp",
 "blocking": 3,
 "advisory": 4,
 "findings": [
@@ -13985,7 +13985,7 @@
 "pFrom": 33,
 "pTo": 38,
 "panelCount": 4,
-"image": "img/ep04-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep04-s5.webp",
 "blocking": 2,
 "advisory": 3,
 "findings": [
@@ -14364,7 +14364,7 @@
 "pFrom": 39,
 "pTo": 45,
 "panelCount": 4,
-"image": "img/ep04-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep04-s6.webp",
 "blocking": 2,
 "advisory": 4,
 "findings": [
@@ -14826,7 +14826,7 @@
 "pFrom": 46,
 "pTo": 52,
 "panelCount": 12,
-"image": "img/ep04-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep04-s7.webp",
 "blocking": 2,
 "advisory": 4,
 "findings": [
@@ -15568,7 +15568,7 @@
 "pFrom": 1,
 "pTo": 9,
 "panelCount": 6,
-"image": "img/ep05-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep05-s1.webp",
 "blocking": 3,
 "advisory": 3,
 "findings": [
@@ -16047,7 +16047,7 @@
 "pFrom": 10,
 "pTo": 21,
 "panelCount": 7,
-"image": "img/ep05-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep05-s2.webp",
 "blocking": 1,
 "advisory": 4,
 "findings": [
@@ -16515,7 +16515,7 @@
 "pFrom": 22,
 "pTo": 28,
 "panelCount": 7,
-"image": "img/ep05-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep05-s3.webp",
 "blocking": 0,
 "advisory": 3,
 "findings": [
@@ -16958,7 +16958,7 @@
 "pFrom": 29,
 "pTo": 38,
 "panelCount": 8,
-"image": "img/ep05-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep05-s4.webp",
 "blocking": 2,
 "advisory": 2,
 "findings": [
@@ -17517,7 +17517,7 @@
 "pFrom": 39,
 "pTo": 52,
 "panelCount": 7,
-"image": "img/ep05-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep05-s5.webp",
 "blocking": 2,
 "advisory": 3,
 "findings": [
@@ -18078,7 +18078,7 @@
 "pFrom": 53,
 "pTo": 60,
 "panelCount": 6,
-"image": "img/ep05-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep05-s6.webp",
 "blocking": 1,
 "advisory": 3,
 "findings": [
@@ -18531,7 +18531,7 @@
 "pFrom": 61,
 "pTo": 68,
 "panelCount": 7,
-"image": "img/ep05-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep05-s7.webp",
 "blocking": 0,
 "advisory": 4,
 "findings": [
@@ -19044,7 +19044,7 @@
 "pFrom": 1,
 "pTo": 11,
 "panelCount": 6,
-"image": "img/ep06-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep06-s1.webp",
 "blocking": 3,
 "advisory": 2,
 "findings": [
@@ -19472,7 +19472,7 @@
 "pFrom": 12,
 "pTo": 19,
 "panelCount": 5,
-"image": "img/ep06-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep06-s2.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -19787,7 +19787,7 @@
 "pFrom": 20,
 "pTo": 28,
 "panelCount": 5,
-"image": "img/ep06-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep06-s3.webp",
 "blocking": 0,
 "advisory": 3,
 "findings": [
@@ -20120,7 +20120,7 @@
 "pFrom": 29,
 "pTo": 39,
 "panelCount": 6,
-"image": "img/ep06-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep06-s4.webp",
 "blocking": 0,
 "advisory": 4,
 "findings": [
@@ -20488,7 +20488,7 @@
 "pFrom": 40,
 "pTo": 55,
 "panelCount": 7,
-"image": "img/ep06-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep06-s5.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -20901,7 +20901,7 @@
 "pFrom": 56,
 "pTo": 62,
 "panelCount": 4,
-"image": "img/ep06-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep06-s6.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -21185,7 +21185,7 @@
 "pFrom": 63,
 "pTo": 71,
 "panelCount": 4,
-"image": "img/ep06-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep06-s7.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -21534,7 +21534,7 @@
 "pFrom": 72,
 "pTo": 77,
 "panelCount": 10,
-"image": "img/ep06-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep06-s8.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -22128,7 +22128,7 @@
 "pFrom": 1,
 "pTo": 7,
 "panelCount": 5,
-"image": "img/ep07-s1.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep07-s1.webp",
 "blocking": 3,
 "advisory": 3,
 "findings": [
@@ -22467,7 +22467,7 @@
 "pFrom": 8,
 "pTo": 19,
 "panelCount": 6,
-"image": "img/ep07-s2.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep07-s2.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -22852,7 +22852,7 @@
 "pFrom": 20,
 "pTo": 31,
 "panelCount": 8,
-"image": "img/ep07-s3.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep07-s3.webp",
 "blocking": 1,
 "advisory": 2,
 "findings": [
@@ -23375,7 +23375,7 @@
 "pFrom": 32,
 "pTo": 44,
 "panelCount": 8,
-"image": "img/ep07-s4.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep07-s4.webp",
 "blocking": 1,
 "advisory": 3,
 "findings": [
@@ -23841,7 +23841,7 @@
 "pFrom": 45,
 "pTo": 50,
 "panelCount": 5,
-"image": "img/ep07-s5.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep07-s5.webp",
 "blocking": 0,
 "advisory": 4,
 "findings": [
@@ -24227,7 +24227,7 @@
 "pFrom": 51,
 "pTo": 61,
 "panelCount": 6,
-"image": "img/ep07-s6.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep07-s6.webp",
 "blocking": 3,
 "advisory": 1,
 "findings": [
@@ -24684,7 +24684,7 @@
 "pFrom": 62,
 "pTo": 71,
 "panelCount": 7,
-"image": "img/ep07-s7.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep07-s7.webp",
 "blocking": 0,
 "advisory": 2,
 "findings": [
@@ -25098,7 +25098,7 @@
 "pFrom": 72,
 "pTo": 79,
 "panelCount": 5,
-"image": "img/ep07-s8.webp",
+"image": "https://fbwndrud.github.io/vibelore-showcase-media/thundertrail/img/ep07-s8.webp",
 "blocking": 2,
 "advisory": 1,
 "findings": [

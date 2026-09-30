@@ -1,0 +1,300 @@
+{
+ "vesper": {
+  "vibelore": {
+   "v": {
+    "ko": "0.4.2",
+    "en": "0.4.2"
+   },
+   "note": {
+    "ko": "소설 0.4.1(1002abf~5ef3d2b, PR #9 수정 반영), 웹툰 0.4.2(f440f71)",
+    "en": "소설 0.4.1(1002abf~5ef3d2b, PR #9 수정 반영), 웹툰 0.4.2(f440f71)"
+   }
+  },
+  "novel": {
+   "v": {
+    "ko": "Claude · claude-opus-5-5",
+    "en": "Claude · claude-opus-5-5"
+   },
+   "note": null
+  },
+  "adapt": {
+   "v": {
+    "ko": "Claude · claude-opus-5-5 · high",
+    "en": "Claude · claude-opus-5-5 · high"
+   },
+   "note": null
+  },
+  "image": {
+   "v": {
+    "ko": "OpenAI 이미지 API · gpt-image-2.5-sunburst",
+    "en": "OpenAI image API · gpt-image-2.5-sunburst"
+   },
+   "note": null
+  },
+  "review": {
+   "v": {
+    "ko": "Claude Code (claude-opus-5-5)",
+    "en": "Claude Code (claude-opus-5-5)"
+   },
+   "note": {
+    "ko": "제작을 조율한 호스트의 자기검토 · 독립 평가 아님",
+    "en": "Self-review by the orchestrating host · not independent"
+   }
+  },
+  "size": {
+   "v": {
+    "ko": "소설 50화 · 222,835자 · 7개 아크",
+    "en": "Novel 50 episodes · 222,835 chars · 7 arcs"
+   },
+   "note": {
+    "ko": "웹툰 1~3화 · 27장면 · 183칸",
+    "en": "Webtoon ep. 1–3 · 27 scenes · 183 panels"
+   }
+  },
+  "cost": {
+   "v": {
+    "ko": "약 $201.71",
+    "en": "about $201.71"
+   },
+   "note": {
+    "ko": "소설 $173.58 · 웹툰 $22.68 · 이미지 약 $5.45(추정)",
+    "en": "Novel $173.58 · webtoon $22.68 · images about $5.45 (estimated)"
+   }
+  },
+  "time": {
+   "v": {
+    "ko": "모델 호출 16.7시간",
+    "en": "16.7 h of model calls"
+   },
+   "note": {
+    "ko": "소설 15.2시간 · 웹툰 1.6시간 · 이미지 생성 시간 기록 없음",
+    "en": "Novel 15.2 h · webtoon 1.6 h · image time not recorded"
+   }
+  }
+ },
+ "executionprincess": {
+  "vibelore": {
+   "v": {
+    "ko": "0.3.8",
+    "en": "0.3.8"
+   },
+   "note": {
+    "ko": "소설·웹툰 a1217ff (0.3.8 릴리스 직전 커밋)",
+    "en": "소설·웹툰 a1217ff (0.3.8 릴리스 직전 커밋)"
+   }
+  },
+  "novel": {
+   "v": {
+    "ko": "GPT-6 Sol · gpt-6-sol",
+    "en": "GPT-6 Sol · gpt-6-sol"
+   },
+   "note": null
+  },
+  "adapt": {
+   "v": {
+    "ko": "GPT-6 Sol · gpt-6-sol · high",
+    "en": "GPT-6 Sol · gpt-6-sol · high"
+   },
+   "note": null
+  },
+  "image": {
+   "v": {
+    "ko": "OpenAI 이미지 API · gpt-image-2.5-sunburst",
+    "en": "OpenAI image API · gpt-image-2.5-sunburst"
+   },
+   "note": null
+  },
+  "review": {
+   "v": {
+    "ko": "Claude Code (claude-opus-5-5)",
+    "en": "Claude Code (claude-opus-5-5)"
+   },
+   "note": {
+    "ko": "제작을 조율한 호스트의 자기검토 · 독립 평가 아님",
+    "en": "Self-review by the orchestrating host · not independent"
+   }
+  },
+  "size": {
+   "v": {
+    "ko": "소설 3화",
+    "en": "Novel 3 episodes"
+   },
+   "note": {
+    "ko": "웹툰 1~3화 · 27장면 · 176칸",
+    "en": "Webtoon ep. 1–3 · 27 scenes · 176 panels"
+   }
+  },
+  "cost": {
+   "v": {
+    "ko": "기록 없음",
+    "en": "Not recorded"
+   },
+   "note": {
+    "ko": "GPT-6 Sol 호출은 토큰만 기록(입력 1,716,419 · 출력 697,894) · 이미지 약 $3.50(추정)",
+    "en": "GPT-6 Sol calls recorded tokens only (input 1,716,419 · output 697,894) · images about $3.50 (estimated)"
+   }
+  },
+  "time": {
+   "v": {
+    "ko": "웹툰 모델 호출 1.7시간",
+    "en": "1.7 h of webtoon model calls"
+   },
+   "note": {
+    "ko": "장면 각색·사전 검증·이미지 생성 합계 · 소설 시간 기록 없음",
+    "en": "Scene adaptation, preflight and image generation · novel time not recorded"
+   }
+  }
+ },
+ "verdict-live": {
+  "vibelore": {
+   "v": {
+    "ko": "0.3.7–0.3.8",
+    "en": "0.3.7–0.3.8"
+   },
+   "note": {
+    "ko": "소설 4c38e4c(0.3.8), 웹툰 0.3.7 · 1화 자동 재설계 재생성 0.3.8",
+    "en": "소설 4c38e4c(0.3.8), 웹툰 0.3.7 · 1화 자동 재설계 재생성 0.3.8"
+   }
+  },
+  "novel": {
+   "v": {
+    "ko": "Claude · claude-opus-5-5",
+    "en": "Claude · claude-opus-5-5"
+   },
+   "note": null
+  },
+  "adapt": {
+   "v": {
+    "ko": "Claude · claude-opus-5-5 · high",
+    "en": "Claude · claude-opus-5-5 · high"
+   },
+   "note": null
+  },
+  "image": {
+   "v": {
+    "ko": "Codex · OpenAI API · gpt-image-2.5-sunburst",
+    "en": "Codex · OpenAI API · gpt-image-2.5-sunburst"
+   },
+   "note": null
+  },
+  "review": {
+   "v": {
+    "ko": "Claude Code (claude-opus-5-5)",
+    "en": "Claude Code (claude-opus-5-5)"
+   },
+   "note": {
+    "ko": "제작을 조율한 호스트의 자기검토 · 독립 평가 아님",
+    "en": "Self-review by the orchestrating host · not independent"
+   }
+  },
+  "size": {
+   "v": {
+    "ko": "소설 3화",
+    "en": "Novel 3 episodes"
+   },
+   "note": {
+    "ko": "웹툰 1~3화 · 24장면 · 170칸",
+    "en": "Webtoon ep. 1–3 · 24 scenes · 170 panels"
+   }
+  },
+  "cost": {
+   "v": {
+    "ko": "약 $50.79",
+    "en": "about $50.79"
+   },
+   "note": {
+    "ko": "설계·관문 $20.40 · 소설 $6.93 · 웹툰 $19.54 · 이미지 $3.92(재생성분 추정)",
+    "en": "Design and gate $20.40 · novel $6.93 · webtoon $19.54 · images $3.92 (regeneration estimated)"
+   }
+  },
+  "time": {
+   "v": {
+    "ko": "웹툰 모델 호출 1.3시간",
+    "en": "1.3 h of webtoon model calls"
+   },
+   "note": {
+    "ko": "장면 각색·사전 검증·이미지 생성 합계 · 소설 시간 기록 없음",
+    "en": "Scene adaptation, preflight and image generation · novel time not recorded"
+   }
+  }
+ },
+ "thundertrail": {
+  "vibelore": {
+   "v": {
+    "ko": "0.3.0–0.3.8",
+    "en": "0.3.0–0.3.8"
+   },
+   "note": {
+    "ko": "소설 1~3화 0.3.0(e3555bd), 4화 0.3.7(8df9a63), 5화 0.3.8(760ee3a), 6~7화 0.3.8(8e20f24)",
+    "en": "소설 1~3화 0.3.0(e3555bd), 4화 0.3.7(8df9a63), 5화 0.3.8(760ee3a), 6~7화 0.3.8(8e20f24)"
+   }
+  },
+  "novel": {
+   "v": {
+    "ko": "회차마다 다른 모델 7개",
+    "en": "7 different models by episode"
+   },
+   "note": {
+    "ko": "Codex · gpt-6-astra / Claude · claude-opus-5 / Grok · grok-4.6 / Grok · grok-4.7 / Claude · claude-opus-5-5 / GPT-6 Luna · gpt-6-luna / GPT-6 Sol · gpt-6-sol",
+    "en": "Codex · gpt-6-astra / Claude · claude-opus-5 / Grok · grok-4.6 / Grok · grok-4.7 / Claude · claude-opus-5-5 / GPT-6 Luna · gpt-6-luna / GPT-6 Sol · gpt-6-sol"
+   }
+  },
+  "adapt": {
+   "v": {
+    "ko": "회차마다 다른 모델 7개",
+    "en": "7 different models by episode"
+   },
+   "note": {
+    "ko": "Codex · gpt-6-astra · high / Claude · claude-opus-5 · high / Grok · grok-4.6 · medium / Grok · grok-4.7 · high→medium / Claude · claude-opus-5-5 · high / GPT-6 Luna · gpt-6-luna · high / GPT-6 Sol · gpt-6-sol · high",
+    "en": "Codex · gpt-6-astra · high / Claude · claude-opus-5 · high / Grok · grok-4.6 · medium / Grok · grok-4.7 · high→medium / Claude · claude-opus-5-5 · high / GPT-6 Luna · gpt-6-luna · high / GPT-6 Sol · gpt-6-sol · high"
+   }
+  },
+  "image": {
+   "v": {
+    "ko": "OpenAI API · gpt-image-2.5-sunburst",
+    "en": "OpenAI API · gpt-image-2.5-sunburst"
+   },
+   "note": null
+  },
+  "review": {
+   "v": {
+    "ko": "claude-code (claude-fable-5-1)",
+    "en": "claude-code (claude-fable-5-1)"
+   },
+   "note": {
+    "ko": "제작을 조율한 호스트의 자기검토 · 독립 평가 아님",
+    "en": "Self-review by the orchestrating host · not independent"
+   }
+  },
+  "size": {
+   "v": {
+    "ko": "소설 7화 · 28,473자",
+    "en": "Novel 7 episodes · 28,473 chars"
+   },
+   "note": {
+    "ko": "웹툰 1~7화 · 55장면 · 355칸",
+    "en": "Webtoon ep. 1–7 · 55 scenes · 355 panels"
+   }
+  },
+  "cost": {
+   "v": {
+    "ko": "약 $45.98",
+    "en": "about $45.98"
+   },
+   "note": {
+    "ko": "회차별 소설·웹툰·이미지 합계 · 일부 회차 미집계 · 실측·정가 환산·추정 혼재(비용 페이지 참고)",
+    "en": "Novel, webtoon and images by episode · some episodes not fully recorded · mixes measured, list-price and estimated (see the cost page)"
+   }
+  },
+  "time": {
+   "v": {
+    "ko": "모델 호출 9.9시간",
+    "en": "9.9 h of model calls"
+   },
+   "note": {
+    "ko": "시간이 기록된 호출만 합산",
+    "en": "Only calls with recorded time"
+   }
+  }
+ }
+}
