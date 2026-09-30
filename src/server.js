@@ -46,6 +46,7 @@ import { SCENE_PANEL_LIMITS, SCENE_AUTO_REVISIONS } from './core/webtoon-scene.j
 
 const SERVER_INFO = { name: 'vibelore', version: JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version };
 const FALLBACK_PROTOCOL = '2025-06-18';
+const SUPPORTED_PROTOCOLS = new Set(['2024-11-05', '2025-03-26', FALLBACK_PROTOCOL]);
 
 const projectArg = {
   project: { type: 'string', description: '작품 디렉터리의 절대 경로. 생략하면 서버 실행 디렉터리.' },
@@ -860,7 +861,7 @@ async function handle(msg) {
   switch (method) {
     case 'initialize': {
       const asked = params?.protocolVersion;
-      negotiatedProtocol = typeof asked === 'string' ? asked : FALLBACK_PROTOCOL;
+      negotiatedProtocol = SUPPORTED_PROTOCOLS.has(asked) ? asked : FALLBACK_PROTOCOL;
       return reply(id, {
         protocolVersion: negotiatedProtocol,
         capabilities: { tools: { listChanged: false } },

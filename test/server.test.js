@@ -194,6 +194,14 @@ describe('MCP surface', () => {
     assert.match(r.instructions, /lore_write/);
   });
 
+  for (const version of ['2024-11-05', '2025-03-26', '1999-01-01', '2099-01-01', undefined, 123]) {
+    it(`negotiates supported protocol versions for ${version}`, async () => {
+      const out = await session([{ ...init, params: { ...init.params, protocolVersion: version } }]);
+      assert.equal(out.get(1).result.protocolVersion,
+        ['2024-11-05', '2025-03-26'].includes(version) ? version : '2025-06-18');
+    });
+  }
+
   it('lists only complete workflows on the default public surface', async () => {
     const out = await session(
       [init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }],
