@@ -72,13 +72,17 @@ For verified versions and caveats, see [HOSTS.en.md](../HOSTS.en.md).
 
 ## Tool surface
 
-The default server exposes 30 complete user flows such as design, integrated writing, webtoon production, approval and recovery.
+The default server exposes 27 complete user flows such as design, integrated writing, webtoon production, approval and recovery.
 Per-stage primitive tools such as `lore_context`, `lore_draft`, `lore_check` and `lore_commit` can bypass the normal
 writing order, so they are left out of the default list.
 
 Only in development environments that need engine debugging or compatibility checks, setting
 `VIBELORE_MCP_SURFACE=advanced` on the server process exposes all 43 tools. Don't put this value in a
 configuration used for writing works.
+
+Use `VIBELORE_MCP_SURFACE=compat` only to finish existing panel-based webtoon workflows.
+It exposes the 27 default tools plus the three deprecated `lore_webtoon_plan/render/decide` tools,
+without low-level prose tools. Starting new panel-based work remains blocked on this surface.
 
 ## Common inputs and responses
 
@@ -108,7 +112,19 @@ On success, the same object is returned as text and as a structured result.
 }
 ```
 
-A tool failure does not close the connection. It returns `isError: true` and an error description. The current `inputSchema` in `tools/list` is the reference for exact input fields.
+A tool failure keeps the connection alive. Alongside `isError: true` and the existing error text,
+`structuredContent` returns `{status:"error", code, message, retryable, nextAction}`.
+Only temporary project contention (`PROJECT_BUSY`) is retryable with the same input. Other errors require
+following `nextAction`, such as fixing input or finishing setup.
+
+The current `tools/list` input schemas are authoritative. `lore_write` and `lore_resume` also publish
+output schemas: `needs_model` requires a run ID and nonempty requests; prose approval requires the draft
+and approval ID; prose completion requires a commit result. Other resume results retain the originating
+design, prose or webtoon tool's shape.
+
+Initialize instructions cover setup order, checking the active arc, syncing drift, model handoffs and
+approval rules. If Glama shows old information, reinspect after deploying the updated server and verify
+Instructions, output schemas and the default 27-tool catalog.
 
 ## Resuming model work
 

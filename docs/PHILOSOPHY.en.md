@@ -45,7 +45,7 @@ checks, limited revision, receipts, approval and commit follow one another. Hand
 interface like this is what we call a **deep module**.
 
 Exposing every internal step would give more freedom to call, but it would push wrong orders and state branches onto the
-user. So the default surface shows only 30 complete tools, webtoon production included, and the per-stage primitive tools
+user. So the default surface shows only 27 complete tools, webtoon production included, and the per-stage primitive tools
 live on the `advanced` surface.
 
 ### Firm higher promises, thin per-chapter choices

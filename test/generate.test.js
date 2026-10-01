@@ -232,7 +232,7 @@ describe('Phase 2 generation pipeline', () => {
       openOutcomeSpace: { mustResolve: ['고지서'], mayResolve: ['고지서'], mustRemainCostly: ['고지서'] }, episodes,
     });
     await assert.rejects(
-      () => runArcPlan({ store, workId: 'tax-tower', mode: 'auto', episodes: 3, providers: provider({ 'arc-plan': bland }) }),
+      () => runArcPlan({ replaceActive: true, store, workId: 'tax-tower', mode: 'auto', episodes: 3, providers: provider({ 'arc-plan': bland }) }),
       /아크 품질 검증 실패/,
     );
   });
@@ -620,7 +620,7 @@ describe('Phase 2 generation pipeline', () => {
       { title: '압류', goal: '징수관과 충돌한다.', conflict: '장비 압류', growth: '감별 스킬 획득', cost: '동료 장비 상실', hook: '더 깊은 층 명령' },
       { title: '납부', goal: '아크 약속을 정산한다.', conflict: '마석 부족', growth: '레벨 상승', cost: '의무 심도 상승', hook: '다음 원정' },
     ] });
-    const planned = await runArcPlan({ store, workId: 'tax-tower', mode: 'review', episodes: 3, providers: provider({ 'arc-plan': arcJson }) });
+    const planned = await runArcPlan({ replaceActive: true, store, workId: 'tax-tower', mode: 'review', episodes: 3, providers: provider({ 'arc-plan': arcJson }) });
     assert.equal(planned.needsApproval, true);
     assert.equal((await store.loadArcPlan('tax-tower')).status, 'pending');
     await runArcDecide({ store, workId: 'tax-tower', action: 'approve' });
@@ -643,7 +643,7 @@ describe('Phase 2 generation pipeline', () => {
       episodes: Array.from({ length: 5 }, (_, index) => ({ title: `${index + 1}화`, beat: `사건 ${index + 1}` })),
     });
 
-    const planned = await runArcPlan({ store, workId: 'tax-tower', mode: 'auto', episodes: 5, providers: provider({ 'arc-plan': arcJson }) });
+    const planned = await runArcPlan({ replaceActive: true, store, workId: 'tax-tower', mode: 'auto', episodes: 5, providers: provider({ 'arc-plan': arcJson }) });
     assert.ok(planned.plan, JSON.stringify(planned.validation));
     assert.deepEqual(planned.plan.characterArcs[0].beats.map(({ episodeIndex, beat }) => ({ episodeIndex, beat })), [
       { episodeIndex: 1, beat: 'wound' },

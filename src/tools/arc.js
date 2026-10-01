@@ -166,18 +166,20 @@ export function episodeForChapter(plan, chapter) {
   return plan.episodes.find((episode) => episode.chapter === chapter) ?? null;
 }
 
-export async function runArcPlan({ store, workId, mode = 'review', episodes = 8, direction = '', feedback = '', providers, retryValidation = false }) {
+export async function runArcPlan({ store, workId, mode = 'review', episodes = 8, direction = '', feedback = '', providers, retryValidation = false, replaceActive = false }) {
+  if (!Number.isSafeInteger(episodes) || episodes < 3 || episodes > 20) throw new Error('INVALID_ARGUMENT: episodes must be an integer between 3 and 20');
   const foundation = await store.loadFoundation(workId);
   if (!foundation) throw new Error('작품이 없습니다.');
   const chapters = await store.listChapters();
   const startChapter = (chapters.at(-1) ?? 0) + 1;
   const previous = await store.loadArcPlan(workId);
+  if (previous?.status === 'active' && replaceActive !== true) throw new Error('ARC_IN_PROGRESS: 활성 아크가 있습니다. 계속 집필하거나 사용자가 명시적으로 교체를 요청한 경우만 replaceActive=true를 사용하세요.');
   const arcNumber = Number(previous?.arcNumber ?? 0) + (previous?.status === 'pending' ? 0 : 1);
   const previousFinalChapter = previous?.episodes?.at(-1)?.chapter;
   const previousArcReview = previous?.status === 'completed' && previousFinalChapter
     ? await store.loadArcReview(workId, previous.arcNumber, previousFinalChapter)
     : null;
-  const count = Math.max(3, Math.min(Number(episodes) || 8, 20));
+  const count = episodes;
   const summaries = await store.loadRecentChapterSummaries(workId, startChapter, 10);
   const storyProfile = await store.loadStoryProfile(workId);
   if (storyProfile && storyProfile.status !== 'active') throw new Error('StoryProfile 승인 후 아크를 계획하세요.');

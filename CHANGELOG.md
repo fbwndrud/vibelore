@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.8 — 2026-10-01
+
+- 활성 아크 재계획은 `ARC_IN_PROGRESS`로 거부하며 명시적 교체만 `replaceActive=true`로 허용합니다.
+  아크 화수는 3~20 정수, 화당 분량 목표는 양의 정수로 MCP 입력 계약을 강화했습니다.
+- `lore_write`와 `lore_resume`에 출력 스키마를 게시하고 MCP 오류에 code·message·retryable·nextAction을 추가했습니다.
+- 기본 도구는 27개입니다. 기존 컷별 웹툰 마무리용 deprecated 3개는 `VIBELORE_MCP_SURFACE=compat`(30개) 또는 advanced에서 노출합니다.
+- initialize 공통 지침에 초기 설정, 아크 확인, drift 동기화, critic·승인과 모델 응답 재개 규칙을 포함했습니다.
+
 ## 0.4.7 — 2026-10-01
 
 - 발행 뒤 후처리가 중단된 화는 다음 `lore_write` 또는 guided `lore_decide` 승인

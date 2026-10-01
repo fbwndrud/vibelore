@@ -15,6 +15,7 @@
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { validateToolInput } from './core/tool-input.js';
+import { WRITE_OUTPUT_SCHEMA, RESUME_OUTPUT_SCHEMA, toolFailure } from './core/tool-output.js';
 import { withProjectLock } from './core/project-lock.js';
 
 import { MarkdownStateStore } from './store/markdown-store.js';
@@ -61,7 +62,7 @@ const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: 
 const writes = ({ destructive = false, idempotent = false } = {}) => ({ readOnlyHint: false, destructiveHint: destructive, idempotentHint: idempotent, openWorldHint: false });
 
 const languageArg = { type: 'string', description: '작품 언어 BCP 47 태그(예: ko, en-US, ja, zh-Hant). 생략하면 저장된 계약을 따른다.' };
-const lengthArg = { type: 'object', description: '화당 분량 계약. unit 은 legacyCodeUnits|graphemes|words, target 은 양의 정수.', properties: { unit: { type: 'string', enum: ['legacyCodeUnits', 'graphemes', 'words'] }, target: { type: 'number' } }, required: ['unit', 'target'] };
+const lengthArg = { type: 'object', description: '화당 분량 계약. unit 은 legacyCodeUnits|graphemes|words, target 은 양의 정수.', properties: { unit: { type: 'string', enum: ['legacyCodeUnits', 'graphemes', 'words'] }, target: { type: 'integer', minimum: 1 } }, required: ['unit', 'target'] };
 const planModeArg = { type: 'string', enum: ['review', 'auto'], description: 'review(기본)=pending으로 저장하고 사용자 승인을 기다린다. auto=검증 통과 즉시 active로 저장한다. 사용자가 "알아서·묻지 말고"라고 한 경우만 auto.' };
 const decideActionArg = (next) => ({ type: 'string', enum: ['approve', 'reject'], description: `approve=active로 전환한다(생성 때 받은 검증 영수증이 없거나 이후 정본이 바뀌었으면 status=clean_fail). reject=rejected로 표시하고 파일은 지우지 않는다. 거절 뒤에는 ${next}을 feedback과 함께 다시 호출한다.` });
 const webtoonRevisionArg = { type: 'integer', description: '낙관적 동시성 확인용 현재 revision. 저장된 값과 다르면 STALE_WEBTOON_REVISION으로 거부한다. 생략 가능.' };
@@ -311,7 +312,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object', properties: {
         ...projectArg, chapter: { type: 'integer', minimum: 1 }, plan: { type: 'string' }, targetChars: { type: 'number' },
-        language: { type: 'string', description: '작품 언어 BCP 47 태그(예: ko, en-US, ja, zh-Hant). 생략하면 저장된 계약을 따른다.' }, length: { type: 'object', description: '화당 분량 계약. unit 은 legacyCodeUnits|graphemes|words.', properties: { unit: { type: 'string', enum: ['legacyCodeUnits', 'graphemes', 'words'] }, target: { type: 'number' } }, required: ['unit', 'target'] },
+        language: { type: 'string', description: '작품 언어 BCP 47 태그(예: ko, en-US, ja, zh-Hant). 생략하면 저장된 계약을 따른다.' }, length: { type: 'object', description: '화당 분량 계약. unit 은 legacyCodeUnits|graphemes|words.', properties: { unit: { type: 'string', enum: ['legacyCodeUnits', 'graphemes', 'words'] }, target: { type: 'integer', minimum: 1 } }, required: ['unit', 'target'] },
         tension: { type: 'object', properties: { ticking: { type: 'string' }, stake: { type: 'string' }, escalation: { type: 'string' } } },
       }, required: ['workId', 'chapter'],
     },
@@ -349,12 +350,13 @@ const TOOLS = [
     annotations: writes({ destructive: true }),
     description: '다음 아크의 약속과 3~20개 얇은 회차 비트(사건·압력·전환·다음 상태)를 생성하고 구조·품질 검증을 거쳐 .vibelore/arc-plan.json에 저장한다(아크별 사본은 .vibelore/arcs/). '
       + 'lore_write 전에 lore_arc_status로 활성 아크가 없음을 확인했을 때, 또는 아크가 끝났을 때 호출한다. 기반과 승인된 StoryProfile·StorySpine·WriterSkill이 필요하다. '
-      + '현재 계획을 무조건 교체한다: pending이면 같은 번호로 덮어쓰고, 진행 중인 활성 아크도 다음 번호의 새 아크로 대체하므로 아크 중간에는 호출하지 않는다. 생성·품질 판정·언어 검증에 status=needs_model이 약 3회 나온다. 반환은 {plan(episodes, quality), needsApproval, instruction}.',
+      + 'pending 계획은 같은 번호로 교체한다. 활성 아크는 ARC_IN_PROGRESS로 거부한다. 사용자가 교체를 명시적으로 요청한 경우에만 replaceActive=true로 다음 번호의 아크로 교체한다. 생성·품질 판정·언어 검증에 status=needs_model이 약 3회 나온다. 반환은 {plan(episodes, quality), needsApproval, instruction}.',
     inputSchema: {
       type: 'object', properties: {
         ...projectArg,
         mode: { ...planModeArg, description: 'review(기본)=사용자 승인 전까지 pending이며 집필할 수 없다. auto=검증 통과 즉시 활성화. 사용자가 "알아서·묻지 말고"라고 한 경우만 auto.' },
-        episodes: { type: 'number', description: '아크 화수 3~20(범위 밖은 잘라낸다). 기본 8.' },
+        episodes: { type: 'integer', minimum: 3, maximum: 20, default: 8, description: '아크 화수 3~20 정수. 기본 8. 범위 밖과 소수는 거부한다.' },
+        replaceActive: { type: 'boolean', default: false, description: '사용자가 활성 아크 교체를 명시적으로 요청한 경우만 true. 기본은 ARC_IN_PROGRESS로 거부하며, true는 활성 계획을 다음 번호의 아크로 교체한다.' },
         direction: { type: 'string', description: '사용자가 원하는 아크 방향. 비우면 작품 브리프와 StorySpine에서 자율 설계.' },
         feedback: { type: 'string', description: '거절한 계획을 다시 만들 때 반영할 피드백. 이전 계획은 모델에 다시 보내지 않으므로 피드백만으로 이해되게 쓴다.' },
       }, required: ['workId'],
@@ -656,16 +658,17 @@ const PUBLIC_TOOL_NAMES = new Set([
   'lore_decide',
   'lore_workflow_status',
   'lore_workflow_history',
-  'lore_webtoon_plan',
   'lore_webtoon_scene',
-  'lore_webtoon_render',
-  'lore_webtoon_decide',
 ]);
 
-const MCP_SURFACE = process.env.VIBELORE_MCP_SURFACE === 'advanced' ? 'advanced' : 'public';
-const EXPOSED_TOOLS = MCP_SURFACE === 'advanced'
-  ? TOOLS
-  : TOOLS.filter((tool) => PUBLIC_TOOL_NAMES.has(tool.name));
+// Legacy panel workflows remain callable only on an explicit compatibility surface.
+const COMPAT_TOOL_NAMES = new Set(['lore_webtoon_plan', 'lore_webtoon_render', 'lore_webtoon_decide']);
+const MCP_SURFACE = ['advanced', 'compat'].includes(process.env.VIBELORE_MCP_SURFACE)
+  ? process.env.VIBELORE_MCP_SURFACE : 'public';
+const EXPOSED_TOOLS = (MCP_SURFACE === 'advanced' ? TOOLS : TOOLS.filter((tool) =>
+  PUBLIC_TOOL_NAMES.has(tool.name) || (MCP_SURFACE === 'compat' && COMPAT_TOOL_NAMES.has(tool.name))))
+  .map((tool) => ({ ...tool, ...(tool.name === 'lore_write' ? { outputSchema: WRITE_OUTPUT_SCHEMA }
+    : tool.name === 'lore_resume' ? { outputSchema: RESUME_OUTPUT_SCHEMA } : {}) }));
 const EXPOSED_TOOL_NAMES = new Set(EXPOSED_TOOLS.map((tool) => tool.name));
 
 // -- tool execution ---------------------------------------------------------
@@ -730,7 +733,7 @@ function execWithProviders(store, toolName, args, providers) {
     case 'lore_era_research':
       return runEraResearchTool({ ...common, chapter: args.chapter, era: args.era, claims: args.claims, maxCalls: args.maxCalls });
     case 'lore_arc_plan':
-      return runArcPlan({ ...common, mode: args.mode, episodes: args.episodes, direction: args.direction, feedback: args.feedback });
+      return runArcPlan({ ...common, mode: args.mode, episodes: args.episodes, direction: args.direction, feedback: args.feedback, replaceActive: args.replaceActive });
     case 'lore_arc_review':
       return runStoredArcReview({ ...common, throughChapter: args.throughChapter });
     case 'lore_profile':
@@ -830,7 +833,7 @@ async function dispatchTool(store, name, args) {
       return { status: 'ok', ...(await runWorkflowInspect({ store, workId: args.workId, workflowId: args.workflowId, detail: args.detail })) };
     case 'lore_resume': {
       const run = await loadRun(store.rootDir, args.runId);
-      if (!run) throw new Error(`runId "${args.runId}" 를 찾을 수 없습니다 (만료됐거나 이미 완료됨).`);
+      if (!run) throw new Error(`RUN_NOT_FOUND: runId "${args.runId}" 를 찾을 수 없습니다 (만료됐거나 이미 완료됨).`);
       const merged = { ...run.answers, ...(args.answers ?? {}) };
       if (run.tool === 'lore_webtoon_scene') return runWebtoonSceneTool({ store, args: run.args, run, providers: providerFor(run.tool, merged) });
       if (run.tool.startsWith('lore_webtoon_')) {
@@ -867,9 +870,12 @@ async function handle(msg) {
         capabilities: { tools: { listChanged: false } },
         serverInfo: SERVER_INFO,
         instructions:
-          'vibelore 는 소설의 설정 일관성과 집필 순서를 지키는 도구입니다. 기본 집필은 lore_write 하나로 시작하세요. ' +
-          '회차 계획, 원본 초고 프롬프트, 의미·논리 검사(최대 3회, 그 사이 수정 최대 2회), 승인과 커밋을 영속 워크플로가 순서대로 실행합니다. ' +
-          '웹툰화는 webtoon-discovery-interview 스킬로 장면 경로 입력을 정한 뒤 lore_webtoon_scene으로 제작합니다. lore_webtoon_plan 컷별 경로는 deprecated입니다. needs_model은 lore_resume으로 답합니다. 웹툰 조회는 lane=webtoon을 사용합니다.',
+          'vibelore는 소설 정본과 집필 순서를 지키는 도구입니다. 새 작품은 story-discovery-interview → lore_profile → lore_profile_decide → lore_create(직접 쓴 기반은 lore_init) → lore_story_plan → lore_story_decide → lore_writer_skill → lore_writer_decide → lore_arc_plan → lore_arc_decide 순서로 준비합니다. ' +
+          '기존 작품은 lore_configure로 누락 단계를 확인합니다. 설계 기본은 mode=review이며 결과를 사용자에게 보여주고 승인받습니다. 알아서·자동으로·묻지 말고가 명시된 경우만 mode=auto를 씁니다. profile의 열린 질문은 모두 보여주고 답을 feedback으로 반영합니다. ' +
+          '집필 요청은 먼저 lore_arc_status로 활성 아크를 확인합니다. 활성 아크를 임의 교체하지 않습니다. lore_status나 lore_write가 working-tree drift를 보고하면 lore_sync의 inspect → validate → apply로 반영한 뒤 진행합니다. ' +
+          '기본 집필은 lore_write 하나로 회차 계획, 초고, 검사(최대 3회·수정 최대 2회), critic, 검사 영수증, 승인·커밋을 순서대로 실행합니다. guided는 원고와 advisory를 보여준 뒤 lore_decide로 결정합니다. auto는 불변식 통과와 활성 critic 완료가 필요하며 critic 실패 시 guided로 강등합니다. 꺼 둔 검토는 요청하지 않습니다. soft와 advisory는 임의 수정 이유가 아닙니다. ' +
+          'needs_model은 사용자 질문이 아닙니다. requests의 실제 원고와 근거를 읽고 모든 id의 답을 한 번의 lore_resume에 넘깁니다. jsonMode는 코드 펜스 없는 JSON입니다. 새 프로세스·API로 병렬 답변할 때 promptCache.warmFirst=true 요청의 첫 출력 뒤 나머지를 보냅니다. 같은 호스트 검토를 독립 독자 평가로 보고하지 않습니다. ' +
+          '웹툰은 webtoon-discovery-interview 뒤 lore_webtoon_scene을 사용하고 소설 정본과 분리합니다. needs_interview는 사용자 질문이며 조회는 lane=webtoon입니다. 기존 컷별 작업 마무리만 VIBELORE_MCP_SURFACE=compat로 deprecated 도구를 노출합니다.',
       });
     }
     case 'notifications/initialized':
@@ -883,7 +889,7 @@ async function handle(msg) {
       const name = params?.name;
       try {
         if (!EXPOSED_TOOL_NAMES.has(name)) {
-          throw new Error(`unknown tool on ${MCP_SURFACE} surface: ${name}`);
+          throw new Error(`UNKNOWN_TOOL: unknown tool on ${MCP_SURFACE} surface: ${name}`);
         }
         const result = await callTool(name, params?.arguments ?? {});
         return reply(id, {
@@ -895,6 +901,7 @@ async function handle(msg) {
         // protocol error -- isError keeps the conversation going.
         return reply(id, {
           content: [{ type: 'text', text: `${name} 실패: ${err.message}` }],
+          structuredContent: toolFailure(err),
           isError: true,
         });
       }

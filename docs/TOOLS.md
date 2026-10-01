@@ -5,7 +5,7 @@
 호스트 AI와 직접 연동하는 사용자를 위한 호출 참조입니다. 일반 사용자는 인자를 직접 작성할
 필요 없이 [시작 안내](GETTING_STARTED.md)와 [웹툰 만들기](WEBTOON.md)를 따라 요청하세요.
 
-기본 서버가 노출하는 30개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
+기본 서버가 노출하는 27개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
 새 작품은 승인된 프로필·전체 스토리·작가 스킬·아크를 준비합니다. 이후 집필은
 `lore_arc_status`로 활성 아크를 확인하고 `lore_write`로 시작하며, 승인 대기일 때 `lore_decide`를 사용합니다.
 저수준 도구는 호환과 엔진 디버깅을 위해 유지하지만 기본 `tools/list`에는 나타나지 않습니다.
@@ -15,6 +15,9 @@
 `lore_revise`, `lore_rewrite`, `lore_next_arc`, `lore_episode_plan`, `lore_episode_decide`,
 `lore_episode_status`, `lore_refold`, `lore_era_research`, `lore_workflow_inspect`입니다. 일반
 집필에서는 이 도구들을 직접 조합하지 않습니다.
+
+기존 컷별 웹툰 마무리에는 `VIBELORE_MCP_SURFACE=compat`로 deprecated 3개 도구를
+추가 노출합니다(총 30개). 새 웹툰은 기본 표면의 `lore_webtoon_scene`을 사용합니다.
 
 ## 읽는 법
 
@@ -307,9 +310,14 @@ EpisodePlan은 `readerBridge` 한 문장으로 해당 화의 즉시 상황과 �
 아크가 끝나지 않았다면 마지막 감정 비트부터 이어가며, 종결 리뷰에서 해결된 질문은 같은
 형태로 다시 열지 않습니다.
 
+`episodes`는 3~20의 정수(기본 8)이며 소수와 범위 밖 값은 거부합니다.
+활성 아크는 기본적으로 `ARC_IN_PROGRESS`로 교체를 막습니다. 사용자가 명시적으로 교체를
+요청한 경우만 `replaceActive:true`를 넘기며, 새 계획이 검증·저장될 때 다음 아크 번호로 교체됩니다.
+pending 계획은 같은 번호로 다시 만들 수 있고 완료된 아크 뒤에는 새 아크를 계획합니다.
+
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `mode: review\|auto`, `episodes`, `direction`, `feedback` |
+| `workId` | `project`, `mode: review\|auto`, `episodes`, `direction`, `feedback`, `replaceActive` |
 
 ```json
 {

@@ -1,3 +1,5 @@
+import { toolFailure } from '../src/core/tool-output.js';
+import { validateToolInput } from '../src/core/tool-input.js';
 import { digest } from '../src/core/webtoon-contract.js';
 import { webtoonStore, workId as webtoonWorkId, answers as webtoonAnswers, plan as webtoonPlan, editorial as webtoonEditorial, pixel } from './fixtures/webtoon.js';
 import { sceneSetup, scenePlan, scenePreflight } from './fixtures/webtoon-scene.js';
@@ -31,7 +33,7 @@ const SERVER = fileURLToPath(new URL('../src/server.js', import.meta.url));
 function session(messages, { timeoutMs = 20000, surface = 'advanced' } = {}) {
   return new Promise((resolveAll, rejectAll) => {
     const env = { ...process.env };
-    if (surface === 'advanced') env.VIBELORE_MCP_SURFACE = 'advanced';
+    if (['advanced', 'compat'].includes(surface)) env.VIBELORE_MCP_SURFACE = surface;
     else delete env.VIBELORE_MCP_SURFACE;
     const child = spawn(process.execPath, [SERVER], { stdio: ['pipe', 'pipe', 'pipe'], env });
     const byId = new Map();
@@ -67,6 +69,8 @@ function session(messages, { timeoutMs = 20000, surface = 'advanced' } = {}) {
 const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0' } } };
 const call = (id, name, args) => ({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } });
 const payload = (msg) => JSON.parse(msg.result.content[0].text);
+const schemas = (await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }])).get(2).result.tools;
+const outputSchemas = new Map(schemas.filter(tool => tool.outputSchema).map(tool => [tool.name, tool.outputSchema]));
 const proofAnswer = request => {
   const full = { step: request.step, messages: [
     { role: 'system', content: request.system ?? '' }, { role: 'user', content: request.user ?? '' },
@@ -104,7 +108,9 @@ describe('MCP surface', () => {
       const invoke = async (name, more = {}) => {
         const replies = await session([init, call(2, name, { ...args, ...more })], { surface: 'public' });
         assert.equal(replies.get(2).result.isError, undefined, JSON.stringify(replies.get(2)));
-        return payload(replies.get(2));
+        const result = payload(replies.get(2));
+        if (outputSchemas.has(name)) validateToolInput(outputSchemas.get(name), result, 'result');
+        return result;
       };
       let result = await invoke('lore_write', { autonomy: 'auto' });
       let sawDraft = false;
@@ -191,7 +197,7 @@ describe('MCP surface', () => {
     assert.equal(r.serverInfo.name, 'vibelore');
     const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
     assert.equal(r.serverInfo.version, pkg.version);
-    assert.match(r.instructions, /lore_write/);
+    for (const term of ['lore_write', 'lore_arc_status', 'lore_sync', 'lore_profile', 'warmFirst', 'needs_model', 'compat']) assert.ok(r.instructions.includes(term), term);
   });
 
   for (const version of ['2024-11-05', '2025-03-26', '1999-01-01', '2099-01-01', undefined, 123]) {
@@ -210,7 +216,7 @@ describe('MCP surface', () => {
     const tools = out.get(2).result.tools;
     assert.deepEqual(
       tools.map((t) => t.name).sort(),
-      ['lore_arc_decide', 'lore_arc_plan', 'lore_arc_review', 'lore_arc_status', 'lore_configure', 'lore_create', 'lore_decide', 'lore_init', 'lore_profile', 'lore_profile_decide', 'lore_profile_status', 'lore_resume', 'lore_rollback', 'lore_snapshot_status', 'lore_status', 'lore_story_decide', 'lore_story_plan', 'lore_story_status', 'lore_style_anchor', 'lore_sync', 'lore_webtoon_decide', 'lore_webtoon_plan', 'lore_webtoon_render', 'lore_webtoon_scene', 'lore_workflow_history', 'lore_workflow_status', 'lore_write', 'lore_writer_decide', 'lore_writer_skill', 'lore_writer_status'],
+      ['lore_arc_decide', 'lore_arc_plan', 'lore_arc_review', 'lore_arc_status', 'lore_configure', 'lore_create', 'lore_decide', 'lore_init', 'lore_profile', 'lore_profile_decide', 'lore_profile_status', 'lore_resume', 'lore_rollback', 'lore_snapshot_status', 'lore_status', 'lore_story_decide', 'lore_story_plan', 'lore_story_status', 'lore_style_anchor', 'lore_sync', 'lore_webtoon_scene', 'lore_workflow_history', 'lore_workflow_status', 'lore_write', 'lore_writer_decide', 'lore_writer_skill', 'lore_writer_status'],
     );
     for (const t of tools) {
       assert.ok(t.description.length > 20, `${t.name} needs a real description`);
@@ -226,6 +232,90 @@ describe('MCP surface', () => {
     }
     const readOnly = tools.filter((t) => t.annotations.readOnlyHint).map((t) => t.name).sort();
     assert.deepEqual(readOnly, ['lore_arc_status', 'lore_profile_status', 'lore_snapshot_status', 'lore_status', 'lore_story_status', 'lore_workflow_history', 'lore_workflow_status', 'lore_writer_status']);
+  });
+
+  it('exposes only legacy panel tools additionally on the compatibility surface', async () => {
+    const listed = await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }], { surface: 'compat' });
+    const tools = listed.get(2).result.tools;
+    assert.equal(tools.length, 30);
+    for (const name of ['lore_webtoon_plan', 'lore_webtoon_render', 'lore_webtoon_decide']) {
+      assert.ok(tools.some(tool => tool.name === name));
+      const hidden = await session([init, call(2, name, { workId: 'hidden' })], { surface: 'public' });
+      assert.equal(hidden.get(2).result.structuredContent.code, 'UNKNOWN_TOOL');
+      assert.match(hidden.get(2).result.structuredContent.nextAction, /compat/);
+    }
+    assert.ok(!tools.some(tool => tool.name === 'lore_commit'));
+  });
+
+  it('rejects invalid numeric contracts before work and returns structured recovery data', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vibelore-schema-input-'));
+    const messages = [init];
+    for (const [index, episodes] of [2, 21, 3.5].entries()) messages.push(call(index + 2, 'lore_arc_plan', { project: dir, workId: 'w', episodes }));
+    for (const [index, target] of [0, -1, 1.5].entries()) messages.push(call(index + 5, 'lore_profile', { project: dir, workId: 'w', brief: 'test', length: { unit: 'words', target } }));
+    messages.push(call(8, 'lore_resume', { project: dir, runId: 'run-missing' }));
+    const replies = await session(messages, { surface: 'public' });
+    for (let id = 2; id < 8; id++) {
+      const result = replies.get(id).result;
+      assert.equal(result.isError, true);
+      assert.equal(result.structuredContent.code, 'INVALID_ARGUMENT');
+      assert.equal(result.structuredContent.retryable, false);
+      assert.ok(result.structuredContent.nextAction);
+    }
+    const missing = replies.get(8).result;
+    assert.equal(missing.structuredContent.code, 'RUN_NOT_FOUND');
+    validateToolInput(outputSchemas.get('lore_resume'), missing.structuredContent);
+  });
+
+  it('blocks active arc replacement before model work and preserves the plan', async () => {
+    const store = await qualityStore();
+    const before = await store.loadArcPlan(qualityWorkId);
+    const args = { project: store.rootDir, workId: qualityWorkId, episodes: 3 };
+    const blocked = (await session([init, call(2, 'lore_arc_plan', args)], { surface: 'public' })).get(2).result;
+    assert.equal(blocked.isError, true);
+    assert.equal(blocked.structuredContent.code, 'ARC_IN_PROGRESS');
+    assert.deepEqual(await store.loadArcPlan(qualityWorkId), before);
+    const allowed = payload((await session([init, call(2, 'lore_arc_plan', { ...args, replaceActive: true })], { surface: 'public' })).get(2));
+    assert.equal(allowed.status, 'needs_model');
+    assert.equal(allowed.requests[0].step, 'arc-plan');
+    assert.deepEqual(await store.loadArcPlan(qualityWorkId), before, 'a pending generation must not replace the approved plan');
+  });
+
+  it('allows pending and completed arcs to be planned without the replacement override', async () => {
+    for (const status of ['pending', 'completed']) {
+      const store = await qualityStore();
+      const before = { ...await store.loadArcPlan(qualityWorkId), status };
+      await store.saveArcPlan(qualityWorkId, before);
+      const reply = (await session([init, call(2, 'lore_arc_plan', { project: store.rootDir, workId: qualityWorkId })], { surface: 'public' })).get(2);
+      assert.equal(reply.result.isError, undefined, JSON.stringify(reply));
+      assert.equal(payload(reply).status, 'needs_model');
+      assert.deepEqual(await store.loadArcPlan(qualityWorkId), before);
+    }
+  });
+
+  it('marks temporary contention as retryable and leaves other failures actionable', () => {
+    const busy = toolFailure(new Error('PROJECT_BUSY: another server is using this work'));
+    assert.equal(busy.code, 'PROJECT_BUSY');
+    assert.equal(busy.retryable, true);
+    assert.ok(busy.nextAction);
+    const unknown = toolFailure(new Error('unexpected failure'));
+    assert.equal(unknown.code, 'TOOL_FAILED');
+    assert.equal(unknown.retryable, false);
+    assert.equal(unknown.message, 'unexpected failure');
+    validateToolInput(outputSchemas.get('lore_write'), busy);
+  });
+
+  it('declares required fields for model handoffs and completed prose', () => {
+    for (const name of ['lore_write', 'lore_resume']) {
+      const schema = outputSchemas.get(name);
+      assert.ok(schema);
+      for (const malformed of [{ status: 'needs_model' }, { status: 'needs_model', runId: 'run-a', requests: [] },
+        { status: 'needs_model', runId: 'run-a', requests: [{ id: 'a' }] }, { status: 'error', message: 'failed' }]) {
+        assert.throws(() => validateToolInput(schema, malformed));
+      }
+    }
+    assert.throws(() => validateToolInput(outputSchemas.get('lore_write'), { status: 'awaiting_approval', prose: 'draft' }));
+    assert.throws(() => validateToolInput(outputSchemas.get('lore_write'), { status: 'completed', workflowId: 'wf', chapter: 1 }));
+    validateToolInput(outputSchemas.get('lore_resume'), { status: 'plan_accepted', workflowId: 'wt' });
   });
 
   it('keeps low-level primitives behind the explicit advanced surface', async () => {
@@ -258,7 +348,9 @@ describe('MCP surface', () => {
     const invoke = async (name, more = {}) => {
       const replies = await session([init, call(2, name, { project: store.rootDir, ...more })], { surface: 'public' });
       assert.equal(replies.get(2).result.isError, undefined, JSON.stringify(replies.get(2)));
-      return payload(replies.get(2));
+      const result = payload(replies.get(2));
+      if (outputSchemas.has(name)) validateToolInput(outputSchemas.get(name), result, 'result');
+      return result;
     };
     const asked = await invoke('lore_webtoon_scene', { ...sceneArgs, panelCount: undefined });
     assert.equal(asked.status, 'needs_interview'); assert.ok(asked.questions[0].options.includes('auto'));
@@ -278,15 +370,17 @@ describe('MCP surface', () => {
     assert.equal(status.productionMode, 'scene-direct-v1'); assert.equal(status.panelCountMode, 'auto'); assert.equal(status.panelCount, 5);
   });
 
-  it('runs the webtoon interview, exact model resume and approval through public stdio', async () => {
+  it('runs the webtoon interview, exact model resume and approval through compatibility stdio', async () => {
     const store = await webtoonStore();
     const args = { project: store.rootDir, workId: webtoonWorkId };
     const invoke = async (name, more = {}) => {
-      const replies = await session([init, call(2, name, { ...args, ...more })], { surface: 'public' });
+      const replies = await session([init, call(2, name, { ...args, ...more })], { surface: 'compat' });
       assert.equal(replies.get(2).result.isError, undefined, JSON.stringify(replies.get(2)));
-      return payload(replies.get(2));
+      const result = payload(replies.get(2));
+      if (outputSchemas.has(name)) validateToolInput(outputSchemas.get(name), result, 'result');
+      return result;
     };
-    const blocked = (await session([init, call(2, 'lore_webtoon_plan', { ...args, imageModel: 'gpt-image-2' })], { surface: 'public' })).get(2);
+    const blocked = (await session([init, call(2, 'lore_webtoon_plan', { ...args, imageModel: 'gpt-image-2' })], { surface: 'compat' })).get(2);
     assert.match(JSON.stringify(blocked), /WEBTOON_PANEL_PATH_DEPRECATED/);
     const first = await runWebtoonTool({ store, toolName: 'lore_webtoon_plan', args: { workId: webtoonWorkId, imageModel: 'gpt-image-2' }, providers: createHostRelay() });
     assert.equal(first.status, 'needs_interview');

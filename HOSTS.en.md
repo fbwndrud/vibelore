@@ -7,7 +7,7 @@ If a format changes, fix this file first.
 
 Host live-call check date: 2026-08-22<br>
 Server handshake and default 26 / advanced 39 tool schema check date: 2026-09-04<br>
-Webtoon-integrated surface: default 30 / advanced 43 (with the scene path). Kept distinct from the past host live-call records below.
+Webtoon-integrated surface: default 27 / compatibility 30 / advanced 43 (with the scene path). Kept distinct from the past host live-call records below.
 
 | Host | Settings location | Format | Status |
 |---|---|---|---|

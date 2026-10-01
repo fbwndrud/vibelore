@@ -5,7 +5,7 @@
 A call reference for users who integrate directly with a host AI. Regular users don't need to write arguments
 themselves; follow [Getting started](GETTING_STARTED.en.md) and [Making a webtoon](WEBTOON.en.md) and just ask.
 
-This is the usage contract for the 30 user tools the default server exposes and the 13 low-level tools on the advanced surface.
+This is the usage contract for the 27 user tools the default server exposes and the 13 low-level tools on the advanced surface.
 A new work prepares an approved profile, whole story, writer skill and arc. After that, writing
 checks the active arc with `lore_arc_status` and starts with `lore_write`, using `lore_decide` when approval is pending.
 The low-level tools are kept for compatibility and engine debugging but don't appear in the default `tools/list`.
@@ -15,6 +15,9 @@ The tools that exist only on the advanced surface are `lore_context`, `lore_chec
 `lore_revise`, `lore_rewrite`, `lore_next_arc`, `lore_episode_plan`, `lore_episode_decide`,
 `lore_episode_status`, `lore_refold`, `lore_era_research` and `lore_workflow_inspect`. Normal
 writing does not combine these tools directly.
+
+For existing panel-based webtoon workflows, `VIBELORE_MCP_SURFACE=compat` adds the three deprecated
+tools (30 total). New webtoons use the default `lore_webtoon_scene` tool.
 
 ## How to read this
 
@@ -307,9 +310,14 @@ When a character with accumulated evidence is activated, that evidence is pinned
 arc hasn't ended, it continues from the last emotion beat, and a question resolved in the closing review is not reopened in the same
 form.
 
+`episodes` is an integer from 3 to 20 (default 8); fractions and out-of-range values are rejected.
+An active arc blocks replacement with `ARC_IN_PROGRESS`. Pass `replaceActive:true` only when the user
+explicitly requests replacement; a validated, saved candidate replaces it at the next arc number.
+Pending plans can be regenerated at the same number; completed arcs allow planning the next arc.
+
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `mode: review\|auto`, `episodes`, `direction`, `feedback` |
+| `workId` | `project`, `mode: review\|auto`, `episodes`, `direction`, `feedback`, `replaceActive` |
 
 ```json
 {

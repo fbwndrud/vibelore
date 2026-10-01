@@ -72,13 +72,17 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 ## 도구 표면
 
-기본 서버는 설계, 통합 집필, 웹툰 제작, 승인, 복구처럼 완결된 사용자 흐름 30개를 노출합니다.
+기본 서버는 설계, 통합 집필, 웹툰 제작, 승인, 복구처럼 완결된 사용자 흐름 27개를 노출합니다.
 `lore_context`, `lore_draft`, `lore_check`, `lore_commit` 같은 단계별 원시 도구는 정상
 집필 순서를 우회할 수 있어 기본 목록에서 제외됩니다.
 
 엔진 디버깅이나 호환성 검증이 필요한 개발 환경에서만 서버 프로세스에
 `VIBELORE_MCP_SURFACE=advanced`를 설정하면 전체 43개 도구를 노출합니다. 작품 집필용
 설정에는 이 값을 넣지 않습니다.
+
+기존 컷별 웹툰 작업을 마무리할 때만 `VIBELORE_MCP_SURFACE=compat`를 설정합니다.
+기본 27개에 deprecated `lore_webtoon_plan/render/decide` 3개를 더한 30개 도구를 노출하며,
+저수준 집필 도구는 노출하지 않습니다. 새 컷별 작업은 호환 표면에서도 거부됩니다.
 
 ## 공통 입력과 응답
 
@@ -108,7 +112,19 @@ lane 생략은 소설 조회입니다. 재개 계약은 [웹툰 상태표](refer
 }
 ```
 
-도구 실패는 연결을 끊지 않습니다. `isError: true`와 오류 설명을 반환합니다. 정확한 입력 필드는 `tools/list`의 현재 `inputSchema`가 기준입니다.
+도구 실패는 연결을 끊지 않습니다. `isError: true`와 기존 오류 설명에 더해 `structuredContent`에
+`{status:"error", code, message, retryable, nextAction}`을 반환합니다. `retryable`은 같은 입력으로
+재시도할 수 있는 일시적인 작품 잠금(`PROJECT_BUSY`)에만 true입니다. 입력 수정·승인·설정 변경이 필요한
+오류는 false이며 `nextAction`을 따릅니다.
+
+정확한 입력 필드는 `tools/list`의 `inputSchema`가 기준입니다. `lore_write`와 `lore_resume`은
+`outputSchema`도 게시합니다. `needs_model`은 `runId`와 비어 있지 않은 `requests`가 필수이고,
+집필의 `awaiting_approval`은 원고·승인 ID, `completed`는 커밋 결과가 필수입니다.
+`lore_resume`의 나머지 결과는 원래 도구의 설계·집필·웹툰 형식을 유지합니다.
+
+서버 initialize의 공통 `instructions`는 설정 순서, 집필 전 아크 확인, drift 동기화, 모델 응답 재개와
+승인 규칙을 제공합니다. Glama가 옛 정보를 표시하면 최신 배포본 반영 후 서버 재검사를 실행해
+Instructions와 출력 스키마, 기본 27개 목록이 갱신됐는지 확인합니다.
 
 ## 모델 작업 재개
 

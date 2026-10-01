@@ -2,6 +2,11 @@
 export function validateToolInput(schema, value, path = 'arguments', depth = 0) {
   const invalid = (reason) => { throw new Error(`INVALID_ARGUMENT: ${path} ${reason}`); };
   if (depth > 40) invalid('is too deeply nested');
+  if (schema.not) {
+    let matched = true;
+    try { validateToolInput(schema.not, value, path, depth + 1); } catch { matched = false; }
+    if (matched) invalid('matches a forbidden shape');
+  }
   if (schema.enum && !schema.enum.includes(value)) invalid('is not an allowed value');
   if (Array.isArray(schema.anyOf)) {
     const accepted = schema.anyOf.some((option) => { try { validateToolInput(option, value, path, depth + 1); return true; } catch { return false; } });
