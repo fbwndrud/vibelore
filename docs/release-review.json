@@ -1,8 +1,8 @@
 {
   "status": "approved",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "targetLicense": "Apache-2.0",
-  "reason": "0.4.6 requires a quote from the chapter before a character recorded dead comes back: a revival without one is not recorded and the dead character on stage stays a hard violation, missing no longer counts as a revival, and a quoted revival stops an auto chapter for the author's confirmation. The npm package ships the files listed in package.json `files`, including the separately licensed, unmodified Gowun Dodum font with its OFL notice. Private manuscripts and generated episodes are excluded. Automated checks do not establish image quality or independent legal clearance.",
+  "reason": "사용자의 0.4.7 반영 요청에 따라 발행 후 미완료 워크플로 후처리의 멱등 복구, 지원 MCP protocolVersion 협상, 스냅샷 실패 시 rollback 지점 부재 안내, refold 문서 설명 수정을 승인 기록에 반영합니다. 발행과 검사 영수증의 안전 경계, 창작 프롬프트와 advisory 정책은 유지합니다. npm 패키지는 package.json files에 명시된 파일과 별도 라이선스의 변경하지 않은 Gowun Dodum 폰트 및 OFL 고지를 포함합니다. 개인 원고와 생성 화는 제외합니다. 자동 검사는 이미지 품질이나 독립적인 법률 검토를 증명하지 않습니다.",
   "approvedBy": "JoungKyoung Lyoo",
-  "approvedAt": "2026-09-30"
+  "approvedAt": "2026-10-01"
 }

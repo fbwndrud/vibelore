@@ -19,7 +19,7 @@ import { runChapterSummary } from '../../engine/src/generators/text/steps/chapte
 import { createHash } from 'node:crypto';
 import { assertProseIntegrity, trailingCastMetadata } from './prose-integrity.js';
 import { DefaultOutputSanitizer } from '../../engine/src/core/output-sanitizer.js';
-import { createChapterSnapshot } from './snapshots.js';
+import { snapshotFailureNotice, createChapterSnapshot } from './snapshots.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { foldLegacyChapterCharacterDynamics } from '../core/character-dynamics-adapter.js';
 import { openCanonRepository } from '../core/canon-repository.js';
@@ -325,6 +325,7 @@ export async function runCommit({
     ...(arc ? { arc } : {}),
     ...(episode ? { episode } : {}),
     snapshot,
+    ...(snapshotFailureNotice(chapter, snapshot) ? { nextAction: snapshotFailureNotice(chapter, snapshot) } : {}),
     publication: { head: publication.value.head, previousHead: publication.value.previousHead, atomic: true },
     workingTreeFingerprint: { digest: workingTreeFingerprint.digest, sourceHead: workingTreeFingerprint.sourceHead },
   };

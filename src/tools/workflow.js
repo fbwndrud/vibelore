@@ -13,7 +13,7 @@ import { editorialQualityAdvisories, runEditorialQuality } from './editorial-qua
 import { ensurePilotContract, ensureStoryIdentity, patternViolations, readerHookAdvisories, runPatternAnalysis, runReaderHook } from './story-experience.js';
 import { assertProseIntegrity } from './prose-integrity.js';
 import { chooseBestRevision, makeRevisionCandidate, publicRevisionCandidate } from './revision-selection.js';
-import { createChapterSnapshot } from './snapshots.js';
+import { snapshotFailureNotice, createChapterSnapshot } from './snapshots.js';
 import { characterFidelityAdvisories, characterFidelityViolations, runCharacterFidelity } from './character-fidelity.js';
 import { arcReviewAdvisories, arcReviewViolations, runArcReview } from './arc-review.js';
 import { assessContractLength, assessChapterLength, chapterDensityViolations } from './chapter-density.js';
@@ -321,6 +321,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       };
     }
   }
+  const unfinished = await store.loadWorkflow(workId);
+  const recovery = await committedWorkflowPublication({ store, workflow: unfinished });
+  if (recovery) return finalizeCommittedWorkflow({ store, workflow: unfinished, publication: recovery, recovered: true });
   const chapters = await store.listChapters();
   const chapter = (chapters.at(-1) ?? 0) + 1;
   let foundation = await store.loadFoundation(workId);
@@ -869,45 +872,138 @@ async function commitPassedWorkflow({ store, workflow, providers }) {
       ...await mergeCandidatesForApproval(store, workflow.workId),
       nextAction: '필수 검토가 완료되지 않았습니다. 원고와 검사 결과를 보고 lore_decide로 판단하세요.' };
   }
+  // Persist the cumulative input before HEAD changes: the old ledger becomes
+  // stale immediately after publication and cannot be loaded as current then.
   const priorExperience = workflow.patternEntry
     ? await loadCurrentExperienceLedger({ store, workId: workflow.workId })
     : null;
+  workflow.finalization = {
+    experienceEntries: priorExperience?.entries ?? [], finished: false,
+  };
+  await transition(store, workflow, 'ready_to_commit', { operation: null });
   const result = await runCommit({
     store, workId: workflow.workId, chapter: workflow.chapter,
     prose: workflow.draftProse, title: workflow.title, summary: workflow.summary,
     castManifestRaw: workflow.castManifestRaw, providers, delta: receipt.delta, checkId: receipt.checkId,
   });
-  const appliedBoundary = await applyNarrativeBoundary({ store, workId: workflow.workId, chapter: workflow.chapter, boundary: workflow.boundary });
+  workflow.publishedHead = result.publication.head;
+  workflow.finalization.commit = result;
+  await store.saveWorkflow(workflow.workId, workflow);
+  const publication = await committedWorkflowPublication({ store, workflow });
+  if (!publication) throw new Error('COMMITTED_WORKFLOW_PUBLICATION_MISMATCH');
+  return finalizeCommittedWorkflow({ store, workflow, publication });
+}
+
+/** Only finish the exact checked chapter already sealed into Published HEAD. */
+async function committedWorkflowPublication({ store, workflow }) {
+  if (!workflow?.checkId || !['ready_to_commit', 'awaiting_draft_approval', 'completed'].includes(workflow.stage)
+    || (workflow.stage === 'completed' && (!workflow.finalization || workflow.finalization.finished))) return null;
+  const published = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
+  if (!published.ok) throw new Error(`CORRUPT_PUBLICATION: ${published.error.code}`);
+  const publication = published.value;
+  const chapter = publication?.tree?.chapters?.[workflow.chapter];
+  const receipt = await store.loadCheckReceipt(workflow.workId, workflow.checkId);
+  if (!chapter || publication.tree.workId !== workflow.workId || receipt?.verdict !== 'passed'
+    || receipt.chapter !== workflow.chapter || receipt.proseHash !== proseHash(chapter.prose)
+    || publication.tree.observations?.[workflow.chapter]?.acceptance?.checkId !== workflow.checkId
+    || publication.tree.observations?.[workflow.chapter]?.acceptance?.workflowId !== workflow.workflowId
+    || Math.max(...Object.keys(publication.tree.chapters).map(Number)) !== workflow.chapter
+    || (workflow.publishedHead && workflow.publishedHead !== publication.head)) return null;
+  // Recovery only covers a materialized commit, not an interrupted HEAD-to-
+  // Markdown projection or later hand edits (which require lore_sync).
+  const fingerprint = await store.loadWorkingTreeFingerprint();
+  if (fingerprint?.sourceHead !== publication.head) return null;
+  const drift = await detectWorkingTreeDrift({ store, sourceHead: publication.head });
+  if (drift.status !== 'clean') return null;
+  // runCommit may fail saving consumedAt after sealing acceptance. The sealed
+  // checkId/hash is a publication witness, never permission to publish again.
+  return publication;
+}
+
+async function finalizationEvent(store, workflow, event) {
+  // Read the durable event itself rather than marking a key before append:
+  // an append failure (including a lost acknowledgement) must remain retryable.
+  const events = await store.loadWorkflowEvents(workflow.workId, workflow.workflowId, Infinity);
+  if (!events.some(item => item.event === event.event)) {
+    await store.appendWorkflowEvent(workflow.workId, workflow.workflowId, event);
+  }
+}
+
+async function finalizeCommittedWorkflow({ store, workflow, publication, recovered = false }) {
+  const receipt = await store.loadCheckReceipt(workflow.workId, workflow.checkId);
+  workflow.publishedHead = publication.head;
+  if (!workflow.finalization) {
+    // Compatibility with workflows written before durable finalization input.
+    const ledger = await store.loadExperienceLedger(workflow.workId);
+    if (ledger.sourceHead && ![publication.head, publication.previousHead].includes(ledger.sourceHead)) {
+      throw new Error('COMMIT_POSTPROCESS_LEDGER_HEAD_MISMATCH');
+    }
+    workflow.finalization = { experienceEntries: ledger.entries ?? [], finished: false };
+  }
+  const result = workflow.finalization.commit ?? {
+    committed: workflow.chapter,
+    publication: { head: publication.head, previousHead: publication.previousHead, atomic: true },
+  };
+  workflow.finalization.commit = result;
+  if (recovered) workflow.finalization.recovered = true;
+  await store.saveWorkflow(workflow.workId, workflow);
+  const appliedBoundary = await applyNarrativeBoundary({
+    store, workId: workflow.workId, chapter: workflow.chapter, boundary: workflow.boundary,
+    applicationId: workflow.workflowId, publishedPlan: publication.tree.plans?.arcPlan,
+  });
   if (workflow.patternEntry) {
     await saveExperienceLedgerForHead({
-      store, workId: workflow.workId, sourceHead: result.publication.head,
-      entries: [...priorExperience.entries.filter((entry) => entry.chapter !== workflow.chapter), workflow.patternEntry],
+      store, workId: workflow.workId, sourceHead: publication.head,
+      entries: [...workflow.finalization.experienceEntries.filter(entry => entry.chapter !== workflow.chapter), workflow.patternEntry],
       criticVersion: workflow.patternEntry.criticVersion ?? null,
     });
   }
-  if (workflow.arcReview) await store.saveArcReview(workflow.workId, { ...workflow.arcReview, sourceHead: result.publication.head });
-  receipt.consumedAt = now();
-  await store.saveCheckReceipt(workflow.workId, receipt);
-  const hash = receipt.proseHash;
-  delete workflow.draftProse;
-  delete workflow.castManifestRaw;
-  await transition(store, workflow, 'completed', { operation: null, committedAt: receipt.consumedAt, proseHash: hash });
-  await store.appendWorkflowEvent(workflow.workId, workflow.workflowId, {
-    at: receipt.consumedAt, event: 'chapter_committed', chapter: workflow.chapter, checkId: receipt.checkId, proseHash: hash,
+  if (workflow.arcReview) await store.saveArcReview(workflow.workId, { ...workflow.arcReview, sourceHead: publication.head });
+  if (!receipt.consumedAt) {
+    receipt.consumedAt = now();
+    await store.saveCheckReceipt(workflow.workId, receipt);
+  }
+  await finalizationEvent(store, workflow, {
+    at: receipt.consumedAt, event: 'chapter_committed', chapter: workflow.chapter, checkId: receipt.checkId, proseHash: receipt.proseHash,
   });
-  await store.appendWorkflowEvent(workflow.workId, workflow.workflowId, {
+  await finalizationEvent(store, workflow, {
     at: receipt.consumedAt, event: 'narrative_boundary', chapter: workflow.chapter,
     decision: workflow.boundary?.decision ?? 'advance_episode', reason: workflow.boundary?.reason ?? '',
     arcExtended: Boolean(appliedBoundary),
   });
   try { result.snapshot = await createChapterSnapshot({ store, workId: workflow.workId, chapter: workflow.chapter }); }
   catch (error) { result.snapshot = { created: false, error: error.message }; }
-  return { status: 'completed', workflowId: workflow.workflowId, chapter: workflow.chapter, quality: workflow.quality, boundary: workflow.boundary, commit: result };
+  // The final snapshot replaces the earlier runCommit snapshot and notice.
+  delete result.nextAction;
+  const snapshotNotice = snapshotFailureNotice(workflow.chapter, result.snapshot);
+  if (snapshotNotice) result.nextAction = snapshotNotice;
+  if (workflow.finalization.recovered) await finalizationEvent(store, workflow, {
+    at: now(), event: 'commit_postprocess_recovered', chapter: workflow.chapter, publishedHead: publication.head,
+  });
+  delete workflow.draftProse;
+  delete workflow.castManifestRaw;
+  await transition(store, workflow, 'completed', { operation: null, committedAt: receipt.consumedAt, proseHash: receipt.proseHash });
+  // transition can save completed and then fail appending its event.
+  await finalizationEvent(store, workflow, { at: workflow.updatedAt, event: 'completed', chapter: workflow.chapter });
+  workflow.finalization.finished = true;
+  await store.saveWorkflow(workflow.workId, workflow);
+  return { status: 'completed', workflowId: workflow.workflowId, chapter: workflow.chapter, quality: workflow.quality,
+    boundary: workflow.boundary, commit: result, ...(recovered ? { recovered: true } : {}),
+    ...((recovered || snapshotNotice) ? { nextAction: [snapshotNotice, recovered
+      ? '발행된 화의 미완료 후처리를 복구했습니다. lore_write를 다시 호출하면 다음 화를 진행합니다.' : null].filter(Boolean).join(' ') } : {}),
+  };
 }
 
 export async function runWorkflowDecide({ store, workId, approvalId, action, feedback = '', providers: baseProviders }) {
   const workflow = await store.loadWorkflow(workId);
   const providers = withModelProfile(baseProviders, workflow?.modelProfile ?? null);
+  if (action === 'approve' && workflow?.approvalId === approvalId) {
+    const publication = await committedWorkflowPublication({ store, workflow });
+    if (publication) return finalizeCommittedWorkflow({ store, workflow, publication, recovered: true });
+    if (workflow.stage === 'ready_to_commit' && workflow.userApproval) {
+      return commitPassedWorkflow({ store, workflow, providers });
+    }
+  }
   if (!workflow || workflow.stage !== 'awaiting_draft_approval' || workflow.approvalId !== approvalId) {
     throw new Error('현재 승인 대기 중인 원고와 approvalId가 일치하지 않습니다.');
   }

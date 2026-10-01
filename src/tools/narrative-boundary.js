@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { renderBoundaryArc } from './arc.js';
 import { renderEpisodeOutcome } from './episode-plan.js';
 import { asKit } from '../prompts/index.js';
@@ -44,10 +45,30 @@ export async function runNarrativeBoundary({ arcPlan, episodePlan, chapter, pros
 }
 
 /** Apply only at commit time so a rejected guided draft never mutates the arc. */
-export async function applyNarrativeBoundary({ store, workId, chapter, boundary }) {
+export async function applyNarrativeBoundary({ store, workId, chapter, boundary, applicationId, publishedPlan }) {
   if (!boundary || !['iterate_episode', 'extend_arc'].includes(boundary.decision)) return null;
   const plan = await store.loadArcPlan(workId);
-  if (!plan || plan.status !== 'active') return null;
+  if (!plan) return null;
+  if (publishedPlan && publishedPlan.arcNumber !== plan.arcNumber) throw new Error('COMMIT_POSTPROCESS_ARC_MISMATCH');
+  if (applicationId && (plan.appliedBoundaries ?? []).includes(applicationId)) {
+    // Repeat the save too: saveArcPlan maintains both current and archive files.
+    await store.saveArcPlan(workId, plan);
+    return plan;
+  }
+  if (!['active', 'completed'].includes(plan.status)) return null;
+  const expected = publishedPlan ? boundaryPlan(publishedPlan, chapter, boundary) : null;
+  // Older workflows have no application marker. Compare the complete episode
+  // and character-beat transformation against the immutable published plan.
+  const alreadyApplied = expected && isDeepStrictEqual(plan.episodes, expected.episodes)
+    && isDeepStrictEqual(plan.characterArcs ?? [], expected.characterArcs);
+  const next = alreadyApplied ? { ...plan } : boundaryPlan(plan, chapter, boundary);
+  if (!next) return null;
+  if (applicationId) next.appliedBoundaries = [...(plan.appliedBoundaries ?? []), applicationId];
+  await store.saveArcPlan(workId, next);
+  return next;
+}
+
+function boundaryPlan(plan, chapter, boundary) {
   const at = plan.episodes.findIndex((episode) => episode.chapter === chapter);
   if (at < 0) return null;
   const current = plan.episodes[at];
@@ -71,7 +92,7 @@ export async function applyNarrativeBoundary({ store, workId, chapter, boundary 
     ...arc,
     beats: arc.beats.map((beat) => beat.episodeIndex > insertAt ? { ...beat, episodeIndex: beat.episodeIndex + 1 } : beat),
   }));
-  const next = { ...plan, episodes: shifted, characterArcs, estimatedEpisodes: shifted.length };
-  await store.saveArcPlan(workId, next);
+  const next = { ...plan, status: 'active', episodes: shifted, characterArcs, estimatedEpisodes: shifted.length };
+  delete next.completedAt;
   return next;
 }

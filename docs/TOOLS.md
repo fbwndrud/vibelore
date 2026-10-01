@@ -607,7 +607,9 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 
 ### `lore_refold`
 
-수정한 앞 화부터 이후 모든 델타를 다시 접어 StoryState와 엔티티 생명주기를 계산합니다.
+원장은 seed부터 모든 화의 델타를 다시 접어 StoryState와 엔티티 생명주기를 계산합니다.
+각 화에는 그 화 시점의 추적 설정(`trackingHistory`)을 적용합니다. `fromChapter`는
+재구성 범위를 보고하는 데만 쓰이며, 재생 시작점을 바꾸지 않습니다.
 
 | 필수 | 선택 |
 |---|---|
