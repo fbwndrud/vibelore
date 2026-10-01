@@ -40,3 +40,20 @@ artifacts whose source or redistribution rights are unknown.
 
 The maintainer reviews changes before merging. Keep PRs small enough to review,
 and explain any compatibility or recovery-format changes.
+
+## Release conventions
+
+- Use `vibelore <version>` for every GitHub release title, for example `vibelore 0.4.8`.
+- Use `v<version>` for its Git tag, for example `v0.4.8`, targeting the verified release commit.
+- Write release notes in English, even when the source changelog entry is in Korean.
+  Preserve code identifiers and quoted language examples as written.
+- Mark the newest stable published version as GitHub's `Latest`; do not make a backfilled older release latest.
+- A release includes both npm publication and GitHub release publication. Verify the npm version,
+  `latest` dist-tag and package integrity, then verify the GitHub title, tag, notes and `Latest` marker.
+
+For example, publish prepared English notes with:
+
+```sh
+gh release create v0.4.8 --repo fbwndrud/vibelore --target <release-commit> \
+  --title "vibelore 0.4.8" --notes-file <english-release-notes> --latest
+```
