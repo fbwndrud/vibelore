@@ -1526,6 +1526,3351 @@
           "chosenAttempt": 1
         }
       ]
+    },
+    {
+      "chapter": 2,
+      "title": "바람길을 거슬러 오르는 화분",
+      "host": "Codex",
+      "model": "호스트 모델명 미기록",
+      "effort": "미기록",
+      "novelHost": "Antigravity CLI",
+      "novelModel": "gemini-3.8-flash-medium",
+      "sceneCount": 4,
+      "panelTotal": 32,
+      "passCount": 4,
+      "reviewer": {
+        "host": "Codex",
+        "model": "호스트 모델명 미기록"
+      },
+      "regen": {
+        "autoRevisionLimit": 2
+      },
+      "scenes": [
+        {
+          "id": "s1",
+          "n": 1,
+          "title": "통풍 길목의 까칠한 목격자",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep02-s1.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 1,
+          "pTo": 24,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "왼손에는 낡은 분무기를, 오른손에는 피로회복제만 한 크기의 초록색 식물 영양제 앰플을 바짝 움켜쥐었다. 슬리퍼 바닥이 차가운 시멘트 바닥을 찰싹 때리는 소리가 행여나 고요한 복도에 울려 퍼질까 봐 발뒤꿈치를 한껏 치켜들고 살금살금 계단을 밟았다. 퇴근하고 돌아와 양말조차 제대로 벗지 못한 발가락 끝으로 야간 복도의 서늘한 냉기가 파고들었다."
+            },
+            {
+              "text": "2층 내 방 201호 앞을 벗어나 3층으로 꺾어지는 완만한 층계참에 다다랐을 때, 계단 구석진 모서리에서 휴대폰 불빛을 받아 하얗게 반짝이는 알갱이들이 눈에 들어왔다."
+            },
+            {
+              "text": "숨을 들이켜며 무릎을 굽히고 바닥을 살폈다. 흙탕물이 말라붙은 단순한 먼지 자국이 아니었다. 지난 주말, 제발 이번 화분만은 죽이지 말아 달라고 화원 사장님에게 매달려 배수를 위해 흙 속에 넉넉히 섞어 넣었던 굵직한 마사토 알갱이와 하얀 펄라이트 부스러기였다. 거칠고 모난 황토색 돌조각들이 계단 구석의 걸레받이를 따라 징검다리처럼 듬성듬성 떨어져 있었다."
+            },
+            {
+              "text": "그뿐만이 아니었다. 회색 페인트가 희끗희끗 벗겨진 벽면 아래쪽에는 거칠고 투박한 붉은 토분 밑바닥이 모서리를 긁고 지나가며 남긴 붉은색 궤적이 가느다란 선을 그리며 비스듬히 위쪽을 향해 뻗어 있었다."
+            },
+            {
+              "text": "'진짜로…… 진짜로 혼자서 여길 기어 올라갔단 말이야?'"
+            },
+            {
+              "text": "손가락 끝으로 벽면에 남은 붉은 가루를 가만히 쓸어내렸다. 손끝에 닿는 까슬까슬하고 메마른 흙의 감촉에 목구멍이 턱 막혀왔다. 그 조막만 한 연둣빛 다육이가 대체 어디서 그런 힘이 솟아나 무거운 흙과 화분을 통째로 끌어당기며 이 가파른 시멘트 계단을 올랐단 말인가."
+            },
+            {
+              "text": "눈앞에 텅 빈 채 덩그러니 남겨져 있던 내 방 책상 위의 빈 토분 자리가 아른거렸다. 자취를 시작한 뒤로 내 손을 거쳐 간 무수한 초록 생명들이 떠올랐다. 물을 너무 많이 줘서 노랗게 짓물러 썩어버렸던 다육이, 해가 들지 않는 방구석에 처박아두었다가 바짝 말려 죽였던 로즈메리, 통풍이 안 돼 곰팡이가 슬어버렸던 아이비까지. 식물이 죽어 나갈 때마다 나는 내 썩은 손을 탓하며 방문을 닫아걸고 이불 속으로 도망쳤었다. 죄책감과 무력감에 짓눌려 텅 빈 화분조차 분리수거장에 내놓지 못하고 베란다 구석에 쌓아두기만 했던 날들이었다."
+            },
+            {
+              "text": "하지만 동글이는 달랐다. 녀석은 내 무신경한 과잉보호 속에서 묵묵히 썩어가는 길을 택하는 대신, 살기 위해 제 힘으로 뿌리를 털고 화분을 박차고 나갔다. 그 무거운 흙을 짊어지고 스스로 햇빛을 찾아 나선 것이다."
+            },
+            {
+              "text": "가슴을 후벼 파는 미안함과 안도감이 뒤섞여 눈시울이 시큰거렸다. 감상에 젖어 고개를 떨구려던 바로 그 순간이었다."
+            },
+            {
+              "text": "\"거기 인간, 엉덩이 좀 치우지? 남의 집 앞 야간 통풍 길목을 떡하니 막고 서서 뭐 하는 짓이야?\""
+            },
+            {
+              "text": "어둠이 깔린 층계참 허공에서 칼날을 긁는 듯 빳빳하고 건조한 목소리가 툭 튀어나왔다."
+            },
+            {
+              "text": "\"으악!\""
+            },
+            {
+              "text": "화들짝 놀란 내가 엉덩방아를 찧으며 휴대폰 불빛을 위로 쳐들었다."
+            },
+            {
+              "text": "불빛이 닿은 곳은 3층 복도로 꺾어지는 층계참의 낡은 알루미늄 미닫이창틀이었다. 손바닥 두 개 너비만큼 비스듬히 열린 창문 틈새, 서늘한 밤공기가 밀려 들어오는 창턱 위에 짙은 남색 사각 도자기 화분 하나가 묵직하게 자리를 잡고 있었다. 화분 안에는 어른 손바닥만 한 굵기의 호랑이 꼬리 같은 얼룩무늬 잎사귀 서너 장이 허공을 향해 칼날처럼 꼿꼿하게 솟아 있었다."
+            },
+            {
+              "text": "어둠 속에서도 잎 가장자리의 샛노란 테두리가 밤바람을 맞으며 서슬 퍼렇게 팽팽한 긴장감을 뿜어내고 있었다."
+            },
+            {
+              "text": "\"……산세베리아?\""
+            },
+            {
+              "text": "내 멍청한 중얼거림에 꼿꼿한 잎사귀 하나가 귀찮다는 듯 삐딱하게 흔들렸다."
+            },
+            {
+              "text": "\"산세베리아 '님'이라고 불러라, 예의 없는 인간아. 낮 동안 어두컴컴한 신발장 옆에 처박혀서 숨도 못 쉬다가, 야간 환기 타임 맞춰서 겨우 창틀 틈새로 바람 쐬러 나왔더니 웬 덩치 큰 인간이 시커먼 엉덩이로 공기를 다 가로막고 난리람. 흙 마르는 소리 안 들려?\""
+            },
+            {
+              "text": "잎끝이 파르르 떨리며 메마른 화분 흙 표면에서 바스락거리는 마찰음이 일었다. 톡 쏘아붙이는 까칠한 말투가 영락없이 우리 방의 바질 선생과 같은 과였다. 나는 반사적으로 무릎을 꿇고 엉거주춤 뒤로 물러서며 헝클어진 목덜미를 긁적였다."
+            },
+            {
+              "text": "\"아, 죄송합니다. 일부러 가로막으려던 건 아니고요…… 혹시 방금 이 창문 틈으로 지나간 조그만 화분 하나 못 보셨습니까? 분홍빛 도는 통통한 잎을 가진 꼬맹이 다육이인데요.\""
+            },
+            {
+              "text": "내 질문에 산세베리아의 잎사귀가 가소롭다는 듯 허공을 툭 쳤다."
+            },
+            {
+              "text": "\"봤지. 붉은 점토 화분에 흙을 잔뜩 쑤셔 넣고 끙끙거리며 배수관을 기어오르던 그 무대뽀 꼬맹이 녀석 말이잖아?\"\n\"네! 맞아요! 걔 지금 어디 있어요? 아직 무사해요?\"\n\"무사는 무슨. 배수관 이음매를 넘다가 흙 무게를 못 이겨서 아래로 굴러떨어질 뻔했지. 꼴을 보아하니 밑바닥에 물 빠짐 구멍도 제대로 안 뚫린 싸구려 토분에 끈적끈적한 상토만 잔뜩 쑤셔 박아놨더만. 물은 또 들이부었는지 흙탕물이 질척거려서 뿌리가 숨도 못 쉬고 썩기 직전이었어. 도대체 어떤 얼간이가 식물을 그딴 식으로 키운대? 나라면 가출이 아니라 야반도주를 진작에 감행했겠다.\""
+            },
+            {
+              "text": "뼈를 때리는 직격타에 심장이 욱신거렸다. 화분 아래 물받침에 고인 물을 제때 비워주지 않고, 예쁘다는 이유로 배수 구멍이 바늘구멍만 한 화분을 골랐던 지난날의 내으쓱거림이 떠올라 얼굴이 화끈거렸다."
+            },
+            {
+              "text": "\"그, 그건 제가 초보라…… 물을 너무 안 주면 말라죽을까 봐 걱정돼서 그런 거지, 괴롭히려고 그런 건 아닙니다…….\"\n\"인간들 변명은 늘 똑같아. 지들 불안을 달래려고 사랑이라는 이름으로 물을 들이붓지. 뿌리가 물속에서 질식해 비명을 지르는 건 보지도 않으면서.\""
+            }
+          ],
+          "timings": {
+            "imageCalls": 2,
+            "imageS": 79.9,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 7,
+          "textsTotal": 7,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "가방은 앞 장면의 디자인을 이어 쓰지만, 원문에는 가방을 챙겨 올라가는 행동이 없습니다.",
+              "en": "The satchel repeats the preceding approved image although carrying it upstairs is not narrated in the novel.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:c42639ee9c8241181e7540419fd888c83fea2c76837f722d22833f7665cefed1",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Compared with preceding image: same wavy brown hair, white rolled shirt, charcoal trousers, striped slippers and small shoulder satchel."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "Night stairwell continues from the prior final panel. A new navy snake plant is established on the landing sill and remains there throughout this page."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "Previous climbing pose leads to the stair landing. A red scrape and soil grains precede the snake plant voice, startle, kneeling inquiry and caustic answer."
+              }
+            },
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "진짜로…… 진짜로 혼자서 여길 기어 올라갔단 말이야?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 thought bubbles connect to Siu."
+              },
+              {
+                "id": "text-2",
+                "observedText": "거기 인간, 엉덩이 좀 치우지?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 4 tail connects to snake foliage."
+              },
+              {
+                "id": "text-3",
+                "observedText": "으악!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 balloon is beside the startled human."
+              },
+              {
+                "id": "text-4",
+                "observedText": "……산세베리아?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 upper balloon connects left to Siu."
+              },
+              {
+                "id": "text-5",
+                "observedText": "예의 없는 인간아.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 lower balloon points to the snake plant; this short unchanged source excerpt is fully legible."
+              },
+              {
+                "id": "text-6",
+                "observedText": "혹시 방금 이 창문 틈으로 지나간 조그만 화분 하나 못 보셨습니까?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 tail connects left to the kneeling human."
+              },
+              {
+                "id": "text-7",
+                "observedText": "나라면 가출이 아니라 야반도주를 진작에 감행했겠다.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 8 tail descends to the snake plant."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "evidence": "Actual revised image inspected: eight distinct panels in four paired rows. All seven Korean excerpts are readable and match the selected source, including the shortened honorific retort. The wind ribbon loops through gutters without obscuring words. Same-host review, not independent.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "The satchel repeats the preceding approved image although carrying it upstairs is not narrated in the novel."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Warm pastel Korean webtoon, rounded chibi acting, translucent mint wind ribbon threading gutters, clear upright Korean lettering, conventional top-to-bottom reading.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-2-p-1",
+                  "ch-2-p-2"
+                ],
+                "action": "Siu tiptoes onto the dim concrete landing with a clear sprayer and small green ampoule; mint airflow winds upward through the gutters.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-3",
+                  "ch-2-p-4",
+                  "ch-2-p-5"
+                ],
+                "action": "Ochre grains and a fine red scrape climb the worn wall; Siu touches the mark beside his lit phone.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-6",
+                  "ch-2-p-8",
+                  "ch-2-p-9"
+                ],
+                "action": "Siu pauses with damp eyes above the trail, shoulders small in the large stairwell.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-10",
+                  "ch-2-p-11"
+                ],
+                "action": "An upright snake leaf at the window directs a sharp complaint at Siu, whose backside crowds the draft.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-12",
+                  "ch-2-p-13"
+                ],
+                "action": "Siu lands on his backside, lifting his phone beam toward the window.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-14",
+                  "ch-2-p-15",
+                  "ch-2-p-16",
+                  "ch-2-p-18"
+                ],
+                "action": "The stern snake plant stands in its deep navy square pot on the sill while Siu stares upward.",
+                "textIds": [
+                  "text-4",
+                  "text-5"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-19",
+                  "ch-2-p-20"
+                ],
+                "action": "Siu kneels clear of the draft, politely questioning the planted witness.",
+                "textIds": [
+                  "text-6"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-22",
+                  "ch-2-p-23",
+                  "ch-2-p-24"
+                ],
+                "action": "The snake plant tilts one cutting leaf toward a sheepish Siu; the mint ribbon curls freely past his lowered head.",
+                "textIds": [
+                  "text-7"
+                ]
+              }
+            ],
+            "focusTextIds": [
+              "text-5"
+            ],
+            "corrections": [
+              "The snake plant speaks its short honorific retort clearly."
+            ]
+          },
+          "plan": {
+            "title": "통풍 길목의 까칠한 목격자",
+            "intent": "A tiny trail leads an earnest plant keeper into an absurd confrontation with a prickly witness. Let guilt become awkward courtesy and a visual butt-blocking-air joke.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-2-p-1",
+                  "ch-2-p-2",
+                  "ch-2-p-3",
+                  "ch-2-p-4",
+                  "ch-2-p-5",
+                  "ch-2-p-6",
+                  "ch-2-p-8",
+                  "ch-2-p-9"
+                ],
+                "statement": "Siu discovers the soil trail and worries about his runaway plant."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-2-p-10",
+                  "ch-2-p-11",
+                  "ch-2-p-12",
+                  "ch-2-p-13",
+                  "ch-2-p-14",
+                  "ch-2-p-15",
+                  "ch-2-p-16",
+                  "ch-2-p-18"
+                ],
+                "statement": "An indignant snake plant objects to blocked ventilation and startles Siu into an apologetic crouch."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-2-p-19",
+                  "ch-2-p-20",
+                  "ch-2-p-22",
+                  "ch-2-p-23",
+                  "ch-2-p-24"
+                ],
+                "statement": "The snake plant confirms seeing the runaway and criticizes his heavy, poorly drained pot."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-2-p-1",
+                  "ch-2-p-2",
+                  "ch-2-p-3",
+                  "ch-2-p-4",
+                  "ch-2-p-5",
+                  "ch-2-p-6",
+                  "ch-2-p-8",
+                  "ch-2-p-9"
+                ],
+                "action": "Siu discovers the soil trail and worries about his runaway plant.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-2-p-10",
+                  "ch-2-p-11",
+                  "ch-2-p-12",
+                  "ch-2-p-13",
+                  "ch-2-p-14",
+                  "ch-2-p-15",
+                  "ch-2-p-16",
+                  "ch-2-p-18"
+                ],
+                "action": "An indignant snake plant objects to blocked ventilation and startles Siu into an apologetic crouch.",
+                "textIds": [
+                  "text-2",
+                  "text-3",
+                  "text-4",
+                  "text-5"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-2-p-19",
+                  "ch-2-p-20",
+                  "ch-2-p-22",
+                  "ch-2-p-23",
+                  "ch-2-p-24"
+                ],
+                "action": "The snake plant confirms seeing the runaway and criticizes his heavy, poorly drained pot.",
+                "textIds": [
+                  "text-6",
+                  "text-7"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-2-p-5",
+                "speaker": "c1",
+                "kind": "thought",
+                "text": "진짜로…… 진짜로 혼자서 여길 기어 올라갔단 말이야?"
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-2-p-10",
+                "speaker": "snake-plant",
+                "kind": "dialogue",
+                "text": "거기 인간, 엉덩이 좀 치우지?"
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-2-p-12",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "으악!"
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-2-p-16",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "……산세베리아?"
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-2-p-18",
+                "speaker": "snake-plant",
+                "kind": "dialogue",
+                "text": "예의 없는 인간아."
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-2-p-20",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "혹시 방금 이 창문 틈으로 지나간 조그만 화분 하나 못 보셨습니까?"
+              },
+              {
+                "id": "text-7",
+                "sourceId": "ch-2-p-22",
+                "speaker": "snake-plant",
+                "kind": "dialogue",
+                "text": "나라면 가출이 아니라 야반도주를 진작에 감행했겠다."
+              }
+            ],
+            "staging": "Night concrete stair landing, open aluminum window above the landing; the navy snake-plant pot stays on the sill. Siu has a water sprayer and green glass ampoule, striped slippers and his established white shirt and dark trousers. His phone may rest lit on a tread during kneeling. Mint airflow is editorial, while soil and red scrape marks are physical.",
+            "uncertainties": [
+              "The first chapter leaves an empty pink pot while later chapters describe the carried brown pot; retain the current excerpt without reconstructing its unexplained earlier transfer.",
+              "The source has a contradictory later sweatpants mention; maintain the established continuous-night white shirt and charcoal trousers.",
+              "Mint wind ribbons, leaf-shaped borders and concentric gutters are editorial graphics, not extra physical objects or new world mechanics."
+            ]
+          },
+          "promptFile": "prompts/ep02-scene-01-r2.txt",
+          "attemptTotal": 2,
+          "chosenAttempt": 2,
+          "attempts": [
+            {
+              "n": 1,
+              "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep02-s1-r1.webp",
+              "findings": [
+                {
+                  "severity": "blocking",
+                  "ko": "산세베리아의 말풍선에서 원문의 작은따옴표가 곡선 따옴표로 바뀌었습니다. 짧은 원문 발췌로 다시 그렸습니다.",
+                  "en": "text-5 has curly interior quotes around the honorific while its selected source uses straight apostrophes. Retain exact source lettering or select a shorter unchanged source excerpt.",
+                  "layerLabel": "시각 검토"
+                },
+                {
+                  "severity": "advisory",
+                  "ko": "앞 그림의 가방이 이어지지만 원문에는 위층으로 들고 가는 행동이 없습니다.",
+                  "en": "The satchel continues a prior-image extra prop although the novel does not narrate carrying it upstairs.",
+                  "layerLabel": "시각 검토"
+                },
+                {
+                  "severity": "advisory",
+                  "ko": "놀라는 소리를 듣기 전부터 앉은 자세가 들어갔습니다.",
+                  "en": "Panel 3 shows Siu seated before the startling voice. It adds an early rest pose but the later startle and kneeling inquiry are preserved.",
+                  "layerLabel": "시각 검토"
+                },
+                {
+                  "severity": "advisory",
+                  "ko": "흙 알갱이 일부가 작은 발바닥 자국처럼 보입니다.",
+                  "en": "Some soil clusters resemble tiny paw marks, echoing the preceding image, while the red scrape and mineral grains remain visible.",
+                  "layerLabel": "시각 검토"
+                }
+              ],
+              "plannedPanels": 8,
+              "observedPanels": 8,
+              "textsOk": 6,
+              "textsTotal": 7
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "n": 2,
+          "title": "식물들의 비밀 고속도로",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep02-s2.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 25,
+          "pTo": 38,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "산세베리아가 매몰차게 잎을 털어내며 팩트를 꽂아 넣자 나는 쥐구멍이라도 찾고 싶은 심정이 되어 입을 꾹 다물었다. 손에 쥔 분무기 손잡이가 땀으로 끈적하게 젖어 들었다."
+            },
+            {
+              "text": "\"……그래서 걔는 어떻게 됐습니까? 아래 주차장으로 떨어진 건 아니죠?\"\n\"떨어지긴 왜 떨어져. 그 꼬맹이가 너보다 백배는 똑똑하더군. 2층 외벽 난간 모서리에서 쩔쩔매더니, 기가 막히게 '바람길'을 찾아내서 올라탔거든.\"\n\"바람길이요?\""
+            },
+            {
+              "text": "처음 듣는 단어에 내가 되묻자, 산세베리아가 한심하다는 듯 잎을 흔들며 쯧쯧 소리를 냈다."
+            },
+            {
+              "text": "\"식물들이 이동할 때 공짜로 타는 도심의 공기 통로 말이다. 멍청한 인간들은 바람이 그냥 제멋대로 분다고 생각하지만, 도심 빌라촌에는 낮 동안 달궈진 시멘트와 아스팔트 열기가 식으면서 좁은 건물 틈새와 계단 창문 사이로 찬 공기가 아래에서 위로 거세게 빨려 올라가는 상승 기류가 생기거든. 굴뚝처럼 위로 솟구치는 그 공기 흐름을 우리는 '바람길'이라고 부르지. 그 길을 타면 축축한 흙의 습기도 순식간에 날아가고, 무엇보다 상승 기류가 화분 밑바닥을 밀어 올려줘서 무게가 절반 이하로 가벼워지거든. 우리한테는 도심 속 비밀 고속도로인 셈이야.\""
+            },
+            {
+              "text": "바람길. 머릿속에서 번쩍 불이 켜지는 기분이었다."
+            },
+            {
+              "text": "동글이가 왜 굳이 캄캄한 복도 한가운데를 가로지르지 않고, 차가운 외벽 배수관과 층계참의 좁은 창틀 틈새만을 집요하게 파고들었는지 비로소 퍼즐이 맞추어졌다. 녀석은 햇빛을 잃고 썩어가던 몸을 이끌고, 본능적으로 공기가 가장 빠르고 힘차게 위로 치솟는 상승 통로를 찾아내 제 몸을 실었던 것이다. 무거운 토분을 끌어올리기 위한 유일한 생존의 비행길이었다."
+            },
+            {
+              "text": "\"그럼 그 바람길을 타고…… 위로 올라갔단 말인가요?\"\n\"당연하지. 이 낡은 빌라에서 바람길이 최종적으로 모여서 하늘로 터져 나가는 자리가 어디겠어? 사방이 뻥 뚫리고 하루 종일 햇빛이 쏟아지는 꼭대기, 옥상밖에 더 있나? 옥상 빗물받이 배수관 출구 쪽으로 바람을 타고 쏙 빠져나가더군. 그 꼬맹이, 지금쯤 옥상 자치 정원의 따뜻한 햇빛 명당에 자리 잡고 누워서 기지개나 켜고 있을걸.\""
+            },
+            {
+              "text": "산세베리아의 단호한 증언에 옥상이라는 목적지가 확고한 현실로 다가왔다. 하지만 안도감도 잠시, 서늘한 불안이 다시금 등줄기를 타고 기어올랐다."
+            },
+            {
+              "text": "옥상은 뻥 뚫린 허공이다. 해가 진 뒤의 도심 빌라 옥상은 칼바람이 몰아치는 벌판이나 다름없다. 얇은 플라스틱 창틀 틈새로 부는 바람만 해도 이렇게 손끝이 시린데, 맨몸으로 옥상의 겨울 밤바람을 맞고 있다면 아무리 씩씩한 다육이라도 밤새 얼어 터져 짓무르고 말 것이다."
+            },
+            {
+              "text": "\"감사합니다, 산세베리아님! 정말 감사합니다!\""
+            },
+            {
+              "text": "나는 허겁지겁 고개를 숙이며 4층 계단을 향해 몸을 돌렸다. 한시라도 빨리 옥상으로 올라가 녀석을 품에 넣고 따뜻한 집으로 데려와야 했다."
+            },
+            {
+              "text": "하지만 내가 계단 첫 단을 딛고 발을 떼려던 바로 그 순간이었다."
+            },
+            {
+              "text": "철컥!"
+            },
+            {
+              "text": "적막을 찢는 날카로운 금속음과 함께, 바로 뒤편 301호의 현관 도어록이 요란한 전자 비프음을 울리며 잠금을 풀었다."
+            }
+          ],
+          "timings": {
+            "imageCalls": 1,
+            "imageS": 39.5,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 9,
+          "textsTotal": 9,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "마지막 도어록은 바깥 손잡이와 흰 소매로 표현되어 문을 여는 주체가 잠시 모호합니다. 다음 장면에서 301호 이웃이 나옵니다.",
+              "en": "The lock close-up uses an exterior handle and an anonymous white sleeve. It compresses the offscreen unlocking mechanism; the next scene must establish the neighbor as the person emerging.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "깊이 인사하는 동안 분무기와 앰플을 바닥에 내려놓았습니다. 원문에 없는 작은 동작입니다.",
+              "en": "The intact ampoule and sprayer are briefly set down during the deep bow; the source does not describe this small staging step.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:b5043d96b3254a617a16cff8381623eee8648ed2a1677c7eaa81ed8823177678",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Same wavy-haired Siu, rolled white shirt, charcoal trousers, striped slippers; snake plant stays yellow-edged in its navy pot."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "Same dark concrete landing and aluminum sill; route vistas are visibly broad editorial cutaways returning to the sill."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "Prior inquiry continues to witness testimony, relief and thanks, followed by the interrupted departure at the door lock."
+              }
+            },
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "……그래서 걔는 어떻게 됐습니까?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 1 balloon points to Siu."
+              },
+              {
+                "id": "text-2",
+                "observedText": "기가 막히게 '바람길'을 찾아내서 올라탔거든.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 upper balloon points to the snake plant."
+              },
+              {
+                "id": "text-3",
+                "observedText": "바람길이요?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 lower balloon tail points toward Siu."
+              },
+              {
+                "id": "text-4",
+                "observedText": "식물들이 이동할 때 공짜로 타는 도심의 공기 통로 말이다.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 3 is the snake plant narrated route vista."
+              },
+              {
+                "id": "text-5",
+                "observedText": "우리한테는 도심 속 비밀 고속도로인 셈이야.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 4 right balloon is over the snake plant."
+              },
+              {
+                "id": "text-6",
+                "observedText": "그럼 그 바람길을 타고…… 위로 올라갔단 말인가요?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 Siu looks upstairs."
+              },
+              {
+                "id": "text-7",
+                "observedText": "옥상밖에 더 있나?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 continues the witness narration over the roof."
+              },
+              {
+                "id": "text-8",
+                "observedText": "감사합니다, 산세베리아님! 정말 감사합니다!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 Siu bows beneath the balloon."
+              },
+              {
+                "id": "text-9",
+                "observedText": "철컥!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 8 clear hand-lettered lock sound."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "evidence": "Inspected actual image: two paired opening panels, two full-width explanatory panels, and four final panels make eight. Nine original strings read correctly, including straight apostrophes. Mint ribbon connects city and stairs; final lock interrupts the flow. Same-host review, not an independent assessment.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "The lock close-up uses an exterior handle and an anonymous white sleeve. It compresses the offscreen unlocking mechanism; the next scene must establish the neighbor as the person emerging."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "The intact ampoule and sprayer are briefly set down during the deep bow; the source does not describe this small staging step."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Warm pastel Korean webtoon, rounded chibi acting, translucent mint wind ribbon threading gutters, clear upright Korean lettering, conventional top-to-bottom reading.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-2-p-25",
+                  "ch-2-p-26"
+                ],
+                "action": "Siu grips the sprayer with anxious knuckles and waits beneath the window sill.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-26",
+                  "ch-2-p-27"
+                ],
+                "action": "The snake plant flicks a pointed leaf toward a mint airflow ribbon curling upward.",
+                "textIds": [
+                  "text-2",
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-28"
+                ],
+                "action": "An editorial night-building vista shows one translucent air ribbon rising through narrow walls and landing windows; its curve connects the gutters.",
+                "textIds": [
+                  "text-4"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-28",
+                  "ch-2-p-29"
+                ],
+                "action": "Siu catches the explanation, eyes bright; a mint spiral makes his revelation feel lightly buoyant.",
+                "textIds": [
+                  "text-5"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-30",
+                  "ch-2-p-31"
+                ],
+                "action": "Siu points his gaze up the final flight while the air ribbon guides the same direction.",
+                "textIds": [
+                  "text-6"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-31",
+                  "ch-2-p-32",
+                  "ch-2-p-33"
+                ],
+                "action": "The roof silhouette crowns the flowing editorial vista; cold night stars frame its exposed edge.",
+                "textIds": [
+                  "text-7"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-34",
+                  "ch-2-p-35",
+                  "ch-2-p-36"
+                ],
+                "action": "Siu bows to the snake plant beside the sill, with the first upstairs tread ahead.",
+                "textIds": [
+                  "text-8"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-37",
+                  "ch-2-p-38"
+                ],
+                "action": "A tight rectangular interruption shows the landing door lock releasing behind Siu; the flowing mint gutter ends abruptly.",
+                "textIds": [
+                  "text-9"
+                ]
+              }
+            ]
+          },
+          "plan": {
+            "title": "식물들의 비밀 고속도로",
+            "intent": "Turn the secret wind road into a tangible visual reading path, then snap its flowing rhythm with a door-lock sound. Preserve the eyewitness explanation as testimony.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-2-p-25",
+                  "ch-2-p-26",
+                  "ch-2-p-27"
+                ],
+                "statement": "Siu learns Donggeuri survived by finding the wind road."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-2-p-28",
+                  "ch-2-p-29",
+                  "ch-2-p-30",
+                  "ch-2-p-31",
+                  "ch-2-p-32",
+                  "ch-2-p-33"
+                ],
+                "statement": "The snake plant explains the rising air route and roof destination."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-2-p-34",
+                  "ch-2-p-35",
+                  "ch-2-p-36",
+                  "ch-2-p-37",
+                  "ch-2-p-38"
+                ],
+                "statement": "Relieved Siu turns upstairs, interrupted by the neighbor unlocking his door."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-2-p-25",
+                  "ch-2-p-26",
+                  "ch-2-p-27"
+                ],
+                "action": "Siu learns Donggeuri survived by finding the wind road.",
+                "textIds": [
+                  "text-1",
+                  "text-2",
+                  "text-3"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-2-p-28",
+                  "ch-2-p-29",
+                  "ch-2-p-30",
+                  "ch-2-p-31",
+                  "ch-2-p-32",
+                  "ch-2-p-33"
+                ],
+                "action": "The snake plant explains the rising air route and roof destination.",
+                "textIds": [
+                  "text-4",
+                  "text-5",
+                  "text-6",
+                  "text-7"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-2-p-34",
+                  "ch-2-p-35",
+                  "ch-2-p-36",
+                  "ch-2-p-37",
+                  "ch-2-p-38"
+                ],
+                "action": "Relieved Siu turns upstairs, interrupted by the neighbor unlocking his door.",
+                "textIds": [
+                  "text-8",
+                  "text-9"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-2-p-26",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "……그래서 걔는 어떻게 됐습니까?"
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-2-p-26",
+                "speaker": "snake-plant",
+                "kind": "dialogue",
+                "text": "기가 막히게 '바람길'을 찾아내서 올라탔거든."
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-2-p-26",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "바람길이요?"
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-2-p-28",
+                "speaker": "snake-plant",
+                "kind": "dialogue",
+                "text": "식물들이 이동할 때 공짜로 타는 도심의 공기 통로 말이다."
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-2-p-28",
+                "speaker": "snake-plant",
+                "kind": "dialogue",
+                "text": "우리한테는 도심 속 비밀 고속도로인 셈이야."
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-2-p-31",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "그럼 그 바람길을 타고…… 위로 올라갔단 말인가요?"
+              },
+              {
+                "id": "text-7",
+                "sourceId": "ch-2-p-31",
+                "speaker": "snake-plant",
+                "kind": "dialogue",
+                "text": "옥상밖에 더 있나?"
+              },
+              {
+                "id": "text-8",
+                "sourceId": "ch-2-p-34",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "감사합니다, 산세베리아님! 정말 감사합니다!"
+              },
+              {
+                "id": "text-9",
+                "sourceId": "ch-2-p-37",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "철컥!"
+              }
+            ],
+            "staging": "Continue at the same night landing; snake plant remains on the sill and Siu holds the sprayer and intact ampoule. Airflow ribbon in gutters follows the described building gaps toward the roof. Any route vista is explanatory imagery, not a new present-day event or a scientific claim.",
+            "uncertainties": [
+              "The first chapter leaves an empty pink pot while later chapters describe the carried brown pot; retain the current excerpt without reconstructing its unexplained earlier transfer.",
+              "The source has a contradictory later sweatpants mention; maintain the established continuous-night white shirt and charcoal trousers.",
+              "Mint wind ribbons, leaf-shaped borders and concentric gutters are editorial graphics, not extra physical objects or new world mechanics."
+            ]
+          },
+          "promptFile": "prompts/ep02-scene-02-r1.txt",
+          "attemptTotal": 1,
+          "chosenAttempt": 1
+        },
+        {
+          "id": "s3",
+          "n": 3,
+          "title": "가출 신고보다 수상한 집사",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep02-s3.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 39,
+          "pTo": 69,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "동시에 계단 천장에 매달려 있던 백열등 센서등이 '탁' 하는 소리와 함께 샛노란 불빛을 뿜어내며 복도 전체를 대낮처럼 환하게 밝혔다."
+            },
+            {
+              "text": "\"히익!\""
+            },
+            {
+              "text": "갑작스러운 눈부심에 반사적으로 고개를 홱 돌렸다. 301호 철문이 삐걱거리며 열리더니, 무릎이 튀어나온 회색 트레이닝 바지에 두툼한 검은색 패딩 조끼를 걸친 콧수염 난 중년 남성이 파란색 재활용 플라스틱 바구니를 든 채 복도로 걸어 나왔다."
+            },
+            {
+              "text": "그리고 남자의 시선이, 계단 창틀 앞에 엉거주춤 쪼그려 앉아 있던 내 몰골에 정면으로 내리꽂혔다."
+            },
+            {
+              "text": "시간이 그대로 멈춰버린 것만 같았다."
+            },
+            {
+              "text": "한밤중에 늘어난 추리닝 바지에 삼선 슬리퍼를 질질 끌고 남의 집 문간 층계참에 웅크리고 있던 수상한 사내. 헝클어진 머리칼에 양손에는 정체불명의 분무기와 초록색 액체가 찰랑거리는 유리 앰플을 꽉 쥐고, 남의 집 창틀 화분을 향해 비정상적으로 얼굴을 바짝 들이밀고 있던 모양새. 누가 보더라도 변명의 여지가 없는 완벽한 침입자이자 화분 도둑의 꼴이었다."
+            },
+            {
+              "text": "남자의 미간이 험악하게 일그러지더니 들고 있던 재활용 바구니를 가슴팍으로 바짝 끌어당겼다. 그의 눈빛에 번뜩이는 경계심과 의구심이 역력했다."
+            },
+            {
+              "text": "\"……저기요, 총각. 지금 남의 집 문 앞에서 뭐 하는 겁니까?\""
+            },
+            {
+              "text": "얼음장처럼 차가운 목소리가 좁은 복도를 무겁게 울렸다."
+            },
+            {
+              "text": "\"아, 저, 그게 아니라요……!\""
+            },
+            {
+              "text": "숨이 턱 막히며 머릿속이 새하얘졌다. 극도의 당혹감과 압박감이 밀려오자 내 고질적인 방어기제가 튀어나왔다. 말이 빨라지며 상황의 인과관계를 억울하게 주저리주저리 늘어놓기 시작한 것이다."
+            },
+            {
+              "text": "\"오해십니다! 저 201호 사는 사람인데요! 진짜로 도둑이 아니고요, 제가 키우던 다육이 화분이 낮에 집을 나가서요! 배수관을 타고 옥상으로 기어 올라갔다길래 그 흔적을 쫓아서 계단을 살피고 있던 중이었습니다! 진짜예요!\"\n\"뭐요? 화분이…… 집을 나가요?\""
+            },
+            {
+              "text": "남자의 얼굴에 '이 인간이 지금 나를 놀리나' 하는 분노와 기막힘이 번갈아 스쳐 지나갔다. 남자는 기가 찬다는 듯 헛웃음을 터뜨리며 주머니에서 스마트폰을 꺼내 들었다."
+            },
+            {
+              "text": "\"이 양반이 야밤에 남의 집 창틀 기웃거리다가 걸려놓고는 핑계를 대도 적당히 대야지! 식물이 발이 달려서 혼자 기어 올라갔다는 게 지금 제정신으로 하는 소립니까? 어이가 없네, 진짜.\"\n\"아니, 진짜라니까요! 여기 계단 모서리에 마사토 알갱이 떨어진 거랑 벽에 토분 긁힌 자국도 있고요! 여기 창틀에 있는 산세베리아가 바람길을 타고 옥상으로…….\"\n\"이 인간이 진짜 보자보자 하니까 남의 집 화분 이름까지 줄줄 외우고 있네? 아주 대놓고 훔쳐 가려고 작정을 하고 올라왔구만!\""
+            },
+            {
+              "text": "남자가 버럭 고함을 지르며 위협적으로 한 걸음 성큼 다가왔다."
+            },
+            {
+              "text": "\"당장 안 내려가요? 경찰 부르기 전에 좋은 말로 할 때 꺼져요! 남의 복도에서 분무기나 들고 헛소리 지껄이지 말고!\""
+            },
+            {
+              "text": "남자의 험상궂은 기세에 질겁한 내가 반사적으로 뒷걸음질을 쳤다. 하지만 발을 헛디뎠다. 슬리퍼 뒤축이 계단 모서리에 턱 걸리며 몸의 균형이 뒤로 사정없이 무너져 내렸다."
+            },
+            {
+              "text": "\"어, 어어?!\""
+            },
+            {
+              "text": "허공을 향해 허우적거리며 간신히 난간을 붙잡으려 팔을 휘두르는 순간, 식은땀으로 미끄러워진 오른손 손가락 사이에서 매끄러운 유리병 하나가 쏙 빠져나갔다."
+            },
+            {
+              "text": "\"안 돼……!\""
+            },
+            {
+              "text": "찰나의 순간, 슬로모션처럼 허공을 가르는 초록색 앰플이 시야에 박혔다."
+            },
+            {
+              "text": "쨍그랑——!"
+            },
+            {
+              "text": "날카롭고 찢어지는 파열음이 빌라 계단 벽을 타고 찌렁찌렁 울려 퍼졌다."
+            },
+            {
+              "text": "월급날 큰맘 먹고 식물 클리닉에서 사 왔던 내 비장의 무기, 오천 원짜리 식물 전용 고농축 비타민 영양제 앰플이었다. 가출한 동글이를 찾아내면 뿌리에 듬뿍 뿌려 기력을 되찾아주려 아껴두었던 그 귀한 유리병이 차가운 콘크리트 계단 모서리에 부딪혀 산산조각이 나버렸다."
+            },
+            {
+              "text": "선명한 형광빛이 감도는 짙은 초록색 액체가 사방으로 튀어 오르며 회색 계단 바닥을 흥건하게 적셨다. 코를 찌르는 강렬한 농축 해조류 냄새와 쌉싸름한 비료 냄새, 비릿한 화학 약품 냄새가 좁은 계단 통로를 순식간에 집어삼켰다. 튀어 오른 끈적한 액체 방울들이 내 맨발과 슬리퍼 코를 지저분하게 적셔 내렸다."
+            },
+            {
+              "text": "301호 남자는 바닥에 낭자하게 번진 초록색 액체와 흩뿌려진 유리 파편을 보더니, 질색하며 두 팔을 휘저었다."
+            },
+            {
+              "text": "\"아이구, 냄새 봐라! 진짜 가지가지 하네! 밤중에 남의 집 문 앞에서 유리병 깨먹고 이 무슨 해괴망측한 짓이야!\"\n\"죄, 죄송합니다! 정말 죄송합니다……!\"\n\"시끄러워요! 당장 그 파편 다 주워 담고 바닥 닦아놔요! 내일 아침까지 이 냄새 안 빠지기만 해봐, 반상회에 당장 올리고 관리실에 쫓아갈 테니까!\""
+            },
+            {
+              "text": "쾅——!"
+            },
+            {
+              "text": "남자는 재활용 바구니를 복도 구석에 아무렇게나 패대기치듯 내려놓고는 문을 부서져라 닫아걸었다. 육중한 철문이 닫히는 굉음이 계단 통로를 뒤흔들고 난 뒤, 복도에는 무거운 침묵과 지독한 비료 냄새만이 짓눌러왔다. 노란 센서등마저 내 비참한 꼴을 더는 못 봐주겠다는 듯 툭 하고 꺼져버렸다."
+            },
+            {
+              "text": "시커먼 어둠이 다시 내려앉았다."
+            },
+            {
+              "text": "나는 계단 바닥에 무릎을 꿇은 채 멍하니 주저앉아 있었다. 손가락 끝이 미세하게 떨려왔다. 깨져버린 영양제는 시멘트 틈새로 허망하게 스며들어가 바닥을 흉측한 얼룩으로 물들이고 있었다."
+            }
+          ],
+          "timings": {
+            "imageCalls": 1,
+            "imageS": 39.5,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 10,
+          "textsTotal": 10,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "위협 장면에서 먼저 앉은 자세로 바뀝니다. 원문은 선 채로 뒤로 균형을 잃지만 병이 떨어지고 깨지는 결과는 유지됩니다.",
+              "en": "Siu is already seated during the threat and drops the bottle from a low crouch; the source describes a backward loss of balance from standing. The loss and break remain unambiguous.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "정면 구도에서는 병을 왼손으로 든 듯 보입니다. 원문은 오른손에서 병이 빠졌다고 서술합니다.",
+              "en": "Front-view bottle handling appears left-handed before the fall, while the source specifies the right hand releasing it. This is a handedness detail, not a changed outcome.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "각진 구도로 바뀐 뒤에도 민트색 바람 리본이 남아 있습니다.",
+              "en": "The mint ribbon remains visible through the confrontation rather than stopping entirely at the rigid door framing.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:4495da93433ec21837a7257603c173f4701cc84f517186c559afd7ceb9b5c60f",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Siu and navy snake plant match prior image. The new gray-haired mustached neighbor matches the approved reference, black padded vest, gray pants and blue basket."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "Night landing door and stair treads continue. Yellow ceiling light brightens the confrontation, then goes dark in the final panel."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "The preceding unlocking is resolved by the neighbor at his own open door. Siu explains, neighbor threatens, bottle falls and breaks, cleanup is demanded, door closes."
+              }
+            },
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "……저기요, 총각. 지금 남의 집 문 앞에서 뭐 하는 겁니까?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 1 tail points to the mustached neighbor."
+              },
+              {
+                "id": "text-2",
+                "observedText": "제가 키우던 다육이 화분이 낮에 집을 나가서요!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 balloon belongs to Siu holding both bottles."
+              },
+              {
+                "id": "text-3",
+                "observedText": "뭐요? 화분이…… 집을 나가요?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 3 tail meets the neighbor."
+              },
+              {
+                "id": "text-4",
+                "observedText": "당장 안 내려가요? 경찰 부르기 전에 좋은 말로 할 때 꺼져요!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 4 tail points to the neighbor advancing."
+              },
+              {
+                "id": "text-5",
+                "observedText": "어, 어어?!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 upper balloon belongs to Siu."
+              },
+              {
+                "id": "text-6",
+                "observedText": "안 돼……!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 lower balloon belongs to Siu reaching."
+              },
+              {
+                "id": "text-7",
+                "observedText": "쨍그랑——!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 drawn impact lettering over broken glass."
+              },
+              {
+                "id": "text-8",
+                "observedText": "죄, 죄송합니다! 정말 죄송합니다……!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 left balloon belongs to bowing Siu."
+              },
+              {
+                "id": "text-9",
+                "observedText": "당장 그 파편 다 주워 담고 바닥 닦아놔요!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 right tail reaches neighbor."
+              },
+              {
+                "id": "text-10",
+                "observedText": "쾅——!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 8 large lettering over closed door."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "evidence": "Actual eight-panel image inspected. Ten source strings are clear; hand-drawn long dashes in the two sound effects retain their elongation. Intact bottle, falling bottle, shattered bottle and persistent green spill progress causally. Rectangular door framing and changing light support the embarrassment. Same-host review, not an independent assessment.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "Siu is already seated during the threat and drops the bottle from a low crouch; the source describes a backward loss of balance from standing. The loss and break remain unambiguous."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "Front-view bottle handling appears left-handed before the fall, while the source specifies the right hand releasing it. This is a handedness detail, not a changed outcome."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "The mint ribbon remains visible through the confrontation rather than stopping entirely at the rigid door framing."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Warm pastel Korean webtoon, rounded chibi acting, translucent mint wind ribbon threading gutters, clear upright Korean lettering, conventional top-to-bottom reading.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-2-p-39",
+                  "ch-2-p-40",
+                  "ch-2-p-41",
+                  "ch-2-p-42",
+                  "ch-2-p-46"
+                ],
+                "action": "The sensor light reveals the mustached neighbor in a black vest and gray sweatpants clutching a blue basket at his door.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-48",
+                  "ch-2-p-49",
+                  "ch-2-p-50"
+                ],
+                "action": "Siu freezes between his sprayer and ampoule, cheeks hot, blurting his explanation into a stiff door-shaped panel.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-50",
+                  "ch-2-p-51",
+                  "ch-2-p-52"
+                ],
+                "action": "The neighbor lifts his phone with a disbelieving mustached stare.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-53",
+                  "ch-2-p-54",
+                  "ch-2-p-55"
+                ],
+                "action": "The neighbor advances while Siu recoils at the tread edge; Siu still holds both bottles.",
+                "textIds": [
+                  "text-4"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-56",
+                  "ch-2-p-57",
+                  "ch-2-p-58",
+                  "ch-2-p-59"
+                ],
+                "action": "Siu teeters with an empty right hand; the small green ampoule hangs between his fingers and the concrete tread.",
+                "textIds": [
+                  "text-5",
+                  "text-6"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-60",
+                  "ch-2-p-61",
+                  "ch-2-p-62",
+                  "ch-2-p-63"
+                ],
+                "action": "The ampoule bursts against the tread in a vivid green splash and small glass fragments.",
+                "textIds": [
+                  "text-7"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-64",
+                  "ch-2-p-65"
+                ],
+                "action": "The neighbor recoils from the spill; Siu bows deeply with only his sprayer remaining.",
+                "textIds": [
+                  "text-8",
+                  "text-9"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-66",
+                  "ch-2-p-67",
+                  "ch-2-p-68",
+                  "ch-2-p-69"
+                ],
+                "action": "The shut door and extinguished sensor leave Siu slumped beside the green stain, blue basket parked by the wall.",
+                "textIds": [
+                  "text-10"
+                ]
+              }
+            ]
+          },
+          "plan": {
+            "title": "가출 신고보다 수상한 집사",
+            "intent": "Use rigid door-like framing and frozen embarrassing expressions to turn a sincere explanation into a suspicion spiral. The broken ampoule is the costly physical punchline.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-2-p-39",
+                  "ch-2-p-40",
+                  "ch-2-p-41",
+                  "ch-2-p-42",
+                  "ch-2-p-46",
+                  "ch-2-p-48",
+                  "ch-2-p-49",
+                  "ch-2-p-50",
+                  "ch-2-p-51",
+                  "ch-2-p-52"
+                ],
+                "statement": "The sensor-lit neighbor confronts Siu, who blurts out his runaway-plant story."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-2-p-53",
+                  "ch-2-p-54",
+                  "ch-2-p-55",
+                  "ch-2-p-56",
+                  "ch-2-p-57",
+                  "ch-2-p-58",
+                  "ch-2-p-59"
+                ],
+                "statement": "Disbelief escalates to an order to leave and Siu loses footing."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-2-p-60",
+                  "ch-2-p-61",
+                  "ch-2-p-62",
+                  "ch-2-p-63",
+                  "ch-2-p-64",
+                  "ch-2-p-65",
+                  "ch-2-p-66",
+                  "ch-2-p-67",
+                  "ch-2-p-68",
+                  "ch-2-p-69"
+                ],
+                "statement": "The ampoule shatters; the neighbor demands cleanup and slams his door, leaving Siu amid the spill."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-2-p-39",
+                  "ch-2-p-40",
+                  "ch-2-p-41",
+                  "ch-2-p-42",
+                  "ch-2-p-46",
+                  "ch-2-p-48",
+                  "ch-2-p-49",
+                  "ch-2-p-50",
+                  "ch-2-p-51",
+                  "ch-2-p-52"
+                ],
+                "action": "The sensor-lit neighbor confronts Siu, who blurts out his runaway-plant story.",
+                "textIds": [
+                  "text-1",
+                  "text-2",
+                  "text-3"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-2-p-53",
+                  "ch-2-p-54",
+                  "ch-2-p-55",
+                  "ch-2-p-56",
+                  "ch-2-p-57",
+                  "ch-2-p-58",
+                  "ch-2-p-59"
+                ],
+                "action": "Disbelief escalates to an order to leave and Siu loses footing.",
+                "textIds": [
+                  "text-4",
+                  "text-5",
+                  "text-6"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-2-p-60",
+                  "ch-2-p-61",
+                  "ch-2-p-62",
+                  "ch-2-p-63",
+                  "ch-2-p-64",
+                  "ch-2-p-65",
+                  "ch-2-p-66",
+                  "ch-2-p-67",
+                  "ch-2-p-68",
+                  "ch-2-p-69"
+                ],
+                "action": "The ampoule shatters; the neighbor demands cleanup and slams his door, leaving Siu amid the spill.",
+                "textIds": [
+                  "text-7",
+                  "text-8",
+                  "text-9",
+                  "text-10"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-2-p-46",
+                "speaker": "neighbor-301",
+                "kind": "dialogue",
+                "text": "……저기요, 총각. 지금 남의 집 문 앞에서 뭐 하는 겁니까?"
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-2-p-50",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "제가 키우던 다육이 화분이 낮에 집을 나가서요!"
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-2-p-50",
+                "speaker": "neighbor-301",
+                "kind": "dialogue",
+                "text": "뭐요? 화분이…… 집을 나가요?"
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-2-p-54",
+                "speaker": "neighbor-301",
+                "kind": "dialogue",
+                "text": "당장 안 내려가요? 경찰 부르기 전에 좋은 말로 할 때 꺼져요!"
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-2-p-56",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "어, 어어?!"
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-2-p-58",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "안 돼……!"
+              },
+              {
+                "id": "text-7",
+                "sourceId": "ch-2-p-60",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "쨍그랑——!"
+              },
+              {
+                "id": "text-8",
+                "sourceId": "ch-2-p-65",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "죄, 죄송합니다! 정말 죄송합니다……!"
+              },
+              {
+                "id": "text-9",
+                "sourceId": "ch-2-p-65",
+                "speaker": "neighbor-301",
+                "kind": "dialogue",
+                "text": "당장 그 파편 다 주워 담고 바닥 닦아놔요!"
+              },
+              {
+                "id": "text-10",
+                "sourceId": "ch-2-p-66",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "쾅——!"
+              }
+            ],
+            "staging": "Same landing: neighbor door behind Siu, snake plant on the window sill, stair edge below his slippers. Mustached neighbor wears black quilted vest and gray sweatpants, carries blue basket, then phone. Sprayer stays with Siu, ampoule drops onto concrete. Sensor light brightens confrontation, then switches off after door slam.",
+            "uncertainties": [
+              "The first chapter leaves an empty pink pot while later chapters describe the carried brown pot; retain the current excerpt without reconstructing its unexplained earlier transfer.",
+              "The source has a contradictory later sweatpants mention; maintain the established continuous-night white shirt and charcoal trousers.",
+              "Mint wind ribbons, leaf-shaped borders and concentric gutters are editorial graphics, not extra physical objects or new world mechanics."
+            ]
+          },
+          "promptFile": "prompts/ep02-scene-03-r1.txt",
+          "attemptTotal": 1,
+          "chosenAttempt": 1
+        },
+        {
+          "id": "s4",
+          "n": 4,
+          "title": "맹물 한 통으로 다시 위로",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep02-s4.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 70,
+          "pTo": 93,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "\"쯧쯧, 꼴좋다. 인간들이란 어째 저렇게 요란스럽고 둔해 빠졌는지.\""
+            },
+            {
+              "text": "창틀 구석에서 산세베리아가 혀를 차며 핀잔을 주었지만, 대꾸할 기운조차 나지 않았다."
+            },
+            {
+              "text": "목덜미가 화끈거리고 쥐구멍이라도 파고 들어가 숨고 싶었다. 도대체 내가 지금 뭘 하고 있는 건가. 피곤에 찌든 몸으로 퇴근해 밥도 못 먹고, 남의 집 문 앞에서 화분 도둑 취급을 당하며 욕을 바가지로 얻어먹고, 애지중지 아끼던 영양제까지 바닥에 다 깨먹었다."
+            },
+            {
+              "text": "'그냥…… 방으로 돌아갈까.'"
+            },
+            {
+              "text": "가슴 깊은 곳에서 나약한 도망의 유혹이 뱀처럼 고개를 쳐들었다. 201호로 내려가 방문을 닫아걸고, 따뜻한 이불 속에 파묻혀 오늘 밤의 이 끔찍한 수치심을 잊어버리고 싶었다. 늘 그래왔던 것처럼. 식물을 죽였을 때도, 두려운 현실을 마주했을 때도 나는 늘 그렇게 도망쳤었다."
+            },
+            {
+              "text": "하지만 바닥에 흩어진 깨진 유리 조각 사이로 비쳐 든 휴대폰 불빛을 보았을 때, 내 손톱 밑에 묻어 있던 까슬한 마사토의 감촉이 다시금 손가락 끝을 찔렀다."
+            },
+            {
+              "text": "동글이는 도망치지 않았다."
+            },
+            {
+              "text": "그 조그만 몸으로, 제 몸보다 무거운 흙을 짊어지고 살기 위해 외벽의 거친 바람길을 기어올랐다. 내 게으른 방임과 과잉보호 속에서 질식해 죽지 않으려고 그 험난한 사투를 벌인 것이다. 그런데 그 녀석의 집사라는 내가, 고작 이웃에게 욕 좀 먹고 영양제 하나 깨먹었다고 여기서 꽁무니를 뺀단 말인가?"
+            },
+            {
+              "text": "\"……안 돌아가.\""
+            },
+            {
+              "text": "이를 악물며 바지 주머니를 뒤졌다. 꼬깃꼬깃한 영수증 몇 장과 편의점 물티슈 한 팩이 잡혔다."
+            },
+            {
+              "text": "나는 조심스럽게 계단에 흩어진 날카로운 유리 파편들을 하나하나 그러모아 영수증 종이에 단단히 싸맸다. 손가락 끝에 닿는 유리 조각이 차갑고 아렸지만 멈추지 않았다. 파편을 주머니에 쑤셔 넣은 뒤, 물티슈를 여러 장 뽑아 바닥에 스며든 끈적한 초록색 영양제 얼룩을 벅벅 문질러 닦아냈다. 팔이 저릴 정도로 바닥을 닦아내자, 역한 냄새가 차가운 밤바람에 조금씩 흩어지기 시작했다."
+            },
+            {
+              "text": "남은 것은 왼손에 쥔 맹물이 든 분무기 하나뿐이었다."
+            },
+            {
+              "text": "비틀거리며 무릎을 펴고 일어났다. 바지춤에 묻은 먼지를 털어내고, 계단 위를 올려다보았다. 3층을 지나 4층으로 이어지는 마지막 계단은 어둠 속에 잠겨 있었지만, 더 이상 망설여지지 않았다."
+            },
+            {
+              "text": "타박, 타박."
+            },
+            {
+              "text": "슬리퍼를 끌며 한 걸음씩 계단을 딛고 올라갔다. 위로 오를수록 공기는 칼날처럼 매서워졌고, 귓전을 때리는 바람 소리가 웅웅거리며 거칠어졌다."
+            },
+            {
+              "text": "마침내 다다른 4층 계단의 끝."
+            },
+            {
+              "text": "옥상으로 통하는 낡고 육중한 초록색 철문이 가파른 계단 꼭대기를 가로막고 서 있었다. 페인트가 거북이 등껍질처럼 갈라진 철문 틈새로 옥상의 칼바람이 날카로운 휘파람 소리를 내며 새어 나오고 있었다."
+            },
+            {
+              "text": "그리고 그 차가운 철문 아래쪽, 좁은 문틈 사이로 푸르스름한 달빛 한 줄기가 계단 바닥을 길게 가르고 있었다."
+            },
+            {
+              "text": "그 희미한 달빛 한가운데, 눈을 의심케 하는 자국이 선명하게 찍혀 있었다."
+            },
+            {
+              "text": "손톱만 한 원형을 그리며 문지방 너머를 향해 굴러 들어간 바퀴 자국. 젖은 마사토와 붉은 배양토를 문턱에 묻히며 힘겹게 비집고 들어간 다육이의 작은 토분 궤적이었다."
+            },
+            {
+              "text": "녀석은 기어코 이 높은 옥상 문턱까지 도달한 것이다."
+            },
+            {
+              "text": "흙먼지 냄새 사이로, 문틈을 타고 서늘한 밤공기와 함께 물기 머금은 풋풋한 풀잎 향기와 은은한 퇴비 냄새가 물씬 풍겨왔다. 빌라 아래쪽의 삭막한 시멘트 냄새와는 완전히 다른, 생명이 숨 쉬고 있는 깊은 흙의 냄새였다."
+            },
+            {
+              "text": "하지만 내 앞을 가로막은 철문에는 손바닥만 한 쇠사슬과 녹슨 자물쇠가 굳게 채워져 있었다. 손잡이를 쥔 채 흔들어보았지만 덜컹거리는 둔탁한 쇠소리만 계단에 울릴 뿐이었다."
+            },
+            {
+              "text": "비싼 영양제는 깨져버렸고, 내 손에 남은 것은 맹물 분무기 한 통뿐이었다. 굳게 닫힌 이 철문 너머 비밀 정원에, 과연 나는 무사히 발을 들여놓을 수 있을까."
+            }
+          ],
+          "timings": {
+            "imageCalls": 2,
+            "imageS": 78.7,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 4,
+          "textsTotal": 4,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "안 돌아가겠다는 대사가 생각 말풍선으로 표현되어 말의 강도가 조금 부드러워졌습니다.",
+              "en": "The spoken decision not to return uses a thought-style bubble, softening its delivery without changing the words.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "파편을 모은 뒤 물티슈 아래에 작은 조각이 남아 보입니다. 청소 과정이 압축되었습니다.",
+              "en": "Small shard shapes still appear beneath the wipe after collection; cleanup is compressed rather than fully shown.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:f75f47f2f46487116a449fc14d64273aa8fd4c2b6ac7fa9a47f294f041295db7",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Siu retains hair, white shirt and dark trousers; snake plant retains navy pot and yellow-edged leaves."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "Panel 1 visibly supports the navy pot on the elevated aluminum sill above Siu; panel 7 threshold shows loose grains and red scrapes only. Final chained green door is unchanged."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "Broken glass leads to collecting shards and wiping the spill, then climbing to the chained green door."
+              }
+            },
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "쯧쯧, 꼴좋다. 인간들이란 어째 저렇게 요란스럽고 둔해 빠졌는지.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 1 tail leads to snake plant."
+              },
+              {
+                "id": "text-2",
+                "observedText": "그냥…… 방으로 돌아갈까.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 thought bubbles lead to Siu."
+              },
+              {
+                "id": "text-3",
+                "observedText": "……안 돌아가.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 3 thought-style balloon connects to Siu; the original words remain clear."
+              },
+              {
+                "id": "text-4",
+                "observedText": "타박, 타박.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 footstep lettering."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "evidence": "Inspected all eight revised panels against the preceding image. The two location defects are resolved: plant on elevated sill, empty threshold with traces. Four Korean excerpts match. Receipt collection, wiping, stairs and locked door proceed clearly. Same-host review, not an independent assessment.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "The spoken decision not to return uses a thought-style bubble, softening its delivery without changing the words."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "Small shard shapes still appear beneath the wipe after collection; cleanup is compressed rather than fully shown."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Warm pastel Korean webtoon, rounded chibi acting, translucent mint wind ribbon threading gutters, clear upright Korean lettering, conventional top-to-bottom reading.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-2-p-70",
+                  "ch-2-p-71",
+                  "ch-2-p-72"
+                ],
+                "action": "An elevated aluminum window sill visibly supports the navy snake pot above kneeling Siu and the dim floor spill; its leaves peer down.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-73",
+                  "ch-2-p-74"
+                ],
+                "action": "Siu sits small against the landing wall, looking down the staircase toward home.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-75",
+                  "ch-2-p-76",
+                  "ch-2-p-77",
+                  "ch-2-p-78"
+                ],
+                "action": "Soil on Siu's fingertips catches his phone light; his expression firms.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-79",
+                  "ch-2-p-80"
+                ],
+                "action": "A close view shows glass fragments already gathered on a creased receipt beside an open wet-wipe packet.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-80",
+                  "ch-2-p-81"
+                ],
+                "action": "Siu kneels over the green stain with a wet wipe; his clear sprayer rests within reach.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-82",
+                  "ch-2-p-83",
+                  "ch-2-p-84"
+                ],
+                "action": "Siu climbs with the sprayer, following the mint airflow ribbon that reappears between ascending moments.",
+                "textIds": [
+                  "text-4"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-85",
+                  "ch-2-p-86",
+                  "ch-2-p-87",
+                  "ch-2-p-88",
+                  "ch-2-p-89",
+                  "ch-2-p-90"
+                ],
+                "action": "Empty rooftop threshold close-up: moonlight under the worn green door crosses only loose soil grains and reddish scrape marks.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-2-p-91",
+                  "ch-2-p-92",
+                  "ch-2-p-93"
+                ],
+                "action": "Siu faces the chain and rusty padlock, holding his modest sprayer against the towering green door; the mint ribbon slips through its gap.",
+                "textIds": []
+              }
+            ],
+            "corrections": [
+              "The elevated window sill visibly supports the navy snake pot above the floor.",
+              "The empty green-door threshold contains loose soil grains and scrape marks."
+            ]
+          },
+          "plan": {
+            "title": "맹물 한 통으로 다시 위로",
+            "intent": "Let a quiet cleanup be a small act of courage. The wind ribbon returns as Siu chooses to climb, ending on a chained rooftop threshold rather than falsely resolving entry.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-2-p-70",
+                  "ch-2-p-71",
+                  "ch-2-p-72",
+                  "ch-2-p-73",
+                  "ch-2-p-74"
+                ],
+                "statement": "Shame and the snake plant remark tempt Siu to return home."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-2-p-75",
+                  "ch-2-p-76",
+                  "ch-2-p-77",
+                  "ch-2-p-78",
+                  "ch-2-p-79",
+                  "ch-2-p-80",
+                  "ch-2-p-81"
+                ],
+                "statement": "Siu chooses to persist and cleans the fragments and spill."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-2-p-82",
+                  "ch-2-p-83",
+                  "ch-2-p-84",
+                  "ch-2-p-85",
+                  "ch-2-p-86",
+                  "ch-2-p-87",
+                  "ch-2-p-88",
+                  "ch-2-p-89",
+                  "ch-2-p-90",
+                  "ch-2-p-91",
+                  "ch-2-p-92",
+                  "ch-2-p-93"
+                ],
+                "statement": "He follows the upward route to a moonlit pot trace under a chained roof door."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-2-p-70",
+                  "ch-2-p-71",
+                  "ch-2-p-72",
+                  "ch-2-p-73",
+                  "ch-2-p-74"
+                ],
+                "action": "Shame and the snake plant remark tempt Siu to return home.",
+                "textIds": [
+                  "text-1",
+                  "text-2"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-2-p-75",
+                  "ch-2-p-76",
+                  "ch-2-p-77",
+                  "ch-2-p-78",
+                  "ch-2-p-79",
+                  "ch-2-p-80",
+                  "ch-2-p-81"
+                ],
+                "action": "Siu chooses to persist and cleans the fragments and spill.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-2-p-82",
+                  "ch-2-p-83",
+                  "ch-2-p-84",
+                  "ch-2-p-85",
+                  "ch-2-p-86",
+                  "ch-2-p-87",
+                  "ch-2-p-88",
+                  "ch-2-p-89",
+                  "ch-2-p-90",
+                  "ch-2-p-91",
+                  "ch-2-p-92",
+                  "ch-2-p-93"
+                ],
+                "action": "He follows the upward route to a moonlit pot trace under a chained roof door.",
+                "textIds": [
+                  "text-4"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-2-p-70",
+                "speaker": "snake-plant",
+                "kind": "dialogue",
+                "text": "쯧쯧, 꼴좋다. 인간들이란 어째 저렇게 요란스럽고 둔해 빠졌는지."
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-2-p-73",
+                "speaker": "c1",
+                "kind": "thought",
+                "text": "그냥…… 방으로 돌아갈까."
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-2-p-78",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "……안 돌아가."
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-2-p-83",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "타박, 타박."
+              }
+            ],
+            "staging": "Dim concrete landing after ampoule break. The navy snake pot rests on the elevated aluminum window sill at chest height; its bottom and supporting sill are visible above the kneeling Siu. Receipt-wrapped shards, wipes and clear sprayer below. Rooftop threshold contains soil grains and scrape marks alone. Donggeuri remains beyond the chained green door.",
+            "uncertainties": [
+              "The first chapter leaves an empty pink pot while later chapters describe the carried brown pot; retain the current excerpt without reconstructing its unexplained earlier transfer.",
+              "The source has a contradictory later sweatpants mention; maintain the established continuous-night white shirt and charcoal trousers.",
+              "Mint wind ribbons, leaf-shaped borders and concentric gutters are editorial graphics, not extra physical objects or new world mechanics."
+            ]
+          },
+          "promptFile": "prompts/ep02-scene-04-r2.txt",
+          "attemptTotal": 2,
+          "chosenAttempt": 2,
+          "attempts": [
+            {
+              "n": 1,
+              "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep02-s4-r1.webp",
+              "findings": [
+                {
+                  "severity": "blocking",
+                  "ko": "산세베리아 화분이 높은 창틀에서 바닥으로 이동했습니다. 창틀 위 위치를 고정해 다시 그렸습니다.",
+                  "en": "Panel 1 places the navy snake plant pot on the floor; retain it on the aluminum sill above the kneeling human throughout the landing shots.",
+                  "layerLabel": "시각 검토"
+                },
+                {
+                  "severity": "blocking",
+                  "ko": "옥상 문턱에 갈색 화분이 추가되었습니다. 동글이는 문 너머에 있으므로 문턱에는 흙과 긁힌 자국만 남기도록 다시 그렸습니다.",
+                  "en": "Panel 7 adds a brown pot at the rooftop threshold although Donggeuri is already beyond the door. Show only soil and terracotta scrape traces at the threshold.",
+                  "layerLabel": "시각 검토"
+                },
+                {
+                  "severity": "advisory",
+                  "ko": "파편을 모은 뒤 물티슈 아래에 작은 조각이 남아 보입니다. 청소 과정이 압축되었습니다.",
+                  "en": "Tiny glass pieces remain visible under the wet wipe after shards are gathered; the key cleanup is depicted but removal is compressed.",
+                  "layerLabel": "시각 검토"
+                }
+              ],
+              "plannedPanels": 8,
+              "observedPanels": 8,
+              "textsOk": 4,
+              "textsTotal": 4
+            }
+          ]
+        }
+      ],
+      "device": {
+        "title": "바람길이 잇는 칸",
+        "summary": "민트색 바람길이 건물과 계단의 칸을 잇습니다. 이웃과의 대면은 각진 문 구도로, 다시 올라가는 결심은 돌아온 바람 리본으로 표현했습니다.",
+        "hint": "칸 사이의 민트색 바람을 따라 읽어 보세요. 문이 열리면 시우의 표정도 굳습니다."
+      }
+    },
+    {
+      "chapter": 3,
+      "title": "옥상 위의 식물 자치구",
+      "host": "Codex",
+      "model": "호스트 모델명 미기록",
+      "effort": "미기록",
+      "novelHost": "Antigravity CLI",
+      "novelModel": "gemini-3.8-flash-medium",
+      "sceneCount": 3,
+      "panelTotal": 24,
+      "passCount": 3,
+      "reviewer": {
+        "host": "Codex",
+        "model": "호스트 모델명 미기록"
+      },
+      "regen": {
+        "autoRevisionLimit": 2
+      },
+      "scenes": [
+        {
+          "id": "s1",
+          "n": 1,
+          "title": "잎사귀 눈높이의 비밀 정원",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep03-s1.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 1,
+          "pTo": 26,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "식은땀에 젖은 손바닥을 바지에 문질러 닦았다. 문고리를 쥐었던 손가락 마디마디가 뻣뻣하게 굳어 있었다. 쇠사슬을 무작정 잡아당겨 봐야 녹슨 쇳가루만 떨어져 내릴 뿐이었다. 찰랑거리는 쇠소리가 밤의 적막을 찢을 때마다 등줄기에 서늘한 소름이 돋았다. 아래층 301호 남자가 다시 문을 박차고 뛰어나올지도 모른다는 공포가 목덜미를 바짝 죄어왔다."
+            },
+            {
+              "text": "나는 숨을 죽이고 문틈 사이로 눈을 바짝 들이댔다."
+            },
+            {
+              "text": "페인트가 허물처럼 벗겨진 철문은 완전히 맞물려 닫힌 게 아니었다. 쇠사슬은 자물쇠로 묶여 있었지만, 문짝 안쪽을 잠그는 빗장 걸쇠가 헐거워져 간신히 턱에만 걸쳐져 있었다. 누군가 밖으로 나갈 때 완전히 걸어 잠그지 않고 대충 얹어둔 모양새였다."
+            },
+            {
+              "text": "왼손에 쥔 맹물 분무기를 겨드랑이에 단단히 끼워 넣었다. 그리고 오른팔을 문틈 사이로 조심스레 쑤셔 넣었다. 차가운 철판 모서리가 셔츠 소매를 거칠게 파고들며 팔뚝 살을 긁어댔다. 찌릿한 통증에 입술을 깨물며 신음을 삼켰다. 손가락 끝을 한껏 뻗자, 굳은 기름때와 붉은 녹이 덕지덕지 엉겨 붙은 걸쇠의 뭉툭한 끄트머리가 간신히 닿았다."
+            },
+            {
+              "text": "'조금만 더…….'"
+            },
+            {
+              "text": "발끝을 세우고 어깨를 틈새로 더 깊이 밀어 넣었다. 옷감이 찢어지는 듯한 불길한 소리가 낮게 스쳤지만 신경 쓸 겨를이 없었다. 손가락 끝에 힘을 주고 걸쇠를 위로 툭 쳐올렸다."
+            },
+            {
+              "text": "달칵."
+            },
+            {
+              "text": "둔탁하지만 가벼운 금속 마찰음과 함께 빗장이 턱에서 미끄러져 빠져나왔다. 쇠사슬이 느슨하게 축 늘어지며 철문이 손바닥 한 뼘만큼 스르르 벌어졌다."
+            },
+            {
+              "text": "문틈 사이로 쏟아져 나온 바람은 차가웠지만, 그 속에 실려 온 공기는 전혀 차갑지 않았다. 진한 깻묵 냄새, 축축하게 젖은 부엽토 냄새, 그리고 햇빛을 흠뻑 머금었다가 밤이 되어 내뿜는 싱그러운 풀잎의 풋내가 훅 하고 코끝을 찔렀다. 삭막한 시멘트 복도에서는 결코 맡을 수 없는, 거대하고 울창한 생명의 냄새였다."
+            },
+            {
+              "text": "나는 문이 끼익거리는 비명을 지르지 않도록 양손으로 문짝을 꽉 붙든 채, 벌어진 틈 사이로 간신히 몸을 구겨 넣었다. 갈비뼈가 문틀에 짓눌리고 슬리퍼 앞코가 바닥에 긁혔지만 억지로 다리를 끌어당겼다. 마침내 옥상 바닥에 두 발을 내딛는 순간, 사방이 탁 트인 밤하늘 아래로 서늘한 바람이 온몸을 휘감았다."
+            },
+            {
+              "text": "\"하아…….\""
+            },
+            {
+              "text": "참았던 숨을 토해내며 고개를 들었을 때, 나는 그 자리에 얼어붙고 말았다."
+            },
+            {
+              "text": "그곳은 내가 생각하던 휑하고 버려진 빌라 옥상이 아니었다."
+            },
+            {
+              "text": "달빛이 푸르스름하게 내려앉은 넓은 옥상 바닥 위로, 기상천외한 풍경이 펼쳐져 있었다. 스티로폼 상자, 깨진 김치독, 귀퉁이가 떨어져 나간 플라스틱 바가지, 찌그러진 분유 깡통까지. 동네 골목 어디선가 버려졌을 온갖 잡동사니들이 흙을 가득 품은 채 질서정연하게 자리를 잡고 늘어서 있었다."
+            },
+            {
+              "text": "그뿐만이 아니었다. 옥상 바닥에는 빗물이 자연스럽게 모여 흐르도록 얕은 고랑이 파여 있었고, 바람이 가장 세차게 몰아치는 북쪽 난간에는 낡은 차광막이 팽팽하게 덧대어져 있었다. 낮 동안 건물 꼭대기가 빨아들였을 햇빛의 훈기가 흙내음과 뒤섞여 은은하게 피어오르고 있었다."
+            },
+            {
+              "text": "사람의 손길이 닿지 않은 채 방치된 쓰레기 더미가 아니었다. 볕이 가장 오래 머무는 자리, 바람길이 부드럽게 감돌아 나가는 요충지마다 식물들이 저마다의 화분을 꿰차고 옹기종기 모여 앉아 있었다."
+            },
+            {
+              "text": "도심 한가운데, 버려지고 도망쳐 나온 화분들이 스스로 터전을 일구어낸 은밀한 자치 정원이었다."
+            },
+            {
+              "text": "\"어머, 쟤 뭐야? 인간이 들어왔어.\"\n\"쉿, 잎 흔들지 마. 물 주러 온 미치광이면 어쩌려고 그래?\"\n\"아니야, 냄새를 맡아봐. 방금 밑에서 비타민 앰플 깨먹고 올라온 그 201호 똥손 집사잖아.\""
+            },
+            {
+              "text": "발치에서 잘게 바스락거리는 소리가 파도처럼 번져나갔다."
+            },
+            {
+              "text": "스티로폼 박스 틈새에 뿌리를 박은 붉은 채송화와 찌그러진 양철 냄비에 담긴 산호수가 잎사귀를 파르르 떨며 소곤거렸다. 그들의 목소리는 낮았지만, 내 귓가에는 똑똑한 원망과 비웃음으로 꽂혀 들어왔다. 화분들은 내가 한 발짝을 디딜 때마다 약속이라도 한 듯 일제히 줄기를 꼿꼿하게 세우며 경계 태세를 갖추었다."
+            },
+            {
+              "text": "낯선 침입자를 향한 수많은 식물의 시선이 발목을 따갑게 찔러왔다. 가슴이 쿵쾅거리고 쥐고 있던 분무기 손잡이에 땀이 배어 나왔다. 하지만 여기서 다른 화분들과 한가하게 말씨름을 벌이고 있을 시간이 없었다."
+            },
+            {
+              "text": "내 눈은 본능적으로 가장 밝은 달빛이 떨어지는 곳을 훑었다."
+            },
+            {
+              "text": "옥상 한가운데에는 낡은 슬레이트 지붕을 얹은 옥탑방이 웅크리고 있었다. 방 안에서는 괘종시계의 째깍거리는 초침 소리와 함께, 낡은 트랜지스터 라디오에서 흘러나오는 구성진 트로트 가락이 모기 소리만 하게 새어 나오고 있었다. 옥탑방 주민이 아직 깨어 있거나, 라디오를 틀어둔 채 얕은 잠에 든 모양이었다."
+            },
+            {
+              "text": "그리고 그 옥탑방 평상 너머, 남쪽 난간 턱 아래에 작은 그림자 하나가 꿈틀거리고 있었다."
+            },
+            {
+              "text": "통통하고 단단한 옥색 도톰한 다육 잎사귀."
+            },
+            {
+              "text": "틀림없는 십이지권, 내 다육이 동글이였다."
+            }
+          ],
+          "timings": {
+            "imageCalls": 1,
+            "imageS": 37.6,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 6,
+          "textsTotal": 6,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "안쪽 빗장을 문틈으로 건드리는 과정이 드러난 문 가장자리 구도로 압축되었습니다. 느슨한 사슬의 양쪽 연결점이 모두 보이지는 않습니다.",
+              "en": "The latch is shown on an exposed door edge, and the loose chain hangs from one visible anchor. The original inside-through-gap mechanism and two attached endpoints are compressed.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "정원 전경에서 옥탑방이 은은하게 빛납니다. 후반의 전등 켜기는 더 강한 창문 불빛으로 이어야 합니다.",
+              "en": "The garden hut already glows softly in the establishing view, before the later explicit light-switch event. Treat that later event as a stronger window light rather than the first illumination.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:c323deb7e9e7fa4f5996a44ec8c276f90d97559b994c75dca1d5077d484e66db",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Siu matches the previous shirt, hair and slippers; new Donggeuri matches the reference jade rosette and brown pot with root legs."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "The green weathered chained door continues into a moonlit roof garden with hut, platform, clothesline and metal basin."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "Closed door is followed by latch handling, release and squeezed entrance. Siu is first noticed by garden plants, then spots Donggeuri."
+              }
+            },
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "조금만 더…….",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 1 thought bubbles connect to Siu reaching for the latch."
+              },
+              {
+                "id": "text-2",
+                "observedText": "달칵.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 near released bolt."
+              },
+              {
+                "id": "text-3",
+                "observedText": "하아…….",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 3 balloon connects to emerging Siu."
+              },
+              {
+                "id": "text-4",
+                "observedText": "어머, 쟤 뭐야? 인간이 들어왔어.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 left tail leads to moss rose in foam box."
+              },
+              {
+                "id": "text-5",
+                "observedText": "쉿, 잎 흔들지 마. 물 주러 온 미치광이면 어쩌려고 그래?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 right tail leads to coralberry in tin pot."
+              },
+              {
+                "id": "text-6",
+                "observedText": "방금 밑에서 비타민 앰플 깨먹고 올라온 그 201호 똥손 집사잖아.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 tail leads to the upright garden plant."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "evidence": "Inspected actual image: eight paired panels and six source strings. Low plant-height views and foreground leaves make Siu enormous without obstructing reading. New garden containers and pot identity are visually distinct. Last panel reveals Donggeuri beyond the wooden platform. Same-host review, not an independent assessment.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "The latch is shown on an exposed door edge, and the loose chain hangs from one visible anchor. The original inside-through-gap mechanism and two attached endpoints are compressed."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "The garden hut already glows softly in the establishing view, before the later explicit light-switch event. Treat that later event as a stronger window light rather than the first illumination."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Warm pastel Korean webtoon, expressive chibi plants, leaf-shaped framing and plant-height views, concentric basin-noise gutter ripples, clear upright Korean lettering, conventional reading order.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-3-p-1",
+                  "ch-3-p-2",
+                  "ch-3-p-3",
+                  "ch-3-p-4",
+                  "ch-3-p-5",
+                  "ch-3-p-6"
+                ],
+                "action": "Siu reaches through the cracked doorway to the loose inner bolt, sprayer tucked under his arm.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-7",
+                  "ch-3-p-8"
+                ],
+                "action": "The inner bolt rests released above a handspan door gap, with the chain still attached.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-9",
+                  "ch-3-p-10",
+                  "ch-3-p-11",
+                  "ch-3-p-12"
+                ],
+                "action": "Siu squeezes through the narrow doorway into moonlit air, keeping his sprayer tucked close.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-13",
+                  "ch-3-p-14",
+                  "ch-3-p-15",
+                  "ch-3-p-16",
+                  "ch-3-p-17"
+                ],
+                "action": "From plant height, improvised pots form a moonlit rooftop village beneath the hut and clothesline; leaf silhouettes gently shape the frame edges.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-18",
+                  "ch-3-p-19",
+                  "ch-3-p-20"
+                ],
+                "action": "Red moss roses in a foam box whisper beside coralberry in a dented tin pot, looking up at Siu's towering slippers.",
+                "textIds": [
+                  "text-4",
+                  "text-5"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-18",
+                  "ch-3-p-20",
+                  "ch-3-p-21"
+                ],
+                "action": "A ring of upright leaves watches Siu halt, his sprayer conspicuous above their small faces.",
+                "textIds": [
+                  "text-6"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-22",
+                  "ch-3-p-23",
+                  "ch-3-p-24"
+                ],
+                "action": "Siu's gaze follows moonlight past the low wooden platform toward the south parapet; the hut remains closed.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-24",
+                  "ch-3-p-25",
+                  "ch-3-p-26"
+                ],
+                "action": "The pale-jade plump-leaved Donggeuri peeks into view near the parapet, framed by neighboring leaves.",
+                "textIds": []
+              }
+            ]
+          },
+          "plan": {
+            "title": "잎사귀 눈높이의 비밀 정원",
+            "intent": "Reveal the roof through suspicious plants' low viewpoint, letting leaf-shaped frames and rich moonlit silence make the human an awkward giant. End with the first sight of the missing succulent.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-3-p-1",
+                  "ch-3-p-2",
+                  "ch-3-p-3",
+                  "ch-3-p-4",
+                  "ch-3-p-5",
+                  "ch-3-p-6",
+                  "ch-3-p-7",
+                  "ch-3-p-8",
+                  "ch-3-p-9",
+                  "ch-3-p-10",
+                  "ch-3-p-11",
+                  "ch-3-p-12"
+                ],
+                "statement": "Siu discovers the loose inner bolt and squeezes through the still-chained doorway."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-3-p-13",
+                  "ch-3-p-14",
+                  "ch-3-p-15",
+                  "ch-3-p-16",
+                  "ch-3-p-17",
+                  "ch-3-p-18",
+                  "ch-3-p-19",
+                  "ch-3-p-20",
+                  "ch-3-p-21"
+                ],
+                "statement": "A plant-height view reveals the improvised rooftop garden and its suspicious residents."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-3-p-22",
+                  "ch-3-p-23",
+                  "ch-3-p-24",
+                  "ch-3-p-25",
+                  "ch-3-p-26"
+                ],
+                "statement": "Siu locates Donggeuri beyond the hut platform near the south parapet."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-3-p-1",
+                  "ch-3-p-2",
+                  "ch-3-p-3",
+                  "ch-3-p-4",
+                  "ch-3-p-5",
+                  "ch-3-p-6",
+                  "ch-3-p-7",
+                  "ch-3-p-8",
+                  "ch-3-p-9",
+                  "ch-3-p-10",
+                  "ch-3-p-11",
+                  "ch-3-p-12"
+                ],
+                "action": "Siu discovers the loose inner bolt and squeezes through the still-chained doorway.",
+                "textIds": [
+                  "text-1",
+                  "text-2",
+                  "text-3"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-3-p-13",
+                  "ch-3-p-14",
+                  "ch-3-p-15",
+                  "ch-3-p-16",
+                  "ch-3-p-17",
+                  "ch-3-p-18",
+                  "ch-3-p-19",
+                  "ch-3-p-20",
+                  "ch-3-p-21"
+                ],
+                "action": "A plant-height view reveals the improvised rooftop garden and its suspicious residents.",
+                "textIds": [
+                  "text-4",
+                  "text-5",
+                  "text-6"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-3-p-22",
+                  "ch-3-p-23",
+                  "ch-3-p-24",
+                  "ch-3-p-25",
+                  "ch-3-p-26"
+                ],
+                "action": "Siu locates Donggeuri beyond the hut platform near the south parapet.",
+                "textIds": []
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-3-p-5",
+                "speaker": "c1",
+                "kind": "thought",
+                "text": "조금만 더……."
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-3-p-7",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "달칵."
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-3-p-11",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "하아……."
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-3-p-18",
+                "speaker": "moss-rose",
+                "kind": "dialogue",
+                "text": "어머, 쟤 뭐야? 인간이 들어왔어."
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-3-p-18",
+                "speaker": "coralberry",
+                "kind": "dialogue",
+                "text": "쉿, 잎 흔들지 마. 물 주러 온 미치광이면 어쩌려고 그래?"
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-3-p-18",
+                "speaker": "garden-plant",
+                "kind": "dialogue",
+                "text": "방금 밑에서 비타민 앰플 깨먹고 올라온 그 201호 똥손 집사잖아."
+              }
+            ],
+            "staging": "Worn green rooftop door opens only a handspan after Siu lifts the loose inner bolt through the gap; chain remains attached and he squeezes through. Rooftop has improvised containers, north windbreak, slate-roof hut, wooden platform and south parapet beneath clothesline. Keep nighttime, no midday sunshine or new residents onscreen.",
+            "uncertainties": [
+              "The first chapter leaves an empty pink pot while later chapters describe the carried brown pot; retain the current excerpt without reconstructing its unexplained earlier transfer.",
+              "The source has a contradictory later sweatpants mention; maintain the established continuous-night white shirt and charcoal trousers.",
+              "Mint wind ribbons, leaf-shaped borders and concentric gutters are editorial graphics, not extra physical objects or new world mechanics."
+            ]
+          },
+          "promptFile": "prompts/ep03-scene-01-r1.txt",
+          "attemptTotal": 1,
+          "chosenAttempt": 1
+        },
+        {
+          "id": "s2",
+          "n": 2,
+          "title": "햇빛 명당을 둘러싼 협상",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep03-s2.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 27,
+          "pTo": 46,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "녀석은 작은 갈색 테라코타 토분을 엉덩이에 달고, 옥상 외벽 난간을 향해 필사적으로 기어가고 있었다. 토분 바닥 틈으로 삐져나온 세 가닥의 강단 있는 잔뿌리가 콘크리트 바닥을 긁어댔다."
+            },
+            {
+              "text": "스륵, 사각. 드르륵."
+            },
+            {
+              "text": "거친 시멘트 바닥에 화분이 긁히며 나는 소리가 처절할 정도로 위태로웠다. 녀석의 목표는 명확했다. 옥탑방 빨랫줄 바로 아래, 이 빌라에서 가장 먼저 아침 해가 닿고 온종일 직사광선이 쏟아져 내리는 최고의 명당자리였다."
+            },
+            {
+              "text": "하지만 그 자리에 닿으려면 옥상 바닥과 난간 턱 사이의 좁고 가파른 틈새를 기어올라야 했다. 녀석의 화분은 이미 오른쪽으로 삐딱하게 기울어져 있었고, 무게중심을 잃은 잎끝이 낭떠러지 같은 허공을 향해 아슬아슬하게 흔들렸다. 한 뼘만 삐끗해도 4층 높이의 난간 밖으로 화분째 곤두박질칠 형국이었다."
+            },
+            {
+              "text": "\"동글아……!\""
+            },
+            {
+              "text": "목구멍까지 차오른 외침을 간신히 삼켰다. 소리를 질렀다가는 옥탑방 문이 벌컥 열릴 터였다."
+            },
+            {
+              "text": "나는 뒤꿈치를 들고 살금살금 발을 옮겼다. 녀석과의 거리는 대략 대여섯 걸음."
+            },
+            {
+              "text": "바람이 불 때마다 동글이의 줄기가 휘청거렸다. 내 방 안 암막 커튼 뒤에서 햇빛을 보지 못해 흉하게 웃자란 연약한 줄기 밑동이 달빛 아래 적나라하게 드러났다. 칠흑 같은 그늘 속에서 제 살을 억지로 늘려가며 빛을 갈망했을 녀석의 상처였다. 손톱 밑에 박혀 있던 마른 흙의 까슬함이 떠오르며 가슴 한구석이 찌릿하게 저려왔다."
+            },
+            {
+              "text": "\"야, 너…… 거기서 뭐 하는 거야. 얼른 멈춰!\""
+            },
+            {
+              "text": "동글이의 등 뒤 서너 걸음 앞까지 다가가 바짝 엎드리며 낮게 읊조렸다."
+            },
+            {
+              "text": "내 목소리가 닿자, 기어가던 화분이 우뚝 멈춰 섰다."
+            },
+            {
+              "text": "동글이의 도톰한 잎사귀들이 일제히 곤두서더니, 화분이 홱 하고 반바퀴를 돌았다. 흙투성이가 된 작은 테라코타 토분 위에서, 녀석이 잔뜩 날을 세운 목소리로 쏘아붙였다."
+            },
+            {
+              "text": "\"뭐야? 기어코 여기까지 쫓아왔어?\"\n\"쫓아오다니, 당연히 쫓아오지! 쪽지 한 장 덜렁 남겨두고 가출하는 식물이 세상에 어디 있어? 너 지금 거기가 얼마나 위험한 줄 알고 이러는 건데!\"\n\"흥, 안 위험하거든? 쪽지에 똑똑히 적어놨잖아. 물은 됐고 햇빛 찾으러 간다고! 네가 그 질척거리는 분무기로 내 얼굴에 물 뿌릴 때마다 뿌리가 썩어 들어가는 기분이었단 말이야!\"\n\"내가…… 내가 언제 질척거리게 줬다고 그래? 흙 마른 거 보고 딱 세 번만 뿌렸구만…….\"\n\"그게 겉흙만 적시는 최악의 물주기라는 건 왜 몰라! 흙 속은 바짝 타고 있는데 겉만 축축하게 적셔놓으니까 숨이 막혀 죽을 뻔했잖아! 나한테 지금 필요한 건 네 어설픈 과잉보호가 아니라, 자외선 지수 빵빵한 직사광선이라고!\""
+            },
+            {
+              "text": "동글이는 앙칼지게 잎끝을 튕기며 화분을 덜컹거렸다. 녀석이 화분을 움직일 때마다 마른 흙 부스러기가 후드득 바닥으로 떨어져 내렸다."
+            },
+            {
+              "text": "\"알았어, 알았으니까 일단 거기서 내려와. 너 지금 화분 기우뚱한 거 안 보여? 거기 난간 턱 틈새에 발 잘못 딛으면 그대로 1층 주차장으로 추락이야!\"\n\"거짓말 마! 저기 빨랫대 밑에 자리 잡으면 내일부터 하루 여덟 시간 내내 광합성 할 수 있단 말이야. 오지 마! 한 걸음만 더 오면 나 진짜 여기서 화분 확 엎어버린다?\""
+            },
+            {
+              "text": "동글이는 내 말을 들으려 하지도 않고, 다시 몸을 돌려 잔뿌리로 바닥을 벅벅 긁기 시작했다. 어떻게든 난간 턱의 높은 턱걸이를 기어오르려고 안간힘을 쓰는 바람에 화분이 좌우로 심하게 요동쳤다."
+            },
+            {
+              "text": "스르륵, 덜컹!"
+            },
+            {
+              "text": "\"앗……!\""
+            },
+            {
+              "text": "동글이가 비명을 내질렀다."
+            },
+            {
+              "text": "화분 밑바닥 잔뿌리 하나가 젖은 이끼에 미끄러지면서, 녀석의 몸체가 45도 각도로 기울어졌다. 흙이 한 움큼 쏟아져 나가며 화분이 난간 바깥쪽 허공을 향해 미끄러져 내려가기 시작했다. 녀석의 무게중심뚱한 잎끝통통한 줄기가 허공에서 필사적으로 허우적거렸다."
+            }
+          ],
+          "timings": {
+            "imageCalls": 2,
+            "imageS": 79.8,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 9,
+          "textsTotal": 9,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "잎사귀 전경으로 식물 시선을 살렸지만, 칸 테두리는 기본 사각형입니다.",
+              "en": "Foreground leaves provide a plant viewpoint, while panel borders remain regular rectangles rather than strongly leaf-shaped.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:bc667193c9fc42b45a657f0dbe2206e82ceccfcdf7a72da982497d9229dbf6c3",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Same white-shirt Siu, jade rosette Donggeuri in brown pot with root legs."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "Moonlit roof below clothesline; parapet foothold has moss and the final pot overhangs visible outer void."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "The prior discovery develops into approach, rebuke and resumed climb, then slip with spilling soil."
+              }
+            },
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "스륵, 사각. 드르륵.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 1 near root legs."
+              },
+              {
+                "id": "text-2",
+                "observedText": "동글아……!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 tail leads to crouching Siu."
+              },
+              {
+                "id": "text-3",
+                "observedText": "야, 너…… 거기서 뭐 하는 거야. 얼른 멈춰!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 3 tail reaches Siu."
+              },
+              {
+                "id": "text-4",
+                "observedText": "뭐야? 기어코 여기까지 쫓아왔어?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 4 tail points into Donggeuri foliage."
+              },
+              {
+                "id": "text-5",
+                "observedText": "네가 그 질척거리는 분무기로 내 얼굴에 물 뿌릴 때마다 뿌리가 썩어 들어가는 기분이었단 말이야!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 balloon tail touches Donggeuri foliage; Siu is visibly listening at the left edge."
+              },
+              {
+                "id": "text-6",
+                "observedText": "알았어, 알았으니까 일단 거기서 내려와.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 left balloon connects to Siu."
+              },
+              {
+                "id": "text-7",
+                "observedText": "오지 마!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 right balloon points to succulent."
+              },
+              {
+                "id": "text-8",
+                "observedText": "스르륵, 덜컹!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 by the slipping pot."
+              },
+              {
+                "id": "text-9",
+                "observedText": "앗……!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 8 tail points to succulent."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "evidence": "Actual revised eight-panel image inspected. All nine source strings are legible and correctly attributed. Panel 5 now shows the speaking succulent and a listening human; the wrong tail is resolved. The final tilted pot over the outer roof edge continues the danger clearly. Same-host review, not an independent assessment.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "Foreground leaves provide a plant viewpoint, while panel borders remain regular rectangles rather than strongly leaf-shaped."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Warm pastel Korean webtoon, expressive chibi plants, leaf-shaped framing and plant-height views, concentric basin-noise gutter ripples, clear upright Korean lettering, conventional reading order.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-3-p-27",
+                  "ch-3-p-28",
+                  "ch-3-p-29",
+                  "ch-3-p-30"
+                ],
+                "action": "Donggeuri strains on three root legs beneath a leaning terracotta pot, climbing the narrow parapet foothold below the clothesline.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-31",
+                  "ch-3-p-32",
+                  "ch-3-p-33",
+                  "ch-3-p-34"
+                ],
+                "action": "Siu approaches on tiptoe with a worried glance at the unstable pot, sprayer held low.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-35",
+                  "ch-3-p-36",
+                  "ch-3-p-37",
+                  "ch-3-p-38"
+                ],
+                "action": "Siu crouches nearby while Donggeuri turns his pot to face him; a leaf-shaped reverse view makes Siu loom.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-39",
+                  "ch-3-p-40"
+                ],
+                "action": "Donggeuri bristles in his tiny pot, jade leaves rigid and rosy tips sharp with indignation.",
+                "textIds": [
+                  "text-4"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-39",
+                  "ch-3-p-40"
+                ],
+                "action": "Donggeuri visibly delivers the accusation, face framed by jade leaves; his balloon tail touches his foliage while Siu listens at the far left edge.",
+                "textIds": [
+                  "text-5"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-41"
+                ],
+                "action": "Siu holds a calming palm out beside the leaning pot; Donggeuri glares toward the clothesline.",
+                "textIds": [
+                  "text-6",
+                  "text-7"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-42",
+                  "ch-3-p-43"
+                ],
+                "action": "Donggeuri faces the ledge once more, root legs braced on the damp foothold; the leaf-framed rhythm leans with his pot.",
+                "textIds": [
+                  "text-8"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-44",
+                  "ch-3-p-45",
+                  "ch-3-p-46"
+                ],
+                "action": "One root slips on wet moss; Donggeuri's pot tips toward the outer void and loose soil falls past its rim.",
+                "textIds": [
+                  "text-9"
+                ]
+              }
+            ],
+            "focusTextIds": [
+              "text-5"
+            ],
+            "corrections": [
+              "Donggeuri visibly speaks the long accusation, with its balloon tail touching jade foliage."
+            ]
+          },
+          "plan": {
+            "title": "햇빛 명당을 둘러싼 협상",
+            "intent": "Make the succulent's assertiveness cute rather than passive: trade human and plant-height reaction shots within leaf-shaped frames, then tilt the visual rhythm at the imminent fall.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-3-p-27",
+                  "ch-3-p-28",
+                  "ch-3-p-29",
+                  "ch-3-p-30",
+                  "ch-3-p-31",
+                  "ch-3-p-32",
+                  "ch-3-p-33",
+                  "ch-3-p-34",
+                  "ch-3-p-35",
+                  "ch-3-p-36",
+                  "ch-3-p-37",
+                  "ch-3-p-38"
+                ],
+                "statement": "Siu spots Donggeuri climbing toward the sunlight position and quietly approaches."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-3-p-39",
+                  "ch-3-p-40",
+                  "ch-3-p-41"
+                ],
+                "statement": "Donggeuri confronts his overwatering and rejects the attempt to bring him down."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-3-p-42",
+                  "ch-3-p-43",
+                  "ch-3-p-44",
+                  "ch-3-p-45",
+                  "ch-3-p-46"
+                ],
+                "statement": "The plant resumes the climb and slips on damp moss toward the outer edge."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-3-p-27",
+                  "ch-3-p-28",
+                  "ch-3-p-29",
+                  "ch-3-p-30",
+                  "ch-3-p-31",
+                  "ch-3-p-32",
+                  "ch-3-p-33",
+                  "ch-3-p-34",
+                  "ch-3-p-35",
+                  "ch-3-p-36",
+                  "ch-3-p-37",
+                  "ch-3-p-38"
+                ],
+                "action": "Siu spots Donggeuri climbing toward the sunlight position and quietly approaches.",
+                "textIds": [
+                  "text-1",
+                  "text-2",
+                  "text-3"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-3-p-39",
+                  "ch-3-p-40",
+                  "ch-3-p-41"
+                ],
+                "action": "Donggeuri confronts his overwatering and rejects the attempt to bring him down.",
+                "textIds": [
+                  "text-4",
+                  "text-5",
+                  "text-6",
+                  "text-7"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-3-p-42",
+                  "ch-3-p-43",
+                  "ch-3-p-44",
+                  "ch-3-p-45",
+                  "ch-3-p-46"
+                ],
+                "action": "The plant resumes the climb and slips on damp moss toward the outer edge.",
+                "textIds": [
+                  "text-8",
+                  "text-9"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-3-p-28",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "스륵, 사각. 드르륵."
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-3-p-31",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "동글아……!"
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-3-p-35",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "야, 너…… 거기서 뭐 하는 거야. 얼른 멈춰!"
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-3-p-39",
+                "speaker": "c2",
+                "kind": "dialogue",
+                "text": "뭐야? 기어코 여기까지 쫓아왔어?"
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-3-p-39",
+                "speaker": "c2",
+                "kind": "dialogue",
+                "text": "네가 그 질척거리는 분무기로 내 얼굴에 물 뿌릴 때마다 뿌리가 썩어 들어가는 기분이었단 말이야!"
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-3-p-41",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "알았어, 알았으니까 일단 거기서 내려와."
+              },
+              {
+                "id": "text-7",
+                "sourceId": "ch-3-p-41",
+                "speaker": "c2",
+                "kind": "dialogue",
+                "text": "오지 마!"
+              },
+              {
+                "id": "text-8",
+                "sourceId": "ch-3-p-43",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "스르륵, 덜컹!"
+              },
+              {
+                "id": "text-9",
+                "sourceId": "ch-3-p-44",
+                "speaker": "c2",
+                "kind": "dialogue",
+                "text": "앗……!"
+              }
+            ],
+            "staging": "Donggeuri's small brown terracotta pot has three root legs at the south parapet ledge below the clothesline. Siu quietly approaches across damp roof coating with sprayer held low. The rooted pot turns to face him, then turns back to climb; the slip comes after dialogue. Show the rooftop side of the parapet clearly, not a safe flat tabletop. In the long accusation panel Donggeuri is onscreen and the balloon tail touches his foliage. Human reaction occupies only an edge.",
+            "uncertainties": [
+              "The first chapter leaves an empty pink pot while later chapters describe the carried brown pot; retain the current excerpt without reconstructing its unexplained earlier transfer.",
+              "The source has a contradictory later sweatpants mention; maintain the established continuous-night white shirt and charcoal trousers.",
+              "Mint wind ribbons, leaf-shaped borders and concentric gutters are editorial graphics, not extra physical objects or new world mechanics."
+            ]
+          },
+          "promptFile": "prompts/ep03-scene-02-r2.txt",
+          "attemptTotal": 2,
+          "chosenAttempt": 2,
+          "attempts": [
+            {
+              "n": 1,
+              "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep03-s2-r1.webp",
+              "findings": [
+                {
+                  "severity": "blocking",
+                  "ko": "5칸의 긴 항의는 동글이 대사인데 말풍선 꼬리가 시우 쪽을 가리켰습니다. 동글이가 보이는 구도로 다시 그렸습니다.",
+                  "en": "Panel 5 text-5 is Donggeuri speech but its tail points toward Siu. Put Donggeuri visibly in that panel with the tail touching its jade foliage.",
+                  "layerLabel": "시각 검토"
+                },
+                {
+                  "severity": "advisory",
+                  "ko": "잎사귀 전경으로 식물 시선을 살렸지만, 칸 테두리는 기본 사각형입니다.",
+                  "en": "Foreground leaves provide a plant viewpoint, while panel borders remain regular rectangles rather than strongly leaf-shaped.",
+                  "layerLabel": "시각 검토"
+                }
+              ],
+              "plannedPanels": 8,
+              "observedPanels": 8,
+              "textsOk": 8,
+              "textsTotal": 9
+            }
+          ]
+        },
+        {
+          "id": "s3",
+          "n": 3,
+          "title": "잡았다, 그런데 온 동네가 들었다",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep03-s3.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 47,
+          "pTo": 71,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "더는 망설일 틈이 없었다."
+            },
+            {
+              "text": "옥탑방이고 라디오 소리고 전부 머릿속에서 하얗게 지워졌다. 내 눈앞에서 저 조그만 생명이 허공으로 곤두박질치는 꼴을 볼 수는 없었다."
+            },
+            {
+              "text": "\"동글아, 위험해!\""
+            },
+            {
+              "text": "나는 앞으로 몸을 날렸다. 바닥을 박차고 뛰어나가며 양손을 앞으로 뻗었다."
+            },
+            {
+              "text": "어떻게든 녀석의 화분을 붙잡아야 한다는 생각 하나뿐이었다. 하지만 내 발에 걸려 있던 낡은 삼선 슬리퍼가 물기 머금은 옥상 우레탄 바닥에서 사정없이 미끄러졌다."
+            },
+            {
+              "text": "시야가 핑글 돌았다."
+            },
+            {
+              "text": "몸의 균형이 무너지며 앞으로 고꾸라지는 찰나, 내 뻗은 오른손 끝에 기우뚱하던 동글이의 작은 테라코타 토분 모서리가 기적처럼 닿았다. 손가락을 낚아채듯 오므려 녀석의 몸체를 품 안으로 끌어당겼다."
+            },
+            {
+              "text": "\"잡았다……!\""
+            },
+            {
+              "text": "안도의 탄식이 터져 나오려던 바로 그 순간이었다."
+            },
+            {
+              "text": "균형을 잃고 미끄러져 들어간 내 왼쪽 발끝이, 옥탑방 평상 모서리 어둠 속에 놓여 있던 거대한 물체와 정면으로 충돌했다."
+            },
+            {
+              "text": "쨍그랑——! 콰아앙——! 탕! 탕! 타당!"
+            },
+            {
+              "text": "그것은 빗물을 받아두기 위해 얹어둔 커다란 양철 대야였다."
+            },
+            {
+              "text": "두꺼운 양철 대야가 내 발길질에 걷어차여 공중으로 솟구쳐 올랐다가, 거친 콘크리트 옥상 바닥을 사정없이 구르며 찢어지는 굉음을 토해냈다. 대야 안에 고여 있던 물이 사방으로 폭포처럼 튀어 올랐고, 찌그러진 깡통 소리와 쇠붙이가 바닥을 긁는 날카로운 파열음이 조용한 밤의 옥상 전체를 집어삼켰다."
+            },
+            {
+              "text": "쩌렁쩌렁한 소음이 빌라 옥상을 넘어 밤하늘로 울려 퍼졌다."
+            },
+            {
+              "text": "\"……망했다.\""
+            },
+            {
+              "text": "나는 바닥에 엎어진 채 동글이를 가슴에 품고 숨을 멈추었다. 귓가가 멍멍할 정도로 거대한 정적이 소음 뒤를 이어 무겁게 내려앉았다."
+            },
+            {
+              "text": "자치 정원의 모든 식물이 일제히 숨을 죽였다. 잎사귀 하나 흔들리지 않았다."
+            },
+            {
+              "text": "그리고 1초 뒤."
+            },
+            {
+              "text": "탁!"
+            },
+            {
+              "text": "옥탑방 창문에 누런 형광등 불빛이 환하게 켜졌다."
+            },
+            {
+              "text": "\"어떤 놈팽이가 야밤에 남의 집 마당에서 굿판을 벌이고 지랄이여?!\""
+            },
+            {
+              "text": "우렁우렁한 호통 소리와 함께, 삐걱거리는 알루미늄 문이 부서져라 젖혀졌다."
+            },
+            {
+              "text": "드르륵, 쾅!"
+            },
+            {
+              "text": "문이 활짝 열리며 쏟아져 나온 눈부신 불빛 속에서, 머리를 질끈 동여맨 채 커다란 싸리빗자루를 흉기처럼 치켜든 할머니 한 분이 시퍼런 눈으로 마당을 노려보고 서 있었다."
+            },
+            {
+              "text": "바닥에 엎어져 분무기를 손에 쥔 내 모습과, 할머니의 매서운 시선이 허공에서 딱 마주쳤다."
+            }
+          ],
+          "timings": {
+            "imageCalls": 1,
+            "imageS": 40.9,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 7,
+          "textsTotal": 7,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "첫 돌진 구도에서 난간 구조가 젖은 옥상 바닥으로 압축되었습니다. 앞 장면의 추락 위험과 다음 칸의 구조 결과는 유지됩니다.",
+              "en": "The first lunge view compresses the parapet geometry into the wet roof floor; previous image establishes the fall risk and the following catch resolves it.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "마지막 대면에서 시우가 낮게 무릎을 세운 자세입니다. 원문은 계속 엎어진 상태지만 분무기와 구조한 화분은 들고 있습니다.",
+              "en": "Final confrontation shows Siu raised into a low kneel, while the original last paragraph leaves him prone. He still holds the sprayer and rescued pot.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "대야와 물의 둥근 곡선은 칸 안에 들어갔고, 칸 사이 테두리는 기본 사각형입니다.",
+              "en": "Round water and basin arcs appear within regular panels rather than forming concentric gutter borders.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:4bdb2d2ac4130e45ea698fc0b2babba0d704468b05c22b593361986ed4e4408e",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Same jade rosette, brown root-legged pot and white-shirt Siu. Grandma matches silver-white curled hair and patterned vest reference, carrying twig broom."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "Wet moonlit roof retains clothesline, basin, hut and garden. Strong window light resolves the earlier soft-glow advisory."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "The threatened fall is followed by Siu lunge and catch, slipper striking basin, spilled water, freeze, sudden window light and grandma entrance."
+              }
+            },
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "동글아, 위험해!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 1 shout beside Siu reaching."
+              },
+              {
+                "id": "text-2",
+                "observedText": "잡았다……!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 tail points to Siu holding pot."
+              },
+              {
+                "id": "text-3",
+                "observedText": "쨍그랑——! 콰아앙——! 탕! 탕! 타당!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 3 impact sound lines over slipper and basin."
+              },
+              {
+                "id": "text-4",
+                "observedText": "……망했다.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 tail points to prone Siu."
+              },
+              {
+                "id": "text-5",
+                "observedText": "탁!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 near the suddenly bright window."
+              },
+              {
+                "id": "text-6",
+                "observedText": "어떤 놈팽이가 야밤에 남의 집 마당에서 굿판을 벌이고 지랄이여?!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 shout belongs to the only visible speaking human, grandma at the opened hut door."
+              },
+              {
+                "id": "text-7",
+                "observedText": "드르륵, 쾅!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 door sound under grandma."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "evidence": "Inspected actual image against previous tipping pot. Eight panels: two rescue instants, foot impact and overflowing basin, two quiet/light panels, grandma entrance and confrontation. Seven exact source strings read clearly. The bowl rim and spraying water create round visual accents, followed by frozen plants and a harsh rectangular light. Same-host review, not an independent assessment.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "The first lunge view compresses the parapet geometry into the wet roof floor; previous image establishes the fall risk and the following catch resolves it."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "Final confrontation shows Siu raised into a low kneel, while the original last paragraph leaves him prone. He still holds the sprayer and rescued pot."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "Round water and basin arcs appear within regular panels rather than forming concentric gutter borders."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Warm pastel Korean webtoon, expressive chibi plants, leaf-shaped framing and plant-height views, concentric basin-noise gutter ripples, clear upright Korean lettering, conventional reading order.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-3-p-47",
+                  "ch-3-p-48",
+                  "ch-3-p-49",
+                  "ch-3-p-50"
+                ],
+                "action": "Siu lunges toward the tipping terracotta pot with both hands extended, striped slippers pushing off the wet roof.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-51",
+                  "ch-3-p-52",
+                  "ch-3-p-53",
+                  "ch-3-p-54"
+                ],
+                "action": "Siu's right hand hooks the pot rim; his slipping body pulls Donggeuri safely toward his chest.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-55",
+                  "ch-3-p-56",
+                  "ch-3-p-57",
+                  "ch-3-p-58"
+                ],
+                "action": "Siu's left slipper strikes the huge silver rainwater basin beside the wooden platform; its lifted rim begins a concentric visual ripple.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-59",
+                  "ch-3-p-60"
+                ],
+                "action": "The tilted silver basin spills a shining fan of water across the roof; concentric gutter arcs echo its clanging shape.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-61",
+                  "ch-3-p-62",
+                  "ch-3-p-63"
+                ],
+                "action": "Siu lies prone hugging the safe succulent, the clear sprayer beside his hand; every surrounding plant freezes in a breathless leaf-height tableau.",
+                "textIds": [
+                  "text-4"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-64",
+                  "ch-3-p-65",
+                  "ch-3-p-66"
+                ],
+                "action": "A harsh yellow rectangle lights the hut window, cutting through the quiet moonlit plant silhouettes.",
+                "textIds": [
+                  "text-5"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-67",
+                  "ch-3-p-68",
+                  "ch-3-p-69",
+                  "ch-3-p-70"
+                ],
+                "action": "The hut door stands open beneath warm light; the silver-haired grandmother grips a raised twig broom with a fearsome comic glare.",
+                "textIds": [
+                  "text-6",
+                  "text-7"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-3-p-70",
+                  "ch-3-p-71"
+                ],
+                "action": "Plant-height view: grandma's broom and Siu's alarmed face align across the rooftop; Donggeuri stays safe at his chest and the sprayer is in hand.",
+                "textIds": []
+              }
+            ]
+          },
+          "plan": {
+            "title": "잡았다, 그런데 온 동네가 들었다",
+            "intent": "Resolve the immediate danger with an affectionate catch, then let the rainwater basin's noise ripple across the visual layout into a comic collective freeze and the grandmother's entrance.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-3-p-47",
+                  "ch-3-p-48",
+                  "ch-3-p-49",
+                  "ch-3-p-50",
+                  "ch-3-p-51",
+                  "ch-3-p-52",
+                  "ch-3-p-53",
+                  "ch-3-p-54"
+                ],
+                "statement": "Siu lunges and catches Donggeuri despite skidding on the wet roof."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-3-p-55",
+                  "ch-3-p-56",
+                  "ch-3-p-57",
+                  "ch-3-p-58",
+                  "ch-3-p-59",
+                  "ch-3-p-60"
+                ],
+                "statement": "His left foot strikes the basin, sending water and clanging noise across the rooftop."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-3-p-61",
+                  "ch-3-p-62",
+                  "ch-3-p-63",
+                  "ch-3-p-64",
+                  "ch-3-p-65",
+                  "ch-3-p-66",
+                  "ch-3-p-67",
+                  "ch-3-p-68",
+                  "ch-3-p-69",
+                  "ch-3-p-70",
+                  "ch-3-p-71"
+                ],
+                "statement": "Plants freeze; the hut light switches on and the angry grandmother confronts the fallen keeper."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-3-p-47",
+                  "ch-3-p-48",
+                  "ch-3-p-49",
+                  "ch-3-p-50",
+                  "ch-3-p-51",
+                  "ch-3-p-52",
+                  "ch-3-p-53",
+                  "ch-3-p-54"
+                ],
+                "action": "Siu lunges and catches Donggeuri despite skidding on the wet roof.",
+                "textIds": [
+                  "text-1",
+                  "text-2"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-3-p-55",
+                  "ch-3-p-56",
+                  "ch-3-p-57",
+                  "ch-3-p-58",
+                  "ch-3-p-59",
+                  "ch-3-p-60"
+                ],
+                "action": "His left foot strikes the basin, sending water and clanging noise across the rooftop.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-3-p-61",
+                  "ch-3-p-62",
+                  "ch-3-p-63",
+                  "ch-3-p-64",
+                  "ch-3-p-65",
+                  "ch-3-p-66",
+                  "ch-3-p-67",
+                  "ch-3-p-68",
+                  "ch-3-p-69",
+                  "ch-3-p-70",
+                  "ch-3-p-71"
+                ],
+                "action": "Plants freeze; the hut light switches on and the angry grandmother confronts the fallen keeper.",
+                "textIds": [
+                  "text-4",
+                  "text-5",
+                  "text-6",
+                  "text-7"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-3-p-49",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "동글아, 위험해!"
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-3-p-54",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "잡았다……!"
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-3-p-57",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "쨍그랑——! 콰아앙——! 탕! 탕! 타당!"
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-3-p-61",
+                "speaker": "c1",
+                "kind": "dialogue",
+                "text": "……망했다."
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-3-p-65",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "탁!"
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-3-p-67",
+                "speaker": "c4",
+                "kind": "dialogue",
+                "text": "어떤 놈팽이가 야밤에 남의 집 마당에서 굿판을 벌이고 지랄이여?!"
+              },
+              {
+                "id": "text-7",
+                "sourceId": "ch-3-p-69",
+                "speaker": "narrator",
+                "kind": "sfx",
+                "text": "드르륵, 쾅!"
+              }
+            ],
+            "staging": "Continue at the south roof edge with Donggeuri tipping. Siu lunges and catches the pot with his right hand while his slippers skid; sprayer may sit on the wet roof beside him until recovered. His left foot strikes the silver rainwater basin by the platform. He ends prone with Donggeuri safe against his chest and sprayer nearby/in hand. Grandma emerges from the hut with tied silver-white permed hair and a twig broom; human and plant positions stay on the roof. The later switched-on hut window is a much stronger harsh rectangle than the earlier soft ambient hut glow.",
+            "uncertainties": [
+              "The first chapter leaves an empty pink pot while later chapters describe the carried brown pot; retain the current excerpt without reconstructing its unexplained earlier transfer.",
+              "The source has a contradictory later sweatpants mention; maintain the established continuous-night white shirt and charcoal trousers.",
+              "Mint wind ribbons, leaf-shaped borders and concentric gutters are editorial graphics, not extra physical objects or new world mechanics."
+            ]
+          },
+          "promptFile": "prompts/ep03-scene-03-r1.txt",
+          "attemptTotal": 1,
+          "chosenAttempt": 1
+        }
+      ],
+      "device": {
+        "title": "식물 눈높이와 소동의 물결",
+        "summary": "잎사귀를 닮은 프레임과 낮은 시선으로 옥상 정원을 발견합니다. 양철 대야가 넘어질 때는 둥근 물결 구도로 소리가 번지고, 모두가 얼어붙은 뒤 할머니가 등장합니다.",
+        "hint": "식물에게는 시우도 거인입니다. 대야의 둥근 물결이 정원의 정적을 깨뜨립니다."
+      }
     }
   ],
   "chapters": [
@@ -1548,8 +4893,8 @@
   "provenance": {
     "requestedSceneModel": "gpt-image-2.5-sunburst",
     "observedSceneModel": null,
-    "imageCalls": 4,
-    "imageSeconds": 151.8,
+    "imageCalls": 14,
+    "imageSeconds": 547.7,
     "actualCost": null,
     "reference": {
       "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/reference-v1.webp",
@@ -1557,7 +4902,14 @@
       "observedModel": null
     },
     "reviewMethod": "Same-host inspection; not independent reader evaluation",
-    "novelCanonModified": false
+    "novelCanonModified": false,
+    "additionalReference": {
+      "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/reference-ep02-03.webp",
+      "requestedModel": "gpt-image-2.5-sunburst",
+      "observedModel": null,
+      "apiCalls": 2,
+      "imageSeconds": 77.4
+    }
   },
   "vibelore": {
     "label": "0.4.8",

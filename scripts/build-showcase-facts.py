@@ -151,15 +151,21 @@ def plant_runaway(w, d):
     f['size'] = row(t(f"소설 {len(d['chapters'])}화 · {num(sum(c['chars'] for c in d['chapters']))}자",
                       f"Novel {len(d['chapters'])} episodes · {num(sum(c['chars'] for c in d['chapters']))} chars"),
                     f.pop('_webtoon'))
-    f['size']['note'] = t('웹툰 1화 · 3장면 · 24칸', 'Webtoon episode 1 · 3 scenes · 24 panels')
-    f['image']['note'] = t('API 요청 모델 · 응답 모델명 미기록 · 기준 이미지는 내장 도구(모델명 미기록)',
-                           'Requested API model · response model not recorded · reference made with the built-in tool (model not recorded)')
-    f['cost'] = row(NONE, t('장면 이미지 4회 · 기준 이미지 1회 · 실제 결제 금액 미기록',
-                            '4 scene image calls · 1 reference call · actual billed cost not recorded'))
+    episodes = len(d['episodes'])
+    scenes = sum(e['sceneCount'] for e in d['episodes'])
+    panels = sum(e['panelTotal'] for e in d['episodes'])
+    calls = d['provenance']['imageCalls']
+    references = 1 + d['provenance'].get('additionalReference', {}).get('apiCalls', 0)
+    f['size']['note'] = t(f'웹툰 {episodes}화 · {scenes}장면 · {panels}칸',
+                          f'Webtoon {episodes} episodes · {scenes} scenes · {panels} panels')
+    f['image']['note'] = t('API 요청 모델 · 응답 모델명 미기록 · 기준 이미지는 내장 도구와 API',
+                           'Requested API model · response model not recorded · references use the built-in tool and API')
+    f['cost'] = row(NONE, t(f'장면 이미지 {calls}회 · 기준 이미지 {references}회 · 실제 결제 금액 미기록',
+                            f'{calls} scene image calls · {references} reference calls · actual billed cost not recorded'))
     f['time'] = row(t(f"장면 이미지 API {d['provenance']['imageSeconds']}초",
                       f"Scene image API {d['provenance']['imageSeconds']} s"),
-                    t('재생성 포함 4회 합계 · 기준 이미지와 전체 집필·각색 시간 제외',
-                      '4 calls including regeneration · excludes reference generation and total writing/adaptation time'))
+                    t(f'재생성 포함 {calls}회 합계 · 기준 이미지와 전체 집필·각색 시간 제외',
+                      f'{calls} calls including regeneration · excludes reference generation and total writing/adaptation time'))
     return f
 
 

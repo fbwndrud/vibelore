@@ -64,7 +64,7 @@ def export(work):
     assert len(seconds) == info['actualApiImageCalls'] == 4
     times = [(seconds[0], 1), (round(sum(seconds[1:3]), 1), 2), (seconds[3], 1)]
     candidates = work / '.vibelore/webtoon/candidates'
-    for n, (a, b), (seconds, calls) in zip((1, 2, 3), ranges, times):
+    for n, (a, b), (image_seconds, calls) in zip((1, 2, 3), ranges, times):
         r = read(production / f'scene-{n:02}-record.json')
         rev = r['revision']
         candidate = candidates / r['workflowId'] / f'r{rev}'
@@ -86,7 +86,7 @@ def export(work):
         s = dict(id=f's{n}', n=n, title=r['plan']['title'], image='img/' + names[n - 1],
                  verdict='pass', blocking=0, pFrom=a, pTo=b, panelCount=8, plannedPanels=8,
                  units=[dict(text=p) for p in paragraphs[a - 1:b]],
-                 timings=dict(imageCalls=calls, imageS=seconds, planS=[], preflightS=[]),
+                 timings=dict(imageCalls=calls, imageS=image_seconds, planS=[], preflightS=[]),
                  textsOk=len(expected), textsTotal=len(expected), findings=fs,
                  review=review, brief=brief, plan=r['plan'], promptFile=prompt,
                  attemptTotal=rev, chosenAttempt=rev)
@@ -125,6 +125,18 @@ def export(work):
                 vibelore=dict(label='0.4.8', novel=[dict(from_=1, to=3, packageVersion='0.4.8', commit='7ed081d')],
                               webtoon=dict(packageVersion='0.4.8')))
     data['vibelore']['novel'][0]['from'] = data['vibelore']['novel'][0].pop('from_')
+    for chapter in (2, 3):
+        folder = work / f'webtoon/episode-{chapter:02}'
+        if (folder / 'production-info.json').exists():
+            append_episode(work, folder, chapter, data, records)
+    if len(data['episodes']) > 1:
+        reference = work / 'webtoon/references/episode-02-03-reference-v2.png'
+        with Image.open(reference) as im:
+            im.convert('RGB').save(DEST / 'img/reference-ep02-03.webp', 'WEBP', quality=90, method=6)
+        provenance['additionalReference'] = dict(image='img/reference-ep02-03.webp', requestedModel=info['sceneRequestedModel'],
+                                                 observedModel=None, apiCalls=2, imageSeconds=77.4)
+        provenance['imageCalls'] = sum(s['timings']['imageCalls'] for e in data['episodes'] for s in e['scenes'])
+        provenance['imageSeconds'] = round(sum(s['timings']['imageS'] for e in data['episodes'] for s in e['scenes']), 1)
     write(DEST / 'data.json', data)
     public_production = json.dumps(dict(provenance=provenance, scenes=records), ensure_ascii=False)
     public_production = public_production.replace('"img/', '"https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/')
@@ -133,7 +145,75 @@ def export(work):
     for f in (DEST / 'data.json', DEST / 'production.json', * (DEST / 'prompts').glob('*.txt')):
         text = f.read_text()
         assert '/Users/' not in text and '.vibelore/' not in text, f
-    print(f'Exported {len(chapters)} novel chapters, {len(scenes)} scenes, {len(assets)} images; 27 source texts verified.')
+    print(f"Exported {len(chapters)} novel chapters, {len(data['episodes'])} webtoon episodes, "
+          f"{sum(e['sceneCount'] for e in data['episodes'])} scenes; exact source texts verified.")
+
+
+def append_episode(work, folder, chapter, data, records):
+    info = read(folder / 'production-info.json')
+    assert info['status'] == 'completed'
+    novel = (DEST / f'novel/{chapter:03}.txt').read_text().strip()
+    paragraphs = re.split(r'\n\s*\n', novel)
+    scenes = []
+    previous_end = 0
+    for n, filename in enumerate(info['acceptedSceneFiles'], 1):
+        r = read(folder / f'scene-{n:02}-record.json')
+        candidate = work / '.vibelore/webtoon/candidates' / r['workflowId'] / f"r{r['revision']}"
+        review = r['visualReview']
+        assert review['passed'] and review['observedPanelCount'] == 8
+        a, b = (int(r['sourceUnitIds'][i].split('-')[-1]) for i in (0, -1))
+        assert a == previous_end + 1
+        assert r['sourceUnitIds'] == [f'ch-{chapter}-p-{p}' for p in range(a, b + 1)]
+        previous_end = b
+        expected = {t['id']: t['text'] for t in r['plan']['texts']}
+        for t in r['plan']['texts']:
+            assert t['text'] in paragraphs[int(t['sourceId'].split('-')[-1]) - 1]
+        # Whitespace may change at balloon line breaks; typography is otherwise exact.
+        assert len(review['textObservations']) == len(expected)
+        assert all(re.sub(r'\s', '', o['observedText']) == re.sub(r'\s', '', expected[o['id']])
+                   and o['readable'] and o['speakerCorrect'] for o in review['textObservations'])
+        name = f'ep{chapter:02}-s{n}.webp'
+        with Image.open(folder / filename) as im:
+            im.convert('RGB').save(DEST / 'img' / name, 'WEBP', quality=90, method=6)
+        fs = findings(review, info['findingTranslations'][str(n)])
+        calls = info['sceneCalls'][str(n)]
+        prompt = f'prompts/ep{chapter:02}-scene-{n:02}-r{r["revision"]}.txt'
+        (DEST / prompt).write_text((folder / f'prompts/scene-{n:02}-r{r["revision"]}.txt').read_text())
+        s = dict(id=f's{n}', n=n, title=r['plan']['title'], image='img/' + name, verdict='pass', blocking=0,
+                 pFrom=a, pTo=b, panelCount=8, plannedPanels=8, units=[dict(text=p) for p in paragraphs[a-1:b]],
+                 timings=dict(imageCalls=len(calls), imageS=round(sum(c['seconds'] for c in calls), 1), planS=[], preflightS=[]),
+                 textsOk=len(expected), textsTotal=len(expected), findings=fs, review=review,
+                 brief=read(candidate / 'render-brief.json'), plan=r['plan'], promptFile=prompt,
+                 attemptTotal=r['revision'], chosenAttempt=r['revision'])
+        record = {k: r[k] for k in ('workflowId', 'revision', 'sourceHash', 'sourceUnitIds', 'plan',
+                                  'preflight', 'visualReview', 'autoRevision')}
+        record['chapter'] = chapter
+        for attempt in r.get('attempts', []):
+            if not attempt.get('image'):
+                continue
+            rev = attempt['revision']
+            failed = read(work / '.vibelore/webtoon/candidates' / r['workflowId'] / f'r{rev}/image-review.json')
+            prior = f'ep{chapter:02}-s{n}-r{rev}.webp'
+            with Image.open(folder / f'scene-{n:02}-r{rev}.png') as im:
+                im.convert('RGB').save(DEST / 'img' / prior, 'WEBP', quality=90, method=6)
+            ffs = findings(failed, info['attemptFindingTranslations'][f'{n}-{rev}'])
+            passed_texts = sum(o['readable'] and o['speakerCorrect'] and
+                              re.sub(r'\s', '', o['observedText']) == re.sub(r'\s', '', t['text'])
+                              for o, t in zip(failed['textObservations'], read(work / '.vibelore/webtoon/candidates' /
+                              r['workflowId'] / f'r{rev}/scene-plan.json')['texts']))
+            s.setdefault('attempts', []).append(dict(n=rev, image='img/' + prior, findings=ffs, plannedPanels=8,
+                                                  observedPanels=failed['observedPanelCount'], textsOk=passed_texts,
+                                                  textsTotal=len(failed['textObservations'])))
+            record.setdefault('previousAttempts', []).append(dict(revision=rev, image='img/' + prior, visualReview=failed))
+            (DEST / f'prompts/ep{chapter:02}-scene-{n:02}-r{rev}.txt').write_text((folder / f'prompts/scene-{n:02}-r{rev}.txt').read_text())
+        scenes.append(s)
+        records.append(record)
+    assert previous_end == len(paragraphs)
+    ep = dict(chapter=chapter, title=data['chapters'][chapter-1]['title'], host='Codex', model='호스트 모델명 미기록',
+              effort='미기록', novelHost='Antigravity CLI', novelModel='gemini-3.8-flash-medium', sceneCount=len(scenes),
+              panelTotal=sum(s['panelCount'] for s in scenes), passCount=len(scenes), reviewer=data['reviewer'],
+              regen=dict(autoRevisionLimit=2), scenes=scenes, device=info['device'])
+    data['episodes'].append(ep)
 
 
 if __name__ == '__main__':

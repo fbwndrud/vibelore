@@ -25,9 +25,9 @@
       "blurb": "퇴근하고 돌아왔더니 다육이가 가출했다. 남긴 쪽지는 단 한 장. 물을 주는 것만으로는 부족한 초보 집사가 말하는 식물들과 햇빛을 찾아 나선다.",
       "stats": [
         "소설 1~3화",
-        "웹툰 1화 · 3장면 · 24칸"
+        "웹툰 1~3화 · 10장면 · 80칸"
       ],
-      "scope": "소설 1~3화 · 웹툰 1화",
+      "scope": "소설 1~3화 · 웹툰 1~3화",
       "meta": "소설 Gemini 3.8 Flash · 웹툰 각색·검토 Codex · 이미지 OpenAI API",
       "model": "Gemini 3.8 Flash / Codex",
       "family": "gemini",
@@ -44,7 +44,7 @@
       },
       "bar": [
         "Gemini 소설 3화",
-        "웹툰 1화 · Sunburst"
+        "웹툰 3화 · Sunburst"
       ],
       "cover": "plant-runaway/img/ep01-s1.webp",
       "thumb": "plant-runaway/thumb.webp",

@@ -18,7 +18,7 @@
 | `lore.html` | 인물·설정 사전. `?work=<id>&ch=<n>`으로 고른 작품의 인물·장소·물건·비밀·예정된 일·떡밥·호칭표를 **고른 화까지만** 보여준다. 항목은 눌러야 펼쳐진다. 작품 목록은 `works.json`의 `lore` 필드에서 읽는다. |
 | `shared/lore.js`·`lore.css` | 사전 카드 렌더와 리더 연결. 작품 리더(`read.html`)의 본문 도구줄(모바일은 아래 시트)에 “인물·설정” 켜기 버튼을 두고, 켜면 `lore.json`을 받아 본문 속 인물·장소 이름(장면 묶음마다 첫 번째)을 누를 수 있게 한다. N화를 읽는 중이면 N−1화까지를 보여주고 N화 변화는 접어 둔다. 기본은 꺼짐(`localStorage` `lore.on`). |
 | `<작품>/lore.json` | 사전 데이터. `scripts/build-showcase-lore.py <id>`가 `works/<id>/characters/*.md`(인물·극적 모델·말투), `.vibelore/ledger/{seed.json,events.jsonl}`(화별 설정 원장, 베스퍼만), `.vibelore/entities.json`(원장 이전 작품의 설계 시드), `.vibelore/story-state/<N>.json`(떡밥·관계·호칭·아크 위치·인물이 아는 것)에서 화별 이력째로 만든다. 쇼케이스에 공개된 화까지만 담는다. |
-| `plant-runaway/` | 『우리 집 화분이 가출했습니다』 소설 1~3화 + 웹툰 1화(3장면·24칸). 소설 Gemini 3.8 Flash(Antigravity CLI), 각색·검토 Codex, 장면 이미지 gpt-image-2.5-sunburst 요청. 수정 전 이미지·기준 이미지·검토 근거 공개. `scripts/export-plant-runaway-showcase.py --work <작품 폴더>`로 내보낸다. |
+| `plant-runaway/` | 『우리 집 화분이 가출했습니다』 소설 1~3화 + 웹툰 1~3화(10장면·80칸). 소설 Gemini 3.8 Flash(Antigravity CLI), 각색·검토 Codex, 장면 이미지 gpt-image-2.5-sunburst 요청. 수정 전 이미지·기준 이미지·검토 근거 공개. `scripts/export-plant-runaway-showcase.py --work <작품 폴더>`로 내보낸다. |
 | `vesper/` | 『베스퍼』(롯데월드 야간 퍼레이드 캐릭터를 빌린 비공식 팬 창작, 인외 로맨틱 코미디) 소설 50화 완결 + 1화 장면 웹툰. vibelore 0.4.2(소설은 0.4.1에서 시작해 PR #9 수정을 반영하며 집필), 설계·집필·각색 Claude Opus 5.5, 이미지 OpenAI 이미지 API(gpt-image-2.5-sunburst). 개요·리더(아크별 회차 선택, 2화부터 소설 전용)·제작 노트(버전표·아크 심사·버그 수정·후반 식자·비용), `data.json`, `novel/NNN.txt`(정본 본문), 이미지(이미지 저장소 `vesper/img/`: 장면 9장 + 다른 시도·식자 전 원본 6장 + 기준 이미지 5장). 팔레트 `vesper.css`. |
 | `i18n.js` | 모든 페이지 공통 한국어/영어 UI 사전과 토글. 기본 언어는 `navigator.language`, 선택은 `localStorage`(`vibelore.lang`)에 저장하고 `?lang=ko|en`으로 공유. 작품 본문·대사는 번역하지 않음. 새 UI 문자열은 한국어 원문을 키로 이 파일에 추가. |
 | `multilingual/` | 8개 언어(ko·en·ja·zh-Hant·es·fr·ar·th) 소설 1화 발췌·사실과 장면 웹툰 한 장·판정. `data.json`, 이미지(이미지 저장소 `multilingual/img/`, WebP), `ml.js`·`ml.css`. 기본 웹툰 실행은 3207b83, 비교용 “프롬프트 수정 전” 52e5aee. |
@@ -50,7 +50,7 @@
 
 ### 이미지 저장소
 
-장면 이미지(`<작품>/img/`, 203장·약 51MB)는 본 저장소가 작품마다 커지지 않도록 [fbwndrud/vibelore-showcase-media](https://github.com/fbwndrud/vibelore-showcase-media)에 두고, 그 저장소의 GitHub Pages(`https://fbwndrud.github.io/vibelore-showcase-media/<작품>/img/…`)로 서빙합니다. `data.json`의 `image` 값과 `how/webtoon.html`의 그림은 이 절대 주소를 가리키고, `works.json`의 `cover`는 이미지 저장소 기준 경로입니다. 본 저장소에는 목록용 썸네일(`thumb`·`thumbSq`)만 둡니다.
+장면 이미지(`<작품>/img/`, 214장·약 57MB)는 본 저장소가 작품마다 커지지 않도록 [fbwndrud/vibelore-showcase-media](https://github.com/fbwndrud/vibelore-showcase-media)에 두고, 그 저장소의 GitHub Pages(`https://fbwndrud.github.io/vibelore-showcase-media/<작품>/img/…`)로 서빙합니다. `data.json`의 `image` 값과 `how/webtoon.html`의 그림은 이 절대 주소를 가리키고, `works.json`의 `cover`는 이미지 저장소 기준 경로입니다. 본 저장소에는 목록용 썸네일(`thumb`·`thumbSq`)만 둡니다.
 
 작품 build 스크립트가 `data.json`과 `img/`를 새로 만든 뒤에는 아래를 실행하고 이미지 저장소를 커밋·푸시합니다. 스크립트는 이미지를 복사하고, `data.json`·`how/*.html`의 경로를 바꾸고, 본 저장소의 `img/`를 지웁니다.
 
