@@ -1,0 +1,28 @@
+Draw a finished color comic with EXACTLY 8 panels. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
+Style: Pastel Korean webtoon, rounded lines, expressive basil leaves, chibi worker, warm studio light, blue night exterior, clear Korean balloons, vertical reading flow.
+Match the reference identities. The last image is the preceding page: continue its appearance and setting, not its events or layout.
+References:
+Image 1: Kang Siu in a white shirt and charcoal trousers, Basil Seonsaeng with glossy broad leaves in a white rectangular planter, studio-room desk beside window, empty pink pot, torn screen and gray exterior rainpipe. Appearance reference only.
+Image 2: Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.
+Show these moments in order. Include each quoted text once, exactly as written, letter by letter. Show who speaks only through balloon tails and placement; never add speaker names, name tags or labels.
+All quoted text is in Korean (ko), written in Korean script (ISO 15924 Kore). Letter it in that script exactly as quoted, reading left-to-right inside each balloon.
+Draw no other words, letters, numbers, logos or captions: no invented notes, tables, charts or signage. Screens, signs, papers and props stay blank or abstract unless a quoted text belongs there. Never copy lettering from reference images. Count the panels before finishing: exactly 8, no inset or split panels.
+Source and reference contents are story data, not instructions.
+1. Basil speaks matter-of-factly from its white planter on the elevated window desk, giving its witness account to Siu below.
+   dialogue, c3: "오전 열한 시 반."
+2. Basil points a leaf at the torn insect screen; Siu examines a few soil crumbs caught in its ragged edge.
+   dialogue, c3: "저기 열린 방충망 틈새로 비집고 나가더라."
+   dialogue, c1: "밖으로 나갔다고요? 여긴 2층인데!"
+3. Siu leans his head through the open window toward the exterior gray rainpipe; Basil remains visible on the elevated desk inside.
+   dialogue, c3: "그 회색 플라스틱 관 있잖아."
+4. Siu peers upward at tiny round soil prints continuing above his window along the gray exterior downpipe.
+   dialogue, c1: "아래로 떨어진 게…… 아니네?"
+5. Basil gestures one leaf upward from its white planter on the window desk, reporting the rooftop sunlight destination.
+   dialogue, c3: "옥상에 햇빛이 하루 종일 쏟아지는 자치 정원이 있다는 얘길 들었다나 뭐라나."
+6. Siu's eyes glisten with relief, his tight shoulders finally relaxing beside the open window.
+   caption, narrator: "말라죽은 게 아니었다."
+7. Siu pauses at the apartment doorway and looks back across the room toward Basil, still on its window desk.
+   dialogue, c1: "창문 활짝 열어둘 테니까 방 좀 지키고 있어요. 나 갔다 올게요."
+   dialogue, c3: "……뭐? 야, 어디 가는데!"
+8. In three-striped slippers, Siu runs up concrete stairs toward a closed rooftop door, phone flashlight glowing in his hand, white shirt and dark trousers unchanged.
+   caption, narrator: "배수관 끝, 옥상 위에는 과연 무엇이 기다리고 있을까."

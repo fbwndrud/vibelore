@@ -1,0 +1,1576 @@
+{
+  "work": "우리 집 화분이 가출했습니다",
+  "builtAt": "2026-10-02",
+  "imageHost": "OpenAI 이미지 API",
+  "imageModel": "gpt-image-2.5-sunburst",
+  "reviewer": {
+    "host": "Codex",
+    "model": "호스트 모델명 미기록"
+  },
+  "episodes": [
+    {
+      "chapter": 1,
+      "title": "물은 됐고요, 햇빛 찾으러 갑니다",
+      "host": "Codex",
+      "model": "호스트 모델명 미기록",
+      "effort": "미기록",
+      "novelHost": "Antigravity CLI",
+      "novelModel": "gemini-3.8-flash-medium",
+      "sceneCount": 3,
+      "panelTotal": 24,
+      "passCount": 3,
+      "reviewer": {
+        "host": "Codex",
+        "model": "호스트 모델명 미기록"
+      },
+      "regen": {
+        "autoRevisionLimit": 2
+      },
+      "scenes": [
+        {
+          "id": "s1",
+          "n": 1,
+          "title": "물은 됐고요, 햇빛 찾으러 갑니다",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep01-s1.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 1,
+          "pTo": 22,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "현관 도어록이 피로에 절은 삑삑 소리를 내며 풀렸다. 오늘따라 유독 뻑뻑한 철문을 어깨로 밀어젖히고 들어선 원룸은 하루 종일 갇혀 있던 먼지와 식은 공기로 묵직하게 가라앉아 있었다."
+            },
+            {
+              "text": "어깨를 짓누르던 서류 가방을 현관 바닥에 내팽개치듯 내려놓고 구두 뒷축을 꺾어 벗었다. 와이셔츠 깃을 풀어헤치자마자 목덜미로 끈적한 피로가 밀려왔다. 지하철 환승 통로에서 시달린 다리가 후들거렸지만, 겉옷도 벗기 전에 싱크대로 가 낡은 플라스틱 물조리개부터 집어 들었다. 주방 수도꼭지를 틀어 미지근한 수돗물을 찰랑거리게 채우는 것은 자취를 시작한 이래 내 뇌리에 박힌 강박에 가까운 일과였다."
+            },
+            {
+              "text": "물을 안 줘서 말려 죽인 스투키 하나, 물을 너무 퍼부어 뿌리부터 썩어 문드러진 테이블야자 둘."
+            },
+            {
+              "text": "손바닥만 한 자취방을 거쳐 간 수많은 초록빛 생명들을 떠올릴 때마다 손톱 밑이 까슬하게 저려왔다. 이번에 들인 다육이 동글이만큼은 절대로 그렇게 보내지 않겠다고, 이번 주말에도 펄라이트와 마사토를 곱게 섞어 분갈이 흙 봉투를 가슴에 품고 골목길을 뛰어왔던 나였다."
+            },
+            {
+              "text": "\"동글아, 집사 왔다. 오늘 날 흐려서 목 좀 말랐지?\""
+            },
+            {
+              "text": "물조리개를 들고 창가 책상 쪽으로 걸어가며 평소처럼 말을 건넸다. 퇴근길 편의점에서 사 온 샌드위치는 거들떠보지도 않은 채였다. 책상 모퉁이, 햇빛이 가장 길게 머물다 간다는 내 나름의 '상석'에 둔 엄지손가락만 한 분홍빛 토분으로 시선을 내렸다."
+            },
+            {
+              "text": "그런데 그 자리엔 아무것도 없었다."
+            },
+            {
+              "text": "아니, 정확히는 토분만 덩그러니 남겨져 있었다. 분홍빛 토분은 깨지지도 않은 채 옆으로 비스듬히 누워 있었고, 그 안을 채우고 있어야 할 통통한 알사탕 모양의 다육식물은 온데간데없었다. 책상 위에는 잘 마른 분갈이 흙과 자잘한 마사토 알갱이들만이 모래바람이라도 휩쓸고 지나간 것처럼 사방으로 흩뿌려져 있었다."
+            },
+            {
+              "text": "\"……어?\""
+            },
+            {
+              "text": "물조리개를 쥔 손에서 힘이 빠지며 바닥으로 물방울이 뚝뚝 떨어졌다."
+            },
+            {
+              "text": "순간 덜컥 가슴이 내려앉았다. 또 내가 뭔가를 잘못 건드린 걸까. 어제 아침에 창문을 닫고 나간 게 화근이었나? 바람이 안 통해서 잎이 스스로 떨어져 바닥 틈새로 굴러떨어졌나?"
+            },
+            {
+              "text": "머릿속이 하얘지며 눈앞이 핑 돌았다. 나는 무릎을 꿇고 엎드려 방바닥을 미친 사람처럼 더듬기 시작했다. 침대 밑 어둠 속으로 손을 쑤셔 넣고, 책상 다리 밑 먼지 뭉치까지 손끝으로 훑었다. 손가락 끝에 닿는 거라곤 서걱거리는 흙 알갱이와 차가운 장판의 감촉뿐이었다. 손등에 예전 분갈이 때 모종삽에 긁혀 남았던 옅은 흉터가 홧홧하게 달아오르는 기분이었다."
+            },
+            {
+              "text": "\"어디 갔어…… 동글아, 어디 떨어진 거야?\""
+            },
+            {
+              "text": "내가 또 생명을 죽였다는 죄책감이 목구멍을 턱 막아왔다. 식물을 기를 자격도 없는 주제에 욕심을 부렸다고, 텅 빈 화분만 보면 쓸쓸해서 또 새 흙을 채워 넣던 내 미련함이 결국 녀석을 질식시킨 거라는 자책이 걷잡을 수 없이 번져 나갔다. 손바닥으로 마른 흙먼지를 그러쥐며 숨을 헐떡이던 바로 그때였다."
+            },
+            {
+              "text": "책상 위, 넘어진 토분 밑바닥에 연노란색 접착 메모지 한 장이 붙어 있는 것이 눈에 들어왔다."
+            },
+            {
+              "text": "가로세로 3센티미터도 채 되지 않는 손톱만 한 포스트잇이었다. 흙 묻은 손을 덜덜 떨며 종이를 떼어냈다. 그 작은 종이쪽지 한가운데에는 뾰족한 이쑤시개 같은 것으로 꾹꾹 눌러 쓴 삐뚤빼뚤한 초록색 글씨가 적혀 있었다."
+            },
+            {
+              "text": "『물은 됐고요. 햇빛 찾으러 갑니다. 찾지 마세요.』"
+            },
+            {
+              "text": "\"……뭐?\""
+            },
+            {
+              "text": "내 눈을 의심하며 쪽지를 몇 번이나 코앞에 들이댔다."
+            },
+            {
+              "text": "물은 됐고, 햇빛을 찾으러 가?"
+            },
+            {
+              "text": "가출이었다."
+            },
+            {
+              "text": "도둑이 들어와 화분만 훔쳐 간 것도 아니고, 바람에 날아간 것도 아니었다. 내 손을 거쳐 간 수많은 화분 중 처음으로, 스스로 흙을 털고 짐을 싸서 나간 녀석이 등장한 것이다."
+            }
+          ],
+          "timings": {
+            "imageCalls": 1,
+            "imageS": 37.5,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 6,
+          "textsTotal": 6,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "2칸에서 바질을 앞세운 구도 때문에 동글이에게 건네는 인사가 잠시 모호합니다. 다음 칸의 빈 분홍 화분이 이를 설명합니다.",
+              "en": "Panel 2 foregrounds Basil while Siu greets Donggeuri; the following empty pink pot reveal clarifies the missing succulent, but the initial eyeline could be clearer.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:824b49989ebf4ae033c86c2191e2ebfbb9df68365786ba2177e3d45dfefccc7a",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3",
+              "beat-4",
+              "beat-5"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "동글아, 집사 왔다. 오늘 날 흐려서 목 좀 말랐지?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 upper-right white balloon points left to Siu, with all three lines legible."
+              },
+              {
+                "id": "text-2",
+                "observedText": "……어?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 4 balloon beside wide-eyed Siu."
+              },
+              {
+                "id": "text-3",
+                "observedText": "어디 갔어…… 동글아, 어디 떨어진 거야?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 two-line balloon points to Siu searching under bed."
+              },
+              {
+                "id": "text-4",
+                "observedText": "물은 됐고요. 햇빛 찾으러 갑니다. 찾지 마세요.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 green handwriting is directly on the yellow note, three complete sentences. The tiny sprout doodle is non-lettering."
+              },
+              {
+                "id": "text-5",
+                "observedText": "……뭐?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 8 small balloon to Siu."
+              },
+              {
+                "id": "text-6",
+                "observedText": "가출이었다.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 8 lower-right narrator caption clearly reads the selected original line."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "evidence": "Eight visible panels in four rows of two, read left to right then downward. Exhausted arrival, care greeting, empty pot, dripping-can reaction, under-bed search, note pickup, physical note reveal, and disbelief are all visible. The pink pot and same dark-haired white-shirted Siu recur consistently. This is inspection by the generating host, not independent evaluation.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "Panel 2 foregrounds Basil while Siu greets Donggeuri; the following empty pink pot reveal clarifies the missing succulent, but the initial eyeline could be clearer."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Pastel Korean webtoon, rounded linework, small chibi worker, expressive plant leaves, cozy studio, warm interior light, clear Korean lettering, vertical reading flow.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-1-p-1",
+                  "ch-1-p-2"
+                ],
+                "action": "A tired Siu slumps through the apartment doorway, loosened white shirt collar and briefcase beside him.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-5",
+                  "ch-1-p-6"
+                ],
+                "action": "Siu stands by the window desk holding his watering can, greeting the usual succulent spot; an unopened sandwich sits nearby.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-7",
+                  "ch-1-p-8"
+                ],
+                "action": "The intact tiny pink pot lies empty and tilted on the desk amid scattered soil.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-9",
+                  "ch-1-p-10"
+                ],
+                "action": "A wide-eyed Siu freezes with water dripping from his lowered watering can.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-12",
+                  "ch-1-p-13"
+                ],
+                "action": "Siu kneels on the floor with one hand beneath the bed, anxiously searching for the missing succulent.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-15",
+                  "ch-1-p-16"
+                ],
+                "action": "Siu peels a tiny pale-yellow sticky note from the bottom of the overturned pink pot.",
+                "textIds": []
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-17"
+                ],
+                "action": "The yellow note fills the view, bearing a legible green handwritten departure message.",
+                "textIds": [
+                  "text-4"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-18",
+                  "ch-1-p-19",
+                  "ch-1-p-21"
+                ],
+                "action": "Siu holds the note near his stunned face, his alarm turning into absurd disbelief.",
+                "textIds": [
+                  "text-5",
+                  "text-6"
+                ]
+              }
+            ],
+            "focusTextIds": [
+              "text-4"
+            ]
+          },
+          "plan": {
+            "title": "물은 됐고요, 햇빛 찾으러 갑니다",
+            "intent": "Turn an exhausted worker's earnest care into a cute missing-plant mystery. Hold a small sincere worry before the insolently polite runaway note releases the tension as comedy.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-1-p-1",
+                  "ch-1-p-2"
+                ],
+                "statement": "Kang Siu returns tired from work and immediately prepares the watering can."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-1-p-6",
+                  "ch-1-p-8"
+                ],
+                "statement": "The succulent is absent from the window-side desk; an intact empty pink terracotta pot lies tilted amid dry soil."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-1-p-15",
+                  "ch-1-p-16",
+                  "ch-1-p-17"
+                ],
+                "statement": "A tiny pale-yellow sticky note on the overturned pot carries the plant's green handwritten departure message."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-1-p-1",
+                  "ch-1-p-2",
+                  "ch-1-p-5",
+                  "ch-1-p-6"
+                ],
+                "action": "Siu's tired return becomes his familiar caring routine, with dinner still untouched.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-1-p-7",
+                  "ch-1-p-8",
+                  "ch-1-p-9",
+                  "ch-1-p-10"
+                ],
+                "action": "The empty pot interrupts his greeting and the loose watering can drips.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-1-p-11",
+                  "ch-1-p-12",
+                  "ch-1-p-13",
+                  "ch-1-p-14"
+                ],
+                "action": "Worry drives Siu to search beneath the furniture.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "id": "beat-4",
+                "sourceIds": [
+                  "ch-1-p-15",
+                  "ch-1-p-16",
+                  "ch-1-p-17"
+                ],
+                "action": "Siu discovers and reads the note, replacing an accidental disappearance with a deliberate departure.",
+                "textIds": [
+                  "text-4"
+                ]
+              },
+              {
+                "id": "beat-5",
+                "sourceIds": [
+                  "ch-1-p-18",
+                  "ch-1-p-19",
+                  "ch-1-p-21",
+                  "ch-1-p-22"
+                ],
+                "action": "A stunned Siu recognizes that his plant has run away.",
+                "textIds": [
+                  "text-5",
+                  "text-6"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-1-p-5",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "동글아, 집사 왔다. 오늘 날 흐려서 목 좀 말랐지?"
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-1-p-9",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "……어?"
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-1-p-13",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "어디 갔어…… 동글아, 어디 떨어진 거야?"
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-1-p-17",
+                "kind": "physical",
+                "speaker": "c2",
+                "text": "물은 됐고요. 햇빛 찾으러 갑니다. 찾지 마세요."
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-1-p-18",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "……뭐?"
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-1-p-21",
+                "kind": "caption",
+                "speaker": "narrator",
+                "text": "가출이었다."
+              }
+            ],
+            "staging": "The desk borders the closed apartment window. The empty pot and soil remain on the desk. Siu searches the floor before returning to the desk and peeling the note from the pot. Keep the pale-yellow note prominent at the reveal. Use the reference wardrobe and room, with the absent succulent staying absent.",
+            "uncertainties": [
+              "The first excerpt does not explain how the plant wrote the message; show the existing note without supplying a mechanism.",
+              "The later source disagrees about carrying the pot, so this scene depicts only the explicitly empty pink pot on the desk."
+            ]
+          },
+          "promptFile": "prompts/scene-01-r1.txt",
+          "attemptTotal": 1,
+          "chosenAttempt": 1
+        },
+        {
+          "id": "s2",
+          "n": 2,
+          "title": "창가의 실세, 바질 선생",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep01-s2.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 23,
+          "pTo": 45,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "\"하, 참나…… 어이가 없어서.\""
+            },
+            {
+              "text": "어디선가 헛웃음이 섞인 앙칼진 목소리가 방 안의 적막을 깼다."
+            },
+            {
+              "text": "창가 명당 거치대 한가운데에서 짙푸르고 윤기 나는 넓적한 잎사귀들을 파르르 떨고 있는 하얀 플라스틱 사각 화분. 우리 집 베란다 창틀 1열을 독점하고 있는 바질 선생이었다."
+            },
+            {
+              "text": "\"야, 똥손 집주인! 퇴근했으면 양말만 벗고 멍때리지 말고 창문부터 활짝 열어라! 방 안 꼴이 이게 뭐냐? 찌개 냄새에 신발 냄새에, 공기가 아주 썩어 문드러지다 못해 엽록소가 질식할 지경이라고!\""
+            },
+            {
+              "text": "바질 선생이 줄기를 빳빳하게 곧추세우며 사납게 쏘아붙였다. 하얀 화분 모서리에 마른 흙 얼룩을 묻힌 채, 녀석은 잎사귀 하나하나를 부채질하듯 파닥거렸다."
+            },
+            {
+              "text": "\"바, 바질 선생……? 지금 그게 문제가 아니라, 동글이가…… 동글이가 사라졌어요!\""
+            },
+            {
+              "text": "나는 손에 쥔 포스트잇을 허공에 흔들며 허겁지겁 바질 앞으로 다가갔다. 목소리가 절로 한 옥타브 치솟았다."
+            },
+            {
+              "text": "\"사라지긴 뭘 사라져! 저기 네 손에 쥐고 있는 거 안 보여? 걔 아침부터 아주 비장하게 뿌리털 털어내더니 자기 발로 화분 박차고 나갔다, 왜!\""
+            },
+            {
+              "text": "\"자기 발로 나갔다니요? 화분이 어떻게 제 발로 걸어서 나가요! 아니, 애초에 다육이가 걸을 수나 있어요? 뿌리가 화분 흙 밑에 박혀 있었는데……!\""
+            },
+            {
+              "text": "\"이 답답한 인간아! 뿌리는 흙에 처박혀 썩으라고 있는 게 아니라 살길 찾아 뻗으라고 있는 거야! 넌 어제 하루 종일 그 조그만 토분에 분무기로 물을 세 번이나 들이부었지? 그래놓고 햇빛 든답시고 창가 구석, 하루에 해가 십오 분도 안 스쳐 지나가는 음지에다 처박아 뒀잖아! 흙은 젖어서 숨도 못 쉬겠는데 해는 안 들어오니, 걔 입장에선 거기 가만히 앉아 있다간 뿌리부터 썩어 문드러질 판국이었던 거지!\""
+            },
+            {
+              "text": "바질 선생의 거침없는 팩트 폭격이 비수처럼 가슴에 꽂혔다."
+            },
+            {
+              "text": "\"그, 그건 난 동글이가 목마를까 봐…… 다육이라도 봄에는 물을 좀 줘야 한다고 인터넷 블로그에서 봐서…….\""
+            },
+            {
+              "text": "\"인터넷 블로그가 네 방 습도를 알아? 네 방 통풍 상태를 아냐고! 봐라, 지금도 창문 꽁꽁 닫아걸고 방 안에 습기만 가득 채워놨잖아! 바람길이 막혔는데 물만 주면 그게 고문이지 사랑이냐? 아유, 말해 뭐해. 내 숨이 다 막힌다, 숨이 막혀!\""
+            },
+            {
+              "text": "바질 선생은 말을 마치기가 무섭게 줄기를 스르륵 옆으로 꺾더니 넓적한 잎사귀들을 축 늘어뜨렸다. 마치 방금이라도 생명줄을 놓아버릴 것처럼 처절하게 시든 시늉을 해대는 꼴에 내 심장이 쿵 내려앉았다."
+            },
+            {
+              "text": "\"아, 알았어요! 열게요, 열면 되잖아요! 제발 그렇게 눕지 마세요, 바질 선생!\""
+            },
+            {
+              "text": "나는 물조리개를 내던지다시피 내려놓고 창문으로 달려들었다. 이중창의 잠금장치를 거칠게 풀고 양손으로 창문을 끝까지 밀어젖혔다. 그것도 모자라 베란다 쪽으로 통하는 작은 쪽창과 부엌 환풍기까지 모조리 켜버렸다."
+            },
+            {
+              "text": "쏴아아아―!"
+            },
+            {
+              "text": "늦가을과 초겨울 경계의 칼칼하고 얼음장 같은 밤바람이 거침없이 방 안으로 들이닥쳤다. 책상 위에 흩어져 있던 서류와 영수증들이 펄럭이며 바닥으로 곤두박질쳤고, 내 얇은 와이셔츠 안으로 서릿발 같은 냉기가 파고들어 온몸의 솜털이 곤두섰다. 방 안 온도가 순식간에 영하 가까이 뚝 떨어지는 게 온 피부로 느껴졌다. 발가락 끝이 시려와 절로 몸이 달달 떨렸다."
+            },
+            {
+              "text": "\"으으…… 춥다, 추워…… 됐죠? 이 정도면 통풍 확실하죠?\""
+            },
+            {
+              "text": "내가 이를 덜덜 떨며 묻자, 방금 전까지 다 죽어가던 바질 선생이 언제 그랬냐는 듯 잎사귀를 번쩍 치켜세웠다. 녀석은 차가운 바람을 온몸으로 들이마시며 줄기를 좌우로 가볍게 흔들더니, 달콤하고 알싸한 특유의 신선한 허브 향을 방 안에 훅 풍겨냈다."
+            },
+            {
+              "text": "\"크하―! 살겠네! 그래, 이 맛이지. 진작 이렇게 바람길을 터줬어야지. 멍청한 집사 녀석, 그래도 시키는 건 군말 없이 잘한단 말이야.\""
+            },
+            {
+              "text": "\"저기요, 바질 선생…… 나 지금 퇴근하고 밥도 못 먹고 방 안 얼어붙는 거 참으면서 창문 다 열어줬거든요? 그러니까 제발, 동글이 어디로 갔는지 좀 가르쳐줘요. 네? 걔 지금 어디 있어요?\""
+            },
+            {
+              "text": "나는 애원하듯 두 손을 모아 쥐며 바질의 하얀 플라스틱 화분 앞에 무릎을 꿇었다. 내 처량한 꼴을 물끄러미 내려다보던 바질 선생이 잎끝을 톡톡 털며 으스대듯 입을 열었다."
+            }
+          ],
+          "timings": {
+            "imageCalls": 2,
+            "imageS": 77.4,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 11,
+          "textsTotal": 11,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "5칸의 말풍선 배치상 시우의 대답을 바질의 지적보다 먼저 읽을 수 있습니다. 앞선 환기 요구로 행동의 동기는 유지됩니다.",
+              "en": "In panel 5 Siu's agreement balloon is above-left of Basil's care criticism, so that pair may be read in the reverse order. The earlier explicit window demand preserves motivation and the visible droop precedes the opening.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "첫 칸부터 시우가 낮게 웅크린 자세입니다. 후반의 무릎 꿇는 부탁은 남아 있지만 원문보다 이른 자세 변화가 들어갔습니다.",
+              "en": "The first panel shows Siu already crouched or kneeling by the desk. The later kneeling appeal is preserved, but the staging adds an early low posture as expressive acting.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:185104806308ca96f965e0bf5266da36016abb2bc08d5b0f760d0a63b3b0f361",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3",
+              "beat-4",
+              "beat-5"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "하, 참나…… 어이가 없어서.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 1 top balloon points right toward Basil on the elevated desk."
+              },
+              {
+                "id": "text-2",
+                "observedText": "창문부터 활짝 열어라!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 balloon points to the upright Basil."
+              },
+              {
+                "id": "text-3",
+                "observedText": "동글이가…… 동글이가 사라졌어요!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 3 upper-right balloon points left to note-holding Siu."
+              },
+              {
+                "id": "text-4",
+                "observedText": "자기 발로 화분 박차고 나갔다, 왜!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 4 highest, right balloon points to Basil."
+              },
+              {
+                "id": "text-5",
+                "observedText": "화분이 어떻게 제 발로 걸어서 나가요!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 4 lower, left balloon points to Siu."
+              },
+              {
+                "id": "text-6",
+                "observedText": "바람길이 막혔는데 물만 주면 그게 고문이지 사랑이냐?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 right balloon points to drooping Basil."
+              },
+              {
+                "id": "text-7",
+                "observedText": "아, 알았어요! 열게요, 열면 되잖아요!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 left balloon points to Siu, hands raised."
+              },
+              {
+                "id": "text-8",
+                "observedText": "쏴아아아―!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 wind effect is visibly lettered across the open window."
+              },
+              {
+                "id": "text-9",
+                "observedText": "으으…… 춥다, 추워…… 됐죠?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 left balloon points to shivering Siu."
+              },
+              {
+                "id": "text-10",
+                "observedText": "크하―! 살겠네! 그래, 이 맛이지.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 right balloon points to delighted Basil."
+              },
+              {
+                "id": "text-11",
+                "observedText": "동글이 어디로 갔는지 좀 가르쳐줘요.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 8 balloon points to Siu kneeling below the desk."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Both images show the same tousled dark-brown-haired Siu, white collared shirt and dark trousers; Basil retains glossy leaves and its soil-stained white rectangular pot."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "The window desk visibly supports Basil in all relevant panels, including 7. In panel 8 the desk legs and chair establish its elevation above the kneeling Siu. Torn screen, cream walls, lamp and nighttime window match page 1."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "The opening panel continues with Siu holding the same yellow note beside Basil; after the argument the window opens in panel 6 and the human is chilled before asking for directions."
+              }
+            },
+            "evidence": "Eight separate panels. All eleven selected Korean texts are readable and attributed to the visible human or Basil; the sfx belongs to the draft. The desk now stays under the planter and the final panel shows Siu on the floor looking upward. Inspection compared this candidate with the actual preceding page; same host, not independent.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "In panel 5 Siu's agreement balloon is above-left of Basil's care criticism, so that pair may be read in the reverse order. The earlier explicit window demand preserves motivation and the visible droop precedes the opening."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "The first panel shows Siu already crouched or kneeling by the desk. The later kneeling appeal is preserved, but the staging adds an early low posture as expressive acting."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Pastel Korean webtoon, rounded lines, expressive leaves, chibi office worker, warm studio and blue night draft, clear Korean balloons, vertical reading flow.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-1-p-23",
+                  "ch-1-p-25"
+                ],
+                "action": "Basil rests in its white rectangular planter on the elevated window desk, smirking through glossy leaves at Siu holding the yellow note.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-26",
+                  "ch-1-p-27"
+                ],
+                "action": "Basil fans upright leaves from its planter on the window desk, beside the closed window.",
+                "textIds": [
+                  "text-2"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-28",
+                  "ch-1-p-29"
+                ],
+                "action": "Siu waves the yellow note toward Basil, alarmed.",
+                "textIds": [
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-30",
+                  "ch-1-p-31"
+                ],
+                "action": "Basil gestures self-assuredly from its planter on the desk; Siu stands incredulous across the tabletop.",
+                "textIds": [
+                  "text-4",
+                  "text-5"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-35",
+                  "ch-1-p-36",
+                  "ch-1-p-37"
+                ],
+                "action": "Basil droops over its planter on the desk; Siu stands beside the tabletop with both hands raised in surrender.",
+                "textIds": [
+                  "text-6",
+                  "text-7"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-38",
+                  "ch-1-p-39",
+                  "ch-1-p-40"
+                ],
+                "action": "Siu holds the window wide open as cold night wind billows into the room and flutters blank papers.",
+                "textIds": [
+                  "text-8"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-41",
+                  "ch-1-p-42",
+                  "ch-1-p-43"
+                ],
+                "action": "Siu stands shivering beside the wooden window desk, hugging his shoulders; Basil rests on the tabletop, lifting leaves blissfully into the fresh draft.",
+                "textIds": [
+                  "text-9",
+                  "text-10"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-44",
+                  "ch-1-p-45"
+                ],
+                "action": "Siu kneels on the floor below the window desk, clasping his hands and looking upward at Basil in its white planter on the elevated tabletop.",
+                "textIds": [
+                  "text-11"
+                ]
+              }
+            ],
+            "corrections": [
+              "Basil's white planter rests on the elevated window desk in every panel.",
+              "The kneeling Siu looks upward to Basil above the desk edge."
+            ]
+          },
+          "plan": {
+            "title": "창가의 실세, 바질 선생",
+            "intent": "Reveal the houseplant as a sharp-tongued roommate. Siu's missing-plant panic collides with Basil's ventilation demands; the cold human and delighted herb provide the comic payoff before Siu earns a witness account.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-1-p-23",
+                  "ch-1-p-25",
+                  "ch-1-p-27"
+                ],
+                "statement": "The voice is Basil, a glossy broad-leaf herb in a soil-stained white rectangular planter beside the window."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-1-p-28",
+                  "ch-1-p-30",
+                  "ch-1-p-31"
+                ],
+                "statement": "Siu reports the disappearance; Basil says the succulent left by itself, which Siu finds absurd."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-1-p-35",
+                  "ch-1-p-36",
+                  "ch-1-p-37",
+                  "ch-1-p-38"
+                ],
+                "statement": "Basil complains about watering without ventilation and theatrically droops; Siu opens the windows."
+              },
+              {
+                "id": "fact-4",
+                "sourceIds": [
+                  "ch-1-p-40",
+                  "ch-1-p-41",
+                  "ch-1-p-42",
+                  "ch-1-p-43",
+                  "ch-1-p-44",
+                  "ch-1-p-45"
+                ],
+                "statement": "Cold air chills Siu and revives Basil; Siu kneels to ask where the runaway went."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-1-p-23",
+                  "ch-1-p-24",
+                  "ch-1-p-25",
+                  "ch-1-p-26",
+                  "ch-1-p-27"
+                ],
+                "action": "The mocking voice resolves into Basil, whose immediate priority is fresh air.",
+                "textIds": [
+                  "text-1",
+                  "text-2"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-1-p-28",
+                  "ch-1-p-29",
+                  "ch-1-p-30",
+                  "ch-1-p-31"
+                ],
+                "action": "Siu brandishes the note; Basil dismisses his panic by revealing voluntary departure, and Siu questions walking plants.",
+                "textIds": [
+                  "text-3",
+                  "text-4",
+                  "text-5"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-1-p-35",
+                  "ch-1-p-36",
+                  "ch-1-p-37"
+                ],
+                "action": "Basil exposes failed care and droops dramatically until Siu agrees to open the window.",
+                "textIds": [
+                  "text-6",
+                  "text-7"
+                ]
+              },
+              {
+                "id": "beat-4",
+                "sourceIds": [
+                  "ch-1-p-38",
+                  "ch-1-p-39",
+                  "ch-1-p-40",
+                  "ch-1-p-41",
+                  "ch-1-p-42",
+                  "ch-1-p-43"
+                ],
+                "action": "Opening the window makes the papers flutter; shivering Siu and revived Basil show opposing reactions to the same draft.",
+                "textIds": [
+                  "text-8",
+                  "text-9",
+                  "text-10"
+                ]
+              },
+              {
+                "id": "beat-5",
+                "sourceIds": [
+                  "ch-1-p-44",
+                  "ch-1-p-45"
+                ],
+                "action": "Siu kneels before the planter and asks for the runaway's whereabouts.",
+                "textIds": [
+                  "text-11"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-1-p-23",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "하, 참나…… 어이가 없어서."
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-1-p-26",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "창문부터 활짝 열어라!"
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-1-p-28",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "동글이가…… 동글이가 사라졌어요!"
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-1-p-30",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "자기 발로 화분 박차고 나갔다, 왜!"
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-1-p-31",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "화분이 어떻게 제 발로 걸어서 나가요!"
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-1-p-35",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "바람길이 막혔는데 물만 주면 그게 고문이지 사랑이냐?"
+              },
+              {
+                "id": "text-7",
+                "sourceId": "ch-1-p-37",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "아, 알았어요! 열게요, 열면 되잖아요!"
+              },
+              {
+                "id": "text-8",
+                "sourceId": "ch-1-p-39",
+                "kind": "sfx",
+                "speaker": "narrator",
+                "text": "쏴아아아―!"
+              },
+              {
+                "id": "text-9",
+                "sourceId": "ch-1-p-41",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "으으…… 춥다, 추워…… 됐죠?"
+              },
+              {
+                "id": "text-10",
+                "sourceId": "ch-1-p-43",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "크하―! 살겠네! 그래, 이 맛이지."
+              },
+              {
+                "id": "text-11",
+                "sourceId": "ch-1-p-44",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "동글이 어디로 갔는지 좀 가르쳐줘요."
+              }
+            ],
+            "staging": "Basil remains on the elevated wooden window desk throughout the scene, with the same white planter resting on the tabletop. The torn screen and nighttime view are behind the planter. Siu speaks standing across the desk, opens the window, shivers standing beside the desk, then kneels on the floor below its edge, looking upward toward Basil. Maintain the preceding page's desk height, white shirt, dark trousers and planter identity.",
+            "uncertainties": [
+              "The source gives conflicting seasonal descriptions; this scene uses the explicitly depicted cold night draft without specifying a calendar date.",
+              "Basil's dramatic droop is theatrical, not a new fatal illness; restore the same leaves when the window opens."
+            ]
+          },
+          "promptFile": "prompts/scene-02-r2.txt",
+          "attemptTotal": 2,
+          "chosenAttempt": 2,
+          "attempts": [
+            {
+              "n": 1,
+              "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep01-s2-r1.webp",
+              "findings": [
+                {
+                  "severity": "blocking",
+                  "ko": "7～8칸에서 바질 화분이 창가 책상에서 바닥으로 이동했습니다. 원문에 없는 이동이므로 같은 책상 위에 유지하도록 다시 그렸습니다.",
+                  "en": "Basil must remain on the window desk; panels 7-8 invent a relocation to the floor. Keep the planter on the same desk while Siu shivers standing or kneels below its edge.",
+                  "layerLabel": "시각 검토"
+                }
+              ],
+              "plannedPanels": 8,
+              "observedPanels": 8,
+              "textsOk": 11,
+              "textsTotal": 11
+            }
+          ]
+        },
+        {
+          "id": "s3",
+          "n": 3,
+          "title": "햇빛을 찾아간 작은 발자국",
+          "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep01-s3.webp",
+          "verdict": "pass",
+          "blocking": 0,
+          "pFrom": 46,
+          "pTo": 76,
+          "panelCount": 8,
+          "plannedPanels": 8,
+          "units": [
+            {
+              "text": "\"오전 열한 시 반.\""
+            },
+            {
+              "text": "\"네?\""
+            },
+            {
+              "text": "\"오전 열한 시 반쯤에 네 방 창틀로 햇빛이 비스듬하게 꺾여 들어왔거든. 저쪽 빌라 그림자가 우리 창가를 덮치기 직전이었지. 그 꼬맹이 다육이가 토분 모서리를 양쪽 뿌리로 꽉 쥐고 끙끙거리면서 몸을 일으키더라고. 흙 털어내는 소리가 어찌나 요란하던지 내 낮잠을 다 깨웠다니까.\""
+            },
+            {
+              "text": "\"뿌리로…… 몸을 일으켰다고요?\""
+            },
+            {
+              "text": "\"그래! 그 통통한 잎사귀들을 뒤뚱거리면서 기어코 화분 밖으로 흙을 털고 기어 나오더니, 책상 모서리를 타고 저기 열린 방충망 틈새로 비집고 나가더라.\""
+            },
+            {
+              "text": "바질 선생의 줄기가 창틀 바깥쪽 모서리를 가리켰다. 자세히 다가가 보니 낡은 알루미늄 방충망의 찢어진 틈새에 연둣빛 다육이 잎에서 떨어진 미세한 솜털과 마른 상토가 묻어 있었다."
+            },
+            {
+              "text": "\"밖으로 나갔다고요? 여긴 2층인데! 떨어지면 어쩌려고!\""
+            },
+            {
+              "text": "\"누가 떨어진대? 걘 너보다 몸놀림이 백배는 날렵해. 나가자마자 창틀 바로 옆에 붙은 우수관 배수관을 끌어안더라고. 그 회색 플라스틱 관 있잖아.\""
+            },
+            {
+              "text": "나는 황급히 창밖으로 고개를 내밀었다. 찬바람이 매섭게 뺨을 때려 눈이 시렸지만 눈을 부릅떴다."
+            },
+            {
+              "text": "빌라 201호 창문 바로 옆에는 옥상에서부터 건물 바닥 하수구까지 길게 이어진 굵은 회색 플라스틱 배수관이 뻗어 있었다. 표면이 군데군데 긁히고 낡은 배수관이었다."
+            },
+            {
+              "text": "그리고 그 배수관 표면에, 정말로 무언가가 지나간 흔적이 선명하게 남아 있었다."
+            },
+            {
+              "text": "\"……어라?\""
+            },
+            {
+              "text": "배수관 표면을 타고 동글동글하고 자그마한 흙 묻은 자국들이 촘촘하게 위쪽을 향해 찍혀 있었다. 축축한 마사토와 배양토가 배수관에 남긴 지름 1센티미터 남짓한 발자국. 녀석의 짤막하고 통통한 뿌리가 관을 꽉 움켜쥐며 한 발 한 발 기어 올라간 궤적이었다."
+            },
+            {
+              "text": "\"아래로 떨어진 게…… 아니네?\""
+            },
+            {
+              "text": "\"아래로 왜 가냐? 아래는 주차장 그늘이라 해가 아예 안 드는데! 걔가 나갈 때 뭐라고 했는지 알아? '이 답답한 그늘 통통이 방구석에서 썩어 죽느니, 저 위 꼭대기 햇빛 명당으로 가겠다!' 이러면서 씩씩하게 기어 올라갔다고. 건너편 노랑무늬 둥근잎 나팔꽃한테 옥상에 햇빛이 하루 종일 쏟아지는 자치 정원이 있다는 얘길 들었다나 뭐라나.\""
+            },
+            {
+              "text": "바질 선생이 혀를 쯧쯧 차며 덧붙였다."
+            },
+            {
+              "text": "\"동네 길고양이 녀석도 아까 지나가면서 그러더라. 낮에 옥상 쪽으로 웬 분홍빛 머리통 달린 화분 꼬맹이가 뽈뽈거리며 기어 올라가는 걸 봤다고.\""
+            },
+            {
+              "text": "그 말을 듣는 순간, 가슴 속을 짓누르던 무거운 돌덩이가 덜컥 내려앉으며 형언할 수 없는 감정이 치밀어 올랐다."
+            },
+            {
+              "text": "말라죽은 게 아니었다."
+            },
+            {
+              "text": "내가 또 부주의하게 방치해서, 내 썩은 손에 걸려 어둠 속에서 조용히 썩어 문드러진 게 아니었다. 녀석은 살고 싶어서, 더 따뜻한 볕을 쬐고 더 맑은 바람을 마시고 싶어서 온 힘을 다해 스스로 뿌리를 털고 일어선 것이었다. 그 조그만 몸으로 그 무거운 토분을 끌어안고, 수직으로 솟은 차가운 배수관을 기어코 기어 올라간 것이다."
+            },
+            {
+              "text": "눈시울이 핑 돌 만큼 안도감이 번지는 것과 동시에, 불쑥 새로운 공포가 등줄기를 타고 흘렀다."
+            },
+            {
+              "text": "서쪽 하늘을 올려다보았다. 붉게 물들었던 노을은 이미 자취를 감추고, 짙은 남색의 어둠이 빌라 옥상 위로 빠르게 내려앉고 있었다. 골목길의 바람은 점점 더 사나워졌고, 배수관에 찍힌 촉촉한 흙 발자국은 찬 공기 속에서 빠르게 메말라 잿빛으로 부스러져 가고 있었다."
+            },
+            {
+              "text": "저 흔적이 다 말라 지워져 버리면, 밤이 깊어 외벽이 얼어붙으면 녀석은 미끄러져 추락할지도 모른다. 도심의 빌라 옥상은 뻥 뚫려 있어 밤바람이 칼날처럼 매섭다. 실내 온실에서만 자란 다육이가 그 추위를 맨몸으로 버텨낼 수 있을 리 없었다."
+            },
+            {
+              "text": "\"바질 선생.\""
+            },
+            {
+              "text": "\"왜 또, 춥다고 창문 닫으려고? 닫기만 해봐라, 나 내일 아침에 누런 떡잎 열 장 떨군다?\""
+            },
+            {
+              "text": "\"창문 활짝 열어둘 테니까 방 좀 지키고 있어요. 나 갔다 올게요.\""
+            },
+            {
+              "text": "\"……뭐? 야, 어디 가는데!\""
+            },
+            {
+              "text": "나는 대답 대신 발걸음을 돌려 현관으로 내달렸다."
+            },
+            {
+              "text": "바닥에 아무렇게나 벗어두었던 삼선 슬리퍼를 발에 꿰어 차고, 주머니에서 휴대폰 플래시를 켰다. 손등에 스친 찬바람이 얼얼했지만 더 이상 피곤하지도, 배가 고프지도 않았다."
+            },
+            {
+              "text": "덜컥 문을 열고 복도로 뛰어나가며 계단 위를 올려다보았다. 옥상으로 이어지는 낡은 철제 비상문 너머에서 웅웅거리는 겨울바람 소리가 희미하게 울려 퍼지고 있었다."
+            },
+            {
+              "text": "배수관 끝, 옥상 위에는 과연 무엇이 기다리고 있을까. 나는 숨을 들이켜며 가파른 콘크리트 계단을 단숨에 박차고 뛰어 올라갔다."
+            }
+          ],
+          "timings": {
+            "imageCalls": 1,
+            "imageS": 36.9,
+            "planS": [],
+            "preflightS": []
+          },
+          "textsOk": 10,
+          "textsTotal": 10,
+          "findings": [
+            {
+              "severity": "advisory",
+              "ko": "배수관의 흙자국이 작은 발바닥처럼 표현되었습니다. 위로 이어지는 작은 흔적이라는 기능은 유지됩니다.",
+              "en": "The pipe marks are stylized as small paw-like soil clusters rather than indistinct round root smudges. They still establish the small upward trail without showing a different creature.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "현관 장면에서 시우가 가방을 메고 있습니다. 원문에는 현관에 둔 가방을 다시 챙기는 행동이 없습니다.",
+              "en": "The doorway panel gives Siu a shoulder bag, although the novel left his work bag at the entrance and does not describe retrieving it. This extra prop does not change the search or the final slippers-and-phone action.",
+              "layerLabel": "시각 검토"
+            },
+            {
+              "severity": "advisory",
+              "ko": "현관을 바라보는 구도가 방 구조를 압축하고 창문을 생략했습니다. 바질 화분은 높은 받침 위에 유지됩니다.",
+              "en": "The doorway view compresses room geometry and crops the window behind Basil. The planter remains elevated, but a future shared room master could keep that reverse angle clearer.",
+              "layerLabel": "시각 검토"
+            }
+          ],
+          "review": {
+            "subjectHash": "sha256:73677ba356945d4f7ef2288d68d2f3e5b9c4e4aaae25ea5fea401c4159788e75",
+            "inspectedImages": true,
+            "observedPanelCount": 8,
+            "coveredBeatIds": [
+              "beat-1",
+              "beat-2",
+              "beat-3",
+              "beat-4",
+              "beat-5",
+              "beat-6"
+            ],
+            "textObservations": [
+              {
+                "id": "text-1",
+                "observedText": "오전 열한 시 반.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 1 balloon points down-left to Basil, who remains on the elevated window desk."
+              },
+              {
+                "id": "text-2",
+                "observedText": "저기 열린 방충망 틈새로 비집고 나가더라.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 upper balloon points to Basil's leaves beside the torn mesh."
+              },
+              {
+                "id": "text-3",
+                "observedText": "밖으로 나갔다고요? 여긴 2층인데!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 2 lower balloon points to Siu holding small soil crumbs."
+              },
+              {
+                "id": "text-4",
+                "observedText": "그 회색 플라스틱 관 있잖아.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 3 balloon points toward Basil inside while Siu leans out."
+              },
+              {
+                "id": "text-5",
+                "observedText": "아래로 떨어진 게…… 아니네?",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 4 balloon tail points to Siu below the ascending soil marks."
+              },
+              {
+                "id": "text-6",
+                "observedText": "옥상에 햇빛이 하루 종일 쏟아지는 자치 정원이 있다는 얘길 들었다나 뭐라나.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 5 complete two-line balloon belongs to Basil; the garden is described, not shown."
+              },
+              {
+                "id": "text-7",
+                "observedText": "말라죽은 게 아니었다.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 6 lower-right narrator caption accompanies Siu's relieved, moist eyes."
+              },
+              {
+                "id": "text-8",
+                "observedText": "창문 활짝 열어둘 테니까 방 좀 지키고 있어요. 나 갔다 올게요.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 upper-left balloon points to Siu at the doorway."
+              },
+              {
+                "id": "text-9",
+                "observedText": "……뭐? 야, 어디 가는데!",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 7 right balloon points down to Basil in its planter."
+              },
+              {
+                "id": "text-10",
+                "observedText": "배수관 끝, 옥상 위에는 과연 무엇이 기다리고 있을까.",
+                "readable": true,
+                "speakerCorrect": true,
+                "evidence": "Panel 8 lower narrator caption accompanies the stairs and lit phone."
+              }
+            ],
+            "spatialCoherence": true,
+            "readingOrder": true,
+            "continuity": {
+              "inspectedPreviousImage": true,
+              "identity": {
+                "passed": true,
+                "evidence": "Siu keeps tousled dark-brown hair, rolled white shirt and charcoal trousers. Basil keeps glossy leaves, tiny expressive foliage face and the soil-stained white rectangular planter. Striped slippers appear in the final stairs panel, consistent with this excerpt."
+              },
+              "setting": {
+                "passed": true,
+                "evidence": "Panels 1-6 retain the warm wooden desk, open window, torn mesh, lamp and blue night exterior; Basil stays on the tabletop. The gray downpipe is immediately beside that window. The doorway angle still shows an elevated plant support, and the final stairwell is a new source location."
+              },
+              "actionTransition": {
+                "passed": true,
+                "evidence": "Previous page ends with Siu kneeling below Basil's desk. This page begins with Siu low beside the same planter as Basil gives testimony, then Siu approaches the window, discovers the trace, turns toward the door and runs up stairs. The garden and succulent stay undisclosed onscreen."
+              }
+            },
+            "evidence": "Eight clearly separated panels in four rows. Every selected Korean string is readable, with human and plant dialogue attached to the correct visible characters and inner narration in boxes. Ascending soil traces, warm relief and a lit-phone stair climb provide the intended causal ending. Inspected alongside the preceding page by the same host, not an independent reader.",
+            "findings": [
+              {
+                "severity": "advisory",
+                "evidence": "The pipe marks are stylized as small paw-like soil clusters rather than indistinct round root smudges. They still establish the small upward trail without showing a different creature."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "The doorway panel gives Siu a shoulder bag, although the novel left his work bag at the entrance and does not describe retrieving it. This extra prop does not change the search or the final slippers-and-phone action."
+              },
+              {
+                "severity": "advisory",
+                "evidence": "The doorway view compresses room geometry and crops the window behind Basil. The planter remains elevated, but a future shared room master could keep that reverse angle clearer."
+              }
+            ],
+            "passed": true
+          },
+          "brief": {
+            "style": "Pastel Korean webtoon, rounded lines, expressive basil leaves, chibi worker, warm studio light, blue night exterior, clear Korean balloons, vertical reading flow.",
+            "moments": [
+              {
+                "sourceIds": [
+                  "ch-1-p-46",
+                  "ch-1-p-48"
+                ],
+                "action": "Basil speaks matter-of-factly from its white planter on the elevated window desk, giving its witness account to Siu below.",
+                "textIds": [
+                  "text-1"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-50",
+                  "ch-1-p-51",
+                  "ch-1-p-52"
+                ],
+                "action": "Basil points a leaf at the torn insect screen; Siu examines a few soil crumbs caught in its ragged edge.",
+                "textIds": [
+                  "text-2",
+                  "text-3"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-53",
+                  "ch-1-p-54",
+                  "ch-1-p-55"
+                ],
+                "action": "Siu leans his head through the open window toward the exterior gray rainpipe; Basil remains visible on the elevated desk inside.",
+                "textIds": [
+                  "text-4"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-58",
+                  "ch-1-p-59"
+                ],
+                "action": "Siu peers upward at tiny round soil prints continuing above his window along the gray exterior downpipe.",
+                "textIds": [
+                  "text-5"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-60"
+                ],
+                "action": "Basil gestures one leaf upward from its white planter on the window desk, reporting the rooftop sunlight destination.",
+                "textIds": [
+                  "text-6"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-63",
+                  "ch-1-p-64",
+                  "ch-1-p-65",
+                  "ch-1-p-66"
+                ],
+                "action": "Siu's eyes glisten with relief, his tight shoulders finally relaxing beside the open window.",
+                "textIds": [
+                  "text-7"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-71",
+                  "ch-1-p-72",
+                  "ch-1-p-73"
+                ],
+                "action": "Siu pauses at the apartment doorway and looks back across the room toward Basil, still on its window desk.",
+                "textIds": [
+                  "text-8",
+                  "text-9"
+                ]
+              },
+              {
+                "sourceIds": [
+                  "ch-1-p-74",
+                  "ch-1-p-75",
+                  "ch-1-p-76"
+                ],
+                "action": "In three-striped slippers, Siu runs up concrete stairs toward a closed rooftop door, phone flashlight glowing in his hand, white shirt and dark trousers unchanged.",
+                "textIds": [
+                  "text-10"
+                ]
+              }
+            ]
+          },
+          "plan": {
+            "title": "햇빛을 찾아간 작은 발자국",
+            "intent": "Replace fear of loss with relief at the succulent's resourcefulness. Tiny soil tracks become a warm invitation to act: Siu leaves his tired evening behind and heads toward the rooftop, ending on curiosity rather than a new scare.",
+            "facts": [
+              {
+                "id": "fact-1",
+                "sourceIds": [
+                  "ch-1-p-46",
+                  "ch-1-p-48",
+                  "ch-1-p-50",
+                  "ch-1-p-51"
+                ],
+                "statement": "Basil witnessed the departure around half past eleven and points to the torn screen where dry soil remains."
+              },
+              {
+                "id": "fact-2",
+                "sourceIds": [
+                  "ch-1-p-53",
+                  "ch-1-p-55",
+                  "ch-1-p-58",
+                  "ch-1-p-59"
+                ],
+                "statement": "A gray rain downpipe runs beside the second-floor window; small soil traces ascend its surface rather than descend."
+              },
+              {
+                "id": "fact-3",
+                "sourceIds": [
+                  "ch-1-p-60",
+                  "ch-1-p-63",
+                  "ch-1-p-64",
+                  "ch-1-p-65",
+                  "ch-1-p-66"
+                ],
+                "statement": "Basil reports the succulent's rooftop sunlight destination; Siu is relieved that the missing plant chose to survive rather than wither."
+              },
+              {
+                "id": "fact-4",
+                "sourceIds": [
+                  "ch-1-p-71",
+                  "ch-1-p-72",
+                  "ch-1-p-73",
+                  "ch-1-p-74",
+                  "ch-1-p-75",
+                  "ch-1-p-76"
+                ],
+                "statement": "Siu leaves the window open, wears striped slippers, switches on his phone flashlight and runs up the concrete stairs toward the rooftop."
+              }
+            ],
+            "beats": [
+              {
+                "id": "beat-1",
+                "sourceIds": [
+                  "ch-1-p-46",
+                  "ch-1-p-48",
+                  "ch-1-p-50",
+                  "ch-1-p-51",
+                  "ch-1-p-52"
+                ],
+                "action": "Basil's witness testimony directs Siu to the torn insect screen, shifting the search outside.",
+                "textIds": [
+                  "text-1",
+                  "text-2",
+                  "text-3"
+                ]
+              },
+              {
+                "id": "beat-2",
+                "sourceIds": [
+                  "ch-1-p-53",
+                  "ch-1-p-54",
+                  "ch-1-p-55",
+                  "ch-1-p-56",
+                  "ch-1-p-58",
+                  "ch-1-p-59"
+                ],
+                "action": "Siu locates the rainpipe and sees small upward soil marks, recognizing a climb instead of a fall.",
+                "textIds": [
+                  "text-4",
+                  "text-5"
+                ]
+              },
+              {
+                "id": "beat-3",
+                "sourceIds": [
+                  "ch-1-p-60",
+                  "ch-1-p-61",
+                  "ch-1-p-62"
+                ],
+                "action": "Basil links the upward route to a rooftop garden offering sunlight.",
+                "textIds": [
+                  "text-6"
+                ]
+              },
+              {
+                "id": "beat-4",
+                "sourceIds": [
+                  "ch-1-p-63",
+                  "ch-1-p-64",
+                  "ch-1-p-65",
+                  "ch-1-p-66"
+                ],
+                "action": "Relief softens Siu as he recognizes the plant's deliberate pursuit of a livable place.",
+                "textIds": [
+                  "text-7"
+                ]
+              },
+              {
+                "id": "beat-5",
+                "sourceIds": [
+                  "ch-1-p-71",
+                  "ch-1-p-72",
+                  "ch-1-p-73"
+                ],
+                "action": "Siu entrusts the open-window room to Basil and turns toward the doorway.",
+                "textIds": [
+                  "text-8",
+                  "text-9"
+                ]
+              },
+              {
+                "id": "beat-6",
+                "sourceIds": [
+                  "ch-1-p-74",
+                  "ch-1-p-75",
+                  "ch-1-p-76"
+                ],
+                "action": "In striped slippers and carrying his lit phone, Siu runs upstairs with renewed purpose.",
+                "textIds": [
+                  "text-10"
+                ]
+              }
+            ],
+            "texts": [
+              {
+                "id": "text-1",
+                "sourceId": "ch-1-p-46",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "오전 열한 시 반."
+              },
+              {
+                "id": "text-2",
+                "sourceId": "ch-1-p-50",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "저기 열린 방충망 틈새로 비집고 나가더라."
+              },
+              {
+                "id": "text-3",
+                "sourceId": "ch-1-p-52",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "밖으로 나갔다고요? 여긴 2층인데!"
+              },
+              {
+                "id": "text-4",
+                "sourceId": "ch-1-p-53",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "그 회색 플라스틱 관 있잖아."
+              },
+              {
+                "id": "text-5",
+                "sourceId": "ch-1-p-59",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "아래로 떨어진 게…… 아니네?"
+              },
+              {
+                "id": "text-6",
+                "sourceId": "ch-1-p-60",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "옥상에 햇빛이 하루 종일 쏟아지는 자치 정원이 있다는 얘길 들었다나 뭐라나."
+              },
+              {
+                "id": "text-7",
+                "sourceId": "ch-1-p-64",
+                "kind": "caption",
+                "speaker": "narrator",
+                "text": "말라죽은 게 아니었다."
+              },
+              {
+                "id": "text-8",
+                "sourceId": "ch-1-p-71",
+                "kind": "dialogue",
+                "speaker": "c1",
+                "text": "창문 활짝 열어둘 테니까 방 좀 지키고 있어요. 나 갔다 올게요."
+              },
+              {
+                "id": "text-9",
+                "sourceId": "ch-1-p-72",
+                "kind": "dialogue",
+                "speaker": "c3",
+                "text": "……뭐? 야, 어디 가는데!"
+              },
+              {
+                "id": "text-10",
+                "sourceId": "ch-1-p-76",
+                "kind": "caption",
+                "speaker": "narrator",
+                "text": "배수관 끝, 옥상 위에는 과연 무엇이 기다리고 있을까."
+              }
+            ],
+            "staging": "Continue the preceding page's open window and elevated desk, with Basil's white planter staying on the tabletop. Siu alone approaches the torn screen and leans his head through the open window toward the gray exterior pipe. Show soil marks on the pipe, not a reenactment of the plant's climb. The last action moves Siu through his apartment door and onto concrete stairs with his phone flashlight and striped slippers. Keep the rooftop behind its emergency door for the next episode.",
+            "uncertainties": [
+              "The source alternates between an empty pink pot left behind and a plant carrying a pot. Preserve the visible trace and testimony without drawing a flashback that resolves this contradiction.",
+              "Rooftop garden information is secondhand testimony from Basil; this excerpt does not yet show the garden itself.",
+              "The final danger is Siu's worry, not a witnessed fall. Emphasize relief and purposeful movement while retaining the cold night setting."
+            ]
+          },
+          "promptFile": "prompts/scene-03-r1.txt",
+          "attemptTotal": 1,
+          "chosenAttempt": 1
+        }
+      ]
+    }
+  ],
+  "chapters": [
+    {
+      "chapter": 1,
+      "title": "물은 됐고요, 햇빛 찾으러 갑니다",
+      "chars": 6033
+    },
+    {
+      "chapter": 2,
+      "title": "바람길을 거슬러 오르는 화분",
+      "chars": 8600
+    },
+    {
+      "chapter": 3,
+      "title": "옥상 위의 식물 자치구",
+      "chars": 5372
+    }
+  ],
+  "provenance": {
+    "requestedSceneModel": "gpt-image-2.5-sunburst",
+    "observedSceneModel": null,
+    "imageCalls": 4,
+    "imageSeconds": 151.8,
+    "actualCost": null,
+    "reference": {
+      "image": "https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/reference-v1.webp",
+      "tool": "image_gen",
+      "observedModel": null
+    },
+    "reviewMethod": "Same-host inspection; not independent reader evaluation",
+    "novelCanonModified": false
+  },
+  "vibelore": {
+    "label": "0.4.8",
+    "novel": [
+      {
+        "to": 3,
+        "packageVersion": "0.4.8",
+        "commit": "7ed081d",
+        "from": 1
+      }
+    ],
+    "webtoon": {
+      "packageVersion": "0.4.8"
+    }
+  }
+}

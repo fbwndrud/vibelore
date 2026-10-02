@@ -9,12 +9,13 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-5%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 You attach it as an MCP server to an AI coding tool such as Claude Code, Codex or Grok CLI. That AI writes the prose and draws the pictures;
 vibelore remembers the world, characters, foreshadowing and timeline, checks every chapter, and finalizes nothing before you approve it.
 
 <table>
+<tr><td align="center" colspan="4"><a href="https://fbwndrud.github.io/vibelore/showcase/plant-runaway/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/plant-runaway/img/ep01-s1.webp" width="200" alt="우리 집 화분이 가출했습니다 1화"></a><br><sub><i>My Houseplant Has Run Away</i> · cozy comic fantasy</sub></td></tr>
 <tr>
 <td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/vesper/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/vesper/img/ep01-s6.webp" width="200" alt="Vesper, chapter 1, scene 6"></a><br><sub><i>Vesper</i> · non-human romantic comedy</sub></td>
 <td align="center"><a href="https://fbwndrud.github.io/vibelore/showcase/executionprincess/"><img src="https://fbwndrud.github.io/vibelore-showcase-media/executionprincess/img/ep01-s9.webp" width="200" alt="The Princess One Minute Before Her Execution, chapter 1, scene 9"></a><br><sub><i>The Princess One Minute Before Her Execution</i> · romance fantasy regression revenge</sub></td>
@@ -25,7 +26,8 @@ vibelore remembers the world, characters, foreshadowing and timeline, checks eve
 
 These are all real results of adapting novels written with vibelore into webtoons. A different AI made each work, and each is labeled with the vibelore version it was made with.
 
-- **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, latest): An unofficial fan work borrowing Lotte World’s night-parade characters. Claude Opus 5.5 handled everything, from the complete 50-chapter novel to the chapter 1–3 webtoons. The chapter 2 webtoon is a presentation experiment where Vesper’s light sets the panel-border color and brightness; the chapter 3 webtoon letters earpiece radio in mint bands between panels instead of speech balloons.
+- **[My Houseplant Has Run Away](https://fbwndrud.github.io/vibelore/showcase/plant-runaway/)** (vibelore 0.4.8, latest): Novel chapters 1–3 written with Gemini 3.8 Flash, plus a chapter 1 webtoon (3 scenes, 24 panels). Codex handled adaptation and review; scene images requested `gpt-image-2.5-sunburst`. The earlier rejected image and review evidence are also published.
+- **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2): An unofficial fan work borrowing Lotte World’s night-parade characters. Claude Opus 5.5 handled everything, from the complete 50-chapter novel to the chapter 1–3 webtoons. The chapter 2 webtoon is a presentation experiment where Vesper’s light sets the panel-border color and brightness; the chapter 3 webtoon letters earpiece radio in mint bands between panels instead of speech balloons.
 - **[The Princess One Minute Before Her Execution](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): GPT-6 Sol handled everything from the design to the novel and the webtoon adaptation.
 - **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): Claude Opus 5.5 wrote the novel and the webtoon adaptation, and Codex (OpenAI API `gpt-image-2.5-sunburst`) drew the pictures.
 - **[Lightning on the Road](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8): Codex, Claude and Grok each adapted the same novel. There is also a [model comparison](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).

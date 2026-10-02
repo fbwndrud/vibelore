@@ -1,4 +1,83 @@
 {
+ "plant-runaway": {
+  "vibelore": {
+   "v": {
+    "ko": "0.4.8",
+    "en": "0.4.8"
+   },
+   "note": {
+    "ko": "vibelore 0.4.8 · 실행 코드 7ed081d · 2026-10-02 공개",
+    "en": "vibelore 0.4.8 · 실행 코드 7ed081d · 2026-10-02 공개"
+   }
+  },
+  "novel": {
+   "v": {
+    "ko": "Antigravity CLI · gemini-3.8-flash-medium",
+    "en": "Antigravity CLI · gemini-3.8-flash-medium"
+   },
+   "note": null
+  },
+  "adapt": {
+   "v": {
+    "ko": "Codex",
+    "en": "Codex"
+   },
+   "note": {
+    "ko": "호스트 모델명·추론 강도 미기록",
+    "en": "Host model and reasoning effort not recorded"
+   }
+  },
+  "image": {
+   "v": {
+    "ko": "OpenAI 이미지 API · gpt-image-2.5-sunburst",
+    "en": "OpenAI image API · gpt-image-2.5-sunburst"
+   },
+   "note": {
+    "ko": "API 요청 모델 · 응답 모델명 미기록 · 기준 이미지는 내장 도구(모델명 미기록)",
+    "en": "Requested API model · response model not recorded · reference made with the built-in tool (model not recorded)"
+   }
+  },
+  "review": {
+   "v": {
+    "ko": "Codex (호스트 모델명 미기록)",
+    "en": "Codex (호스트 모델명 미기록)"
+   },
+   "note": {
+    "ko": "제작을 조율한 호스트의 자기검토 · 독립 평가 아님",
+    "en": "Self-review by the orchestrating host · not independent"
+   }
+  },
+  "size": {
+   "v": {
+    "ko": "소설 3화 · 20,005자",
+    "en": "Novel 3 episodes · 20,005 chars"
+   },
+   "note": {
+    "ko": "웹툰 1화 · 3장면 · 24칸",
+    "en": "Webtoon episode 1 · 3 scenes · 24 panels"
+   }
+  },
+  "cost": {
+   "v": {
+    "ko": "기록 없음",
+    "en": "Not recorded"
+   },
+   "note": {
+    "ko": "장면 이미지 4회 · 기준 이미지 1회 · 실제 결제 금액 미기록",
+    "en": "4 scene image calls · 1 reference call · actual billed cost not recorded"
+   }
+  },
+  "time": {
+   "v": {
+    "ko": "장면 이미지 API 151.8초",
+    "en": "Scene image API 151.8 s"
+   },
+   "note": {
+    "ko": "재생성 포함 4회 합계 · 기준 이미지와 전체 집필·각색 시간 제외",
+    "en": "4 calls including regeneration · excludes reference generation and total writing/adaptation time"
+   }
+  }
+ },
  "vesper": {
   "vibelore": {
    "v": {

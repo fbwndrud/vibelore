@@ -119,7 +119,7 @@
   'use strict';
   const { el, cmpVer, loadCatalog, latestWork, T } = window.Showcase;
   const FORMATS = [['all', '전체'], ['novel', '소설'], ['webtoon', '웹툰'], ['multi', '다국어']];
-  const MODELS = [['all', '전체'], ['claude', 'Claude'], ['gpt', 'GPT'], ['mixed', '여러 모델 비교']];
+  const MODELS = [['all', '전체'], ['claude', 'Claude'], ['gpt', 'GPT'], ['gemini', 'Gemini'], ['mixed', '여러 모델 비교']];
   const params = new URLSearchParams(location.search);
   const pick = (k, allowed, d) => (allowed.includes(params.get(k)) ? params.get(k) : d);
   const state = {

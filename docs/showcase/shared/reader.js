@@ -80,10 +80,10 @@
   function leadText(c, e) {
     const a = arcOf(c.chapter);
     const arcLine = a ? T('{n}아크 『{title}』', { n: a.n, title: a.title }) : '';
-    if (!e) return `${arcLine} · ${T('{n}자', { n: num(c.chars) })}. ` + T('웹툰은 {list}화만 만들었습니다. 이 화는 소설로 읽습니다.', { list: DATA.episodes.map((x) => x.chapter).join('·') });
+    if (!e) return (arcLine ? arcLine + ' · ' : '') + `${T('{n}자', { n: num(c.chars) })}. ` + T('웹툰은 {list}화만 만들었습니다. 이 화는 소설로 읽습니다.', { list: DATA.episodes.map((x) => x.chapter).join('·') });
     if (!state.meta) {
       return novelList()
-        ? `${arcLine}. ` + T('웹툰 {n}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.', { n: e.sceneCount })
+        ? (arcLine ? arcLine + '. ' : '') + T('웹툰 {n}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.', { n: e.sceneCount })
         : T('{ch}화 · 웹툰 {n}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.', { ch: e.chapter, n: e.sceneCount });
     }
     if (e.regen && e.regen.before) return T('{scenes}장면 {panels}칸. 검토에서 떨어진 장면을 서버가 결함 목록으로 다시 설계해 새로 그리는 자동 재설계(최대 {limit}회)를 넣고 다시 만든 회차입니다. 검토 통과 {pass}/{scenes} (재생성 전 {bpass}/{bscenes}). 이전 시도의 그림과 판정도 장면마다 그대로 공개합니다.', { scenes: e.sceneCount, panels: e.panelTotal, limit: e.regen.autoRevisionLimit, pass: e.passCount, bpass: e.regen.before.passCount, bscenes: e.regen.before.sceneCount });

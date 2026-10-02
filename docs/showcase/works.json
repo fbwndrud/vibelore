@@ -6,9 +6,53 @@
     { "v": "0.4.0", "date": "2026-09-24", "summary": "작품 언어(BCP 47): 8개 언어 소설과 웹툰" },
     { "v": "0.4.1", "date": "2026-09-27", "summary": "이야기 등록부, 아크를 넘는 긴 기억" },
     { "v": "0.4.2", "date": "2026-09-28", "summary": "통과한 검토가 실패로 끝나던 아크 버그 수정" },
-    { "v": "0.4.3", "date": "2026-09-29", "summary": "npm 페이지의 한국어 README, 점검용 Dockerfile" }
+    { "v": "0.4.3", "date": "2026-09-29", "summary": "npm 페이지의 한국어 README, 점검용 Dockerfile" },
+    {"v": "0.4.8", "date": "2026-10-01", "summary": "활성 아크 재계획 보호, MCP 출력 스키마와 기본 도구 목록 정비"}
   ],
   "works": [
+    {
+      "id": "plant-runaway",
+      "href": "plant-runaway/",
+      "links": {
+        "read": "read.html",
+        "notes": "notes.html"
+      },
+      "title": "우리 집 화분이 가출했습니다",
+      "gloss": "My Houseplant Has Run Away",
+      "language": "ko",
+      "sub": "물은 됐고요, 햇빛 찾으러 갑니다",
+      "genre": "귀여운 생활 판타지 · 이웃과 우정",
+      "blurb": "퇴근하고 돌아왔더니 다육이가 가출했다. 남긴 쪽지는 단 한 장. 물을 주는 것만으로는 부족한 초보 집사가 말하는 식물들과 햇빛을 찾아 나선다.",
+      "stats": [
+        "소설 1~3화",
+        "웹툰 1화 · 3장면 · 24칸"
+      ],
+      "scope": "소설 1~3화 · 웹툰 1화",
+      "meta": "소설 Gemini 3.8 Flash · 웹툰 각색·검토 Codex · 이미지 OpenAI API",
+      "model": "Gemini 3.8 Flash / Codex",
+      "family": "gemini",
+      "formats": [
+        "novel",
+        "webtoon"
+      ],
+      "episodes": 3,
+      "version": {
+        "label": "0.4.8",
+        "from": "0.4.8",
+        "to": "0.4.8",
+        "detail": "vibelore 0.4.8 · 실행 코드 7ed081d · 2026-10-02 공개"
+      },
+      "bar": [
+        "Gemini 소설 3화",
+        "웹툰 1화 · Sunburst"
+      ],
+      "cover": "plant-runaway/img/ep01-s1.webp",
+      "thumb": "plant-runaway/thumb.webp",
+      "thumbSq": "plant-runaway/thumb-sq.webp",
+      "alt": "우리 집 화분이 가출했습니다 1화, 퇴근한 시우와 빈 분홍 화분",
+      "tone": "#35664D",
+      "bg": "#244C3D"
+    },
     {
       "id": "vesper",
       "lore": "vesper/lore.json",
