@@ -1,0 +1,8 @@
+:root{--paper:#F5EBDD;--card:#FFF9EE;--ink:#382E29;--moss:#974A38;--gold:#7D663E;--line:#D9CCBB;--line2:#E7DBCD;--muted:#77665D;--sub:#67564D;--band:#E8DDCE;--chip:#D2C1AD;--warnbg:#F0E0BD;--warn:#775620;--okbg:#E0E8D8;--ok:#3F5C42;--redbg:#F3D9CF;--red:#893B2C}
+.eptab.active,.seg button.active,.metatog[aria-pressed="true"]{background:var(--moss);color:#fff;border-color:var(--moss)}
+.attempts{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.attempts summary{cursor:pointer;font-size:14px;font-weight:700}
+.agrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:12px}
+.agrid figure{margin:0}.agrid img{width:100%;height:auto;display:block}
+.agrid figcaption{display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.7;padding-top:8px}
+.agrid ul{padding-left:20px;margin:0}.emph{color:var(--muted)}

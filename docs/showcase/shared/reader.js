@@ -49,7 +49,7 @@
   }
   function loadText(n) {
     if (TEXT[n]) return Promise.resolve(TEXT[n]);
-    return fetch(`novel/${pad(n)}.txt`).then((r) => r.text()).then((t) => (TEXT[n] = t.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)));
+    return fetch(`${OPT.contentRoot || ''}novel/${pad(n)}.txt`).then((r) => { if (!r.ok) throw new Error('소설 본문 ' + r.status); return r.text(); }).then((t) => (TEXT[n] = t.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)));
   }
 
   /* ---------- header ---------- */
@@ -80,10 +80,12 @@
   function leadText(c, e) {
     const a = arcOf(c.chapter);
     const arcLine = a ? T('{n}아크 『{title}』', { n: a.n, title: a.title }) : '';
-    if (!e) return (arcLine ? arcLine + ' · ' : '') + `${T('{n}자', { n: num(c.chars) })}. ` + T('웹툰은 {list}화만 만들었습니다. 이 화는 소설로 읽습니다.', { list: DATA.episodes.map((x) => x.chapter).join('·') });
+    if (!e) return `${arcLine} · ${T('{n}자', { n: num(c.chars) })}. ` + T('웹툰은 {list}화만 만들었습니다. 이 화는 소설로 읽습니다.', { list: DATA.episodes.map((x) => x.chapter).join('·') });
     if (!state.meta) {
+      if (state.mode === 'novel') return T('소설 {n}화', { n: c.chapter });
+      if (state.mode === 'webtoon') return T('웹툰 {n}장면. 소설 원문은 보기 방식에서 열 수 있습니다.', { n: e.sceneCount });
       return novelList()
-        ? (arcLine ? arcLine + '. ' : '') + T('웹툰 {n}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.', { n: e.sceneCount })
+        ? `${arcLine}. ` + T('웹툰 {n}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.', { n: e.sceneCount })
         : T('{ch}화 · 웹툰 {n}장면. 왼쪽은 웹툰, 오른쪽은 같은 대목의 소설 원문입니다. 위의 보기 방식에서 웹툰만, 소설만 볼 수도 있습니다.', { ch: e.chapter, n: e.sceneCount });
     }
     if (e.regen && e.regen.before) return T('{scenes}장면 {panels}칸. 검토에서 떨어진 장면을 서버가 결함 목록으로 다시 설계해 새로 그리는 자동 재설계(최대 {limit}회)를 넣고 다시 만든 회차입니다. 검토 통과 {pass}/{scenes} (재생성 전 {bpass}/{bscenes}). 이전 시도의 그림과 판정도 장면마다 그대로 공개합니다.', { scenes: e.sceneCount, panels: e.panelTotal, limit: e.regen.autoRevisionLimit, pass: e.passCount, bpass: e.regen.before.passCount, bscenes: e.regen.before.sceneCount });
@@ -105,11 +107,14 @@
     $('#eptitle').textContent = c.title;
     $('#eplead').textContent = leadText(c, e);
     const hint = $('#ephint');
-    if (hint) { if (e && e.device && e.device.hint) { hint.hidden = false; hint.textContent = T(e.device.hint); } else hint.hidden = true; }
+    if (hint) { if (state.mode !== 'novel' && e && e.device && e.device.hint) { hint.hidden = false; hint.textContent = T(e.device.hint); } else hint.hidden = true; }
     const dv = $('#epdevice');
-    if (dv) { if (e && e.device) { dv.hidden = false; dv.innerHTML = ''; dv.append(el('b', null, T('연출 실험 · ') + T(e.device.title)), el('span', null, T(e.device.summary))); } else dv.hidden = true; }
+    if (dv) { if (state.mode !== 'novel' && e && e.device) { dv.hidden = false; dv.innerHTML = ''; dv.append(el('b', null, T('연출 실험 · ') + T(e.device.title)), el('span', null, T(e.device.summary))); } else dv.hidden = true; }
     document.title = `${DATA.work} · ${T('{n}화', { n: c.chapter })}` + (state.meta && e && !novelList() ? ` ${e.host}` : '');
     document.body.classList.toggle('novel-only', !e);
+    document.body.dataset.readerMode = e ? state.mode : 'novel';
+    const library = document.querySelector('[data-library]');
+    if (library) { const u = new URL('../', document.baseURI); u.searchParams.set('format', e && state.mode === 'webtoon' ? 'webtoon' : 'novel'); u.searchParams.set('lang', I18N.lang); library.href = u.pathname + u.search; }
     $('#chip-novel').textContent = `${novelHost} · ${novelModel}` + (vb ? ` · vibelore ${v ? v.packageVersion : vb.label}` : '');
     if (e) {
       $('#chip-adapt').textContent = `${e.host} · ${e.model} · ${e.effort}` + (vb && vb.webtoon ? ` · vibelore ${vb.webtoon.packageVersion}` : '');
@@ -214,7 +219,7 @@
   function chNav() {
     const n = state.ch; const nav = el('div', { class: 'chnav' });
     nav.append(n > 1 ? el('a', { href: `#ep${n - 1}` }, '← ' + T('{n}화', { n: n - 1 })) : el('span'));
-    nav.append(n < DATA.chapters.length ? el('a', { href: `#ep${n + 1}` }, T('{n}화', { n: n + 1 }) + ' →') : el('span', { style: 'color:var(--muted)' }, T('완결')));
+    nav.append(n < chapters().length ? el('a', { href: `#ep${n + 1}` }, T('{n}화', { n: n + 1 }) + ' →') : el('span', { style: 'color:var(--muted)' }, T(novelList() ? '완결' : '현재 공개 마지막 화')));
     return nav;
   }
   function renderProse() {
@@ -231,7 +236,7 @@
       }
       // 소설 목록이 있으면 화 전체 글자 수(data.chapters), 없으면 장면 원문 글자 수
       label(novelList() ? c.chars : chars);
-      if (novelList()) box.append(chNav());
+      box.append(chNav());
       return Promise.resolve();
     }
     label(c.chars);
@@ -357,19 +362,31 @@
      opt.work: 인물·설정 사전 연결용 작품 id(shared/lore.js가 있으면 붙인다) */
   function start(opt) {
     OPT = opt || {}; KEY = OPT.store || OPT.work || 'reader';
+    if (OPT.archiveLabel) KEY += '.archive.' + OPT.archiveLabel;
     state.mode = store.get(KEY + '.mode', 'both'); state.size = store.get(KEY + '.size', 'm'); state.meta = store.get(KEY + '.meta', '0') === '1';
-    fetch('data.json').then((r) => r.json()).then((d) => {
+    const format = new URLSearchParams(location.search).get('format');
+    if (['novel', 'webtoon'].includes(format)) state.mode = format;
+    if (OPT.archiveLabel) {
+      const notice = el('p', { class: 'archive-notice', role: 'status' }, T('이전 공개본을 읽고 있습니다.'), ' ', el('a', { href: 'read.html' }, T('현재 공개본 보기')));
+      document.querySelector('.ephead').before(notice);
+    }
+    fetch(OPT.dataUrl || 'data.json').then((r) => { if (!r.ok) throw new Error('data.json ' + r.status); return r.json(); }).then((d) => {
       DATA = d; state.ch = chapters()[0].chapter; parseHash(); renderAll();
       $('#built').textContent = d.builtAt.slice(0, 10);
       window.addEventListener('hashchange', onHash);
-      for (const b of document.querySelectorAll('[data-mode]')) b.addEventListener('click', () => { state.mode = b.dataset.mode; applyMode(); });
+      for (const b of document.querySelectorAll('[data-mode]')) b.addEventListener('click', () => {
+        state.mode = b.dataset.mode; applyMode(); renderHead();
+        const u = new URL(location.href);
+        if (['novel', 'webtoon'].includes(state.mode)) u.searchParams.set('format', state.mode); else u.searchParams.delete('format');
+        history.replaceState(null, '', u.pathname + u.search + u.hash);
+      });
       for (const b of document.querySelectorAll('.metatog')) b.addEventListener('click', () => { state.meta = !state.meta; applyMeta(); renderHead(); });
       for (const b of document.querySelectorAll('[data-size]')) b.addEventListener('click', () => { state.size = b.dataset.size; applySize(); });
       $('#modal-close').addEventListener('click', () => $('#modal').close());
       $('#modal').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) ev.currentTarget.close(); });
       $('#sheet-toggle').addEventListener('click', () => { const sh = $('#sheet'); sh.classList.toggle('open'); $('#sheet-toggle').textContent = sh.classList.contains('open') ? T('접기') : T('위로 펼치기'); });
     }).catch((err) => { $('#toon').textContent = T('data.json을 불러오지 못했습니다: ') + err; });
-    if (OPT.work && window.Lore) Lore.attachReader({ work: OPT.work, lore: 'lore.json', dict: `../lore.html?work=${OPT.work}` });
+    if (OPT.work && window.Lore && !OPT.archiveLabel) Lore.attachReader({ work: OPT.work, lore: 'lore.json', dict: `../lore.html?work=${OPT.work}` });
   }
 
   window.Reader = { start };

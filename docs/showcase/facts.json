@@ -1,4 +1,68 @@
 {
+ "family-revenge": {
+  "vibelore": {
+   "v": {
+    "ko": "0.4.8",
+    "en": "0.4.8"
+   },
+   "note": {
+    "ko": "소설·웹툰 실행 기록 0.4.8 (7ed081d), sourceTreeHash 보존",
+    "en": "소설·웹툰 실행 기록 0.4.8 (7ed081d), sourceTreeHash 보존"
+   }
+  },
+  "novel": {
+   "v": {
+    "ko": "Codex 세션 · 세부 모델 미기록",
+    "en": "Codex 세션 · 세부 모델 미기록"
+   },
+   "note": null
+  },
+  "adapt": {
+   "v": {
+    "ko": "Codex 세션 · 세부 모델 미기록",
+    "en": "Codex 세션 · 세부 모델 미기록"
+   },
+   "note": null
+  },
+  "image": {
+   "v": {
+    "ko": "OpenAI API · gpt-image-2.5-sunburst (요청 모델)",
+    "en": "OpenAI API · gpt-image-2.5-sunburst (요청 모델)"
+   },
+   "note": null
+  },
+  "review": {
+   "v": {
+    "ko": "Codex 세션 · 세부 모델 미기록",
+    "en": "Codex 세션 · 세부 모델 미기록"
+   },
+   "note": {
+    "ko": "검토 방식은 제작 기록 참고",
+    "en": "See production records for the review method"
+   }
+  },
+  "size": {
+   "v": {
+    "ko": "소설 10화 · 웹툰 1화 · 4장면 · 34칸",
+    "en": "Novel 10 episodes · webtoon 1 episodes · 4 scenes · 34 panels"
+   },
+   "note": null
+  },
+  "cost": {
+   "v": {
+    "ko": "기록 없음",
+    "en": "Not recorded"
+   },
+   "note": null
+  },
+  "time": {
+   "v": {
+    "ko": "기록 없음",
+    "en": "Not recorded"
+   },
+   "note": null
+  }
+ },
  "plant-runaway": {
   "vibelore": {
    "v": {

@@ -145,6 +145,36 @@ def thundertrail(w, d):
     return f
 
 
+BUILD = {'vesper': vesper, 'verdict-live': verdict, 'executionprincess': princess, 'thundertrail': thundertrail}
+IMAGE_HOST = {'verdict-live': 'Codex · OpenAI API', 'thundertrail': 'OpenAI API'}  # data.json에 imageHost가 없는 작품(리더의 imageHost와 같음)
+ORDER = ['vibelore', 'novel', 'adapt', 'image', 'review', 'size', 'cost', 'time']
+
+
+def generic(w, d):
+    """New works do not need a bespoke cost parser to appear in the showcase."""
+    f = {key: row(NONE) for key in ORDER}
+    f['vibelore'] = row(t(w['version']['label']), t(w['version']['detail']))
+    eps = d.get('episodes', [])
+    chapters = d.get('chapters', [])
+    for key, field in [('novel', 'novelModel'), ('adapt', 'model')]:
+        models = uniq(e[field] for e in eps if e.get(field))
+        if key == 'novel' and not models and d.get('novelModel'):
+            models = [d['novelModel']]
+        if models:
+            f[key] = row(t(' / '.join(models)))
+    if d.get('imageModel'):
+        f['image'] = row(t(' · '.join(filter(None, [d.get('imageHost'), d['imageModel']]))))
+    if d.get('reviewer', {}).get('model'):
+        f['review'] = row(t(d['reviewer']['model']), t('검토 방식은 제작 기록 참고', 'See production records for the review method'))
+    novel = len(chapters) if chapters else len(eps)
+    scenes = sum(len(e.get('scenes', [])) for e in eps)
+    panels = sum(e.get('panelTotal', 0) for e in eps)
+    f['size'] = row(t(f'소설 {novel}화 · 웹툰 {len(eps)}화 · {scenes}장면' + (f' · {panels}칸' if panels else ''),
+                      f'Novel {novel} episodes · webtoon {len(eps)} episodes · {scenes} scenes' + (f' · {panels} panels' if panels else '')))
+    # Different recording formats must not be silently treated as measured totals.
+    return f
+
+
 def plant_runaway(w, d):
     f = common(w, d)
     f['adapt'] = row(t('Codex'), t('호스트 모델명·추론 강도 미기록', 'Host model and reasoning effort not recorded'))
@@ -169,21 +199,17 @@ def plant_runaway(w, d):
     return f
 
 
-BUILD = {'vesper': vesper, 'verdict-live': verdict, 'executionprincess': princess, 'thundertrail': thundertrail,
-         'plant-runaway': plant_runaway}
-IMAGE_HOST = {'verdict-live': 'Codex · OpenAI API', 'thundertrail': 'OpenAI API'}  # data.json에 imageHost가 없는 작품(리더의 imageHost와 같음)
-ORDER = ['vibelore', 'novel', 'adapt', 'image', 'review', 'size', 'cost', 'time']
-
+BUILD['plant-runaway'] = plant_runaway
 
 def main():
     cat = json.loads((ROOT / 'works.json').read_text())
     out = {}
     for w in cat['works']:
-        if w['id'] not in BUILD:
+        if 'multi' in w['formats']:
             continue
         d = json.loads((ROOT / w['id'] / 'data.json').read_text())
         w['_imageHost'] = IMAGE_HOST.get(w['id'])
-        f = BUILD[w['id']](w, d)
+        f = BUILD.get(w['id'], generic)(w, d)
         w.pop('_imageHost')
         out[w['id']] = {k: f[k] for k in ORDER}
         print(w['id'], '·', ' | '.join(f"{k}: {f[k]['v']['ko']}" for k in ORDER))

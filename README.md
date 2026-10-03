@@ -9,7 +9,7 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](docs/GETTING_STARTED.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](HOSTS.md)
-[![Showcase](https://img.shields.io/badge/showcase-%EC%9E%91%ED%92%88%205%ED%8E%B8-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-%EC%9E%91%ED%92%88%206%ED%8E%B8-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 Claude Code, Codex, Grok CLI 같은 AI 코딩 도구에 MCP 서버로 붙여서 씁니다. 본문과 그림은 그 AI가 만들고,
 vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사하고, 승인 전에는 아무것도 확정하지 않습니다.
@@ -26,7 +26,8 @@ vibelore는 세계관·인물·복선·시간선을 기억하고, 매 화 검사
 
 모두 vibelore로 쓴 소설을 웹툰으로 옮긴 실제 결과입니다. 작품마다 다른 AI가 만들었고, 만들 때 쓴 vibelore 버전을 함께 적었습니다.
 
-- **[우리 집 화분이 가출했습니다](https://fbwndrud.github.io/vibelore/showcase/plant-runaway/)** (vibelore 0.4.8, 최신): Gemini 3.8 Flash로 집필한 소설 1~3화와 웹툰 1~3화(10장면·80칸). 웹툰 각색·검토는 Codex, 장면 이미지 요청 모델은 `gpt-image-2.5-sunburst`입니다. 수정 전 그림과 검토 기록도 공개합니다.
+- **[아까는 식구 아니라면서요](https://fbwndrud.github.io/vibelore/showcase/family-revenge/)** (vibelore 0.4.8): 소설 10화 완결과 성인 생활 풍자풍 웹툰 1화 34칸. 금액 중복·대사 오타·밥그릇 오류의 수정 전후, 참조 이미지와 실제 검토 기록을 함께 공개합니다.
+- **[우리 집 화분이 가출했습니다](https://fbwndrud.github.io/vibelore/showcase/plant-runaway/)** (vibelore 0.4.8): Gemini 3.8 Flash로 집필한 소설 1~3화와 웹툰 1~3화(10장면·80칸). 웹툰 각색·검토는 Codex, 장면 이미지 요청 모델은 `gpt-image-2.5-sunburst`입니다. 수정 전 그림과 검토 기록도 공개합니다.
 - **[베스퍼](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2): 롯데월드 야간 퍼레이드 캐릭터를 빌린 비공식 팬 창작입니다. 50화 완결 소설부터 1~3화 웹툰까지 Claude Opus 5.5가 맡았습니다. 2화 웹툰은 베스퍼의 불빛이 칸 테두리 색과 밝기를 정하는 연출 실험, 3화 웹툰은 인이어 무전이 말풍선 대신 칸 사이 민트색 띠로 들어오는 연출 실험입니다.
 - **[처형 1분 전의 황녀](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): 설계부터 소설, 웹툰 각색까지 GPT-6 Sol이 맡았습니다.
 - **[판결 LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): 소설과 웹툰 각색은 Claude Opus 5.5가, 그림은 Codex (OpenAI API `gpt-image-2.5-sunburst`)가 맡았습니다.

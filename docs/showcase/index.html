@@ -2,228 +2,40 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script src="i18n.js?v=12"></script>
+<script src="i18n.js?v=14"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>vibelore 제작 예시</title>
+<title>이야기의 다음 페이지 · vibelore</title>
 <meta name="description" content="vibelore로 AI가 설계·집필·각색한 소설과 장면 웹툰 제작 예시 모음.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="shared/site.css?v=1">
-<style>
-.hero{display:grid;grid-template-columns:300px minmax(0,1fr) 380px;gap:32px 48px;padding:48px var(--pad);background:var(--night);color:#F3EBDA;align-items:center}
-.hero .cover img{width:300px;aspect-ratio:5/7;object-fit:cover;object-position:top;border-radius:14px;display:block}
-.hero .badges{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.hero .badge{background:var(--amber);color:#1A1405;font-weight:700;font-size:12px;letter-spacing:.12em;padding:5px 10px;border-radius:6px}
-.hero .genre{font-size:13px;color:#C7C3B8}
-.hero h1{margin:8px 0 0;font-family:'Noto Serif KR',serif;font-size:clamp(40px,4.4vw,56px);letter-spacing:-.03em;line-height:1.1}
-.hero .gl{display:block;font-size:15px;color:#C7C3B8;margin-top:4px}
-.hero p{margin:12px 0 0;font-size:17px;line-height:1.75;color:#DCD5C4;max-width:560px}
-.hero .stats{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;margin-top:14px}
-.hero .stats span{padding:6px 12px;border-radius:8px;border:1px solid #3C4468}
-.hero .meta{font-size:12.5px;color:#9097B3;margin-top:10px}
-.hero .ctas{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 22px;border-radius:10px;font-size:15px}
-.btn.primary{background:var(--amber);color:#1A1405;font-weight:700}
-.btn.ghost{border:1px solid #5A6288;color:#F3EBDA}
-.btn.primary:hover{color:#1A1405;filter:brightness(1.06)}.btn.ghost:hover{color:#fff;border-color:#8A92BC}
-.purpose{display:flex;flex-direction:column;gap:10px}
-.purpose .kick{font-size:12px;letter-spacing:.14em;color:#9097B3;font-weight:700}
-.purpose a{display:flex;flex-direction:column;gap:2px;padding:14px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid #3C4468;color:#F3EBDA}
-.purpose a:hover{border-color:#8A92BC;color:#fff}
-.purpose b{font-size:16px}.purpose span{font-size:13px;color:#B7BCD0}
-.works{padding-top:44px;padding-bottom:64px;display:flex;flex-direction:column;gap:22px}
-.works-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px 24px;flex-wrap:wrap}
-.works-h h2{margin:0;font-family:'Noto Serif KR',serif;font-size:30px;letter-spacing:-.02em}
-.works-h h2 small{font-family:'Noto Sans KR',sans-serif;font-size:16px;color:var(--muted);font-weight:500;margin-left:6px}
-.tools{display:flex;align-items:center;gap:12px;font-size:14px;flex-wrap:wrap}
-.tools label{color:var(--sub)}
-.tools select{font-size:14px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);min-height:40px}
-.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.seg button{border:0;padding:0 14px;min-height:40px;font-size:13px;background:var(--card);cursor:pointer}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--card)}
-.filters{display:flex;flex-direction:column;gap:12px;padding:16px 20px}
-.frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.frow .fk{min-width:56px;font-size:13px;font-weight:700;color:var(--sub)}
-.chip{padding:0 14px;min-height:36px;border-radius:999px;font-size:14px;border:1px solid var(--chip);background:var(--card);cursor:pointer}
-.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--card)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:28px 24px}
-.wcard{display:flex;flex-direction:column;gap:8px}
-.wcard .img{position:relative}
-.wcard img{width:100%;aspect-ratio:2/3;object-fit:cover;object-position:top;border-radius:12px;display:block;background:#E6DFCE}
-.wcard .v{position:absolute;left:10px;top:10px;background:rgba(19,22,42,.86);color:#F3EBDA;font-size:12px;font-weight:700;padding:4px 9px;border-radius:6px}
-.wcard .g{font-size:12px;font-weight:700;letter-spacing:.06em}
-.wcard b{font-family:'Noto Serif KR',serif;font-size:21px;letter-spacing:-.02em;line-height:1.3}
-.wcard .gl{font-size:13px;color:var(--muted);margin-top:-6px}
-.wcard .s{font-size:13px;color:var(--sub);line-height:1.55}
-.wcard .m{font-size:12.5px;color:var(--muted)}
-.list{overflow:hidden}
-.lrow{display:grid;grid-template-columns:64px 2fr 1.4fr 2fr 1fr 1.6fr;gap:20px;padding:12px 20px;align-items:center;border-bottom:1px solid var(--line2);font-size:14px}
-.lrow:last-child{border-bottom:0}
-.lrow.head{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line)}
-.lrow img{width:64px;height:64px;object-fit:cover;object-position:top;border-radius:8px;display:block}
-.lrow b{font-family:'Noto Serif KR',serif;font-size:17px}
-.lrow .c{color:var(--sub)}
-.lrow .gl{display:block;font-size:12.5px;color:var(--muted)}
-.empty{padding:40px;text-align:center;color:var(--sub);border:1px dashed var(--chip);border-radius:14px}
-.empty button{margin-left:8px;text-decoration:underline;border:0;background:none;cursor:pointer;font-size:inherit;color:var(--gold)}
-@media (max-width:1100px){.hero{grid-template-columns:240px minmax(0,1fr)}.hero .cover img{width:240px}.purpose{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.purpose .kick{grid-column:1/-1}}
-@media (max-width:720px){
-  .hero{grid-template-columns:1fr;padding-top:0;padding-left:0;padding-right:0;gap:0}
-  .hero .cover img{width:100%;aspect-ratio:13/10;border-radius:0}
-  .hero .body{padding:20px var(--pad) 8px}.purpose{padding:16px var(--pad) 8px;grid-template-columns:1fr}
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px}
-  .wcard b{font-size:16px}.wcard .s{font-size:12px}.wcard .m,.wcard .g,.wcard .gl{display:none}
-  .lrow{grid-template-columns:56px minmax(0,1fr);gap:4px 12px}.lrow>*:nth-child(n+3){grid-column:2}.lrow img{width:56px;height:56px;grid-row:span 5}.lrow.head{display:none}
-}
-</style>
+<link rel="stylesheet" href="shared/site.css?v=2">
+<link rel="stylesheet" href="shared/catalog.css?v=2">
 </head>
 <body data-page="works" data-root="">
 <div class="shell">
 <header id="top"></header>
 
-<section class="hero" id="hero" aria-label="최신작"></section>
-
-<section class="works wrap" id="works" aria-labelledby="works-h">
-  <div class="works-h">
-    <h2 id="works-h">모든 작품<small id="count"></small></h2>
-    <div class="tools">
-      <label for="sort">정렬</label>
-      <select id="sort">
-        <option value="version">최신 버전순</option>
-        <option value="size">분량 많은 순</option>
-        <option value="title">제목순</option>
-      </select>
-      <div class="seg" role="group" aria-label="보기 방식">
-        <button type="button" data-view="grid">카드</button>
-        <button type="button" data-view="list">목록</button>
-      </div>
+<main class="library" id="works">
+  <section class="library-intro">
+    <div><span class="eyebrow">THE VIBELORE LIBRARY</span><h1>이야기의 다음 페이지.</h1></div>
+    <p>문장으로 빠져들거나, 그림으로 만나거나.<br>vibelore로 만든 이야기를 읽어 보세요.</p>
+  </section>
+  <div class="shelf-tabs" id="f-format" role="group" aria-label="형식"></div>
+  <div class="shelf-toolbar">
+    <div class="shelf-heading"><h2 id="works-label">소설 서가</h2><span id="count" aria-live="polite"></span></div>
+    <div class="shelf-controls">
+      <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" aria-label="작품 검색" placeholder="제목으로 찾기"></label>
+      <select id="f-language" aria-label="작품 언어"></select>
+      <select id="sort" aria-label="정렬"><option value="recommended">추천순</option><option value="size">분량 많은 순</option><option value="title">제목순</option><option value="version">제작 버전순</option></select>
     </div>
   </div>
-  <div class="filters card">
-    <div class="frow" role="group" aria-label="형식"><span class="fk">형식</span><span id="f-format" style="display:contents"></span></div>
-    <div class="frow" role="group" aria-label="모델"><span class="fk">모델</span><span id="f-model" style="display:contents"></span></div>
-  </div>
-  <div id="out"></div>
-  <p class="muted" style="margin:0;font-size:13px">카드마다 작품을 만들 때 실행한 vibelore 버전과 모델을 적었습니다. 버전에 마우스를 올리면 실행 커밋이 보입니다. 같은 도구라도 버전에 따라 검사와 웹툰 흐름이 달라 결과를 그대로 비교하기는 어렵습니다.</p>
-</section>
-
-<footer class="foot">
-  <span>작품 카드는 works.json 한 곳에서 만들어집니다. 검토 판정은 제작 호스트의 자기검토이며 독립 평가가 아닙니다.</span>
-  <span data-i18n="common.madeWithLink">제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a></span>
-</footer>
+  <div id="out" aria-live="polite"><p class="loading">서가를 펼치고 있습니다.</p></div>
+  <details id="production-filters" class="library-production"><summary>제작 정보로 찾아보기</summary><div id="f-model" role="group" aria-label="모델"></div><p>제작 모델과 버전, 이전 공개본은 작품의 제작 정보에서 확인할 수 있습니다.</p></details>
+</main>
+<footer class="foot library-foot"><span>이야기는 vibelore로, 선택은 당신의 취향으로.</span><span><a href="how/">만드는 방식</a><a href="versions.html">버전 연혁</a><a href="https://github.com/fbwndrud/vibelore">GitHub ↗</a></span></footer>
 <noscript><p class="wrap">이 목록은 JavaScript로 works.json을 읽어 그립니다. 작품: <a href="vesper/">베스퍼</a> · <a href="multilingual/">다국어</a> · <a href="executionprincess/">처형 1분 전의 황녀</a> · <a href="verdict-live/">판결 LIVE</a> · <a href="thundertrail/">길 위의 번개</a></p></noscript>
 </div>
-<script src="shared/chrome.js?v=1"></script>
-<script>
-(function () {
-  'use strict';
-  const { el, cmpVer, loadCatalog, latestWork, T } = window.Showcase;
-  const FORMATS = [['all', '전체'], ['novel', '소설'], ['webtoon', '웹툰'], ['multi', '다국어']];
-  const MODELS = [['all', '전체'], ['claude', 'Claude'], ['gpt', 'GPT'], ['gemini', 'Gemini'], ['mixed', '여러 모델 비교']];
-  const params = new URLSearchParams(location.search);
-  const pick = (k, allowed, d) => (allowed.includes(params.get(k)) ? params.get(k) : d);
-  const state = {
-    format: pick('format', FORMATS.map((x) => x[0]), 'all'),
-    model: pick('model', MODELS.map((x) => x[0]), 'all'),
-    sort: pick('sort', ['version', 'size', 'title'], 'version'),
-    view: pick('view', ['grid', 'list'], 'grid'),
-  };
-  const DEFAULT = { format: 'all', model: 'all', sort: 'version', view: 'grid' };
-  // 필터 상태를 주소에 남겨 링크 하나로 같은 화면을 공유한다. lang 같은 다른 인자는 그대로 둔다.
-  function syncUrl() {
-    const u = new URL(location.href);
-    for (const k of Object.keys(DEFAULT)) { if (state[k] === DEFAULT[k]) u.searchParams.delete(k); else u.searchParams.set(k, state[k]); }
-    history.replaceState(null, '', u.pathname + u.search + u.hash);
-  }
-
-  function hero(w) {
-    const box = document.getElementById('hero');
-    box.append(
-      el('a', { class: 'cover', href: w.href }, el('img', { src: w.thumb, alt: w.alt })),
-      el('div', { class: 'body' },
-        el('div', { class: 'badges' }, el('span', { class: 'badge' }, T('최신 작품 · vibelore {v}', { v: w.version.label })), el('span', { class: 'genre' }, w.genre)),
-        el('h1', { lang: 'ko' }, w.title), w.gloss ? el('span', { class: 'gl en-only' }, w.gloss) : null,
-        w.sub ? el('span', { class: 'gl ko-only' }, w.sub) : null,
-        el('p', null, w.blurb),
-        el('div', { class: 'stats' }, (w.stats || [w.scope]).map((s) => el('span', null, s))),
-        el('div', { class: 'meta' }, w.meta),
-        el('div', { class: 'ctas' },
-          el('a', { class: 'btn primary', href: w.href + ((w.links && w.links.read) || '') }, (w.links && w.links.read) ? '1화부터 읽기' : '작품 보기'),
-          w.links && w.links.notes ? el('a', { class: 'btn ghost', href: w.href + w.links.notes }, '제작 노트') : null,
-          w.lore ? el('a', { class: 'btn ghost', href: 'lore.html?work=' + w.id }, '인물·설정 사전') : null)),
-      el('div', { class: 'purpose' },
-        el('span', { class: 'kick' }, '무엇을 보러 오셨나요?'),
-        [['#works', '작품을 읽고 싶어요', '형식·모델로 골라 1화부터 읽기'],
-         ['versions.html', '도구가 어떻게 나아졌나요', '버전마다 바뀐 점과 그 버전으로 만든 작품'],
-         ['how/', '어떻게 만들어지나요', '소설 한 화, 웹툰 한 장면이 거치는 단계'],
-         ['thundertrail/compare.html', '모델끼리 비교하고 싶어요', '같은 원작, 다른 모델의 장면·판정·비용']]
-          .map(([h, b, s]) => el('a', { href: h }, el('b', null, b), el('span', null, s)))));
-    I18N.apply(box);
-  }
-
-  function chips(slotId, key, defs, works, test) {
-    const slot = document.getElementById(slotId);
-    slot.replaceChildren(...defs.map(([v, label]) => {
-      const n = v === 'all' ? works.length : works.filter((w) => test(w, v)).length;
-      return el('button', { type: 'button', class: 'chip', 'aria-pressed': String(state[key] === v), onclick: () => { state[key] = v; render(works); } }, T(label) + ' ' + n);
-    }));
-  }
-
-  const byFormat = (w, v) => w.formats.includes(v);
-  const byModel = (w, v) => w.family === v;
-  const SORTS = {
-    version: (a, b) => cmpVer(b.version.to, a.version.to) || cmpVer(b.version.from, a.version.from),
-    size: (a, b) => b.episodes - a.episodes,
-    title: (a, b) => T(a.gloss || a.title).localeCompare(T(b.gloss || b.title), I18N.lang),
-  };
-
-  function versionTag(w, cls) { return el('span', { class: cls, title: w.version.detail }, 'vibelore ' + w.version.label); }
-
-  function card(w) {
-    return el('a', { class: 'wcard', href: w.href },
-      el('div', { class: 'img' }, el('img', { src: w.thumb, alt: w.alt, loading: 'lazy' }), versionTag(w, 'v')),
-      el('span', { class: 'g', style: 'color:' + w.tone }, w.genre),
-      el('b', { lang: 'ko' }, w.title), w.gloss ? el('span', { class: 'gl en-only' }, w.gloss) : null,
-      el('span', { class: 's' }, w.scope), el('span', { class: 'm' }, w.model));
-  }
-  function row(w) {
-    return el('a', { class: 'lrow', href: w.href },
-      el('img', { src: w.thumbSq, alt: w.alt, loading: 'lazy' }),
-      el('span', null, el('b', { lang: 'ko' }, w.title), w.gloss ? el('span', { class: 'gl en-only' }, w.gloss) : null),
-      el('span', { class: 'c' }, w.genre), el('span', { class: 'c' }, w.scope),
-      el('span', { style: 'font-weight:700', title: w.version.detail }, w.version.label), el('span', { class: 'c' }, w.model));
-  }
-
-  function render(works) {
-    chips('f-format', 'format', FORMATS, works, byFormat);
-    chips('f-model', 'model', MODELS, works, byModel);
-    document.getElementById('sort').value = state.sort;
-    for (const b of document.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', String(b.dataset.view === state.view));
-    const shown = works.filter((w) => (state.format === 'all' || byFormat(w, state.format)) && (state.model === 'all' || byModel(w, state.model))).sort(SORTS[state.sort]);
-    document.getElementById('count').textContent = shown.length === works.length ? T('{n}편', { n: works.length }) : T('{a} / {n}편', { a: shown.length, n: works.length });
-    const out = document.getElementById('out');
-    if (!shown.length) {
-      out.replaceChildren(el('div', { class: 'empty' }, '조건에 맞는 작품이 없습니다.', el('button', { type: 'button', onclick: () => { state.format = 'all'; state.model = 'all'; render(works); } }, '필터 모두 풀기')));
-    } else if (state.view === 'list') {
-      out.replaceChildren(el('div', { class: 'list card' },
-        el('div', { class: 'lrow head', 'aria-hidden': 'true' }, el('span'), el('span', null, '작품'), el('span', null, '장르'), el('span', null, '분량'), el('span', null, 'vibelore'), el('span', null, '모델')),
-        shown.map(row)));
-    } else {
-      out.replaceChildren(el('div', { class: 'grid' }, shown.map(card)));
-    }
-    I18N.apply(out);
-    syncUrl();
-  }
-
-  loadCatalog().then(({ works }) => {
-    hero(latestWork(works));
-    document.getElementById('sort').addEventListener('change', (e) => { state.sort = e.target.value; render(works); });
-    for (const b of document.querySelectorAll('[data-view]')) b.addEventListener('click', () => { state.view = b.dataset.view; render(works); });
-    render(works);
-  }).catch((e) => {
-    document.getElementById('out').append(el('p', { class: 'empty' }, T('작품 목록을 불러오지 못했습니다.') + ' (' + e.message + ')'));
-  });
-})();
-</script>
+<script src="shared/chrome.js?v=3"></script>
+<script src="shared/catalog.js?v=2"></script>
 </body>
 </html>

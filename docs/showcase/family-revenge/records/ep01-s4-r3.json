@@ -1,0 +1,668 @@
+{
+  "scene": 4,
+  "revision": 3,
+  "workflowId": "wt-32d8b5ca-81eb-435b-a12c-7d9e86eca735",
+  "runtime": {
+    "packageVersion": "0.4.8",
+    "gitCommit": "7ed081dc096e2df19f4fa84167512a2ca6184877",
+    "sourceTreeHash": "sha256:1aa532772bb9696d26722f9a8af229ea94cbfec3c0391040e0a53372f13d313a",
+    "scope": "package.json+src+engine/src",
+    "capturedAt": "2026-10-03T21:25:26.995Z"
+  },
+  "sourceHash": "sha256:8ef6a7767cb8f5e2cb88b55789308f0717c3e2c7970ea08f8775f90b8450c3e8",
+  "sourceUnitIds": [
+    "ch-1-p-55",
+    "ch-1-p-56",
+    "ch-1-p-57",
+    "ch-1-p-58",
+    "ch-1-p-59",
+    "ch-1-p-60",
+    "ch-1-p-61",
+    "ch-1-p-62",
+    "ch-1-p-63",
+    "ch-1-p-64",
+    "ch-1-p-65",
+    "ch-1-p-66",
+    "ch-1-p-67",
+    "ch-1-p-68",
+    "ch-1-p-69",
+    "ch-1-p-70",
+    "ch-1-p-71",
+    "ch-1-p-72",
+    "ch-1-p-73",
+    "ch-1-p-74",
+    "ch-1-p-75",
+    "ch-1-p-76"
+  ],
+  "image": {
+    "sourcePngHash": "sha256:4579639959424731812115b7e3fcd84bf7866f9844d1de821c34f24e0286f619",
+    "publicImage": "https://fbwndrud.github.io/vibelore-showcase-media/family-revenge/img/ep01-s4.webp"
+  },
+  "plan": {
+    "title": "받은 장부도 적어주세요",
+    "panelCount": 9,
+    "intent": "The family demands loyalty while withholding even her meal. Jeonghui refuses the false debt and turns the demand for records into a documented handover, leaving the dinner on a sharp reversal.",
+    "facts": [
+      {
+        "id": "fact-1",
+        "sourceIds": [
+          "ch-1-p-55",
+          "ch-1-p-56",
+          "ch-1-p-57",
+          "ch-1-p-58",
+          "ch-1-p-59",
+          "ch-1-p-60"
+        ],
+        "statement": "Taeseop invokes family responsibility and Bokja agrees. Mansik asks them to talk after eating, although Jeonghui has no meal. She moves the pen back toward Taeseop."
+      },
+      {
+        "id": "fact-2",
+        "sourceIds": [
+          "ch-1-p-61",
+          "ch-1-p-62",
+          "ch-1-p-63",
+          "ch-1-p-64"
+        ],
+        "statement": "Jeonghui will read the divorce agreement but refuses to sign the return-of-money statement because she did not take the money."
+      },
+      {
+        "id": "fact-3",
+        "sourceIds": [
+          "ch-1-p-65",
+          "ch-1-p-66",
+          "ch-1-p-67"
+        ],
+        "statement": "Taeseop demands all company records and keys by tomorrow morning. Records are ordered in the drawer, but Jeonghui does not open it."
+      },
+      {
+        "id": "fact-4",
+        "sourceIds": [
+          "ch-1-p-68",
+          "ch-1-p-69",
+          "ch-1-p-70",
+          "ch-1-p-71",
+          "ch-1-p-72",
+          "ch-1-p-73",
+          "ch-1-p-74",
+          "ch-1-p-75",
+          "ch-1-p-76"
+        ],
+        "statement": "Jeonghui proposes an inventory and a receipt for the records. Bokja objects to asking family for receipts. Jeonghui compares that request to their demand that she acknowledge an untrue eighty-million debt, and puts the earring record back in her pocket."
+      }
+    ],
+    "beats": [
+      {
+        "id": "beat-1",
+        "sourceIds": [
+          "ch-1-p-55",
+          "ch-1-p-56",
+          "ch-1-p-57"
+        ],
+        "action": "Taeseop and Bokja invoke family responsibility to make Jeonghui accountable for company payments.",
+        "textIds": [
+          "text-1"
+        ]
+      },
+      {
+        "id": "beat-2",
+        "sourceIds": [
+          "ch-1-p-58",
+          "ch-1-p-59",
+          "ch-1-p-60"
+        ],
+        "action": "Mansik asks them to eat first over his own rice, while the narration preserves the contrast that Jeonghui has no meal.",
+        "textIds": [
+          "text-2",
+          "text-3"
+        ]
+      },
+      {
+        "id": "beat-3",
+        "sourceIds": [
+          "ch-1-p-60",
+          "ch-1-p-61",
+          "ch-1-p-62",
+          "ch-1-p-63",
+          "ch-1-p-64"
+        ],
+        "action": "Jeonghui returns the pen and refuses the false debt statement, separating it from the divorce decision.",
+        "textIds": [
+          "text-4",
+          "text-5"
+        ]
+      },
+      {
+        "id": "beat-4",
+        "sourceIds": [
+          "ch-1-p-65",
+          "ch-1-p-66",
+          "ch-1-p-67"
+        ],
+        "action": "Taeseop demands keys and records, extending a hand toward Jeonghui while the document cabinet remains closed.",
+        "textIds": [
+          "text-6"
+        ]
+      },
+      {
+        "id": "beat-5",
+        "sourceIds": [
+          "ch-1-p-68",
+          "ch-1-p-69",
+          "ch-1-p-70"
+        ],
+        "action": "Jeonghui proposes an inventory and asks Taeseop to acknowledge the records he receives.",
+        "textIds": [
+          "text-7",
+          "text-8",
+          "text-9"
+        ]
+      },
+      {
+        "id": "beat-6",
+        "sourceIds": [
+          "ch-1-p-71",
+          "ch-1-p-72",
+          "ch-1-p-73",
+          "ch-1-p-74",
+          "ch-1-p-75"
+        ],
+        "action": "Bokja objects to receipts between family, and Jeonghui answers with the contradiction of the false debt acknowledgment.",
+        "textIds": [
+          "text-10",
+          "text-11"
+        ]
+      },
+      {
+        "id": "beat-7",
+        "sourceIds": [
+          "ch-1-p-76"
+        ],
+        "action": "Jeonghui returns the purchase record to her apron pocket and turns her attention to tomorrow's counted handover.",
+        "textIds": [
+          "text-12"
+        ]
+      }
+    ],
+    "texts": [
+      {
+        "id": "text-1",
+        "sourceId": "ch-1-p-55",
+        "kind": "dialogue",
+        "speaker": "c2",
+        "text": "당신이 맡았으면 책임도 져야지. 좋을 때는 가족이고 불리하면 남이야?"
+      },
+      {
+        "id": "text-2",
+        "sourceId": "ch-1-p-59",
+        "kind": "dialogue",
+        "speaker": "c4",
+        "text": "밥 먹고 이야기해라."
+      },
+      {
+        "id": "text-3",
+        "sourceId": "ch-1-p-60",
+        "kind": "caption",
+        "speaker": "narrator",
+        "text": "정희의 밥은 없었다."
+      },
+      {
+        "id": "text-4",
+        "sourceId": "ch-1-p-61",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "이혼서류는 읽어보고 이야기할게요. 이 확인서에는 이름 못 써요."
+      },
+      {
+        "id": "text-5",
+        "sourceId": "ch-1-p-63",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "제가 가져간 돈이 아니니까요."
+      },
+      {
+        "id": "text-6",
+        "sourceId": "ch-1-p-65",
+        "kind": "dialogue",
+        "speaker": "c2",
+        "text": "그럼 장부 다 놓고 나가. 회사 열쇠도. 내일 아침까지 전부."
+      },
+      {
+        "id": "text-7",
+        "sourceId": "ch-1-p-68",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "목록을 만들게요."
+      },
+      {
+        "id": "text-8",
+        "sourceId": "ch-1-p-69",
+        "kind": "dialogue",
+        "speaker": "c2",
+        "text": "무슨 목록?"
+      },
+      {
+        "id": "text-9",
+        "sourceId": "ch-1-p-70",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "어떤 서류를 몇 권 넘겼는지요. 받으셨다고 적어주세요."
+      },
+      {
+        "id": "text-10",
+        "sourceId": "ch-1-p-72",
+        "kind": "dialogue",
+        "speaker": "c3",
+        "text": "십 년 같이 산 식구한테 영수증을 받겠다는 거니?"
+      },
+      {
+        "id": "text-11",
+        "sourceId": "ch-1-p-74",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "제 돈 아닌 팔천만 원도 적으라고 하셨잖아요. 받은 장부 적는 건 어렵지 않으시겠죠."
+      },
+      {
+        "id": "text-12",
+        "sourceId": "ch-1-p-76",
+        "kind": "caption",
+        "speaker": "narrator",
+        "text": "이제는 내일 넘길 종이가 몇 장인지부터 세어야 했다."
+      }
+    ],
+    "staging": "Keep the dinner room, outfits and five identities from the preceding page. Jeonghui is standing and has no meal setting. Mansik remains seated holding his spoon. The pen is moved toward Taeseop before the refusal; the document drawer remains closed and no key or ledger is handed over yet. The receipt is intact, returning to her apron pocket in the final moment. Taeseop's reaching hand is halted by the demand to acknowledge receipt. The divorce and money papers remain unsigned with abstract contents. End at the table tonight, before the next chapter's actual handover. All selected words are the original Korean dialogue or narration. Jeonghui's inventory explanation has a spacious, clearly legible balloon preserving its exact Korean wording. The father's meal moment centers on Mansik with his own rice bowl and spoon; Jeonghui's excluded meal is stated in the narration.",
+    "uncertainties": [
+      "The exact drawer level is unspecified; the cabinet beside the table follows the room reference.",
+      "There is no physical inventory yet in this chapter, so the promise to make one is spoken, with no invented written list."
+    ]
+  },
+  "brief": {
+    "style": "European graphic-novel adult satire, bold ink contours, flat muted cream, charcoal and brick-red colors, believable middle-aged faces, expressive reactions, printed-paper texture.",
+    "moments": [
+      {
+        "sourceIds": [
+          "ch-1-p-55",
+          "ch-1-p-56",
+          "ch-1-p-57"
+        ],
+        "action": "Taeseop faces standing Jeonghui with a forceful expression while seated Bokja nods in agreement.",
+        "textIds": [
+          "text-1"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-58",
+          "ch-1-p-59",
+          "ch-1-p-60"
+        ],
+        "action": "Mansik sits alone over his own rice bowl, holding his spoon and pausing to address the family.",
+        "textIds": [
+          "text-2",
+          "text-3"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-60",
+          "ch-1-p-61",
+          "ch-1-p-63"
+        ],
+        "action": "Jeonghui faces Taeseop calmly, her hand beside the pen returned toward him on the table between the unsigned papers.",
+        "textIds": [
+          "text-4",
+          "text-5"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-64",
+          "ch-1-p-65",
+          "ch-1-p-66",
+          "ch-1-p-67"
+        ],
+        "action": "Taeseop extends his open hand toward Jeonghui, his expression demanding; the document cabinet beside the table remains closed.",
+        "textIds": [
+          "text-6"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-68",
+          "ch-1-p-69"
+        ],
+        "action": "Jeonghui and Taeseop face each other across the table, her calm proposal met by his puzzled expression.",
+        "textIds": [
+          "text-7",
+          "text-8"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-70"
+        ],
+        "action": "Jeonghui holds Taeseop's gaze beside the untouched papers, her inventory explanation clearly lettered in a spacious balloon.",
+        "textIds": [
+          "text-9"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-71",
+          "ch-1-p-72"
+        ],
+        "action": "Bokja leans toward Jeonghui with an offended face and raised brows, her small gold hoops visible.",
+        "textIds": [
+          "text-10"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-73",
+          "ch-1-p-74",
+          "ch-1-p-75"
+        ],
+        "action": "Jeonghui answers evenly beside the pen; Taeseop's outstretched hand rests halted on the dinner table.",
+        "textIds": [
+          "text-11"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-76"
+        ],
+        "action": "Jeonghui slips the folded purchase record into her cream apron pocket, shoulders straight and face composed at the table end.",
+        "textIds": [
+          "text-12"
+        ]
+      }
+    ],
+    "focusTextIds": [
+      "text-9"
+    ],
+    "corrections": [
+      "The father's meal panel centers on Mansik alone with his own rice bowl and spoon.",
+      "Jeonghui's inventory explanation uses clear Hangul in a spacious balloon."
+    ]
+  },
+  "preflight": {
+    "subjectHash": "sha256:8407d3474364d4d4be8189b108e55035bc84b7d53a3473276a8cb8206d03ba18",
+    "coveredBeatIds": [
+      "beat-1",
+      "beat-2",
+      "beat-3",
+      "beat-4",
+      "beat-5",
+      "beat-6",
+      "beat-7"
+    ],
+    "checks": [
+      {
+        "name": "sourceFidelity",
+        "passed": true,
+        "evidence": "Seven beats preserve p55-76: family-responsibility pressure, meal contradiction, refusal with returned pen, tomorrow deadline, inventory proposal, family-receipt objection and reply, then receipt pocketing. Twelve selected texts are exact original lines; no written inventory or actual handover is invented. The inventory line p70 is preserved exactly, including the opening word 어떤."
+      },
+      {
+        "name": "spatialFeasibility",
+        "passed": true,
+        "evidence": "The father moment centers on Mansik with his own rice bowl and spoon, as in p58-59; the original p60 caption supplies Jeonghui's missing meal. Other moments center on the record and pen exchange, while Jeonghui stays standing and the cabinet stays closed. This removes the unnecessary second meal-space staging requirement."
+      },
+      {
+        "name": "temporalCausality",
+        "passed": true,
+        "evidence": "Meal contradiction precedes refusal, then the records demand motivates the inventory requirement. Bokja's receipt objection precedes Jeonghui's reversal. The paper goes back in her pocket after Taeseop's hand stops; tomorrow's delivery remains future."
+      },
+      {
+        "name": "visualLoad",
+        "passed": true,
+        "evidence": "Nine panels keep the father's brief reply and irony caption together, the refusal and inventory explanation in separate readable moments, and the final retort isolated. The father view asks for a single actor and his own bowl, reducing prop load. The correct original inventory wording retains dedicated lettering focus."
+      }
+    ],
+    "findings": [],
+    "renderBrief": {
+      "style": "European graphic-novel adult satire, bold ink contours, flat muted cream, charcoal and brick-red colors, believable middle-aged faces, expressive reactions, printed-paper texture.",
+      "moments": [
+        {
+          "sourceIds": [
+            "ch-1-p-55",
+            "ch-1-p-56",
+            "ch-1-p-57"
+          ],
+          "action": "Taeseop faces standing Jeonghui with a forceful expression while seated Bokja nods in agreement.",
+          "textIds": [
+            "text-1"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-58",
+            "ch-1-p-59",
+            "ch-1-p-60"
+          ],
+          "action": "Mansik sits alone over his own rice bowl, holding his spoon and pausing to address the family.",
+          "textIds": [
+            "text-2",
+            "text-3"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-60",
+            "ch-1-p-61",
+            "ch-1-p-63"
+          ],
+          "action": "Jeonghui faces Taeseop calmly, her hand beside the pen returned toward him on the table between the unsigned papers.",
+          "textIds": [
+            "text-4",
+            "text-5"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-64",
+            "ch-1-p-65",
+            "ch-1-p-66",
+            "ch-1-p-67"
+          ],
+          "action": "Taeseop extends his open hand toward Jeonghui, his expression demanding; the document cabinet beside the table remains closed.",
+          "textIds": [
+            "text-6"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-68",
+            "ch-1-p-69"
+          ],
+          "action": "Jeonghui and Taeseop face each other across the table, her calm proposal met by his puzzled expression.",
+          "textIds": [
+            "text-7",
+            "text-8"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-70"
+          ],
+          "action": "Jeonghui holds Taeseop's gaze beside the untouched papers, her inventory explanation clearly lettered in a spacious balloon.",
+          "textIds": [
+            "text-9"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-71",
+            "ch-1-p-72"
+          ],
+          "action": "Bokja leans toward Jeonghui with an offended face and raised brows, her small gold hoops visible.",
+          "textIds": [
+            "text-10"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-73",
+            "ch-1-p-74",
+            "ch-1-p-75"
+          ],
+          "action": "Jeonghui answers evenly beside the pen; Taeseop's outstretched hand rests halted on the dinner table.",
+          "textIds": [
+            "text-11"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-76"
+          ],
+          "action": "Jeonghui slips the folded purchase record into her cream apron pocket, shoulders straight and face composed at the table end.",
+          "textIds": [
+            "text-12"
+          ]
+        }
+      ],
+      "focusTextIds": [
+        "text-9"
+      ],
+      "corrections": [
+        "The father's meal panel centers on Mansik alone with his own rice bowl and spoon.",
+        "Jeonghui's inventory explanation uses clear Hangul in a spacious balloon."
+      ]
+    },
+    "drawability": {
+      "passed": true,
+      "evidence": "All seven beats were reassessed against p55-76. The father's single-actor meal moment preserves his indifference and the exact missing-meal caption with fewer visible props. Nine separate moments retain refusal, tomorrow deadline, receipt condition and punchline. Inventory text remains source-exact."
+    },
+    "passed": true,
+    "reviewedAt": "2026-10-03T21:33:36.023Z",
+    "renderBriefHash": "sha256:1b8e3216f0ad5f9b670b2fb06dedd49da212590b23160281599a09e9fe8cbb3d"
+  },
+  "visualReview": {
+    "subjectHash": "sha256:0f608f0402ae95ef012acb3392f3a2341725ea432b0fefa74681142f049ffa8d",
+    "inspectedImages": true,
+    "observedPanelCount": 9,
+    "continuity": {
+      "inspectedPreviousImage": true,
+      "identity": {
+        "passed": true,
+        "evidence": "Compared actual preceding scene-three revision-two image: Jeonghui keeps sage blouse, cream apron, black low bun and outer-brow mole; Taeseop charcoal suit and angular face; Bokja short waved hair, burgundy and gold hoops. Mansik matches the previously established white-haired father in beige."
+      },
+      "setting": {
+        "passed": true,
+        "evidence": "The wooden dinner table, adjoining beige kitchen, wooden bowl cabinet, bowls and communal soup remain consistent. The father has only his own rice bowl in his close panel; Jeonghui's remaining frames show papers and pen rather than a meal."
+      },
+      "actionTransition": {
+        "passed": true,
+        "evidence": "The purchase record unfolded at scene three's end is retained through the continued pressure and returns folded to Jeonghui's pocket here. The refusal precedes record demand and inventory condition; the actual delivery remains tomorrow."
+      }
+    },
+    "coveredBeatIds": [
+      "beat-1",
+      "beat-2",
+      "beat-3",
+      "beat-4",
+      "beat-5",
+      "beat-6",
+      "beat-7"
+    ],
+    "textObservations": [
+      {
+        "id": "text-1",
+        "observedText": "당신이 맡았으면 책임도 져야지. 좋을 때는 가족이고 불리하면 남이야?",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 1 tail points to Taeseop facing standing Jeonghui."
+      },
+      {
+        "id": "text-2",
+        "observedText": "밥 먹고 이야기해라.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 2 tail points to Mansik alone with his own rice bowl and spoon."
+      },
+      {
+        "id": "text-3",
+        "observedText": "정희의 밥은 없었다.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 2 cream narration beside the father; only his meal setting is framed."
+      },
+      {
+        "id": "text-4",
+        "observedText": "이혼서류는 읽어보고 이야기할게요. 이 확인서에는 이름 못 써요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 3 first balloon points to Jeonghui beside the pen and paper."
+      },
+      {
+        "id": "text-5",
+        "observedText": "제가 가져간 돈이 아니니까요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 3 second balloon points to Jeonghui."
+      },
+      {
+        "id": "text-6",
+        "observedText": "그럼 장부 다 놓고 나가. 회사 열쇠도. 내일 아침까지 전부.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 4 tail points to Taeseop with his open hand extended."
+      },
+      {
+        "id": "text-7",
+        "observedText": "목록을 만들게요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 5 left balloon points to Jeonghui."
+      },
+      {
+        "id": "text-8",
+        "observedText": "무슨 목록?",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 5 right balloon points to Taeseop."
+      },
+      {
+        "id": "text-9",
+        "observedText": "어떤 서류를 몇 권 넘겼는지요. 받으셨다고 적어주세요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 6 spacious balloon points to Jeonghui; correct first word 어떤 is clearly legible."
+      },
+      {
+        "id": "text-10",
+        "observedText": "십 년 같이 산 식구한테 영수증을 받겠다는 거니?",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 7 tail points to Bokja with an offended face and visible gold hoop."
+      },
+      {
+        "id": "text-11",
+        "observedText": "제 돈 아닌 팔천만 원도 적으라고 하셨잖아요. 받은 장부 적는 건 어렵지 않으시겠죠.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 8 tail points to Jeonghui, with Taeseop and his extended hand opposite her."
+      },
+      {
+        "id": "text-12",
+        "observedText": "이제는 내일 넘길 종이가 몇 장인지부터 세어야 했다.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 9 cream narration above the folded record entering her apron pocket."
+      }
+    ],
+    "spatialCoherence": true,
+    "readingOrder": true,
+    "evidence": "Opened actual revision-three raster. Nine panels read in rows of two, three, two and two. All twelve original Korean text elements match and their speakers are correctly indicated. The father is now alone with his own rice bowl in panel 2, so the missing-meal narration has no contradictory rice setting beside Jeonghui. The pen and unsigned papers remain at the table; the cabinet is not opened, no records or keys are handed over, and the folded purchase record returns to the apron pocket. The final retort is followed by the original tomorrow-inventory caption. No invented readable form content or duplicate text is visible.",
+    "findings": [],
+    "passed": true
+  },
+  "reviewMethod": "Same-host review; context isolation unverified",
+  "artifactHashes": {
+    "scene-plan.json": "sha256:730cba4101f080ef19d45287788c12cbecf9e41c6b14415ef41ae8399b5b3088",
+    "preflight.json": "sha256:5c4303f67bec5e8bca19b4276ca68f67ff859acc6ca9d5b7ef94cca4f5e19b1c",
+    "render-brief.json": "sha256:4c32209273f0b6586e0589dbdc5a00ed5ccd89a64d2d0516e3b2859d3df62a8a",
+    "scene-image.prompt.txt": "sha256:b9eb428601ac2106bf519b0f4b3c8a142a17e87a82d3aca4fc16ef71616334df",
+    "scene.png": "sha256:4579639959424731812115b7e3fcd84bf7866f9844d1de821c34f24e0286f619",
+    "image-review.json": "sha256:c09871a51e4ded444c2a4395e449c24ce30101b00f83e0084c7ac2b68445d20c",
+    "scene.html": "sha256:ce0bedbe39fd6cae37a52b2a39066ed576ea72575f7a11750d3bf4fb433186b9"
+  }
+}

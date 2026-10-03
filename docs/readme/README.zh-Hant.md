@@ -9,7 +9,7 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-6%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 把它以 MCP 伺服器的形式接到 Claude Code、Codex、Grok CLI 等 AI 程式設計工具上使用。正文與圖畫由那個 AI 產生，
 vibelore 負責記住世界觀、人物、伏筆與時間線，每一話都做檢查，在你核准之前什麼都不會定案。

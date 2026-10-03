@@ -1,15 +1,94 @@
 {
   "versions": [
-    { "v": "0.3.0", "date": "2026-09-20", "summary": "웹툰 도구 3종 공개: 각색 계획, 그림·식자, 승인" },
-    { "v": "0.3.7", "date": "2026-09-22", "summary": "집필 패킷 상한 1400→4000, 긴 계획도 덜 잘림" },
-    { "v": "0.3.8", "date": "2026-09-24", "summary": "이미지 API 선택 확인 흐름, 분할 웹툰 계획 검사 통일" },
-    { "v": "0.4.0", "date": "2026-09-24", "summary": "작품 언어(BCP 47): 8개 언어 소설과 웹툰" },
-    { "v": "0.4.1", "date": "2026-09-27", "summary": "이야기 등록부, 아크를 넘는 긴 기억" },
-    { "v": "0.4.2", "date": "2026-09-28", "summary": "통과한 검토가 실패로 끝나던 아크 버그 수정" },
-    { "v": "0.4.3", "date": "2026-09-29", "summary": "npm 페이지의 한국어 README, 점검용 Dockerfile" },
-    {"v": "0.4.8", "date": "2026-10-01", "summary": "활성 아크 재계획 보호, MCP 출력 스키마와 기본 도구 목록 정비"}
+    {
+      "v": "0.3.0",
+      "date": "2026-09-20",
+      "summary": "웹툰 도구 3종 공개: 각색 계획, 그림·식자, 승인"
+    },
+    {
+      "v": "0.3.7",
+      "date": "2026-09-22",
+      "summary": "집필 패킷 상한 1400→4000, 긴 계획도 덜 잘림"
+    },
+    {
+      "v": "0.3.8",
+      "date": "2026-09-24",
+      "summary": "이미지 API 선택 확인 흐름, 분할 웹툰 계획 검사 통일"
+    },
+    {
+      "v": "0.4.0",
+      "date": "2026-09-24",
+      "summary": "작품 언어(BCP 47): 8개 언어 소설과 웹툰"
+    },
+    {
+      "v": "0.4.1",
+      "date": "2026-09-27",
+      "summary": "이야기 등록부, 아크를 넘는 긴 기억"
+    },
+    {
+      "v": "0.4.2",
+      "date": "2026-09-28",
+      "summary": "통과한 검토가 실패로 끝나던 아크 버그 수정"
+    },
+    {
+      "v": "0.4.3",
+      "date": "2026-09-29",
+      "summary": "npm 페이지의 한국어 README, 점검용 Dockerfile"
+    },
+    {
+      "v": "0.4.8",
+      "date": "2026-10-01",
+      "summary": "활성 아크 재계획 보호, 아크 분량 검사, MCP 집필·재개 응답 구조화"
+    }
   ],
   "works": [
+    {
+      "id": "family-revenge",
+      "language": "ko",
+      "lore": "family-revenge/lore.json",
+      "href": "family-revenge/",
+      "links": {
+        "read": "read.html",
+        "notes": "notes.html"
+      },
+      "title": "아까는 식구 아니라면서요",
+      "gloss": "You Said I Wasn't Family",
+      "genre": "현대 가족 복수극 · 생활 풍자",
+      "blurb": "아내 자리에는 다른 여자의 가방, 아내 앞에는 팔천만 원 반환 확인서. 무시당하던 정희는 웃으며 묻는다. 받은 장부도 적어주시겠어요?",
+      "stats": [
+        "소설 10화 완결",
+        "웹툰 1화 · 4장면 · 34칸"
+      ],
+      "scope": "소설 10화 완결 · 웹툰 1화",
+      "meta": "Codex 세션으로 집필·각색·검토 · 이미지 OpenAI API · 재생성 3건의 수정 전후 공개",
+      "model": "Codex 세션 · 세부 모델 미기록",
+      "family": "gpt",
+      "formats": [
+        "novel",
+        "webtoon"
+      ],
+      "completed": {
+        "novel": true
+      },
+      "episodes": 10,
+      "version": {
+        "label": "0.4.8",
+        "from": "0.4.8",
+        "to": "0.4.8",
+        "detail": "소설·웹툰 실행 기록 0.4.8 (7ed081d), sourceTreeHash 보존"
+      },
+      "bar": [
+        "소설 10화 완결",
+        "웹툰 34칸",
+        "수정 전후 기록"
+      ],
+      "cover": "family-revenge/img/ep01-s4.webp",
+      "thumb": "family-revenge/thumb.webp",
+      "thumbSq": "family-revenge/thumb-sq.webp",
+      "alt": "받은 장부도 적어달라는 정희의 반격, 웹툰 1화 마지막 장면",
+      "tone": "#974A38",
+      "bg": "#46362E"
+    },
     {
       "id": "plant-runaway",
       "href": "plant-runaway/",
@@ -55,23 +134,44 @@
     },
     {
       "id": "vesper",
+      "completed": {
+        "novel": true
+      },
+      "language": "ko",
       "lore": "vesper/lore.json",
       "href": "vesper/",
-      "links": { "read": "read.html", "notes": "notes.html" },
+      "links": {
+        "read": "read.html",
+        "notes": "notes.html"
+      },
       "title": "베스퍼",
       "gloss": "Vesper",
       "sub": "롯데월드의 가로등 신사",
       "genre": "인외 로맨틱 코미디 · 비공식 팬 창작",
       "blurb": "퍼레이드의 가로등 신사가 사실은 문 너머에서 온 진짜 인외라면. 직캠 한 편으로 하루아침에 스타가 된 문지기가, 11월 15일 문이 닫히는 밤까지 정체를 숨기며 문을 지킨다.",
-      "stats": ["소설 50화 완결 · 7개 아크", "웹툰 1~3화 · 27장면"],
+      "stats": [
+        "소설 50화 완결 · 7개 아크",
+        "웹툰 1~3화 · 27장면"
+      ],
       "scope": "소설 50화 완결 · 웹툰 1~3화",
       "meta": "설계·집필·각색 Claude Opus 5.5 · 이미지 OpenAI API · 롯데월드와 무관한 비상업 팬 창작",
       "model": "Claude Opus 5.5",
       "family": "claude",
-      "formats": ["novel", "webtoon"],
+      "formats": [
+        "novel",
+        "webtoon"
+      ],
       "episodes": 50,
-      "version": { "label": "0.4.2", "from": "0.4.1", "to": "0.4.2", "detail": "소설 0.4.1(1002abf~5ef3d2b, PR #9 수정 반영), 웹툰 0.4.2(f440f71)" },
-      "bar": ["소설 50화 0.4.1", "웹툰 0.4.2"],
+      "version": {
+        "label": "0.4.2",
+        "from": "0.4.1",
+        "to": "0.4.2",
+        "detail": "소설 0.4.1(1002abf~5ef3d2b, PR #9 수정 반영), 웹툰 0.4.2(f440f71)"
+      },
+      "bar": [
+        "소설 50화 0.4.1",
+        "웹툰 0.4.2"
+      ],
       "cover": "vesper/img/ep01-s6.webp",
       "thumb": "vesper/thumb.webp",
       "thumbSq": "vesper/thumb-sq.webp",
@@ -90,10 +190,21 @@
       "meta": "소설 Claude Sonnet 5 · 웹툰 각색 Claude Opus 5.5 · 이미지 OpenAI API",
       "model": "Claude Sonnet 5 · Opus 5.5",
       "family": "claude",
-      "formats": ["novel", "webtoon", "multi"],
+      "formats": [
+        "novel",
+        "webtoon",
+        "multi"
+      ],
       "episodes": 1,
-      "version": { "label": "0.4.0", "from": "0.4.0", "to": "0.4.0", "detail": "소설 9edfae6·9b507c4·6a24561·52e5aee, 웹툰 52e5aee·3207b83 (0.4.0 릴리스 직후 수락 테스트 커밋)" },
-      "bar": ["수락 테스트"],
+      "version": {
+        "label": "0.4.0",
+        "from": "0.4.0",
+        "to": "0.4.0",
+        "detail": "소설 9edfae6·9b507c4·6a24561·52e5aee, 웹툰 52e5aee·3207b83 (0.4.0 릴리스 직후 수락 테스트 커밋)"
+      },
+      "bar": [
+        "수락 테스트"
+      ],
       "cover": "multilingual/img/th.webp",
       "thumb": "multilingual/thumb.webp",
       "thumbSq": "multilingual/thumb-sq.webp",
@@ -103,6 +214,7 @@
     },
     {
       "id": "executionprincess",
+      "language": "ko",
       "lore": "executionprincess/lore.json",
       "href": "executionprincess/",
       "title": "처형 1분 전의 황녀",
@@ -113,10 +225,20 @@
       "meta": "설계·집필·각색 GPT-6 Sol · 이미지 OpenAI API",
       "model": "GPT-6 Sol",
       "family": "gpt",
-      "formats": ["novel", "webtoon"],
+      "formats": [
+        "novel",
+        "webtoon"
+      ],
       "episodes": 3,
-      "version": { "label": "0.3.8", "from": "0.3.8", "to": "0.3.8", "detail": "소설·웹툰 a1217ff (0.3.8 릴리스 직전 커밋)" },
-      "bar": ["GPT-6 Sol"],
+      "version": {
+        "label": "0.3.8",
+        "from": "0.3.8",
+        "to": "0.3.8",
+        "detail": "소설·웹툰 a1217ff (0.3.8 릴리스 직전 커밋)"
+      },
+      "bar": [
+        "GPT-6 Sol"
+      ],
       "cover": "executionprincess/img/ep01-s9.webp",
       "thumb": "executionprincess/thumb.webp",
       "thumbSq": "executionprincess/thumb-sq.webp",
@@ -126,6 +248,7 @@
     },
     {
       "id": "verdict-live",
+      "language": "ko",
       "lore": "verdict-live/lore.json",
       "href": "verdict-live/",
       "title": "판결 LIVE",
@@ -136,10 +259,21 @@
       "meta": "집필·각색 Claude Opus 5.5 · 이미지 Codex",
       "model": "Claude Opus 5.5",
       "family": "claude",
-      "formats": ["novel", "webtoon"],
+      "formats": [
+        "novel",
+        "webtoon"
+      ],
       "episodes": 3,
-      "version": { "label": "0.3.7–0.3.8", "from": "0.3.7", "to": "0.3.8", "detail": "소설 4c38e4c(0.3.8), 웹툰 0.3.7 · 1화 자동 재설계 재생성 0.3.8" },
-      "bar": ["웹툰 0.3.7", "소설·1화 재생성 0.3.8"],
+      "version": {
+        "label": "0.3.7–0.3.8",
+        "from": "0.3.7",
+        "to": "0.3.8",
+        "detail": "소설 4c38e4c(0.3.8), 웹툰 0.3.7 · 1화 자동 재설계 재생성 0.3.8"
+      },
+      "bar": [
+        "웹툰 0.3.7",
+        "소설·1화 재생성 0.3.8"
+      ],
       "cover": "verdict-live/img/ep01-s6.webp",
       "thumb": "verdict-live/thumb.webp",
       "thumbSq": "verdict-live/thumb-sq.webp",
@@ -149,8 +283,22 @@
     },
     {
       "id": "thundertrail",
-      "pages": { "notes": "process.html" },
-      "tabs": [["cost", "비용·시간 상세", "cost.html"], ["compare", "모델 비교", "compare.html"]],
+      "language": "ko",
+      "pages": {
+        "notes": "process.html"
+      },
+      "tabs": [
+        [
+          "cost",
+          "비용·시간 상세",
+          "cost.html"
+        ],
+        [
+          "compare",
+          "모델 비교",
+          "compare.html"
+        ]
+      ],
       "lore": "thundertrail/lore.json",
       "href": "thundertrail/",
       "title": "길 위의 번개",
@@ -161,10 +309,22 @@
       "meta": "소설·웹툰 1~7화 · Codex·Claude·Grok·GPT-6 회차별 비교",
       "model": "Codex·Claude·Grok·GPT-6 비교",
       "family": "mixed",
-      "formats": ["novel", "webtoon"],
+      "formats": [
+        "novel",
+        "webtoon"
+      ],
       "episodes": 7,
-      "version": { "label": "0.3.0–0.3.8", "from": "0.3.0", "to": "0.3.8", "detail": "소설 1~3화 0.3.0(e3555bd), 4화 0.3.7(8df9a63), 5화 0.3.8(760ee3a), 6~7화 0.3.8(8e20f24)" },
-      "bar": ["1~3화 0.3.0", "4화 0.3.7", "5~7화 0.3.8"],
+      "version": {
+        "label": "0.3.0–0.3.8",
+        "from": "0.3.0",
+        "to": "0.3.8",
+        "detail": "소설 1~3화 0.3.0(e3555bd), 4화 0.3.7(8df9a63), 5화 0.3.8(760ee3a), 6~7화 0.3.8(8e20f24)"
+      },
+      "bar": [
+        "1~3화 0.3.0",
+        "4화 0.3.7",
+        "5~7화 0.3.8"
+      ],
       "cover": "thundertrail/img/ep01-s1.webp",
       "thumb": "thundertrail/thumb.webp",
       "thumbSq": "thundertrail/thumb-sq.webp",

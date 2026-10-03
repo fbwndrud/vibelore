@@ -133,7 +133,43 @@
     }
   }
 
+  function readSample(D) {
+    const match = /^#([nw])-(.+)$/.exec(location.hash);
+    const L = match && D.languages.find((x) => x.code === match[2]);
+    if (!L) return false;
+    const isNovel = match[1] === 'n', n = L.novel;
+    const link = (hash, reading = true) => {
+      const u = new URL(location.href); u.hash = hash;
+      if (reading) u.searchParams.set('read', '1'); else u.searchParams.delete('read');
+      return u.pathname + u.search + u.hash;
+    };
+    const back = new URL('../', location.href); back.searchParams.set('format', isNovel ? 'novel' : 'webtoon');
+    if (window.I18N) back.searchParams.set('lang', I18N.lang);
+    const toolbar = el('header', { class: 'sample-top' }, el('a', { href: back.pathname + back.search }, '← ' + T('서가')),
+      el('div', { class: 'sample-switch' }, el('a', { href: link('#n-' + L.code), 'aria-current': isNovel ? 'page' : null }, T('소설')),
+        el('a', { href: link('#w-' + L.code), 'aria-current': !isNovel ? 'page' : null }, T('웹툰'))), window.I18N ? I18N.toggle() : null);
+    const heading = el('section', { class: 'sample-heading' }, el('span', { class: 'sample-kicker' }, name(L) + ' · ' + T(isNovel ? '1화 발췌' : '1장면 공개')),
+      src('h1', L, null, n.workTitle), src('p', L, null, isNovel ? n.chapterTitle : L.webtoon.sceneTitle));
+    const content = el('main', { class: 'sample-content ' + (isNovel ? 'sample-prose' : 'sample-toon'), lang: L.code, dir: L.dir },
+      ...(isNovel ? n.excerpt.map((p) => el('p', null, p)) : [el('img', { src: L.webtoon.image, alt: n.workTitle, width: L.webtoon.width, height: L.webtoon.height })]));
+    const foot = el('footer', { class: 'sample-foot' },
+      el('p', null, T(isNovel ? '공개된 1화 발췌의 끝입니다.' : '공개된 첫 장면의 끝입니다.')),
+      el('a', { href: back.pathname + back.search }, T('다른 이야기 만나기') + ' →'),
+      el('details', { class: 'sample-production' }, el('summary', null, T('제작 정보')),
+        el('p', null, 'vibelore ' + '0.4.0 · ' + D.novelModel),
+        !isNovel ? el('p', null, T(L.webtoon.pass ? '도구 검토 통과' : '도구 검토 실패 · 수정 필요')) : null,
+        el('a', { href: link(location.hash, false) }, T('제작 기록 전체 보기') + ' →')));
+    document.body.className = 'sample-reader'; document.body.replaceChildren(toolbar, heading, content, foot);
+    document.title = n.workTitle + ' · vibelore';
+    if (window.I18N) I18N.apply(document.body);
+    return true;
+  }
+
   fetch('data.json').then((r) => r.json()).then((D) => {
+    if (new URLSearchParams(location.search).get('read') === '1' && readSample(D)) {
+      window.addEventListener('hashchange', () => readSample(D));
+      return;
+    }
     $('#built').textContent = (D.builtAt || '').slice(0, 10);
     chips(D); novels(D); runBox(D); webtoons(D);
     if (location.hash) { const t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }

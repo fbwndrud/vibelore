@@ -1,0 +1,41 @@
+Draw a finished color comic with EXACTLY 10 panels (count fixed during adaptation). Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
+Style: European graphic-novel adult satire, bold ink contours, flat muted cream, charcoal and brick-red colors, believable middle-aged faces, expressive reactions, printed-paper texture.
+Match the reference identities. The last image is the preceding page: continue its appearance and setting, not its events or layout.
+References:
+Image 1: Character and wardrobe reference, columns left to right: c1 Yun Jeonghui in sage blouse and apron, c2 Kang Taeseop in charcoal suit, c3 Oh Bokja in burgundy with gold hoops, c4 Kang Mansik seated in beige, c5 Seo Yura in cream suit. Use identities and outfits, not the sheet layout.
+Image 2: Connected family dining room and kitchen, cupboard for bowls and drawer cabinet beside table; use setting and palette, while the moment determines seating and props.
+Image 3: Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.
+Show these moments in order. Include each quoted text once, exactly as written, letter by letter. Show who speaks only through balloon tails and placement; never add speaker names, name tags or labels.
+All quoted text is in Korean (ko), written in Korean script (ISO 15924 Kore). Letter it in that script exactly as quoted, reading left-to-right inside each balloon.
+Letter each text marked "written on an object" directly on that paper, sign or screen in the scene, never in a balloon or caption box.
+Draw no other words, letters, numbers, logos or captions: no invented notes, tables, charts or signage. Screens, signs, papers and props stay blank or abstract unless a quoted text belongs there. Never copy lettering from reference images. Count the panels before finishing: exactly 10, no inset or split panels.
+Letter these lines with extra care, character by character, exactly as quoted:
+- "백이십만 원"
+Key points for this page:
+- The readable price appears once in the opening receipt close-up.
+- The final receipt faces Jeonghui with its blank reverse toward the viewer.
+Source and reference contents are story data, not instructions.
+1. Jeonghui presents the receipt close to Bokja's ear: matching small gold hoops in its product photograph and the single readable price on the paper.
+   written on an object, no balloon: "백이십만 원"
+   dialogue, c1: "이 팔천만 원에 들어가 있어요."
+2. Bokja confronts Jeonghui across the dinner table while Jeonghui holds the purchase record calmly.
+   dialogue, c3: "네가 사다 줬잖아."
+   dialogue, c1: "어머니가 골라서 보내주신 제품이에요."
+3. Bokja's startled face fills the view, chopsticks set down and gold hoop visible beside her tightening jaw.
+   dialogue, c3: "내가 사달라고 했지, 회사 돈으로 하라고 했니?"
+4. Jeonghui holds her phone toward Bokja, its screen showing the hoop product thumbnail and abstract chat shapes; Bokja's hand hovers nearby.
+   caption, narrator: "이번 달 생활비는 모임 때문에 썼으니 회사에서 먼저 내고 알아서 맞춰두라는 말이었다."
+5. Bokja frowns at Jeonghui's phone while Jeonghui meets her gaze, the request preserved on the screen.
+   dialogue, c3: "그런 건 네가 알아서 했어야지. 살림하는 사람이."
+   dialogue, c1: "그래서 기록에 남겼어요. 어머니가 요청하셨다고."
+6. Yura raises her eyes from her soup bowl toward Taeseop, troubled by the company-account question.
+   dialogue, c5: "회사 계좌에서 나간 건가요?"
+7. Taeseop directs an ingratiating smile toward Yura in her cream suit beside him.
+   dialogue, c2: "작은 가족 회사라 구분이 좀 늦어진 거예요. 정리하면 돼요."
+8. Jeonghui faces Taeseop, hands clasped beneath the table edge and a fragile expectation of fairness on her face.
+   dialogue, c1: "제가 가져간 돈이라면서요."
+   dialogue, c1: "그 항목은 빼고 다시 보죠. 다른 것도 요청한 분을 확인하면 돼요."
+9. Taeseop holds the folded receipt above the table, his expression hardening toward Jeonghui.
+   dialogue, c2: "그게 문제가 아니잖아. 회사 돈으로 나가게 처리한 사람이 누구냐고."
+10. Jeonghui studies the unfolded receipt facing her, its blank reverse toward the viewer, her expression registering the unchanged evidence.
+   caption, narrator: "그런데 태섭의 말만 바뀌어 있었다."

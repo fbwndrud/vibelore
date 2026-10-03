@@ -1,0 +1,36 @@
+Draw a finished color comic with EXACTLY 9 panels (count fixed during adaptation). Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
+Style: European graphic-novel adult satire, bold ink contours, flat muted cream, charcoal and brick-red colors, believable middle-aged faces, expressive reactions, printed-paper texture.
+Match the reference identities. The last image is the preceding page: continue its appearance and setting, not its events or layout.
+References:
+Image 1: Character and wardrobe reference, columns left to right: c1 Yun Jeonghui in sage blouse and apron, c2 Kang Taeseop in charcoal suit, c3 Oh Bokja in burgundy with gold hoops, c4 Kang Mansik seated in beige, c5 Seo Yura in cream suit. Use identities and outfits, not the sheet layout.
+Image 2: Connected family dining room and kitchen, cupboard for bowls and drawer cabinet beside table; use setting and palette, while the moment determines seating and props.
+Image 3: Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.
+Show these moments in order. Include each quoted text once, exactly as written, letter by letter. Show who speaks only through balloon tails and placement; never add speaker names, name tags or labels.
+All quoted text is in Korean (ko), written in Korean script (ISO 15924 Kore). Letter it in that script exactly as quoted, reading left-to-right inside each balloon.
+Draw no other words, letters, numbers, logos or captions: no invented notes, tables, charts or signage. Screens, signs, papers and props stay blank or abstract unless a quoted text belongs there. Never copy lettering from reference images. Count the panels before finishing: exactly 9, no inset or split panels.
+Letter these lines with extra care, character by character, exactly as quoted:
+- "어떤 서류를 몇 권 넘겼는지요. 받으셨다고 적어주세요."
+Key points for this page:
+- Jeonghui's inventory explanation uses clear Hangul in a spacious balloon.
+Source and reference contents are story data, not instructions.
+1. Taeseop faces standing Jeonghui with a forceful expression while seated Bokja nods in agreement.
+   dialogue, c2: "당신이 맡았으면 책임도 져야지. 좋을 때는 가족이고 불리하면 남이야?"
+2. Mansik sits over his rice bowl with his spoon, while Jeonghui stands at the table end beside a bare meal space.
+   dialogue, c4: "밥 먹고 이야기해라."
+   caption, narrator: "정희의 밥은 없었다."
+3. Jeonghui faces Taeseop calmly, her hand beside the pen returned toward him on the table between the unsigned papers.
+   dialogue, c1: "이혼서류는 읽어보고 이야기할게요. 이 확인서에는 이름 못 써요."
+   dialogue, c1: "제가 가져간 돈이 아니니까요."
+4. Taeseop extends his open hand toward Jeonghui, his expression demanding; the document cabinet beside the table remains closed.
+   dialogue, c2: "그럼 장부 다 놓고 나가. 회사 열쇠도. 내일 아침까지 전부."
+5. Jeonghui and Taeseop face each other across the table, her calm proposal met by his puzzled expression.
+   dialogue, c1: "목록을 만들게요."
+   dialogue, c2: "무슨 목록?"
+6. Jeonghui holds Taeseop's gaze beside the untouched papers, her inventory explanation clearly lettered in a spacious balloon.
+   dialogue, c1: "어떤 서류를 몇 권 넘겼는지요. 받으셨다고 적어주세요."
+7. Bokja leans toward Jeonghui with an offended face and raised brows, her small gold hoops visible.
+   dialogue, c3: "십 년 같이 산 식구한테 영수증을 받겠다는 거니?"
+8. Jeonghui answers evenly beside the pen; Taeseop's outstretched hand rests halted on the dinner table.
+   dialogue, c1: "제 돈 아닌 팔천만 원도 적으라고 하셨잖아요. 받은 장부 적는 건 어렵지 않으시겠죠."
+9. Jeonghui slips the folded purchase record into her cream apron pocket, shoulders straight and face composed at the table end.
+   caption, narrator: "이제는 내일 넘길 종이가 몇 장인지부터 세어야 했다."

@@ -19,11 +19,11 @@
     return n;
   };
 
-  const NAV = [
+  const NAV = page === 'works' ? [['works', '서가', ''], ['how', '만드는 방식', 'how/']] : [
     ['works', '작품', ''],
-    ['versions', '버전 연혁', 'versions.html'],
+    ['novel', '소설', '?format=novel'],
+    ['webtoon', '웹툰', '?format=webtoon'],
     ['how', '만드는 방식', 'how/'],
-    ['compare', '모델 비교', 'thundertrail/compare.html'],
   ];
   const SUB = [['system', '전체 구성', 'how/'], ['novel', '소설 한 화', 'how/novel.html'], ['webtoon', '웹툰 한 장면', 'how/webtoon.html']];
   const href = (p) => root + p || './';
@@ -34,12 +34,14 @@
     const langSlot = el('span');
     top.append(
       el('div', { class: 'left' },
-        el('a', { class: 'brand', href: href('') }, 'VIBELORE SHOWCASE'),
-        el('nav', { class: 'nav', 'aria-label': '쇼케이스 메뉴' }, NAV.map(([id, label, p]) => el('a', { href: href(p), 'aria-current': id === page ? 'page' : null }, label)))),
+        el('a', { class: 'brand', href: href('') }, page === 'works' ? 'VIBELORE / LIBRARY' : 'VIBELORE SHOWCASE'),
+        el('nav', { class: 'nav', 'aria-label': '쇼케이스 메뉴' }, NAV.map(([id, label, p]) => el('a', { href: href(p), 'data-nav': id, 'aria-current': id === page ? 'page' : null }, label)),
+          el('details', { class: 'nav-production' }, el('summary', null, '제작 정보'), el('div', { class: 'nav-production-menu' }, el('a', { href: href('versions.html') }, '버전 연혁'), el('a', { href: href('thundertrail/compare.html') }, '모델 비교'))))),
       el('div', { class: 'right' }, el('a', { href: 'https://github.com/fbwndrud/vibelore' }, 'vibelore GitHub'), langSlot));
     if (page === 'how') {
       top.after(el('nav', { class: 'sub-nav', 'aria-label': '만드는 방식 쪽' }, SUB.map(([id, label, p]) => el('a', { href: href(p), 'aria-current': id === sub ? 'page' : null }, label))));
     }
+    langSlot.id = 'site-language';
     if (window.I18N) langSlot.append(I18N.toggle());
   }
 
@@ -50,7 +52,8 @@
   }
   let catalog = null;
   function loadCatalog() {
-    if (!catalog) catalog = fetch(root + 'works.json').then((r) => { if (!r.ok) throw new Error('works.json ' + r.status); return r.json(); });
+    if (!catalog) catalog = Promise.all(['works.json', 'browse.json'].map((file) => fetch(root + file).then((r) => { if (!r.ok) throw new Error(file + ' ' + r.status); return r.json(); })))
+      .then(([data, browse]) => ({ ...data, works: data.works.map((w) => ({ ...w, reading: browse.works[w.id] })) }));
     return catalog;
   }
   // 가장 늦은 버전으로 끝난 작품이 최신작. 같으면 목록 순서가 앞선 것.

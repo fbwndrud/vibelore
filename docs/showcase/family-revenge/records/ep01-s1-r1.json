@@ -1,0 +1,502 @@
+{
+  "scene": 1,
+  "revision": 1,
+  "workflowId": "wt-bd1ba79f-3eda-44da-834b-c6720e2d650c",
+  "runtime": {
+    "packageVersion": "0.4.8",
+    "gitCommit": "7ed081dc096e2df19f4fa84167512a2ca6184877",
+    "sourceTreeHash": "sha256:1aa532772bb9696d26722f9a8af229ea94cbfec3c0391040e0a53372f13d313a",
+    "scope": "package.json+src+engine/src",
+    "capturedAt": "2026-10-03T21:05:59.501Z"
+  },
+  "sourceHash": "sha256:8ef6a7767cb8f5e2cb88b55789308f0717c3e2c7970ea08f8775f90b8450c3e8",
+  "sourceUnitIds": [
+    "ch-1-p-1",
+    "ch-1-p-2",
+    "ch-1-p-3",
+    "ch-1-p-4",
+    "ch-1-p-5",
+    "ch-1-p-6",
+    "ch-1-p-7",
+    "ch-1-p-8",
+    "ch-1-p-9",
+    "ch-1-p-10",
+    "ch-1-p-11",
+    "ch-1-p-12",
+    "ch-1-p-13",
+    "ch-1-p-14",
+    "ch-1-p-15",
+    "ch-1-p-16"
+  ],
+  "image": {
+    "sourcePngHash": "sha256:04a8a30bcb072a07909c8c470f58f91a1282bf054d4bdb80bd17209db7ead722",
+    "publicImage": "https://fbwndrud.github.io/vibelore-showcase-media/family-revenge/img/ep01-s1.webp"
+  },
+  "plan": {
+    "title": "식탁에서 지워진 자리",
+    "panelCount": 7,
+    "intent": "An ordinary dinner exposes who serves and who belongs. The guest takes the wife's place before the husband hands over an envelope. Preserve Jeonghui's hurt without making her the joke.",
+    "facts": [
+      {
+        "id": "fact-1",
+        "sourceIds": [
+          "ch-1-p-1",
+          "ch-1-p-2"
+        ],
+        "statement": "Bokja takes Jeonghui's last soup bowl and puts it in the cupboard, telling her to eat later."
+      },
+      {
+        "id": "fact-2",
+        "sourceIds": [
+          "ch-1-p-3",
+          "ch-1-p-5"
+        ],
+        "statement": "Yura sits beside Taeseop. Her bag occupies Jeonghui's usual end place, and Taeseop moves it to an adjacent chair without inviting Jeonghui to sit."
+      },
+      {
+        "id": "fact-3",
+        "sourceIds": [
+          "ch-1-p-6",
+          "ch-1-p-8",
+          "ch-1-p-11"
+        ],
+        "statement": "Jeonghui serves Mansik and Taeseop while still wearing her apron."
+      },
+      {
+        "id": "fact-4",
+        "sourceIds": [
+          "ch-1-p-9",
+          "ch-1-p-10",
+          "ch-1-p-12",
+          "ch-1-p-13"
+        ],
+        "statement": "Taeseop introduces Yura as someone who will help the company. Yura treats Jeonghui's accounting work as already finished."
+      },
+      {
+        "id": "fact-5",
+        "sourceIds": [
+          "ch-1-p-15",
+          "ch-1-p-16"
+        ],
+        "statement": "Taeseop extends a white envelope and says they should end their relationship. The contents remain unseen here."
+      }
+    ],
+    "beats": [
+      {
+        "id": "beat-1",
+        "sourceIds": [
+          "ch-1-p-1",
+          "ch-1-p-2"
+        ],
+        "action": "Bokja removes Jeonghui's bowl from the meal and tells her to make room for the guest.",
+        "textIds": [
+          "text-1"
+        ]
+      },
+      {
+        "id": "beat-2",
+        "sourceIds": [
+          "ch-1-p-3",
+          "ch-1-p-4",
+          "ch-1-p-5"
+        ],
+        "action": "Taeseop attends to Yura's bag and comfort while leaving his wife standing.",
+        "textIds": [
+          "text-2"
+        ]
+      },
+      {
+        "id": "beat-3",
+        "sourceIds": [
+          "ch-1-p-6",
+          "ch-1-p-8",
+          "ch-1-p-9"
+        ],
+        "action": "Jeonghui keeps serving as Taeseop announces Yura's value to the company.",
+        "textIds": [
+          "text-3"
+        ]
+      },
+      {
+        "id": "beat-4",
+        "sourceIds": [
+          "ch-1-p-10",
+          "ch-1-p-11",
+          "ch-1-p-12"
+        ],
+        "action": "Yura introduces herself smiling; Jeonghui bows and answers in her cooking apron.",
+        "textIds": [
+          "text-4",
+          "text-5"
+        ]
+      },
+      {
+        "id": "beat-5",
+        "sourceIds": [
+          "ch-1-p-13",
+          "ch-1-p-14"
+        ],
+        "action": "Yura praises the accounting work in the past tense. Jeonghui registers that her job is being treated as over.",
+        "textIds": [
+          "text-6",
+          "text-7"
+        ]
+      },
+      {
+        "id": "beat-6",
+        "sourceIds": [
+          "ch-1-p-15",
+          "ch-1-p-16"
+        ],
+        "action": "Taeseop presents the white envelope and ends the marriage while dinner is still on the table.",
+        "textIds": [
+          "text-8"
+        ]
+      }
+    ],
+    "texts": [
+      {
+        "id": "text-1",
+        "sourceId": "ch-1-p-2",
+        "kind": "dialogue",
+        "speaker": "c3",
+        "text": "너는 이따 먹어. 손님 자리부터 만들어야지."
+      },
+      {
+        "id": "text-2",
+        "sourceId": "ch-1-p-4",
+        "kind": "dialogue",
+        "speaker": "c2",
+        "text": "유라 씨, 불편하면 가방은 의자에 둬요."
+      },
+      {
+        "id": "text-3",
+        "sourceId": "ch-1-p-9",
+        "kind": "dialogue",
+        "speaker": "c2",
+        "text": "유라 씨야. 앞으로 우리 회사에 큰 도움을 줄 분이고."
+      },
+      {
+        "id": "text-4",
+        "sourceId": "ch-1-p-10",
+        "kind": "dialogue",
+        "speaker": "c5",
+        "text": "서유라예요."
+      },
+      {
+        "id": "text-5",
+        "sourceId": "ch-1-p-12",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "윤정희예요."
+      },
+      {
+        "id": "text-6",
+        "sourceId": "ch-1-p-13",
+        "kind": "dialogue",
+        "speaker": "c5",
+        "text": "장부 일을 보셨다고 들었어요. 고생 많으셨겠어요."
+      },
+      {
+        "id": "text-7",
+        "sourceId": "ch-1-p-14",
+        "kind": "caption",
+        "speaker": "narrator",
+        "text": "보셨다고. 이미 끝난 일을 말하는 어미였다."
+      },
+      {
+        "id": "text-8",
+        "sourceId": "ch-1-p-16",
+        "kind": "dialogue",
+        "speaker": "c2",
+        "text": "우리 끝내자."
+      }
+    ],
+    "staging": "All five adults share the same family dining room and connected kitchen. Jeonghui stands serving in her sage blouse and cream apron; Taeseop and Yura sit next to each other, Mansik is seated with his food, and Bokja can reach the nearby bowl cupboard. Keep the table-end displacement readable. Use the established character sheet identities and room. Jeonghui's soup bowl remains in the cupboard after the opening. The white envelope is still closed at the end. Only selected original texts are visible; introductions belong to their correct speakers. Camera and panel layout remain the artist's choice.",
+    "uncertainties": [
+      "Exact seating beyond Yura beside Taeseop and Jeonghui's usual end place is unspecified.",
+      "The source does not identify the envelope contents until the next excerpt."
+    ]
+  },
+  "brief": {
+    "style": "European graphic-novel adult satire, bold ink contours, flat muted cream, charcoal and brick-red colors, believable middle-aged faces, expressive reactions, printed-paper texture.",
+    "moments": [
+      {
+        "sourceIds": [
+          "ch-1-p-1",
+          "ch-1-p-2"
+        ],
+        "action": "Bokja places Jeonghui's soup bowl in the cupboard, smiling dismissively toward the apron-wearing woman.",
+        "textIds": [
+          "text-1"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-3",
+          "ch-1-p-4",
+          "ch-1-p-5"
+        ],
+        "action": "Taeseop holds Yura's handbag beside an adjacent chair; Yura sits beside him while Jeonghui stands at the table end.",
+        "textIds": [
+          "text-2"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-6",
+          "ch-1-p-8",
+          "ch-1-p-9"
+        ],
+        "action": "At the family dinner, Taeseop proudly presents Yura; Jeonghui remains standing with serving utensils and Mansik sits before his food.",
+        "textIds": [
+          "text-3"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-10",
+          "ch-1-p-11",
+          "ch-1-p-12"
+        ],
+        "action": "Seated Yura smiles at Jeonghui, who bows slightly in her cooking apron and introduces herself.",
+        "textIds": [
+          "text-4",
+          "text-5"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-13"
+        ],
+        "action": "Yura politely addresses Jeonghui as an accounting worker whose work is already over.",
+        "textIds": [
+          "text-6"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-14"
+        ],
+        "action": "Jeonghui looks down at her ladle in the soup pot, absorbing the guest's past-tense praise.",
+        "textIds": [
+          "text-7"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-15",
+          "ch-1-p-16"
+        ],
+        "action": "Taeseop extends a sealed white envelope toward Jeonghui above the dinner table, his expression suddenly businesslike.",
+        "textIds": [
+          "text-8"
+        ]
+      }
+    ]
+  },
+  "preflight": {
+    "subjectHash": "sha256:2ddae41fd482b50b273ae06da88ea0e4d1227c93ddeb413d33de44011402b111",
+    "coveredBeatIds": [
+      "beat-1",
+      "beat-2",
+      "beat-3",
+      "beat-4",
+      "beat-5",
+      "beat-6"
+    ],
+    "checks": [
+      {
+        "name": "sourceFidelity",
+        "passed": true,
+        "evidence": "Beat 1 preserves the removed bowl and Bokja's line in p1-2; beat 2 preserves Taeseop moving Yura's bag in p3-5. Beat 3 serves the seated father while introducing the guest in p6-9. Beat 4 keeps Yura and Jeonghui's separate names in p10-12. Beat 5 preserves Yura's past-tense praise and Jeonghui's perception in p13-14. Beat 6 ends with the sealed envelope and Taeseop's line in p15-16, without showing later contents."
+      },
+      {
+        "name": "spatialFeasibility",
+        "passed": true,
+        "evidence": "The connected kitchen and dining room permit bowl storage and serving. Taeseop can reach the adjacent chair and extend an envelope across the table. Only the necessary adjacency of Yura and Taeseop is fixed; remaining seats are visual staging, not asserted source facts."
+      },
+      {
+        "name": "temporalCausality",
+        "passed": true,
+        "evidence": "Bowl exclusion precedes guest introduction, introductions precede the past-tense comment, and the envelope comes last. The bowl stays removed and its recipient does not begin eating."
+      },
+      {
+        "name": "visualLoad",
+        "passed": true,
+        "evidence": "Seven moments carry eight short original texts. The two introductions share one conversational moment; the past-tense caption has its own silent reaction moment. Five adult identities appear in the establishing dinner but speaking moments isolate the relevant pair."
+      }
+    ],
+    "findings": [],
+    "renderBrief": {
+      "style": "European graphic-novel adult satire, bold ink contours, flat muted cream, charcoal and brick-red colors, believable middle-aged faces, expressive reactions, printed-paper texture.",
+      "moments": [
+        {
+          "sourceIds": [
+            "ch-1-p-1",
+            "ch-1-p-2"
+          ],
+          "action": "Bokja places Jeonghui's soup bowl in the cupboard, smiling dismissively toward the apron-wearing woman.",
+          "textIds": [
+            "text-1"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-3",
+            "ch-1-p-4",
+            "ch-1-p-5"
+          ],
+          "action": "Taeseop holds Yura's handbag beside an adjacent chair; Yura sits beside him while Jeonghui stands at the table end.",
+          "textIds": [
+            "text-2"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-6",
+            "ch-1-p-8",
+            "ch-1-p-9"
+          ],
+          "action": "At the family dinner, Taeseop proudly presents Yura; Jeonghui remains standing with serving utensils and Mansik sits before his food.",
+          "textIds": [
+            "text-3"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-10",
+            "ch-1-p-11",
+            "ch-1-p-12"
+          ],
+          "action": "Seated Yura smiles at Jeonghui, who bows slightly in her cooking apron and introduces herself.",
+          "textIds": [
+            "text-4",
+            "text-5"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-13"
+          ],
+          "action": "Yura politely addresses Jeonghui as an accounting worker whose work is already over.",
+          "textIds": [
+            "text-6"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-14"
+          ],
+          "action": "Jeonghui looks down at her ladle in the soup pot, absorbing the guest's past-tense praise.",
+          "textIds": [
+            "text-7"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-15",
+            "ch-1-p-16"
+          ],
+          "action": "Taeseop extends a sealed white envelope toward Jeonghui above the dinner table, his expression suddenly businesslike.",
+          "textIds": [
+            "text-8"
+          ]
+        }
+      ]
+    },
+    "drawability": {
+      "passed": true,
+      "evidence": "Each of seven moments depicts a single held posture or instant. Bowl removal, bag displacement and envelope delivery remain distinct. Eight short texts fit without document UI or a crowded multi-action sequence, and the final envelope preserves disclosure for the next scene."
+    },
+    "passed": true,
+    "reviewedAt": "2026-10-03T21:08:23.143Z",
+    "renderBriefHash": "sha256:c5679570e2003917d4c786f0695f23d61e266bef78fdbf9a3fab79e675d5d7ae"
+  },
+  "visualReview": {
+    "subjectHash": "sha256:520ce94e993eacab7be0e5de8a9bfd015cf925e8da9a4aa7915472fe77419535",
+    "inspectedImages": true,
+    "observedPanelCount": 7,
+    "coveredBeatIds": [
+      "beat-1",
+      "beat-2",
+      "beat-3",
+      "beat-4",
+      "beat-5",
+      "beat-6"
+    ],
+    "textObservations": [
+      {
+        "id": "text-1",
+        "observedText": "너는 이따 먹어. 손님 자리부터 만들어야지.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 1 upper-left balloon tail points to Bokja holding the bowl by the cupboard."
+      },
+      {
+        "id": "text-2",
+        "observedText": "유라 씨, 불편하면 가방은 의자에 둬요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 2 tail points to suited Taeseop beside the black bag."
+      },
+      {
+        "id": "text-3",
+        "observedText": "유라 씨야. 앞으로 우리 회사에 큰 도움을 줄 분이고.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 3 wide dinner view tail points to Taeseop presenting Yura."
+      },
+      {
+        "id": "text-4",
+        "observedText": "서유라예요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 4 left balloon points to seated Yura in cream."
+      },
+      {
+        "id": "text-5",
+        "observedText": "윤정희예요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 4 right balloon points to bowing Jeonghui in apron."
+      },
+      {
+        "id": "text-6",
+        "observedText": "장부 일을 보셨다고 들었어요. 고생 많으셨겠어요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 5 tail points to Yura facing Jeonghui."
+      },
+      {
+        "id": "text-7",
+        "observedText": "보셨다고. 이미 끝난 일을 말하는 어미였다.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 6 rectangular cream caption beside Jeonghui and ladle."
+      },
+      {
+        "id": "text-8",
+        "observedText": "우리 끝내자.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 7 tail points to Taeseop extending the closed envelope."
+      }
+    ],
+    "spatialCoherence": true,
+    "readingOrder": true,
+    "evidence": "Viewed the actual seven-panel raster. Four seated adults and standing Jeonghui establish exclusion; removed bowl, displaced bag, serving utensils, introductions and closed envelope are visible in order. The soup-stirring moment is compressed to her paused ladle. All eight Korean text blocks are readable and assigned correctly; no invented document contents or additional lettering are visible.",
+    "findings": [],
+    "passed": true
+  },
+  "reviewMethod": "Same-host review; context isolation unverified",
+  "artifactHashes": {
+    "scene-plan.json": "sha256:1fe15301402187aa60313d5eb26f99d320db7523f08a636db3aa53699816cdc7",
+    "preflight.json": "sha256:bd7d4afe6439498ec3d64f6da635de3d51dbc8291cb3107df41cfc92e83d95d8",
+    "render-brief.json": "sha256:bb4023538f306c4a055e5cd01a932a7831b3b128b63dacd67ce8ee3f280c32d6",
+    "scene-image.prompt.txt": "sha256:f2a8c89efa3095f3d5f9e1c77683d5d806e8a4065d8a1c133cbae4d88b5932bd",
+    "scene.png": "sha256:04a8a30bcb072a07909c8c470f58f91a1282bf054d4bdb80bd17209db7ead722",
+    "image-review.json": "sha256:f1dbf029e27128cf536116e3ab53314480340bfb27bd9420c9e4705cdd606172",
+    "scene.html": "sha256:854e80f5f1919f9358424623525122155e609223dfc42d7fb6dc046bc5f68c99"
+  }
+}

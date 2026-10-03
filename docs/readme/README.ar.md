@@ -9,7 +9,7 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-6%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 تستخدمها بتوصيلها كخادم MCP بأداة برمجة بالذكاء الاصطناعي مثل Claude Code أو Codex أو Grok CLI. ذلك الذكاء الاصطناعي هو من يكتب النص ويرسم الصور،
 أما vibelore فتتذكر العالم والشخصيات والتلميحات المزروعة والخط الزمني، وتفحص كل فصل، ولا تعتمد شيئًا نهائيًا قبل موافقتك.

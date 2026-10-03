@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "works": {
+    "family-revenge": {
+      "languages": [
+        "ko"
+      ],
+      "variants": {},
+      "novel": {
+        "episodes": 10,
+        "excerptText": [
+          "정희가 마지막 국그릇을 놓으려는데 복자가 그것을 받아 찬장에 넣었다.",
+          "“너는 이따 먹어. 손님 자리부터 만들어야지.”",
+          "태섭 옆에 앉은 여자가 몸을 조금 비켰다. 정희의 자리는 식탁 끝이었다. 물을 따르기 좋고, 부엌으로 오가기 좋은 자리. 오늘은 그곳에 여자의 가방이 놓여 있었다."
+        ]
+      },
+      "webtoon": {
+        "episodes": 1,
+        "scenes": 4
+      },
+      "history": []
+    },
+    "plant-runaway": {
+      "languages": [
+        "ko"
+      ],
+      "variants": {},
+      "novel": {
+        "episodes": 3,
+        "excerptText": [
+          "현관 도어록이 피로에 절은 삑삑 소리를 내며 풀렸다. 오늘따라 유독 뻑뻑한 철문을 어깨로 밀어젖히고 들어선 원룸은 하루 종일 갇혀 있던 먼지와 식은 공기로 묵직하게 가라앉아 있었다.",
+          "어깨를 짓누르던 서류 가방을 현관 바닥에 내팽개치듯 내려놓고 구두 뒷축을 꺾어 벗었다. 와이셔츠 깃을 풀어헤치자마자 목덜미로 끈적한 피로가 밀려왔다. 지하철 환승 통로에서 시달린 다리가 후들거렸지만, 겉옷도 벗기 전에 싱크대로 가 낡은 플라스틱 물조리개부터 집어 들었다. 주방 수도꼭지를 틀어 미지근한 수돗물을 찰랑거리게 채우는 것은 자취를 시작한 이래 내 뇌리에 박힌 강박에 가까운 일과였다.",
+          "물을 안 줘서 말려 죽인 스투키 하나, 물을 너무 퍼부어 뿌리부터 썩어 문드러진 테이블야자 둘."
+        ]
+      },
+      "webtoon": {
+        "episodes": 3,
+        "scenes": 10
+      },
+      "history": []
+    },
+    "vesper": {
+      "languages": [
+        "ko"
+      ],
+      "variants": {},
+      "novel": {
+        "episodes": 50,
+        "excerptText": [
+          "대기 공간 천막 아래에는 늘 퍼레이드 직전의 냄새가 고여 있었다. 분장용 스프레이와 식은 츄러스 설탕 냄새, 그리고 발전기 기름 냄새였다.",
+          "베스퍼는 그 한가운데에 허리를 곧게 펴고 서 있었다. 키가 이 미터 가까이 되다 보니 천막 지붕 이음새가 등갓 바로 위에서 펄럭였다. 그는 조심스럽게 고개를 한 치쯤 숙였다.",
+          "\"천만이래, 천만. 하루 만에.\""
+        ]
+      },
+      "webtoon": {
+        "episodes": 3,
+        "scenes": 27
+      },
+      "history": []
+    },
+    "multilingual": {
+      "languages": [
+        "ko",
+        "en",
+        "ja",
+        "zh-Hant",
+        "es",
+        "fr",
+        "ar",
+        "th"
+      ],
+      "variants": {
+        "ko": {
+          "title": "다시 켜는 항구의 여름",
+          "dir": "ltr",
+          "blurb": "서른아홉 살 등대지기 윤서는 조수표를 읽고 점검 순서를 짜는 데 능하다. 그러나 자신이 모든 일을 직접 확인해야만 안전하다고 믿는다. 마흔두 살 배 수리공 도하는 여름 축제 전에 옛 항구의 안쪽 선착장부터 열자고 제안한다. 그의 목표는 빈 창고에 공동 수리장을 마련하고 첫 견습생을 고용하는 것이다. 윤서는 항구 전체를 점검하기 전에는 배 한 척도 들일 수 없다며 반대한다.",
+          "excerpt": [
+            "윤서는 조수표의 숫자 위에 손끝을 얹었다. 오늘 물때는 오전 열 시부터 오후 한 시까지 셋. 그 세 시간 안에 수심이 가장 얕아지고 유속이 가장 느려진다. 배를 대기에도, 사람이 물에 발을 담그고 계류 고리를 만지기에도 그 창이 전부였다.",
+            "안쪽 선착장 첫 널빤지부터 발끝으로 눌러보았다. 삐걱, 단단한 소리. 두 번째는 손등으로 두드리자 둔탁하게 먹먹한 소리가 돌아왔다. 물기를 먹고 속부터 물러진 나무였다. 윤서는 허리춤 수첩에 X 표시를 하고 다음 널빤지로 옮겨갔다. 세 번째, 네 번째. 계류 고리는 손으로 쥐고 흔들어 뼈대가 우는 소리를 들었다. 헐거운 것은 소리가 길게 남았다.",
+            "\"여기까진 나도 봤어요.\" 도하가 목재 더미 옆에서 밧줄 끝을 손끝으로 훑고 있었다. 매듭 하나를 풀었다 다시 감으며 걸린 방향을 확인하는 손이었다. \"이 자루매듭, 풀리는 쪽이 바다 쪽이에요. 밀물에 저절로 풀렸을 거고요.\""
+          ],
+          "cover": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ko.webp",
+          "novelHref": "multilingual/#n-ko",
+          "webtoonHref": "multilingual/#w-ko"
+        },
+        "en": {
+          "title": "The Harbor Before Summer",
+          "dir": "ltr",
+          "blurb": "Adult lighthouse keeper Mara Vale wants to reopen the old harbor before the summer lantern festival. She excels at maintaining equipment and turning complicated jobs into workable checklists, but mistakenly believes that accepting help means surrendering responsibility. Adult boat repairer Ellis Reed wants the reopening to establish a permanent repair berth where he can train an apprentice. He opposes Mara’s plan to spend their limited materials restoring the main landing when a smaller quay could welcome boats sooner.",
+          "excerpt": [
+            "The tide had pulled the harbor back far enough that Mara could see the wreck of it plainly: the main landing's outer third gone to splinters, decking curled up like old bark, three pilings leaning at angles no piling should hold. She and Ellis rowed the dinghy along the line of it slowly, oars shipped, letting the current do the work while she pressed her thumb into a split board and felt it give under the pressure.",
+            "\"Six planks here,\" she said. \"Maybe eight. Depends what's under the waterline once we get a proper look.\""
+          ],
+          "cover": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/en.webp",
+          "novelHref": "multilingual/#n-en",
+          "webtoonHref": "multilingual/#w-en"
+        },
+        "ja": {
+          "title": "夏灯りの港をひらく",
+          "dir": "ltr",
+          "blurb": "海辺の町で暮らす灯台守の千尋は三十八歳。潮位の記録と設備の点検が得意だが、「安全を守るには、自分ですべて確かめなければならない」と思い込んでいる。夏祭りに向けて閉鎖中の旧港を再開したい千尋に対し、四十二歳の船修理職人・律は、使う桟橋を一つに絞る案を出す。律には、港の空き作業場で若者向けの船修理教室を開くという、自分自身の目標がある。",
+          "excerpt": [
+            "夜明け前、旧港の水面はまだ墨色をしていた。千尋は手こぎ舟の艪をゆっくり漕ぎ、桟橋の下を覗き込んでは板を一枚ずつ踏んで軋みを確かめていく。潮位ノートを膝に広げ、干潮の時刻を指でなぞりながら、浅瀬の位置を頭の中で描く。舟の進路を声に出さず手だけで示し、少し大きく迂回させた。板を踏むたび、古い木の匂いと潮の匂いが混じって立ちのぼる。",
+            "ひびの浅い板には印をつけず、深いものには赤いチョークで線を引いた。手のひらで木肌を撫で、湿り気の残り具合を確かめてから、また次へ進む。まだ十枚以上残っている。舟が波にゆらぎ、体が少し傾いだ。",
+            "「おはよう」"
+          ],
+          "cover": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ja.webp",
+          "novelHref": "multilingual/#n-ja",
+          "webtoonHref": "multilingual/#w-ja"
+        },
+        "zh-Hant": {
+          "title": "港口亮燈以前",
+          "dir": "ltr",
+          "blurb": "三十八歲的燈塔管理員林澄擅長判讀潮汐、安排巡檢，卻誤以為只要計畫足夠周密，就不必聽取別人的意見。夏日祭將近，她想趕在開幕前重開封閉多年的舊港；四十一歲的修船師傅周禾則堅持先修好公共下水坡道。他另有目標：成立修船學徒班，讓島上的年輕人不必離鄉才能學手藝。",
+          "excerpt": [
+            "天還沒全亮，海面泛著一層灰藍的光。林澄站在坡道邊，潮汐表攤在掌心，鉛筆圈起的退潮時間只剩不到二十分鐘。她把時間又核對一遍，才把表合起，插回腰間。",
+            "她昨夜就吩咐工人，把原本堆在坡道兩側、準備補強斜面的松木，全數移去搭建迎賓碼頭的踏板——退潮窗口只有一次，木料早一步定位，才趕得上祭典。地上只留下周禾上週用墨線量好的印子，一道一道，像一句還沒說完的話。",
+            "腳步聲從坡道口傳來，林澄抬頭，看見周禾走在前面，阿海跟在後面，手裡還提著工具袋。周禾的腳步在空地前停了一下，蹲下身，手掌貼著地上的墨線抹了一下，指尖沾了些木屑——是今早才新鋸下來的。他抬起頭，視線落在林澄身上，沒有說話。"
+          ],
+          "cover": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/zh-Hant.webp",
+          "novelHref": "multilingual/#n-zh-Hant",
+          "webtoonHref": "multilingual/#w-zh-Hant"
+        },
+        "es": {
+          "title": "El puerto de las pequeñas mareas",
+          "dir": "ltr",
+          "blurb": "Una aventura amable en tres capítulos cortos, con acciones concretas y diálogos ágiles, ambientada en una localidad costera actual.",
+          "excerpt": [
+            "La rampa norte olía a pintura fresca y a mar bajo la marea baja. Inés caminaba con la libreta cerrada contra el pecho, contando pasos, mientras a su espalda la cola de vecinos crecía junto a la valla: querían saber dónde amarrarían sus barcas para la fiesta del verano.",
+            "—Aquí, la lancha de los Soler. Aquí, las de recreo —dijo, señalando el suelo con la punta de la bota, sin mirar atrás.",
+            "Bajó el peso sobre el tablón que cerraba el tramo junto a la baliza, la rampa por donde las barcas bajan hasta el agua. El sonido volvió hueco, como si pisara un tambor mojado. …"
+          ],
+          "cover": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/es.webp",
+          "novelHref": "multilingual/#n-es",
+          "webtoonHref": "multilingual/#w-es"
+        },
+        "fr": {
+          "title": "Le port des jours clairs",
+          "dir": "ltr",
+          "blurb": "À trente-neuf ans, Élise veille sur le phare de Belle-Anse. Méthodique et habile pour entretenir les mécanismes, elle sait repérer une poulie usée ou organiser un chantier avec peu de moyens. Mais elle croit qu’être responsable signifie décider seule : demander de l’aide lui semble un aveu d’incompétence. Pour rouvrir le vieux port avant la fête d’été, elle veut imposer un accès unique et déplacer tous les bateaux vers le quai nord.",
+          "excerpt": [
+            "Élise tira sur la chaîne jusqu'à ce que le maillon claque contre l'anneau scellé dans la pierre du quai nord. Le métal froid mordait ses paumes. Un seul passage, celui qui longeait la capitainerie, pour tous les visiteurs de la fête. Elle recula d'un pas, satisfaite.",
+            "Deux riverains attendaient. — Vous marquerez le sentier avec des fanions, dit-elle à l'un. — Prévenez les commerçants du quai sud qu'ils passeront par là aussi. Personne ne discuta. Personne ne fut consulté non plus, mais elle n'y songea pas.",
+            "Le camion de Théo s'arrêta net devant la chaîne. …"
+          ],
+          "cover": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/fr.webp",
+          "novelHref": "multilingual/#n-fr",
+          "webtoonHref": "multilingual/#w-fr"
+        },
+        "ar": {
+          "title": "المرفأ الذي اتسع للجميع",
+          "dir": "rtl",
+          "blurb": "في بلدة ساحلية هادئة، يستعد السكان لمهرجان الصيف، لكن المرفأ القديم مغلق بسبب ألواح رصيف متآكلة ومدخله المزدحم بالعوامات التالفة. تتولى سلمى، حارسة المنارة البالغة من العمر اثنين وأربعين عامًا، تنسيق إعادة فتحه مع نادر، مصلح القوارب البالغ من العمر ستة وثلاثين عامًا. تجيد سلمى فحص المعدات وترتيب الأعمال بحسب خطورتها، لكنها تعتقد أن طلب المساعدة يفقدها ثقة الناس. أما نادر فيريد إنشاء ورشة لتعليم إصلاح القوارب، ويحتاج إلى إقناع جمعية المرفأ بمنحه المستودع المهجور قبل أن يؤجره المجلس للتخزين.",
+          "excerpt": [
+            "انحنت سلمى فوق اللوح الثالث عشر من الرصيف وغرزت طرف الخطاف المعدني في حافته الرطبة. غاص المعدن بسهولة مريبة، وسال منه غبار رمادي ناعم بدل رقاق صلب. رفعت رأسها، دقّت اللوح بكعب حذائها المطاطي مرتين، وأصغت للصدى الخافت. أخرجت قطعة الطباشير ورسمت دائرة حول الدعامة، ثم خطت للأمام وكررت الفحص على المجاورة. غاص الخطاف فيها أيضًا دون مقاومة تقريبًا.",
+            "\"اثنتان.\" قالتها لنفسها أكثر مما قالتها لنادر، الواقف عند طرف الرصيف قرب عربته المحمّلة بالأخشاب.",
+            "رفع حاجبيه ونظر إلى الدائرتين الطباشيريتين المتباعدتين بضعة أمتار فقط. \"الجزء الشمالي سليم إذن. …"
+          ],
+          "cover": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/ar.webp",
+          "novelHref": "multilingual/#n-ar",
+          "webtoonHref": "multilingual/#w-ar"
+        },
+        "th": {
+          "title": "แสงไฟเหนือท่าเรือฤดูร้อน",
+          "dir": "ltr",
+          "blurb": "นิยายผจญภัยอบอุ่นสามบท ณ หมู่บ้านริมทะเล เมธ ผู้ดูแลประภาคารวัยสี่สิบสองปี ต้องร่วมมือกับริน ช่างซ่อมเรือวัยสามสิบหกปี เพื่อเปิดท่าเรือเก่าให้ทันเทศกาลฤดูร้อน เมธเชี่ยวชาญการตรวจอุปกรณ์และวางแผนงานอย่างรอบคอบ แต่เชื่อผิดว่าความปลอดภัยเกิดขึ้นได้ต่อเมื่อเขาตัดสินใจทุกอย่างเพียงคนเดียว ส่วนรินต้องการเปิดอู่ฝึกงานสำหรับคนในหมู่บ้าน และหวังใช้เรือที่เธอซ่อมรับส่งผู้ร่วมเทศกาลเป็นผลงานชิ้นแรก",
+          "excerpt": [
+            "ท่าเรือฝั่งตะวันออกยังเงียบเมื่อเมธเดินลงไปบนโป๊ะไม้เก่า มือขวากำกุญแจโรงเครื่องมือแน่นกว่าที่ควร กุญแจดอกนี้เปิดห้องเก็บสิ่ว ค้อน เชือกใหม่ และไม้สำรองทั้งหมดของท่าเรือ ทุกคนต้องขอยืมของจากในนั้นตามคิวที่วางไว้ล่วงหน้า แต่กุญแจมีอยู่ดอกเดียว และดอกนั้นอยู่ในมือเขาเสมอ",
+            "เขาก้มลงเคาะไม้แผ่นแรกด้วยด้ามไม้ค้อนเล็ก เสียงแน่นทึบ ผ่านได้ เคาะแผ่นถัดไป เสียงเปลี่ยนเป็นกลวง เขาถอยเท้าก่อนที่ปลายรองเท้าจะจมลงไปในไม้ยวบใต้ฝ่าเท้า จดตำแหน่งลงในสมุดด้วยลายมือตัวเอง แผ่นที่เจ็ด ผุ ต้องเปลี่ยนก่อนเทศกาล",
+            "\"ตรงนี้ให้ทีมฉันซ่อมก่อนได้ไหม\" รินถามจากปลายทางเดินขึ้นโป๊ะ เธอยืนอยู่กับลุงสมานและปาน …"
+          ],
+          "cover": "https://fbwndrud.github.io/vibelore-showcase-media/multilingual/img/th.webp",
+          "novelHref": "multilingual/#n-th",
+          "webtoonHref": "multilingual/#w-th"
+        }
+      },
+      "novel": {
+        "episodes": 1,
+        "excerpt": true
+      },
+      "webtoon": {
+        "episodes": 1,
+        "scenes": 1
+      },
+      "history": []
+    },
+    "executionprincess": {
+      "languages": [
+        "ko"
+      ],
+      "variants": {},
+      "novel": {
+        "episodes": 3,
+        "excerptText": [
+          "목덜미에 나무 홈이 닿았다.",
+          "나는 숨을 들이키다 말았다. 거친 나뭇결이 피부를 긁는 자리까지 같았다.",
+          "조금 전, 바로 이곳에서 칼날이 떨어졌다."
+        ]
+      },
+      "webtoon": {
+        "episodes": 3,
+        "scenes": 27
+      },
+      "history": []
+    },
+    "verdict-live": {
+      "languages": [
+        "ko"
+      ],
+      "variants": {},
+      "novel": {
+        "episodes": 3,
+        "excerptText": [
+          "방송 이십 분 전, 망원동 지하 스튜디오에서는 에어컨 소리만 컸다.",
+          "백재윤은 모니터 구석의 계산기 창을 끄지 않았다. 동접 20만이면 후원 800. 30만이면 천이 넘는다. 광고 수익은 따로다. 채널 역대 최고 기록은 27만이었다. 오늘은 넘는다.",
+          "\"조건은 7 대 3.\""
+        ]
+      },
+      "webtoon": {
+        "episodes": 3,
+        "scenes": 24
+      },
+      "history": []
+    },
+    "thundertrail": {
+      "languages": [
+        "ko"
+      ],
+      "variants": {},
+      "novel": {
+        "episodes": 7,
+        "excerptText": [
+          "마차에서 빵이 떨어졌다.",
+          "리아는 난간 밖으로 손을 뻗었다가 거두었다. 빵은 빗줄기 사이로 작아지더니 계곡 밑의 흰 물살에 삼켜졌다. 그 위에서 마차 바퀴가 한 번 더 기울었다.",
+          "“사람 있어요?”"
+        ]
+      },
+      "webtoon": {
+        "episodes": 7,
+        "scenes": 55
+      },
+      "history": []
+    }
+  }
+}
