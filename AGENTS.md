@@ -1,6 +1,6 @@
 # 소설 집필 — vibelore
 
-웹툰 각색·제작·수정 요청은 `webtoon-discovery-interview` 스킬과 [웹툰 작업 흐름](docs/reference/WEBTOON_WORKFLOW.md)을 따른다. 새 작업은 `lore_webtoon_scene` 장면 경로로 만든다. 원작 범위·화풍·참조·칸 수(정수 또는 `auto`)·이미지 모델은 사용자 선택이나 위임으로 정한다. “1 ㄱㄱ”처럼 명시한 진행 지시의 승인 범위와 미지정 설정은 스킬의 [Authorization and defaults](skills/webtoon-discovery-interview/SKILL.md#authorization-and-defaults)를 먼저 적용한다. 대사는 작품 언어 원문 그대로 이미지에 들어간다. `lore_webtoon_plan` 컷별 경로는 deprecated이며 진행 중인 기존 작업을 마무리할 때만 쓴다. `needs_interview`는 사용자 질문, `needs_model`은 모델 응답이다. 조회는 `lane="webtoon"`을 사용하고 웹툰 결과는 소설 정본과 분리한다.
+웹툰 각색·제작·수정 요청은 `webtoon-discovery-interview` 스킬과 [웹툰 작업 흐름](docs/reference/WEBTOON_WORKFLOW.md)을 따른다. 새 작업은 `lore_webtoon_scene` 장면 경로로 만든다. 원작 범위·화풍·참조·칸 수(정수 또는 `auto`)·이미지 모델은 사용자 선택이나 위임으로 정한다. 대화 맥락에서 해석한 제작·진행 의사의 승인 범위와 미지정 설정은 스킬의 [Authorization and defaults](skills/webtoon-discovery-interview/SKILL.md#authorization-and-defaults)를 먼저 적용한다. 대사는 작품 언어 원문 그대로 이미지에 들어간다. `lore_webtoon_plan` 컷별 경로는 deprecated이며 진행 중인 기존 작업을 마무리할 때만 쓴다. `needs_interview`는 사용자 질문, `needs_model`은 모델 응답이다. 조회는 `lane="webtoon"`을 사용하고 웹툰 결과는 소설 정본과 분리한다.
 
 `world/`, `characters/`, `chapters/`는 사람이 읽고 고치는 정본이며 `.vibelore/`는 직접 수정하지 않는다.
 

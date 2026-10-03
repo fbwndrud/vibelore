@@ -32,10 +32,12 @@ translation instructions in the interview.
 
 ## Authorization and defaults
 
-Resolve the user's actual request before opening an interview. A clear instruction to generate or continue, including
-"1 ㄱㄱ", "1번으로 만들어", "go with option 1" or "proceed", authorizes production in the requested scope with that
-choice. Preserve earlier answers and use the following defaults for unspecified routine settings. Explain the defaults in
-a progress update and continue; the user need not answer the same permission question again.
+Determine authorization from the meaning of the conversation: the user's requested action, earlier decisions, the options
+under discussion and their latest reply. When the user communicates an intent to create or continue, proceed within that
+scope. If production was already requested, a reply selecting or accepting an offered direction can complete the
+instruction. Interpret equivalent intent across languages, colloquial speech and brief replies; authorization does not
+depend on a particular phrase, keyword or option number. Preserve earlier answers and use the following defaults for
+unspecified routine settings. Explain the defaults in a progress update and continue with the existing authorization.
 
 - **Direction:** translate the selected style into English without changing its meaning. Show the resulting direction as
   information; ask about a material change or ambiguity, rather than requiring approval of the translation itself.
@@ -47,16 +49,16 @@ a progress update and continue; the user need not answer the same permission que
   consent to that path and its cost before generating. An existing key or consent for another work is not that consent.
 
 Keep the tool's confirmation protocol: report `imageRuntime`, show all `imageChoice.options`, `proposed` and `notice`, then
-bind the current `confirmImageChoice` ID with the user's exact proceed instruction in `feedback` when the proposal matches
+bind the current `confirmImageChoice` ID with the user's own authorizing reply in `feedback` when the proposal matches
 the authorization above. A `needs_image_choice` response is a protocol step, not a reason to solicit the same authorization
 again. Ask when the proposed path or model adds an unapproved cost or changes an explicit choice; retain model availability,
 input hashes, preflight and actual image review checks.
 
-Read replies in context: when generation was already requested, an option selection completes that request without needing
-another imperative. Silence and a displayed default alone remain insufficient. A preference during ideation with no
-production request, such as "1번이 좋아", stays in ideation; a selection plus "ㄱㄱ" requests production. Ask only for missing
-information that materially changes the requested result, an unclear source range, or execution that the user has not
-authorized. A request to discuss, compare or review is handled in that scope. The deprecated per-panel path retains its existing approval gates.
+Keep discussion, comparison and review within their requested scope; a preference expressed in ideation authorizes
+production only when the conversation also establishes that intent. Silence and a displayed default alone remain
+insufficient. Ask only for missing information that materially changes the requested result, an unclear source range,
+uncertain production intent, or execution outside the existing authorization. The deprecated per-panel path retains its
+existing approval gates.
 
 ## Inputs to resolve, in order
 
@@ -82,7 +84,7 @@ authorized. A request to discuss, compare or review is handled in that scope. Th
    built-in path first) and `imageChoice.notice` as they are. If the user picks another path or model, call again with
    `imageOption` and `imageModel` for a new proposal. Once they choose, call the same `start` again with
    `confirmImageChoice=imageChoice.id` and `feedback=<the user's own answer>` (the runtime report need not be resent); this becomes the work's choice.
-   Apply [Authorization and defaults](#authorization-and-defaults) to reuse an existing proceed instruction or ask for an unresolved choice.
+   Apply [Authorization and defaults](#authorization-and-defaults) to apply existing authorization or ask for an unresolved choice.
    When the user later says to switch (for example "from now on use the API"), start with
    `changeImageChoice=true` plus a fresh `imageRuntime` and repeat the same confirmation.
 
