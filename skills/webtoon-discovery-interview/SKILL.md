@@ -30,17 +30,47 @@ already resolves to `ko`). `lore_status` doesn't return it. The image
 prompt automatically states the language, script (ISO 15924) and reading direction, so don't create separate
 translation instructions in the interview.
 
-## Inputs to gather, in order
+## Authorization and defaults
+
+Resolve the user's actual request before opening an interview. A clear instruction to generate or continue, including
+"1 ㄱㄱ", "1번으로 만들어", "go with option 1" or "proceed", authorizes production in the requested scope with that
+choice. Preserve earlier answers and use the following defaults for unspecified routine settings. Explain the defaults in
+a progress update and continue; the user need not answer the same permission question again.
+
+- **Direction:** translate the selected style into English without changing its meaning. Show the resulting direction as
+  information; ask about a material change or ambiguity, rather than requiring approval of the translation itself.
+- **Panels:** pass `panelCount="auto"` unless the user specified a count. This delegates layout to each scene's adaptation.
+- **References:** reuse suitable references for this work, or create and inspect the needed character/background references
+  from the novel's confirmed facts using the authorized image path. Keep visual additions separate from novel canon.
+- **Images:** keep the work's confirmed path and model. For a new work with no image choice, use an available built-in image
+  tool with its host-selected model. Check actual capabilities first. If only a separately billed API is available, obtain
+  consent to that path and its cost before generating. An existing key or consent for another work is not that consent.
+
+Keep the tool's confirmation protocol: report `imageRuntime`, show all `imageChoice.options`, `proposed` and `notice`, then
+bind the current `confirmImageChoice` ID with the user's exact proceed instruction in `feedback` when the proposal matches
+the authorization above. A `needs_image_choice` response is a protocol step, not a reason to solicit the same authorization
+again. Ask when the proposed path or model adds an unapproved cost or changes an explicit choice; retain model availability,
+input hashes, preflight and actual image review checks.
+
+Read replies in context: when generation was already requested, an option selection completes that request without needing
+another imperative. Silence and a displayed default alone remain insufficient. A preference during ideation with no
+production request, such as "1번이 좋아", stays in ideation; a selection plus "ㄱㄱ" requests production. Ask only for missing
+information that materially changes the requested result, an unclear source range, or execution that the user has not
+authorized. A request to discuss, compare or review is handled in that scope. The deprecated per-panel path retains its existing approval gates.
+
+## Inputs to resolve, in order
 
 1. **Source range.** `sourceChapters`, and `sourceUnitIds` if needed. Specify only the range that was read.
-2. **Art style and direction.** Take the user's own answer and turn it into an English `direction`. Show the English text you wrote to
-   the user, and pass it on only after they confirm it matches their intent.
-3. **Reference images.** File paths of character and background reference images the user supplies, with an English `description`.
+2. **Art style and direction.** Take the user's own answer and turn it into an English `direction`, using
+   [Authorization and defaults](#authorization-and-defaults) to decide whether a question is needed.
+3. **Reference images.** File paths of supplied or authorized generated character and background references, with an English
+   `description`.
    They are required on every `start` (at least one; at most 16, or 15 when continuing a previous scene; the id `previous-scene`
-   is reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. Only the confirmed image model is reused between
-   scenes, never the references. The field name is `hash` (`inputHash` is a field only for the `asset` that imports a generated
-   scene image; they are different contracts).
-4. **`panelCount`.** An integer 1-12 or `"auto"`. The user chooses. If not chosen, the result is
+   is reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. The server retains the confirmed image choice
+   between scenes; pass the reference files and hashes again on every start. The field name is `hash` (`inputHash` is a field
+   only for the `asset` that imports a generated scene image; they are different contracts).
+4. **`panelCount`.** An integer 1-12 or `"auto"`, explicit or delegated under [Authorization and defaults](#authorization-and-defaults).
+   If omitted from the tool call, the result is
    `needs_interview` (options `4, 6, 8, 9, auto`); `auto` lets the AI choose 3-12 panels anew for each adaptation, and fewer
    than 3 panels are shown as a continuity warning in the response `warnings`.
 5. **Image path, model and cost.** If this work has no confirmed choice, `action="start"` first returns
@@ -51,8 +81,9 @@ translation instructions in the interview.
    The result is `needs_image_choice`: show every entry of `imageChoice.options`, the proposal (`imageChoice.proposed`, the
    built-in path first) and `imageChoice.notice` as they are. If the user picks another path or model, call again with
    `imageOption` and `imageModel` for a new proposal. Once they choose, call the same `start` again with
-   `confirmImageChoice=imageChoice.id` and `feedback=<the user's own answer>` (the runtime report need not be resent); this becomes the work's choice. A displayed
-   default or no answer is not approval. When the user later says to switch (for example "from now on use the API"), start with
+   `confirmImageChoice=imageChoice.id` and `feedback=<the user's own answer>` (the runtime report need not be resent); this becomes the work's choice.
+   Apply [Authorization and defaults](#authorization-and-defaults) to reuse an existing proceed instruction or ask for an unresolved choice.
+   When the user later says to switch (for example "from now on use the API"), start with
    `changeImageChoice=true` plus a fresh `imageRuntime` and repeat the same confirmation.
 
 The detailed contract follows the [default path](../../docs/reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작).
@@ -61,10 +92,9 @@ For `needs_model` (`webtoon-scene-plan`, `webtoon-scene-preflight`,
 exact `runId` and JSON per request ID. This is model work; keep it separate from questions for the user.
 Lookups use `lore_workflow_status`/`history(lane="webtoon")`.
 
-At `needs_scene_image`, read [Codex image execution](references/codex-images.md#scene-path-needs_scene_image). The host runs
-the one job through the OpenAI image API and imports the file with `asset: { path, inputHash: jobs[0].inputHash, provenance:
-{ kind: "openai-api", requestedModel: jobs[0].apiRequest.model, selectionId: jobs[0].apiRequest.selectionId } }`; any other
-provenance fails with `IMAGE_EXECUTION_PROVENANCE_REQUIRED`. Every automatic re-plan and every `revise` is another paid image call.
+At `needs_scene_image`, read [Codex image execution](references/codex-images.md#scene-path-needs_scene_image). Execute the job
+through its confirmed `hostRequest` or `apiRequest` and import the file with the exact `inputHash` and matching provenance.
+Every automatic re-plan and every `revise` consumes another host-usage or paid API image call.
 
 ## Latin-script English sent to the server
 
