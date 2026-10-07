@@ -116,7 +116,7 @@ describe('the legacy writing loop', () => {
           }) };
         }
         if (request.step === 'continuity-check') {
-          return { text: JSON.stringify({ intrinsicViolations: [], invariantViolations: [], unjustifiedMutable: [], lexiconAdditions: [] }) };
+          return { text: JSON.stringify({ intrinsicViolations: [], invariantViolations: [], unjustifiedMutable: [] }) };
         }
         return { text: JSON.stringify({ findings: [] }) };
       },
@@ -272,16 +272,18 @@ describe('the legacy writing loop', () => {
 });
 
 describe('catching what a model reading its own draft would miss', () => {
-  it('flags an honorific that contradicts an established relationship', async () => {
+  it('leaves address terms to the model instead of a built-in dictionary', async () => {
     const store = await freshProject();
-    // 리엘 is registered female; a male-only honorific applied to her is exactly
-    // the kind of drift that survives a self-review and breaks a reader's trust.
+    // 리엘 is registered female. Whether "형님" is wrong for her depends on the
+    // work, so the engine records it and asks the model rather than ruling on it.
     const prose = '리엘은 문 앞에 섰다.\n\n"형님, 저를 데려가 주십시오." 카이가 리엘에게 말했다.';
+    const relay = createHostRelay({});
     const result = await runCheck({
-      store, workId: WORK, chapter: 1, prose, providers: createHostRelay({}), targetChapters: 40,
+      store, workId: WORK, chapter: 1, prose, providers: relay, targetChapters: 40,
     });
     assert.equal(result.scanErrors, undefined);
-    assert.ok(result.violations.length > 0, '위반이 하나도 잡히지 않았습니다');
+    assert.ok(!result.violations.some((v) => /HONORIFIC/.test(v.code ?? '')));
+    assert.ok(relay.pending.some((p) => p.step === 'continuity-extract'));
   });
 
   it('records what the model was asked, so the host can answer it', async () => {

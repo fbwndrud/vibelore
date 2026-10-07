@@ -30,6 +30,12 @@
 별도 workflow로 관리한다. 시작은 `webtoon-discovery-interview` 스킬 또는
 `lore_webtoon_scene`이다. 출력은 문자를 포함한 장면 래스터 이미지(PNG/JPEG)와 `scene.html`이며 실제 이미지 생성은 호스트가 수행한다. SVG/HTML 마스터는 컷별 경로(deprecated)에만 있다.
 
+### 소설 없는 장면 대본 원천
+
+원작이 소설 화가 아니라 독립 장면 대본이면 먼저 `lore_scene_script`로 대본을 inspect/apply해 채택한다([SharedLore 계약](SHARED_LORE_RUNTIME.md#소설-없는-제작-원천-장면-대본)). 그 뒤 `action="start"`에 `sourceChapters` 대신 `scriptId`를 넣는다. 둘 다 넣으면 `SCENE_SOURCE_AMBIGUOUS`다. 원천 문단 ID는 `<sceneId>-p-<n>`이며, plan·preflight 요청에는 장면별 세계 시점·상태 원문(`sharedLore`)과 cast, 표현 프로필이 함께 간다. 미래 상태와 author 문서는 들어가지 않는다. 참조는 `references:[{id, assetId, description}]`으로 대본이 고정한 카탈로그 이미지를 고르며, 작품 안에 봉인된 바이트를 쓴다. 고정되지 않은 assetId는 `SCENE_ASSET_NOT_PINNED`다. 인터뷰·칸 수·이미지 경로 선택·preflight·시각 검토·revise/retry 순서는 소설 원천과 같다. 진행 중에 대본 파일이나 봉인 입력이 바뀌면 `SCENE_SCRIPT_DRIFT`/`SCENE_SOURCE_CHANGED`로 멈춘다.
+
+새로 시작한 장면 작업은 완료 때 `.vibelore/productions/`에 원천 판본·lock·참조 asset revision과 hash·이미지 hash·plan/preflight/review digest를 기록한다. `action="verify"`는 이 기록과 봉인 입력·참조·이미지 바이트를 읽기 전용으로 다시 확인하며 공유 세계 디렉터리가 없어도 동작한다. 경로로 받은 참조는 `unpreserved`로 보고한다. 이 기능 이전에 시작한 작업은 기록 없이 그대로 완료된다(`SCENE_PRODUCTION_NOT_RECORDED`). 웹툰 결과는 공유 세계와 소설 정본을 바꾸지 않는다.
+
 ## 작품 언어 계약과 통합 범위
 
 다국어 작업본의 작품 언어와 호스트 대화 언어는 별개다. `src/core/webtoon-language.js`는 같은 설치본의 공유 `work-language.js`가 있으면 `resolveWorkLanguage`를 사용하고, 승인 언어·계약 해시·허용 인용 예외를 원작 스냅샷의 `languageContract`에 고정한다. 별도 저장소의 파일을 런타임에 찾아 쓰거나 웹툰 취향으로 작품 언어를 덮어쓰지 않는다. 공유 처리기가 없는 구버전에서는 언어 키 없는 기존 한국어 작품만 호환하며, 명시 언어가 있는 작품은 `WEBTOON_LANGUAGE_CONTRACT_UNAVAILABLE`로 막는다. 처리기의 충돌·손상 오류를 한국어 기본값으로 숨기지 않는다.

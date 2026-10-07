@@ -49,6 +49,16 @@ function mergeTree(parent, patch) {
   for (const [key, value] of Object.entries(patch)) merged[key] = key in parent ? mergeTree(parent[key], value) : stable(value);
   return merged;
 }
+/** Sealed records are replaced whole at these paths, never deep-merged with an older record. */
+function replaceAt(tree, patch, paths) {
+  for (const path of paths) {
+    let target = tree, source = patch;
+    for (const key of path.slice(0, -1)) { target = target?.[key]; source = source?.[key]; }
+    const last = path.at(-1);
+    if (target && source && Object.hasOwn(source, last)) target[last] = stable(source[last]);
+  }
+  return tree;
+}
 function processAlive(pid) {
   if (!Number.isSafeInteger(pid) || pid < 1) return false;
   try { process.kill(pid, 0); return true; }
@@ -99,7 +109,7 @@ export function createPublicationUnit({ rootDir, failAt = null, lockTtlMs = 30_0
         return success({ fencingToken });
       }, lockTtlMs);
     },
-    async publish({ context, candidate, replace = false }) {
+    async publish({ context, candidate, replace = false, replacePaths = [] }) {
       return withLock(join(base, 'authority.lock'), async () => {
       const missing = CONTEXT_FIELDS.filter((field) => !Object.hasOwn(context ?? {}, field));
       if (missing.length > 0) return failure('INVALID_EXECUTION_CONTEXT', { missing });
@@ -116,7 +126,7 @@ export function createPublicationUnit({ rootDir, failAt = null, lockTtlMs = 30_0
         parentTree = (await readJson(join(parentDir, 'tree.json'))) ?? {};
         parentProjections = (await readJson(join(parentDir, 'projections.json'))) ?? {};
       }
-      const completeCandidate = { ...candidate, tree: replace ? stable(candidate.tree) : mergeTree(parentTree, candidate.tree), projections: replace ? stable(candidate.projections) : mergeTree(parentProjections, candidate.projections) };
+      const completeCandidate = { ...candidate, tree: replace ? stable(candidate.tree) : replaceAt(mergeTree(parentTree, candidate.tree), candidate.tree, replacePaths), projections: replace ? stable(candidate.projections) : mergeTree(parentProjections, candidate.projections) };
       const head = digest({ context, candidate: completeCandidate });
       const objectDir = join(objects, head.slice(7));
       if (currentHead === head && await exists(join(objectDir, 'manifest.json'))) return success({ head, previousHead: context.expectedHead, idempotent: true });

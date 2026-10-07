@@ -32,12 +32,15 @@ translation instructions in the interview.
 
 ## Inputs to gather, in order
 
-1. **Source range.** `sourceChapters`, and `sourceUnitIds` if needed. Specify only the range that was read.
+1. **Source range.** `sourceChapters`, and `sourceUnitIds` if needed. Specify only the range that was read. For a work with no
+   novel, the source is a standalone scene script adopted with `lore_scene_script` (inspect, show the preview, apply after the user
+   approves); pass its `scriptId` instead of `sourceChapters`, never both.
 2. **Art style and direction.** Take the user's own answer and turn it into an English `direction`. Show the English text you wrote to
    the user, and pass it on only after they confirm it matches their intent.
 3. **Reference images.** File paths of character and background reference images the user supplies, with an English `description`.
    They are required on every `start` (at least one; at most 16, or 15 when continuing a previous scene; the id `previous-scene`
-   is reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. Only the confirmed image model is reused between
+   is reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. With a script source, a catalog image the script
+   pinned is passed as `{id, assetId, description}` instead of a path. Only the confirmed image model is reused between
    scenes, never the references. The field name is `hash` (`inputHash` is a field only for the `asset` that imports a generated
    scene image; they are different contracts).
 4. **`panelCount`.** An integer 1-12 or `"auto"`. The user chooses. If not chosen, the result is

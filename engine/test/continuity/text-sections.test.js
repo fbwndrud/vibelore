@@ -4,7 +4,6 @@
  */
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { createGenreProfileRegistry } from '../../src/continuity/genre-profile.js';
-import { DefaultHonorificLexicon } from '../../src/continuity/honorific-lexicon.js';
 import { emptyStoryState } from '../../src/continuity/story-state.js';
 import { continuityCheck, extractDelta } from '../../src/continuity/continuity-check.js';
 import { createProviderRegistry } from '../../src/core/provider-registry.js';
@@ -41,7 +40,7 @@ describe('text sections in extract and check', () => {
         const { calls, providers } = capture();
         await continuityCheck({ prose: '리아가 섰다.', chapterNumber: 2,
             delta: { chapterNumber: 2, appearedCharacterIds: ['c1'], newAddressEntries: [], relationshipOps: [], hookChanges: [], mutableChanges: [], trackedEntityOps: [] },
-            prevState: emptyStoryState('w'), foundation, lexicon: new DefaultHonorificLexicon([]), providers, model: MODEL,
+            prevState: emptyStoryState('w'), foundation, providers, model: MODEL,
             checkSections: { prev: 'TEXT_PREV', foundation: 'TEXT_FOUNDATION', delta: 'TEXT_DELTA', invariants: 'TEXT_INVARIANTS' } });
         const user = calls[0].messages.find((m) => m.role === 'user').content;
         for (const token of ['TEXT_PREV', 'TEXT_FOUNDATION', 'TEXT_DELTA', 'TEXT_INVARIANTS']) expect(user).toContain(token);

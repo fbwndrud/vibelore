@@ -93,6 +93,7 @@ export function renderWriterFoundation(foundation, cast, chapter, kit) {
     .filter((c) => c.disabled !== true && (c.registeredAtChapter ?? 0) <= chapter).map((c) => c.id);
   return [
     t.worldFactsHeading, renderWorldFacts(foundation, kit), '',
+    ...(foundation?.sharedLore?.contextText ? [foundation.sharedLore.contextText, ''] : []),
     t.charactersHeading,
     ...ids.map((id) => renderCharacters(foundation, [id], chapter, kit, {
       appearance: chapter === 1 || asArray(foundation?.characters).find((c) => c.id === id)?.registeredAtChapter === chapter,
@@ -494,6 +495,7 @@ export function renderCheckSections({ foundation, prevState: loadedState, delta,
       : '')).filter(Boolean),
     ...asArray(foundation?.intrinsicChanges).map((e, i) => t.checkWorldFact(`foundation.intrinsicChanges[${i}]`, `${name(e.characterId)} ${e.field}: ${e.from} → ${e.to} (${e.atChapter})`)),
     ...asArray(foundation?.worldFacts).map((f, i) => t.checkWorldFact(`foundation.worldFacts[${i}]`, f.statement)),
+    ...(foundation?.sharedLore?.contextText ? [foundation.sharedLore.contextText] : []),
   ].join('\n');
   const appeared = asArray(delta?.appearedCharacterIds);
   // Record ops with the record they touch; ops of a feature the author turned off never reach the ledger, so the check skips them too.

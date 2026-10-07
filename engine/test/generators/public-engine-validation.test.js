@@ -130,7 +130,6 @@ function passingSemantic(contextHash) {
         intrinsicViolations: [],
         invariantViolations: [],
         unjustifiedMutable: [],
-        lexiconAdditions: [],
         semanticValidation: {
             contextHash,
             verdicts: {

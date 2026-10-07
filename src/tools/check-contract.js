@@ -10,11 +10,11 @@ import { evaluateChapterQuality } from '../../engine/src/continuity/quality-gate
 import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-language.js';
 import { currentValidationContext, exactHash, sameIdentity, exceptionOnlyRebind, loadValidationSession, saveValidationSession, invalidateValidationSession } from '../core/validation-context.js';
 import { chapterArtifactBundle, computeArtifactHash, continuityContextHash, evaluateChapterCoverage, evaluateChapterLanguage, issueChapterReceipt, lengthCoverage, liveCheckerPlan, overlayInvariantCoverage, publishedChapterProse, readSemanticValidation, requestLanguageCompliance, runPlannedDetectors, schemaCoverage } from '../core/validation-gate.js';
-import { lexiconsForLanguage } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { promptKit } from '../prompts/index.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
+import { sceneLockOf, needsSceneMapAnswer, sceneMapRequest, evaluateSharedScenes } from '../core/shared-scene-check.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 // Hard ledger findings that usually come from the extractor's reading, not
@@ -37,7 +37,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   let context;
   try { context = await currentValidationContext({ store, workId, chapter, allowWorkingTreeDrift }); }
   catch (error) {
-    if (state) await invalidateValidationSession(store, workId, scope, state, error.code ?? 'STALE_WORK_CONTRACT');
+    // Unadopted world edits do not change a pinned lock: block retryably, keep the session.
+    if (state && error.code !== 'SHARED_LORE_SOURCE_DRIFT') await invalidateValidationSession(store, workId, scope, state, error.code ?? 'STALE_WORK_CONTRACT');
     throw error;
   }
   const input = { prose: publishedChapterProse(prose), title, summary, castManifestRaw };
@@ -46,15 +47,21 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     state = { epoch: state.epoch + 1, failures: 0, invocation, identity: context.identity, plans: context.plans, workContract: context.workContract, inputHash, input };
   }
   const retryRequested = retryValidation && (!invocation || state?.retryInvocation !== invocation);
+  // An earlier-chapter batch can publish a new prefix after another chapter
+  // was checked. Explicit manual retry must validate against that accepted
+  // HEAD from scratch; the old receipt remains stale and cannot be revived.
+  const acceptedManualHeadChanged = !workflowId && retryRequested && state
+    && context.identity.sourceHead !== null
+    && state.identity.sourceHead !== context.identity.sourceHead;
   const freshManualInvocation = !workflowId && invocation && state?.invocation !== invocation && state?.status === 'clean_fail';
   if (retryRequested || freshManualInvocation) {
-    if (state && !sameIdentity(state.identity, context.identity) && !exceptionOnlyRebind(state, context)) {
+    if (state && !sameIdentity(state.identity, context.identity) && !exceptionOnlyRebind(state, context) && !acceptedManualHeadChanged) {
       await invalidateValidationSession(store, workId, scope, state);
       throw Object.assign(new Error('STALE_WORK_CONTRACT'), { code: 'STALE_WORK_CONTRACT' });
     }
     state = { epoch: (state?.epoch ?? 0) + 1, failures: 0, retryInvocation: invocation, invocation,
       identity: context.identity, plans: context.plans, workContract: context.workContract, inputHash, input,
-      prepared: state?.inputHash === inputHash ? state.prepared : null };
+      prepared: !acceptedManualHeadChanged && state?.inputHash === inputHash ? state.prepared : null };
   }
   if (state && !sameIdentity(state.identity, context.identity)) {
     state = await invalidateValidationSession(store, workId, scope, state);
@@ -72,7 +79,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     // legitimate fail on the revision became clean_fail because the two
     // failures of the already-passed draft were still counted).
     const passedBefore = state.status === 'passed';
-    state = { ...state, input, inputHash, prepared: null, extracted: null, semantic: null, profileAdvisory: null, result: null, checkId: null, status: null,
+    state = { ...state, input, inputHash, prepared: null, extracted: null, semantic: null, profileAdvisory: null, sceneMap: null, result: null, checkId: null, status: null,
       ...(passedBefore ? { epoch: state.epoch + 1, failures: 0 } : {}) };
   }
   const save = () => saveValidationSession(store, workId, scope, state);
@@ -168,7 +175,17 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     // Only what the prose touches (and the planned cast): the index does not grow with the work.
     prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', config: ledgerConfig, focusText: input.prose, cast: context.plans.episode?.cast ?? [], hookIds: context.plans.episode?.hooksTouched ?? [] }),
     ...(entities.length ? { entities } : {}) };
+  const sceneLock = sceneLockOf(context);
   try {
+    // The boundary question reads only this prose and lock, so it joins the
+    // extraction round trip instead of adding a sequential one.
+    if (needsSceneMapAnswer(sceneLock) && !state.sceneMap) {
+      const before = providers?.pending?.length ?? 0;
+      try {
+        const response = await wrapped.complete(sceneMapRequest({ lock: sceneLock, prose: input.prose, foundation }));
+        if ((providers?.pending?.length ?? 0) === before) { state.sceneMap = { text: String(response.text) }; await save(); }
+      } catch (error) { if (error?.name !== 'PendingModelWork') throw error; }
+    }
     const extract = async () => {
       const extracted = await extractDelta(extractionInput);
       if (pending(wrapped)) return preview();
@@ -219,7 +236,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
         message: `${entry.characterId} (dead since chapter ${entry.sinceChapter}) was not recorded ${entry.vitalStatus}: no quote from the chapter supports it.` });
     }
     if (!includeSemanticContinuity) return fail('VALIDATION_INCOMPLETE');
-    const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan, lexicon: lexiconsForLanguage(workContract.language).honorific,
+    const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan,
       // The reviewer judges POV against the profile's viewpoint design, not only
       // the one-line povMode (2026-09-15 fr sample: povMode said "alternation
       // with Malik to be confirmed" and three reviews answered uncertain).
@@ -254,6 +271,15 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       const cited = proseEvidence.length ? proseEvidence : evidence;
       base.violations.push({ severity: 'hard', code: `SEMANTIC_${invariantId}`, invariantId, chapterNumber: chapter, origin: 'semantic', evidence: cited,
         message: cited.length ? cited.map(e => `"${e.quote}": ${e.reason}`).join(' / ') : `${invariantId} failed the semantic review.` });
+    }
+    if (sceneLock) {
+      if (needsSceneMapAnswer(sceneLock) && !state.sceneMap) return preview();
+      const scenes = evaluateSharedScenes({ lock: sceneLock, prose: input.prose, answerText: state.sceneMap?.text, chapter });
+      if (scenes.status === 'invalid') { state.sceneMap = null; return fail(scenes.code, { sceneCheck: { status: 'invalid', code: scenes.code, details: scenes.details } }); }
+      // An unresolved boundary is asked again for the next draft, never passed.
+      if (scenes.status === 'unresolved') state.sceneMap = null;
+      base.sceneCheck = scenes.record;
+      base.violations.push(...scenes.violations);
     }
     if (!state.prepared) {
       // Title and summary both read only the checked prose, so they share one
@@ -346,6 +372,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     const envelope = { ...receipt, validationReceipt: receipt, artifact, workContract, languageCompliance, coverage,
       checkerPlan: plan, validationScope: scope, identity: context.identity,
       proseHash: `sha256:${createHash('sha256').update(artifact.prose).digest('hex')}`, delta: artifact.semanticDelta,
+      ...(base.sceneCheck?.check ? { sharedSceneCheck: base.sceneCheck } : {}),
       checkedAt: new Date().toISOString(), consumedAt: null };
     await store.saveCheckReceipt(workId, envelope);
     state.checkId = receipt.checkId; state.status = 'passed';

@@ -72,16 +72,16 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 ## 도구 표면
 
-기본 서버는 설계, 통합 집필, 웹툰 제작, 승인, 복구처럼 완결된 사용자 흐름 27개를 노출합니다.
+기본 서버는 설계, 통합 집필, 웹툰 제작, 승인, 복구와 공유 세계 관리를 포함한 사용자 흐름 32개를 노출합니다.
 `lore_context`, `lore_draft`, `lore_check`, `lore_commit` 같은 단계별 원시 도구는 정상
 집필 순서를 우회할 수 있어 기본 목록에서 제외됩니다.
 
 엔진 디버깅이나 호환성 검증이 필요한 개발 환경에서만 서버 프로세스에
-`VIBELORE_MCP_SURFACE=advanced`를 설정하면 전체 43개 도구를 노출합니다. 작품 집필용
+`VIBELORE_MCP_SURFACE=advanced`를 설정하면 전체 48개 도구를 노출합니다. 작품 집필용
 설정에는 이 값을 넣지 않습니다.
 
 기존 컷별 웹툰 작업을 마무리할 때만 `VIBELORE_MCP_SURFACE=compat`를 설정합니다.
-기본 27개에 deprecated `lore_webtoon_plan/render/decide` 3개를 더한 30개 도구를 노출하며,
+기본 32개에 deprecated `lore_webtoon_plan/render/decide` 3개를 더한 35개 도구를 노출하며,
 저수준 집필 도구는 노출하지 않습니다. 새 컷별 작업은 호환 표면에서도 거부됩니다.
 
 ## 공통 입력과 응답
@@ -124,7 +124,7 @@ lane 생략은 소설 조회입니다. 재개 계약은 [웹툰 상태표](refer
 
 서버 initialize의 공통 `instructions`는 설정 순서, 집필 전 아크 확인, drift 동기화, 모델 응답 재개와
 승인 규칙을 제공합니다. Glama가 옛 정보를 표시하면 최신 배포본 반영 후 서버 재검사를 실행해
-Instructions와 출력 스키마, 기본 27개 목록이 갱신됐는지 확인합니다.
+Instructions와 출력 스키마, 기본 32개 목록이 갱신됐는지 확인합니다.
 
 ## 모델 작업 재개
 

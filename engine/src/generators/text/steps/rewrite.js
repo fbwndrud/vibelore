@@ -74,6 +74,7 @@ function buildFoundationContext(foundation, chapterNumber) {
             severity: inv.severity,
             description: inv.description,
         })),
+        ...(foundation.sharedLore?.contextText ? { sharedLore: foundation.sharedLore.contextText } : {}),
     };
 }
 /** Project StoryState N-1 into the compact carry-forward summary. Read-only. */

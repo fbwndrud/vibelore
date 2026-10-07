@@ -1,4 +1,5 @@
 import { renderLongMemory } from './arc-summary.js';
+import { planningFoundation } from '../core/lore-runtime.js';
 import { planningCast, renderArcBeat, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { characterArcBeatsForEpisode, episodeForChapter } from './arc.js';
@@ -185,7 +186,7 @@ async function publishApprovedEpisodePlan({ store, workId, chapter, plan }) {
 }
 
 export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', direction = '', feedback = '', providers, retryValidation = false }) {
-  const foundation = await store.loadFoundation(workId);
+  const { foundation } = await planningFoundation({ store, workId, chapters: [chapter] });
   if (!foundation) throw new Error('작품이 없습니다.');
   const arcPlan = await store.loadArcPlan(workId);
   const arcBeat = episodeForChapter(arcPlan, chapter);
@@ -214,7 +215,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       direction: direction || kit.phrases.common.noneParen,
       feedback: feedback || kit.phrases.common.noneParen,
       priorText: prior ? renderEpisodePlan(prior, kit) || kit.phrases.common.noneParen : kit.phrases.common.noneParen,
-      worldFactsText: renderWorldFacts(foundation, kit) || kit.phrases.common.noneParen,
+      worldFactsText: [renderWorldFacts(foundation, kit), foundation.sharedLore?.contextText].filter(Boolean).join('\n\n') || kit.phrases.common.noneParen,
       castText: renderCastBrief(foundation, kit, { focusText: planFocus, chapter }),
       summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
       longMemoryText: await renderLongMemory({ store, workId, arcPlan, chapter, kit }),
