@@ -46,15 +46,21 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     state = { epoch: state.epoch + 1, failures: 0, invocation, identity: context.identity, plans: context.plans, workContract: context.workContract, inputHash, input };
   }
   const retryRequested = retryValidation && (!invocation || state?.retryInvocation !== invocation);
+  // An earlier-chapter batch can publish a new prefix after another chapter
+  // was checked. Explicit manual retry must validate against that accepted
+  // HEAD from scratch; the old receipt remains stale and cannot be revived.
+  const acceptedManualHeadChanged = !workflowId && retryRequested && state
+    && context.identity.sourceHead !== null
+    && state.identity.sourceHead !== context.identity.sourceHead;
   const freshManualInvocation = !workflowId && invocation && state?.invocation !== invocation && state?.status === 'clean_fail';
   if (retryRequested || freshManualInvocation) {
-    if (state && !sameIdentity(state.identity, context.identity) && !exceptionOnlyRebind(state, context)) {
+    if (state && !sameIdentity(state.identity, context.identity) && !exceptionOnlyRebind(state, context) && !acceptedManualHeadChanged) {
       await invalidateValidationSession(store, workId, scope, state);
       throw Object.assign(new Error('STALE_WORK_CONTRACT'), { code: 'STALE_WORK_CONTRACT' });
     }
     state = { epoch: (state?.epoch ?? 0) + 1, failures: 0, retryInvocation: invocation, invocation,
       identity: context.identity, plans: context.plans, workContract: context.workContract, inputHash, input,
-      prepared: state?.inputHash === inputHash ? state.prepared : null };
+      prepared: !acceptedManualHeadChanged && state?.inputHash === inputHash ? state.prepared : null };
   }
   if (state && !sameIdentity(state.identity, context.identity)) {
     state = await invalidateValidationSession(store, workId, scope, state);
