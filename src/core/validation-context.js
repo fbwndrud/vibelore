@@ -98,7 +98,7 @@ export async function assertCurrentChapterReceipt({ store, workId, chapter, rece
         checkerPlan: liveCheckerPlan({ workContract: context.workContract, foundation: context.foundation, profile: context.plans.profile }) } });
     return context;
   } catch (error) {
-    if (state) await invalidateValidationSession(store, workId, scope, state, error.code ?? 'STALE_WORK_CONTRACT');
+    if (state && error.code !== 'SHARED_LORE_SOURCE_DRIFT') await invalidateValidationSession(store, workId, scope, state, error.code ?? 'STALE_WORK_CONTRACT');
     throw error;
   }
 }

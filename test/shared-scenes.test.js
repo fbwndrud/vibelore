@@ -79,7 +79,7 @@ describe('SharedLore scene-level writing and checking', () => {
   it('keeps a flashback state out of the present chapter and checks each part against its own state', async t => {
     const { store } = await setup(t, { 1: [sagaScene('now', 'ts'), sagaScene('memory', 'adulthood', 'flashback')], 2: [sagaScene('later', 'later')] });
     const context = await currentValidationContext({ store, workId, chapter: 1 });
-    assert.equal(context.foundation.characters[0].intrinsic.gender, 'female');
+    assert.equal(context.foundation.characters[0].intrinsic.gender, 'unknown', 'a flashback in another state keeps body gender scene-only');
     assert.deepEqual(context.foundation.characters[0].intrinsic.addressing.forbiddenGenderedTerms, [], 'addressing is checked per scene, not chapter-wide');
     const allowed = await check(store, proseWith(null, '어린 하인이 도련님이라 불렀다.'));
     assert.ok(allowed.checkId, JSON.stringify(allowed.violations));

@@ -8,7 +8,7 @@ import { hashLore } from '../../src/lore/registry.js';
 
 const hash = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const field = (id, key, valueType, owner, cardinality = 'one', requiredScopes = ['continuity', 'worldPoint']) => ({ schemaVersion: 1, kind: 'field', id, namespace: 'u1', key, label: key, aliases: [], definition: `${key} 값`, subjectTypeIds: ['type-character'], valueType, owner, requiredScopes: owner === 'profile' ? [] : requiredScopes, cardinality, constraints: [], missingPolicy: 'unknown', requiredCapabilities: [] });
-export function tsWorld() {
+export function tsWorld({ afterForbidden = ['도련님'] } = {}) {
   const registry = addLoreDefinitions(createLoreRegistry('u1'), { reason: 'TS 세계', definitions: [...lorePresetDefinitions('u1'),
     field('name', 'character.name', { kind: 'text' }, 'profile'),
     field('body-gender', 'body.gender', { kind: 'enum', values: ['male', 'female'] }, 'state'),
@@ -22,7 +22,7 @@ export function tsWorld() {
     ...forbidden.map((term, i) => ({ id: `${state}-forbidden-${i}`, fieldDefinitionRevisionId: rev('forbidden'), value: term })),
     ...accepted.map((term, i) => ({ id: `${state}-accepted-${i}`, fieldDefinitionRevisionId: rev('accepted'), value: term })),
   ].map(v => ({ ...v, subject: { kind: 'entity', entityId: 'a' }, owner: 'state', storyScope: scope(from, until), evidenceIds: [`${state}-doc`] }));
-  const before = stateValues('before', 'p0', 'p1', 'male', ['아가씨'], ['도련님']), after = stateValues('after', 'p1', null, 'female', ['도련님'], ['아가씨']);
+  const before = stateValues('before', 'p0', 'p1', 'male', ['아가씨'], ['도련님']), after = stateValues('after', 'p1', null, 'female', afterForbidden, ['아가씨']);
   const content = {
     entities: [{ id: 'a', typeDefinitionRevisionId: rev('type-character'), documentIds: ['profile-doc'], valueIds: ['name-a'] }],
     states: [{ id: 'state-before', entityId: 'a', documentIds: ['before-doc'], valueIds: before.map(v => v.id), storyScope: scope('p0', 'p1') },
@@ -66,10 +66,13 @@ describe('SharedLore scene resolver v2', () => {
   it('keeps a flashback out of the present chapter state and rejects an unmarked jump backwards', async () => {
     const w = tsWorld(), publication = await fix(w.publication);
     const lock = prepareLoreProduction({ binding: binding(publication, w.registry, [scene('now', 'p1'), scene('memory', 'p0', 'flashback'), scene('after', 'p2')]), publication, chapter: 1 }).lock;
-    assert.equal(lock.projections.find(p => p.target === 'intrinsic.gender').value, 'female');
-    assert.deepEqual(lock.projections.find(p => p.target === 'intrinsic.gender').sceneIds, ['now', 'after']);
-    assert.equal(lock.scenes[1].projections.find(p => p.target === 'intrinsic.gender').value, 'male');
-    assert.deepEqual(lock.sceneVarying.map(v => [v.target, v.reason]), [['intrinsic.addressing.forbiddenGenderedTerms', 'scene_checked'], ['intrinsic.addressing.acceptedGenderedTerms', 'scene_checked']]);
+    // A flashback with another body state keeps the field scene-only, so chapter-wide checks never read the flashback under the present value.
+    assert.equal(lock.projections.find(p => p.target === 'intrinsic.gender'), undefined);
+    assert.deepEqual(lock.sceneVarying.find(v => v.target === 'intrinsic.gender'), { localCharacterId: 'hero', target: 'intrinsic.gender', reason: 'flashback_differs', sceneIds: ['now', 'memory', 'after'] });
+    assert.deepEqual(lock.scenes.map(s => s.projections.find(p => p.target === 'intrinsic.gender').value), ['female', 'male', 'female']);
+    const agree = prepareLoreProduction({ binding: binding(publication, w.registry, [scene('now', 'p1'), scene('memory', 'p1', 'flashback'), scene('after', 'p2')]), publication, chapter: 1 }).lock;
+    assert.equal(agree.projections.find(p => p.target === 'intrinsic.gender').value, 'female', 'a flashback with the same value does not split the field');
+    assert.deepEqual(lock.sceneVarying.filter(v => v.reason === 'scene_checked').map(v => v.target), ['intrinsic.addressing.forbiddenGenderedTerms', 'intrinsic.addressing.acceptedGenderedTerms']);
     const wrong = prepareLoreProduction({ binding: binding(publication, w.registry, [scene('now', 'p1'), scene('memory', 'p0')]), publication, chapter: 1 });
     assert.equal(wrong.status, 'unresolved'); assert.equal(wrong.blockers[0].code, 'SCENE_ORDER_REQUIRES_FRAME');
   });
@@ -113,6 +116,22 @@ describe('SharedLore manuscript scene map and checks', () => {
     assert.equal(v.code, 'SHARED_SCENE_FORBIDDEN_TERM'); assert.equal(v.sceneId, 's-after'); assert.deepEqual(v.stateIds, ['state-after']);
     assert.equal(swapped.slice(v.span.start, v.span.end), '도련님'); assert.ok(v.span.start > paragraphs[2].start);
     assert.match(v.fieldDefinitionRevisionId, /^sha256:/); assert.deepEqual(v.evidenceIds, ['after-doc']);
+  });
+  it('matches forbidden terms across scripts: attached CJK, case, NFD and CRLF; one-character CJK hits stay soft', async () => {
+    const w = tsWorld({ afterForbidden: ['도련님', 'sir', '형', '哥哥'] }), publication = await fix(w.publication);
+    const l = prepareLoreProduction({ binding: binding(publication, w.registry, [scene('s-before', 'p0'), scene('s-after', 'p1')]), publication, chapter: 1 }).lock;
+    const run = after => {
+      const prose = `윤재는 거울 앞에 섰다.\r\n\r\n${after}`;
+      assert.equal(loreSceneParagraphs(prose).length, 2, 'CRLF blank lines separate paragraphs');
+      const map = validateLoreSceneMap({ lock: l, prose, answer: answer(l, prose, [{ sceneId: 's-before', fromParagraph: 0, toParagraph: 0 }, { sceneId: 's-after', fromParagraph: 1, toParagraph: 1 }]) }).map;
+      return checkLoreScenes({ lock: l, prose, map }).violations.map(v => [v.term, v.severity]);
+    };
+    assert.deepEqual(run('큰도련님이 왔다.'), [['도련님', 'hard']]);
+    assert.deepEqual(run('도련님'.normalize('NFD') + '이 왔다.'), [['도련님', 'hard']]);
+    assert.deepEqual(run('"Sir, wait."'), [['sir', 'hard']]);
+    assert.deepEqual(run('Sirius rose.'), []);
+    assert.deepEqual(run('他是我的哥哥。'), [['哥哥', 'hard']]);
+    assert.deepEqual(run('그는 형사였다.'), [['형', 'soft']]);
   });
   it('rejects missing, overlapping, reordered and stale maps and keeps unresolved boundaries structured', async () => {
     const l = await lock();
@@ -163,6 +182,11 @@ describe('SharedLore scene scripts and assets', () => {
     assert.equal(ready.lock.assets[0].blob.blobId, adult.blob.blobId); assert.equal(ready.lock.expression.palette[0], 'blue eyes');
     assert.equal(ready.lock.scenes[0].projections.find(p => p.target === 'intrinsic.gender').value, 'female');
     assert.equal(verifyLoreScriptLock(ready.lock).revisionId, ready.lock.revisionId);
+    // Object-prototype names are ordinary IDs; a catalog key must name the revision it points at.
+    assert.equal(createLoreAssetCatalog({ universeId: 'u1', parent: null, assets: [asset('toString', [], 3)], proposalId: hash('p'), reason: 'id' }).assets.toString, asset('toString', [], 3).revisionId);
+    const forged = createLoreAssetCatalog({ universeId: 'u1', parent: null, assets: [{ ...adult, assetId: 'a-before' }], profiles: [profile], proposalId: hash('f'), reason: '위조' });
+    const swappedScript = createLoreScript({ ...(({ revisionId: _, ...rest }) => rest)(script), assetCatalogRevisionId: forged.revisionId, cast: [{ ...script.cast[0], assetIds: ['a-before'] }] });
+    assert.throws(() => prepareLoreScriptProduction({ script: swappedScript, publication, catalog: { revision: forged, assetRevisions: [adult], profileRevision: profile } }), { code: 'LORE_INTEGRITY' });
     const { revisionId, ...base } = script;
     const wrongState = createLoreScript({ ...base, cast: [{ ...script.cast[0], assetIds: ['a-before'] }] });
     const mismatch = prepareLoreScriptProduction({ script: wrongState, publication, catalog: { revision: catalog, assetRevisions: [child], profileRevision: profile } });

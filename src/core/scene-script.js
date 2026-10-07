@@ -106,6 +106,7 @@ export async function resumePendingSceneScript({ store }) {
 export async function sceneScriptStatus({ store, scriptId }) {
   const heads = scriptId ? [scriptId] : (await readdir(join(base(store.rootDir), 'heads')).catch(() => [])).filter(n => n.endsWith('.json')).map(n => n.slice(0, -5));
   const scripts = [];
+  const journal = await loreReadJson(store.rootDir, pendingPath(store.rootDir));
   for (const id of heads.sort()) {
     const { script, head } = await readAdoptedScript({ rootDir: store.rootDir, scriptId: id });
     const readable = await loreReadText(store.rootDir, join(store.rootDir, sceneScriptFile(id)));
@@ -114,5 +115,5 @@ export async function sceneScriptStatus({ store, scriptId }) {
     scripts.push({ scriptId: id, scriptRevisionId: script.revisionId, productionLockId: head.productionLockId, title: script.title, language: script.language,
       scenes: script.scenes.map(s => s.id), readable: readable === null ? 'missing' : hashLore(readable) === head.readableDigest ? 'clean' : 'modified', sealedInputs: sealed });
   }
-  return { status: 'ok', scripts };
+  return { status: 'ok', scripts, recoveryPending: journal ? { proposalId: journal.proposalId, next: 'Any lore_scene_script inspect/apply or lore_webtoon_scene call finishes the adoption; restore scenes/<scriptId>.md first if it was edited.' } : null };
 }

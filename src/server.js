@@ -855,8 +855,10 @@ async function callTool(name, args = {}) {
   if (name === 'lore_assets') return runAssets(args);
   const store = storeFor(args);
   return withProjectLock(store.rootDir, async () => {
-    await resumePendingWorkBinding({ store });
-    await resumePendingSceneScript({ store });
+    // Read-only tools (and binding status) stay usable while an interrupted binding waits for its sources to be restored.
+    if (!definition.annotations?.readOnlyHint && !(name === 'lore_bind' && args.action === 'status')) await resumePendingWorkBinding({ store });
+    // A scene-script adoption only affects script and webtoon production, so its recovery never blocks novel tools or status reads.
+    if (name === 'lore_webtoon_scene' || (name === 'lore_scene_script' && args.action !== 'status')) await resumePendingSceneScript({ store });
     await resumePendingRollback({ store });
     return dispatchTool(store, name, args);
   });

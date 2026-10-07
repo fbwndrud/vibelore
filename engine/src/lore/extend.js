@@ -47,13 +47,15 @@ export function planLoreDefinitionNeeds(registry, needs) {
       .find(doc => doc.definition.namespace === d.namespace && [doc.definition.key, ...doc.definition.aliases].map(loreNameKey).some(n => names.includes(n)));
     const existing = byId ?? byName;
     if (!existing) { const revisionId = hashLore(d); additions.set(d.id, { revisionId, definition: d }); outcomes.push({ index, outcome: 'registered', key: d.key, definitionId: d.id, revisionId }); continue; }
-    if (existing.revisionId === hashLore(d) || hashLore(structure(existing.definition)) === hashLore(structure(d))) {
+    // Same ID with different meaning text would re-interpret stored values; a name match keeps the existing meaning and discards the proposal's wording.
+    const meaningChanged = byId && existing.definition.definition !== d.definition;
+    if (existing.revisionId === hashLore(d) || (!meaningChanged && hashLore(structure(existing.definition)) === hashLore(structure(d)))) {
       outcomes.push({ index, outcome: 'reused', key: d.key, definitionId: existing.definition.id, revisionId: existing.revisionId, matchedBy: byId ? 'id' : 'name',
         ...(existing.definition.id !== d.id ? { proposedId: d.id } : {}), existingDefinition: existing.definition.definition });
       continue;
     }
     outcomes.push({ index, outcome: 'migration_required', key: d.key, definitionId: existing.definition.id, revisionId: existing.revisionId, matchedBy: byId ? 'id' : 'name',
-      changes: diff(structure(existing.definition), structure(d)), proposed: d,
+      changes: [...(meaningChanged ? [{ field: 'definition', before: existing.definition.definition, after: d.definition }] : []), ...diff(structure(existing.definition), structure(d))], proposed: d,
       message: 'an existing definition would change meaning, type, owner or scope; review a migration instead of adding a second definition' });
   }
   return { registryRevisionId: compiled.revisionId, outcomes, additions: [...additions.values()].map(a => a.definition) };

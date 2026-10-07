@@ -342,8 +342,15 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   };
 }
 
+/** Bound works read the same SharedLore view as drafting and checking; unbound works keep their working-tree sheet. */
+async function sharedFoundation(store, workId, chapter, foundation) {
+  const canonicalStore = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
+  if (!canonicalStore.publishedRevision?.tree?.sharedLore?.binding) return foundation;
+  return (await loadLoreRuntime({ canonicalStore, foundation: await canonicalStore.loadFoundation(workId), chapter })).foundation;
+}
+
 export async function runReviseTool({ store, workId, chapter, prose, castManifestRaw, violations, language = null, providers }) {
-  const foundation = await store.loadFoundation(workId);
+  const foundation = await sharedFoundation(store, workId, chapter, await store.loadFoundation(workId));
   if (!foundation) throw new Error('작품이 없습니다.');
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });
   const sanitizer = new DefaultOutputSanitizer();
@@ -381,8 +388,7 @@ function writerOlderMemory(items, characterInFoundation) {
 }
 
 export async function runRewriteTool({ store, workId, chapter, intent, language = null, providers }) {
-  const canonicalStore = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
-  const foundation = (await loadLoreRuntime({ canonicalStore, foundation: await canonicalStore.loadFoundation(workId), chapter })).foundation;
+  const foundation = await sharedFoundation(store, workId, chapter, await store.loadFoundation(workId));
   const artifact = await store.loadArtifact(workId, chapter);
   if (!foundation || !artifact) throw new Error(`${chapter}화 원본 또는 작품 설정을 찾을 수 없습니다.`);
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });

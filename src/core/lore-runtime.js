@@ -2,6 +2,7 @@ import { prepareProductionInput, renderProductionContext, prepareProductionInput
 import { requireLore } from '../../engine/src/lore/schemas.js';
 import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { LORE_ARRAY_TARGETS } from '../../engine/src/lore/scenes.js';
+import { verifyLoreProductionLock } from '../../engine/src/lore/production.js';
 import { openCanonRepository } from './canon-repository.js';
 import { createPublicationUnit } from './publication-unit.js';
 
@@ -36,8 +37,12 @@ export function projectLoreFoundation(foundation, { projections, varying = [] },
 }
 
 export async function loadLoreRuntime({ canonicalStore, foundation, chapter }) {
-  const sharedLore = canonicalStore.publishedRevision?.tree?.sharedLore;
-  const productionLock = await prepareProductionInput({ sharedLore, chapter });
+  const tree = canonicalStore.publishedRevision?.tree, sharedLore = tree?.sharedLore;
+  // A published chapter outside the binding keeps the input it was written with:
+  // its sealed lock, or none when it predates the binding. Only new chapters need a scene context.
+  const outsideBinding = sharedLore?.binding && !sharedLore.binding.chapters.some(c => c.chapter === chapter) && tree.chapters?.[chapter];
+  const sealed = outsideBinding ? tree.productionInputs?.[chapter] ?? null : undefined;
+  const productionLock = outsideBinding ? (sealed ? verifyLoreProductionLock(sealed) && sealed : null) : await prepareProductionInput({ sharedLore, chapter });
   if (!productionLock) return { foundation, productionLock: null };
   const result = projectLoreFoundation(foundation, { projections: productionLock.projections, varying: productionLock.sceneVarying ?? [] }, chapter);
   result.sharedLore = { productionLockId: productionLock.revisionId, contextText: renderProductionContext(productionLock, result),

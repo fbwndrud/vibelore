@@ -142,12 +142,15 @@ export function resolveLoreScenes({ revision, resolver, documents, entities, def
       continue;
     }
     const present = resolved.filter(s => s.frame === 'present' && s.entityIds.includes(member.entityId));
-    const values = present.map(s => s.projections.find(x => x.localCharacterId === member.localCharacterId && x.target === p.target)).filter(Boolean);
-    if (values.length && values.length === present.length && new Set(values.map(v => hashLore(v.value))).size === 1) {
+    const valueIn = s => s.projections.find(x => x.localCharacterId === member.localCharacterId && x.target === p.target);
+    const values = present.map(valueIn).filter(Boolean);
+    // A flashback with another value would be read under the present value by chapter-wide checks, so the field stays scene-only.
+    const flashbackDiffers = values.length > 0 && resolved.some(s => s.frame === 'flashback' && s.entityIds.includes(member.entityId) && hashLore(valueIn(s)?.value ?? null) !== hashLore(values[0].value));
+    if (values.length && values.length === present.length && new Set(values.map(v => hashLore(v.value))).size === 1 && !flashbackDiffers) {
       chapter.set(`${member.localCharacterId}\0${p.target}`, { localCharacterId: member.localCharacterId, target: p.target, value: values[0].value, sceneIds: present.map(s => s.id) });
       continue;
     }
-    sceneVarying.push({ localCharacterId: member.localCharacterId, target: p.target, reason: !appearsIn.length ? 'not_selected' : !present.length ? 'flashback_only' : 'differs', sceneIds: appearsIn });
+    sceneVarying.push({ localCharacterId: member.localCharacterId, target: p.target, reason: !appearsIn.length ? 'not_selected' : !present.length ? 'flashback_only' : flashbackDiffers ? 'flashback_differs' : 'differs', sceneIds: appearsIn });
   }
   return { blockers, scenes: resolved, projections: [...chapter.values()], sceneVarying };
 }

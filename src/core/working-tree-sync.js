@@ -3,15 +3,21 @@ import { readdir, readFile, lstat } from 'node:fs/promises';
 import { relative, join, sep } from 'node:path';
 
 const USER_EDITABLE_DIRS = ['world', 'characters', 'chapters'];
+/** work.md is tracked only once it holds the SharedLore managed section; other work.md notes stay the author's own file. */
+export const SHARED_LORE_SECTION_BEGIN = '<!-- shared-lore:begin -->';
+export async function managedWorkFile(rootDir) {
+  const path = join(rootDir, 'work.md');
+  try {
+    const info = await lstat(path);
+    if (!info.isFile() || info.isSymbolicLink()) return null;
+    return (await readFile(path, 'utf8')).includes(SHARED_LORE_SECTION_BEGIN) ? path : null;
+  } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+}
 
 async function markdownFiles(rootDir) {
   const files = [];
-  const bindingPath = join(rootDir, 'work.md');
-  try {
-    const info = await lstat(bindingPath);
-    if (!info.isFile() || info.isSymbolicLink()) throw new Error('UNSAFE_LORE_PATH: work.md must be a regular file');
-    files.push(bindingPath);
-  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const bindingPath = await managedWorkFile(rootDir);
+  if (bindingPath) files.push(bindingPath);
   for (const directory of USER_EDITABLE_DIRS) {
     const base = join(rootDir, directory);
     let entries = [];

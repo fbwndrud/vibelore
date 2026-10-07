@@ -38,7 +38,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   let context;
   try { context = await currentValidationContext({ store, workId, chapter, allowWorkingTreeDrift }); }
   catch (error) {
-    if (state) await invalidateValidationSession(store, workId, scope, state, error.code ?? 'STALE_WORK_CONTRACT');
+    // Unadopted world edits do not change a pinned lock: block retryably, keep the session.
+    if (state && error.code !== 'SHARED_LORE_SOURCE_DRIFT') await invalidateValidationSession(store, workId, scope, state, error.code ?? 'STALE_WORK_CONTRACT');
     throw error;
   }
   const input = { prose: publishedChapterProse(prose), title, summary, castManifestRaw };

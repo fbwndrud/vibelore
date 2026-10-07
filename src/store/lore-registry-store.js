@@ -101,34 +101,56 @@ export class LoreRegistryStore {
     await this.safePaths();
     return withProjectLock(this.rootDir, async () => {
       const requestDigest = hashLore({ needs, reason, expectedHead: expectedHead ?? null });
-      const opPath = operationId ? this.operationPath(operationId) : null;
+      const opPath = operationId ? this.operationPath(operationId) : null, intentPath = opPath?.replace(/\.json$/, '.intent.json');
       const prior = opPath ? await readText(opPath) : null;
       if (prior !== null) {
         const record = JSON.parse(prior);
         requireLore(record.requestDigest === requestDigest, 'OPERATION_CONFLICT', 'operationId was already used for a different request');
         return { ...record.result, replayed: true };
       }
+      // A crash after HEAD moved but before the result was recorded: rebuild the same result from the intent.
+      const intent = intentPath ? await readText(intentPath) : null;
+      if (intent !== null) {
+        const pending = JSON.parse(intent);
+        requireLore(pending.requestDigest === requestDigest, 'OPERATION_CONFLICT', 'operationId was already used for a different request');
+        if (await readText(this.objectPath(pending.expectedRevisionId)) !== null) {
+          const base = pending.previousHead ? (await this.read(pending.previousHead)).registry : createLoreRegistry(this.universeId);
+          const plan = planLoreDefinitionNeeds(base, needs);
+          const published = { head: pending.expectedRevisionId, registry: (await this.read(pending.expectedRevisionId)).registry,
+            addedRevisionIds: addLoreDefinitions(base, { definitions: plan.additions, reason }).addedRevisionIds };
+          return this.recordEnsure({ opPath, operationId, requestDigest, head: pending.previousHead, plan, published, reason, replayed: true });
+        }
+      }
       const { head, registry } = await this.read();
       requireLore(expectedHead === undefined || head === expectedHead, 'STALE_LORE_HEAD', 'registry changed; search and retry against current HEAD', { expectedHead, currentHead: head });
       const plan = planLoreDefinitionNeeds(registry, needs);
       let published = { head, registry };
-      if (plan.additions.length) published = await this.publishAdditions({ head, registry, definitions: plan.additions, reason });
-      const migrationIds = [];
-      for (const outcome of plan.outcomes.filter(o => o.outcome === 'migration_required')) {
-        const candidate = { schemaVersion: 1, registryRevisionId: published.registry.revisionId, definitionId: outcome.definitionId, existingRevisionId: outcome.revisionId, proposed: outcome.proposed, changes: outcome.changes, reason, status: 'requires_migration_review' };
-        const id = hashLore(candidate); outcome.migrationCandidateId = id; migrationIds.push(id);
-        await mkdir(join(this.base, 'migrations'), { recursive: true });
-        await this.writeAt(join(this.base, 'migrations', `${id.slice(7)}.json`), encodeLore(candidate));
+      if (plan.additions.length) {
+        if (intentPath) {
+          await mkdir(join(this.base, 'operations'), { recursive: true });
+          await this.writeAt(intentPath, encodeLore({ operationId, requestDigest, previousHead: head, expectedRevisionId: addLoreDefinitions(registry, { definitions: plan.additions, reason }).registry.revisionId }));
+        }
+        published = await this.publishAdditions({ head, registry, definitions: plan.additions, reason });
       }
-      const result = { status: 'ok', previousHead: head, head: published.head, registryRevisionId: published.registry.revisionId,
-        outcomes: plan.outcomes.map(({ proposed, ...o }) => o), addedRevisionIds: published.addedRevisionIds ?? [], migrationCandidateIds: migrationIds,
-        next: 'Pin registryRevisionId when proposing world values (lore_universe propose). Registering a definition does not adopt any world fact.' };
-      if (opPath) {
-        await mkdir(join(this.base, 'operations'), { recursive: true });
-        await this.writeAt(opPath, encodeLore({ operationId, requestDigest, result }));
-      }
-      return result;
+      return this.recordEnsure({ opPath, operationId, requestDigest, head, plan, published, reason });
     });
+  }
+  async recordEnsure({ opPath, operationId, requestDigest, head, plan, published, reason, replayed = false }) {
+    const migrationIds = [];
+    for (const outcome of plan.outcomes.filter(o => o.outcome === 'migration_required')) {
+      const candidate = { schemaVersion: 1, registryRevisionId: published.registry.revisionId, definitionId: outcome.definitionId, existingRevisionId: outcome.revisionId, proposed: outcome.proposed, changes: outcome.changes, reason, status: 'requires_migration_review' };
+      const id = hashLore(candidate); outcome.migrationCandidateId = id; migrationIds.push(id);
+      await mkdir(join(this.base, 'migrations'), { recursive: true });
+      await this.writeAt(join(this.base, 'migrations', `${id.slice(7)}.json`), encodeLore(candidate));
+    }
+    const result = { status: 'ok', previousHead: head, head: published.head, registryRevisionId: published.registry.revisionId,
+      outcomes: plan.outcomes.map(({ proposed, ...o }) => o), addedRevisionIds: published.addedRevisionIds ?? [], migrationCandidateIds: migrationIds,
+      next: 'Pin registryRevisionId when proposing world values (lore_universe propose). Registering a definition does not adopt any world fact.' };
+    if (opPath) {
+      await mkdir(join(this.base, 'operations'), { recursive: true });
+      await this.writeAt(opPath, encodeLore({ operationId, requestDigest, result }));
+    }
+    return replayed ? { ...result, replayed: true } : result;
   }
   async writeAt(path, text) {
     await noSymlink(path);

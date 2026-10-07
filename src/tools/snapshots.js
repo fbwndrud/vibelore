@@ -6,11 +6,14 @@ import { captureWorkingTreeFingerprint } from '../core/working-tree-sync.js';
 import { saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { rebuildLedgerLog } from './ledger-log.js';
+import { managedWorkFile } from '../core/working-tree-sync.js';
 
 const canonicalDirs = ['world', 'characters', 'chapters', 'summaries', 'work.md'];
 const machineEntries = ['foundation.json', 'story-profile.json', 'story-spine.json', 'writer-skill.json', 'story-identity.json', 'pilot-contract.json', 'arc-plan.json', 'arcs', 'arc-reviews', 'arc-summaries', 'episode-plans', 'artifacts', 'story-state', 'summaries', 'entities.json', 'pattern-ledger.json', 'experience-ledger.json', 'style-anchor.json', 'review-policy.json'];
 const webtoonEntries = ['webtoon', 'webtoon-publication'];
-const infrastructure = new Set(['publication', 'snapshots', 'rollback-archives', 'rollback-pending.json', 'project.lock', 'project.lock.cleanup', 'shared-lore', ...webtoonEntries]);
+const infrastructure = new Set(['publication', 'snapshots', 'rollback-archives', 'rollback-pending.json', 'project.lock', 'project.lock.cleanup', 'shared-lore',
+  // Script sources, sealed production inputs and production records are not chapter state; rollback keeps them.
+  'scene-scripts', 'input-objects', 'productions', ...webtoonEntries]);
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const invalid = (detail) => new Error(`INVALID_SNAPSHOT: ${detail}`);
@@ -221,6 +224,8 @@ export async function resumePendingRollback({ store, failAt = null }) {
   if (failAt === 'afterPublication') throw new Error('injected rollback interruption');
   // The sealed target and original backup remain intact if materialization fails.
   for (const dir of canonicalDirs) {
+    // An author's own work.md (no SharedLore section on either side) is left as it is.
+    if (dir === 'work.md' && !(await managedWorkFile(store.rootDir)) && !(await managedWorkFile(join(source, 'canonical')))) continue;
     await rm(join(store.rootDir, dir), { recursive: true, force: true });
     await copyIfPresent(join(source, 'canonical', dir), join(store.rootDir, dir));
     if (failAt === `after:${dir}`) throw new Error('injected rollback interruption');

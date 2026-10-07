@@ -27,7 +27,7 @@
 4. `register(expectedHead,reason,definitions)`로 지원되는 새 정의를 추가한다. 신규 대상 타입·단위·필드를 한 묶음에 넣어 함께 검증할 수 있다. 같은 ID의 동일 정의 재등록은 no-op이다.
 5. `resolve`에는 반환된 정확한 RegistryRevision과 입력을 고정한다. 원고·공유 사실 채택은 기존 승인 절차의 별도 작업이다.
 
-AI가 집필·대본 중 새 항목이 필요하면 `ensure(needs, reason, operationId)`로 위 1~4를 한 번에 수행한다. 같은 namespace의 key·별칭이 있으면 제안 ID를 버리고 기존 정의를 `reused`로 돌려준다. 새 정의는 검증 뒤 `registered`, 기존 ID의 의미·타입·owner 변경은 `.vibelore/shared-lore/registry/migrations/`에 후보로만 기록하는 `migration_required`, 미지원 capability는 `unsupported`다. 결과의 `registryRevisionId`를 세계 값 채택(`lore_universe propose`)에 고정한다. 정의 등록은 세계 사실 채택이 아니다. `operationId`는 `registry/operations/`에 결과를 남겨 handoff·resume·재시도가 첫 결과를 재생하게 하며, 다른 요청에 재사용하면 `OPERATION_CONFLICT`다. 이미 발급된 lock·영수증은 바뀌지 않으므로 새 값을 쓰려면 세계 채택 → binding 재연결 → 같은 workflow 재검사 순서를 따른다.
+AI가 집필·대본 중 새 항목이 필요하면 `ensure(needs, reason, operationId)`로 위 1~4를 한 번에 수행한다. 같은 namespace의 key·별칭이 있으면 제안 ID를 버리고 기존 정의를 `reused`로 돌려준다. 새 정의는 검증 뒤 `registered`, 기존 ID의 의미·타입·owner 변경은 `.vibelore/shared-lore/registry/migrations/`에 후보로만 기록하는 `migration_required`, 미지원 capability는 `unsupported`다. 결과의 `registryRevisionId`를 세계 값 채택(`lore_universe propose`)에 고정한다. 정의 등록은 세계 사실 채택이 아니다. `operationId`는 발행 전 intent와 발행 후 결과를 `registry/operations/`에 남겨 handoff·resume·재시도(HEAD 이동 직후 중단 포함)가 첫 결과를 재생하게 하며, 같은 ID의 의미문 변경도 `migration_required`이고, 다른 요청에 재사용하면 `OPERATION_CONFLICT`다. 이미 발급된 lock·영수증은 바뀌지 않으므로 새 값을 쓰려면 세계 채택 → binding 재연결 → 같은 workflow 재검사 순서를 따른다.
 
 `STALE_LORE_HEAD`이면 현재 HEAD를 다시 조회하고 정의 중복을 다시 검색한 후 재시도한다. 같은 key나 별칭을 다른 stable ID로 등록하면 `DEFINITION_CONFLICT`다. 기존 ID의 의미·타입·owner·별칭 변경은 `DEFINITION_MIGRATION_REQUIRED`이며 현재 도구가 이행을 실행하지 않는다. AI가 오류를 우회하려고 새 ID를 만들어 같은 의미의 기존 정의를 대체하지 않는다.
 

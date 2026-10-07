@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createLoreRegistry, addLoreDefinitions, compileLoreRegistry, createLoreResolver, lorePresetDefinitions } from '../../src/index.js';
+import { createLoreRegistry, addLoreDefinitions, compileLoreRegistry, createLoreResolver, lorePresetDefinitions, planLoreDefinitionNeeds } from '../../src/index.js';
 
 const initial = () => addLoreDefinitions(createLoreRegistry('u1'), { definitions: lorePresetDefinitions('u1', 'fantasy'), reason: '설정의 초기 추천값' }).registry;
 const field = overrides => ({ schemaVersion: 1, kind: 'field', id: 'field-regression-count', namespace: 'u1', key: 'regression.count', label: '회귀 횟수', aliases: ['회귀 수'], definition: '인물이 경험한 회귀 횟수', subjectTypeIds: ['type-character'], valueType: { kind: 'integer' }, owner: 'state', requiredScopes: ['continuity', 'worldPoint'], cardinality: 'one', constraints: [{ op: 'minimum', value: 0 }], missingPolicy: 'unknown', requiredCapabilities: ['numeric-value-v1'], ...overrides });
@@ -47,6 +47,9 @@ describe('SharedLore public library contract', () => {
     assert.throws(() => addLoreDefinitions(r, { definitions: [field({ requiredScopes: ['experience'] })], reason: '미지원 범위' }), { code: 'INVALID_LORE_DATA' });
     assert.throws(() => addLoreDefinitions(r, { definitions: [field({ subjectTypeIds: ['missing-type'] })], reason: '누락 참조' }), { code: 'DEFINITION_MIGRATION_REQUIRED' });
     assert.throws(() => addLoreDefinitions(initial(), { definitions: [field({ subjectTypeIds: ['missing-type'] })], reason: '누락 참조' }), { code: 'INVALID_DEFINITION_REFERENCE' });
+    // The planner agrees with the registry: the same ID with new meaning text is a migration, not a reuse.
+    const planned = planLoreDefinitionNeeds(r, [{ definition: field({ definition: '완전히 다른 뜻' }) }]).outcomes[0];
+    assert.equal(planned.outcome, 'migration_required'); assert.equal(planned.changes[0].field, 'definition');
     const tampered = JSON.parse(JSON.stringify(r)); tampered.definitions[0].definition.label = '변조';
     assert.throws(() => compileLoreRegistry(tampered), { code: 'LORE_INTEGRITY' });
   });

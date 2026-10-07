@@ -117,13 +117,13 @@ export function createLoreExpressionProfile(input) {
 export function createLoreAssetCatalog({ universeId, parent, assets = [], profiles = [], proposalId, reason }) {
   const next = { assets: { ...(parent?.assets ?? {}) }, profiles: { ...(parent?.profiles ?? {}) } };
   for (const asset of assets) {
-    const current = next.assets[asset.assetId] ?? null;
+    const current = Object.hasOwn(next.assets, asset.assetId) ? next.assets[asset.assetId] : null;
     // Replacement is a child revision of the adopted one; a stale parent cannot overwrite a newer choice.
     requireLore(asset.parentRevisionId === current, 'STALE_ASSET_REVISION', asset.assetId, { expectedParent: current, proposedParent: asset.parentRevisionId });
     next.assets[asset.assetId] = asset.revisionId;
   }
   for (const profile of profiles) {
-    const current = next.profiles[profile.profileId] ?? null;
+    const current = Object.hasOwn(next.profiles, profile.profileId) ? next.profiles[profile.profileId] : null;
     requireLore(profile.parentRevisionId === current, 'STALE_ASSET_REVISION', profile.profileId, { expectedParent: current, proposedParent: profile.parentRevisionId });
     next.profiles[profile.profileId] = profile.revisionId;
   }

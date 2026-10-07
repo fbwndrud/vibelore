@@ -59,6 +59,7 @@ export async function runCommit({
   const canonicalStore = await openCanonRepository({ store, publicationUnit });
   const resolution = await resolveWorkLanguage({ store: canonicalStore, workId });
   const baseFoundation = await canonicalStore.loadFoundation(workId);
+  const priorTree = canonicalStore.publishedRevision?.tree ?? null;
   let foundation = baseFoundation;
   if (!foundation) throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
   const workflow = await store.loadWorkflow(workId);
@@ -133,7 +134,8 @@ export async function runCommit({
     })).delta);
 
   // Preset and legacy deltas get the same address check the extractor applies.
-  delta = { ...delta, newAddressEntries: supportedAddressEntries(delta.newAddressEntries, foundation, prose).entries };
+  // Published records are work-owned: shared or scene-marker values are never written back into them.
+  delta = { ...delta, newAddressEntries: supportedAddressEntries(delta.newAddressEntries, baseFoundation, prose).entries };
   const ledgerConfig = await loadLedgerConfig(store, workId);
   const next = reduceStoryState(prev, delta, { config: ledgerConfig });
   // Canon readers still take entity snapshots; the ledger is their source now.
@@ -157,7 +159,7 @@ export async function runCommit({
     validatedContext ? validatedContext.plans.arc : canonicalStore.loadArcPlan(workId),
     validatedContext ? validatedContext.plans.episode : canonicalStore.loadEpisodePlan(workId, chapter),
   ]);
-  const episodePlan = upgradeEpisodePlanningContract(loadedEpisodePlan, foundation);
+  const episodePlan = upgradeEpisodePlanningContract(loadedEpisodePlan, baseFoundation);
   const publishedEpisodes = (arcPlan?.episodes ?? []).map((item) => item.chapter === chapter ? { ...item, status: 'completed' } : item);
   const publishedArcCompleted = publishedEpisodes.length > 0 && publishedEpisodes.every((item) => item.status === 'completed');
   const publishedArcPlan = arcPlan ? {
@@ -217,7 +219,7 @@ export async function runCommit({
     } : { kind: 'legacy_manual_commit', migrationRequired: true },
   };
   const dynamics = foldLegacyChapterCharacterDynamics(executionContext, {
-    foundation, delta: { ...delta, chapterNumber: chapter }, episodePlan,
+    foundation: baseFoundation, delta: { ...delta, chapterNumber: chapter }, episodePlan,
     previous: publishedBefore.value?.projections?.characterDynamics,
     acceptedObservation: observationArtifact,
   });
@@ -243,12 +245,14 @@ export async function runCommit({
   if (contractCommit) await assertCurrentChapterReceipt({ store, workId, chapter, receipt: checkReceipt,
     artifact: contractArtifact, allowWorkingTreeDrift, validationScope });
   const publication = await publicationUnit.publish({
+    replacePaths: [['productionInputs', String(chapter)], ['sceneChecks', String(chapter)]],
     context: executionContext,
     candidate: {
       tree: {
         workId, foundation: baseFoundation,
-        ...(validatedContext?.productionLock ? { productionInputs: { [chapter]: validatedContext.productionLock } } : {}),
-        ...(sceneRecord ? { sceneChecks: { [chapter]: sceneRecord } } : {}),
+        // A re-commit replaces this chapter's sealed inputs whole; a stale scene check never stays next to new prose.
+        ...(validatedContext?.productionLock || priorTree?.productionInputs?.[chapter] ? { productionInputs: { [chapter]: validatedContext?.productionLock ?? null } } : {}),
+        ...(sceneRecord || priorTree?.sceneChecks?.[chapter] ? { sceneChecks: { [chapter]: sceneRecord } } : {}),
         plans: {
           storyProfile, storySpine, writerSkill, storyIdentity, pilotContract,
           arcPlan: publishedArcPlan, episodePlans: { [chapter]: publishedEpisodePlan },

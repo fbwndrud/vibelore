@@ -74,8 +74,10 @@ describe('asset catalog', () => {
     const interrupted = w.catalog.decide({ proposalId: replace.proposalId, expectedHead: w.catalogHead, decision: 'approve', failAfterHead: true });
     await assert.rejects(interrupted, /injected asset catalog interruption/);
     assert.equal((await w.catalog.status()).recoveryPending, true);
-    const recovered = await w.catalog.recover();
-    assert.equal(recovered.status, 'recovered');
+    // An adoption that already happened cannot be recorded as rejected.
+    await assert.rejects(w.catalog.decide({ proposalId: replace.proposalId, expectedHead: w.catalogHead, decision: 'reject' }), { code: 'LORE_PROPOSAL_DECIDED' });
+    // That call already settled the journal as the approval it was.
+    assert.equal((await w.catalog.recover()).status, 'clean');
     const replay = await w.catalog.decide({ proposalId: replace.proposalId, expectedHead: w.catalogHead, decision: 'approve' });
     assert.equal(replay.replayed, true);
     const old = await w.catalog.closure({ catalogRevisionId: w.catalogHead, assetIds: ['adult-portrait'], expressionProfileId: 'ink' });
@@ -83,6 +85,14 @@ describe('asset catalog', () => {
     assert.deepEqual(await w.catalog.readBlob(oldAdult.blob.blobId), png(2));
     const current = (await w.catalog.status()).assets.find(a => a.assetId === 'adult-portrait');
     assert.notEqual(current.blob.blobId, oldAdult.blob.blobId);
+    // A new proposal settles an interrupted approval first, so its journal is never lost.
+    const head2 = (await w.catalog.status()).head;
+    const next = await w.catalog.propose({ expectedHead: head2, loreRevisionId: w.head, reason: '유년기 재작화', assets: [{ assetId: 'child-portrait', sourcePath: await w.file('child-v2.png', 11), label: '유년기 v2', entityId: 'character-a', stateIds: ['state-child'] }] });
+    await assert.rejects(w.catalog.decide({ proposalId: next.proposalId, expectedHead: head2, decision: 'approve', failAfterHead: true }), /injected/);
+    const after = await w.catalog.propose({ expectedHead: (await w.catalog.head()), loreRevisionId: w.head, reason: '추가', assets: [{ assetId: 'extra', sourcePath: await w.file('extra.png', 12), label: 'extra', entityId: 'character-a' }] });
+    assert.equal(after.status, 'awaiting_approval');
+    assert.equal((await w.catalog.status()).recoveryPending, false);
+    assert.equal((await w.catalog.decide({ proposalId: next.proposalId, expectedHead: head2, decision: 'approve' })).replayed, true);
   });
 });
 
@@ -177,6 +187,14 @@ describe('standalone scene script', () => {
     const sealed = await readdir(join(root, '.vibelore/input-objects/blobs'));
     const bytes = await Promise.all(sealed.map(name => readFile(join(root, '.vibelore/input-objects/blobs', name))));
     assert.ok(bytes.some(b => b.equals(png(2))), 'the old adult bytes stay sealed in the work');
+    // A record rewritten to another image is caught even if the workflow's record hash is updated to match.
+    const workflowFile = join(root, '.vibelore/webtoon/workflows', `${verified.workflowId}.json`), recordFile = join(root, '.vibelore/productions', (await readdir(join(root, '.vibelore/productions')))[0]);
+    const [workflowBytes, recordBytes] = await Promise.all([readFile(workflowFile, 'utf8'), readFile(recordFile, 'utf8')]);
+    const forged = { ...JSON.parse(recordBytes), image: { ...JSON.parse(recordBytes).image, path: 'other.png', hash: digest(png(5)) } };
+    await writeFile(join(root, 'other.png'), png(5)); await writeFile(recordFile, JSON.stringify(forged));
+    await writeFile(workflowFile, JSON.stringify({ ...JSON.parse(workflowBytes), productionRecordHash: digest(forged) }));
+    assert.equal((await rpc(root, 'lore_webtoon_scene', { workId, action: 'verify' })).structuredContent.code, 'SCENE_PRODUCTION_RECORD_CHANGED');
+    await Promise.all([writeFile(workflowFile, workflowBytes), writeFile(recordFile, recordBytes)]);
     // A tampered sealed blob is detected.
     await writeFile(join(root, '.vibelore/input-objects/blobs', sealed[0]), png(99));
     const tampered = await rpc(root, 'lore_webtoon_scene', { workId, action: 'verify' });

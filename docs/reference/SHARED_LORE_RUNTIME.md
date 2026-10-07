@@ -123,6 +123,8 @@ apply는 binding을 작품 발행 tree에 넣고 `work.md`의 managed section을
 
 apply는 로컬 인물 시트에 공유 값을 복사하지 않고 원고와 메모를 다시 쓰지 않는다. 검토 뒤 원고·work.md가 바뀌면 `WORKING_TREE_DRIFT`, 작품 HEAD가 바뀌면 `STALE_WORK_BINDING`이다. 되돌리기는 `lore_rollback`이 발행 tree와 work.md를 함께 복원한다. 이 경로는 임시 fixture로 검증했으며 사용자 작품에서 자동 실행하지 않는다.
 
+연결 전에 확정된 화는 binding에 없으면 쓰였던 입력 그대로 검증한다(봉인 lock이 있으면 그 lock, 없으면 작품 Foundation). 같은 화를 다시 확정하면 그 화의 봉인 lock과 장면 검사 기록은 통째로 교체된다. `work.md`는 SharedLore 관리 구역이 있을 때만 drift 추적·rollback 대상이며, 작가가 원래 쓰던 work.md는 건드리지 않는다. 세계 원문에 미채택 손수정이 있으면 진행 중 검사는 무효화하지 않고 재시도 가능한 `SHARED_LORE_SOURCE_DRIFT`로 멈춘다. 작품 연결 복구가 대기 중이어도 읽기 전용 도구와 `lore_bind status`는 쓸 수 있다.
+
 새 화는 binding.chapters에 장면 시점이 있어야 한다. 미래 화의 시점이 아직 없으면 `SHARED_SCENE_CONTEXT_MISSING`으로 멈추고, 계획을 정한 뒤 inspect/apply로 추가한다. 이전 화의 시점을 다음 화에 암묵적으로 재사용하지 않는다. IF는 별도 continuity/timeline의 명시적 값을 선택하며 main 값 상속은 아직 지원하지 않는다.
 
 ## 집필 해석과 lock
@@ -141,9 +143,9 @@ LoreRuntime이 실제 초고·재작성·통합 집필 검사의 실행 Foundati
 
 ### 장면 단위 상태와 검사 (binding schemaVersion 2)
 
-`schemaVersion: 2` binding의 장면은 `frame: "present" | "flashback"`을 가진다. resolver v2(`shared-lore-resolver-v2`)가 장면마다 상태를 해석하고, 화 수준 DTO에는 모든 present 장면이 같은 값만 넣는다. 다른 값은 `sceneVarying`으로 남기고 화 Foundation에는 표지값(gender `unknown`, 배열 `[]`, 문자열 안내문)만 둔다. 호칭·대명사·금지어 목록은 항상 장면별로 검사한다. 몸의 성별에서 호칭·대명사·자기 인식을 추론하지 않는다. 회상 장면의 상태는 현재 상태와 화 DTO를 바꾸지 않는다. 작품 소유 intrinsic 변화는 공유 투영 대상이 아니면 한 번만 적용된다.
+`schemaVersion: 2` binding의 장면은 `frame: "present" | "flashback"`을 가진다. resolver v2(`shared-lore-resolver-v2`)가 장면마다 상태를 해석하고, 화 수준 DTO에는 모든 present 장면이 같은 값이고 회상 장면도 다르지 않은 값만 넣는다. 다른 값은 `sceneVarying`(`differs`, `flashback_differs`, `flashback_only`)으로 남기고 화 Foundation에는 표지값(gender `unknown`, 배열 `[]`, 문자열 안내문)만 둔다. 호칭·대명사·금지어 목록은 항상 장면별로 검사한다. 몸의 성별에서 호칭·대명사·자기 인식을 추론하지 않는다. 회상 장면의 상태는 현재 상태와 화 DTO를 바꾸지 않는다. 작품 소유 intrinsic 변화는 공유 투영 대상이 아니면 한 번만 적용된다.
 
-검사 단계는 호스트 모델 요청 `shared-scene-map`으로 원고 문단을 장면에 대응시킨다. 응답은 `{proseHash, productionLockId, segments[{sceneId, fromParagraph, toParagraph}]}` 또는 `unresolved{reason, sceneIds}`이며 원고 hash와 lock에 묶인다. 누락·겹침·순서 오류는 거부하고, 경계를 정할 수 없으면 hard `SHARED_SCENE_BOUNDARY_UNRESOLVED`로 막는다. 그 뒤 각 장면 구간을 그 장면 상태의 금지어·허용어로 결정론 검사하고 위반 근거(장면·문단·어휘)를 남긴다. 결과는 검사 영수증 `sharedSceneCheck`에 들어가며 커밋이 다시 검증해 `sceneChecks[chapter]`로 봉인한다. 원고가 바뀌면 `STALE_SCENE_MAP`이라 이전 대응표·영수증을 재사용하지 않는다. 순서는 draft → check(장면 대응·검사) → critic → revise → receipt → commit 그대로이며 별도 커밋 경로는 없다.
+검사 단계는 호스트 모델 요청 `shared-scene-map`으로 원고 문단을 장면에 대응시킨다. 응답은 `{proseHash, productionLockId, segments[{sceneId, fromParagraph, toParagraph}]}` 또는 `unresolved{reason, sceneIds}`이며 원고 hash와 lock에 묶인다. 누락·겹침·순서 오류는 거부하고, 경계를 정할 수 없으면 hard `SHARED_SCENE_BOUNDARY_UNRESOLVED`로 막는다. 그 뒤 각 장면 구간을 그 장면 상태의 금지어·허용어로 결정론 검사하고 위반 근거(장면·문단·어휘)를 남긴다. 비교는 NFC 정규화 후 한다. 띄어쓰기 문자(라틴 등)는 대소문자 무시 단어 단위, 한국어·일본어·중국어는 붙은 말(`큰오빠가`, `我的哥哥`)도 잡도록 부분 일치다. 한 글자 CJK 금지어(`형`, `兄`)는 다른 낱말 안에도 나오므로 soft `SHARED_SCENE_TERM_SHORT`로 작가 판단에 맡긴다. CRLF 빈 줄도 문단 경계다. 결과는 검사 영수증 `sharedSceneCheck`에 들어가며 커밋이 다시 검증해 `sceneChecks[chapter]`로 봉인한다. 원고가 바뀌면 `STALE_SCENE_MAP`이라 이전 대응표·영수증을 재사용하지 않는다. 순서는 draft → check(장면 대응·검사) → critic → revise → receipt → commit 그대로이며 별도 커밋 경로는 없다.
 
 schemaVersion 1 binding과 기존 lock은 resolver v1로 그대로 검증한다. v1에서 같은 화의 여러 장면이 다른 값이면 여전히 `requires_scene_checker`로 멈춘다. 새 동작을 쓰려면 v2 binding을 inspect/apply한다. 계획 도구(`lore_arc_plan`, 화별 계획)도 같은 resolver로 계획 범위의 값을 읽고, 화마다 다르면 장면별 표지와 화별 값을 받는다. 작품의 옛 인물 사본을 계획 입력으로 쓰지 않는다. 필수 field의 unknown과 모든 conflict/incomplete도 사용 가능한 lock을 발급하지 않는다. 사용자 정의 필드를 원고의 임의 표현과 비교하는 새 결정론 검사기가 등록만으로 생기지는 않는다. 해당 값은 scoped context로 기존 semantic WORLD 검토에 전달된다.
 
@@ -159,13 +161,13 @@ schemaVersion 1 binding과 기존 lock은 resolver v1로 그대로 검증한다.
 
 ## 참조 이미지 카탈로그
 
-`lore_assets`가 세계 root의 `.vibelore/shared-lore/assets/`에 불변 blob(내용 hash), asset revision, 표현 프로필, 카탈로그 revision과 독립 HEAD를 쓴다. 반입은 실제 바이트로 PNG/JPEG 컨테이너·크기·해상도를 검증하며 파일명·선언 MIME을 믿지 않는다. asset은 entity와 state ID, 표현 프로필, 원본/파생 관계(`derivedFrom`)를 가진다. 후보는 승인 전까지 어떤 lock에도 쓰이지 않는다. 같은 assetId 교체는 이전 revision을 parent로 갖는 새 revision이며, 오래된 parent로 만든 후보는 `STALE_ASSET_REVISION`이다. 표현 프로필에 values·intrinsic 같은 세계 값 키가 있으면 `EXPRESSION_PROFILE_OWNERSHIP`이다. 승인은 객체 → pending journal → HEAD 순서이고 중단은 `recover`가 완료하거나 버린다.
+`lore_assets`가 세계 root의 `.vibelore/shared-lore/assets/`에 불변 blob(내용 hash), asset revision, 표현 프로필, 카탈로그 revision과 독립 HEAD를 쓴다. 반입은 실제 바이트로 PNG/JPEG 컨테이너·크기·해상도를 검증하며 파일명·선언 MIME을 믿지 않는다. asset은 entity와 state ID, 표현 프로필, 원본/파생 관계(`derivedFrom`)를 가진다. 후보는 승인 전까지 어떤 lock에도 쓰이지 않는다. 같은 assetId 교체는 이전 revision을 parent로 갖는 새 revision이며, 오래된 parent로 만든 후보는 `STALE_ASSET_REVISION`이다. 표현 프로필에 values·intrinsic 같은 세계 값 키가 있으면 `EXPRESSION_PROFILE_OWNERSHIP`이다. 승인은 객체 → pending journal → HEAD 순서이고 중단은 `recover` 또는 다음 propose/decide가 먼저 완료하거나 버린다. 이미 채택된 후보를 reject로 기록할 수 없고, HEAD 계보에 없는 카탈로그 판본은 고정할 수 없다.
 
 ## 소설 없는 제작 원천: 장면 대본
 
 ProductionSource는 두 종류다. `novel-chapters`는 기존 웹툰 원천(sourceVersion 1)을 그대로 쓰므로 진행 중인 장면 작업이 같은 hash로 계속 검증된다. `scene-script`(sourceVersion 2)는 `lore_scene_script`로 채택한 작품 소유 대본이다. 대본은 정확한 원문, 장면 순서, 장면별 세계 시점과 frame, cast와 승인 상태, 작품 언어, 표현 프로필, 승인 asset을 고정한다. apply는 resolver v2 lock(`sourceKind: scene-script`)과 asset 바이트를 작품의 `.vibelore/input-objects/{locks,blobs}`에 먼저 봉인한 뒤 대본 HEAD를 바꾸고 `scenes/<scriptId>.md`를 쓴다. 소설 Foundation·chapter·story state를 만들지 않는다. 읽기용 대본 파일을 손으로 고치면 `SCENE_SCRIPT_DRIFT`로 막고 inspect/apply로 채택해야 한다.
 
-웹툰은 `lore_webtoon_scene(start, scriptId)`로 이 원천을 쓴다. 참조는 `{id, assetId, description}`이며 봉인된 바이트 경로로 바뀐다. 새 장면 작업은 완료 때 `.vibelore/productions/<workflowId>-r<revision>.json`에 원천 판본·lock·참조 asset revision과 hash·이미지 hash·검토 digest를 기록한다. `action=verify`는 이 기록, 봉인 lock, 참조와 이미지 바이트를 작품 안에서만 다시 검증하므로 세계 파일이 바뀌거나 이동·삭제돼도 동작한다. 경로로만 받은 참조는 `unpreserved`로 보고하며 재현을 주장하지 않는다. 웹툰 완료는 공유 세계와 소설 정본을 바꾸지 않는다.
+웹툰은 `lore_webtoon_scene(start, scriptId)`로 이 원천을 쓴다. 참조는 `{id, assetId, description}`이며 봉인된 바이트 경로로 바뀐다. 새 장면 작업은 완료 때 `.vibelore/productions/<workflowId>-r<revision>.json`에 원천 판본·lock·참조 asset revision과 hash·이미지 hash·검토 digest를 기록한다. `action=verify`는 이 기록, 봉인 lock, 참조와 이미지 바이트를 작품 안에서만 다시 검증하므로 세계 파일이 바뀌거나 이동·삭제돼도 동작한다. 경로로만 받은 참조와 소설 원천은 `unpreserved`로 보고하며 재현을 주장하지 않는다(소설 원천은 현재 원고와 일치 여부만 `source-current`로 알린다). 기록은 워크플로 상태·봉인 lock과 교차 확인한다. 웹툰 완료는 공유 세계와 소설 정본을 바꾸지 않는다.
 
 ## 공통 입력 계약과 지원 상태
 

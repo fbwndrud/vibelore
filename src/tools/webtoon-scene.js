@@ -3,7 +3,7 @@ import { readFile, rm } from 'node:fs/promises';
 import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
 import { resolveProductionSource, verifyProductionSource } from '../core/production-source.js';
 import { readSealedProductionInput } from '../core/input-objects.js';
-import { join, resolve } from 'node:path';
+import { join, resolve, relative, sep } from 'node:path';
 import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.js';
 import { importWebtoonImages } from '../core/webtoon-board.js';
 import { validateImageRuntime, sceneImagePolicy, savedSceneSelection, sceneImageRequest, validateSceneImageProvenance } from '../core/webtoon-images.js';
@@ -149,9 +149,10 @@ async function drive(repo, w, providers) {
     await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
     const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(r.value.findings, null, 2))}</pre></html>`;
     await repo.writeCandidate(w, 'scene.html', html);
+    // The record is written before the stage says completed, so a failed write retries instead of leaving an unverifiable scene.
+    if (passed && w.productionRecord) await writeProductionRecord(repo, w);
     w.stage = passed ? 'completed' : 'scene_needs_revision';
     record(w, 'scene_reviewed', { passed, imageHash: w.sceneImage.hash });
-    if (passed && w.productionRecord) await writeProductionRecord(repo, w);
     if (!passed && autoRevise(w)) return drive(repo, w, providers);
   }
   return scenePublicState(w);
@@ -279,7 +280,7 @@ async function writeProductionRecord(repo, w) {
       ...(w.source.kind === 'scene-script' ? { scriptId: w.source.scriptId, scriptRevisionId: w.source.scriptRevisionId, productionLockId: w.source.productionLockId, loreRevisionId: w.source.loreRevisionId, assetCatalogRevisionId: w.source.assetCatalogRevisionId } : { chapters: w.source.chapters.map(c => ({ chapter: c.chapter, hash: c.hash })) }) },
     sourceUnitIds: w.sceneUnits.map(u => u.id), language: w.source.languageContract?.language ?? 'ko',
     references: w.sceneReferences.map(r => ({ id: r.id, hash: r.hash, ...(r.assetId ? { assetId: r.assetId, assetRevisionId: r.assetRevisionId, preserved: 'sealed-input' } : { preserved: r.id === PREVIOUS_SCENE_ID ? 'workflow-candidate' : 'path-only' }) })),
-    image: { hash: w.sceneImage.hash, mime: w.sceneImage.mime, path: w.sceneImage.path }, planHash: digest(w.scenePlan), preflightHash: digest(w.preflight), reviewHash: digest(w.visualReview),
+    image: { hash: w.sceneImage.hash, mime: w.sceneImage.mime, path: relative(repo.store.rootDir, resolve(repo.store.rootDir, w.sceneImage.path)).split(sep).join('/') }, planHash: digest(w.scenePlan), preflightHash: digest(w.preflight), reviewHash: digest(w.visualReview),
     imagePolicy: w.imagePolicy, completedAt: new Date().toISOString() };
   await atomicWrite(recordPath(repo, w), JSON.stringify(rec, null, 2));
   w.productionRecordHash = digest(rec);
@@ -288,23 +289,39 @@ async function writeProductionRecord(repo, w) {
 /** Read-only proof that a completed scene's preserved inputs and image still match. */
 async function verifyProduction(repo, w) {
   if (w.stage !== 'completed' || !w.productionRecordHash) throw new Error('SCENE_PRODUCTION_NOT_RECORDED');
-  const recordFile = await readJson(recordPath(repo, w));
-  if (!recordFile || digest(recordFile) !== w.productionRecordHash) throw new Error('SCENE_PRODUCTION_RECORD_CHANGED');
-  const checks = [];
+  const root = repo.store.rootDir, recordFile = await readJson(recordPath(repo, w));
+  const changed = () => { throw new Error('SCENE_PRODUCTION_RECORD_CHANGED'); };
+  if (!recordFile || digest(recordFile) !== w.productionRecordHash) changed();
+  // The record must agree with the workflow state it was written from.
+  if (recordFile.image.hash !== w.sceneImage?.hash || recordFile.source.hash !== w.source.hash
+    || recordFile.references.length !== w.sceneReferences.length || recordFile.references.some(r => w.sceneReferences.find(x => x.id === r.id)?.hash !== r.hash)) changed();
+  const bytesOf = async path => { try { return await readFile(resolve(root, path)); } catch (e) { if (e.code === 'ENOENT') throw new Error(`SCENE_PRODUCTION_INPUT_MISSING: ${path}`); throw e; } };
+  const checks = [], unpreserved = recordFile.references.filter(r => r.preserved === 'path-only').map(r => r.id);
+  let lock = null;
   if (recordFile.source.kind === 'scene-script') {
-    const { lock, blobs } = await readSealedProductionInput({ rootDir: repo.store.rootDir, productionLockId: recordFile.source.productionLockId });
-    if (lock.scriptRevisionId !== recordFile.source.scriptRevisionId) throw new Error('SCENE_PRODUCTION_RECORD_CHANGED');
-    checks.push({ check: 'sealed-lock', productionLockId: lock.revisionId, loreRevisionId: lock.loreRevisionId, assetCatalogRevisionId: lock.assetCatalogRevisionId, blobs: blobs.length });
+    const sealed = await readSealedProductionInput({ rootDir: root, productionLockId: recordFile.source.productionLockId });
+    lock = sealed.lock;
+    if (lock.scriptRevisionId !== recordFile.source.scriptRevisionId) changed();
+    checks.push({ check: 'sealed-lock', productionLockId: lock.revisionId, loreRevisionId: lock.loreRevisionId, assetCatalogRevisionId: lock.assetCatalogRevisionId, blobs: sealed.blobs.length });
+  } else {
+    // A novel source is kept as canon history, not sealed here; report whether it still matches.
+    let current = null;
+    try { current = (await resolveWebtoonSource(repo.store, w.workId, recordFile.source.chapters.map(c => c.chapter))).hash; } catch { current = null; }
+    checks.push({ check: 'source-current', matches: current === recordFile.source.hash });
+    unpreserved.push('source');
   }
-  for (const r of recordFile.references.filter(r => r.preserved === 'sealed-input')) {
+  for (const r of recordFile.references) {
     const ref = w.sceneReferences.find(x => x.id === r.id);
-    if (!ref || digest(await readFile(resolve(repo.store.rootDir, ref.path))) !== r.hash) throw new Error('SCENE_REFERENCE_CHANGED');
-    checks.push({ check: 'reference-bytes', id: r.id, assetId: r.assetId, hash: r.hash });
+    if (r.preserved === 'sealed-input') {
+      const pinned = lock?.assets?.find(a => a.assetId === r.assetId);
+      if (!pinned || pinned.assetRevisionId !== r.assetRevisionId || pinned.blob.blobId !== r.hash) changed();
+    } else if (r.preserved !== 'workflow-candidate') continue;
+    if (digest(await bytesOf(ref.path)) !== r.hash) throw new Error('SCENE_REFERENCE_CHANGED');
+    checks.push({ check: 'reference-bytes', id: r.id, ...(r.assetId ? { assetId: r.assetId } : {}), hash: r.hash });
   }
-  if (digest(await readFile(resolve(repo.store.rootDir, recordFile.image.path))) !== recordFile.image.hash) throw new Error('SCENE_IMAGE_CHANGED');
+  if (digest(await bytesOf(recordFile.image.path)) !== recordFile.image.hash) throw new Error('SCENE_IMAGE_CHANGED');
   checks.push({ check: 'image-bytes', hash: recordFile.image.hash });
-  return { status: 'verified', lane: 'webtoon', workflowId: w.workflowId, recordHash: w.productionRecordHash, record: recordFile, checks,
-    unpreserved: recordFile.references.filter(r => r.preserved === 'path-only').map(r => r.id) };
+  return { status: 'verified', lane: 'webtoon', workflowId: w.workflowId, recordHash: w.productionRecordHash, record: recordFile, checks, unpreserved };
 }
 
 /** Opt-in scene workflow: never migrates or republishes an existing panel workflow. */

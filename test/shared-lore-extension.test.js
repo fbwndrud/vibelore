@@ -53,6 +53,12 @@ describe('AI definition extension', () => {
     await assert.rejects(store.ensure({ needs: needs.slice(0, 1), reason: '다른 요청', operationId: 'write-run-0001' }), { code: 'OPERATION_CONFLICT' });
     const retry = await store.ensure({ needs: [{ definition: def('curse-mark-2', 'curse.mark') }], reason: '응답 유실 후 재시도' });
     assert.equal(retry.outcomes[0].outcome, 'reused'); assert.equal(retry.outcomes[0].definitionId, 'curse-mark'); assert.equal(retry.head, first.head);
+    // Crash after HEAD moved but before the result was recorded: the retry with the original expectedHead replays, not STALE.
+    const crashNeeds = [{ definition: def('oath-mark', 'oath.mark') }], headBefore = first.head;
+    const crashed = await store.ensure({ needs: crashNeeds, reason: '중단', operationId: 'write-run-0002', expectedHead: headBefore });
+    await rm(store.operationPath('write-run-0002'));
+    const resumed = await store.ensure({ needs: crashNeeds, reason: '중단', operationId: 'write-run-0002', expectedHead: headBefore });
+    assert.equal(resumed.replayed, true); assert.equal(resumed.head, crashed.head); assert.deepEqual(resumed.addedRevisionIds, crashed.addedRevisionIds); assert.equal(resumed.previousHead, headBefore);
   });
   it('replays ensure over public MCP for a resumed host call', async t => {
     const w = await sharedSaga(); t.after(() => rm(w.root, { recursive: true, force: true }));

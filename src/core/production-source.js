@@ -23,6 +23,7 @@ export async function resolveProductionSource(store, workId, request) {
 
 async function resolveScriptSource(store, workId, { scriptId, scriptRevisionId, productionLockId }) {
   const { script, head } = await readAdoptedScript({ rootDir: store.rootDir, scriptId, revisionId: scriptRevisionId });
+  requireLore(head, 'SCENE_SCRIPT_NOT_FOUND', `${scriptId} has no adopted HEAD`);
   requireLore(script.workId === workId, 'WORKFLOW_WORK_MISMATCH', 'script belongs to another work');
   const readable = await loreReadText(store.rootDir, join(store.rootDir, sceneScriptFile(scriptId)));
   requireLore(readable !== null && hashLore(readable) === head.readableDigest, 'SCENE_SCRIPT_DRIFT', `${sceneScriptFile(scriptId)} has unadopted edits; adopt them with lore_scene_script inspect/apply`);

@@ -5,12 +5,12 @@ import { hashLore, isLoreRevisionId } from '../../engine/src/lore/registry.js';
 import { requireLore } from '../../engine/src/lore/schemas.js';
 import { UniverseStore } from '../store/universe-store.js';
 import { createPublicationUnit } from './publication-unit.js';
-import { fingerprintWorkingTree, detectWorkingTreeDrift, captureWorkingTreeFingerprint } from './working-tree-sync.js';
+import { fingerprintWorkingTree, detectWorkingTreeDrift, captureWorkingTreeFingerprint, SHARED_LORE_SECTION_BEGIN } from './working-tree-sync.js';
 import { loreReadText, loreReadJson, loreWriteText, loreWriteJson } from './lore-files.js';
 import { renderProductionContext } from './production-input.js';
 import { workMigrationReport } from './work-migration.js';
 
-const begin = '<!-- shared-lore:begin -->', end = '<!-- shared-lore:end -->';
+const begin = SHARED_LORE_SECTION_BEGIN, end = '<!-- shared-lore:end -->';
 function bindingSource(previous, sharedLore) {
   const section = `${begin}\n## SharedLore binding\n\n\`\`\`json\n${JSON.stringify(sharedLore, null, 2)}\n\`\`\`\n${end}`;
   if (!(previous ?? '').includes(begin)) return `${previous ?? '# 작품 연결\n'}\n${section}\n`;

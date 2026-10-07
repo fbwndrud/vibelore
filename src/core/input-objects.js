@@ -34,7 +34,8 @@ export async function readSealedProductionInput({ rootDir, productionLockId }) {
   requireLore(isLoreRevisionId(productionLockId), 'INVALID_LORE_DATA', 'productionLockId');
   const text = await loreReadText(rootDir, join(base(rootDir), 'locks', `${productionLockId.slice(7)}.json`));
   requireLore(text !== null, 'PRODUCTION_INPUT_MISSING', `sealed lock ${productionLockId}`);
-  const lock = JSON.parse(text);
+  let lock;
+  try { lock = JSON.parse(text); } catch { requireLore(false, 'LORE_INTEGRITY', `sealed lock ${productionLockId} is not valid JSON`); }
   requireLore(lock.revisionId === productionLockId && hashLore(Object.fromEntries(Object.entries(lock).filter(([k]) => k !== 'revisionId'))) === productionLockId, 'LORE_INTEGRITY', 'sealed lock hash mismatch');
   verifyLoreProductionLock(lock);
   const blobs = [];

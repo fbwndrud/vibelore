@@ -63,14 +63,16 @@ export function prepareLoreScriptProduction({ script, publication, catalog = nul
     requireLore(catalog.revision.universeId === script.universeId, 'LORE_UNIVERSE_MISMATCH', 'asset catalog universe');
     const byRevision = new Map((catalog.assetRevisions ?? []).map(a => [a.revisionId, verifyLoreAssetObject(a, 'asset')]));
     if (script.expressionProfileId) {
-      const profileRevisionId = catalog.revision.profiles[script.expressionProfileId];
+      const profileRevisionId = Object.hasOwn(catalog.revision.profiles, script.expressionProfileId) ? catalog.revision.profiles[script.expressionProfileId] : null;
       requireLore(profileRevisionId && catalog.profileRevision?.revisionId === profileRevisionId, 'ASSET_NOT_APPROVED', `expression profile ${script.expressionProfileId}`);
       expression = verifyLoreAssetObject(catalog.profileRevision, 'expression-profile');
+      requireLore(expression.profileId === script.expressionProfileId, 'LORE_INTEGRITY', 'catalog profile entry points at another profile');
     } else requireLore(!catalog.profileRevision, 'LORE_INTEGRITY', 'unexpected expression profile in closure');
     for (const member of script.cast) for (const assetId of member.assetIds) {
-      const revisionId = catalog.revision.assets[assetId];
+      const revisionId = Object.hasOwn(catalog.revision.assets, assetId) ? catalog.revision.assets[assetId] : null;
       requireLore(revisionId && byRevision.has(revisionId), 'ASSET_NOT_APPROVED', assetId);
       const asset = byRevision.get(revisionId);
+      requireLore(asset.assetId === assetId, 'LORE_INTEGRITY', `catalog entry ${assetId} points at asset ${asset.assetId}`);
       requireLore(asset.entityId === member.entityId, 'ASSET_ENTITY_MISMATCH', `${assetId} depicts ${asset.entityId}, not ${member.entityId}`);
       validateLoreAssetLinks({ asset, revision: publication.revision });
       const sceneIds = resolved.scenes.filter(s => s.entityIds.includes(member.entityId) && (!asset.stateIds.length || asset.stateIds.some(st => s.stateIds[member.entityId].includes(st)))).map(s => s.id);

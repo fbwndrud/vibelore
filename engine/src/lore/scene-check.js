@@ -8,7 +8,7 @@ export const LORE_SCENE_MAP_VERSION = 'shared-scene-map-v1';
 export const LORE_SCENE_CHECK_VERSION = 'shared-scene-check-v1';
 
 export function loreSceneParagraphs(prose) {
-  const paragraphs = [], pattern = /\S[\s\S]*?(?=\n[ \t]*\n|\s*$)/g;
+  const paragraphs = [], pattern = /\S[\s\S]*?(?=\r?\n[ \t]*\r?\n|\s*$)/g;
   for (const match of String(prose).matchAll(pattern)) paragraphs.push({ index: paragraphs.length, start: match.index, end: match.index + match[0].length, text: match[0] });
   return paragraphs;
 }
@@ -76,10 +76,17 @@ export function verifyLoreSceneMap({ lock, prose, map }) {
 }
 
 const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// A term starts at a word boundary. Korean/Japanese/Chinese particles attach
-// directly (도련님이라), so a term ending in those scripts may be followed by letters.
-const ATTACHING = /[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]$/u;
-const occurrences = (text, term) => [...text.matchAll(new RegExp(`(?<![\\p{L}\\p{N}])${escape(term)}${ATTACHING.test(term) ? '' : '(?![\\p{L}\\p{N}])'}`, 'gu'))].map(m => m.index);
+// Spaced scripts match whole words, case-insensitively. Korean, Japanese and
+// Chinese have no reliable word boundary (큰오빠가, 我的哥哥, お兄さん), so their
+// terms match anywhere; a one-character term there (형, 兄) also occurs inside
+// unrelated words, so its hit is soft evidence for the author, not a hard block.
+// Both sides are compared in NFC.
+const CJK = /[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+function occurrences(text, term) {
+  const t = term.normalize('NFC'), cjk = CJK.test(t);
+  const pattern = new RegExp(cjk ? escape(t) : `(?<![\\p{L}\\p{N}])${escape(t)}(?![\\p{L}\\p{N}])`, 'giu');
+  return { short: cjk && [...t].length === 1, at: [...text.normalize('NFC').matchAll(pattern)].map(m => m.index), normalized: text.normalize('NFC') !== text };
+}
 const projection = (scene, localCharacterId, target) => scene.projections.find(p => p.localCharacterId === localCharacterId && p.target === target);
 
 /**
@@ -97,15 +104,18 @@ export function checkLoreScenes({ lock, prose, map, chapter = null }) {
       const forbidden = projection(scene, localCharacterId, 'intrinsic.addressing.forbiddenGenderedTerms');
       if (!forbidden) continue;
       for (const term of forbidden.value) {
-        for (const at of occurrences(text, term)) {
+        const hits = occurrences(text, term);
+        for (const at of hits.at) {
           const acceptedBy = members.filter(other => other !== localCharacterId && projection(scene, other, 'intrinsic.addressing.acceptedGenderedTerms')?.value.includes(term));
-          const violation = { severity: acceptedBy.length ? 'soft' : 'hard', code: acceptedBy.length ? 'SHARED_SCENE_TERM_AMBIGUOUS' : 'SHARED_SCENE_FORBIDDEN_TERM',
+          const soft = acceptedBy.length > 0 || hits.short;
+          const violation = { severity: soft ? 'soft' : 'hard', code: acceptedBy.length ? 'SHARED_SCENE_TERM_AMBIGUOUS' : hits.short ? 'SHARED_SCENE_TERM_SHORT' : 'SHARED_SCENE_FORBIDDEN_TERM', ...(hits.normalized ? { spanNormalized: true } : {}),
             ...(chapter !== null ? { chapterNumber: chapter } : {}), sceneId: scene.id, frame: scene.frame, scope: scene.scope,
             characterId: localCharacterId, entityId: forbidden.entityId, term, span: { start: segment.start + at, end: segment.start + at + term.length },
             fieldId: forbidden.fieldId, fieldDefinitionRevisionId: forbidden.fieldDefinitionRevisionId, valueIds: forbidden.valueIds, evidenceIds: forbidden.evidenceIds,
             stateIds: scene.stateIds[forbidden.entityId] ?? [],
             message: acceptedBy.length
               ? `장면 ${scene.id}: '${term}'은 ${localCharacterId}에게 금지, ${acceptedBy.join(', ')}에게 허용된 호칭이라 대상이 모호합니다.`
+              : hits.short ? `장면 ${scene.id}: 한 글자 금지어 '${term}'이 나옵니다. 다른 낱말의 일부일 수 있으니 ${localCharacterId}를 부르는 말인지 확인하세요.`
               : `장면 ${scene.id}(${scene.scope.timelineId}/${scene.scope.pointId}): ${localCharacterId}의 이 시점 상태는 '${term}'을 금지합니다 (state ${(scene.stateIds[forbidden.entityId] ?? []).join(', ') || '-'}, evidence ${forbidden.evidenceIds.join(', ')}).` };
           found.push(violation);
         }

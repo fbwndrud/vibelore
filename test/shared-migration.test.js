@@ -7,6 +7,7 @@ import { qualityStore, workId, outputs } from './fixtures/quality-workflow.js';
 import { contractResponse } from './fixtures/contract-response.js';
 import { approvalResponse } from './fixtures/approval-response.js';
 import { inspectWorkBinding, applyWorkBinding } from '../src/core/work-binding.js';
+import { currentValidationContext } from '../src/core/validation-context.js';
 import { createPublicationUnit } from '../src/core/publication-unit.js';
 import { runWriteWorkflow } from '../src/tools/workflow.js';
 import { rollbackToSnapshot } from '../src/tools/snapshots.js';
@@ -51,6 +52,9 @@ it('migrates an existing work with a dry-run diff, no name merge, preserved pros
   assert.deepEqual(await sources(store.rootDir), beforeSources, 'prose and sheets are preserved as written');
   const local = await store.loadFoundation(workId);
   assert.deepEqual(local.characters.map(c => [c.id, c.intrinsic.gender]), [['hero', 'male']], 'no shared value is copied into the work sheet');
+  // A chapter written before the binding is still validated with the input it was written with.
+  const before1 = await currentValidationContext({ store, workId, chapter: 1 });
+  assert.equal(before1.productionLock, null); assert.equal(before1.foundation.characters[0].intrinsic.gender, 'male');
 
   // Rollback restores the pre-migration publication; the reviewed proposal is then stale.
   await rollbackToSnapshot({ store, workId, chapter: 1 });
