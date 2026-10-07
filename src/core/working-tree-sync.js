@@ -1,11 +1,17 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, lstat } from 'node:fs/promises';
 import { relative, join, sep } from 'node:path';
 
 const USER_EDITABLE_DIRS = ['world', 'characters', 'chapters'];
 
 async function markdownFiles(rootDir) {
   const files = [];
+  const bindingPath = join(rootDir, 'work.md');
+  try {
+    const info = await lstat(bindingPath);
+    if (!info.isFile() || info.isSymbolicLink()) throw new Error('UNSAFE_LORE_PATH: work.md must be a regular file');
+    files.push(bindingPath);
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
   for (const directory of USER_EDITABLE_DIRS) {
     const base = join(rootDir, directory);
     let entries = [];
@@ -28,7 +34,8 @@ export async function fingerprintWorkingTree(rootDir) {
   const inventory = [];
   for (const path of files) {
     const bytes = await readFile(path);
-    inventory.push({ path: relative(rootDir, path).split(sep).join('/'), digest: sha256(bytes), contentDigest: contentDigestOf(bytes) });
+    const local = relative(rootDir, path).split(sep).join('/');
+    inventory.push({ path: local, digest: sha256(bytes), contentDigest: local === 'work.md' ? sha256(bytes) : contentDigestOf(bytes) });
   }
   const digest = sha256(JSON.stringify(inventory.map(({ path, contentDigest }) => ({ path, contentDigest }))));
   return { digest, inventory };

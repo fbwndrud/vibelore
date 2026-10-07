@@ -5,7 +5,7 @@
 A call reference for users who integrate directly with a host AI. Regular users don't need to write arguments
 themselves; follow [Getting started](GETTING_STARTED.en.md) and [Making a webtoon](WEBTOON.en.md) and just ask.
 
-This is the usage contract for the 27 user tools the default server exposes and the 13 low-level tools on the advanced surface.
+This is the usage contract for the 32 user tools the default server exposes and the 13 low-level tools on the advanced surface.
 A new work prepares an approved profile, whole story, writer skill and arc. After that, writing
 checks the active arc with `lore_arc_status` and starts with `lore_write`, using `lore_decide` when approval is pending.
 The low-level tools are kept for compatibility and engine debugging but don't appear in the default `tools/list`.
@@ -17,7 +17,7 @@ The tools that exist only on the advanced surface are `lore_context`, `lore_chec
 writing does not combine these tools directly.
 
 For existing panel-based webtoon workflows, `VIBELORE_MCP_SURFACE=compat` adds the three deprecated
-tools (30 total). New webtoons use the default `lore_webtoon_scene` tool.
+tools (35 total). New webtoons use the default `lore_webtoon_scene` tool.
 
 ## How to read this
 
@@ -40,6 +40,59 @@ flowchart LR
 |---|---:|---|
 | `project` | No | Absolute path of the work directory. When omitted, the server's current directory |
 | `workId` | Mostly | `[A-Za-z0-9_-]` work identifier |
+
+## Independent world definition registry
+
+### `lore_registry`
+
+Register and search SharedLore entity types, units, fields and directed relations without creating a novel.
+Required arguments are `action`, an explicit absolute `registryRoot`, and `universeId`; work arguments are not accepted.
+Use `status` to read HEAD and supported capabilities, then `search` to reuse keys and aliases.
+`register` requires `expectedHead` (initially null), `reason`, and `definitions` or `preset=base|fantasy`.
+It only adds supported definitions; changing an existing ID's meaning, type or owner requires migration.
+`resolve` requires an exact `revisionId`, `input` and `query`, returning distinct `resolved`, `unknown`,
+`conflict` and `incomplete` statuses. Registering definitions does not adopt settings into current writing or webtoon workflows.
+`ensure(needs,reason,operationId,expectedHead?)` handles a field the AI discovers mid-writing as search → reuse → validate →
+non-destructive add in one call. `outcomes` are `reused|registered|migration_required|unsupported|invalid`; retrying or
+resuming with the same `operationId` replays the first result (`OPERATION_CONFLICT` for a different request). Meaning/type/owner
+changes are only recorded as migration candidates, and unsupported capabilities (`status.unsupportedCapabilities`) are never registered.
+See the [SharedLore registry contract (Korean)](reference/SHARED_LORE_REGISTRY.md) for shapes, host procedure and limits.
+
+### `lore_universe`
+
+Required: `action,worldRoot,universeId`. `propose(expectedHead,registryRevisionId,content,reason)` validates a complete
+world candidate with documents, entities, states and typed values. Review the candidate, then use
+`decide(proposalId,expectedHead,decision=approve|reject)` for the user's decision. `resolve(loreRevisionId,query)` reads
+an exact sealed revision; `status` reports HEAD/source drift and `recover` resumes approved document materialization.
+
+### `lore_bind`
+
+Required: `action,workId`; `project` selects the work root. `inspect(worldRoot,binding)` validates cast IDs, chapter scene
+points, requirements and projections and shows active planning impact. After approval, `apply(proposalId,expectedHead)`
+publishes the binding to the work tree and work.md. Updating it invalidates prior receipts. `status` reads the binding.
+See [adoption and work binding (Korean)](reference/SHARED_LORE_RUNTIME.md) for shapes and supported execution paths.
+A `schemaVersion:2` binding takes `frame=present|flashback` per scene and checks per-scene states inside one chapter scene by scene.
+For an existing work, inspect's `migration` is a dry-run report: per-chapter diff of local vs shared values, targets whose
+ownership moves from the work to the shared world, preserved sources, and same-name unbound characters (`not_merged`, never merged
+automatically). Roll back with `lore_rollback`.
+
+### `lore_assets`
+
+Required: `action,worldRoot,universeId`. Manages the shared world's reference-image and expression-profile catalog.
+`propose(expectedHead,loreRevisionId,assets,profiles,reason)` verifies the actual file bytes (PNG/JPEG container and size), builds
+content-hashed candidates and checks entity/state links against an adopted world revision. After approval, `decide` publishes an
+independent catalog HEAD. Re-proposing an `assetId` creates a new revision; old bytes and issued production locks are unchanged.
+Expression profiles hold only style and palette; world-value keys are refused with `EXPRESSION_PROFILE_OWNERSHIP`. `recover`
+resumes an interrupted approval.
+
+### `lore_scene_script`
+
+Required: `action,workId`; `project` selects the work. Adopts a work-owned standalone scene script as a production source without a
+novel. `inspect(worldRoot,script)` resolves the exact text, scene order, per-scene world point and `frame`, cast and approved states,
+work language, expression profile and pinned assets, returning a preview and lock candidate; unknowns and conflicts come back as
+`unresolved` with `blockers`. After approval, `apply(proposalId,expectedHead)` seals the script revision, lock and asset bytes into
+the work's `.vibelore/input-objects/` and writes `scenes/<scriptId>.md`. It never changes the shared world or novel canon and never
+creates a novel Foundation or chapter.
 
 ## Work language and length units
 
@@ -496,11 +549,15 @@ for the detailed flow see [WEBTOON_WORKFLOW.en.md](reference/WEBTOON_WORKFLOW.en
 
 The default path for new webtoon work. It generates a whole scene together with its dialogue, without roughs. For a new scene the user must choose `panelCount` as an integer (1-12) or `"auto"`; if it is missing, `needs_interview` suggests `[4, 6, 8, 9, "auto"]`. With `auto` the AI picks a suitable number of 3-12 panels anew for each adaptation, and the check, image and review after that are fixed to that number. Integers under 3 are allowed, but a continuity-loss warning is put in the response `warnings`. For a work with no image choice, start first returns `needs_image_runtime`. Once the host reports the image paths it really has (built-in tools, APIs) as `imageRuntime`, `needs_image_choice` returns every option and a proposal (the built-in path first); put the user's own answer in `feedback` and confirm with `confirmImageChoice`. The choice is kept per work and changes only through `changeImageChoice`. With `previousWorkflowId` it inherits the previous scene's actual image and review results and checks the continuity of characters, background and action. If the actual panel count differs from the choice, it doesn't complete. A new scene sends an image request only after the pre-generation check has settled a short `renderBrief` and a `drawability` judgment. The drawing model is not sent review reports or duplicate direction text. If the pre-generation check or the image review fails, it redesigns automatically `autoRevisions` times (start only, 0-3, default 2), using the observed defects as feedback, and issues a new image request. Failed attempts remain in the response `attempts`; with 0 it stops at `scene_needs_revision` as before.
 This separate path goes: pin the source range → unified English direction → pre-generation check → scene image → visual review of the actual image.
-It takes `action=start|revise|retry`, `workflowId`, `revision`, `sourceChapters`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
+It takes `action=start|revise|retry|verify`, `workflowId`, `revision`, `sourceChapters` or `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
 `previousWorkflowId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback` and `asset`.
 Without an image choice, start returns `needs_image_runtime`, then `needs_image_choice`; `needs_model` uses `lore_resume` and lookups use `lane=webtoon`.
 `needs_scene_image` appears only after the pre-generation check passes, and only then is the image drawn on the chosen path (`hostRequest` or `apiRequest`).
 Imports whose source, reference or plan hash changed, and visual reviews that didn't open the image, are refused.
+Starting with `scriptId` uses only the script adopted through `lore_scene_script` and its sealed inputs; references name pinned catalog
+images as `{id,assetId,description}`. A newly started scene writes a record of the source revision, lock, references and image hash to
+`.vibelore/productions/` on completion, and `action=verify` re-checks that record and the sealed bytes without the world directory.
+References given only as paths are reported as `unpreserved`; no reproducibility is claimed for them.
 For the detailed contract, see [Default path](reference/WEBTOON_WORKFLOW.en.md#default-path-whole-scene-production).
 
 ### `lore_webtoon_plan` (deprecated)

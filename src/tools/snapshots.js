@@ -7,10 +7,10 @@ import { saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { rebuildLedgerLog } from './ledger-log.js';
 
-const canonicalDirs = ['world', 'characters', 'chapters', 'summaries'];
+const canonicalDirs = ['world', 'characters', 'chapters', 'summaries', 'work.md'];
 const machineEntries = ['foundation.json', 'story-profile.json', 'story-spine.json', 'writer-skill.json', 'story-identity.json', 'pilot-contract.json', 'arc-plan.json', 'arcs', 'arc-reviews', 'arc-summaries', 'episode-plans', 'artifacts', 'story-state', 'summaries', 'entities.json', 'pattern-ledger.json', 'experience-ledger.json', 'style-anchor.json', 'review-policy.json'];
 const webtoonEntries = ['webtoon', 'webtoon-publication'];
-const infrastructure = new Set(['publication', 'snapshots', 'rollback-archives', 'rollback-pending.json', 'project.lock', 'project.lock.cleanup', ...webtoonEntries]);
+const infrastructure = new Set(['publication', 'snapshots', 'rollback-archives', 'rollback-pending.json', 'project.lock', 'project.lock.cleanup', 'shared-lore', ...webtoonEntries]);
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const invalid = (detail) => new Error(`INVALID_SNAPSHOT: ${detail}`);

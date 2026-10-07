@@ -31,6 +31,7 @@ import { promptKit } from '../prompts/index.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { runContractCheck, shouldUseContractCheck } from './check-contract.js';
 import { ledgerBaseState } from './ledger-log.js';
+import { createPublicationUnit } from '../core/publication-unit.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 
@@ -43,6 +44,9 @@ function safely(label, fn) {
 const SEVERITY_RANK = { hard: 0, soft: 1, info: 2 };
 
 export async function runCheck({ store, workId, chapter, prose, title, summary, castManifestRaw, providers, targetChapters, dialogueBreakMode = 'strict', includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = false, forceContract = false, workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, metadataCompanion = null }) {
+  const sharedPublication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
+  if (!sharedPublication.ok) throw new Error(`CORRUPT_PUBLICATION: ${sharedPublication.error.code}`);
+  forceContract ||= Boolean(sharedPublication.value?.tree?.sharedLore?.binding);
   const gated = await shouldUseContractCheck({ store, workId, chapter, forceContract });
   if (gated.gated) {
     return runContractCheck({

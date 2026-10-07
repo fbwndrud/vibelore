@@ -19,6 +19,7 @@ import { renderPatternLedger, renderPilotContract, renderStoryIdentity } from '.
 import { compileAuthorCraftPacket } from './writer-skill.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
+import { loadLoreRuntime } from '../core/lore-runtime.js';
 import { foldLegacyChapterCharacterDynamics } from '../core/character-dynamics-adapter.js';
 import { compileCharacterArcSeeds, renderCharacterArcSeeds } from '../core/character-arc-seeds.js';
 import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
@@ -150,7 +151,9 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
   const draftStore = await openCanonRepository({ store, publicationUnit });
   const pinnedCanonHead = draftStore.publishedRevision?.head ?? 'legacy-working-tree';
-  const foundation = await draftStore.loadFoundation(workId);
+  const baseFoundation = await draftStore.loadFoundation(workId);
+  const runtime = await loadLoreRuntime({ canonicalStore: draftStore, foundation: baseFoundation, chapter });
+  const foundation = runtime.foundation;
   if (!foundation) throw new Error('작품이 없습니다. 먼저 lore_init 또는 lore_create를 실행하세요.');
   // 발행된 정본이 있으면 그 foundation 이 실행 원천이다. 명시 language 는 일치
   // 확인용이며 일회성 출력 override 가 아니다.
@@ -223,6 +226,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
       canonicalStateRevision: prevState.chapterNumber ?? chapter - 1,
       canonHead: pinnedCanonHead,
       planSourceHash: pinnedPlanSourceHash,
+      ...(runtime.productionLock ? { productionLockId: runtime.productionLock.revisionId } : {}),
     },
     episode: episodePacket,
     authorCraft: { writerText: writerPacket },
@@ -300,6 +304,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   return {
     chapter, prose: result.raw, next: 'lore_check로 검사한 뒤 lore_commit 하세요.',
     contextAudit: {
+      ...(runtime.productionLock ? { productionLockId: runtime.productionLock.revisionId, loreRevisionId: runtime.productionLock.loreRevisionId } : {}),
       recentSummaries: continuitySelection?.recentSummaryTexts.length ?? 0,
       disabledDraftSections: draftSectionsOff,
       // What the window and the memory budget left out; shown to the user with the draft.
@@ -376,7 +381,8 @@ function writerOlderMemory(items, characterInFoundation) {
 }
 
 export async function runRewriteTool({ store, workId, chapter, intent, language = null, providers }) {
-  const foundation = await store.loadFoundation(workId);
+  const canonicalStore = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
+  const foundation = (await loadLoreRuntime({ canonicalStore, foundation: await canonicalStore.loadFoundation(workId), chapter })).foundation;
   const artifact = await store.loadArtifact(workId, chapter);
   if (!foundation || !artifact) throw new Error(`${chapter}화 원본 또는 작품 설정을 찾을 수 없습니다.`);
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });

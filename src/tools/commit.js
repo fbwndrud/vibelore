@@ -9,6 +9,7 @@
  * judgement beats the engine's, but it should cost a deliberate keystroke.
  */
 import { extractDelta, supportedAddressEntries } from '../../engine/src/continuity/continuity-check.js';
+import { sceneLockOf, verifyReceiptSceneCheck } from '../core/shared-scene-check.js';
 import { isHookActive, normalizeStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
 import { ledgerBaseState, ledgerLogStatus, updateLedgerLog } from './ledger-log.js';
@@ -57,10 +58,11 @@ export async function runCommit({
   });
   const canonicalStore = await openCanonRepository({ store, publicationUnit });
   const resolution = await resolveWorkLanguage({ store: canonicalStore, workId });
-  const foundation = await canonicalStore.loadFoundation(workId);
+  const baseFoundation = await canonicalStore.loadFoundation(workId);
+  let foundation = baseFoundation;
   if (!foundation) throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
   const workflow = await store.loadWorkflow(workId);
-  const contractCommit = Boolean(validationScope) || usesChapterValidationGate({
+  const contractCommit = Boolean(validationScope) || Boolean(canonicalStore.publishedRevision?.tree?.sharedLore?.binding) || usesChapterValidationGate({
     resolution, workflow, chapter,
   });
   if (contractCommit && !checkId) {
@@ -94,6 +96,7 @@ export async function runCommit({
 
   let contractArtifact = null;
   let validatedContext = null;
+  let sceneRecord = null;
   if (contractCommit) {
     if (!checkReceipt?.checkerPlan || !checkReceipt.workContract)
       throw new ValidationContractError(VALIDATION_ERROR_CODES.MISSING_VALIDATION_RECEIPT, { reason: 'incomplete_envelope' });
@@ -109,6 +112,9 @@ export async function runCommit({
     });
     validatedContext = await assertCurrentChapterReceipt({ store, workId, chapter, receipt: checkReceipt,
       artifact: contractArtifact, allowWorkingTreeDrift, validationScope });
+    foundation = validatedContext.foundation;
+    // A resolver-v2 chapter commits only with the scene map/check of these exact bytes.
+    if (sceneLockOf(validatedContext)) sceneRecord = verifyReceiptSceneCheck({ lock: validatedContext.productionLock, prose: contractArtifact.prose, receipt: checkReceipt });
     prose = contractArtifact.prose;
     title = contractArtifact.title;
     summary = typeof contractArtifact.summary === 'string'
@@ -240,7 +246,9 @@ export async function runCommit({
     context: executionContext,
     candidate: {
       tree: {
-        workId, foundation,
+        workId, foundation: baseFoundation,
+        ...(validatedContext?.productionLock ? { productionInputs: { [chapter]: validatedContext.productionLock } } : {}),
+        ...(sceneRecord ? { sceneChecks: { [chapter]: sceneRecord } } : {}),
         plans: {
           storyProfile, storySpine, writerSkill, storyIdentity, pilotContract,
           arcPlan: publishedArcPlan, episodePlans: { [chapter]: publishedEpisodePlan },

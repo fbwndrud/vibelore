@@ -5,7 +5,7 @@
 호스트 AI와 직접 연동하는 사용자를 위한 호출 참조입니다. 일반 사용자는 인자를 직접 작성할
 필요 없이 [시작 안내](GETTING_STARTED.md)와 [웹툰 만들기](WEBTOON.md)를 따라 요청하세요.
 
-기본 서버가 노출하는 27개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
+기본 서버가 노출하는 32개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
 새 작품은 승인된 프로필·전체 스토리·작가 스킬·아크를 준비합니다. 이후 집필은
 `lore_arc_status`로 활성 아크를 확인하고 `lore_write`로 시작하며, 승인 대기일 때 `lore_decide`를 사용합니다.
 저수준 도구는 호환과 엔진 디버깅을 위해 유지하지만 기본 `tools/list`에는 나타나지 않습니다.
@@ -17,7 +17,7 @@
 집필에서는 이 도구들을 직접 조합하지 않습니다.
 
 기존 컷별 웹툰 마무리에는 `VIBELORE_MCP_SURFACE=compat`로 deprecated 3개 도구를
-추가 노출합니다(총 30개). 새 웹툰은 기본 표면의 `lore_webtoon_scene`을 사용합니다.
+추가 노출합니다(총 35개). 새 웹툰은 기본 표면의 `lore_webtoon_scene`을 사용합니다.
 
 ## 읽는 법
 
@@ -40,6 +40,56 @@ flowchart LR
 |---|---:|---|
 | `project` | 아니오 | 작품 디렉터리 절대 경로. 생략 시 서버의 현재 디렉터리 |
 | `workId` | 대부분 | `[A-Za-z0-9_-]` 작품 식별자 |
+
+## 독립 세계 정의 등록부
+
+### `lore_registry`
+
+소설 없이 SharedLore의 대상 종류·단위·필드·관계 정의를 등록하고 검색합니다.
+필수 입력은 `action`, `registryRoot`(공유 세계 절대 경로), `universeId`이며 작품 인자는 받지 않습니다.
+`status`에서 HEAD와 지원 capability를 확인하고 `search`로 key·별칭을 재사용합니다.
+`register`는 `expectedHead`(최초 null), `reason`, `definitions` 또는 `preset=base|fantasy`로
+지원되는 새 정의를 추가합니다. 같은 ID의 의미·타입·소유 변경은 이행 필요 오류입니다.
+`resolve`는 `revisionId`, `input`, `query`를 명시해 `resolved`, `unknown`, `conflict`,
+`incomplete`를 구별합니다. 등록만으로 기존 집필·웹툰에 설정이 채택되지는 않습니다.
+`ensure(needs,reason,operationId,expectedHead?)`는 AI가 집필 중 발견한 새 항목을 검색→재사용→검증→비파괴 추가로
+한 번에 처리합니다. 결과 `outcomes`는 `reused|registered|migration_required|unsupported|invalid`이고,
+같은 `operationId`의 재시도·재개는 첫 결과를 재생합니다(다른 요청이면 `OPERATION_CONFLICT`). 의미·타입·소유 변경은
+migration 후보로만 기록하며, 미지원 capability(`status.unsupportedCapabilities`)는 등록하지 않습니다.
+정확한 스키마·호스트 AI 절차·지원 범위는 [SharedLore 등록부 계약](reference/SHARED_LORE_REGISTRY.md)을 따릅니다.
+
+### `lore_universe`
+
+`action,worldRoot,universeId`로 공유 세계를 관리합니다. `propose(expectedHead,registryRevisionId,content,reason)`는
+원문·인물·상태·값의 전체 후보와 실제 변경을 검증해 보여 줍니다. 사용자 승인 후
+`decide(proposalId,expectedHead,decision=approve|reject)`합니다. `resolve(loreRevisionId,query)`는 고정 판본 조회,
+`status`는 HEAD와 원문 drift, `recover`는 발행 뒤 중단된 원문 반영 복구입니다.
+
+### `lore_bind`
+
+`action,workId,project`로 작품의 공유 세계 연결을 관리합니다. `inspect(worldRoot,binding)`에서
+cast·화별 시점·필수 필드·투영·활성 계획 영향을 검토한 뒤 `apply(proposalId,expectedHead)`로 승인 적용합니다.
+binding은 작품 발행 tree와 work.md에 저장하며 변경하면 기존 영수증을 재사용할 수 없습니다.
+`status`는 현재 연결을 반환합니다. [채택·작품 연결 계약](reference/SHARED_LORE_RUNTIME.md)에 전체 스키마와 제한이 있습니다.
+`schemaVersion:2` binding은 장면마다 `frame=present|flashback`을 받고 화 안의 장면별 상태를 장면 단위로 검사합니다.
+기존 작품의 inspect 결과 `migration`은 dry run 보고입니다: 로컬 값과 공유 값의 화별 diff, 작품→공유로 넘어가는 소유 대상,
+보존되는 원문, 이름이 같은 비연결 인물 후보(`not_merged`, 자동 병합 없음)를 보여 줍니다. 되돌리기는 `lore_rollback`을 씁니다.
+
+### `lore_assets`
+
+`action,worldRoot,universeId`로 공유 세계의 참조 이미지·표현 프로필 카탈로그를 관리합니다.
+`propose(expectedHead,loreRevisionId,assets,profiles,reason)`는 실제 파일 바이트(PNG/JPEG 컨테이너·크기)를 검증하고
+내용 해시로 후보를 만들며, 인물·상태 링크를 채택된 세계 판본에 대조합니다. 사용자 승인 후 `decide`가 독립 카탈로그
+HEAD를 발행합니다. 같은 `assetId` 재제안은 새 revision이며 이전 바이트와 발급된 제작 잠금은 그대로입니다. 표현 프로필은
+화풍·팔레트만 담고 세계 값 키는 `EXPRESSION_PROFILE_OWNERSHIP`으로 거부합니다. `recover`는 승인 발행 중단 복구입니다.
+
+### `lore_scene_script`
+
+`action,workId,project`로 소설 없이 작품 소유의 독립 장면 대본을 제작 원천으로 채택합니다. `inspect(worldRoot,script)`는
+대본 원문, 장면 순서, 장면별 세계 시점과 `frame`, cast와 승인 상태, 작품 언어, 표현 프로필, 고정 asset을 해석해
+미리보기와 잠금 후보를 보여 주고, 미정·충돌은 `unresolved`의 `blockers`로 돌려줍니다. 사용자 승인 후
+`apply(proposalId,expectedHead)`가 대본 판본·잠금·asset 바이트를 작품의 `.vibelore/input-objects/`에 봉인하고
+`scenes/<scriptId>.md`를 씁니다. 공유 세계와 소설 정본은 바꾸지 않고 소설 Foundation·화를 만들지 않습니다.
 
 ## 작품 언어와 분량 단위
 
@@ -498,11 +548,15 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 새 웹툰 작업의 기본 경로입니다. 러프 없이 장면 전체와 대사를 함께 생성합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 이미지 선택이 없는 작품은 start가 먼저 `needs_image_runtime`을 반환합니다. 호스트가 실제로 가진 이미지 경로(내장 도구, API)를 `imageRuntime`으로 보고하면 `needs_image_choice`가 선택지 전체와 제안(내장 경로 우선)을 돌려주고, 사용자의 원답을 `feedback`에 넣어 `confirmImageChoice`로 확정합니다. 확정한 선택은 작품별로 유지되며 `changeImageChoice`로만 바꿉니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
 이 별도 경로는 원작 범위 고정 → 통합 영어 연출 → 생성 전 검증 → 장면 이미지 → 실제 시각 검토로 진행합니다.
-`action=start|revise|retry`, `workflowId`, `revision`, `sourceChapters`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
+`action=start|revise|retry|verify`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
 `previousWorkflowId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback`, `asset`을 받습니다.
 이미지 선택이 없으면 start가 `needs_image_runtime` → `needs_image_choice`를 반환하며, `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`을 사용합니다.
 생성 전 검증이 통과해야 `needs_scene_image`가 나오며 이때만 고른 경로(`hostRequest` 또는 `apiRequest`)로 그림을 그립니다.
 원작·참조·계획 해시가 바뀐 반입과 미열람 시각 검토는 거절합니다.
+`scriptId`로 시작하면 `lore_scene_script`로 채택한 대본과 봉인 입력만 원천으로 쓰고, 참조는 `{id,assetId,description}`으로
+대본이 고정한 카탈로그 이미지를 지정합니다. 새로 시작한 장면은 완료 때 `.vibelore/productions/`에 원천 판본·잠금·참조와
+이미지 해시를 기록하며, `action=verify`가 세계 디렉터리 없이 그 기록과 봉인 바이트를 다시 검증합니다. 경로로만 받은 참조는
+`unpreserved`로 표시하고 재현을 주장하지 않습니다.
 세부 계약은 [기본 경로](reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)를 참고하세요.
 
 ### `lore_webtoon_plan` (deprecated)

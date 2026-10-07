@@ -44,6 +44,12 @@ import { runRelayedTool } from './relay-runner.js';
 import { runWebtoonTool, readWebtoonWorkflow } from './tools/webtoon.js';
 import { runWebtoonSceneTool } from './tools/webtoon-scene.js';
 import { SCENE_PANEL_LIMITS, SCENE_AUTO_REVISIONS } from './core/webtoon-scene.js';
+import { runLoreRegistry } from './tools/lore-registry.js';
+import { LORE_DEFINITION_SCHEMA } from '../engine/src/lore/schemas.js';
+import { runUniverse, runBinding } from './tools/universe.js';
+import { runAssets, runSceneScript } from './tools/shared-media.js';
+import { resumePendingSceneScript } from './core/scene-script.js';
+import { resumePendingWorkBinding } from './core/work-binding.js';
 
 const SERVER_INFO = { name: 'vibelore', version: JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version };
 const FALLBACK_PROTOCOL = '2025-06-18';
@@ -68,6 +74,90 @@ const decideActionArg = (next) => ({ type: 'string', enum: ['approve', 'reject']
 const webtoonRevisionArg = { type: 'integer', description: '낙관적 동시성 확인용 현재 revision. 저장된 값과 다르면 STALE_WEBTOON_REVISION으로 거부한다. 생략 가능.' };
 
 const TOOLS = [
+  {
+    name: 'lore_universe', annotations: writes(),
+    description: '소설 없이 공유 세계의 설정 원문·인물·상태·typed values를 채택한다. status→propose에서 전체 후보·원문 변경·영향을 보여 주고 사용자 승인 후 decide(decision=approve)한다. 값·근거·소유·기간 충돌을 검사하며 독립 lore HEAD를 발행한다. resolve는 고정 판본 조회, recover는 발행 후 원문 반영 중단 복구다. .vibelore를 직접 편집하지 않는다.',
+    inputSchema: { type: 'object', additionalProperties: false, properties: {
+      action: { type: 'string', enum: ['status', 'propose', 'decide', 'resolve', 'recover'], description: '세계 조회·후보 검증·작가의 채택 결정·고정 값 조회·원문 반영 복구.' },
+      worldRoot: { type: 'string', description: '공유 세계의 절대 경로. registryRoot와 같은 세계 디렉터리.' },
+      universeId: { type: 'string', description: '공유 세계의 안정적인 ID.' },
+      expectedHead: { anyOf: [{ type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, { enum: [null] }], description: 'propose/decide에 필요. status의 lore HEAD. 최초 null.' },
+      registryRevisionId: { type: 'string', description: 'propose가 사용할 정확한 정의 등록부 판본.' },
+      content: { type: 'object', description: 'propose의 전체 entities[{id,typeDefinitionRevisionId,documentIds,valueIds}],states[{id,entityId,documentIds,valueIds,storyScope}],timelines,values,documents[{id,path,text,visibility:author|context}],worldDocumentIds. 값은 승인할 documents ID를 근거로 참조한다.' },
+      reason: { type: 'string', description: 'propose의 세계 변경 근거. 실제 후보 판본에 보존.' },
+      proposalId: { type: 'string', description: 'decide에서 검토한 불변 후보 ID.' },
+      decision: { type: 'string', enum: ['approve', 'reject'], description: 'decide의 사용자 결정. approve는 검토한 실제 후보를 승인받은 뒤 호출.' },
+      loreRevisionId: { type: 'string', description: 'resolve의 불변 lore HEAD. 최신 판본을 암묵적으로 사용하지 않는다.' },
+      query: { type: 'object', description: 'resolve의 subjectId,fieldId,scope,maxCandidates?. 등록부 해석 계약과 동일.' },
+    }, required: ['action', 'worldRoot', 'universeId'] },
+  },
+  {
+    name: 'lore_bind', annotations: writes(),
+    description: '작품을 승인된 공유 세계 판본·cast ID·화별 장면 시점에 연결한다. inspect는 입력 검증·미리보기·활성 계획 영향을 보여 주며 사용자 승인 후 apply한다. 연결은 작품 발행 tree와 work.md에 고정하고 기존 검사 영수증을 무효화한다. 세계의 새 HEAD를 자동 채택하지 않는다. 작품별 역할·극적 목표와 원고는 작품 소유다.',
+    inputSchema: { type: 'object', additionalProperties: false, properties: { ...projectArg,
+      action: { type: 'string', enum: ['status', 'inspect', 'apply'], description: '현재 연결 조회·연결 후보 검증과 영향 검토·검토한 후보 승인 적용.' },
+      worldRoot: { type: 'string', description: 'inspect의 공유 세계 절대 경로. 작품과 다른 디렉터리.' },
+      binding: { type: 'object', description: 'inspect의 schemaVersion:1,workId,universeId,loreRevisionId,registryRevisionId,continuityId,cast[{localCharacterId,entityId,projections[{target,fieldId}]}],chapters[{chapter,scenes[{id,scope,entityIds,requirements[{entityId,fieldId,required}]}]}]. target은 구현된 Foundation 필드만 허용.' },
+      proposalId: { type: 'string', description: 'apply의 실제로 검토한 연결 후보 ID.' },
+      expectedHead: { anyOf: [{ type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, { enum: [null] }], description: 'apply의 inspect 결과 expectedHead. 최초 작품 발행은 null.' },
+    }, required: ['action', 'workId'] },
+  },
+  {
+    name: 'lore_registry', annotations: writes({ idempotent: true }),
+    description: '소설 없이 독립 세계의 SharedLore 정의 등록부를 관리한다. AI가 새 항목 필요를 발견하면 ensure(needs, operationId)로 검색→기존 정의 재사용→없으면 검증 후 비파괴적 추가를 한 번에 수행한다(키마다 사용자 인터뷰 없음). 같은 operationId의 재시도·재개는 첫 결과를 재생하며 중복 등록하지 않는다. 기존 정의의 의미·타입·소유 변경은 migration 후보로 기록만 하고 적용하지 않으며, 미지원 capability는 unsupported로 등록하지 않는다. status→search→register는 수동 경로다. resolve는 정확한 registry 판본과 입력으로 값을 조회한다. 정의 등록은 세계 사실 채택이 아니며 집필/웹툰 입력에 자동 반영하지 않는다.',
+    inputSchema: { type: 'object', additionalProperties: false, properties: {
+      action: { type: 'string', enum: ['status', 'search', 'register', 'ensure', 'resolve'], description: '등록부 조회·검색·수동 정의 추가·AI 확장(검색→재사용→추가)·고정 입력 해석.' },
+      needs: { type: 'array', minItems: 1, maxItems: 1000, items: { type: 'object', additionalProperties: false, properties: { definition: LORE_DEFINITION_SCHEMA, why: { type: 'string', description: '이 정의가 필요한 장면·설정 근거.' } }, required: ['definition'] }, description: 'ensure 전용. 필요한 정의 후보. 같은 namespace의 같은 key/별칭이 이미 있으면 그 정의를 재사용한다(제안 ID는 버린다). 결과 outcomes는 reused/registered/migration_required/unsupported/invalid.' },
+      operationId: { type: 'string', pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{7,119}$', description: 'ensure의 멱등 키. 모델 handoff·resume·재시도에서 같은 값을 다시 보내면 첫 결과를 그대로 반환한다. 다른 요청에 재사용하면 OPERATION_CONFLICT.' },
+      registryRoot: { type: 'string', minLength: 1, description: '공유 세계 디렉터리의 절대 경로. 작품 디렉터리와 독립이며 명시해야 한다.' },
+      universeId: { type: 'string', pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$', description: '공유 세계 식별자. 같은 저장소에서는 유지한다.' },
+      revisionId: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$', description: '조회할 불변 판본. resolve에 필수. 생략한 조회는 현재 HEAD.' },
+      expectedHead: { anyOf: [{ type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, { enum: [null] }], description: 'register에 필수, ensure는 선택. status의 HEAD와 같아야 하며 최초 등록은 null.' },
+      search: { type: 'string', description: 'key·별칭·이름·설명 검색. exact는 재사용 후보이며 candidate는 자동 병합하지 않는다.' },
+      namespace: { type: 'string', description: '검색할 namespace. 생략하면 전체.' },
+      subjectTypeId: { type: 'string', description: '검색할 대상 타입의 stable ID.' },
+      limit: { type: 'integer', minimum: 1, maximum: 100, description: '검색 최대 반환 건수. 초과 시 incomplete=true.' },
+      definitions: { type: 'array', minItems: 1, maxItems: 1000, items: LORE_DEFINITION_SCHEMA, description: 'AI가 작성한 닫힌 meta-schema의 entityType/unit/field/relation 정의. 기존 ID 변경은 거부한다.' },
+      preset: { type: 'string', enum: ['base', 'fantasy'], description: 'register에 추가할 추천 seed. 장르는 허용 목록이나 서사 불변식이 아니다.' },
+      reason: { type: 'string', minLength: 1, maxLength: 8000, description: 'register·ensure에 필수. 새 정의가 필요한 근거를 판본에 보존한다.' },
+      input: { type: 'object', description: 'resolve의 entities[{id,typeDefinitionRevisionId}], timelines[{id,continuityId,pointIds}], values[{id,subject,fieldDefinitionRevisionId,owner,value,storyScope,evidenceIds}]. 외부 입력이며 이 도구는 세계 사실을 저장하지 않는다.' },
+      query: { type: 'object', description: 'resolve의 subjectId,fieldId,scope{continuityId,timelineId,pointId,observerId,occurrenceId},maxCandidates?. 미정·충돌·불완전을 별도 상태로 반환한다.' },
+    }, required: ['action', 'registryRoot', 'universeId'] },
+  },
+  {
+    name: 'lore_assets', annotations: writes(),
+    description: '공유 세계의 참조 이미지·표현 프로필 카탈로그. 소설 없이 인물·상태·표현과 연결된 원본/파생 이미지를 등록한다. propose는 실제 파일 바이트(PNG/JPEG 컨테이너·크기)를 검증해 내용 해시로 후보를 만들고, 사용자 승인 후 decide(approve)가 독립 카탈로그 HEAD를 발행한다. 교체는 새 asset revision이며 이전 바이트와 이미 발급한 제작 잠금은 바뀌지 않는다. 표현 프로필은 세계 값을 소유할 수 없다. recover는 승인 발행 중단 복구. 승인은 품질 보증이 아니다.',
+    inputSchema: { type: 'object', additionalProperties: false, properties: {
+      action: { type: 'string', enum: ['status', 'propose', 'decide', 'recover'], description: '카탈로그 조회·후보 반입·사용자 결정·중단 복구.' },
+      worldRoot: { type: 'string', description: '공유 세계의 절대 경로(lore_universe와 같은 디렉터리).' },
+      universeId: { type: 'string', pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$', description: '공유 세계 ID.' },
+      expectedHead: { anyOf: [{ type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, { enum: [null] }], description: 'propose/decide의 status 카탈로그 HEAD. 최초 null. 다르면 STALE_ASSET_CATALOG.' },
+      loreRevisionId: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$', description: 'propose가 인물·상태 링크를 검증할 채택된 lore HEAD.' },
+      assets: { type: 'array', maxItems: 100, description: 'propose의 이미지 후보. sourcePath는 반입할 실제 파일의 절대 경로이며 바이트를 복사해 보존한다.', items: { type: 'object', additionalProperties: false, properties: {
+        assetId: { type: 'string', pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$', description: '안정 asset ID. 같은 ID 재제안은 교체(새 revision).' },
+        sourcePath: { type: 'string', description: '반입할 PNG/JPEG의 절대 경로.' }, label: { type: 'string', description: '사람이 읽는 이름.' }, notes: { type: 'string', description: '자유 메모.' },
+        purpose: { type: 'string', description: '기본 reference-image.' }, entityId: { type: 'string', description: '연결할 공유 인물·대상 ID.' },
+        stateIds: { type: 'array', items: { type: 'string' }, description: '이 이미지가 보여 주는 승인 상태 ID. 비우면 상태 무관.' },
+        expressionProfileId: { type: 'string', description: '연결할 표현 프로필 ID.' },
+        derivedFrom: { type: 'object', description: '파생 원본 {assetRevisionId, relation}.' }, provenanceNote: { type: 'string', description: '출처 메모. 검증된 사실로 취급하지 않는다.' } }, required: ['assetId', 'sourcePath', 'label', 'entityId'] } },
+      profiles: { type: 'array', maxItems: 100, description: 'propose의 표현 프로필 {profileId,label,style,palette?,notes?}. 화풍·팔레트만 담고 세계 값은 거부된다.', items: { type: 'object' } },
+      reason: { type: 'string', description: 'propose의 반입 근거.' },
+      proposalId: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$', description: 'decide의 검토한 후보 ID.' },
+      decision: { type: 'string', enum: ['approve', 'reject'], description: '사용자 결정. 실제 후보를 보여 주고 승인받은 뒤에만 approve.' },
+    }, required: ['action', 'worldRoot', 'universeId'] },
+  },
+  {
+    name: 'lore_scene_script', annotations: writes(),
+    description: '소설 없이 작품 소유의 독립 장면 대본을 웹툰 등 제작 원천으로 채택한다. inspect는 대본 원문·장면 순서·장면별 세계 시점(present/flashback)·cast와 승인 상태·작품 언어·표현 프로필·승인 asset을 고정 판본으로 해석해 미리보기와 제작 잠금 후보를 보여 준다(미정·충돌·미지원은 blockers). 사용자 승인 후 apply는 대본 판본·잠금·asset 바이트를 작품 안에 봉인하고 scenes/<scriptId>.md를 쓴다. 공유 세계나 소설 정본을 바꾸지 않으며 소설 Foundation·화를 만들지 않는다.',
+    inputSchema: { type: 'object', additionalProperties: false, properties: { ...projectArg,
+      action: { type: 'string', enum: ['status', 'inspect', 'apply'], description: '채택 대본 조회·후보 검증 미리보기·검토한 후보 채택.' },
+      scriptId: { type: 'string', description: 'status에서 볼 대본 ID. 생략하면 전체.' },
+      worldRoot: { type: 'string', description: 'inspect의 공유 세계 절대 경로. 작품과 다른 디렉터리.' },
+      script: { type: 'object', description: 'inspect의 schemaVersion:1,workId,scriptId,title,language(BCP 47),universeId,loreRevisionId,registryRevisionId,continuityId,assetCatalogRevisionId|null,expressionProfileId|null,cast[{localCharacterId,entityId,projections[{target,fieldId}],assetIds[]}],scenes[{id,frame:present|flashback,scope{continuityId,timelineId,pointId},entityIds,requirements[{entityId,fieldId,required}],text}]. text는 이미지에 들어갈 대사를 포함한 정확한 원문.' },
+      proposalId: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$', description: 'apply의 검토한 대본 후보 ID.' },
+      expectedHead: { anyOf: [{ type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, { enum: [null] }], description: 'apply의 inspect expectedHead. 최초 null.' },
+    }, required: ['action', 'workId'] },
+  },
   {
     name: 'lore_init',
     annotations: writes({ idempotent: true }),
@@ -550,13 +640,14 @@ const TOOLS = [
       + '상태는 .vibelore/webtoon/에 저장하고 소설 정본과 프로젝트 webtoon/ 폴더는 건드리지 않는다. 진행 중 워크플로가 있으면 start는 WEBTOON_WORKFLOW_ACTIVE로 거부되므로 revise나 retry로 끝낸다. 시각 검토를 통과하면 status=completed. 기존 컷별 workflow는 변경하지 않는다.',
     inputSchema: { type: 'object', properties: { ...projectArg,
       workflowId: { type: 'string', description: '대상 장면 워크플로 id. 생략하면 현재 워크플로.' }, revision: webtoonRevisionArg,
-      action: { type: 'string', enum: ['start', 'revise', 'retry'], description: 'start=새 장면 워크플로 시작, revise=feedback으로 연출부터 다시(완료된 장면도 다시 연다), retry=scene_model_failed에서 실패 단계 재시도. 생략하면 현재 단계를 이어간다(대기 중 모델 요청 재전송, jobs 반환, asset 반입).' },
-      sourceChapters: { type: 'array', items: { type: 'integer' }, description: 'start 전용. 각색할 소설 화 번호(1~20개). 생략하면 첫 화만.' },
+      action: { type: 'string', enum: ['start', 'revise', 'retry', 'verify'], description: 'start=새 장면 워크플로 시작, revise=feedback으로 연출부터 다시(완료된 장면도 다시 연다), retry=scene_model_failed에서 실패 단계 재시도, verify=완료된 장면의 제작 기록·봉인 입력·참조·이미지 바이트를 읽기 전용으로 재검증(세계 디렉터리가 없어도 동작). 생략하면 현재 단계를 이어간다(대기 중 모델 요청 재전송, jobs 반환, asset 반입).' },
+      sourceChapters: { type: 'array', items: { type: 'integer' }, description: 'start 전용. 각색할 소설 화 번호(1~20개). 생략하면 첫 화만. scriptId와 함께 쓰면 SCENE_SOURCE_AMBIGUOUS.' },
+      scriptId: { type: 'string', description: 'start 전용. 소설 화 대신 lore_scene_script로 채택한 독립 장면 대본을 원천으로 쓴다. 대본·장면별 상태·asset은 채택 때 봉인한 판본만 사용한다.' },
       panelCount: { anyOf: [{ type: 'integer', minimum: SCENE_PANEL_LIMITS.min, maximum: SCENE_PANEL_LIMITS.max }, { type: 'string', enum: ['auto'] }], description: `사용자가 선택한 정확한 칸 수(${SCENE_PANEL_LIMITS.min}~${SCENE_PANEL_LIMITS.max}) 또는 "auto". auto는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 다시 고른다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성 경고가 warnings에 실린다. start에서 누락하면 needs_interview. 칸 크기와 배치는 AI가 선택.` },
       previousWorkflowId: { type: 'string', description: '이어지는 직전 장면 workflow. 실제 이미지·설계·검토 결과를 상속해 연속성을 검증하며 이전 검토 판정은 그대로 보존.' },
       sourceUnitIds: { type: 'array', items: { type: 'string' }, description: '고정된 원작 문단 ID. 생략 시 선택 회차 전체. 한 이미지에 담을 장면 범위로 지정한다.' },
       direction: { type: 'string', description: '사용자가 확정한 작화·문자·판면/배치 재량을 영어로 전달(대사는 작품 언어 원문 그대로 이미지에 들어간다).' },
-      references: { type: 'array', description: 'start 필수. 사용자가 지정한 인물·배경 참조 이미지 1개 이상(직전 장면 포함 최대 16개). description은 영어, id에 previous-scene은 쓸 수 없다.', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'path', 'hash', 'description'] } },
+      references: { type: 'array', description: 'start 필수. 사용자가 지정한 인물·배경 참조 이미지 1개 이상(직전 장면 포함 최대 16개). 파일은 {id,path,hash,description}, 대본 원천은 채택 대본이 고정한 카탈로그 이미지를 {id,assetId,description}으로 지정한다(봉인 바이트 사용). description은 영어, id에 previous-scene은 쓸 수 없다.', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, assetId: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'description'] } },
       autoRevisions: { type: 'integer', minimum: 0, maximum: SCENE_AUTO_REVISIONS.max, description: `start 전용. 생성 전 검증 또는 이미지 검토가 불합격이면 관측 결함을 feedback으로 자동 재설계하는 횟수(기본 ${SCENE_AUTO_REVISIONS.default}). 재설계마다 새 이미지 요청이 나가며 실패한 시도는 attempts에 남는다. 0이면 기존처럼 scene_needs_revision에서 멈춘다.` },
       feedback: { type: 'string', description: 'revise에 필수인 수정 요청. confirmImageChoice와 함께 start할 때는 과금 선택에 대한 사용자 원답을 넣는다.' },
       asset: { type: 'object', description: 'needs_scene_image 단계에서 호스트가 생성한 장면 이미지. path는 프로젝트 안의 PNG/JPEG, inputHash는 job의 inputHash, provenance는 선택한 경로대로 내장이면 {kind:"host-built-in", provider, tool, selectionId, observedModel?}, API면 {kind:"api", provider, requestedModel, selectionId, observedModel?}(기존 OpenAI 선택 작품은 {kind:"openai-api", requestedModel, selectionId}). observedModel은 호스트가 실제로 본 것만 적는다.', properties: { path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object' } }, required: ['path', 'inputHash', 'provenance'] },
@@ -632,6 +723,8 @@ const TOOLS = [
 // advanced surface preserves low-level primitives for maintenance and tests
 // without inviting agents to bypass planning, validation, or commit receipts.
 const PUBLIC_TOOL_NAMES = new Set([
+  'lore_universe', 'lore_bind',
+  'lore_registry', 'lore_assets', 'lore_scene_script',
   'lore_init',
   'lore_status',
   'lore_configure',
@@ -756,14 +849,22 @@ function execWithProviders(store, toolName, args, providers) {
 async function callTool(name, args = {}) {
   const definition = EXPOSED_TOOLS.find((tool) => tool.name === name);
   validateToolInput(definition.inputSchema, args);
+  // Shared worlds have their own root/HEAD and must never resume a novel rollback.
+  if (name === 'lore_registry') return runLoreRegistry(args);
+  if (name === 'lore_universe') return runUniverse(args);
+  if (name === 'lore_assets') return runAssets(args);
   const store = storeFor(args);
   return withProjectLock(store.rootDir, async () => {
+    await resumePendingWorkBinding({ store });
+    await resumePendingSceneScript({ store });
     await resumePendingRollback({ store });
     return dispatchTool(store, name, args);
   });
 }
 
 async function dispatchTool(store, name, args) {
+  if (name === 'lore_bind') return runBinding({ store, args });
+  if (name === 'lore_scene_script') return runSceneScript({ store, args });
   if (name === 'lore_webtoon_scene') return runWebtoonSceneTool({ store, args, providers: providerFor(name) });
   if (name.startsWith('lore_webtoon_')) return runWebtoonTool({ store, toolName: name, args, providers: providerFor(name), blockNewPanelWorkflows: true });
   if (args.lane !== undefined && !['prose', 'webtoon'].includes(args.lane)) throw new Error('INVALID_WORKFLOW_LANE');

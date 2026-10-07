@@ -5,6 +5,15 @@
 호스트 AI·연동 개발자를 위한 상세 절차입니다. 일반 사용자는 먼저
 [문제 해결과 백업](TROUBLESHOOTING.md)의 요청 예시를 이용하세요.
 
+## 공유 세계의 정의 확장
+
+`lore_registry`는 소설과 독립된 세계 디렉터리를 사용합니다. `status → search → register`로
+기존 정의를 재사용하거나 검증된 새 정의를 추가하고, `resolve`는 정확한 등록부 판본을 고정합니다.
+호스트 AI의 자동 추가 범위와 실패 대응은 [SharedLore 등록부 계약](reference/SHARED_LORE_REGISTRY.md)을 따릅니다.
+실제 원문·상태 채택은 `lore_universe`의 propose/decide, 작품 연결은 `lore_bind`의 inspect/apply입니다.
+연결한 작품은 해당 판본과 장면 시점을 집필·검사·확정 입력에 고정합니다. 세계 변경만으로 연결을 갱신하지 않습니다.
+[채택·작품 연결·복구 계약](reference/SHARED_LORE_RUNTIME.md)을 따릅니다.
+
 ## 웹툰 작업 재개·수정
 
 웹툰은 `lore_workflow_status(lane="webtoon",workflowId="wt-...")`로 현재 단계를 읽습니다.

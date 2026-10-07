@@ -1,4 +1,5 @@
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
+import { planningFoundation } from '../core/lore-runtime.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { CHARACTER_ARC_BEATS } from '../../engine/src/continuity/character-arc.js';
 import { compileBriefWithProfile } from './story-profile.js';
@@ -168,10 +169,11 @@ export function episodeForChapter(plan, chapter) {
 
 export async function runArcPlan({ store, workId, mode = 'review', episodes = 8, direction = '', feedback = '', providers, retryValidation = false, replaceActive = false }) {
   if (!Number.isSafeInteger(episodes) || episodes < 3 || episodes > 20) throw new Error('INVALID_ARGUMENT: episodes must be an integer between 3 and 20');
-  const foundation = await store.loadFoundation(workId);
-  if (!foundation) throw new Error('작품이 없습니다.');
   const chapters = await store.listChapters();
   const startChapter = (chapters.at(-1) ?? 0) + 1;
+  // A bound work plans from the same SharedLore resolver as writing, never from its local copy.
+  const { foundation } = await planningFoundation({ store, workId, chapters: Array.from({ length: episodes }, (_, i) => startChapter + i) });
+  if (!foundation) throw new Error('작품이 없습니다.');
   const previous = await store.loadArcPlan(workId);
   if (previous?.status === 'active' && replaceActive !== true) throw new Error('ARC_IN_PROGRESS: 활성 아크가 있습니다. 계속 집필하거나 사용자가 명시적으로 교체를 요청한 경우만 replaceActive=true를 사용하세요.');
   const arcNumber = Number(previous?.arcNumber ?? 0) + (previous?.status === 'pending' ? 0 : 1);
@@ -206,7 +208,7 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
       direction: profileDirection || kit.phrases.common.autonomous,
       spineRender: renderStorySpine(storySpine, kit),
       feedback: feedback || kit.phrases.common.noneParen,
-      worldFacts: foundation.worldFacts.map((f) => f.statement),
+      worldFacts: [...foundation.worldFacts.map((f) => f.statement), ...(foundation.sharedLore?.contextText ? [foundation.sharedLore.contextText] : [])],
       characters: foundation.characters.map((c) => `${c.id}/${c.canonicalName}: ${c.contradiction ?? ''}`),
       seedsRender: renderCharacterArcSeeds(characterArcSeeds, kit),
       summaries: summaries.reverse().map((s) => s.summary),

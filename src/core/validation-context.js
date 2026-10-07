@@ -4,6 +4,7 @@ import { createPublicationUnit } from './publication-unit.js';
 import { openCanonRepository } from './canon-repository.js';
 import { detectWorkingTreeDrift, fingerprintWorkingTree } from './working-tree-sync.js';
 import { resolveWorkLanguage, executionFoundationSnapshot, isExceptionOnlyProfileRevision } from './work-language.js';
+import { loadLoreRuntime } from './lore-runtime.js';
 
 export function exactHash(value) {
   const stable = (v) => Array.isArray(v) ? v.map(stable) : v && typeof v === 'object'
@@ -37,10 +38,12 @@ export async function currentValidationContext({ store, workId, chapter, allowWo
     style: await store.loadStyleAnchor?.(workId) ?? null,
   };
   const fingerprint = await fingerprintWorkingTree(store.rootDir);
+  const runtime = await loadLoreRuntime({ canonicalStore, foundation: executionFoundationSnapshot(canonicalFoundation, resolution.contract), chapter });
   return {
     canonicalStore, resolution, workContract: resolution.contract,
-    foundation: executionFoundationSnapshot(canonicalFoundation, resolution.contract), plans,
-    identity: { workId, chapter, sourceHead, planSourceHash: exactHash(plans), contractHash: resolution.contractHash, workingTreeDigest: fingerprint.digest },
+    foundation: runtime.foundation, productionLock: runtime.productionLock, plans,
+    identity: { workId, chapter, sourceHead, planSourceHash: exactHash(plans), contractHash: resolution.contractHash, workingTreeDigest: fingerprint.digest,
+      ...(runtime.productionLock ? { productionLockId: runtime.productionLock.revisionId, bindingRevisionId: runtime.productionLock.bindingRevisionId, registryRevisionId: runtime.productionLock.registryRevisionId } : {}) },
   };
 }
 

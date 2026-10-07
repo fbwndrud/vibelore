@@ -54,6 +54,8 @@
     "docs/TROUBLESHOOTING.en.md",
     "docs/reference/WEBTOON_WORKFLOW.md",
     "docs/reference/WEBTOON_WORKFLOW.en.md",
+    "docs/reference/SHARED_LORE_REGISTRY.md",
+    "docs/reference/SHARED_LORE_RUNTIME.md",
     "docs/MULTILINGUAL_PLAN.md",
     "hosts/",
     "engine/package.json",

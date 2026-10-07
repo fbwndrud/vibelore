@@ -20,7 +20,7 @@ async function markdownFiles(directory) {
   const groups = await Promise.all(entries.map(entry => {
     const path = `${directory}/${entry.name}`;
     if (path === 'docs/showcase') return []; // GitHub Pages site, not part of the npm package
-    if (path === 'docs/research' || path === 'docs/superpowers') return []; // internal records, not shipped
+    if (path === 'docs/research' || path === 'docs/superpowers' || path === 'docs/plans') return []; // internal records, not shipped
     return entry.isDirectory() ? markdownFiles(path) : entry.name.endsWith('.md') ? [path] : [];
   }));
   return groups.flat();
@@ -77,7 +77,7 @@ test('distributed Markdown links stay inside the packaged files', async () => {
 test('tool reference names every public and advanced MCP tool', async () => {
   const server = await readFile('src/server.js', 'utf8');
   const names = [...server.matchAll(/name: '(lore_[a-z_]+)'/g)].map((match) => match[1]);
-  assert.equal(names.length, 43);
+  assert.equal(names.length, 48);
   assert.equal(new Set(names).size, names.length);
   for (const file of ['docs/TOOLS.md', 'docs/TOOLS.en.md']) {
     const reference = await readFile(file, 'utf8');
