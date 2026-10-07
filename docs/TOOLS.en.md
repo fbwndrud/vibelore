@@ -71,7 +71,7 @@ Required: `action,workId`; `project` selects the work root. `inspect(worldRoot,b
 points, requirements and projections and shows active planning impact. After approval, `apply(proposalId,expectedHead)`
 publishes the binding to the work tree and work.md. Updating it invalidates prior receipts. `status` reads the binding.
 See [adoption and work binding (Korean)](reference/SHARED_LORE_RUNTIME.md) for shapes and supported execution paths.
-A `schemaVersion:2` binding takes `frame=present|flashback` per scene and checks per-scene states inside one chapter scene by scene.
+A `schemaVersion:2` binding takes `frame=present|flashback` per scene and records per-scene states inside one chapter and hands them to the AI review (no word matching).
 For an existing work, inspect's `migration` is a dry-run report: per-chapter diff of local vs shared values, targets whose
 ownership moves from the work to the shared world, preserved sources, and same-name unbound characters (`not_merged`, never merged
 automatically). Roll back with `lore_rollback`.

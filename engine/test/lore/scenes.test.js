@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createHash } from 'node:crypto';
 import { createLoreRegistry, addLoreDefinitions, compileLoreRegistry, lorePresetDefinitions, createLoreRevision, createWorkBinding, prepareLoreProduction, verifyLoreProductionLock,
-  validateLoreSceneMap, verifyLoreSceneMap, checkLoreScenes, loreSceneMapRequest, loreSceneParagraphs, createLoreScript, prepareLoreScriptProduction, verifyLoreScriptLock,
+  validateLoreSceneMap, verifyLoreSceneMap, recordLoreScenes, loreSceneMapRequest, loreSceneParagraphs, createLoreScript, prepareLoreScriptProduction, verifyLoreScriptLock,
   createLoreAssetRevision, createLoreExpressionProfile, createLoreAssetCatalog, inspectLoreImage, LORE_RESOLVER_VERSION, LORE_RESOLVER_VERSION_V2 } from '../../src/index.js';
 import { hashLore } from '../../src/lore/registry.js';
 
 const hash = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const field = (id, key, valueType, owner, cardinality = 'one', requiredScopes = ['continuity', 'worldPoint']) => ({ schemaVersion: 1, kind: 'field', id, namespace: 'u1', key, label: key, aliases: [], definition: `${key} 값`, subjectTypeIds: ['type-character'], valueType, owner, requiredScopes: owner === 'profile' ? [] : requiredScopes, cardinality, constraints: [], missingPolicy: 'unknown', requiredCapabilities: [] });
-export function tsWorld({ afterForbidden = ['도련님'] } = {}) {
+export function tsWorld() {
   const registry = addLoreDefinitions(createLoreRegistry('u1'), { reason: 'TS 세계', definitions: [...lorePresetDefinitions('u1'),
     field('name', 'character.name', { kind: 'text' }, 'profile'),
     field('body-gender', 'body.gender', { kind: 'enum', values: ['male', 'female'] }, 'state'),
@@ -22,7 +22,7 @@ export function tsWorld({ afterForbidden = ['도련님'] } = {}) {
     ...forbidden.map((term, i) => ({ id: `${state}-forbidden-${i}`, fieldDefinitionRevisionId: rev('forbidden'), value: term })),
     ...accepted.map((term, i) => ({ id: `${state}-accepted-${i}`, fieldDefinitionRevisionId: rev('accepted'), value: term })),
   ].map(v => ({ ...v, subject: { kind: 'entity', entityId: 'a' }, owner: 'state', storyScope: scope(from, until), evidenceIds: [`${state}-doc`] }));
-  const before = stateValues('before', 'p0', 'p1', 'male', ['아가씨'], ['도련님']), after = stateValues('after', 'p1', null, 'female', afterForbidden, ['아가씨']);
+  const before = stateValues('before', 'p0', 'p1', 'male', ['아가씨'], ['도련님']), after = stateValues('after', 'p1', null, 'female', ['도련님'], ['아가씨']);
   const content = {
     entities: [{ id: 'a', typeDefinitionRevisionId: rev('type-character'), documentIds: ['profile-doc'], valueIds: ['name-a'] }],
     states: [{ id: 'state-before', entityId: 'a', documentIds: ['before-doc'], valueIds: before.map(v => v.id), storyScope: scope('p0', 'p1') },
@@ -102,36 +102,18 @@ describe('SharedLore manuscript scene map and checks', () => {
     return prepareLoreProduction({ binding: binding(publication, w.registry, [scene('s-before', 'p0'), scene('s-after', 'p1')]), publication, chapter: 1 }).lock;
   }
   const answer = (l, prose, segments) => ({ proseHash: loreSceneMapRequest({ lock: l, prose }).proseHash, productionLockId: l.revisionId, segments });
-  it('maps paragraphs to scenes and finds a state-specific term violation in the right scene only', async () => {
+  it('records which scene state applies to which paragraphs without judging the words', async () => {
     const l = await lock(), paragraphs = loreSceneParagraphs(PROSE);
     assert.equal(paragraphs.length, 3);
-    const good = validateLoreSceneMap({ lock: l, prose: PROSE, answer: answer(l, PROSE, [{ sceneId: 's-before', fromParagraph: 0, toParagraph: 1 }, { sceneId: 's-after', fromParagraph: 2, toParagraph: 2 }]) });
-    const result = checkLoreScenes({ lock: l, prose: PROSE, map: good.map, chapter: 1 });
-    assert.equal(result.status, 'passed', JSON.stringify(result.violations));
-    const swapped = PROSE.replace('하녀가 아가씨', '하녀가 도련님');
-    const bad = validateLoreSceneMap({ lock: l, prose: swapped, answer: answer(l, swapped, [{ sceneId: 's-before', fromParagraph: 0, toParagraph: 1 }, { sceneId: 's-after', fromParagraph: 2, toParagraph: 2 }]) });
-    const failed = checkLoreScenes({ lock: l, prose: swapped, map: bad.map, chapter: 1 });
-    assert.equal(failed.status, 'failed');
-    const [v] = failed.violations;
-    assert.equal(v.code, 'SHARED_SCENE_FORBIDDEN_TERM'); assert.equal(v.sceneId, 's-after'); assert.deepEqual(v.stateIds, ['state-after']);
-    assert.equal(swapped.slice(v.span.start, v.span.end), '도련님'); assert.ok(v.span.start > paragraphs[2].start);
-    assert.match(v.fieldDefinitionRevisionId, /^sha256:/); assert.deepEqual(v.evidenceIds, ['after-doc']);
-  });
-  it('matches forbidden terms across scripts: attached CJK, case, NFD and CRLF; one-character CJK hits stay soft', async () => {
-    const w = tsWorld({ afterForbidden: ['도련님', 'sir', '형', '哥哥'] }), publication = await fix(w.publication);
-    const l = prepareLoreProduction({ binding: binding(publication, w.registry, [scene('s-before', 'p0'), scene('s-after', 'p1')]), publication, chapter: 1 }).lock;
-    const run = after => {
-      const prose = `윤재는 거울 앞에 섰다.\r\n\r\n${after}`;
-      assert.equal(loreSceneParagraphs(prose).length, 2, 'CRLF blank lines separate paragraphs');
-      const map = validateLoreSceneMap({ lock: l, prose, answer: answer(l, prose, [{ sceneId: 's-before', fromParagraph: 0, toParagraph: 0 }, { sceneId: 's-after', fromParagraph: 1, toParagraph: 1 }]) }).map;
-      return checkLoreScenes({ lock: l, prose, map }).violations.map(v => [v.term, v.severity]);
-    };
-    assert.deepEqual(run('큰도련님이 왔다.'), [['도련님', 'hard']]);
-    assert.deepEqual(run('도련님'.normalize('NFD') + '이 왔다.'), [['도련님', 'hard']]);
-    assert.deepEqual(run('"Sir, wait."'), [['sir', 'hard']]);
-    assert.deepEqual(run('Sirius rose.'), []);
-    assert.deepEqual(run('他是我的哥哥。'), [['哥哥', 'hard']]);
-    assert.deepEqual(run('그는 형사였다.'), [['형', 'soft']]);
+    assert.equal(loreSceneParagraphs(PROSE.replaceAll('\n', '\r\n')).length, 3, 'CRLF blank lines separate paragraphs');
+    const segments = [{ sceneId: 's-before', fromParagraph: 0, toParagraph: 1 }, { sceneId: 's-after', fromParagraph: 2, toParagraph: 2 }];
+    const record = recordLoreScenes({ lock: l, prose: PROSE, map: validateLoreSceneMap({ lock: l, prose: PROSE, answer: answer(l, PROSE, segments) }).map });
+    assert.equal(record.status, 'recorded'); assert.equal(Object.hasOwn(record, 'violations'), false);
+    assert.deepEqual(record.scenes.map(s => [s.sceneId, s.paragraphs, s.stateIds.a]), [['s-before', [0, 1], ['state-before']], ['s-after', [2, 2], ['state-after']]]);
+    assert.equal(PROSE.slice(record.scenes[1].start, record.scenes[1].end), paragraphs[2].text);
+    // Any wording is recorded the same way; whether it fits the state is the AI review's judgment.
+    const other = PROSE.replace('하녀가 아가씨', '하녀가 도련님');
+    assert.equal(recordLoreScenes({ lock: l, prose: other, map: validateLoreSceneMap({ lock: l, prose: other, answer: answer(l, other, segments) }).map }).status, 'recorded');
   });
   it('rejects missing, overlapping, reordered and stale maps and keeps unresolved boundaries structured', async () => {
     const l = await lock();
@@ -145,14 +127,6 @@ describe('SharedLore manuscript scene map and checks', () => {
     assert.throws(() => validateLoreSceneMap({ lock: l, prose: PROSE, answer: { ...answer(l, PROSE, []), proseHash: 'sha256:0' } }), { code: 'STALE_SCENE_MAP' });
     const unresolved = validateLoreSceneMap({ lock: l, prose: PROSE, answer: { ...answer(l, PROSE), unresolved: { reason: '변신 시점이 본문에 없다', sceneIds: ['s-after'] } } });
     assert.equal(unresolved.status, 'unresolved'); assert.deepEqual(unresolved.sceneIds, ['s-after']);
-  });
-  it('never infers an honorific from body gender when no addressing data is projected', async () => {
-    const w = tsWorld(), publication = await fix(w.publication);
-    const b = createWorkBinding({ schemaVersion: 2, workId: 'w', universeId: 'u1', loreRevisionId: publication.publicationId, registryRevisionId: w.registry.revisionId, continuityId: 'main',
-      cast: [{ localCharacterId: 'hero', entityId: 'a', projections: [{ target: 'intrinsic.gender', fieldId: 'body-gender' }] }], chapters: [{ chapter: 1, scenes: [scene('s-before', 'p0'), scene('s-after', 'p1')] }] });
-    const l = prepareLoreProduction({ binding: b, publication, chapter: 1 }).lock, prose = PROSE.replace('하녀가 아가씨', '하녀가 도련님');
-    const map = validateLoreSceneMap({ lock: l, prose, answer: answer(l, prose, [{ sceneId: 's-before', fromParagraph: 0, toParagraph: 1 }, { sceneId: 's-after', fromParagraph: 2, toParagraph: 2 }]) }).map;
-    assert.equal(checkLoreScenes({ lock: l, prose, map }).violations.length, 0);
   });
 });
 

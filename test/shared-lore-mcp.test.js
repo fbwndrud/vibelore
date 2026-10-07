@@ -70,6 +70,6 @@ it('two novels pin the same shared character at different states and write throu
   assert.match(ts.draft, /TS_ONLY/); assert.doesNotMatch(ts.draft, /ADULT_ONLY|CHILD_ONLY|FUTURE_SECRET_TOKEN/);
   assert.deepEqual([adult.lock.scenes[0].stateIds, ts.lock.scenes[0].stateIds], [{ 'character-a': ['state-adult'] }, { 'character-a': ['state-ts'] }]);
   assert.equal(adult.lock.loreRevisionId, ts.lock.loreRevisionId);
-  assert.equal(adult.sceneCheck.check.status, 'passed'); assert.equal(ts.sceneCheck.check.status, 'passed');
+  assert.equal(adult.sceneCheck.check.status, 'recorded'); assert.equal(ts.sceneCheck.check.status, 'recorded');
   assert.equal((await w.world.status()).head, w.head, 'writing never changes the shared world');
 });

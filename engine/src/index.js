@@ -85,7 +85,7 @@ export { lorePresetDefinitions } from './lore/presets.js';
 export { createLoreRevision, validateLoreContent, validateLoreRevision } from './lore/changes.js';
 export { createWorkBinding, validateWorkBinding, prepareLoreProduction, verifyLoreProductionLock, LORE_RESOLVER_VERSION, LORE_RESOLVER_VERSION_V2, LORE_RESOLVER_VERSIONS } from './lore/production.js';
 export { LORE_SCENE_FRAMES, LORE_PROJECTION_TARGETS, LORE_UNSUPPORTED_SCENE_KEYS, resolveLoreScenes } from './lore/scenes.js';
-export { LORE_SCENE_MAP_VERSION, LORE_SCENE_CHECK_VERSION, loreSceneParagraphs, loreProseHash, loreSceneMapRequired, loreSceneMapRequest, validateLoreSceneMap, verifyLoreSceneMap, checkLoreScenes } from './lore/scene-check.js';
+export { LORE_SCENE_MAP_VERSION, LORE_SCENE_RECORD_VERSION, loreSceneParagraphs, loreProseHash, loreSceneMapRequired, loreSceneMapRequest, validateLoreSceneMap, verifyLoreSceneMap, recordLoreScenes } from './lore/scene-check.js';
 export { LORE_ASSET_LIMITS, LORE_ASSET_PURPOSES, LORE_ASSET_DERIVATIONS, inspectLoreImage, loreBlobId, createLoreAssetRevision, createLoreExpressionProfile, createLoreAssetCatalog, verifyLoreAssetObject, validateLoreAssetLinks } from './lore/assets.js';
 export { planLoreDefinitionNeeds, LORE_UNSUPPORTED_CAPABILITIES } from './lore/extend.js';
 export { createLoreScript, validateLoreScript, prepareLoreScriptProduction, verifyLoreScriptLock, LORE_SCRIPT_LIMITS } from './lore/script.js';

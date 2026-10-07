@@ -5,7 +5,7 @@ import { requireLore, LoreError } from './schemas.js';
 // the exact prose hash and production lock, so an edited draft or a rebinding
 // can never reuse an old map.
 export const LORE_SCENE_MAP_VERSION = 'shared-scene-map-v1';
-export const LORE_SCENE_CHECK_VERSION = 'shared-scene-check-v1';
+export const LORE_SCENE_RECORD_VERSION = 'shared-scene-record-v1';
 
 export function loreSceneParagraphs(prose) {
   const paragraphs = [], pattern = /\S[\s\S]*?(?=\r?\n[ \t]*\r?\n|\s*$)/g;
@@ -75,58 +75,19 @@ export function verifyLoreSceneMap({ lock, prose, map }) {
   return again.map;
 }
 
-const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// Spaced scripts match whole words, case-insensitively. Korean, Japanese and
-// Chinese have no reliable word boundary (큰오빠가, 我的哥哥, お兄さん), so their
-// terms match anywhere; a one-character term there (형, 兄) also occurs inside
-// unrelated words, so its hit is soft evidence for the author, not a hard block.
-// Both sides are compared in NFC.
-const CJK = /[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
-function occurrences(text, term) {
-  const t = term.normalize('NFC'), cjk = CJK.test(t);
-  const pattern = new RegExp(cjk ? escape(t) : `(?<![\\p{L}\\p{N}])${escape(t)}(?![\\p{L}\\p{N}])`, 'giu');
-  return { short: cjk && [...t].length === 1, at: [...text.normalize('NFC').matchAll(pattern)].map(m => m.index), normalized: text.normalize('NFC') !== text };
-}
-const projection = (scene, localCharacterId, target) => scene.projections.find(p => p.localCharacterId === localCharacterId && p.target === target);
-
 /**
- * Deterministic per-scene checks over explicitly projected addressing data.
- * Body form or gender is never turned into an expected honorific, pronoun or
- * self-identity; only the author's forbidden/accepted term lists are compared.
+ * Record which pinned scene state applies to which part of the manuscript.
+ * vibelore keeps this record; it does not match words or judge the prose.
+ * Whether the text fits each scene's state is the AI review's call, using the
+ * per-scene states and source documents in the scene context.
  */
-export function checkLoreScenes({ lock, prose, map, chapter = null }) {
+export function recordLoreScenes({ lock, prose, map }) {
   const verified = verifyLoreSceneMap({ lock, prose, map });
-  const violations = [], scenes = [];
-  for (const segment of verified.segments) {
-    const scene = lock.scenes.find(s => s.id === segment.sceneId), text = String(prose).slice(segment.start, segment.end), found = [];
-    const members = [...new Set(scene.projections.map(p => p.localCharacterId))];
-    for (const localCharacterId of members) {
-      const forbidden = projection(scene, localCharacterId, 'intrinsic.addressing.forbiddenGenderedTerms');
-      if (!forbidden) continue;
-      for (const term of forbidden.value) {
-        const hits = occurrences(text, term);
-        for (const at of hits.at) {
-          const acceptedBy = members.filter(other => other !== localCharacterId && projection(scene, other, 'intrinsic.addressing.acceptedGenderedTerms')?.value.includes(term));
-          const soft = acceptedBy.length > 0 || hits.short;
-          const violation = { severity: soft ? 'soft' : 'hard', code: acceptedBy.length ? 'SHARED_SCENE_TERM_AMBIGUOUS' : hits.short ? 'SHARED_SCENE_TERM_SHORT' : 'SHARED_SCENE_FORBIDDEN_TERM', ...(hits.normalized ? { spanNormalized: true } : {}),
-            ...(chapter !== null ? { chapterNumber: chapter } : {}), sceneId: scene.id, frame: scene.frame, scope: scene.scope,
-            characterId: localCharacterId, entityId: forbidden.entityId, term, span: { start: segment.start + at, end: segment.start + at + term.length },
-            fieldId: forbidden.fieldId, fieldDefinitionRevisionId: forbidden.fieldDefinitionRevisionId, valueIds: forbidden.valueIds, evidenceIds: forbidden.evidenceIds,
-            stateIds: scene.stateIds[forbidden.entityId] ?? [],
-            message: acceptedBy.length
-              ? `장면 ${scene.id}: '${term}'은 ${localCharacterId}에게 금지, ${acceptedBy.join(', ')}에게 허용된 호칭이라 대상이 모호합니다.`
-              : hits.short ? `장면 ${scene.id}: 한 글자 금지어 '${term}'이 나옵니다. 다른 낱말의 일부일 수 있으니 ${localCharacterId}를 부르는 말인지 확인하세요.`
-              : `장면 ${scene.id}(${scene.scope.timelineId}/${scene.scope.pointId}): ${localCharacterId}의 이 시점 상태는 '${term}'을 금지합니다 (state ${(scene.stateIds[forbidden.entityId] ?? []).join(', ') || '-'}, evidence ${forbidden.evidenceIds.join(', ')}).` };
-          found.push(violation);
-        }
-      }
-    }
-    violations.push(...found);
-    scenes.push({ sceneId: scene.id, frame: scene.frame, scope: scene.scope, start: segment.start, end: segment.end, paragraphs: [segment.fromParagraph, segment.toParagraph],
-      stateIds: scene.stateIds, projections: scene.projections.map(({ localCharacterId, target, value, fieldDefinitionRevisionId, valueIds, evidenceIds }) => ({ localCharacterId, target, value, fieldDefinitionRevisionId, valueIds, evidenceIds })),
-      status: found.some(v => v.severity === 'hard') ? 'failed' : 'passed' });
-  }
-  const result = { version: LORE_SCENE_CHECK_VERSION, productionLockId: lock.revisionId, sceneMapRevisionId: verified.revisionId, proseHash: verified.proseHash,
-    status: violations.some(v => v.severity === 'hard') ? 'failed' : 'passed', scenes, violations };
+  const scenes = verified.segments.map(segment => {
+    const scene = lock.scenes.find(s => s.id === segment.sceneId);
+    return { sceneId: scene.id, frame: scene.frame, scope: scene.scope, start: segment.start, end: segment.end, paragraphs: [segment.fromParagraph, segment.toParagraph],
+      stateIds: scene.stateIds, projections: scene.projections.map(({ localCharacterId, target, value, fieldDefinitionRevisionId, valueIds, evidenceIds }) => ({ localCharacterId, target, value, fieldDefinitionRevisionId, valueIds, evidenceIds })) };
+  });
+  const result = { version: LORE_SCENE_RECORD_VERSION, productionLockId: lock.revisionId, sceneMapRevisionId: verified.revisionId, proseHash: verified.proseHash, status: 'recorded', scenes };
   return { revisionId: hashLore(result), ...result };
 }

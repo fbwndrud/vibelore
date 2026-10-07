@@ -54,39 +54,35 @@ describe('SharedLore scene-level writing and checking', () => {
     const lock = tree.productionInputs[1];
     assert.equal(lock.resolverVersion, LORE_RESOLVER_VERSION_V2); assert.equal(verifyLoreProductionLock(lock).revisionId, lock.revisionId);
     const sealed = tree.sceneChecks[1];
-    assert.equal(sealed.check.status, 'passed'); assert.equal(sealed.check.productionLockId, lock.revisionId);
+    assert.equal(sealed.check.status, 'recorded'); assert.equal(sealed.check.productionLockId, lock.revisionId);
     assert.deepEqual(sealed.check.scenes.map(s => [s.sceneId, s.stateIds['character-a'][0]]), [['s-adult', 'state-adult'], ['s-ts', 'state-ts']]);
     assert.equal(sealed.check.proseHash, sealed.map.proseHash);
     const next = await currentValidationContext({ store, workId, chapter: 2 });
     assert.equal(next.foundation.characters[0].intrinsic.gender, 'female');
   });
-  it('detects a wrong-state term in the exact scene and blocks receipt reuse after the manuscript changes', async t => {
+  it('records the scene map, hands per-scene states to the AI review without keyword checks, and blocks receipt reuse after edits', async t => {
     const { store } = await setup(t, { 1: [sagaScene('s-adult', 'adulthood'), sagaScene('s-ts', 'ts')] });
-    const bad = await check(store, proseWith(null, '하녀가 도련님, 하고 불렀다.'));
-    const violation = bad.violations.find(v => v.code === 'SHARED_SCENE_FORBIDDEN_TERM');
-    assert.ok(violation, JSON.stringify(bad.violations));
-    assert.equal(violation.sceneId, 's-ts'); assert.deepEqual(violation.stateIds, ['state-ts']); assert.equal(violation.term, '도련님');
-    assert.ok(violation.span.start > 0 && violation.fieldDefinitionRevisionId.startsWith('sha256:'));
-    assert.notEqual(bad.status, 'passed'); assert.equal(bad.checkId, undefined);
-    const okProse = proseWith('하인이 도련님이라 불렀다.', '하녀가 아가씨, 하고 불렀다.');
-    const passed = await check(store, okProse);
-    assert.ok(passed.checkId, JSON.stringify(passed).slice(0, 1500));
-    const receipt = await store.loadCheckReceipt(workId, passed.checkId);
+    const requests = [];
+    const checked = await check(store, proseWith(null, '하녀가 도련님, 하고 불렀다.'), providers({ requests }));
+    assert.ok(checked.checkId, JSON.stringify(checked).slice(0, 1500));
+    assert.equal(checked.violations.filter(v => String(v.code).startsWith('SHARED_SCENE')).length, 0, 'vibelore never matches words; the AI review judges');
+    const review = requests.filter(r => r.step === 'continuity-check').map(r => r.messages.map(m => m.content).join('\n')).join('\n');
+    assert.match(review, /s-adult/); assert.match(review, /s-ts/);
+    const receipt = await store.loadCheckReceipt(workId, checked.checkId);
+    assert.equal(receipt.sharedSceneCheck.check.status, 'recorded');
     const context = await currentValidationContext({ store, workId, chapter: 1 });
-    assert.equal(verifyReceiptSceneCheck({ lock: context.productionLock, prose: receipt.artifact.prose, receipt }).check.status, 'passed');
+    assert.equal(verifyReceiptSceneCheck({ lock: context.productionLock, prose: receipt.artifact.prose, receipt }).check.status, 'recorded');
     assert.throws(() => verifyReceiptSceneCheck({ lock: context.productionLock, prose: `${receipt.artifact.prose}\n\n덧붙인 문단`, receipt }), { code: 'STALE_SCENE_MAP' });
   });
-  it('keeps a flashback state out of the present chapter and checks each part against its own state', async t => {
+  it('keeps a flashback state out of the present chapter and records each part with its own state', async t => {
     const { store } = await setup(t, { 1: [sagaScene('now', 'ts'), sagaScene('memory', 'adulthood', 'flashback')], 2: [sagaScene('later', 'later')] });
     const context = await currentValidationContext({ store, workId, chapter: 1 });
     assert.equal(context.foundation.characters[0].intrinsic.gender, 'unknown', 'a flashback in another state keeps body gender scene-only');
-    assert.deepEqual(context.foundation.characters[0].intrinsic.addressing.forbiddenGenderedTerms, [], 'addressing is checked per scene, not chapter-wide');
+    assert.deepEqual(context.foundation.characters[0].intrinsic.addressing.forbiddenGenderedTerms, [], 'addressing stays per scene, not chapter-wide');
     const allowed = await check(store, proseWith(null, '어린 하인이 도련님이라 불렀다.'));
     assert.ok(allowed.checkId, JSON.stringify(allowed.violations));
     const receipt = await store.loadCheckReceipt(workId, allowed.checkId);
     assert.equal(receipt.sharedSceneCheck.check.scenes[1].projections.find(p => p.target === 'intrinsic.gender').value, 'male');
-    const wrong = await check(store, proseWith('하녀가 도련님이라 불렀다.', null), providers({ sceneMap: user => sceneMapAnswer(user, [0, half + 1]) }));
-    assert.equal(wrong.violations.find(v => v.code === 'SHARED_SCENE_FORBIDDEN_TERM')?.sceneId, 'now', JSON.stringify({ s: wrong.status, c: wrong.code, v: wrong.violations.map(v => v.code), sc: wrong.sceneCheck?.check?.scenes?.map(x => [x.sceneId, x.paragraphs]) }));
     assert.equal((await currentValidationContext({ store, workId, chapter: 2 })).foundation.characters[0].intrinsic.gender, 'female');
   });
   it('returns an unresolved boundary as a blocking structured result instead of a pass', async t => {

@@ -141,11 +141,11 @@ LoreRuntime이 실제 초고·재작성·통합 집필 검사의 실행 Foundati
 
 초기 target은 canonicalName, intrinsic.gender/genderLabel/ageBand/birthOrder/species/form/coreAppearance와 addressing의 acceptedPronouns/acceptedGenderedTerms/forbiddenGenderedTerms다. scalar는 text 또는 enum/one, 배열은 text/many를 요구한다. 매핑된 intrinsic event는 작품의 중복 소유 원천으로 다시 fold하지 않는다. 매핑하지 않은 역할·극적 목표·기존 변화는 작품이 계속 소유한다.
 
-### 장면 단위 상태와 검사 (binding schemaVersion 2)
+### 장면 단위 상태와 기록 (binding schemaVersion 2)
 
-`schemaVersion: 2` binding의 장면은 `frame: "present" | "flashback"`을 가진다. resolver v2(`shared-lore-resolver-v2`)가 장면마다 상태를 해석하고, 화 수준 DTO에는 모든 present 장면이 같은 값이고 회상 장면도 다르지 않은 값만 넣는다. 다른 값은 `sceneVarying`(`differs`, `flashback_differs`, `flashback_only`)으로 남기고 화 Foundation에는 표지값(gender `unknown`, 배열 `[]`, 문자열 안내문)만 둔다. 호칭·대명사·금지어 목록은 항상 장면별로 검사한다. 몸의 성별에서 호칭·대명사·자기 인식을 추론하지 않는다. 회상 장면의 상태는 현재 상태와 화 DTO를 바꾸지 않는다. 작품 소유 intrinsic 변화는 공유 투영 대상이 아니면 한 번만 적용된다.
+`schemaVersion: 2` binding의 장면은 `frame: "present" | "flashback"`을 가진다. resolver v2(`shared-lore-resolver-v2`)가 장면마다 상태를 해석하고, 화 수준 DTO에는 모든 present 장면이 같은 값이고 회상 장면도 다르지 않은 값만 넣는다. 다른 값은 `sceneVarying`(`differs`, `flashback_differs`, `flashback_only`)으로 남기고 화 Foundation에는 표지값(gender `unknown`, 배열 `[]`, 문자열 안내문)만 둔다. 호칭·대명사 목록은 화 전체 값으로 올리지 않고 항상 장면별 상태에 둔다. 몸의 성별에서 호칭·대명사·자기 인식을 추론하지 않는다. 회상 장면의 상태는 현재 상태와 화 DTO를 바꾸지 않는다. 작품 소유 intrinsic 변화는 공유 투영 대상이 아니면 한 번만 적용된다.
 
-검사 단계는 호스트 모델 요청 `shared-scene-map`으로 원고 문단을 장면에 대응시킨다. 응답은 `{proseHash, productionLockId, segments[{sceneId, fromParagraph, toParagraph}]}` 또는 `unresolved{reason, sceneIds}`이며 원고 hash와 lock에 묶인다. 누락·겹침·순서 오류는 거부하고, 경계를 정할 수 없으면 hard `SHARED_SCENE_BOUNDARY_UNRESOLVED`로 막는다. 그 뒤 각 장면 구간을 그 장면 상태의 금지어·허용어로 결정론 검사하고 위반 근거(장면·문단·어휘)를 남긴다. 비교는 NFC 정규화 후 한다. 띄어쓰기 문자(라틴 등)는 대소문자 무시 단어 단위, 한국어·일본어·중국어는 붙은 말(`큰오빠가`, `我的哥哥`)도 잡도록 부분 일치다. 한 글자 CJK 금지어(`형`, `兄`)는 다른 낱말 안에도 나오므로 soft `SHARED_SCENE_TERM_SHORT`로 작가 판단에 맡긴다. CRLF 빈 줄도 문단 경계다. 결과는 검사 영수증 `sharedSceneCheck`에 들어가며 커밋이 다시 검증해 `sceneChecks[chapter]`로 봉인한다. 원고가 바뀌면 `STALE_SCENE_MAP`이라 이전 대응표·영수증을 재사용하지 않는다. 순서는 draft → check(장면 대응·검사) → critic → revise → receipt → commit 그대로이며 별도 커밋 경로는 없다.
+검사 단계에서 호스트 모델이 `shared-scene-map` 요청으로 원고 문단을 장면에 대응시킨다. 응답은 `{proseHash, productionLockId, segments[{sceneId, fromParagraph, toParagraph}]}` 또는 `unresolved{reason, sceneIds}`이며 원고 hash와 lock에 묶인다. 누락·겹침·순서 오류는 거부하고, 경계를 정할 수 없으면 hard `SHARED_SCENE_BOUNDARY_UNRESOLVED`로 막는다. vibelore는 어느 문단에 어느 장면 상태가 적용되는지 기록만 한다(`status: recorded`). 원고의 낱말을 대조하거나 금지어로 막는 검사는 하지 않는다. 원고가 각 장면 상태와 맞는지는 장면별 상태·원문을 받은 AI 검토(continuity check·critic)가 판단한다. CRLF 빈 줄도 문단 경계다. 기록은 검사 영수증 `sharedSceneCheck`에 들어가며 커밋이 다시 검증해 `sceneChecks[chapter]`로 봉인한다. 원고가 바뀌면 `STALE_SCENE_MAP`이라 이전 대응표·영수증을 재사용하지 않는다. 순서는 draft → check(장면 대응 기록·AI 검토) → critic → revise → receipt → commit 그대로이며 별도 커밋 경로는 없다.
 
 schemaVersion 1 binding과 기존 lock은 resolver v1로 그대로 검증한다. v1에서 같은 화의 여러 장면이 다른 값이면 여전히 `requires_scene_checker`로 멈춘다. 새 동작을 쓰려면 v2 binding을 inspect/apply한다. 계획 도구(`lore_arc_plan`, 화별 계획)도 같은 resolver로 계획 범위의 값을 읽고, 화마다 다르면 장면별 표지와 화별 값을 받는다. 작품의 옛 인물 사본을 계획 입력으로 쓰지 않는다. 필수 field의 unknown과 모든 conflict/incomplete도 사용 가능한 lock을 발급하지 않는다. 사용자 정의 필드를 원고의 임의 표현과 비교하는 새 결정론 검사기가 등록만으로 생기지는 않는다. 해당 값은 scoped context로 기존 semantic WORLD 검토에 전달된다.
 
@@ -184,4 +184,4 @@ ProductionSource는 두 종류다. `novel-chapters`는 기존 웹툰 원천(sour
 | 개인 경험 시간축(회귀 기억 등), 몸 바꾸기, 크로스오버 출현 복제 | 미지원. `REQUIRED_CAPABILITY`/`unsupported`로 거부 (`lore_registry status`의 `unsupportedCapabilities`) |
 | 정의 개정 적용 | migration 후보 기록만. 적용 도구 없음 |
 
-검증한 경로는 독립 세계 채택, 두 작품의 같은 인물·서로 다른 상태(MCP lore_write 포함), 한 화의 TS 전후 장면별 검사와 위반 검출, 회상 분리, 원고 변경 뒤 대응표·영수증 재사용 차단, 미래 상태·author 원문 배제, 새 정의 등록과 재개 시 중복 없음, 자산 교체 뒤 이전 lock 바이트 유지, 대본 기반 웹툰 preflight·완료·검증, 세계 삭제 뒤 보존 입력 검증, CAS 충돌·drift·발행 중단 복구·rollback이다. 모두 임시 fixture와 테스트 모델 응답으로 확인했고 실제 모델 품질이나 처리량을 측정한 것은 아니다.
+검증한 경로는 독립 세계 채택, 두 작품의 같은 인물·서로 다른 상태(MCP lore_write 포함), 한 화의 TS 전후 장면별 상태 기록과 AI 검토 입력, 회상 분리, 원고 변경 뒤 대응표·영수증 재사용 차단, 미래 상태·author 원문 배제, 새 정의 등록과 재개 시 중복 없음, 자산 교체 뒤 이전 lock 바이트 유지, 대본 기반 웹툰 preflight·완료·검증, 세계 삭제 뒤 보존 입력 검증, CAS 충돌·drift·발행 중단 복구·rollback이다. 모두 임시 fixture와 테스트 모델 응답으로 확인했고 실제 모델 품질이나 처리량을 측정한 것은 아니다.

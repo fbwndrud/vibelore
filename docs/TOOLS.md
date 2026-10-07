@@ -71,7 +71,7 @@ migration 후보로만 기록하며, 미지원 capability(`status.unsupportedCap
 cast·화별 시점·필수 필드·투영·활성 계획 영향을 검토한 뒤 `apply(proposalId,expectedHead)`로 승인 적용합니다.
 binding은 작품 발행 tree와 work.md에 저장하며 변경하면 기존 영수증을 재사용할 수 없습니다.
 `status`는 현재 연결을 반환합니다. [채택·작품 연결 계약](reference/SHARED_LORE_RUNTIME.md)에 전체 스키마와 제한이 있습니다.
-`schemaVersion:2` binding은 장면마다 `frame=present|flashback`을 받고 화 안의 장면별 상태를 장면 단위로 검사합니다.
+`schemaVersion:2` binding은 장면마다 `frame=present|flashback`을 받고 화 안의 장면별 상태를 장면 단위로 기록해 AI 검토에 넘깁니다(낱말 대조 검사는 하지 않음).
 기존 작품의 inspect 결과 `migration`은 dry run 보고입니다: 로컬 값과 공유 값의 화별 diff, 작품→공유로 넘어가는 소유 대상,
 보존되는 원문, 이름이 같은 비연결 인물 후보(`not_merged`, 자동 병합 없음)를 보여 줍니다. 되돌리기는 `lore_rollback`을 씁니다.
 
