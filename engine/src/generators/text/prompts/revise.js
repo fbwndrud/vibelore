@@ -45,7 +45,7 @@ function reviseSystemLines(paragraphRule) {
         '1) 위반에 직접 관련된 장면만 고친다. 위반과 무관한 장면은 한 글자도 변경 금지. 단, QUALITY_GATE_LENGTH는 원문의 사건과 문단을 보존한 채 인과적 행동, 반응, 선택의 여파를 완전한 장면 단위로 추가하는 확장 작업이다.',
         '2) 사건의 확정 결과와 정본은 보존한다. 단, STATIC_POWER·ON_THE_NOSE_DIALOGUE·CLEAN_CONFLICT_RESET·TELEGRAPHED_TURN·SCENE_THIN·PLAN_SHAPED_PROSE·QUALITY_GATE_READER_HOOK 위반은 해당 장면 안에서 행동 순서, 정보 공개 시점, 대사, 작은 선택과 대가를 재구성해 원인을 고친다.',
         '3) 캐릭터 intrinsic(gender·ageBand·role·coreAppearance) 충돌은 본문 묘사를 Foundation 사실에 맞추는 방향으로 수정 — Foundation 을 부정하지 말 것.',
-        '4) 호칭 위반은 AddressMap / HonorificLexicon 함의를 따르도록 표현만 교체. 새 인물을 임의로 추가 금지.',
+        '4) 호칭 위반은 AddressMap 을 따르도록 표현만 교체. 새 인물을 임의로 추가 금지.',
         '5) cast-manifest sentinel 은 본문 변경에 맞춰 갱신. 본문에서 등장이 사라지면 manifest 에서도 제거, 새로 등장하면 추가.',
         '6) QUALITY_GATE_LENGTH 수정에서는 기존 본문을 삭제·요약·압축하지 않는다. 위반에 명시된 recommendedChars 이상이 되도록 장면을 확장하고, 출력 직전 전체 본문 길이를 확인한다.',
         paragraphRule,

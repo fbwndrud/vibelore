@@ -37,10 +37,8 @@ export { DEFAULT_REVISE_POLICY, createOrchestrator } from './core/orchestrator.j
 export { effectiveIntrinsic } from './continuity/character.js';
 export { createFoundation, registerCharacter, appendIntrinsicChange, resolveCharacter, } from './continuity/foundation.js';
 export { reduceStoryState, emptyStoryState } from './continuity/story-state.js';
-export { DefaultHonorificLexicon, KO_HONORIFIC_SEED } from './continuity/honorific-lexicon.js';
 export { ENGINE_GENRES, createGenreProfileRegistry } from './continuity/genre-profile.js';
 export { GENRE_FACETS, facetsForGenre, allGenresCovered } from './continuity/genre-facets.js';
-export { scanLexicon } from './continuity/lexicon-scan.js';
 export { extractDelta, continuityCheck } from './continuity/continuity-check.js';
 export { TextGenerator } from './generators/text/text-generator.js';
 export { performBookCreate } from './generators/text/steps/worldbuild.js';

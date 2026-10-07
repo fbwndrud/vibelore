@@ -10,7 +10,6 @@ import { evaluateChapterQuality } from '../../engine/src/continuity/quality-gate
 import { resolveWorkLanguage, usesChapterValidationGate } from '../core/work-language.js';
 import { currentValidationContext, exactHash, sameIdentity, exceptionOnlyRebind, loadValidationSession, saveValidationSession, invalidateValidationSession } from '../core/validation-context.js';
 import { chapterArtifactBundle, computeArtifactHash, continuityContextHash, evaluateChapterCoverage, evaluateChapterLanguage, issueChapterReceipt, lengthCoverage, liveCheckerPlan, overlayInvariantCoverage, publishedChapterProse, readSemanticValidation, requestLanguageCompliance, runPlannedDetectors, schemaCoverage } from '../core/validation-gate.js';
-import { lexiconsForLanguage } from './lexicons.js';
 import { episodeForChapter } from './arc.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
 import { promptKit } from '../prompts/index.js';
@@ -237,7 +236,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
         message: `${entry.characterId} (dead since chapter ${entry.sinceChapter}) was not recorded ${entry.vitalStatus}: no quote from the chapter supports it.` });
     }
     if (!includeSemanticContinuity) return fail('VALIDATION_INCOMPLETE');
-    const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan, lexicon: lexiconsForLanguage(workContract.language).honorific,
+    const semanticInput = { ...extractionInput, delta: state.extracted.delta, checkerPlan: plan,
       // The reviewer judges POV against the profile's viewpoint design, not only
       // the one-line povMode (2026-09-15 fr sample: povMode said "alternation
       // with Malik to be confirmed" and three reviews answered uncertain).

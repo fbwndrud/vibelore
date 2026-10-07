@@ -71,9 +71,7 @@ const WORLDBUILD_JSON = JSON.stringify({
     worldFacts: [{ id: 'wf1', statement: '주인공은 회귀자다' }],
 });
 /**
- * Single-character cast — female 주인공 라이덴. Intentionally female so the
- * draft prose (which uses "그녀" + has no male honorifics) does NOT raise a
- * layer-1 lexicon violation. Keeping the cast at 1 also keeps the
+ * Single-character cast — female 주인공 라이덴. Keeping the cast at 1 keeps the
  * `extractDelta` `unregisteredNamed` heuristic quiet (no other names appear).
  */
 const CAST_JSON = JSON.stringify({
@@ -96,11 +94,8 @@ const CAST_JSON = JSON.stringify({
 });
 const CHAPTER_PLAN_JSON = JSON.stringify({ plan: '라이덴의 회귀 직후 첫 행동' });
 /**
- * Draft body — prose + trailing cast-manifest sentinel. The prose
- * intentionally omits male honorifics ("도련님"/"형님"/"오라버니"…) so the
- * deterministic layer-1 lexicon scan does NOT fail against the female
- * intrinsic of c1. The trailing sentinel survives extractDelta then gets
- * stripped by sanitize before commit.
+ * Draft body — prose + trailing cast-manifest sentinel. The trailing sentinel
+ * survives extractDelta then gets stripped by sanitize before commit.
  */
 const DRAFT_PROSE = '라이덴은 천천히 눈을 떴다. 다시 깨어난 그녀는 결심했다.';
 const DRAFT_RAW = DRAFT_PROSE +
@@ -117,13 +112,11 @@ const CONTINUITY_PASS_JSON = JSON.stringify({
     intrinsicViolations: [],
     invariantViolations: [],
     unjustifiedMutable: [],
-    lexiconAdditions: [],
 });
 const CONTINUITY_FAIL_JSON = JSON.stringify({
     intrinsicViolations: [{ characterId: 'c1', message: '테스트용 1회 fail' }],
     invariantViolations: [],
     unjustifiedMutable: [],
-    lexiconAdditions: [],
 });
 /** Happy-path script: every chapter's mock LLM responses, repeated 3x. */
 function happyScript() {
@@ -228,8 +221,7 @@ describe('engine integration — end-to-end', () => {
             draft: [DRAFT_RAW],
             extractDelta: [EXTRACT_DELTA_JSON, EXTRACT_DELTA_JSON],
             continuityCheck: [CONTINUITY_FAIL_JSON, CONTINUITY_PASS_JSON],
-            // revise returns the same prose unchanged (sentinel preserved). Layer-1
-            // lexicon scan won't fail it (no male honorifics + female c1), and the
+            // revise returns the same prose unchanged (sentinel preserved), and the
             // second scripted continuityCheck JSON now passes.
             revise: [DRAFT_RAW],
         };

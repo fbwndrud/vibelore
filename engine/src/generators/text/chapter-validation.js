@@ -11,7 +11,6 @@ import {
     DefaultEmotionVerbLexicon,
 } from '../../continuity/emotion-verb-lexicon.js';
 import { ENGINE_GENRES } from '../../continuity/genre-profile.js';
-import { DefaultHonorificLexicon } from '../../continuity/honorific-lexicon.js';
 import {
     aggregateCheckerCoverage,
     describeCheckerPlan,
@@ -461,7 +460,6 @@ export function scanBlockingFormat({ prose, chapterNumber, dialogueBreakMode = '
 
 const KO_LEXICAL_CHECKERS = new Set([
     'checkPov',
-    'scanLexicon',
     'scanSensitive',
     'scanWorldGroupConflict',
     'scanQuality',
@@ -743,7 +741,6 @@ export async function prepareChapterPublication(ctx, args) {
     }
     const prose = sanitize.clean.trim();
 
-    const lexicon = new DefaultHonorificLexicon();
     const extracted = await extractDelta({
         prose: raw,
         castManifestRaw: castManifestRaw === '' ? '{"cast":[]}' : castManifestRaw,
@@ -765,7 +762,6 @@ export async function prepareChapterPublication(ctx, args) {
         delta,
         prevState,
         foundation,
-        lexicon,
         providers: ctx.providers,
         model: ctx.model,
         workContract,

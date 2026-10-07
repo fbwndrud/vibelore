@@ -41,7 +41,7 @@ TS는 이 문서에서 성별·신체 전환 설정을 뜻한다고 가정한다
 | [CanonRepository](../../src/core/canon-repository.js) | 작품의 published HEAD를 실행 원천으로 조회 | 작품 원고 조회 계약 유지. 공유 정본 조회는 별도 Module |
 | [PublicationUnit](../../src/core/publication-unit.js) | 작품 HEAD, 불변 tree/projections, CAS와 fencing, 복구 | 작품 발행은 유지. 파일 확정 패턴을 세계 저장 Adapter에 적용하되 서사 전용 context를 세계 발행에 위조하지 않음 |
 | [Foundation](../../engine/src/continuity/foundation.js) | workId, registeredAtChapter, atChapter intrinsic change | linked 작품에서는 실행 DTO로 구성. 세계의 시점을 chapter로 변환해 저장하지 않음 |
-| [Continuity check](../../engine/src/continuity/continuity-check.js), [Lexicon scan](../../engine/src/continuity/lexicon-scan.js) | 화 단위 고정 설정·호칭 함의 검사 | TS 전후 beat의 승인 상태·호칭 규칙을 전달. 신체 변화에서 인물의 호칭을 자동 추론하지 않음 |
+| [Continuity check](../../engine/src/continuity/continuity-check.js) | 화 단위 고정 설정 검사. 작가가 정한 호칭 목록은 AI 검토가 판정 | TS 전후 beat의 승인 상태·호칭 규칙을 전달. 신체 변화에서 인물의 호칭을 자동 추론하지 않음 |
 | [ValidationContext](../../src/core/validation-context.js) | sourceHead·계획·언어·working digest를 영수증에 결속 | linked 모드만 binding/input lock/resolver rules 판본 추가 |
 | [Workflow](../../src/tools/workflow.js), [Generate](../../src/tools/generate.js), [Commit](../../src/tools/commit.js) | 집필→검사→critic→결정→확정 | 실행 입력을 공통 resolver로 취득하고 lock을 영수증과 발행 tree에 저장 |
 | [Working tree sync](../../src/core/working-tree-sync.js) | world/characters/chapters 최상위 Markdown 지문 | linked 모드의 work.md·장면 대본·상태 문서를 포함하는 versioned inventory |

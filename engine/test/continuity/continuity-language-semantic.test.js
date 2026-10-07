@@ -8,8 +8,9 @@
  *   2. 비ko 는 영어 정적 지시 + 검증된 목표 locale 지시문이며 system·user 에
  *      한글 집필 지시가 남지 않는다. 명시적 계약의 추출 재시도는 호출자가 맡는다.
  *   3. 언어 인자와 저장된 계약이 충돌하면 provider 호출 **전에** 실패한다.
- *   4. ko 전용 결정 검사(scanLexicon / Hangul 고유명사 heuristic)는 비ko 에서
- *      증거로 실행되지 않고, 건너뛴 사실이 결과에 남는다.
+ *   4. ko 전용 결정 검사(Hangul 고유명사 heuristic)는 비ko 에서 증거로
+ *      실행되지 않고, 건너뛴 사실이 결과에 남는다. 호칭은 내장 사전으로
+ *      판정하지 않는다 — 어느 언어에서도 의미 검토 몫이다.
  *   5. semanticValidation 은 실제 응답만 신뢰한다 — hash echo 불일치, 모르는 ID,
  *      빠진 필수 ID, 근거 없는 fail, 형식 오류, provider 오류는 통과가 아니다.
  *      continuityCheck 는 의미 재요청 루프를 돌리지 않는다.
@@ -17,7 +18,6 @@
  */
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { createGenreProfileRegistry } from '../../src/continuity/genre-profile.js';
-import { DefaultHonorificLexicon } from '../../src/continuity/honorific-lexicon.js';
 import { emptyStoryState } from '../../src/continuity/story-state.js';
 import { buildLanguageContract, LanguagePolicyError } from '../../src/core/language-policy.js';
 import {
@@ -150,7 +150,6 @@ function checkInput(extra = {}) {
         chapterNumber: 2,
         delta: emptyDelta(2, ['c1']),
         prevState: emptyStoryState('work-lang'),
-        lexicon: new DefaultHonorificLexicon([]),
         model: MODEL,
         ...rest,
         foundation: foundationFor(extra),
@@ -650,24 +649,21 @@ describe('continuityCheck prompt families', () => {
             '- intrinsic 위반: Foundation 의 캐릭터 intrinsic(성별/연령대/역할 등)과 본문 묘사가 충돌하는 사례',
             '- invariant 위반: 위 invariant 목록 중 본문/Delta 에서 깨진 항목 (invariantId 명시)',
             '- 정당화되지 않은 mutable 변경: location/status 변화가 본문에 명시되지 않는 경우',
-            '- lexicon 추가: 본문에 등장한 호칭이 알려지지 않은 경우 함의 분류',
             ``,
             `## 출력 스키마 (이 JSON 한 개만 출력)`,
             '{',
             '  "intrinsicViolations": [{ "characterId": "...", "message": "..." }],',
             '  "invariantViolations": [{ "invariantId": "...", "message": "..." }],',
-            '  "unjustifiedMutable": [{ "characterId": "...", "message": "..." }],',
-            '  "lexiconAdditions": [{ "term": "...", "genderImplication": "male|female|null", "speakerGenderImplication": "male|female|null", "statusImplication": "..." }]',
+            '  "unjustifiedMutable": [{ "characterId": "...", "message": "..." }]',
             '}',
         ].join('\n');
         expect(user).toBe(expectedUser);
         expect(result.passed).toBe(true);
         expect(result.violations).toEqual([]);
-        expect(result.lexiconAdditions).toEqual([]);
         // 계획이 없으면 아무것도 묻지 않았으므로 통과가 아니라 pending 이다.
         expect(result.semanticValidation.status).toBe('pending');
         expect(result.semanticValidation.verdicts).toEqual({});
-        expect(result.deterministicScan).toEqual({ checkerId: 'scanLexicon', status: 'ran', skipReason: null });
+        expect(Object.keys(result).sort()).toEqual(['passed', 'semanticValidation', 'violations']);
     });
     it('ja check prompt is English-based and asks for target-language messages', async () => {
         const cap = capturing('{}');
@@ -683,23 +679,17 @@ describe('continuityCheck prompt families', () => {
         // 분량 목표는 검수 프롬프트에 섞이지 않는다.
         expect(system).not.toContain('3000 graphemes');
     });
-    it('ko-only lexicon scan is skipped (not silently passed) on a non-ko work', async () => {
+    it('address terms are not judged by a built-in dictionary in any language', async () => {
         const prose = '소영을 향해 "도련님" 하고 누군가 불렀다.';
         const foundation = makeFoundation({ characters: [femaleChar('c2', '소영')] });
         const ko = await continuityCheck(checkInput({
             providers: capturing('{}').providers, prose, foundation,
-            lexicon: new DefaultHonorificLexicon(),
         }));
-        expect(ko.violations.some((v) => v.code === 'GENDER_HONORIFIC_MISMATCH')).toBe(true);
-        expect(ko.deterministicScan.status).toBe('ran');
+        expect(ko.violations).toEqual([]);
         const ja = await continuityCheck(checkInput({
-            providers: capturing('{}').providers, prose, foundation,
-            lexicon: new DefaultHonorificLexicon(), workContract: JA_CONTRACT,
+            providers: capturing('{}').providers, prose, foundation, workContract: JA_CONTRACT,
         }));
         expect(ja.violations).toEqual([]);
-        expect(ja.deterministicScan).toEqual({
-            checkerId: 'scanLexicon', status: 'skipped', skipReason: 'ko_lexical_unsupported',
-        });
     });
     it('structural and fallback messages follow the family language', async () => {
         const delta = emptyDelta(2, ['c1']);
@@ -735,7 +725,7 @@ describe('continuityCheck semanticValidation', () => {
             { checkerId: null, invariantId: 'SCHEMA', invariant: 'required', requiresSemantic: true, applicability: 'run' },
             { checkerId: null, invariantId: 'LENGTH', invariant: 'required', requiresSemantic: true, applicability: 'run' },
             { checkerId: null, invariantId: 'OUTPUT_LANGUAGE', invariant: 'required', requiresSemantic: true, applicability: 'run' },
-            { checkerId: 'scanLexicon', invariantId: 'ADDRESSING', invariant: 'advisory', requiresSemantic: true, applicability: 'run' },
+            { checkerId: null, invariantId: 'ADDRESSING', invariant: 'advisory', requiresSemantic: true, applicability: 'run' },
             { checkerId: 'checkPov', invariantId: 'POV', invariant: 'required', requiresSemantic: true, applicability: 'not_applicable' },
         ]);
         expect(requiredSemanticInvariantIds(plan)).toEqual(['FORMAT', 'INTRINSIC', 'POV']);
@@ -946,7 +936,6 @@ describe('continuityCheck semanticValidation', () => {
         expect(result.semanticValidation.verdicts).toEqual({});
         expect(result.passed).toBe(true);
         expect(result.violations).toEqual([]);
-        expect(result.lexiconAdditions).toEqual([]);
     });
     it('a plan requiring no ID this module judges asks nothing and stays pending', async () => {
         const plan = { rows: [{ checkerId: null, invariantId: 'OUTPUT_LANGUAGE', invariant: 'required', requiresSemantic: true, applicability: 'run' }] };

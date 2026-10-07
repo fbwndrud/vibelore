@@ -9,7 +9,6 @@
  * findings, and the relay only adds the semantic layer on top.
  */
 import { extractDelta, continuityCheck } from '../../engine/src/continuity/continuity-check.js';
-import { scanLexicon } from '../../engine/src/continuity/lexicon-scan.js';
 import { scanSensitive } from '../../engine/src/continuity/sensitive-lexicon.js';
 import { scanQuality } from '../../engine/src/continuity/quality-scan.js';
 import { checkPov } from '../../engine/src/continuity/pov-check.js';
@@ -69,7 +68,6 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
 
   // -- deterministic layer, no model needed ---------------------------------
   const violations = [
-    ...collect('lexicon', () => scanLexicon({ prose, chapterNumber: chapter, foundation, lexicon: lex.honorific })),
     ...collect('sensitive', () => scanSensitive({ prose, chapterNumber: chapter, lexicon: lex.sensitive })),
     ...collect('quality', () => scanQuality({
       prose, chapterNumber: chapter,
@@ -130,7 +128,7 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
   if (includeSemanticContinuity && (providers?.pending?.length ?? 0) === 0) {
     const semantic = await continuityCheck({
       prose, chapterNumber: chapter, foundation, delta, prevState,
-      lexicon: lex.honorific, providers, model: MODEL,
+      providers, model: MODEL,
     });
     violations.push(...(semantic.violations ?? []));
   }

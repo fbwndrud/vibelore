@@ -164,7 +164,7 @@ describe('working tree and experience generations', () => {
     const store = new MarkdownStateStore(root);
     await store.saveFoundation({ workId: 'work', genre: 'fantasy', worldFacts: [], characters: [], intrinsicChanges: [], genreProfile: { invariants: [] } });
     await store.saveStoryProfile('work', { status: 'active', format: { length: { unit: 'legacyCodeUnits', target: 10 } } });
-    const delta = { chapterNumber: 1, appearedCharacterIds: [], mutableChanges: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], trackedEntityOps: [], entityOps: [], lexiconAdditions: [] };
+    const delta = { chapterNumber: 1, appearedCharacterIds: [], mutableChanges: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], trackedEntityOps: [], entityOps: [] };
     const providers = {
       get pending() { return []; },
       async complete(request) {
