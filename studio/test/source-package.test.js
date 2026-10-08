@@ -277,6 +277,44 @@ it('exports sealed scene scopes without leaking future/author documents after th
     },
     { aggregate: { kind: 'cast', id: 'source-role' } }
   );
+  await assert.rejects(
+    command(
+      'casting.set',
+      { id: 'asset-only-casting', roleId: 'source-role', scope: 'project', state: 'state-child', voice: 'v' },
+      { aggregate: { kind: 'casting', id: 'asset-only-casting' } }
+    ),
+    { code: 'INVALID_REFERENCE' }
+  );
+  await command('production.create', {
+    id: 'source-production',
+    title: 'Source',
+    sourcePackageId: exported.package.id,
+  });
+  await assert.rejects(
+    command(
+      'scene.put',
+      {
+        id: 'asset-only-presentation',
+        productionId: 'source-production',
+        sourcePackageId: exported.package.id,
+        occurrences: [
+          { id: 'probe', characterId: sourceIdentity.id, roleBindingId: 'source-role', presence: 'onscreen' },
+        ],
+        presentations: [
+          {
+            occurrenceId: 'probe',
+            appearanceStateRef: 'state-child',
+            castingStateRef: null,
+            knowledgeStateRef: null,
+          },
+        ],
+        utterances: [],
+        shots: [],
+      },
+      { aggregate: { kind: 'scene', id: 'asset-only-presentation' } }
+    ),
+    { code: 'INVALID_REFERENCE' }
+  );
   await command(
     'casting.set',
     {
