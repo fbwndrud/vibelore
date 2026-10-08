@@ -143,3 +143,85 @@ test("a later first camera key interpolates from base transform without jumping 
   assert.equal(frameAt({ edition, frame: 15 }).camera.x, 0.05);
   assert.equal(frameAt({ edition, frame: 15 }).camera.scale, 1.05);
 });
+
+test("audio rerender enforces frozen runtime lock and used code without requiring a video runtime", async (t) => {
+  const { audioFixture } = await import("./helpers/render-fixture.js");
+  const { renderEdition } = await import("../src/render/renderer.js");
+  const f = await audioFixture(t),
+    edition = (
+      await f.command(
+        "edition.create",
+        { id: "runtime", productionId: "main", profile: "audio" },
+        { aggregate: { kind: "edition", id: "runtime" } },
+      )
+    ).value;
+  const render = (e) =>
+    renderEdition({
+      edition: e,
+      readBlob: (id) => f.service.readBlob(f.projectId, id),
+    });
+  for (const field of ["node", "platform", "arch", "lockBlobId"]) {
+    const changed = structuredClone(edition);
+    changed.closure.environment[field] = "mismatched";
+    await assert.rejects(
+      render(changed),
+      { code: "RENDER_ENVIRONMENT_CHANGED" },
+      field,
+    );
+  }
+  const changed = structuredClone(edition);
+  changed.closure.environment.code[0].blobId = "0".repeat(64);
+  await assert.rejects(
+    render(changed),
+    { code: "RENDER_ENVIRONMENT_CHANGED" },
+    "used source",
+  );
+  const oldPath = process.env.PATH;
+  process.env.PATH = "";
+  try {
+    const e = structuredClone(edition);
+    e.closure.environment.video = { available: false, reason: "UNRELATED" };
+    const out = await render(e);
+    assert.equal(out.mime, "audio/wav");
+  } finally {
+    process.env.PATH = oldPath;
+  }
+});
+
+test("video build fingerprints compare actual installed packages and the complete frozen render environment before bundling", async (t) => {
+  const { videoFixture } = await import("./helpers/render-fixture.js");
+  const { verifyRenderEnvironment } = await import("../src/render/probe.js");
+  const f = await videoFixture(t),
+    edition = (
+      await f.command(
+        "edition.create",
+        { id: "runtime-video", productionId: "main", profile: "landscape" },
+        { aggregate: { kind: "edition", id: "runtime-video" } },
+      )
+    ).value;
+  const env = edition.closure.environment;
+  assert.equal(env.video.packages["@remotion/renderer"], "4.0.534");
+  assert.equal(env.video.packages.react, "19.3.0");
+  await verifyRenderEnvironment(env, "video");
+  for (const field of ["node", "platform", "arch", "lockBlobId"]) {
+    const changed = structuredClone(env);
+    changed[field] = "mismatched";
+    await assert.rejects(
+      verifyRenderEnvironment(changed, "video"),
+      { code: "RENDER_ENVIRONMENT_CHANGED" },
+      field,
+    );
+  }
+  for (const field of ["browser", "packages"]) {
+    const changed = structuredClone(env);
+    changed.video[field] =
+      field === "packages"
+        ? { ...changed.video.packages, react: "different" }
+        : "different";
+    await assert.rejects(
+      verifyRenderEnvironment(changed, "video"),
+      { code: "RENDER_ENVIRONMENT_CHANGED" },
+      field,
+    );
+  }
+});

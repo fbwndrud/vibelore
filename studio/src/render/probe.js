@@ -1,11 +1,68 @@
+import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { decodeWav } from "../assets/audio-import.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { access, mkdtemp, writeFile, rm } from "node:fs/promises";
-import { fail } from "../engine/contracts.js";
+import { access, mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
+import { fail, canonicalDigest } from "../engine/contracts.js";
 export const run = promisify(execFile);
+const require = createRequire(import.meta.url);
+const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+export const renderCodePaths = (kind) => [
+  "./renderer.js",
+  "./probe.js",
+  "./mix.js",
+  "../assets/audio-import.js",
+  "../engine/contracts.js",
+  ...(kind === "video"
+    ? ["../../render/frame.js", "../../render/composition.jsx"]
+    : []),
+];
+export async function verifyRenderEnvironment(environment, kind) {
+  const mismatch = () =>
+    fail(
+      "RENDER_ENVIRONMENT_CHANGED",
+      "Renderer build or runtime differs from the frozen environment.",
+    );
+  if (
+    !environment ||
+    environment.node !== process.version ||
+    environment.platform !== process.platform ||
+    environment.arch !== process.arch
+  )
+    mismatch();
+  if (
+    hash(
+      await readFile(new URL("../../package-lock.json", import.meta.url)),
+    ) !== environment.lockBlobId
+  )
+    mismatch();
+  const paths = renderCodePaths(kind);
+  if (
+    !Array.isArray(environment.code) ||
+    environment.code.length !== paths.length
+  )
+    mismatch();
+  for (const path of paths) {
+    const entry = environment.code.find((file) => file.path === path);
+    if (
+      !entry ||
+      hash(await readFile(new URL(path, import.meta.url))) !== entry.blobId
+    )
+      mismatch();
+  }
+  if (kind === "video") {
+    const capabilities = await renderCapabilities();
+    if (!capabilities.video.available)
+      fail("VIDEO_RUNTIME_UNAVAILABLE", "Video runtime is not available.");
+    if (
+      canonicalDigest(capabilities.video) !== canonicalDigest(environment.video)
+    )
+      mismatch();
+  }
+}
 export const chromePath =
   process.platform === "darwin"
     ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -23,12 +80,24 @@ export async function renderCapabilities() {
     const chrome = await run(chromePath, ["--version"]);
     await import("@remotion/renderer");
     await import("@remotion/bundler");
+    const packages = {};
+    for (const name of [
+      "remotion",
+      "@remotion/renderer",
+      "@remotion/bundler",
+      "react",
+      "react-dom",
+    ])
+      packages[name] = JSON.parse(
+        await readFile(require.resolve(`${name}/package.json`), "utf8"),
+      ).version;
     result.video = {
       available: true,
+      packages,
       ffmpeg: ffmpeg.stdout.split("\n")[0],
       ffprobe: ffprobe.stdout.split("\n")[0],
       browser: chrome.stdout.trim(),
-      remotion: "4.0.534",
+      remotion: packages.remotion,
     };
   } catch {
     result.video.reason = "VIDEO_RUNTIME_UNAVAILABLE";

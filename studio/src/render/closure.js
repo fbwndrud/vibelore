@@ -19,7 +19,7 @@ import {
 import { decodeMedia } from "../assets/decode.js";
 import { prepareFont } from "./font.js";
 import { mixTimeline } from "./mix.js";
-import { renderCapabilities } from "./probe.js";
+import { renderCapabilities, renderCodePaths } from "./probe.js";
 import { policyValue } from "./policy.js";
 
 export function blobReferences(value, out = new Set()) {
@@ -72,7 +72,7 @@ function resolveShots(store, projectId, inputs, timeline, intents, profile) {
   for (const scene of inputs.scenes) {
     const takes = timeline.takes.filter((t) => t.sceneId === scene.id);
     const start = shots.at(-1)?.endFrame ?? 0,
-      end = takes.at(-1)?.endFrame ?? start;
+      end = Math.max(start, ...takes.map((take) => take.endFrame));
     if (!scene.shots.length) fail("MISSING_IMAGE", "Video scene has no shots.");
     for (const [i, shot] of scene.shots.entries()) {
       const slot = shot.referenceSlotId
@@ -219,13 +219,7 @@ export async function prepareEdition(service, context) {
     code: [],
     video: profile.kind === "video" ? (await renderCapabilities()).video : null,
   };
-  for (const path of [
-    "../../render/frame.js",
-    "../../render/composition.jsx",
-    "./renderer.js",
-    "./mix.js",
-    "./probe.js",
-  ])
+  for (const path of renderCodePaths(profile.kind))
     environment.code.push({
       path,
       blobId: (

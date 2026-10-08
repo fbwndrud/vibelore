@@ -338,9 +338,23 @@ export function renderPreview(c) {
         `실파일 검사 완료 · ${clock(output.manifest.durationSeconds)} · 감상 검토는 별도 기록`,
       ),
     );
-    const review = (s.editionReviews ?? []).find(
+    const bindingRevision = revision(s, "editionPolicy", edition.id);
+    const reviews = (s.editionReviews ?? []).filter(
       (r) => r.renderId === output.id,
     );
+    const review = reviews.find(
+      (r) =>
+        r.editionId === edition.id &&
+        r.closureDigest === edition.closureDigest &&
+        r.outputManifestDigest === output.manifestDigest &&
+        r.policyBindingRevision === bindingRevision,
+    );
+    if (!review && reviews.length)
+      root.append(
+        note(
+          "검토 정책이 변경되었습니다. 이 출력의 감상 검토를 다시 기록해 주세요.",
+        ),
+      );
     const published = (s.editionPublications ?? []).find(
       (p) => p.editionId === edition.id,
     );
@@ -372,7 +386,7 @@ export function renderPreview(c) {
       root.append(
         form(
           c,
-          `review:${output.id}`,
+          `review:${output.id}:${bindingRevision}`,
           [
             {
               name: "listened",

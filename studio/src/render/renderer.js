@@ -3,13 +3,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
-import { randomBytes, createHash } from "node:crypto";
-import { chromePath, run, probeOutput, renderCapabilities } from "./probe.js";
-import { fail, canonicalDigest } from "../engine/contracts.js";
+import { randomBytes } from "node:crypto";
+import {
+  chromePath,
+  run,
+  probeOutput,
+  verifyRenderEnvironment,
+} from "./probe.js";
 import { decodeWav } from "../assets/audio-import.js";
 export async function renderEdition({ edition, readBlob }) {
-  const c = edition.closure,
-    mix = await readBlob(c.mix.blobId);
+  const c = edition.closure;
+  await verifyRenderEnvironment(c.environment, c.profile.kind);
+  const mix = await readBlob(c.mix.blobId);
   if (c.profile.kind === "audio") {
     const decoded = decodeWav(mix);
     return {
@@ -28,24 +33,6 @@ export async function renderEdition({ edition, readBlob }) {
       checks: { decodedAudio: true, decodedVideo: false, profile: true },
       frames: [],
     };
-  }
-  const capabilities = await renderCapabilities();
-  if (!capabilities.video.available)
-    fail("VIDEO_RUNTIME_UNAVAILABLE", "Video runtime is not available.");
-  if (
-    canonicalDigest(capabilities.video) !== canonicalDigest(c.environment.video)
-  )
-    fail(
-      "RENDER_ENVIRONMENT_CHANGED",
-      "Video runtime differs from frozen environment.",
-    );
-  for (const file of c.environment.code) {
-    const bytes = await readFile(new URL(file.path, import.meta.url));
-    if (createHash("sha256").update(bytes).digest("hex") !== file.blobId)
-      fail(
-        "RENDER_ENVIRONMENT_CHANGED",
-        "Renderer code changed since this edition was frozen.",
-      );
   }
   const directory = await mkdtemp(join(tmpdir(), "studio-render-"));
   let server;

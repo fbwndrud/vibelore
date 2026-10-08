@@ -52,3 +52,26 @@ export async function audioFixture(t) {
   }
   return f;
 }
+
+export async function videoFixture(t) {
+  const { png, basePixels, environmentSlot } = await import("./images.js");
+  const f = await audioFixture(t),
+    slot = environmentSlot("picture");
+  await assetImport(f, "picture1", await png(basePixels), slot);
+  await f.command(
+    "candidate.adopt",
+    {
+      slotId: slot.id,
+      candidateId: "picture1",
+      actor: "creator",
+      reason: "Video fixture",
+    },
+    { aggregate: { kind: "assetSlot", id: slot.id } },
+  );
+  const scene = (await f.service.snapshot(f.projectId)).scenes[0];
+  scene.shots = scene.shots.map((sh) => ({ ...sh, referenceSlotId: slot.id }));
+  await f.command("scene.put", scene, {
+    aggregate: { kind: "scene", id: scene.id },
+  });
+  return f;
+}

@@ -384,3 +384,33 @@ test("explicit mute trim gain fade and overlap affect PCM while hold silence and
   assert.ok(peak(1, 1.01) < 0.01);
   assert.ok(peak(2.2, 2.3) > 0.15);
 });
+
+test("default video shots cover the latest actual overlapping take, including a shorter final narrator", async (t) => {
+  const { videoFixture } = await import("./helpers/render-fixture.js");
+  const f = await videoFixture(t);
+  await f.command(
+    "timeline.update",
+    {
+      productionId: "main",
+      utterances: ["u1", "u2", "uN"].map((utteranceId) => ({
+        utteranceId,
+        fixedStartMs: 0,
+      })),
+    },
+    { aggregate: { kind: "timeline", id: "main" } },
+  );
+  const e = (await create(f, "overlap", "landscape")).value;
+  assert.deepEqual(
+    e.closure.timeline.takes.map((x) => [x.startFrame, x.endFrame]),
+    [
+      [0, 60],
+      [0, 60],
+      [0, 30],
+    ],
+  );
+  assert.equal(e.closure.timeline.durationFrames, 60);
+  assert.equal(e.closure.shots[0].startFrame, 0);
+  assert.equal(e.closure.shots.at(-1).endFrame, 60);
+  const { frameAt } = await import("../render/frame.js");
+  assert.ok(frameAt({ edition: e, frame: 59 }).shotId);
+});
