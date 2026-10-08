@@ -1,3 +1,5 @@
+import { registerEditionCommands, decorateEditionSnapshot } from '../render/edition.js';
+import { registerTimelineCommands } from './timeline.js';
 import { registerManuscriptCommand } from '../source/manuscript.js';
 import { registerProposalCommands } from './proposals.js';
 import { registerAdoptionCommands, decorateAssetSnapshot } from './adoptions.js';
@@ -105,7 +107,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
         snapshot.scenes = effectiveScenes(snapshot);
         snapshot.resolvedBindings = resolvedBindings(snapshot);
         snapshot.sourceChanges = store.all('SELECT data_json FROM source_changes WHERE project_id=? ORDER BY id', projectId).map(r => JSON.parse(r.data_json));
-        return decorateAssetSnapshot(store, decorateExecutionSnapshot(store, snapshot));
+        return decorateEditionSnapshot(store, decorateAssetSnapshot(store, decorateExecutionSnapshot(store, snapshot)));
       });
     }, 'STORAGE_FAILED'); },
     async events(projectId, afterCursor = 0) { return boundary(() => store.events(projectId, afterCursor), 'STORAGE_FAILED'); },
@@ -161,6 +163,8 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   registerAssetCommands(service);
   registerAdoptionCommands(service);
   registerRecoveryCommands(service);
+  registerTimelineCommands(service);
+  registerEditionCommands(service);
   recoverWorkers(service);
   await revalidatePendingOutputs(service);
   return service;

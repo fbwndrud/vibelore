@@ -1,3 +1,4 @@
+import { renderPreview } from "./player.js";
 import { command, revision, utteranceCommand } from "./api.js";
 import {
   el,
@@ -47,21 +48,7 @@ export function renderEdit(c) {
     scene.utterances.find((u) => u.id === c.selection.utterance) ??
     scene.utterances[0];
   const shot = scene.shots.find((sh) => sh.id === c.selection.shot);
-  const slot = s.slots.find((slot) => slot.id === shot?.referenceSlotId);
-  const image = s.candidates.find((x) => x.id === slot?.candidateId);
-  left.append(
-    card(
-      "선택한 샷",
-      media(c, image, shot?.title ?? "샷 자료"),
-      el(
-        "div",
-        { id: "studio-player", class: "player-placeholder" },
-        note(
-          "타임라인 플레이어는 아직 연결되지 않았습니다. 아래에서 저장한 연출 의도를 편집할 수 있습니다.",
-        ),
-      ),
-    ),
-  );
+  left.append(renderPreview(c));
   if (u) {
     const occurrence = scene.occurrences.find(
       (o) => o.id === u.speakerOccurrenceId,
@@ -122,11 +109,15 @@ export function renderEdit(c) {
               utteranceCommand(
                 s,
                 u.id,
-                {
-                  ...p,
-                  acting: parseActing(p.acting),
-                  holdMs: Number(p.holdMs),
-                },
+                Object.fromEntries(
+                  Object.entries({
+                    ...p,
+                    acting: parseActing(p.acting),
+                    holdMs: Number(p.holdMs),
+                  }).filter(
+                    ([key, value]) => !(value === "" && u[key] == null),
+                  ),
+                ),
                 rev,
               ),
             ),
@@ -299,7 +290,7 @@ export function renderEdit(c) {
             label: "키프레임 (JSON)",
             type: "textarea",
             value: JSON.stringify(tr.keyframes ?? []),
-            help: "재생은 후속 타임라인에서 연결됩니다. timeMs는 샷 내부 밀리초입니다. x/y는 중심 기준 -1..1, scale은 양수입니다.",
+            help: "timeMs는 샷 내부 밀리초입니다. x/y는 중심 기준 -1..1, scale은 양수입니다.",
           },
         ],
         async (p, rev) => {

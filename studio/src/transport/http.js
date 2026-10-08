@@ -1,3 +1,4 @@
+import { renderCapabilities } from '../render/probe.js';
 import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -25,8 +26,10 @@ const staticFiles = new Map([
     'asset-lab.js',
     'edit.js',
     'production.js',
+    'player.js',
     'dom.js',
   ].map((file) => [`/${file}`, [file, 'text/javascript; charset=utf-8']]),
+  ['/render/frame.js', ['../render/frame.js', 'text/javascript; charset=utf-8']],
   ['/studio.css', ['studio.css', 'text/css; charset=utf-8']],
 ]);
 const uiRoot = new URL('../../ui/', import.meta.url);
@@ -54,6 +57,7 @@ export async function startStudioHttp({
   if (!service || !Number.isInteger(port) || port < 0 || port > 65535)
     throw new TransportError('INVALID_CONFIGURATION');
   assertId(projectId);
+  const rendering = await renderCapabilities();
   const token = randomBytes(32).toString('hex');
   const pending = new Set(),
     streams = new Set(),
@@ -153,6 +157,7 @@ export async function startStudioHttp({
             projectId,
             ...capabilities(sourceCapture),
             providers: providerCapabilities,
+            rendering,
           });
         if (request.method === 'GET' && target.pathname === '/api/snapshot')
           return json(

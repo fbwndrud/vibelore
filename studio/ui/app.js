@@ -95,6 +95,8 @@ function normalize() {
     c.selection.role = "";
 }
 function render() {
+  for (const dispose of c.cleanups ?? []) dispose();
+  c.cleanups?.clear();
   for (const url of c.urls) URL.revokeObjectURL(url);
   c.urls.clear();
   normalize();

@@ -1,3 +1,4 @@
+import { renderPreview } from './player.js';
 import { command, revision } from "./api.js";
 import { el, card, note, form, button, uid, details } from "./dom.js";
 export function generationCommand(
@@ -67,6 +68,7 @@ const money = (n) => `$${(n / 1e6).toFixed(4)}`;
 export function renderProduction(c) {
   const s = c.snapshot;
   const root = el("div", { class: "production-view" });
+  if (c.selection.production) root.append(renderPreview(c));
   root.append(
     card(
       "제작 예산",

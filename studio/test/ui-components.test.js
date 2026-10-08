@@ -244,3 +244,16 @@ test("rendered Edit title save preserves four asymmetric safe-area insets; editi
     top: 0.15,
   });
 });
+
+test('Edit exposes actual frozen preview creation and aspect selection through common edition authority',async t=>{
+ const {audioFixture}=await import('./helpers/render-fixture.js');const f=await audioFixture(t);const c=await context(t,f);c.selection.production='main';
+ const root=renderEdit(c);const profile=named(root,'previewProfile');assert.ok(profile,'Aspect/audio selection');profile.value='audio';await profile.fire('change');
+ const create=tree(root).find(x=>x.tag==='button'&&x.textContent==='새 미리보기 고정');assert.ok(create);await create.fire('click');
+ const s=await f.service.snapshot('p1');assert.equal(s.editions.length,1);assert.equal(s.editions[0].closure.profile.kind,'audio');assert.equal(c.sent.at(-1).type,'edition.create');
+});
+
+test('Edit hold-only form save does not add empty performance fields or invalidate accepted audio',async t=>{
+ const {audioFixture}=await import('./helpers/render-fixture.js');const f=await audioFixture(t),c=await context(t,f);c.selection.production='main';
+ const root=renderEdit(c);named(root,'holdMs').value='1400';await submitForm(root,'이 발화 저장').fire('submit');
+ const e=await f.command('edition.create',{id:'after-hold',productionId:'main',profile:'audio'},{aggregate:{kind:'edition',id:'after-hold'}});assert.equal(e.value.closure.timeline.takes[0].startSample,67200);
+});
