@@ -112,43 +112,108 @@ export function validateSourcePackage(pkg) {
   }
   return pkg;
 }
+// Both raw import and configured capture stage bytes here, then validate/apply in
+// the original command transaction. No nested dispatch or replacement envelope.
+async function prepareSourceImport(service, envelope, payload) {
+  const { package: pkg, blobs = [] } = payload;
+  validateSourcePackage(pkg);
+  if (!Array.isArray(blobs)) fail('INVALID_INPUT', 'Expected source bytes.');
+  const supplied = new Map();
+  for (const blob of blobs) {
+    if (
+      !Array.isArray(blob.bytes) ||
+      !blob.bytes.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)
+    )
+      fail('INVALID_INPUT', 'Expected byte arrays.');
+    const bytes = Uint8Array.from(blob.bytes);
+    if (hashBytes(bytes) !== blob.blobId)
+      fail(
+        'SOURCE_BLOB_MISMATCH',
+        'Source bytes differ from the declared hash.'
+      );
+    if (
+      !pkg.blobManifest.some(
+        (b) => b.blobId === blob.blobId && b.byteLength === bytes.length
+      )
+    )
+      fail(
+        'SOURCE_BLOB_MISMATCH',
+        'Source bytes are not declared by this package.'
+      );
+    supplied.set(blob.blobId, bytes);
+  }
+  for (const manifest of pkg.blobManifest) {
+    if (supplied.has(manifest.blobId))
+      await service.blobs.put(
+        envelope.projectId,
+        supplied.get(manifest.blobId)
+      );
+    else await service.blobs.read(envelope.projectId, manifest.blobId);
+  }
+  return pkg;
+}
+function validateSourceImport({ store, envelope, aggregate, prepared }) {
+  const pkg = validateSourcePackage(prepared);
+  if (aggregate.revision)
+    fail('SOURCE_IMMUTABLE', 'Imported source packages are immutable.');
+  for (const blob of pkg.blobManifest) {
+    const row = store.get(
+      'SELECT byte_length,status FROM blobs WHERE project_id=? AND id=?',
+      envelope.projectId,
+      blob.blobId
+    );
+    if (
+      !row ||
+      row.status !== 'available' ||
+      row.byte_length !== blob.byteLength
+    )
+      fail(
+        'INVALID_REFERENCE',
+        'Source bytes are unavailable in this project.'
+      );
+  }
+}
+const applySourceImport = ({ prepared }) => prepared;
 export function registerSourceCommands(service) {
   service.registerCommand('source.import', {
-    target: ({ envelope }) => ({ kind: 'sourcePackage', id: envelope.payload.package.id }),
+    target: ({ envelope }) => ({
+      kind: 'sourcePackage',
+      id: envelope.payload.package.id,
+    }),
+    prepare: ({ envelope }) =>
+      prepareSourceImport(service, envelope, envelope.payload),
+    validate: validateSourceImport,
+    apply: applySourceImport,
+  });
+}
+export function registerSourceCaptureCommands(service, { capture }) {
+  if (typeof capture !== 'function')
+    fail('INVALID_INPUT', 'Expected a source capture connector.');
+  service.registerCommand('source.capture', {
+    target({ envelope }) {
+      const { id, workId, request } = envelope.payload;
+      assertId(id);
+      assertId(workId);
+      if (
+        !request ||
+        typeof request !== 'object' ||
+        Array.isArray(request) ||
+        Object.keys(envelope.payload).some(
+          (key) => !['id', 'workId', 'request'].includes(key)
+        )
+      )
+        fail('INVALID_INPUT', 'Expected an explicit source selection.');
+      return { kind: 'sourcePackage', id };
+    },
     async prepare({ envelope }) {
-      const { package: pkg, blobs = [] } = envelope.payload;
-      validateSourcePackage(pkg);
-      if (!Array.isArray(blobs)) fail('INVALID_INPUT', 'Expected source bytes.');
-      const supplied = new Map();
-      for (const blob of blobs) {
-        if (!Array.isArray(blob.bytes) || !blob.bytes.every((n) => Number.isInteger(n) && n >= 0 && n <= 255))
-          fail('INVALID_INPUT', 'Expected byte arrays.');
-        const bytes = Uint8Array.from(blob.bytes);
-        if (hashBytes(bytes) !== blob.blobId)
-          fail('SOURCE_BLOB_MISMATCH', 'Source bytes differ from the declared hash.');
-        if (!pkg.blobManifest.some((b) => b.blobId === blob.blobId && b.byteLength === bytes.length))
-          fail('SOURCE_BLOB_MISMATCH', 'Source bytes are not declared by this package.');
-        supplied.set(blob.blobId, bytes);
-      }
-      for (const manifest of pkg.blobManifest) {
-        if (supplied.has(manifest.blobId))
-          await service.blobs.put(envelope.projectId, supplied.get(manifest.blobId));
-        else await service.blobs.read(envelope.projectId, manifest.blobId);
-      }
+      const { id, workId, request } = envelope.payload;
+      const exported = await capture({ workId, request });
+      return prepareSourceImport(service, envelope, {
+        package: { ...exported.package, id },
+        blobs: exported.blobs,
+      });
     },
-    validate({ store, envelope, aggregate }) {
-      const pkg = validateSourcePackage(envelope.payload.package);
-      if (aggregate.revision) fail('SOURCE_IMMUTABLE', 'Imported source packages are immutable.');
-      for (const blob of pkg.blobManifest) {
-        const row = store.get(
-          'SELECT byte_length,status FROM blobs WHERE project_id=? AND id=?',
-          envelope.projectId,
-          blob.blobId
-        );
-        if (!row || row.status !== 'available' || row.byte_length !== blob.byteLength)
-          fail('INVALID_REFERENCE', 'Source bytes are unavailable in this project.');
-      }
-    },
-    apply: ({ envelope }) => envelope.payload.package,
+    validate: validateSourceImport,
+    apply: applySourceImport,
   });
 }
