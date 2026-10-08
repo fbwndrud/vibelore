@@ -4,6 +4,9 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { writeFile, mkdir, rm, chmod, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import fs from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
+import { canonicalJSON } from '../src/engine/contracts.js';
 import { createHash } from 'node:crypto';
 import { openStudio } from '../src/engine/index.js';
 import { withStudio } from './helpers/project.js';
@@ -299,4 +302,70 @@ it('reads the current revision for an overridden aggregate when using an extensi
   assert.equal(result.aggregateRevision, 3);
   assert.equal((await f.service.snapshot('p1')).productions[0].title, '셋째 제목');
   assert.equal((await f.service.snapshot('p1')).aggregates.find(a => a.kind === 'project').revision, 1);
+});
+
+
+it('rejects non-enumerable unsafe, hidden and symbol JSON properties', () => {
+  for (const key of ['__proto__', 'prototype', 'constructor', 'hidden', Symbol('hidden')]) {
+    const input = { ok: 1 };
+    Object.defineProperty(input, key, { value: 2 });
+    assert.throws(() => canonicalJSON(input), code('INVALID_INPUT'));
+  }
+  const input = { ok: 1, [Symbol('enumerable')]: 2 };
+  assert.throws(() => canonicalJSON(input), code('INVALID_INPUT'));
+});
+
+it('rejects array own getters before they can substitute serialized indices', () => {
+  let getterCalls = 0;
+  const input = [1];
+  Object.defineProperty(input, 'map', { get() { getterCalls++; return () => [999]; } });
+  assert.throws(() => canonicalJSON(input), code('INVALID_INPUT'));
+  assert.equal(getterCalls, 0);
+  const indexed = [1];
+  Object.defineProperty(indexed, '0', { enumerable: true, get() { getterCalls++; return 999; } });
+  assert.throws(() => canonicalJSON(indexed), code('INVALID_INPUT'));
+  assert.equal(getterCalls, 0);
+  assert.equal(canonicalJSON([1, { b: 2, a: 1 }]), '[1,{"a":1,"b":2}]');
+});
+
+function observeSync(t, callback) {
+  const realOpen = fs.open;
+  t.mock.method(fs, 'open', async (...args) => {
+    const handle = await realOpen(...args);
+    const realSync = handle.sync.bind(handle);
+    handle.sync = async () => { await callback(String(args[0]), 'before'); await realSync(); await callback(String(args[0]), 'after'); };
+    return handle;
+  });
+  syncBuiltinESMExports();
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+}
+
+it('syncs initial blob-root parent and the full publication directory chain before registration', async t => {
+  const operations = [];
+  observeSync(t, (path, phase) => { if (phase === 'after') operations.push({ type: 'sync', path }); });
+  const f = await withStudio(t);
+  assert.ok(operations.some(operation => operation.path === f.directory), 'initial blobs root entry requires storage parent sync');
+  operations.length = 0;
+  f.service.store.db.function('observe_blob_registration', () => { operations.push({ type: 'register' }); return 1; });
+  f.service.store.run('CREATE TRIGGER observe_blob BEFORE INSERT ON blobs BEGIN SELECT observe_blob_registration(); END');
+  await f.service.blobs.put('p1', new Uint8Array([1, 2, 3]));
+  const registry = operations.findIndex(operation => operation.type === 'register');
+  const file = operations.findIndex(operation => operation.path?.endsWith('.tmp'));
+  const leaf = operations.findIndex(operation => operation.path === join(f.directory, 'blobs', 'p1'));
+  const blobs = operations.findIndex(operation => operation.path === join(f.directory, 'blobs'));
+  const storage = operations.findIndex(operation => operation.path === f.directory);
+  assert.ok(file >= 0 && leaf > file && blobs > leaf && storage > blobs && registry > storage,
+    'bytes and every parent directory entry must be synced before the registry transaction');
+});
+
+it('blocks registration when publication parent-directory sync fails', async t => {
+  const f = await withStudio(t);
+  observeSync(t, (path, phase) => {
+    if (phase === 'before' && path === join(f.directory, 'blobs')) throw Object.assign(new Error('injected sync failure'), { code: 'EIO' });
+  });
+  await assert.rejects(f.service.blobs.put('p1', new Uint8Array([1, 2, 3])), error => error.code === 'BLOB_WRITE_FAILED' && error.details.reason === 'EIO');
+  assert.equal(f.service.store.get('SELECT count(*) AS n FROM blobs').n, 0);
+  t.mock.restoreAll(); syncBuiltinESMExports();
+  const { blobId } = await f.service.blobs.put('p1', new Uint8Array([1, 2, 3]));
+  assert.deepEqual(await f.service.readBlob('p1', blobId), new Uint8Array([1, 2, 3]));
 });

@@ -7,6 +7,7 @@ const hashBytes = bytes => createHash('sha256').update(bytes).digest('hex');
 
 export class BlobStore {
   constructor(directory, store) {
+    this.storageDirectory = directory;
     this.directory = join(directory, 'blobs');
     this.store = store;
     this.closed = false;
@@ -18,6 +19,10 @@ export class BlobStore {
     const promise = callback();
     this.pending.add(promise);
     try { return await promise; } catch (error) { throw publicError(error, failureCode, true); } finally { this.pending.delete(promise); }
+  }
+  async syncDirectory(directory) {
+    const handle = await open(directory, 'r');
+    try { await handle.sync(); } finally { await handle.close(); }
   }
   path(projectId, blobId) { return join(this.directory, projectId, blobId); }
   register(projectId, blobId, byteLength, status = 'available') {
@@ -48,8 +53,12 @@ export class BlobStore {
           if (hashBytes(existing) !== blobId) fail('BLOB_CORRUPT', 'Existing immutable blob failed integrity verification.', { blobId });
         }
         await unlink(temporary);
-        const handle = await open(directory, 'r');
-        try { await handle.sync(); } finally { await handle.close(); }
+        // Persist the leaf entry and its complete configured directory chain.
+        // Always sync parents: a previous failed first write may have created
+        // them without making their directory entries durable.
+        await this.syncDirectory(directory);
+        await this.syncDirectory(this.directory);
+        await this.syncDirectory(this.storageDirectory);
         this.register(projectId, blobId, bytes.byteLength);
         return { blobId, byteLength: bytes.byteLength };
       } finally {
@@ -80,6 +89,8 @@ export class BlobStore {
   }
   async recover() {
     await mkdir(this.directory, { recursive: true });
+    await this.syncDirectory(this.directory);
+    await this.syncDirectory(this.storageDirectory);
     for (const { id: projectId } of this.store.all('SELECT id FROM projects')) {
       const registered = this.store.all('SELECT id,byte_length FROM blobs WHERE project_id = ?', projectId);
       for (const blob of registered) {

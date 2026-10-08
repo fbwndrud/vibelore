@@ -34,16 +34,26 @@ export function canonicalJSON(value) {
     if (!Array.isArray(input) && proto !== Object.prototype && proto !== null) fail('INVALID_INPUT', 'Expected plain JSON objects.');
     seen.add(input);
     const descriptors = Object.getOwnPropertyDescriptors(input);
-    const keys = Object.keys(input);
+    const keys = Reflect.ownKeys(descriptors);
+    const array = Array.isArray(input);
     for (const key of keys) {
-      if (['__proto__', 'prototype', 'constructor'].includes(key) || !('value' in descriptors[key])) {
-        fail('INVALID_INPUT', 'Unsafe JSON property.');
+      const descriptor = descriptors[key];
+      if (typeof key !== 'string' || ['__proto__', 'prototype', 'constructor'].includes(key)
+        || !('value' in descriptor) || (!descriptor.enumerable && !(array && key === 'length'))) {
+        fail('INVALID_INPUT', 'Unsafe or unsupported JSON property.');
       }
     }
     let result;
-    if (Array.isArray(input)) {
-      if (keys.length !== input.length || keys.some((key, index) => key !== String(index))) fail('INVALID_INPUT', 'Expected dense JSON arrays.');
-      result = `[${input.map(visit).join(',')}]`;
+    if (array) {
+      const length = descriptors.length.value;
+      if (keys.length !== length + 1) fail('INVALID_INPUT', 'Expected dense JSON arrays.');
+      const values = [];
+      for (let index = 0; index < length; index++) {
+        const descriptor = descriptors[String(index)];
+        if (!descriptor) fail('INVALID_INPUT', 'Expected dense JSON arrays.');
+        values.push(visit(descriptor.value));
+      }
+      result = `[${values.join(',')}]`;
     } else {
       result = `{${keys.sort().map(key => `${JSON.stringify(key)}:${visit(descriptors[key].value)}`).join(',')}}`;
     }

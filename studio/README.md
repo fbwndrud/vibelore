@@ -52,7 +52,9 @@ Stable IDs match `/^[A-Za-z0-9_-]{1,120}$/`; blob IDs are lowercase SHA-256
 hexadecimal digests. Budget amounts are nonnegative safe-integer USD micros.
 Commands use canonical JSON: recursively sorted object keys, finite numbers,
 plain objects and dense arrays. Unsupported JSON, cycles, accessors, and
-prototype keys are rejected before invoking a handler.
+prototype keys are rejected before invoking a handler. Own hidden and symbol
+properties are rejected; arrays permit only their standard non-enumerable length
+property and serialize validated index descriptors without calling input methods.
 
 A missing aggregate starts at revision `0`. Each successful command advances
 only its targeted aggregate. A stale revision yields `REVISION_CONFLICT`.
@@ -133,8 +135,10 @@ persistent. All writes use explicit transactions and bound SQL values.
 `service.blobs.put(projectId, Uint8Array)` accepts bytes only and returns
 `{ blobId, byteLength }`. It copies the input, hashes it, writes an exclusive
 same-directory temporary file, fsyncs bytes, publishes with an atomic exclusive
-hard link, removes the temporary name, fsyncs the directory, then registers the
-blob in SQLite. This is immutable publication: POSIX `rename` could overwrite
+hard link, removes the temporary name, fsyncs the leaf, blobs root and storage directory
+in that order, then registers the blob in SQLite. Startup also syncs the blobs
+root and its storage parent before any recovery registration. Parent directories
+are synced on every publication, including retries after a failed first write. This is immutable publication: POSIX `rename` could overwrite
 an existing destination, while an exclusive hard link cannot. Existing hash
 paths are verified before reuse. Unsupported hard links and filesystem failures
 are explicit errors and do not register bytes. A failed registry transaction
