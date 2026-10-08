@@ -1,0 +1,11 @@
+{
+  "round": 1,
+  "exit_code": 0,
+  "elapsed_seconds": 77.4,
+  "input_sha256": "809399c2ef3d17231088fb05e159f3264964aeb61ddbf446ee27253cfa191bdf",
+  "is_error": false,
+  "models": [
+    "claude-opus-5-5"
+  ],
+  "subtype": "success"
+}
