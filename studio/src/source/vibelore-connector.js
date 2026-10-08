@@ -136,7 +136,12 @@ export async function exportVibeloreSource({ store, workId, request }) {
         script: portable(script),
         productionLockId: lock.revisionId,
         sourceStateMap: [
-          ...new Set(lock.scenes.flatMap((scene) => Object.values(scene.stateIds).flat())),
+          // Assets can apply to several states while only one scene is selected.
+          // Preserve those state IDs as declarations, never their unselected documents.
+          ...new Set([
+            ...lock.scenes.flatMap((scene) => Object.values(scene.stateIds).flat()),
+            ...lock.assets.flatMap((asset) => asset.stateIds),
+          ]),
         ].map((sourceStateId) => ({ id: studioId(sourceStateId), sourceStateId })),
         projections: portable(lock.projections),
         expression: portable(lock.expression),

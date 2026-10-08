@@ -419,3 +419,174 @@ it('rejects inherited object names as casting scopes', async (t) => {
     { code: 'INVALID_INPUT' }
   );
 });
+it('rejects replacement of the only identity definition used by another role and occurrence', async (t) => {
+  const { command, service } = await withStudio(t);
+  const identity = { id: 'c', origin: { kind: 'studioLocal' } };
+  await command(
+    'cast.put',
+    { id: 'definition', name: 'Definition', language: 'ko', characterId: 'c', identity },
+    { aggregate: { kind: 'cast', id: 'definition' } }
+  );
+  await command(
+    'cast.put',
+    { id: 'shared', name: 'Shared', language: 'ko', characterId: 'c' },
+    { aggregate: { kind: 'cast', id: 'shared' } }
+  );
+  await command('production.create', { id: 'main', title: 'Main', sourcePackageId: null });
+  await command(
+    'scene.put',
+    {
+      id: 'scene',
+      productionId: 'main',
+      occurrences: [{ id: 'o', characterId: 'c', roleBindingId: 'shared', presence: 'onscreen' }],
+      presentations: [
+        { occurrenceId: 'o', appearanceStateRef: null, castingStateRef: null, knowledgeStateRef: null },
+      ],
+      utterances: [],
+      shots: [],
+    },
+    { aggregate: { kind: 'scene', id: 'scene' } }
+  );
+  await assert.rejects(
+    command(
+      'cast.put',
+      {
+        id: 'definition',
+        name: 'Replacement',
+        language: 'ko',
+        characterId: 'd',
+        identity: { id: 'd', origin: { kind: 'studioLocal' } },
+      },
+      { aggregate: { kind: 'cast', id: 'definition' } }
+    ),
+    { code: 'INVALID_REFERENCE' }
+  );
+  await assert.rejects(
+    command(
+      'cast.put',
+      { id: 'definition', name: 'Narrator', language: 'ko', characterId: null },
+      { aggregate: { kind: 'cast', id: 'definition' } }
+    ),
+    { code: 'INVALID_REFERENCE' }
+  );
+  await command(
+    'cast.put',
+    { id: 'shared', name: 'Edited label', language: 'ko', characterId: 'c' },
+    { aggregate: { kind: 'cast', id: 'shared' } }
+  );
+  assert.equal((await service.snapshot('p1')).cast.find((role) => role.id === 'definition').identity.id, 'c');
+});
+it('rejects orphaning an identity referenced by casting or an explicit link', async (t) => {
+  for (const suffix of ['casting', 'link'])
+    await t.test(suffix, async (t) => {
+      const { command } = await withStudio(t);
+      const characterId = `c-${suffix}`,
+        id = `definition-${suffix}`;
+      await command(
+        'cast.put',
+        {
+          id,
+          name: 'Definition',
+          language: 'ko',
+          characterId,
+          identity: { id: characterId, origin: { kind: 'studioLocal' } },
+        },
+        { aggregate: { kind: 'cast', id } }
+      );
+      if (suffix === 'casting')
+        await command(
+          'casting.set',
+          { id: 'character-casting', scope: 'project', characterId, state: null, voice: 'v' },
+          { aggregate: { kind: 'casting', id: 'character-casting' } }
+        );
+      else {
+        const { makeSourcePackage } = await import('../src/source/source-package.js');
+        const pkg = makeSourcePackage({
+          sourceKind: 'studio-script',
+          sourceRevision: 'v1',
+          textUnits: [],
+          sceneScopes: [],
+          sourceIdentityMap: [{ id: 'source-person', canonId: 'external.person:1' }],
+          revealPolicy: {},
+          blobManifest: [],
+          preservationStatus: {},
+        });
+        await command(
+          'source.import',
+          { package: pkg, blobs: [] },
+          { aggregate: { kind: 'sourcePackage', id: pkg.id } }
+        );
+        await command(
+          'story.save',
+          {
+            id: 'main',
+            title: 'Main',
+            text: 'Story',
+            states: [],
+            revealPolicy: {},
+            identityLinks: [
+              {
+                localIdentityId: characterId,
+                sourceIdentityId: 'source-person',
+                packageId: pkg.id,
+                actor: 'user',
+                reason: 'Explicit link',
+              },
+            ],
+          },
+          { aggregate: { kind: 'story', id: 'main' } }
+        );
+      }
+      await assert.rejects(
+        command(
+          'cast.put',
+          { id, name: 'Narrator', language: 'ko', characterId: null },
+          { aggregate: { kind: 'cast', id } }
+        ),
+        { code: 'INVALID_REFERENCE' }
+      );
+    });
+});
+it('drops the old definition from an unreferenced characterless replacement and permits another surviving definition', async (t) => {
+  const { command, service } = await withStudio(t);
+  const identity = { id: 'c', origin: { kind: 'studioLocal' } };
+  await command(
+    'cast.put',
+    { id: 'definition', name: 'Definition', language: 'ko', characterId: 'c', identity },
+    { aggregate: { kind: 'cast', id: 'definition' } }
+  );
+  await command(
+    'cast.put',
+    { id: 'survivor', name: 'Survivor', language: 'ko', characterId: 'c', identity },
+    { aggregate: { kind: 'cast', id: 'survivor' } }
+  );
+  await command(
+    'cast.put',
+    { id: 'definition', name: 'Narrator', language: 'ko', characterId: null },
+    { aggregate: { kind: 'cast', id: 'definition' } }
+  );
+  let roles = (await service.snapshot('p1')).cast;
+  assert.equal(roles.find((role) => role.id === 'definition').identity, undefined);
+  assert.equal(roles.find((role) => role.id === 'survivor').identity.id, 'c');
+  await command(
+    'cast.put',
+    { id: 'survivor', name: 'Narrator 2', language: 'ko', characterId: null },
+    { aggregate: { kind: 'cast', id: 'survivor' } }
+  );
+  roles = (await service.snapshot('p1')).cast;
+  assert.ok(roles.every((role) => !role.identity));
+});
+it('creates and edits a characterless role with omitted characterId without inventing a definition', async (t) => {
+  const { command, service } = await withStudio(t);
+  await command(
+    'cast.put',
+    { id: 'narrator', name: 'N', language: 'ko' },
+    { aggregate: { kind: 'cast', id: 'narrator' } }
+  );
+  await command(
+    'cast.put',
+    { id: 'narrator', name: 'Narrator', language: 'ko' },
+    { aggregate: { kind: 'cast', id: 'narrator' } }
+  );
+  assert.equal((await service.snapshot('p1')).cast[0].identity, undefined);
+});

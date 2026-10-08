@@ -27,6 +27,31 @@ export function makeSourcePackage(input) {
   validateSourcePackage(pkg);
   return pkg;
 }
+// Known internal identifiers are validated separately from source-prefixed provenance.
+function collectionIds(items) {
+  if (!Array.isArray(items)) fail('INVALID_INPUT', 'Expected source collection.');
+  const ids = new Set();
+  for (const item of items) {
+    if (!item || typeof item !== 'object' || Array.isArray(item))
+      fail('INVALID_INPUT', 'Expected source entry.');
+    assertId(item.id);
+    if (ids.has(item.id)) fail('INVALID_INPUT', 'Duplicate source identifier.');
+    ids.add(item.id);
+  }
+  return ids;
+}
+function referenceIds(items, allowed = null) {
+  if (!Array.isArray(items)) fail('INVALID_INPUT', 'Expected source references.');
+  const ids = new Set();
+  for (const id of items) {
+    assertId(id);
+    if (ids.has(id)) fail('INVALID_INPUT', 'Duplicate source reference.');
+    ids.add(id);
+  }
+  for (const id of ids)
+    if (allowed && !allowed.has(id)) fail('INVALID_REFERENCE', 'Source reference closure is incomplete.');
+  return ids;
+}
 export function validateSourcePackage(pkg) {
   canonicalJSON(pkg);
   assertPortable(pkg);
@@ -44,40 +69,46 @@ export function validateSourcePackage(pkg) {
   const { id, sourceDigest, ...body } = pkg;
   if (canonicalDigest(body) !== sourceDigest)
     fail('SOURCE_DIGEST_MISMATCH', 'Source package digest does not match its content.');
-  for (const key of ['textUnits', 'sceneScopes', 'sourceIdentityMap']) {
-    const ids = new Set();
-    for (const entry of pkg[key]) {
-      assertId(entry.id);
-      if (ids.has(entry.id)) fail('INVALID_INPUT', 'Duplicate source identifier.');
-      ids.add(entry.id);
-    }
-  }
-  for (const unit of pkg.textUnits) assertText(unit.text);
+  const collections = {};
+  for (const key of ['textUnits', 'sceneScopes', 'sourceIdentityMap', 'blobManifest'])
+    collections[key] = collectionIds(pkg[key]);
   const blobs = new Set();
   for (const blob of pkg.blobManifest) {
     if (!BLOB_ID.test(blob.blobId)) fail('INVALID_INPUT', 'Expected source blob hash.');
     assertInteger(blob.byteLength);
-    assertId(blob.id);
     assertText(blob.kind);
-    // The same exact bytes may be used by several source documents.
+    // Different documents may preserve identical bytes, with distinct document IDs.
     blobs.add(blob.blobId);
   }
-  for (const unit of pkg.textUnits)
-    if (unit.blobId && !blobs.has(unit.blobId)) fail('INVALID_REFERENCE', 'Text unit blob is absent.');
-  if (pkg.assets !== undefined) {
-    if (!Array.isArray(pkg.assets)) fail('INVALID_INPUT', 'Expected source assets.');
-    const sceneIds = new Set(pkg.sceneScopes.map((s) => s.id));
-    for (const asset of pkg.assets) {
-      assertId(asset.id);
-      assertText(asset.sourceAssetId);
-      assertText(asset.mime);
-      if (
-        !blobs.has(asset.blobId) ||
-        !Array.isArray(asset.sceneIds) ||
-        asset.sceneIds.some((id) => !sceneIds.has(id))
-      )
-        fail('INVALID_REFERENCE', 'Source asset closure is incomplete.');
+  for (const unit of pkg.textUnits) {
+    assertText(unit.text);
+    if (unit.sceneId !== undefined) referenceIds([unit.sceneId], collections.sceneScopes);
+    if (unit.blobId !== undefined && (!BLOB_ID.test(unit.blobId) || !blobs.has(unit.blobId)))
+      fail('INVALID_REFERENCE', 'Text unit blob is absent.');
+  }
+  const stateDefinitions =
+    pkg.states?.sourceStateMap === undefined ? null : collectionIds(pkg.states.sourceStateMap);
+  if (stateDefinitions) for (const state of pkg.states.sourceStateMap) assertText(state.sourceStateId);
+  const scopedStates = new Set();
+  for (const scope of pkg.sceneScopes) {
+    if (scope.stateIds !== undefined) {
+      if (!scope.stateIds || typeof scope.stateIds !== 'object' || Array.isArray(scope.stateIds))
+        fail('INVALID_INPUT', 'Expected scoped state references.');
+      for (const ids of Object.values(scope.stateIds))
+        for (const stateId of referenceIds(ids, stateDefinitions)) scopedStates.add(stateId);
     }
+    if (scope.documents !== undefined) collectionIds(scope.documents);
+  }
+  const assetEntries = pkg.assets === undefined ? [] : pkg.assets;
+  const assets = collectionIds(assetEntries);
+  for (const scope of pkg.sceneScopes) if (scope.assetIds !== undefined) referenceIds(scope.assetIds, assets);
+  for (const asset of assetEntries) {
+    assertText(asset.sourceAssetId);
+    assertText(asset.mime);
+    if (!BLOB_ID.test(asset.blobId) || !blobs.has(asset.blobId))
+      fail('INVALID_REFERENCE', 'Source asset bytes are absent.');
+    referenceIds(asset.sceneIds, collections.sceneScopes);
+    referenceIds(asset.stateIds, stateDefinitions ?? scopedStates);
   }
   return pkg;
 }

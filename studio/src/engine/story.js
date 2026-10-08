@@ -138,6 +138,26 @@ export function registerStoryCommands(service) {
             fail('IDENTITY_CONFLICT', 'Identity changes require an explicit identity link.');
         } else requireValue(store, envelope.projectId, 'identity', p.characterId);
       } else if (p.identity) fail('INVALID_REFERENCE', 'Characterless roles cannot carry an identity.');
+      const previousIdentity = aggregate.value?.identity;
+      if (previousIdentity && previousIdentity.id !== p.characterId) {
+        const otherRoles = readValues(store, envelope.projectId, 'cast').filter((role) => role.id !== p.id);
+        const survives = otherRoles.some((role) => role.identity?.id === previousIdentity.id);
+        if (!survives) {
+          const referenced =
+            otherRoles.some((role) => role.characterId === previousIdentity.id) ||
+            readValues(store, envelope.projectId, 'scene').some((scene) =>
+              scene.occurrences.some((o) => o.characterId === previousIdentity.id)
+            ) ||
+            readValues(store, envelope.projectId, 'casting').some(
+              (decision) => decision.characterId === previousIdentity.id
+            ) ||
+            readValues(store, envelope.projectId, 'story').some((story) =>
+              (story.identityLinks ?? []).some((link) => link.localIdentityId === previousIdentity.id)
+            );
+          if (referenced)
+            fail('INVALID_REFERENCE', 'Cannot remove the only definition of a referenced identity.');
+        }
+      }
       if (
         aggregate.value &&
         aggregate.value.characterId !== p.characterId &&
@@ -149,7 +169,9 @@ export function registerStoryCommands(service) {
     },
     apply: ({ envelope, aggregate }) => ({
       ...envelope.payload,
-      ...(!envelope.payload.identity && aggregate.value?.identity
+      ...(!envelope.payload.identity &&
+      aggregate.value?.identity &&
+      aggregate.value.identity.id === envelope.payload.characterId
         ? { identity: aggregate.value.identity }
         : {}),
     }),

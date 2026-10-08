@@ -209,7 +209,7 @@ it('exports sealed scene scopes without leaking future/author documents after th
         sourcePath: imagePath,
         label: 'Adult',
         entityId: 'character-a',
-        stateIds: ['state-adult.part:1'],
+        stateIds: ['state-child', 'state-adult.part:1'],
         expressionProfileId: 'ink',
       },
     ],
@@ -251,7 +251,10 @@ it('exports sealed scene scopes without leaking future/author documents after th
   assert.equal(asset.sourceAssetId, 'portrait.part:1');
   assert.match(asset.id, /^[A-Za-z0-9_-]{1,120}$/);
   assert.equal(asset.mime, 'image/png');
-  assert.deepEqual(asset.stateIds, [scope.stateIds['character-a'][0]]);
+  assert.deepEqual(asset.stateIds, ['state-child', scope.stateIds['character-a'][0]]);
+  assert.ok(
+    asset.stateIds.every((id) => exported.package.states.sourceStateMap.some((state) => state.id === id))
+  );
   assert.deepEqual(asset.sceneIds, [scope.id]);
   assert.deepEqual(Buffer.from(exported.blobs.find((b) => b.blobId === asset.blobId).bytes), pixel);
 
@@ -388,4 +391,174 @@ it('passes prepared descriptors into the transaction while keeping the hashed en
     payload: { value: 'original' },
   });
   assert.deepEqual(result.value, { value: 'original', stored: 'bytes-prepared' });
+});
+it('rejects malformed nested source identifiers and dangling closure before any blob preparation', async (t) => {
+  const { canonicalDigest } = await import('../src/engine/contracts.js');
+  const bytes = Buffer.from('source closure'),
+    blobId = hash(bytes);
+  const base = {
+    schemaVersion: 1,
+    sourceKind: 'studio-script',
+    sourceRevision: 'v1',
+    textUnits: [{ id: 'u', sceneId: 'scene', text: 'Text' }],
+    sceneScopes: [{ id: 'scene', stateIds: { person: ['state'] }, assetIds: ['asset'] }],
+    sourceIdentityMap: [{ id: 'person', canonId: 'external.person:1' }],
+    assets: [
+      {
+        id: 'asset',
+        sourceAssetId: 'external.asset:1',
+        mime: 'image/png',
+        blobId,
+        sceneIds: ['scene'],
+        stateIds: ['state'],
+      },
+    ],
+    states: { sourceStateMap: [{ id: 'state', sourceStateId: 'external.state:1' }] },
+    revealPolicy: {},
+    preservationStatus: {},
+    blobManifest: [{ id: 'blob', kind: 'asset', blobId, byteLength: bytes.length }],
+  };
+  const cases = [
+    [
+      'null-assets',
+      (body) => {
+        body.assets = null;
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'missing-scene',
+      (body) => {
+        body.textUnits[0].sceneId = 'absent';
+      },
+      'INVALID_REFERENCE',
+    ],
+    [
+      'invalid-scene-id',
+      (body) => {
+        body.textUnits[0].sceneId = 'invalid:scene';
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'invalid-state-id',
+      (body) => {
+        body.sceneScopes[0].stateIds.person = ['invalid:state'];
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'duplicate-scoped-state',
+      (body) => {
+        body.sceneScopes[0].stateIds.person = ['state', 'state'];
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'missing-state-definition',
+      (body) => {
+        body.sceneScopes[0].stateIds.person = ['missing-state'];
+      },
+      'INVALID_REFERENCE',
+    ],
+    [
+      'missing-asset',
+      (body) => {
+        body.sceneScopes[0].assetIds = ['missing-asset'];
+      },
+      'INVALID_REFERENCE',
+    ],
+    [
+      'invalid-scoped-asset',
+      (body) => {
+        body.sceneScopes[0].assetIds = ['invalid:asset'];
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'duplicate-scoped-asset',
+      (body) => {
+        body.sceneScopes[0].assetIds = ['asset', 'asset'];
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'invalid-asset-state',
+      (body) => {
+        body.assets[0].stateIds = ['invalid:state'];
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'missing-asset-state',
+      (body) => {
+        body.assets[0].stateIds = ['missing-state'];
+      },
+      'INVALID_REFERENCE',
+    ],
+    [
+      'duplicate-asset-state',
+      (body) => {
+        body.assets[0].stateIds = ['state', 'state'];
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'duplicate-assets',
+      (body) => {
+        body.assets.push({ ...body.assets[0] });
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'invalid-asset-scene',
+      (body) => {
+        body.assets[0].sceneIds = ['invalid:scene'];
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'duplicate-asset-scenes',
+      (body) => {
+        body.assets[0].sceneIds = ['scene', 'scene'];
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'duplicate-state-definitions',
+      (body) => {
+        body.states.sourceStateMap.push({ ...body.states.sourceStateMap[0] });
+      },
+      'INVALID_INPUT',
+    ],
+    [
+      'duplicate-manifest-ids',
+      (body) => {
+        body.blobManifest.push({ ...body.blobManifest[0] });
+      },
+      'INVALID_INPUT',
+    ],
+  ];
+  for (const [id, change, code] of cases)
+    await t.test(id, async (t) => {
+      const { command, service } = await withStudio(t);
+      const body = structuredClone(base);
+      change(body);
+      const pkg = { id, ...body, sourceDigest: canonicalDigest(body) };
+      await assert.rejects(
+        command(
+          'source.import',
+          { package: pkg, blobs: [{ blobId, bytes: [...bytes] }] },
+          { aggregate: { kind: 'sourcePackage', id } }
+        ),
+        { code },
+        id
+      );
+      assert.equal(
+        service.store.get('SELECT count(*) AS n FROM blobs WHERE project_id=?', 'p1').n,
+        0,
+        `${id} published no blobs`
+      );
+      assert.equal((await service.snapshot('p1')).sourcePackages.length, 0);
+    });
 });
