@@ -64,6 +64,21 @@ export function validateSourcePackage(pkg) {
   }
   for (const unit of pkg.textUnits)
     if (unit.blobId && !blobs.has(unit.blobId)) fail('INVALID_REFERENCE', 'Text unit blob is absent.');
+  if (pkg.assets !== undefined) {
+    if (!Array.isArray(pkg.assets)) fail('INVALID_INPUT', 'Expected source assets.');
+    const sceneIds = new Set(pkg.sceneScopes.map((s) => s.id));
+    for (const asset of pkg.assets) {
+      assertId(asset.id);
+      assertText(asset.sourceAssetId);
+      assertText(asset.mime);
+      if (
+        !blobs.has(asset.blobId) ||
+        !Array.isArray(asset.sceneIds) ||
+        asset.sceneIds.some((id) => !sceneIds.has(id))
+      )
+        fail('INVALID_REFERENCE', 'Source asset closure is incomplete.');
+    }
+  }
   return pkg;
 }
 export function registerSourceCommands(service) {

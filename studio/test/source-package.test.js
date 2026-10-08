@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { exportVibeloreSource } from '../src/source/vibelore-connector.js';
 import { makeSourcePackage } from '../src/source/source-package.js';
 import { withStudio } from './helpers/project.js';
-import { webtoonStore, workId } from '../../test/fixtures/webtoon.js';
+import { webtoonStore, workId, pixel } from '../../test/fixtures/webtoon.js';
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 async function inventory(root, prefix = '') {
   const result = {};
@@ -194,6 +194,35 @@ it('exports sealed scene scopes without leaking future/author documents after th
     action: 'approve',
   });
   script.loreRevisionId = adopted.head;
+  const { AssetCatalogStore } = await import('../../src/store/asset-catalog-store.js');
+  const imagePath = join(w.root, 'portrait.png');
+  await writeFile(imagePath, pixel);
+  const catalog = new AssetCatalogStore(w.root, 'u1');
+  const assetProposal = await catalog.propose({
+    expectedHead: null,
+    loreRevisionId: adopted.head,
+    reason: 'sealed asset fixture',
+    profiles: [{ profileId: 'ink', label: 'Ink', style: 'Ink' }],
+    assets: [
+      {
+        assetId: 'portrait.part:1',
+        sourcePath: imagePath,
+        label: 'Adult',
+        entityId: 'character-a',
+        stateIds: ['state-adult.part:1'],
+        expressionProfileId: 'ink',
+      },
+    ],
+  });
+  const assetAdoption = await catalog.decide({
+    expectedHead: null,
+    proposalId: assetProposal.proposalId,
+    decision: 'approve',
+  });
+  script.assetCatalogRevisionId = assetAdoption.head;
+  script.expressionProfileId = 'ink';
+  script.cast[0].assetIds = ['portrait.part:1'];
+
   const preview = await inspectSceneScript({ store, workId: scriptWork, worldRoot: w.root, script });
   await applySceneScript({ store, workId: scriptWork, proposalId: preview.proposalId, expectedHead: null });
   const before = await inventory(root);
@@ -218,6 +247,14 @@ it('exports sealed scene scopes without leaking future/author documents after th
   assert.equal(exported.package.sourceIdentityMap[0].sourceCharacterId, 'hero.part:1');
   assert.equal(exported.package.textUnits[0].sourceUnitId, 's1.part:1-p-1');
   assert.equal(scope.results.find((r) => r.fieldId === 'field-life-status').status, 'unknown');
+  const asset = exported.package.assets[0];
+  assert.equal(asset.sourceAssetId, 'portrait.part:1');
+  assert.match(asset.id, /^[A-Za-z0-9_-]{1,120}$/);
+  assert.equal(asset.mime, 'image/png');
+  assert.deepEqual(asset.stateIds, [scope.stateIds['character-a'][0]]);
+  assert.deepEqual(asset.sceneIds, [scope.id]);
+  assert.deepEqual(Buffer.from(exported.blobs.find((b) => b.blobId === asset.blobId).bytes), pixel);
+
   assert.ok(!allText.includes(root));
   assert.ok(!allText.includes(w.root));
   const { command } = await withStudio(t);

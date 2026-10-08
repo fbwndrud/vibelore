@@ -122,6 +122,7 @@ export async function exportVibeloreSource({ store, workId, request }) {
         ...portable(scene),
         id: studioId(scene.id),
         sourceSceneId: scene.id,
+        assetIds: scene.assetIds.map(studioId),
         stateIds: Object.fromEntries(
           Object.entries(scene.stateIds).map(([entityId, ids]) => [entityId, ids.map(studioId)])
         ),
@@ -158,6 +159,19 @@ export async function exportVibeloreSource({ store, workId, request }) {
         textUnits,
         sceneScopes,
         sourceIdentityMap,
+        assets: (source.assets ?? []).map((asset) => ({
+          id: studioId(asset.assetId),
+          sourceAssetId: asset.assetId,
+          sourceAssetRevisionId: asset.assetRevisionId,
+          entityId: asset.entityId,
+          stateIds: asset.stateIds.map(studioId),
+          sceneIds: asset.sceneIds.map(studioId),
+          sourceStateIds: asset.stateIds,
+          sourceSceneIds: asset.sceneIds,
+          label: asset.label,
+          mime: asset.mime,
+          blobId: asset.hash.replace(/^sha256:/, ''),
+        })),
         revealPolicy: {
           mode: source.kind === 'scene-script' ? 'sealed-scene-scope' : 'scene-state-required',
           stateNote: source.stateNote,
