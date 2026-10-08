@@ -1,3 +1,5 @@
+import { recoverWorkers, registerRecoveryCommands } from './worker.js';
+import { registerJobCommands, decorateExecutionSnapshot } from './jobs.js';
 import { registerSourceCommands } from '../source/source-package.js';
 import { registerStoryCommands, effectiveScenes, domainValues } from './story.js';
 import { registerCastingCommands, resolvedBindings } from './casting.js';
@@ -27,12 +29,20 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   let closed = false;
   let closePromise;
   const pendingCommands = new Set();
+  const pendingBackground = new Set();
+  const backgroundStop = new AbortController();
   const assertOpen = () => { if (closed) fail('STUDIO_CLOSED', 'Studio is closed.'); };
   async function boundary(callback, code) {
     assertOpen();
     try { return await callback(); } catch (error) { throw publicError(error, code); }
   }
   const service = {
+    runBackground(callback) {
+      const work = boundary(() => callback(backgroundStop.signal), 'EXECUTION_FAILED');
+      pendingBackground.add(work);
+      work.then(() => pendingBackground.delete(work), () => pendingBackground.delete(work));
+      return work;
+    },
     // Internal collaborators, shared by subsequent command-registration modules.
     store, blobs, providers, renderer,
     registerCommand(type, handler) {
@@ -91,7 +101,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
         snapshot.scenes = effectiveScenes(snapshot);
         snapshot.resolvedBindings = resolvedBindings(snapshot);
         snapshot.sourceChanges = store.all('SELECT data_json FROM source_changes WHERE project_id=? ORDER BY id', projectId).map(r => JSON.parse(r.data_json));
-        return snapshot;
+        return decorateExecutionSnapshot(store, snapshot);
       });
     }, 'STORAGE_FAILED'); },
     async events(projectId, afterCursor = 0) { return boundary(() => store.events(projectId, afterCursor), 'STORAGE_FAILED'); },
@@ -99,8 +109,9 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
     async close() {
       if (!closePromise) {
         closed = true;
+        backgroundStop.abort();
         closePromise = (async () => {
-          try { await Promise.allSettled([...pendingCommands]); await blobs.close(); store.close(); } catch (error) { throw publicError(error, 'STORAGE_FAILED'); }
+          try { await Promise.allSettled([...pendingCommands, ...pendingBackground]); await blobs.close(); store.close(); } catch (error) { throw publicError(error, 'STORAGE_FAILED'); }
         })();
       }
       return closePromise;
@@ -140,5 +151,8 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   registerStoryCommands(service);
   registerCastingCommands(service);
   registerRebaseCommands(service);
+  registerJobCommands(service);
+  registerRecoveryCommands(service);
+  recoverWorkers(service);
   return service;
 }

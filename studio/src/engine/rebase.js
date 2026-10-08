@@ -1,3 +1,4 @@
+import { executionImpacts } from './jobs.js';
 import { assertText, canonicalDigest, fail } from './contracts.js';
 import { readValues, requireValue } from './story.js';
 export function registerRebaseCommands(service) {
@@ -132,6 +133,7 @@ export function registerRebaseCommands(service) {
             })),
         };
       }
+      decision.executionImpacts = executionImpacts(store, envelope.projectId, p.productionId);
       store.run(
         'INSERT INTO source_changes(project_id,id,production_id,data_json) VALUES(?,?,?,?) ON CONFLICT(project_id,id) DO UPDATE SET data_json=excluded.data_json',
         envelope.projectId,
