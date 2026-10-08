@@ -80,14 +80,14 @@ export class ProjectStore {
     this.run('INSERT INTO commands(project_id,id,digest,result_json) VALUES(?,?,?,?)', envelope.projectId, envelope.commandId, digest, canonicalJSON(result));
     return result;
   }
-  snapshot(projectId) {
-    return this.write(() => ({
+  snapshot(projectId, decorate = value => value) {
+    return this.write(() => assertSynchronous(decorate({
       project: this.requireProject(projectId),
       productions: this.all('SELECT id, title, source_package_id AS sourcePackageId FROM productions WHERE project_id = ? ORDER BY id', projectId).map(row => ({ ...row })),
       aggregates: this.all('SELECT kind, id, revision, data_json FROM aggregates WHERE project_id = ? ORDER BY kind,id', projectId)
         .map(row => ({ kind: row.kind, id: row.id, revision: row.revision, value: JSON.parse(row.data_json) })),
       eventCursor: this.get('SELECT coalesce(max(cursor),0) AS cursor FROM events WHERE project_id = ?', projectId).cursor,
-    }));
+    })));
   }
   events(projectId, afterCursor) {
     this.requireProject(projectId); assertInteger(afterCursor);
