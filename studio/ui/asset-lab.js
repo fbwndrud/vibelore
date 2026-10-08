@@ -68,6 +68,22 @@ export function adoptCommand(
     slot.id,
     {
       slotId: slot.id,
+      ...(!snapshot.slots.some((x) => x.id === slot.id)
+        ? {
+            slot: Object.fromEntries(
+              [
+                "id",
+                "scope",
+                "subject",
+                "appearanceStateRef",
+                "castingStateRef",
+                "utteranceId",
+              ]
+                .filter((key) => slot[key] !== undefined)
+                .map((key) => [key, slot[key]]),
+            ),
+          }
+        : {}),
       candidateId: candidate.id,
       actor: "creator",
       reason,
@@ -128,9 +144,28 @@ export function renderAssetLab(c) {
   const presentation = audioScene?.presentations.find(
     (p) => p.occurrenceId === occurrence?.id,
   );
+  const kind = slot?.mediaKind ?? c.selection.assetKind ?? "image";
+  const binding = s.resolvedBindings.find(
+    (b) => b.occurrenceId === u?.speakerOccurrenceId && !b.shotId,
+  );
   left.append(
     card(
       "에셋 작업실",
+      select(
+        "작업할 자료",
+        kind,
+        [
+          { value: "image", label: "그림 후보" },
+          ...(u ? [{ value: "audio", label: "선택 발화의 음성 후보" }] : []),
+        ],
+        (value) => {
+          c.selection.assetKind = value;
+          c.selection.slot = "";
+          c.selection.candidate = "";
+          c.persist();
+          c.render();
+        },
+      ),
       select(
         "자료 슬롯",
         slot?.id ?? "",
@@ -143,6 +178,8 @@ export function renderAssetLab(c) {
         ],
         (id) => {
           c.selection.slot = id;
+          c.selection.assetKind =
+            s.slots.find((x) => x.id === id)?.mediaKind ?? kind;
           c.selection.candidate = "";
           c.persist();
           c.render();
@@ -151,14 +188,47 @@ export function renderAssetLab(c) {
       note(
         slot
           ? `적용 범위 · ${scopeName[slot.scope.kind]} · 대상 ${subjectName(s, slot)} · 외형 ${slot.appearanceStateRef ?? "없음"} · 목소리 상태 ${slot.castingStateRef ?? "없음"}`
-          : "PNG 또는 WAV를 가져와 실제 후보를 준비하세요.",
+          : kind === "audio" && u
+            ? `선택 발화 · ${u.text} · 음성 후보를 생성하거나 WAV를 가져올 수 있습니다.`
+            : "그림 후보를 생성하거나 PNG를 가져올 수 있습니다.",
       ),
     ),
   );
-  const candidates = slotCandidates(s.candidates, slot);
+  const candidates = slotCandidates(s.candidates, slot).filter(
+    (x) =>
+      slot ||
+      (x.mediaKind === kind &&
+        (kind !== "audio" ||
+          (x.target.kind === "utterance" && x.target.id === u?.id))),
+  );
+
   const candidate =
     candidates.find((x) => x.id === c.selection.candidate) ?? candidates.at(-1);
-  const accepted = s.candidates.find((x) => x.id === slot?.candidateId);
+  // Declare the first bound audio slot only inside the real adoption command.
+  // Generation itself targets the utterance and creates no empty aggregate.
+  const adoptionSlot =
+    slot ??
+    (kind === "audio" && candidate && u
+      ? (s.slots.find(
+          (x) =>
+            x.mediaKind === "audio" &&
+            x.utteranceId === u.id &&
+            x.scope.kind === "scene" &&
+            x.scope.id === audioScene.id &&
+            x.subject.kind === "role" &&
+            x.subject.id === occurrence.roleBindingId &&
+            (x.castingStateRef ?? null) ===
+              (presentation.castingStateRef ?? null),
+        ) ?? {
+          id: uid("slot"),
+          scope: { kind: "scene", id: audioScene.id },
+          subject: { kind: "role", id: occurrence.roleBindingId },
+          appearanceStateRef: null,
+          castingStateRef: presentation.castingStateRef ?? null,
+          utteranceId: u.id,
+        })
+      : null);
+  const accepted = s.candidates.find((x) => x.id === adoptionSlot?.candidateId);
   left.append(
     card(
       "후보 비교",
@@ -186,16 +256,16 @@ export function renderAssetLab(c) {
         : note("아직 후보가 없습니다."),
     ),
   );
-  if (slot && candidate) {
+  if (adoptionSlot && candidate) {
     right.append(
       card(
         "이 슬롯에 채택",
         note(
-          `${scopeName[slot.scope.kind]} · ${subjectName(s, slot)} · ${slot.appearanceStateRef ?? "외형 지정 없음"}`,
+          `${scopeName[adoptionSlot.scope.kind]} · ${subjectName(s, adoptionSlot)} · ${adoptionSlot.appearanceStateRef ?? "외형 지정 없음"}`,
         ),
         form(
           c,
-          `adopt:${slot.id}:${candidate.id}`,
+          `adopt:${s.slots.some((x) => x.id === adoptionSlot.id) ? adoptionSlot.id : `utterance-${u.id}`}:${candidate.id}`,
           [
             {
               name: "reason",
@@ -204,14 +274,21 @@ export function renderAssetLab(c) {
               required: true,
             },
           ],
-          async (p, rev) =>
-            c.send(adoptCommand(s, slot, candidate, p.reason, rev)),
-          { submit: "후보 채택", revision: revision(s, "assetSlot", slot.id) },
+          async (p, rev) => {
+            await c.send(
+              adoptCommand(s, adoptionSlot, candidate, p.reason, rev),
+            );
+            c.selection.slot = adoptionSlot.id;
+          },
+          {
+            submit: "후보 채택",
+            revision: revision(s, "assetSlot", adoptionSlot.id),
+          },
         ),
-        slot.adoptionId
+        adoptionSlot.adoptionId
           ? button("이 슬롯 채택 되돌리기", () =>
               c.run(async () => {
-                await c.send(undoCommand(s, slot));
+                await c.send(undoCommand(s, adoptionSlot));
                 await c.refresh(true);
               }),
             )
@@ -345,7 +422,6 @@ export function renderAssetLab(c) {
   const google = c.api.bootstrap.providers?.find(
     (p) => p.provider === "google",
   );
-  const kind = slot?.mediaKind ?? "image";
   const models = google?.catalog?.[kind] ?? [];
   right.append(
     card(
@@ -360,10 +436,13 @@ export function renderAssetLab(c) {
         models,
         안내: "모델 목록은 계정 사용 권한이나 품질 보증이 아닙니다.",
       }),
-      google?.available && ((kind === "audio" && u) || slot || c.selection.shot)
+      google?.available &&
+        (kind === "audio"
+          ? u && binding?.casting.status === "resolved"
+          : slot || c.selection.shot)
         ? form(
             c,
-            `generation:${slot?.id ?? c.selection.shot}`,
+            `generation:${kind}:${slot?.id ?? (kind === "audio" ? u?.id : c.selection.shot)}`,
             [
               {
                 name: "model",
@@ -407,9 +486,6 @@ export function renderAssetLab(c) {
                 : kind === "audio"
                   ? { kind: "utterance", id: u.id }
                   : { kind: "shot", id: c.selection.shot };
-              const binding = s.resolvedBindings.find(
-                (b) => b.occurrenceId === u?.speakerOccurrenceId && !b.shotId,
-              );
               const input = {
                 model: p.model,
                 prompt: kind === "audio" ? u.text : p.prompt,
@@ -417,7 +493,7 @@ export function renderAssetLab(c) {
                   kind === "audio"
                     ? { voice: binding?.casting.voice, acting: u.acting ?? "" }
                     : { aspectRatio: "16:9", imageSize: "1K" },
-                ...(accepted?.mediaKind === "image"
+                ...(kind === "image" && accepted?.mediaKind === "image"
                   ? { blobIds: [accepted.blobId] }
                   : {}),
               };
@@ -433,7 +509,11 @@ export function renderAssetLab(c) {
             },
             { submit: "예약하고 후보 요청" },
           )
-        : note("자료 슬롯 또는 샷과 필요한 발화를 먼저 선택하세요."),
+        : note(
+            kind === "audio"
+              ? "Edit에서 발화를 선택하고 Cast에서 목소리를 배정하세요."
+              : "그림 슬롯 또는 샷을 선택하세요.",
+          ),
     ),
   );
   if (

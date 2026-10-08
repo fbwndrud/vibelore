@@ -256,20 +256,25 @@ export function renderEdit(c) {
               ),
             ],
           },
-          ...["x", "y", "scale", "safeArea"].map((name) => ({
+          ...["x", "y", "scale"].map((name) => ({
             name,
             label: {
               x: "가로 이동",
               y: "세로 이동",
               scale: "확대 배율",
-              safeArea: "안전 영역 비율",
             }[name],
             type: "number",
             step: "0.01",
-            value:
-              name === "safeArea"
-                ? (tr.safeArea?.left ?? 0)
-                : (tr[name] ?? (name === "scale" ? 1 : 0)),
+            value: tr[name] ?? (name === "scale" ? 1 : 0),
+          })),
+          ...["Left", "Top", "Right", "Bottom"].map((edge) => ({
+            name: `safeArea${edge}`,
+            label: `안전 영역 · ${{ Left: "왼쪽", Top: "위쪽", Right: "오른쪽", Bottom: "아래쪽" }[edge]}`,
+            type: "number",
+            min: 0,
+            max: 0.5,
+            step: "0.01",
+            value: tr.safeArea?.[edge.toLowerCase()] ?? 0,
           })),
           {
             name: "anchor",
@@ -314,10 +319,10 @@ export function renderEdit(c) {
                   y: Number(p.y),
                   scale: Number(p.scale),
                   safeArea: {
-                    left: Number(p.safeArea),
-                    top: Number(p.safeArea),
-                    right: Number(p.safeArea),
-                    bottom: Number(p.safeArea),
+                    left: Number(p.safeAreaLeft),
+                    top: Number(p.safeAreaTop),
+                    right: Number(p.safeAreaRight),
+                    bottom: Number(p.safeAreaBottom),
                   },
                   anchor: p.anchor,
                   easing: p.easing,
