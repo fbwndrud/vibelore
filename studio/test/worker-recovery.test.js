@@ -885,3 +885,184 @@ it('queued scene pins shared identity definitions and local state descriptions o
   assert.equal(remote.requests.length, 0);
   assert.ok((await f.service.snapshot('p1')).attempts.every((a) => a.status === 'failed_definite'));
 });
+
+it('new request after queued cancellation reserves runnable work while preserving cancelled history', async (t) => {
+  const f = await withGeneration(t),
+    remote = await httpProvider(t);
+  const first = validImageRequest(),
+    j = await generationCommand(f, first);
+  const oldAttempt = (await f.service.snapshot('p1')).attempts[0];
+  await f.command(
+    'job.cancel',
+    { jobId: j.value.id },
+    { aggregate: { kind: 'job', id: j.value.id } }
+  );
+  const next = validImageRequest({ target: { kind: 'shot', id: 'shot2' } }),
+    joined = await generationCommand(f, next);
+  assert.equal(joined.value.status, 'queued');
+  let s = await f.service.snapshot('p1');
+  assert.equal(s.attempts.length, 2);
+  assert.equal(s.attempts[0].id, oldAttempt.id);
+  assert.equal(s.attempts[0].status, 'cancelled_before_dispatch');
+  assert.deepEqual(s.attempts[0].request, oldAttempt.request);
+  assert.equal(s.attempts[1].request.target.id, 'shot2');
+  assert.deepEqual(
+    s.attempts[1].request.pins,
+    joined.value.subscribers.find((sub) => sub.id === next.subscriberId).pins
+  );
+  assert.deepEqual(s.attempts[1].request.recipe, next.recipe);
+  assert.equal(s.reservations[0].status, 'released');
+  assert.equal(s.reservations[1].status, 'reserved');
+  assert.equal(s.budget.availableMicros, 900000);
+  assert.equal(
+    s.jobs[0].subscribers.find((sub) => sub.id === first.subscriberId).status,
+    'detached'
+  );
+  assert.equal(
+    s.jobs[0].subscribers.find((sub) => sub.id === next.subscriberId).status,
+    'attached'
+  );
+  const { runWorker } = await import('../src/engine/worker.js');
+  await runWorker({ service: f.service, providers: { fake: remote.provider }, drain: true });
+  s = await f.service.snapshot('p1');
+  assert.equal(remote.requests.length, 1);
+  assert.equal(s.attempts[0].status, 'cancelled_before_dispatch');
+  assert.equal(s.attempts[1].status, 'succeeded');
+  assert.equal(s.jobs[0].status, 'pending_validation');
+});
+
+it('reattaching during an in-flight cancellation exposes the eventual validated result without another HTTP send', async (t) => {
+  const f = await withGeneration(t),
+    remote = await httpProvider(t, { hold: true });
+  const first = validImageRequest(),
+    j = await generationCommand(f, first);
+  const { runWorker, validateAttemptOutputs } = await import('../src/engine/worker.js');
+  const work = runWorker({ service: f.service, providers: { fake: remote.provider }, drain: true });
+  await until(() => remote.requests.length === 1);
+  await f.command(
+    'job.cancel',
+    { jobId: j.value.id },
+    { aggregate: { kind: 'job', id: j.value.id } }
+  );
+  const next = validImageRequest({ target: { kind: 'shot', id: 'shot2' } }),
+    joined = await generationCommand(f, next);
+  assert.equal(joined.value.status, 'running');
+  assert.equal((await f.service.snapshot('p1')).attempts[0].request.target.id, 'shot');
+  remote.responses[0].end(JSON.stringify(result));
+  await work;
+  let s = await f.service.snapshot('p1');
+  assert.equal(s.jobs[0].status, 'pending_validation');
+  await validateAttemptOutputs({
+    service: f.service,
+    projectId: 'p1',
+    attemptId: s.attempts[0].id,
+    validate: async ({ outputs }) =>
+      outputs.map((o) => ({ blobId: o.blobId, mime: o.mime, mediaKind: 'image' }))
+  });
+  s = await f.service.snapshot('p1');
+  assert.equal(s.jobs[0].status, 'candidate_ready');
+  assert.equal(s.candidates.length, 1);
+  assert.equal(
+    s.jobs[0].subscribers.find((sub) => sub.id === first.subscriberId).status,
+    'detached'
+  );
+  assert.equal(
+    s.jobs[0].subscribers.find((sub) => sub.id === next.subscriberId).status,
+    'attached'
+  );
+  assert.equal(s.attempts.length, 1);
+  assert.equal(s.reservations.length, 1);
+  assert.equal(remote.requests.length, 1);
+});
+
+it('cancelled candidate-ready work can be explicitly reused without changing candidate or issuing work', async (t) => {
+  const f = await withGeneration(t),
+    remote = await httpProvider(t),
+    j = await generationCommand(f);
+  const { runWorker, validateAttemptOutputs } = await import('../src/engine/worker.js');
+  await runWorker({ service: f.service, providers: { fake: remote.provider }, drain: true });
+  let s = await f.service.snapshot('p1');
+  await validateAttemptOutputs({
+    service: f.service,
+    projectId: 'p1',
+    attemptId: s.attempts[0].id,
+    validate: async ({ outputs }) =>
+      outputs.map((o) => ({ blobId: o.blobId, mime: o.mime, mediaKind: 'image' }))
+  });
+  const candidate = (await f.service.snapshot('p1')).candidates[0];
+  await f.command(
+    'job.cancel',
+    { jobId: j.value.id },
+    { aggregate: { kind: 'job', id: j.value.id } }
+  );
+  const next = validImageRequest({ target: { kind: 'shot', id: 'shot2' } });
+  const reused = await f.command(
+    'job.reuse',
+    { ...next, jobId: j.value.id },
+    { aggregate: { kind: 'generation', id: next.subscriberId } }
+  );
+  assert.equal(reused.value.status, 'candidate_ready');
+  await runWorker({ service: f.service, providers: { fake: remote.provider }, drain: true });
+  s = await f.service.snapshot('p1');
+  assert.deepEqual(s.candidates, [candidate]);
+  assert.equal(s.attempts.length, 1);
+  assert.equal(s.reservations.length, 1);
+  assert.equal(remote.requests.length, 1);
+  assert.equal(s.jobs[0].subscribers[0].status, 'detached');
+});
+
+it('reattaching a detached unknown intent reports unknown and preserves held funds without another HTTP send', async (t) => {
+  const f = await withGeneration(t),
+    remote = await httpProvider(t, { hold: true }),
+    j = await generationCommand(f);
+  const { runWorker } = await import('../src/engine/worker.js');
+  const stop = new AbortController(),
+    work = runWorker({
+      service: f.service,
+      providers: { fake: remote.provider },
+      signal: stop.signal,
+      drain: true
+    });
+  await until(() => remote.requests.length === 1);
+  stop.abort();
+  await work;
+  await f.command(
+    'job.cancel',
+    { jobId: j.value.id },
+    { aggregate: { kind: 'job', id: j.value.id } }
+  );
+  const joined = await generationCommand(f);
+  assert.equal(joined.value.status, 'outcome_unknown');
+  await runWorker({ service: f.service, providers: { fake: remote.provider }, drain: true });
+  const s = await f.service.snapshot('p1');
+  assert.equal(s.attempts.length, 1);
+  assert.equal(s.reservations.length, 1);
+  assert.equal(s.reservations[0].status, 'held_unknown');
+  assert.equal(s.budget.availableMicros, 900000);
+  assert.equal(remote.requests.length, 1);
+});
+
+it('reattaching after detached success exposes pending bytes for validation without dispatching again', async (t) => {
+  const f = await withGeneration(t),
+    remote = await httpProvider(t, { hold: true }),
+    j = await generationCommand(f);
+  const { runWorker } = await import('../src/engine/worker.js');
+  const work = runWorker({ service: f.service, providers: { fake: remote.provider }, drain: true });
+  await until(() => remote.requests.length === 1);
+  await f.command(
+    'job.cancel',
+    { jobId: j.value.id },
+    { aggregate: { kind: 'job', id: j.value.id } }
+  );
+  remote.responses[0].end(JSON.stringify(result));
+  await work;
+  const before = await f.service.snapshot('p1');
+  assert.equal(before.jobs[0].status, 'detached_in_flight');
+  const joined = await generationCommand(f);
+  assert.equal(joined.value.status, 'pending_validation');
+  await runWorker({ service: f.service, providers: { fake: remote.provider }, drain: true });
+  const after = await f.service.snapshot('p1');
+  assert.deepEqual(after.attempts, before.attempts);
+  assert.equal(after.candidates.length, 0);
+  assert.equal(remote.requests.length, 1);
+});

@@ -306,6 +306,32 @@ function newAttempt(store, projectId, job, estimateMicros, decision) {
   saveJob(store, projectId, job);
   return a;
 }
+// Cancellation detaches subscribers; the durable attempt and immutable candidates
+// determine what a later explicit subscriber can actually use.
+function currentJobStatus(store, projectId, job) {
+  const attempt = getAttempt(store, projectId, job.currentAttemptId);
+  switch (attempt.status) {
+    case 'prepared':
+      return 'queued';
+    case 'dispatching':
+      return 'running';
+    case 'succeeded':
+      return store.get(
+        'SELECT id FROM generation_candidates WHERE project_id=? AND attempt_id=?',
+        projectId,
+        attempt.id
+      )
+        ? 'candidate_ready'
+        : 'pending_validation';
+    case 'failed_definite':
+      return attempt.outcomeReason === 'source_binding_stale'
+        ? 'blocked_source_review'
+        : 'failed_definite';
+    default:
+      return attempt.status;
+  }
+}
+
 export function decorateExecutionSnapshot(store, snapshot) {
   const id = snapshot.project.id;
   snapshot.jobs = jobRows(store, id);
@@ -376,7 +402,17 @@ export function registerJobCommands(service) {
         if (job.subscribers.some((s) => s.id === p.subscriberId))
           fail('INVALID_STATE', 'Subscriber already exists.');
         job.subscribers.push(subscriber);
-        saveJob(store, projectId, job);
+        if (
+          getAttempt(store, projectId, job.currentAttemptId).status === 'cancelled_before_dispatch'
+        ) {
+          // This explicit request authorizes new unsent work. The prior attempt,
+          // its original request, released reservation and detached subscribers stay intact.
+          job.request = { ...job.request, ...pinned, recipe: p.recipe };
+          newAttempt(store, projectId, job, p.estimateMicros, { commandId: envelope.commandId });
+        } else {
+          job.status = currentJobStatus(store, projectId, job);
+          saveJob(store, projectId, job);
+        }
         return job;
       }
       const request = {
@@ -420,14 +456,7 @@ export function registerJobCommands(service) {
         projectId = envelope.projectId;
       validatePayload(p);
       const job = getJob(store, projectId, p.jobId);
-      if (
-        job.status !== 'candidate_ready' ||
-        !store.get(
-          'SELECT id FROM generation_candidates WHERE project_id=? AND attempt_id=?',
-          projectId,
-          job.currentAttemptId
-        )
-      )
+      if (currentJobStatus(store, projectId, job) !== 'candidate_ready')
         fail('CANDIDATE_UNAVAILABLE', 'Reuse requires validated candidates.');
       const pinned = pinTarget(store, projectId, p.target),
         old = { ...job.request },
@@ -452,6 +481,7 @@ export function registerJobCommands(service) {
         recipe: p.recipe,
         status: 'attached'
       });
+      job.status = 'candidate_ready';
       saveJob(store, projectId, job);
       return job;
     }

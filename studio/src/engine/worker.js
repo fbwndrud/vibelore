@@ -67,7 +67,10 @@ function markUnknown(store, projectId, a, reason, revoke = false) {
     a.id
   );
   const job = getJob(store, projectId, a.jobId);
-  if (job.currentAttemptId === a.id && job.status !== 'detached_in_flight') {
+  if (
+    job.currentAttemptId === a.id &&
+    job.subscribers.some((subscriber) => subscriber.status === 'attached')
+  ) {
     job.status = 'outcome_unknown';
     saveJob(store, projectId, job);
   }
@@ -152,7 +155,10 @@ function completeResult(store, projectId, a, prepared) {
     a.id
   );
   const job = getJob(store, projectId, a.jobId);
-  if (job.currentAttemptId === a.id && job.status !== 'detached_in_flight') {
+  if (
+    job.currentAttemptId === a.id &&
+    job.subscribers.some((subscriber) => subscriber.status === 'attached')
+  ) {
     job.status = 'pending_validation';
     saveJob(store, projectId, job);
   }
@@ -382,7 +388,10 @@ export async function validateAttemptOutputs({ service, projectId, attemptId, va
           canonicalJSON(c)
         );
       const job = getJob(store, projectId, a.jobId);
-      if (job.currentAttemptId === a.id && job.status !== 'detached_in_flight') {
+      if (
+        job.currentAttemptId === a.id &&
+        job.subscribers.some((subscriber) => subscriber.status === 'attached')
+      ) {
         job.status = 'candidate_ready';
         saveJob(store, projectId, job);
       }

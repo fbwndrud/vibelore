@@ -139,3 +139,29 @@ it('retry budget failure preserves the original unknown attempt and reservation'
   assert.equal(s.reservations.length, 1);
   assert.equal(s.budget.availableMicros, 0);
 });
+
+it('reattachment after unsent cancellation rolls back when its new reservation exceeds remaining funds', async (t) => {
+  const f = await withGeneration(t),
+    first = validImageRequest(),
+    j = await generationCommand(f, first);
+  await f.command(
+    'job.cancel',
+    { jobId: j.value.id },
+    { aggregate: { kind: 'job', id: j.value.id } }
+  );
+  const rejected = validImageRequest({ estimateMicros: 1000001 });
+  await assert.rejects(generationCommand(f, rejected), { code: 'BUDGET_EXCEEDED' });
+  const s = await f.service.snapshot('p1');
+  assert.equal(s.jobs[0].status, 'cancelled_before_dispatch');
+  assert.equal(s.jobs[0].subscribers.length, 1);
+  assert.equal(s.jobs[0].subscribers[0].status, 'detached');
+  assert.equal(s.attempts.length, 1);
+  assert.equal(s.reservations.length, 1);
+  assert.equal(s.reservations[0].status, 'released');
+  assert.equal(s.budget.availableMicros, 1000000);
+  assert.equal(f.service.store.all('SELECT * FROM generation_outbox').length, 1);
+  assert.equal(
+    s.aggregates.some((a) => a.kind === 'generation' && a.id === rejected.subscriberId),
+    false
+  );
+});
