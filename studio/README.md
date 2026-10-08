@@ -107,6 +107,55 @@ Retained local demo outputs in `local-demo/` are ignored by Git and remain usabl
 outside implementation scratch. Historical outputs keep playing; rerender requires
 the frozen runtime fingerprint, or a new Edition matching current code.
 
+## Connect the real family-revenge sample
+
+The opt-in runner captures every numbered chapter, world/character document bytes
+and chapter before/after states through the existing read-only vibelore connector.
+It then imports the selected episode's final manifest revisions and scene plans,
+exactly cited original speech, and existing reference images through public Studio
+commands. Source character IDs remain distinct; captions use a separate narrator,
+and physical document lettering is retained as provenance rather than speech.
+
+```sh
+node studio/scripts/connect-vibelore-sample.js \
+  --source-root /your/vibelore/works/family-revenge \
+  --project studio/local-demo/real-samples/family-revenge \
+  --output studio/local-demo/real-samples/family-revenge/connection \
+  --project-id family-revenge
+node studio/bin/studio.js \
+  --project studio/local-demo/real-samples/family-revenge \
+  --project-id family-revenge \
+  --vibelore-root /your/vibelore/works/family-revenge \
+  --port 55316
+```
+
+`--work-id` defaults to the project ID. `--manifest` defaults to
+`output/webtoon-ep01/episode-01-manifest.json`, relative to the source root. All
+source inputs are read-only; storage/receipt destinations cannot overlap them.
+The default six Google prebuilt voice choices and acting direction are scoped to
+`family-revenge`. The exported JavaScript function can accept explicit
+`voiceIntents` for another work; the CLI does not guess characters from names.
+This connection queues no generation, reads no credentials and leaves budget at
+zero. Existing image provenance is an import declaration, not a new provider result.
+
+The final four webtoon pages contain 34 original panels. Each page remains one
+whole-scene raster shot with lettering baked into it. The cast reference is a
+**5인 통합 참조 시트**, reused in five identity slots, rather than five separate
+portraits. Scene-tagged image slots use production scope so reference selection
+can be saved without immediately invalidating its candidate's scene revision;
+each shot and source asset's scene IDs retain the precise scene association.
+This permits explicit reuse elsewhere in the production; it does not claim
+independent panel crops or editable lettering. Current world documents can include
+future changes, while chapter states and scene source paragraphs stay separately
+identified.
+
+Final image hashes, revision paths and exact text citations are checked before
+project mutation. Successful reruns replay stable commands without overriding
+creator changes or adding adoptions. A project-only interruption can resume when
+its creation event matches this capture's digest. Changed source is rejected with
+`SOURCE_CONNECTION_CHANGED`; connect it to a fresh project/storage directory.
+The output `connection-receipt.json` records source/raw/canonical hashes and counts.
+
 ## Completed validation scope
 
 All eight task review gates are complete. The whole-branch review of
