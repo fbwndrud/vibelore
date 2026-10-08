@@ -178,96 +178,7 @@ export function registerStoryCommands(service) {
   });
   service.registerCommand('scene.put', {
     target: ({ envelope }) => ({ kind: 'scene', id: envelope.payload.id }),
-    validate({ store, envelope, aggregate }) {
-      const s = envelope.payload;
-      assertId(s.id);
-      requireValue(store, envelope.projectId, 'production', s.productionId);
-      const occurrences = unique(s.occurrences),
-        utterances = unique(s.utterances);
-      unique(s.shots);
-      const others = readValues(store, envelope.projectId, 'scene').filter((other) => other.id !== s.id);
-      if (
-        others.some(
-          (other) =>
-            other.occurrences.some((o) => occurrences.has(o.id)) ||
-            other.utterances.some((u) => utterances.has(u.id)) ||
-            other.shots.some((shot) => s.shots.some((sh) => sh.id === shot.id))
-        )
-      )
-        fail('INVALID_REFERENCE', 'Scene child identifiers must be project-global.');
-      if (aggregate.value && aggregate.value.productionId !== s.productionId)
-        fail('INVALID_REFERENCE', 'Scene cannot move to another production.');
-      if (s.sourcePackageId) {
-        const pkg = requireValue(store, envelope.projectId, 'sourcePackage', s.sourcePackageId);
-        for (const id of s.sourceUnitIds ?? [])
-          if (!pkg.textUnits.some((u) => u.id === id))
-            fail('INVALID_REFERENCE', 'Source text unit is absent.');
-      }
-      const presentations = new Set();
-      if (!Array.isArray(s.presentations)) fail('INVALID_INPUT', 'Expected presentations.');
-      for (const b of s.presentations) {
-        if (!occurrences.has(b.occurrenceId) || presentations.has(b.occurrenceId))
-          fail('INVALID_REFERENCE', 'Presentation occurrence is absent or repeated.');
-        presentations.add(b.occurrenceId);
-        for (const field of ['appearanceStateRef', 'castingStateRef', 'knowledgeStateRef'])
-          if (b[field] != null) requireValue(store, envelope.projectId, 'state', b[field]);
-      }
-      for (const o of s.occurrences) {
-        if (o.sceneId != null && o.sceneId !== s.id)
-          fail('INVALID_REFERENCE', 'Occurrence scene is inconsistent.');
-        const role = requireValue(store, envelope.projectId, 'cast', o.roleBindingId);
-        if ((role.characterId ?? null) !== (o.characterId ?? null))
-          fail('INVALID_REFERENCE', 'Occurrence and role identity disagree.');
-        if (!['onscreen', 'offscreen', 'voiceover', 'inner', 'narrator', 'ensemble'].includes(o.presence))
-          fail('INVALID_INPUT', 'Unknown occurrence presence.');
-        if (!presentations.has(o.id))
-          fail('INVALID_REFERENCE', 'Each occurrence requires an explicit presentation.');
-        for (const field of ['temporalStateRef', 'knowledgeStateRef'])
-          if (o[field] != null) requireValue(store, envelope.projectId, 'state', o[field]);
-      }
-      for (const u of s.utterances) validateUtterance(u, occurrences, utterances);
-      for (const shot of s.shots) {
-        for (const id of [shot.targetOccurrenceId, ...(shot.occurrenceIds ?? [])].filter(Boolean))
-          if (!occurrences.has(id)) fail('INVALID_REFERENCE', 'Shot occurrence is absent.');
-        const target = s.occurrences.find((o) => o.id === shot.targetOccurrenceId);
-        if (target && target.presence !== 'onscreen')
-          fail('INVALID_REFERENCE', 'Camera target requires an onscreen occurrence.');
-      }
-      for (const decision of readValues(store, envelope.projectId, 'casting').filter(
-        (d) => d.sceneId === s.id
-      )) {
-        if (
-          decision.productionId !== s.productionId ||
-          (decision.scope === 'shot' && !s.shots.some((shot) => shot.id === decision.shotId)) ||
-          (decision.scope === 'occurrence' &&
-            !s.occurrences.some(
-              (o) =>
-                o.id === decision.occurrenceId &&
-                (decision.roleId
-                  ? o.roleBindingId === decision.roleId
-                  : o.characterId === decision.characterId)
-            ))
-        ) {
-          fail('INVALID_REFERENCE', 'Cannot remove the subject of a casting decision.');
-        }
-      }
-      // Utterances are independently edited. A stale scene save cannot overwrite their content.
-      for (const old of aggregate.value?.utterances ?? []) {
-        const current = {
-          ...old,
-          ...store.aggregate(envelope.projectId, { kind: 'utterance', id: old.id }).value,
-        };
-        const next = s.utterances.find((u) => u.id === old.id);
-        const { sceneId: ignored, ...content } = current;
-        const { sceneId: nextSceneId, ...nextContent } = next ?? {};
-        if (
-          !next ||
-          (nextSceneId != null && nextSceneId !== s.id) ||
-          canonicalDigest(content) !== canonicalDigest(nextContent)
-        )
-          fail('INVALID_REFERENCE', 'Existing utterances must be edited through utterance.update.');
-      }
-    },
+    validate: validateSceneSave,
     apply: ({ envelope }) => envelope.payload,
   });
   service.registerCommand('utterance.update', {
@@ -303,4 +214,160 @@ export function registerStoryCommands(service) {
       };
     },
   });
+}
+
+export function validateSceneSave({ store, envelope, aggregate }) {
+  const s = envelope.payload;
+  assertId(s.id);
+  requireValue(store, envelope.projectId, 'production', s.productionId);
+  const occurrences = unique(s.occurrences),
+    utterances = unique(s.utterances);
+  unique(s.shots);
+  const others = readValues(store, envelope.projectId, 'scene').filter(
+    (other) => other.id !== s.id,
+  );
+  if (
+    others.some(
+      (other) =>
+        other.occurrences.some((o) => occurrences.has(o.id)) ||
+        other.utterances.some((u) => utterances.has(u.id)) ||
+        other.shots.some((shot) => s.shots.some((sh) => sh.id === shot.id)),
+    )
+  )
+    fail('INVALID_REFERENCE', 'Scene child identifiers must be project-global.');
+  if (aggregate.value && aggregate.value.productionId !== s.productionId)
+    fail('INVALID_REFERENCE', 'Scene cannot move to another production.');
+  if (s.sourcePackageId) {
+    const pkg = requireValue(store, envelope.projectId, 'sourcePackage', s.sourcePackageId);
+    for (const id of s.sourceUnitIds ?? [])
+      if (!pkg.textUnits.some((u) => u.id === id))
+        fail('INVALID_REFERENCE', 'Source text unit is absent.');
+  }
+  const presentations = new Set();
+  if (!Array.isArray(s.presentations)) fail('INVALID_INPUT', 'Expected presentations.');
+  for (const b of s.presentations) {
+    if (!occurrences.has(b.occurrenceId) || presentations.has(b.occurrenceId))
+      fail('INVALID_REFERENCE', 'Presentation occurrence is absent or repeated.');
+    presentations.add(b.occurrenceId);
+    for (const field of ['appearanceStateRef', 'castingStateRef', 'knowledgeStateRef'])
+      if (b[field] != null) requireValue(store, envelope.projectId, 'state', b[field]);
+  }
+  for (const o of s.occurrences) {
+    if (o.sceneId != null && o.sceneId !== s.id)
+      fail('INVALID_REFERENCE', 'Occurrence scene is inconsistent.');
+    const role = requireValue(store, envelope.projectId, 'cast', o.roleBindingId);
+    if ((role.characterId ?? null) !== (o.characterId ?? null))
+      fail('INVALID_REFERENCE', 'Occurrence and role identity disagree.');
+    if (
+      !['onscreen', 'offscreen', 'voiceover', 'inner', 'narrator', 'ensemble'].includes(o.presence)
+    )
+      fail('INVALID_INPUT', 'Unknown occurrence presence.');
+    if (!presentations.has(o.id))
+      fail('INVALID_REFERENCE', 'Each occurrence requires an explicit presentation.');
+    for (const field of ['temporalStateRef', 'knowledgeStateRef'])
+      if (o[field] != null) requireValue(store, envelope.projectId, 'state', o[field]);
+  }
+  for (const u of s.utterances) validateUtterance(u, occurrences, utterances);
+  for (const shot of s.shots) {
+    if (shot.referenceSlotId != null) {
+      const slot = requireValue(store, envelope.projectId, 'assetSlot', shot.referenceSlotId);
+      if (
+        slot.mediaKind !== 'image' ||
+        (slot.scope.kind === 'scene' && slot.scope.id !== s.id) ||
+        (slot.scope.kind === 'production' && slot.scope.id !== s.productionId) ||
+        (slot.scope.kind === 'shot' && slot.scope.id !== shot.id)
+      )
+        fail('INVALID_REFERENCE', 'Reference slot is outside this shot scope.');
+    }
+    if (shot.transform != null) validateShotTransform(shot.transform);
+
+    for (const id of [shot.targetOccurrenceId, ...(shot.occurrenceIds ?? [])].filter(Boolean))
+      if (!occurrences.has(id)) fail('INVALID_REFERENCE', 'Shot occurrence is absent.');
+    const target = s.occurrences.find((o) => o.id === shot.targetOccurrenceId);
+    if (target && target.presence !== 'onscreen')
+      fail('INVALID_REFERENCE', 'Camera target requires an onscreen occurrence.');
+  }
+  for (const decision of readValues(store, envelope.projectId, 'casting').filter(
+    (d) => d.sceneId === s.id,
+  )) {
+    if (
+      decision.productionId !== s.productionId ||
+      (decision.scope === 'shot' && !s.shots.some((shot) => shot.id === decision.shotId)) ||
+      (decision.scope === 'occurrence' &&
+        !s.occurrences.some(
+          (o) =>
+            o.id === decision.occurrenceId &&
+            (decision.roleId
+              ? o.roleBindingId === decision.roleId
+              : o.characterId === decision.characterId),
+        ))
+    ) {
+      fail('INVALID_REFERENCE', 'Cannot remove the subject of a casting decision.');
+    }
+  }
+  // Utterances are independently edited. A stale scene save cannot overwrite their content.
+  for (const old of aggregate.value?.utterances ?? []) {
+    const current = {
+      ...old,
+      ...store.aggregate(envelope.projectId, { kind: 'utterance', id: old.id }).value,
+    };
+    const next = s.utterances.find((u) => u.id === old.id);
+    const { sceneId: ignored, ...content } = current;
+    const { sceneId: nextSceneId, ...nextContent } = next ?? {};
+    if (
+      !next ||
+      (nextSceneId != null && nextSceneId !== s.id) ||
+      canonicalDigest(content) !== canonicalDigest(nextContent)
+    )
+      fail('INVALID_REFERENCE', 'Existing utterances must be edited through utterance.update.');
+  }
+}
+
+function validateShotTransform(t) {
+  const bad = () => fail('INVALID_SHOT_TRANSFORM', 'Invalid shot transform or units.');
+  if (
+    !t ||
+    typeof t !== 'object' ||
+    Object.keys(t).some(
+      (k) => !['x', 'y', 'scale', 'safeArea', 'anchor', 'easing', 'keyframes'].includes(k),
+    )
+  )
+    bad();
+  if (
+    !Number.isFinite(t.x) ||
+    !Number.isFinite(t.y) ||
+    Math.abs(t.x) > 1 ||
+    Math.abs(t.y) > 1 ||
+    !Number.isFinite(t.scale) ||
+    t.scale <= 0 ||
+    !['center', 'top', 'bottom'].includes(t.anchor) ||
+    !['linear', 'ease-in-out'].includes(t.easing)
+  )
+    bad();
+  if (
+    !t.safeArea ||
+    Object.keys(t.safeArea).length !== 4 ||
+    ['left', 'top', 'right', 'bottom'].some(
+      (k) => !Number.isFinite(t.safeArea[k]) || t.safeArea[k] < 0 || t.safeArea[k] > 0.5,
+    )
+  )
+    bad();
+  if (!Array.isArray(t.keyframes) || t.keyframes.length > 1000) bad();
+  let previous = -1;
+  for (const k of t.keyframes) {
+    if (
+      Object.keys(k).some((f) => !['timeMs', 'x', 'y', 'scale'].includes(f)) ||
+      !Number.isSafeInteger(k.timeMs) ||
+      k.timeMs < 0 ||
+      k.timeMs <= previous ||
+      !Number.isFinite(k.x) ||
+      Math.abs(k.x) > 1 ||
+      !Number.isFinite(k.y) ||
+      Math.abs(k.y) > 1 ||
+      !Number.isFinite(k.scale) ||
+      k.scale <= 0
+    )
+      bad();
+    previous = k.timeMs;
+  }
 }

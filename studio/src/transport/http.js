@@ -25,6 +25,7 @@ const staticFiles = new Map([
     'asset-lab.js',
     'edit.js',
     'production.js',
+    'dom.js',
   ].map((file) => [`/${file}`, [file, 'text/javascript; charset=utf-8']]),
   ['/studio.css', ['studio.css', 'text/css; charset=utf-8']],
 ]);
@@ -47,6 +48,7 @@ export async function startStudioHttp({
   service,
   port = 0,
   sourceCapture = false,
+  providerCapabilities = [],
   projectId = 'p1',
 } = {}) {
   if (!service || !Number.isInteger(port) || port < 0 || port > 65535)
@@ -150,6 +152,7 @@ export async function startStudioHttp({
             token,
             projectId,
             ...capabilities(sourceCapture),
+            providers: providerCapabilities,
           });
         if (request.method === 'GET' && target.pathname === '/api/snapshot')
           return json(

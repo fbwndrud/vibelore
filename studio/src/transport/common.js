@@ -3,6 +3,7 @@ export const JSON_LIMIT = 1024 * 1024;
 export const IMPORT_LIMIT = 128 * 1024 * 1024;
 export const importTypes = new Set([
   'source.import',
+  'source.manuscript',
   'asset.import',
   'asset.derive',
 ]);

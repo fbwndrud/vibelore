@@ -53,7 +53,7 @@ function takeProvenance(prepared) {
     characterId: binding.characterId,
     desiredVoiceBinding: binding.casting,
     actualAudioInput: prepared.candidate.actualAudioInput ?? null,
-    configVerification: 'not_performed',
+    configVerification: prepared.candidate.configVerification ?? 'not_performed',
     voiceVerification: 'not_performed',
     actingVerification: 'not_performed',
     speechVerification: prepared.candidate.speechVerification ?? 'unverified_import',

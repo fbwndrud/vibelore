@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { parseOptions, configuredStudio } from '../src/transport/config.js';
-import { startStudioHttp } from '../src/transport/http.js';
+import { runWorker } from "../src/engine/worker.js";
+import { parseOptions, configuredStudio } from "../src/transport/config.js";
+import { startStudioHttp } from "../src/transport/http.js";
 let service, app;
 let shutdown;
 async function close() {
@@ -15,6 +16,12 @@ try {
   const options = parseOptions(process.argv.slice(2));
   const configured = await configuredStudio(options);
   service = configured.service;
+  if (configured.generationConfigured)
+    runWorker({ service }).catch(() => {
+      process.stderr.write(
+        "Studio generation worker stopped. Restart to inspect durable jobs.\n",
+      );
+    });
   app = await startStudioHttp({ ...configured, port: options.port });
   const stop = () => {
     close().then(
@@ -23,14 +30,14 @@ try {
       },
       () => {
         process.exitCode = 1;
-      }
+      },
     );
   };
-  process.once('SIGINT', stop);
-  process.once('SIGTERM', stop);
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
   process.stdout.write(`Studio listening at ${app.url}\n`);
 } catch {
-  process.stderr.write('Studio could not start. Check local configuration.\n');
+  process.stderr.write("Studio could not start. Check local configuration.\n");
   await close();
   process.exitCode = 1;
 }

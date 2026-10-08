@@ -283,7 +283,7 @@ it('runs real CLI from an empty directory and shuts down cleanly', async (t) => 
       '--port',
       '0',
     ],
-    { stdio: ['ignore', 'pipe', 'pipe'] }
+    { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GEMINI_API_KEY: '' } }
   );
   t.after(() => child.kill());
   let error = '';
@@ -414,7 +414,7 @@ it('configures real optional read-only capture, preserves original command repla
       '--vibelore-root',
       store.rootDir,
     ],
-    { stdio: ['pipe', 'pipe', 'pipe'] }
+    { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, GEMINI_API_KEY: '' } }
   );
   t.after(() => mcp.kill());
   let text = '';

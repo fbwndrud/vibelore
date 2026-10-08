@@ -12,7 +12,7 @@ async function client(t, directory) {
       '--project',
       directory,
     ],
-    { stdio: ['pipe', 'pipe', 'pipe'] }
+    { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, GEMINI_API_KEY: '' } }
   );
   child.stdin.on('error', () => {});
   let stderr = '';

@@ -114,7 +114,7 @@ export function validateSourcePackage(pkg) {
 }
 // Both raw import and configured capture stage bytes here, then validate/apply in
 // the original command transaction. No nested dispatch or replacement envelope.
-async function prepareSourceImport(service, envelope, payload) {
+export async function prepareSourceImport(service, envelope, payload) {
   const { package: pkg, blobs = [] } = payload;
   validateSourcePackage(pkg);
   if (!Array.isArray(blobs)) fail('INVALID_INPUT', 'Expected source bytes.');
@@ -152,7 +152,7 @@ async function prepareSourceImport(service, envelope, payload) {
   }
   return pkg;
 }
-function validateSourceImport({ store, envelope, aggregate, prepared }) {
+export function validateSourceImport({ store, envelope, aggregate, prepared }) {
   const pkg = validateSourcePackage(prepared);
   if (aggregate.revision)
     fail('SOURCE_IMMUTABLE', 'Imported source packages are immutable.');
@@ -173,7 +173,7 @@ function validateSourceImport({ store, envelope, aggregate, prepared }) {
       );
   }
 }
-const applySourceImport = ({ prepared }) => prepared;
+export const applySourceImport = ({ prepared }) => prepared;
 export function registerSourceCommands(service) {
   service.registerCommand('source.import', {
     target: ({ envelope }) => ({

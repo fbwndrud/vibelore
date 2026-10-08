@@ -1,5 +1,7 @@
+import { proposalValidator } from './proposals.js';
+import { validateProviderInput } from './jobs.js';
 import { mediaValidator } from '../assets/decode.js';
-import { insertQuarantine } from './asset-slots.js';
+import { insertQuarantine, pinTarget } from './asset-slots.js';
 import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -142,6 +144,8 @@ async function prepareResult(service, projectId, result) {
   return {
     outputs,
     resolvedModel: result.resolvedModel ?? null,
+    returnedModel: typeof result.returnedModel === 'string' ? result.returnedModel : null,
+    returnedVoice: typeof result.returnedVoice === 'string' ? result.returnedVoice : null,
     providerRequestId: result.providerRequestId ?? null,
     usage
   };
@@ -216,6 +220,8 @@ export async function runWorker({ service, providers = service.providers, signal
         try {
           if (!provider || typeof provider.generate !== 'function')
             fail('PROVIDER_UNAVAILABLE', 'Generation provider is unavailable.');
+          validateProviderInput(service, projectId, original.request,
+            pinTarget(store, projectId, original.request.target));
           capabilities = await provider.capabilities();
           if (
             !capabilities.kinds?.includes(original.request.kind) ||
@@ -280,7 +286,15 @@ export async function runWorker({ service, providers = service.providers, signal
         try {
           // This call occurs only after the dispatch transaction COMMIT above.
           const result = await provider.generate(providerInput, {
-            signal: stop
+            signal: stop,
+            onOperation(operationId) {
+              assertText(operationId);
+              store.write(() => {
+                const a = fenced(store, projectId, claimed);
+                a.operationId = operationId;
+                saveAttempt(store, projectId, a);
+              });
+            }
           });
           if (result?.status === 'pending' && result.operationId) {
             assertText(result.operationId);
@@ -294,7 +308,7 @@ export async function runWorker({ service, providers = service.providers, signal
             store.write(() =>
               completeResult(store, projectId, fenced(store, projectId, claimed), prepared)
             );
-            if (claimed.request.kind !== 'text') await validateAttemptOutputs({service,projectId,attemptId:claimed.id});
+            await validateAttemptOutputs({service,projectId,attemptId:claimed.id});
           }
         } catch {
           store.write(() => {
@@ -333,7 +347,8 @@ export async function validateAttemptOutputs({ service, projectId, attemptId, va
         bytes: await service.blobs.read(projectId, o.blobId)
       }))
     );
-    if (!validate && original.request.kind === 'text') return [];
+    if (!validate && original.request.kind === 'text' && !['adaptation_proposal','scene_adaptation_proposal'].includes(original.request.recipe?.operation)) return [];
+    if (!validate && original.request.kind === 'text') validate=proposalValidator(service,projectId);
     const validated = await (validate ?? mediaValidator(service,projectId))({
       kind: original.request.kind,
       request: structuredClone(original.request),
@@ -424,7 +439,7 @@ function finalizeValidatedOutputs(store, projectId, original, validated) {
 
     ...(a.request.kind === 'audio' ? {
       actualAudioInput: a.request.input,
-      configVerification: 'not_performed',
+      configVerification: a.request.inputVerification?.configVerification ?? 'not_performed',
       voiceVerification: 'not_performed',
       actingVerification: 'not_performed',
       transcriptionVerification: 'not_performed',
@@ -436,6 +451,14 @@ function finalizeValidatedOutputs(store, projectId, original, validated) {
     generationInputDigest: a.generationInputDigest,
 
     lineage: { kind: 'provider', parentCandidateIds: [] },
+    providerProvenance: {
+      provider: a.request.provider,
+      surface: a.request.inputVerification?.surface ?? null,
+      requestedModel: a.request.input.model,
+      returnedModel: a.returnedModel ?? null,
+      resolvedVersion: a.resolvedModel ?? null,
+      returnedVoice: a.returnedVoice ?? null,
+    },
 
     ...(a.request.assetSlotId ? {
       slotId: a.request.assetSlotId,
@@ -496,7 +519,9 @@ export function registerRecoveryCommands(service) {
       const inspection = await provider.inspect(a.operationId);
       const output = inspection.status === 'succeeded' ? await prepareResult(service, envelope.projectId, inspection.result) : null;
 
-      const validation = output && a.request.kind !== 'text' ? await mediaValidator(service, envelope.projectId)({
+      const validator=a.request.kind==='text' ? (['adaptation_proposal','scene_adaptation_proposal'].includes(a.request.recipe?.operation) ? proposalValidator(service,envelope.projectId) : null) : mediaValidator(service,envelope.projectId);
+      const validation = output && validator ? await validator({
+        request: a.request,
         kind: a.request.kind,
 
         outputs: await Promise.all(output.outputs.map(async o => ({ ...o, bytes: await service.blobs.read(envelope.projectId, o.blobId) })))
@@ -538,7 +563,7 @@ export async function revalidatePendingOutputs(service) {
   for (const row of service.store.all('SELECT project_id,data_json FROM generation_attempts WHERE status=\'succeeded\'')) {
     const a = JSON.parse(row.data_json);
 
-    if (a.request.kind === 'text' || a.validationStatus || service.store.get('SELECT id FROM generation_candidates WHERE project_id=? AND attempt_id=?', row.project_id, a.id))
+    if ((a.request.kind === 'text' && !['adaptation_proposal','scene_adaptation_proposal'].includes(a.request.recipe?.operation)) || a.validationStatus || service.store.get('SELECT id FROM generation_candidates WHERE project_id=? AND attempt_id=?', row.project_id, a.id))
       continue;
 
     await validateAttemptOutputs({ service, projectId: row.project_id, attemptId: a.id });

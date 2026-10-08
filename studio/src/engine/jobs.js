@@ -1,7 +1,9 @@
+import { readValues } from './story.js';
 import { pinTarget, checkPinnedRequest, compatibleTimingPins } from './asset-slots.js';
 export { pinTarget, checkPinnedRequest } from './asset-slots.js';
 import { randomUUID } from 'node:crypto';
 import {
+  assertSynchronous,
   assertId,
   assertInteger,
   assertText,
@@ -137,6 +139,23 @@ function validateAudioInput(payload, pinned) {
   if (canonicalDigest(payload.input.prompt) !== binding.textDigest)
     fail('SPEECH_TEXT_MISMATCH', 'Spoken prompt must match the effective utterance text exactly.');
 }
+// Trusted adapters may synchronously validate domain intent before any budget reservation.
+// HTTP/MCP payloads cannot install this callback or choose a different current binding.
+export function validateProviderInput(service, projectId, p, pinned) {
+  const provider = service.providers[p.provider];
+  if (!provider?.validateRequest) return;
+  const id = pinned.utteranceId ?? (p.target.kind === 'utterance' ? p.target.id : null);
+  const scene = id ? readValues(service.store, projectId, 'scene')
+    .find(s => s.utterances.some(u => u.id === id)) : null;
+  const utterance = scene ? {
+    ...scene.utterances.find(u => u.id === id),
+    ...service.store.aggregate(projectId, { kind: 'utterance', id }).value,
+  } : null;
+  return assertSynchronous(provider.validateRequest(p, {
+    binding: pinned.utteranceBinding ?? pinned.audioBinding ?? null,
+    utterance,
+  }));
+}
 function newAttempt(store, projectId, job, estimateMicros, decision) {
   const a = {
     id: randomUUID(),
@@ -241,6 +260,7 @@ export function registerJobCommands(service) {
       validatePayload(envelope.payload);
       const pinned=pinTarget(store, envelope.projectId, envelope.payload.target);
       validateAudioInput(envelope.payload,pinned);
+      validateProviderInput(service, envelope.projectId, envelope.payload, pinned);
     },
     apply({ envelope, prepared }) {
       const p = envelope.payload,
@@ -290,6 +310,9 @@ export function registerJobCommands(service) {
       }
       const request = {
         ...pinned,
+        ...(service.providers[p.provider]?.validateRequest ? {
+          inputVerification: validateProviderInput(service, projectId, p, pinned) ?? null,
+        } : {}),
         provider: p.provider,
         kind: p.kind,
         context: p.context,
@@ -346,6 +369,7 @@ export function registerJobCommands(service) {
         fail('INCOMPATIBLE_REUSE', 'Audio timing reuse requires current engine compatibility proof.');
 
       validateAudioInput(p, pinned);
+      validateProviderInput(service, projectId, p, pinned);
 
       if (p.intent !== 'reuse_or_generate' || p.provider !== old.provider || canonicalDigest(p.context) !== canonicalDigest(old.context) || canonicalDigest({ kind: p.kind, input: p.input }) !== job.generationInputDigest || canonicalDigest(p.recipe) !== canonicalDigest(old.recipe) || (canonicalDigest(semantic) !== canonicalDigest(previous) && !(p.allowTimingChanges === true && p.kind === 'audio' && job.request.kind === 'audio' && compatibleTimingPins(old, pinned))))
         fail('INCOMPATIBLE_REUSE', 'Candidate context or source dependencies do not match.');
@@ -391,6 +415,8 @@ export function registerJobCommands(service) {
           'Explicit acceptance of possible duplicate charges is required.'
         );
       checkPinnedRequest(store, envelope.projectId, a.request);
+      validateProviderInput(service, envelope.projectId, a.request,
+        pinTarget(store, envelope.projectId, a.request.target));
       newAttempt(store, envelope.projectId, job, p.estimateMicros, {
         commandId: envelope.commandId,
         retryOfAttemptId: a.id,

@@ -1,3 +1,5 @@
+import { registerManuscriptCommand } from '../source/manuscript.js';
+import { registerProposalCommands } from './proposals.js';
 import { registerAdoptionCommands, decorateAssetSnapshot } from './adoptions.js';
 import { registerAssetCommands } from '../assets/commands.js';
 import { recoverWorkers, registerRecoveryCommands, revalidatePendingOutputs } from './worker.js';
@@ -150,6 +152,8 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
     },
   });
   registerSourceCommands(service);
+  registerManuscriptCommand(service);
+  registerProposalCommands(service);
   registerStoryCommands(service);
   registerCastingCommands(service);
   registerRebaseCommands(service);
