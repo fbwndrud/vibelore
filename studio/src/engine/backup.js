@@ -177,6 +177,12 @@ function validateManifest(m) {
     )
       fail("BACKUP_INVALID", "Completed raw output inventory is missing.");
   }
+  const attemptOwners = new Map(
+    m.tables.generation_attempts.map((row) => [row.id, row.job_id]),
+  );
+  for (const row of m.tables.generation_attempts)
+    if (!keys.get("budget_reservations").has(row.id))
+      fail("BACKUP_INVALID", "Retained attempt has no budget reservation.");
   for (const row of m.tables.generation_jobs) {
     const job = JSON.parse(row.data_json);
     if (
@@ -185,7 +191,7 @@ function validateManifest(m) {
       !Array.isArray(job.subscribers) ||
       !job.request ||
       typeof job.request !== "object" ||
-      !keys.get("generation_attempts").has(job.currentAttemptId)
+      attemptOwners.get(job.currentAttemptId) !== row.id
     )
       fail("BACKUP_INVALID", "Invalid retained generation job.");
   }

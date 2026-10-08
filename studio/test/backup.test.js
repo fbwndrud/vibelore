@@ -673,3 +673,182 @@ test("real worker decoder canonical staging survives GC on another service befor
   assert.notEqual(snapshot.candidates[0].rawBlobId, canonical);
   await other.readBlob("p1", canonical);
 });
+
+async function rejectRechecksummedArchiveBeforeCreate(
+  t,
+  f,
+  archive,
+  mutate,
+  name,
+) {
+  const { canonicalDigest } = await import("../src/engine/contracts.js");
+  const { restoreStudioBackup } = await import("../src/engine/index.js");
+  const { watch } = await import("node:fs");
+  const { setTimeout: delay } = await import("node:timers/promises");
+  const path = join(archive, "manifest.json");
+  const manifest = JSON.parse(await readFile(path, "utf8"));
+  mutate(manifest);
+  const { digest, ...body } = manifest;
+  manifest.digest = canonicalDigest(body);
+  await writeFile(path, JSON.stringify(manifest));
+  const seen = [];
+  const watcher = watch(f.directory, (_, entry) => seen.push(entry));
+  t.after(() => watcher.close());
+  let restored, error;
+  try {
+    restored = await restoreStudioBackup({
+      archive,
+      directory: join(f.directory, name),
+    });
+  } catch (e) {
+    error = e;
+  } finally {
+    await restored?.close();
+  }
+  await delay(30);
+  assert.deepEqual(
+    { code: error?.code, destinationObserved: seen.includes(name) },
+    { code: "BACKUP_INVALID", destinationObserved: false },
+  );
+  await assert.rejects(access(join(f.directory, name)), { code: "ENOENT" });
+}
+
+test("portable execution graph rejects a current attempt owned by another job before destination creation", async (t) => {
+  const { validImageRequest } = await import("./helpers/project.js");
+  const { restoreStudioBackup } = await import("../src/engine/index.js");
+  const f = await withGeneration(t);
+  await generationCommand(f);
+  await generationCommand(
+    f,
+    validImageRequest({
+      input: { model: "fake-v1", prompt: "A different green room", config: {} },
+    }),
+  );
+  const archive = await backup(f);
+  const baseline = await restoreStudioBackup({
+    archive,
+    directory: join(f.directory, "valid-graph"),
+  });
+  assert.equal((await baseline.snapshot("p1")).attempts.length, 2);
+  await baseline.close();
+  await rejectRechecksummedArchiveBeforeCreate(
+    t,
+    f,
+    archive,
+    (m) => {
+      const jobs = m.tables.generation_jobs;
+      const first = JSON.parse(jobs[0].data_json),
+        second = JSON.parse(jobs[1].data_json);
+      first.currentAttemptId = second.currentAttemptId;
+      jobs[0].data_json = JSON.stringify(first);
+    },
+    "cross-job-never-created",
+  );
+});
+
+test("portable execution graph requires reservations while preserving legitimate execution and billing history", async (t) => {
+  for (const history of [
+    "prepared",
+    "cancelled-released",
+    "succeeded-settled",
+    "unknown-settled",
+    "unknown-held",
+  ])
+    await t.test(history, async (t) => {
+      const { restoreStudioBackup } = await import("../src/engine/index.js");
+      const { png, basePixels } = await import("./helpers/images.js");
+      const f = await withGeneration(t);
+      await generationCommand(f);
+      if (history === "cancelled-released") {
+        const job = (await f.service.snapshot("p1")).jobs[0];
+        await f.command(
+          "job.cancel",
+          { jobId: job.id },
+          { aggregate: { kind: "job", id: job.id } },
+        );
+      } else if (history !== "prepared") {
+        const bytes = await png(basePixels);
+        await runWorker({
+          service: f.service,
+          drain: true,
+          providers: {
+            fake: {
+              capabilities: () => ({ kinds: ["image"], models: ["fake-v1"] }),
+              generate: async () => {
+                if (history.startsWith("unknown"))
+                  throw Error("fixture ambiguous send");
+                return { outputs: [{ bytes, mime: "image/png" }] };
+              },
+            },
+          },
+        });
+        if (history.endsWith("settled")) {
+          const a = (await f.service.snapshot("p1")).attempts[0];
+          await f.command(
+            "attempt.reconcile",
+            {
+              attemptId: a.id,
+              action: "billing",
+              evidence: {
+                kind: "verified_actual",
+                amountMicros: 80000,
+                reference: "fixture-invoice",
+                actor: "fixture-owner",
+              },
+            },
+            { aggregate: { kind: "attempt", id: a.id } },
+          );
+        }
+      }
+      const before = await f.service.snapshot("p1");
+      const expectedHistory = {
+        prepared: ["prepared", "reserved"],
+        "cancelled-released": ["cancelled_before_dispatch", "released"],
+        "succeeded-settled": ["succeeded", "settled"],
+        "unknown-settled": ["outcome_unknown", "settled"],
+        "unknown-held": ["outcome_unknown", "held_unknown"],
+      };
+      assert.deepEqual(
+        [before.attempts[0].status, before.reservations[0].status],
+        expectedHistory[history],
+      );
+      const archive = await backup(f);
+      const baseline = await restoreStudioBackup({
+        archive,
+        directory: join(f.directory, "valid-history"),
+      });
+      try {
+        const after = await baseline.snapshot("p1");
+        const expectedStatus =
+          history === "prepared"
+            ? "held_unknown"
+            : before.reservations[0].status;
+        assert.equal(after.reservations[0].status, expectedStatus);
+        assert.equal(
+          after.reservations[0].settledMicros,
+          before.reservations[0].settledMicros,
+        );
+        assert.deepEqual(
+          after.reservations[0].evidence,
+          before.reservations[0].evidence,
+        );
+        assert.equal(
+          after.attempts[0].status,
+          history === "prepared"
+            ? "outcome_unknown"
+            : before.attempts[0].status,
+        );
+      } finally {
+        await baseline.close();
+      }
+      await rejectRechecksummedArchiveBeforeCreate(
+        t,
+        f,
+        archive,
+        (m) => {
+          m.tables.budget_reservations = [];
+        },
+        "missing-budget-never-created",
+      );
+    });
+});
