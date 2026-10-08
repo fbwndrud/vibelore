@@ -215,14 +215,32 @@ export function slotPins(store, projectId, slot) {
 export function candidateMatchesSlot(store, projectId, candidate, slot, current, restore = false) {
   let intent = candidate.slotIntent ?? candidate.recipe?.assetIntent;
 
-  if (candidate.mediaKind === 'audio' && candidate.target.kind === 'utterance') {
-    const binding = candidate.utteranceBinding;
+  // Inserted narrower casting decisions can change effective voice semantics without
+  // changing any retained dependency revision. Every bound take must match its
+  // retained engine binding, regardless of generation/import target kind.
+  if (candidate.mediaKind === 'audio' && slot.utteranceId != null) {
+    const binding = candidate.utteranceBinding ?? candidate.audioBinding;
 
     if (!binding || !current.audioBinding)
       fail('SLOT_CONFLICT', 'Audio candidate requires an explicit matching utterance binding.');
 
-    if (candidate.speechTextDigest !== current.audioBinding.textDigest)
+    const semantic = value => {
+      const { appearanceStateRef, ...audio } = value;
+
+      return audio;
+    };
+
+    if (canonicalDigest(semantic(binding)) !== canonicalDigest(semantic(current.audioBinding)))
+      fail('SLOT_CONFLICT', 'Audio speaker, text, performance or voice selection differs.');
+
+    // Imports carry a manual, unverified speech binding; generated takes retain
+    // the digest of actual requested speech independently of their target label.
+    if (candidate.lineage?.kind !== 'import' && candidate.speechTextDigest !== current.audioBinding.textDigest)
       fail('SLOT_CONFLICT', 'Actual requested speech text does not match this utterance.');
+  }
+
+  if (candidate.mediaKind === 'audio' && candidate.target.kind === 'utterance') {
+    const binding = candidate.utteranceBinding;
 
     intent = {
       subject: slot.subject.kind === 'role' ? { kind: 'role', id: binding.roleBindingId } : { kind: 'identity', id: binding.characterId },
@@ -231,9 +249,6 @@ export function candidateMatchesSlot(store, projectId, candidate, slot, current,
       castingStateRef: binding.castingStateRef,
       utteranceId: candidate.target.id
     };
-
-    if (canonicalDigest(binding.casting) !== canonicalDigest(current.audioBinding.casting) || binding.textDigest !== current.audioBinding.textDigest || binding.performanceDigest !== current.audioBinding.performanceDigest)
-      fail('SLOT_CONFLICT', 'Audio text, performance or voice selection differs.');
   } else if (candidate.target.kind === 'cast') {
     const role = requireValue(store, projectId, 'cast', candidate.target.id);
 

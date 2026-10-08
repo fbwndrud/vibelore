@@ -1602,3 +1602,150 @@ test(
     assert.equal(receipt.transcriptionVerification, 'not_performed');
   }
 );
+
+test(
+  'new narrower casting rejects retained bound-slot audio adoption and undo without relabeling',
+  async t => {
+    const { withAudioScene, audioTakeSlot, generationCommand, validImageRequest } = await import('./helpers/project.js');
+
+    const { wav } = await import('./helpers/images.js');
+
+    const { runWorker } = await import('../src/engine/worker.js');
+
+    for (const path of ['generated', 'imported', 'undo', 'subscriber']) await t.test(path, async t => {
+      const f = await withAudioScene(t), slot = audioTakeSlot('take1', 'u1');
+      await assetImport(f, 'initial', wav(), slot, 'audio');
+      let candidateId = 'initial', subscriberId;
+
+      if (['generated', 'subscriber'].includes(path)) {
+        const request = validImageRequest({
+          kind: 'audio',
+
+          target: { kind: 'assetSlot', id: slot.id },
+
+          input: {
+            model: 'fake-v1',
+            prompt: '같은 대사',
+
+            config: { voice: 'shared-voice' }
+          }
+        });
+
+        subscriberId = path === 'subscriber' ? request.subscriberId : undefined;
+        await generationCommand(f, request);
+
+        await runWorker({ service: f.service, drain: true });
+
+        candidateId = (await f.service.snapshot(f.projectId)).candidates.find(c => c.attemptId).id;
+      }
+
+      let latest;
+
+      if (path === 'undo') {
+        await adopt(f, slot.id, candidateId);
+        await assetImport(f, 'replacement', wav(), slot, 'audio');
+        latest = await adopt(f, slot.id, 'replacement');
+      }
+
+      const before = await f.service.snapshot(f.projectId), retained = before.candidates.find(c => c.id === candidateId);
+      assert.equal(retained.audioBinding.casting.voice, 'shared-voice');
+
+      await f.command('casting.set', {
+        id: 'new-scene-cast',
+        scope: 'scene',
+        productionId: 'main',
+        sceneId: 'scene',
+        roleId: 'actor',
+        state: 'childvoice',
+        voice: 'new-voice'
+      }, {
+        aggregate: { kind: 'casting', id: 'new-scene-cast' }
+      });
+
+      const payload = { slotId: slot.id, actor: 'artist', reason: 'select retained take' };
+
+      await assert.rejects(() => path === 'undo' ? f.command('adoption.undo', { ...payload, adoptionId: latest.value.adoptionId }, {
+        aggregate: { kind: 'assetSlot', id: slot.id }
+      }) : f.command('candidate.adopt', {
+        ...payload,
+        candidateId,
+
+        ...(subscriberId ? { subscriberId } : {})
+      }, {
+        aggregate: { kind: 'assetSlot', id: slot.id }
+      }), e => ['SLOT_CONFLICT', 'INPUT_STALE'].includes(e.code));
+
+      const after = await f.service.snapshot(f.projectId);
+      assert.deepEqual(after.candidates, before.candidates);
+      assert.deepEqual(after.slots, before.slots);
+      assert.deepEqual(after.adoptions, before.adoptions);
+      assert.equal(after.attempts.length, before.attempts.length);
+
+      assert.deepEqual(
+        await f.service.readBlob(f.projectId, retained.rawBlobId),
+        await f.service.readBlob(f.projectId, retained.canonicalBlobId)
+      );
+    });
+  }
+);
+
+test(
+  'bound-slot audio keeps hold-only reuse explicit while preserving retained voice intent',
+  async t => {
+    const { withAudioScene, audioTakeSlot, generationCommand, validImageRequest } = await import('./helpers/project.js');
+
+    const { wav } = await import('./helpers/images.js'),
+          { runWorker } = await import('../src/engine/worker.js');
+
+    const f = await withAudioScene(t), slot = audioTakeSlot('take1', 'u1');
+    await assetImport(f, 'initial', wav(), slot, 'audio');
+
+    const request = validImageRequest({
+      kind: 'audio',
+
+      target: { kind: 'assetSlot', id: slot.id },
+
+      input: {
+        model: 'fake-v1',
+        prompt: '같은 대사',
+
+        config: { voice: 'shared-voice' }
+      }
+    });
+
+    const job = (await generationCommand(f, request)).value;
+
+    await runWorker({ service: f.service, drain: true });
+
+    const c = (await f.service.snapshot(f.projectId)).candidates.find(c => c.attemptId);
+
+    await f.command('utterance.update', { id: 'u1', holdMs: 1500 }, {
+      aggregate: { kind: 'utterance', id: 'u1' }
+    });
+
+    await assert.rejects(() => f.command('candidate.adopt', { slotId: slot.id, candidateId: c.id, actor: 'artist', reason: 'late take' }, {
+      aggregate: { kind: 'assetSlot', id: slot.id }
+    }), { code: 'INPUT_STALE' });
+
+    const reuse = validImageRequest({ kind: 'audio', target: request.target, input: request.input });
+
+    await f.command('job.reuse', { ...reuse, jobId: job.id, allowTimingChanges: true }, {
+      aggregate: { kind: 'generation', id: reuse.subscriberId }
+    });
+
+    await f.command('candidate.adopt', {
+      slotId: slot.id,
+      candidateId: c.id,
+      subscriberId: reuse.subscriberId,
+      actor: 'artist',
+      reason: 'explicit timing reuse'
+    }, {
+      aggregate: { kind: 'assetSlot', id: slot.id }
+    });
+
+    const s = await f.service.snapshot(f.projectId);
+    assert.equal(s.adoptions.at(-1).desiredVoiceBinding.voice, c.audioBinding.casting.voice);
+    assert.deepEqual(s.adoptions.at(-1).actualAudioInput, c.actualAudioInput);
+    assert.equal(s.attempts.length, 1);
+  }
+);
