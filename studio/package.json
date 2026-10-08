@@ -1,0 +1,24 @@
+{
+  "name": "lore-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "node bin/studio.js",
+    "mcp": "node bin/studio-mcp.js"
+  },
+  "dependencies": {
+    "sharp": "0.35.5"
+  },
+  "optionalDependencies": {
+    "remotion": "4.0.534",
+    "@remotion/bundler": "4.0.534",
+    "@remotion/renderer": "4.0.534",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}
