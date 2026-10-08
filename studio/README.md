@@ -79,3 +79,21 @@ They do not call paid providers or demonstrate human perception/acting quality.
 Retained local demo outputs in `local-demo/` are ignored by Git and remain usable
 outside implementation scratch. Historical outputs keep playing; rerender requires
 the frozen runtime fingerprint, or a new Edition matching current code.
+
+## Completed validation scope
+
+All eight task review gates are complete. The whole-branch review of
+`b3200d3..04ab70f` found three Important integration issues; one fix wave
+(`ca451d6`) and one scoped rereview closed all three with no new breakage.
+Accepted subscriber reuse now reaches timeline/Edition, the first generated image
+has an explicit adoption/shot-use path, and Cast edits keep independent state bindings.
+This records the original review and scoped follow-up, not a fresh whole-branch rerun.
+
+The final ten-file covering run passed 143/143; source metadata checked 774 paths.
+Earlier Studio 279/279, later authority/recovery scopes, root 872/874 followed by
+docs 5/5, and engine 1239/1239 remain separate phases with their original failures
+preserved in the [implementation evidence](../docs/research/studio-implementation-evidence-2026-10-09.json).
+Actual provider-free restored 57.833-second MP4/WAV outputs are retained; final
+changes left renderer fingerprint files and the lockfile unchanged. Live Google
+quota/billing, artistic/identity/mask quality, screen-reader use, human listening/
+viewing approval and browser-download completion are not established by these checks.

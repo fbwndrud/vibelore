@@ -44,7 +44,7 @@ Remotion renderer는 선택 패키지이므로 headless core와 MCP를 사용할
 현재 PATH의 Node는 v23.11.0으로 원래 저장소의 지원 범위 밖이다. 실행에는 확인한 번들 Node v24.19.0을 사용한다:
 
 ```bash
-/Users/lyoojk/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --version
+node --version # bundled runtime bin prepended to PATH: v24.19.0
 ```
 
 2026-10-09 사용자가 “구현 계획 만들어지면 구현시작해”라고 지시했다. 별도 worktree에서 Subagent-driven으로 연속 실행한다. worktree 시작점은 현재 `feat/shared-lore-media`의 HEAD로 하고, 새 브랜치는 `codex/lore-studio-local-production`으로 한다. uncommitted 사용자 변경을 복사하거나 reset하지 않는다. 이 plan과 task-owned 연구 문서만 필요한 근거로 전달한다. native worktree tool로 현재 branch HEAD에서 작업 공간을 만들었으며 단계마다 추가 확인을 요청하지 않는다.
@@ -91,7 +91,7 @@ export async function withStudio(t, options = {}) {}
 
 **Interfaces:** `openStudio`와 공통 service 구현. `project.create`, `production.create` command와 `snapshot`의 `{ project, productions, aggregates, eventCursor }`를 제공한다. ProjectStore는 SQL bound parameters와 explicit write transaction을 사용한다. BlobStore는 bytes→hash→temp/fsync/immutable rename→DB 등록을 담당하며 임의 file path를 받지 않는다. 이미지·음원 decode/type 검사는 Task 4의 asset boundary가 맡으며, 그 검사 전에는 asset candidate_ready를 발급하지 않는다.
 
-- [ ] **Step 1 — 실제 저장·재시작·CAS·command conflict 테스트를 먼저 작성한다.**
+- [x] **Step 1 — 실제 저장·재시작·CAS·command conflict 테스트를 먼저 작성한다.**
 
 ```js
 it('reopens the saved production after process restart', async t => {
@@ -106,8 +106,8 @@ it('reopens the saved production after process restart', async t => {
 
 동일 command 재전달·다른 payload 충돌·stale aggregate·다른 aggregate의 독립 쓰기·손상 blob 읽기 차단도 각각 별도 `it`로 작성한다. restart는 가능한 경우 child process를 사용해 in-memory state를 읽는 테스트를 피한다.
 
-- [ ] **Step 2 — `node --test studio/test/project-store.test.js`를 실행해 missing feature로 실패한 출력을 기록한다.**
-- [ ] **Step 3 — schema version, SQLite WAL/busy timeout, projects/aggregates/commands/events/blob registry를 구현한다.**
+- [x] **Step 2 — `node --test studio/test/project-store.test.js`를 실행해 missing feature로 실패한 출력을 기록한다.**
+- [x] **Step 3 — schema version, SQLite WAL/busy timeout, projects/aggregates/commands/events/blob registry를 구현한다.**
 
 ```js
 store.write(() => {
@@ -121,8 +121,8 @@ store.write(() => {
 
 위 함수들은 `project-store.js`의 내부 구현이다. 실패하면 transaction 전체를 rollback하고 event cursor를 발급하지 않는다. callback 안에서 외부 network/file generation을 실행하지 않는다. `package.json`은 `private:true`, ESM, 별도 test/start/mcp scripts를 가진다.
 
-- [ ] **Step 4 — 모든 Task 1 테스트를 green으로 만들고 bytes write 실패·orphan/missing recovery도 검사한다.**
-- [ ] **Step 5 — Task 1 파일만 commit하고 reviewer에게 diff와 red/green 출력을 전달한다.**
+- [x] **Step 4 — 모든 Task 1 테스트를 green으로 만들고 bytes write 실패·orphan/missing recovery도 검사한다.**
+- [x] **Step 5 — Task 1 파일만 commit하고 reviewer에게 diff와 red/green 출력을 전달한다.**
 
 ### Task 2: Source Connector와 다인물·배역·발화의 안정 모델
 
@@ -132,7 +132,7 @@ store.write(() => {
 
 **Produces:** `exportVibeloreSource({store,workId,request}) -> {package,blobs}`, `source.import`, `source.rebase`, `story.save`, `scene.put`, `cast.put`, `casting.set`, `utterance.update`. Scene에는 stable occurrences/utterances/shots가 있으며 `PresentationBinding`은 temporal, knowledge, appearance, casting state를 별도 참조한다. Snapshot에는 `sourcePackages, story, cast, scenes, resolvedBindings, sourceChanges`가 추가된다.
 
-- [ ] **Step 1 — 40개 배역, 같은 인물 과거/현재, 꿈 형상, inheritance/override, source bytes 보존 테스트를 먼저 작성한다.**
+- [x] **Step 1 — 40개 배역, 같은 인물 과거/현재, 꿈 형상, inheritance/override, source bytes 보존 테스트를 먼저 작성한다.**
 
 ```js
 it('requires an explicit choice for crossing casting scope and state', () => {
@@ -149,8 +149,8 @@ it('requires an explicit choice for crossing casting scope and state', () => {
 
 `resolveCasting`는 `casting.js`의 공개 pure function이다. 정확한 source bytes와 readable 원문의 hash, export된 경로 없음, unknown/reveal 범위 유지, name 기반 identity auto-merge 없음도 검사한다.
 
-- [ ] **Step 2 — 세 test 파일을 실행해 red를 기록한다.**
-- [ ] **Step 3 — source DTO와 canonical data command를 구현한다.**
+- [x] **Step 2 — 세 test 파일을 실행해 red를 기록한다.**
+- [x] **Step 3 — source DTO와 canonical data command를 구현한다.**
 
 ```js
 const presentation = {
@@ -161,8 +161,8 @@ const presentation = {
 
 scene-script 원천은 sealed bytes를 사용한다. novel sourceVersion 1은 원문 실제 bytes를 추가로 보존한 새 Studio package를 만들며 legacy snapshot이 이미 완전 보존이라고 표시하지 않는다. 원작 경로는 connector 설정에만 남고 DTO에는 넣지 않는다. rebase는 pending decisions를 만들고 과거 package를 삭제하지 않는다.
 
-- [ ] **Step 4 — green과 connector의 원천 파일 무변경 검사를 확인한다.**
-- [ ] **Step 5 — Task 2 범위만 commit하고 source/identity/priority 검토를 받는다.**
+- [x] **Step 4 — green과 connector의 원천 파일 무변경 검사를 확인한다.**
+- [x] **Step 5 — Task 2 범위만 commit하고 source/identity/priority 검토를 받는다.**
 
 ### Task 3: durable jobs, attempt·예산·unknown 복구
 
@@ -172,7 +172,7 @@ scene-script 원천은 sealed bytes를 사용한다. novel sourceVersion 1은 �
 
 **Produces:** `generation.request`, `attempt.retry`, `attempt.reconcile`, `job.cancel`, `job.reuse`, `runWorker({service,providers,signal})`; snapshot에는 `jobs,attempts,reservations,candidates`가 추가된다. Provider interface는 `capabilities()`, `generate(request,{signal})`, optional `inspect(operationId)`다. Result는 `{outputs:[{bytes,mime}],resolvedModel,providerRequestId,usage}`다.
 
-- [ ] **Step 1 — child-process kill 지점과 실제 reserve 경합을 먼저 시험한다.**
+- [x] **Step 1 — child-process kill 지점과 실제 reserve 경합을 먼저 시험한다.**
 
 ```js
 it('recovers committed dispatch as unknown without a second send', async t => {
@@ -189,8 +189,8 @@ it('recovers committed dispatch as unknown without a second send', async t => {
 
 `validImageRequest`/`runUntilDispatchCommitAndKill`는 test helpers에 정의한다. 정상 adapter fake HTTP 서버는 실제 request 수를 외부로 기록한다. provider invocation mock 횟수만 검사하지 않는다. 같은 intent 동시 command 합류, fresh nonce 분리, 10건 예산으로 20건 요청, source rebase-before-dispatch, 늦은 응답 후 원래 target 유지도 포함한다.
 
-- [ ] **Step 2 — Task 3 테스트 red와 child-process 종료 증거를 기록한다.**
-- [ ] **Step 3 — command+outbox+reserve transaction, persisted dispatching, lease/fencing과 restart recovery를 구현한다.**
+- [x] **Step 2 — Task 3 테스트 red와 child-process 종료 증거를 기록한다.**
+- [x] **Step 3 — command+outbox+reserve transaction, persisted dispatching, lease/fencing과 restart recovery를 구현한다.**
 
 ```js
 const attempt = store.write(() => claimAndCommitDispatch(jobId, leaseToken));
@@ -204,8 +204,8 @@ try {
 
 이 내부 함수들을 worker/jobs module에 구현한다. send 전에 발생한 확정 local validation failure와 send 후 ambiguous failure를 구별한다. unknown 상태에서 deadline/TTL이 지난다고 예약을 풀지 않는다. alive worker, queryable operation, 회수 불가능한 synchronous worker crash의 recovery action을 각각 제한한다.
 
-- [ ] **Step 4 — red fixtures가 green이고 복구 후 outbound request가 늘지 않는지 확인한다.**
-- [ ] **Step 5 — commit과 독립 concurrency/recovery 검토를 수행한다.**
+- [x] **Step 4 — red fixtures가 green이고 복구 후 outbound request가 늘지 않는지 확인한다.**
+- [x] **Step 5 — commit과 독립 concurrency/recovery 검토를 수행한다.**
 
 ### Task 4: 실제 Asset Lab — 반입·보호 편집·계보·범위별 채택
 
@@ -215,7 +215,7 @@ try {
 
 **Produces:** `asset.import`, `asset.derive`, `candidate.adopt`, `adoption.undo`; snapshot에 slots/adoptions/usageProposals/audit가 추가된다. `composeProtectedEdit({base,candidate,mask,geometry}) -> {bytes,validation}`는 canonical oriented RGBA와 feather 밖 exact equality를 검사한다. imported WAV는 실제 sample rate/channels/frame count를 기록한다.
 
-- [ ] **Step 1 — 1 LSB drift, EXIF orientation, malformed PNG/WAV, stale-base와 공통 undo 테스트부터 작성한다.**
+- [x] **Step 1 — 1 LSB drift, EXIF orientation, malformed PNG/WAV, stale-base와 공통 undo 테스트부터 작성한다.**
 
 ```js
 it('keeps every protected pixel from the decoded base', async () => {
@@ -230,8 +230,8 @@ it('keeps every protected pixel from the decoded base', async () => {
 
 각 helper/fixture는 `studio/test/helpers/images.js`로 만들고 actual encoded bytes를 검사한다. 다른 state의 사용 제안 0개, project undo 후 shot pin 유지, audit append, 후보 immutable, incompatible geometry 채택 차단을 별도 사례로 둔다.
 
-- [ ] **Step 2 — red를 기록한다.**
-- [ ] **Step 3 — sharp decode/orient/convert/raw 합성/encode와 상태별 slot adoption을 구현한다.**
+- [x] **Step 2 — red를 기록한다.**
+- [x] **Step 3 — sharp decode/orient/convert/raw 합성/encode와 상태별 slot adoption을 구현한다.**
 
 ```js
 const raw = await sharp(bytes).rotate().toColourspace('srgb').ensureAlpha().raw().toBuffer({ resolveWithObject:true });
@@ -239,8 +239,8 @@ const raw = await sharp(bytes).rotate().toColourspace('srgb').ensureAlpha().raw(
 
 원출력과 protected composite은 별도 revision이다. crop viewport는 ShotTransform이며 새 파일 저장만 derivative이다. decode failure는 quarantine이고 단순 MIME/확장자만 신뢰하지 않는다. Import UI는 실제 bytes를 이 command에 전달한다.
 
-- [ ] **Step 4 — protected RGBA/undo/import 테스트 green을 확인한다.**
-- [ ] **Step 5 — scoped asset implementation을 commit하고 reviewer가 상태/픽셀/계보를 확인한다.**
+- [x] **Step 4 — protected RGBA/undo/import 테스트 green을 확인한다.**
+- [x] **Step 5 — scoped asset implementation을 commit하고 reviewer가 상태/픽셀/계보를 확인한다.**
 
 ### Task 5: 로컬 daemon과 독립 Studio MCP
 
@@ -250,7 +250,7 @@ const raw = await sharp(bytes).rotate().toColourspace('srgb').ensureAlpha().raw(
 
 **Produces:** CLI `node studio/bin/studio.js --project <studio-dir> --port 0`; loopback만 listen한다. HTTP는 `GET /api/snapshot`, `POST /api/commands`, `GET /api/events?after=`, `GET /api/blobs/:blobId`, bounded import body를 제공한다. MCP는 `studio_status`, `studio_command`, `studio_events`를 제공하고 vibelore server를 변경하지 않는다.
 
-- [ ] **Step 1 — 실제 HTTP/stdio round-trip·origin/token·path traversal·SSE reconnect 테스트를 작성한다.**
+- [x] **Step 1 — 실제 HTTP/stdio round-trip·origin/token·path traversal·SSE reconnect 테스트를 작성한다.**
 
 ```js
 it('rejects a foreign origin before command execution', async t => {
@@ -266,8 +266,8 @@ it('rejects a foreign origin before command execution', async t => {
 
 동일 command를 UI/MCP 양쪽에서 전달한 replay를 검사한다. upload size cap 128 MiB, request UTF-8 body cap 1 MiB(반입 제외), blob ID 및 project membership 검사도 포함한다. 토큰은 UI bootstrap의 해당 local origin에서만 전달하고 URL/log에 넣지 않는다.
 
-- [ ] **Step 2 — transport red를 확인한다.**
-- [ ] **Step 3 — stdlib HTTP/stdio transport와 no-store/CSP/error redaction을 구현한다.**
+- [x] **Step 2 — transport red를 확인한다.**
+- [x] **Step 3 — stdlib HTTP/stdio transport와 no-store/CSP/error redaction을 구현한다.**
 
 ```js
 const result = await service.command(validatedEnvelope);
@@ -276,8 +276,8 @@ replyJson(response, 200, result);
 
 내부 검증은 engine에서 수행한다. transport는 content-type/origin/token/size만 담당한다. static 파일 serving은 고정된 `studio/ui/` 아래 whitelist이며 source folder를 serve하지 않는다.
 
-- [ ] **Step 4 — 실제 두 client command/CAS/event round-trip green을 확인한다.**
-- [ ] **Step 5 — daemon/MCP commit과 transport 검토를 수행한다.**
+- [x] **Step 4 — 실제 두 client command/CAS/event round-trip green을 확인한다.**
+- [x] **Step 5 — daemon/MCP commit과 transport 검토를 수행한다.**
 
 ### Task 6: persistent Studio UI와 Google 생성 adapter
 
@@ -287,7 +287,7 @@ replyJson(response, 200, result);
 
 **Produces:** 실제 빈 project 생성, 원고/자료 import, source/각색 대조, 40-role search/filter, occurrence별 voice override, utterance별 acting/hold, source mask, 전후/실제 audio take 비교, candidate/adoption/undo, job recovery UI. Google model config는 API surface/model ID를 명시하고 capability preflight로 사용할 수 없는 모델을 막는다.
 
-- [ ] **Step 1 — HTTP fixture를 통한 실제 UI command behavior와 provider request/response contract 테스트를 작성한다.**
+- [x] **Step 1 — HTTP fixture를 통한 실제 UI command behavior와 provider request/response contract 테스트를 작성한다.**
 
 ```js
 it('saves only the selected utterance performance', async t => {
@@ -302,8 +302,8 @@ it('saves only the selected utterance performance', async t => {
 
 UI module는 명시한 command를 만들고 서버 결과로 다시 렌더한다. 구현 전 official Google model/Interactions/image/voice 계약을 다시 읽어 fixture를 만들고 text/index metadata를 timecode로 파싱하지 않는 테스트를 둔다. transport fallback이나 retry를 adapter 안에서 숨기지 않는다.
 
-- [ ] **Step 2 — backend 연결 전 red를 확인한다.**
-- [ ] **Step 3 — 5개 작업 공간을 연결하고 Google adapters를 구현한다.**
+- [x] **Step 2 — backend 연결 전 red를 확인한다.**
+- [x] **Step 3 — 5개 작업 공간을 연결하고 Google adapters를 구현한다.**
 
 ```js
 const receipt = await api.command({
@@ -315,8 +315,8 @@ const receipt = await api.command({
 
 브라우저는 credential을 받지 않는다. credential resolver는 macOS의 명시한 기존 Keychain service 또는 backend 환경 변수에서 읽으며 자동 key 생성/저장·계정 변경을 하지 않는다. API 미설정 상태에서는 imported image/audio로 편집하고 생성 버튼에 실제 unavailable 이유를 표시한다. 화면 mock의 SVG·CSS는 디자인 참조이고 memory simulation event handler를 production 구현으로 복사하지 않는다.
 
-- [ ] **Step 4 — provider fake HTTP 테스트 green, CUA 실제 create/import/edit/reload/undo/unknown, 320/768/1024px와 keyboard/console을 확인한다.**
-- [ ] **Step 5 — UI/provider commit 후 per-task review를 받는다. 실제 유료 호출 성공은 실행한 경우에만 별도 기록한다.**
+- [x] **Step 4 — provider fake HTTP 테스트 green, CUA 실제 create/import/edit/reload/undo/unknown, 320/768/1024px와 keyboard/console을 확인한다.**
+- [x] **Step 5 — UI/provider commit 후 per-task review를 받는다. 실제 유료 호출 성공은 실행한 경우에만 별도 기록한다.**
 
 ### Task 7: 실제 음원 길이 기반 timeline과 공통 preview/export renderer
 
@@ -326,7 +326,7 @@ const receipt = await api.command({
 
 **Produces:** `timeline.update`, `edition.create`, `edition.render`, `edition.review`, `edition.publish`; Edition closure/manifest와 actual output checks를 저장한다. `frameAt({edition,frame,fps})`는 camera/caption/layer 정보를 결정론적으로 반환하고 player와 export에서 공유한다. Output profile은 16:9/9:16; 사건 순서가 달라지는 예고편은 별도 Production이다.
 
-- [ ] **Step 1 — known WAV 길이·anchor·fixed time conflict·working v2와 고정 v1·policy race를 시험한다.**
+- [x] **Step 1 — known WAV 길이·anchor·fixed time conflict·working v2와 고정 v1·policy race를 시험한다.**
 
 ```js
 it('anchors the reply after the actual preceding audio end', () => {
@@ -340,8 +340,8 @@ it('anchors the reply after the actual preceding audio end', () => {
 
 `resolveTimeline`은 timeline.js의 pure function이다. caption safe area, unknown model metadata, source package closure, missing audio/blob 차단도 검사한다.
 
-- [ ] **Step 2 — timeline/edition red를 기록한다.**
-- [ ] **Step 3 — Remotion optional composition/renderer와 immutable Edition을 구현한다.**
+- [x] **Step 2 — timeline/edition red를 기록한다.**
+- [x] **Step 3 — Remotion optional composition/renderer와 immutable Edition을 구현한다.**
 
 ```js
 export const frameAt = ({ edition, frame, fps }) => resolveFrame(edition, frame / fps);
@@ -349,8 +349,8 @@ export const frameAt = ({ edition, frame, fps }) => resolveFrame(edition, frame 
 
 `resolveFrame`은 frame.js에 구현하고 keyframe interpolation은 미고정 random/현재 시간에 의존하지 않는다. render queue는 고정 closure를 읽는다. review/publish CAS는 DB transaction 안에서 closure/manifest/policy binding을 비교한다. 실제 rendered MP4를 ffprobe로 확인하고 대표 frame/audio mix 검사를 기록한다.
 
-- [ ] **Step 4 — 60~90초 fixture의 실제 영상과 audio-only 파일을 출력해 검사한다. preview/export 1-frame 동기 목표를 측정한다.**
-- [ ] **Step 5 — renderer/edition commit과 playback/publish 검토를 받는다.**
+- [x] **Step 4 — 60~90초 fixture의 실제 영상과 audio-only 파일을 출력해 검사한다. preview/export 1-frame 동기 목표를 측정한다.**
+- [x] **Step 5 — renderer/edition commit과 playback/publish 검토를 받는다.**
 
 ### Task 8: 백업/복구·출시 회귀·사용 방법과 전체 검토
 
@@ -360,7 +360,7 @@ export const frameAt = ({ edition, frame, fps }) => resolveFrame(edition, frame 
 
 **Produces:** `project.backup`, `project.restore`, format/schema version preflight, startup integrity check, pinned blob lease/GC rules, 사용자 실행·import·생성·출력·복구 설명. 원래 root README/showcase를 덮어쓰지 않는다.
 
-- [ ] **Step 1 — 보존 bundle에서 원작·provider가 없는 상태의 reopen/render와 backup/GC 경합을 시험한다.**
+- [x] **Step 1 — 보존 bundle에서 원작·provider가 없는 상태의 reopen/render와 backup/GC 경합을 시험한다.**
 
 ```js
 it('restores adopted bytes without the original source folder or provider', async t => {
@@ -375,8 +375,8 @@ it('restores adopted bytes without the original source folder or provider', asyn
 
 test helper `seededProduction`은 실제 fixture 파일로 제작판을 만든다. 다른 schema version·checksum mismatch·active unknown attempt의 참조 blob 보존·support bundle secret redaction도 각각 검사한다.
 
-- [ ] **Step 2 — backup/recovery red를 확인한다.**
-- [ ] **Step 3 — checksum inventory·closed bundle·startup integrity report·read lease를 구현한다.**
+- [x] **Step 2 — backup/recovery red를 확인한다.**
+- [x] **Step 3 — checksum inventory·closed bundle·startup integrity report·read lease를 구현한다.**
 
 ```js
 await verifyInventory(bundle.manifest, bundle.blobs);
@@ -385,7 +385,7 @@ await restoreIntoNewDirectory(bundle, targetDirectory);
 
 두 함수는 backup.js에 구현하고 기존 project를 덮어쓰지 않는다. manifest 안의 절대경로·`..`·symlink를 거부한다. 초기 형식은 JSON manifest+blobs의 portable directory이며 외부 shell로 임의 archive를 풀지 않는다.
 
-- [ ] **Step 4 — 지원 Node에서 새 Studio suite와 기존 root/engine suites를 실행하고 전체 출력·실패명을 기록한다.**
+- [x] **Step 4 — 지원 Node에서 새 Studio suite와 기존 root/engine suites를 실행하고 전체 출력·실패명을 기록한다.**
 
 ```bash
 node --test "studio/test/**/*.test.js"
@@ -396,7 +396,7 @@ node scripts/check-source.js
 
 CUA로 실제 empty project·PNG/WAV import·4인 이상+offscreen/narrator 편집·reload·후보 비교·scope undo·실제 preview/export·unknown recovery를 확인한다. 실제 한국어 audition과 외부 과금은 key와 실행 권한이 있을 때만 별도 기록한다. 미실행 게이트에 pass 표시를 하지 않는다.
 
-- [ ] **Step 5 — 전체 diff를 최종 독립 review에 전달하고 중요한 지적을 모아 수정→제한 재검토한다. worktree commit은 task-owned paths만 포함한다. push·merge·공개 배포는 구현 완료 조건에 포함하지 않는다.**
+- [x] **Step 5 — 전체 diff를 최종 독립 review에 전달하고 중요한 지적을 모아 수정→제한 재검토한다. worktree commit은 task-owned paths만 포함한다. push·merge·공개 배포는 구현 완료 조건에 포함하지 않는다.**
 
 ## 완료 조건과 다음 단계
 
@@ -414,3 +414,36 @@ CUA로 실제 empty project·PNG/WAV import·4인 이상+offscreen/narrator 편�
 ## 구현 전 기준선 확인
 
 번들 Node v24.19.0에서 기존 root 874개·engine 1,239개 테스트를 실행했고 모두 통과했다. 제작 코드와 운영 설정은 수정하지 않았다. [기준선 영수증](lore-studio-local-production-baseline.json)에 실행 범위를 기록했다.
+
+## 실제 구현·검토 완료 기록 — 2026-10-09
+
+위 40개 task 단계는 구현·TDD·commit·독립 검토/수정 증거에 따라 완료 표시했다.
+[구현 영수증](../../research/studio-implementation-evidence-2026-10-09.json)에 8개 task의
+초기 검토, 수정, 제한 재검토와 실제 검증 범위를 보존한다. Task8의 실행 그래프 검증
+지적은 `04ab70f`에서 수정하고 독립 재검토를 통과했다. 전체 branch `b3200d3..04ab70f`
+검토의 3개 Important 지적은 한 번의 수정 `ca451d6`과 한 번의 범위 제한 재검토로
+모두 해소했다. 새로운 전체 branch 재검토를 했다는 주장은 아니며 열린 지적은 없다.
+
+최종 영향 범위 10개 파일은 143/143, source check는 774개 경로/exit0이다.
+앞선 Studio 279/279 이후 47/47와 1/1, Task8 수정 72/72와 7/7, root 872/874
+뒤 문서 수정 5/5, engine 1239/1239는 각각 별도 단계이며 현재 모든 테스트를
+한꺼번에 실행했다는 뜻이 아니다. 두 Studio 전체 실행 실패와 root 문서 실패,
+RED wrapper의 node 종료 코드 미기록 한계도 원래 영수증에 남겨 두었다.
+실제 복원 MP4/WAV 57.833초 출력은 보존되고 최종 수정은 frozen renderer fingerprint와
+lockfile을 바꾸지 않아 불필요한 장시간 재렌더를 하지 않았다.
+
+판정은 승인된 단일 사용자 로컬 first slice에 한정한다. 실제 Google 과금·quota,
+한국어 연기/발음·identity 연속성·mask 경계·screen reader는 미측정 출시 gate다.
+브라우저 다운로드 완료 및 인간의 청취/감상 승인도 검증 완료로 표시하지 않는다.
+
+적용한 Ruling은 정확히 두 개다.
+
+1. Task1은 fsync한 임시 파일을 같은 디렉터리의 exclusive hard link로 게시한 뒤
+   임시 이름을 지우고 디렉터리를 fsync한다. 기존 immutable digest 경로의 덮어쓰기를
+   막기 위한 결정이며, 틀렸다면 hard link 미지원 파일시스템의 게시 경로를 다시
+   구현해야 한다. 실패는 명시적으로 남고 불완전한 bytes를 등록하지 않는다.
+2. Task8의 필수 사용자 안내와 sanitized 구현 증거 JSON만 root package의 files
+   allowlist에 추가했다. 배포 문서 참조 불변식을 지키기 위한 예외이며 runtime
+   dependency/script/bin/server 및 원본 checkout은 바꾸지 않았다. 틀렸다면
+   package 용량/문서 배포 범위를 재작업해야 하고, 증거 sanitization이 빠지면
+   사적 경로·자료가 노출될 수 있으므로 정확한 파일 범위와 정제를 검사한다.
