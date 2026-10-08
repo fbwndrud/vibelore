@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { requireValue } from './story.js';
 import { assertId, assertText, canonicalDigest, canonicalJSON, fail } from './contracts.js';
 
 import {
@@ -185,6 +186,60 @@ function adoptionDecision(store, projectId, id) {
     fail('INVALID_REFERENCE', 'Adoption decision is absent.');
 
   return JSON.parse(row.data_json);
+}
+
+// Consumption uses the immutable acceptance receipt, not fresh generation pins:
+// timing/shot edits and later subscriber detachment do not revoke accepted media.
+// The current destination's semantic checks still run on every resolution.
+export function resolveAcceptedSelection(store, projectId, selectedSlot) {
+  const slot = requireValue(store, projectId, 'assetSlot', selectedSlot.id);
+  if (!sameSlot(slot, selectedSlot) ||
+      slot.candidateId !== selectedSlot.candidateId ||
+      slot.adoptionId !== selectedSlot.adoptionId)
+    fail('INPUT_STALE', 'Accepted selection changed.');
+
+  const decision = adoptionDecision(store, projectId, slot.adoptionId);
+  if (decision.slotId !== slot.id || decision.candidateId !== slot.candidateId ||
+      !['adopt', 'undo'].includes(decision.action))
+    fail('INVALID_REFERENCE', 'Acceptance receipt does not match the selected slot.');
+
+  const candidate = candidateValue(store, projectId, slot.candidateId);
+  const authorization = decision.authorization;
+  if (decision.subscriberId != null) {
+    if (!authorization || authorization.id !== decision.subscriberId ||
+        authorization.jobId !== candidate.jobId ||
+        authorization.attemptId !== candidate.attemptId || authorization.status !== 'attached')
+      fail('SUBSCRIBER_UNAVAILABLE', 'Acceptance receipt lacks its recorded destination authorization.');
+    const job = getJob(store, projectId, candidate.jobId), attempt = getAttempt(store, projectId, candidate.attemptId);
+    const subscriber = job.subscribers.find(s => s.id === decision.subscriberId);
+    // Status is mutable after acceptance; all pinned authorization fields are retained.
+    if (!subscriber ||
+        canonicalDigest({ ...subscriber, status: 'attached', jobId: job.id, attemptId: attempt.id }) !== canonicalDigest(authorization) ||
+        attempt.jobId !== job.id || !job.attemptIds.includes(attempt.id) ||
+        attempt.status !== 'succeeded' || candidate.requestDigest !== attempt.requestDigest ||
+        candidate.generationInputDigest !== job.generationInputDigest ||
+        canonicalDigest(authorization.recipe) !== canonicalDigest(candidate.recipe))
+      fail('SUBSCRIBER_UNAVAILABLE', 'Acceptance authorization does not belong to the original candidate attempt.');
+  } else if (authorization != null) {
+    fail('SUBSCRIBER_UNAVAILABLE', 'Acceptance authorization requires its subscriber identity.');
+  }
+
+  const current = slotPins(store, projectId, slot);
+  const destination = authorizationContext(candidate, authorization);
+  if (destination.productionId &&
+      (destination.productionId !== current.productionId ||
+        destination.sourcePackageId !== current.sourcePackageId ||
+        destination.sourceBindingRevision !== current.sourceBindingRevision))
+    fail('SOURCE_BINDING_STALE', 'Accepted destination belongs to an older source binding.');
+  if (candidate.mediaKind !== slot.mediaKind || candidate.validation?.status !== 'passed')
+    fail('INVALID_VALIDATION', 'Selected candidate lacks matching decoded validation.');
+  if (candidate.recipe?.operation === 'protected_edit' && candidate.lineage?.kind !== 'protected_edit')
+    fail('PROTECTED_COMPOSITE_REQUIRED', 'Protected edit selection requires its verified composite.');
+  if (candidate.lineage?.kind === 'protected_edit' && candidate.validation.protectedPixels !== 'passed')
+    fail('INVALID_VALIDATION', 'Selected protected composite lacks its retained pixel proof.');
+  candidateMatchesSlot(store, projectId, destination, slot, current, true);
+  // Never return the destination overlay as candidate provenance.
+  return candidate;
 }
 
 function undoAncestry(store, projectId, id) {

@@ -379,3 +379,152 @@ test('Production backup and fresh restore actions use common engine and preserve
   await c.refresh();assert.equal(c.snapshot.restores.length,1);await access(join(f.directory,c.snapshot.restores[0].directory,'studio.sqlite'));
   assert.equal((await f.service.snapshot('p1')).project.title,'작품');
 });
+
+test('rendered first decoded image can declare its destination, adopt and assign the intended shot without import', async t => {
+  const { png, basePixels } = await import('./helpers/images.js');
+  const http = await googleHttp(t, async () => interaction([{ type: 'image', mime_type: 'image/png', data: (await png(basePixels)).toString('base64') }], { model: 'gemini-3-pro-image-preview' }));
+  const f = await withAudioScene(t);
+  f.service.providers.google = googleProvider({ key: 'component-test-only', baseURL: http.baseURL });
+  const c = await context(t, f);
+  c.selection.production = 'main';
+  assert.equal(c.snapshot.slots.length, 0);
+  let root = renderAssetLab(c);
+  const generate = submitForm(root, '예약하고 후보 요청');
+  named(generate, 'prompt').value = 'An empty room';
+  named(generate, 'estimate').value = '0.01';
+  await generate.fire('submit');
+  assert.equal(tree(generate).find(x => x.role === 'alert').textContent, '');
+  await runWorker({ service: f.service, drain: true });
+  await c.refresh();
+  assert.equal(http.calls.length, 1);
+  assert.equal(c.snapshot.slots.length, 0);
+  assert.equal(c.snapshot.candidates[0].validation.status, 'passed');
+  assert.equal(c.snapshot.candidates[0].mediaKind, 'image');
+  root = renderAssetLab(c);
+  const adopt = submitForm(root, '후보 채택');
+  assert.equal(named(adopt, 'scope').value, 'shot');
+  assert.equal(named(adopt, 'subject').value, 'environment:room');
+  assert.equal(named(adopt, 'state').value, '');
+  // An explicit but incompatible destination is rejected by the engine and
+  // does not leave an empty slot behind.
+  named(adopt, 'state').value = 'adult';
+  await adopt.fire('submit');
+  assert.match(tree(adopt).find(x => x.role === 'alert').textContent, /SLOT_CONFLICT/);
+  assert.equal((await f.service.snapshot('p1')).slots.length, 0);
+  named(adopt, 'state').value = '';
+  named(adopt, 'reason').value = 'Reviewed decoded first image and shot destination';
+  await adopt.fire('input');
+  root = renderAssetLab(c);
+  await submitForm(root, '후보 채택').fire('submit');
+  assert.equal(c.snapshot.slots.length, 1);
+  const slot = c.snapshot.slots[0];
+  assert.deepEqual(slot.scope, { kind: 'shot', id: 'shot' });
+  assert.equal(slot.candidateId, c.snapshot.candidates[0].id);
+  assert.equal(c.sent.some(e => e.type === 'asset.import'), false);
+  root = renderAssetLab(c);
+  const use = tree(root).find(x => x.tag === 'button' && x.textContent === '선택 샷에 사용');
+  assert.ok(use, 'Accepted image offers explicit shot assignment');
+  await use.fire('click');
+  assert.equal(c.snapshot.scenes[0].shots[0].referenceSlotId, slot.id);
+  assert.equal(c.snapshot.scenes[0].shots[1].referenceSlotId, undefined);
+  assert.equal(c.sent.at(-1).type, 'scene.put');
+});
+
+async function castEditor(t, f) {
+  const { renderCast } = await import('../ui/cast.js');
+  const c = await context(t, f);
+  c.selection.role = 'actor';
+  const choose = async state => {
+    const root = renderCast(c);
+    const select = tree(root).find(x => x.tag === 'label' && x.children[0]?.textContent === '편집할 목소리 상태')?.children.find(x => x.tag === 'select');
+    assert.ok(select, 'Casting state is an explicit selection, separate from the decision being saved');
+    select.value = state;
+    await select.fire('change');
+    return renderCast(c);
+  };
+  const save = async (state, voice) => {
+    const root = await choose(state), form = submitForm(root, '목소리 배정 저장');
+    named(form, 'voice').value = voice;
+    await form.fire('submit');
+    assert.equal(tree(form).find(x => x.role === 'alert').textContent, '');
+    return c.sent.at(-1);
+  };
+  return { c, choose, save, renderCast };
+}
+const castRows = c => c.snapshot.aggregates.filter(a => a.kind === 'casting').map(a => a.value);
+
+test('rendered Cast preserves default, child and adult decisions and edits the existing selected state after reload', async t => {
+  const f = await withAudioScene(t), { c, save, choose, renderCast } = await castEditor(t, f);
+  await save('', 'Default');
+  await save('childvoice', 'Child');
+  assert.equal(c.sent.at(-1).payload.id, 'childcast');
+  const child = castRows(c).find(x => x.id === 'childcast');
+  assert.equal(child.voice, 'Child');
+  await save('adult', 'Adult');
+  assert.deepEqual(castRows(c).filter(x => x.roleId === 'actor').map(x => [x.state, x.voice]).sort(), [[null, 'Default'], ['childvoice', 'Child'], ['adult', 'Adult']].sort());
+  await save('adult', 'Adult updated');
+  await c.refresh();
+  // A fresh component context, without prior drafts or selected decision IDs.
+  const reloaded = await context(t, f);
+  reloaded.selection = { ...c.selection };
+  const reloadForm = submitForm(renderCast(reloaded), '목소리 배정 저장');
+  assert.equal(named(reloadForm, 'voice').value, 'Adult updated');
+  await choose('childvoice');
+  assert.equal(named(submitForm(renderCast(c), '목소리 배정 저장'), 'voice').value, 'Child');
+  assert.equal(c.snapshot.resolvedBindings.find(b => b.occurrenceId === 'speaker').casting.status, 'resolved');
+  assert.equal(castRows(c).filter(x => x.roleId === 'actor').length, 3);
+});
+
+test('rendered Cast occurrence-state switches preserve project and other occurrence-state assignments', async t => {
+  const f = await withAudioScene(t), { c, save } = await castEditor(t, f);
+  await save('', 'Project default');
+  const before = castRows(c);
+  c.selection.occurrence = 'speaker';
+  await save('childvoice', 'Occurrence child');
+  const childId = c.sent.at(-1).payload.id;
+  await save('adult', 'Occurrence adult');
+  const adultId = c.sent.at(-1).payload.id;
+  assert.notEqual(adultId, childId);
+  await save('childvoice', 'Occurrence child edited');
+  assert.equal(c.sent.at(-1).payload.id, childId);
+  assert.equal(castRows(c).find(x => x.id === adultId).voice, 'Occurrence adult');
+  for (const row of before) assert.deepEqual(castRows(c).find(x => x.id === row.id), row);
+  assert.equal(c.snapshot.resolvedBindings.find(b => b.occurrenceId === 'speaker').casting.voice, 'Occurrence child edited');
+});
+
+test('rendered Cast keeps state-specific unsaved drafts and captured CAS across switches and snapshot refresh', async t => {
+  const f = await withAudioScene(t), { c, choose, renderCast, save } = await castEditor(t, f);
+  await save('', 'Default');
+  let root = await choose('childvoice'), form = submitForm(root, '목소리 배정 저장');
+  named(form, 'voice').value = 'Unsaved child';
+  await form.fire('input');
+  await save('adult', 'Adult');
+  await f.command('casting.set', { id: 'childcast', scope: 'project', roleId: 'actor', state: 'childvoice', voice: 'Concurrent child' }, { aggregate: { kind: 'casting', id: 'childcast' } });
+  await c.refresh();
+  root = await choose('childvoice');
+  form = submitForm(root, '목소리 배정 저장');
+  assert.equal(named(form, 'voice').value, 'Unsaved child');
+  await form.fire('submit');
+  assert.match(tree(form).find(x => x.role === 'alert').textContent, /다른 변경/);
+  assert.equal(c.sent.at(-1).expectedRevision, 1);
+  assert.equal(c.sent.at(-1).aggregate.id, 'childcast');
+  assert.equal(named(submitForm(renderCast(c), '목소리 배정 저장'), 'voice').value, 'Unsaved child');
+  assert.equal(castRows(c).find(x => x.id === 'childcast').voice, 'Concurrent child');
+  assert.equal(castRows(c).find(x => x.state === null && x.roleId === 'actor').voice, 'Default');
+});
+
+test('rendered Cast retains a new-state draft if another client creates that state before save', async t => {
+  const f = await withAudioScene(t), { c, choose, renderCast } = await castEditor(t, f);
+  let root = await choose('adult'), form = submitForm(root, '목소리 배정 저장');
+  named(form, 'voice').value = 'My unsaved adult';
+  await form.fire('input');
+  await f.command('casting.set', { id: 'other-adult', scope: 'project', roleId: 'actor', language: 'ko', state: 'adult', voice: 'Other adult' }, { aggregate: { kind: 'casting', id: 'other-adult' } });
+  await c.refresh();
+  root = renderCast(c);
+  form = submitForm(root, '목소리 배정 저장');
+  assert.equal(named(form, 'voice').value, 'My unsaved adult');
+  await form.fire('submit');
+  assert.match(tree(form).find(x => x.role === 'alert').textContent, /다른 변경/);
+  assert.equal(castRows(c).filter(x => x.roleId === 'actor' && x.state === 'adult').length, 1);
+  assert.equal(castRows(c).find(x => x.id === 'other-adult').voice, 'Other adult');
+});

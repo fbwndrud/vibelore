@@ -1,10 +1,6 @@
 import { assertId, assertInteger, canonicalDigest, fail } from "./contracts.js";
 import { readValues, effectiveScenes, requireValue } from "./story.js";
-import {
-  candidateValue,
-  candidateMatchesSlot,
-  slotPins,
-} from "./asset-slots.js";
+import { resolveAcceptedSelection } from "./adoptions.js";
 import { decodeWav } from "../assets/audio-import.js";
 
 const SAMPLE_RATE = 48000;
@@ -207,11 +203,7 @@ export function timelineInputs(store, projectId, p) {
           "MISSING_AUDIO",
           "Every utterance requires an unambiguous selected take.",
         );
-      const candidate = candidateValue(store, projectId, slot.candidateId),
-        pins = slotPins(store, projectId, slot);
-      candidateMatchesSlot(store, projectId, candidate, slot, pins, true);
-      if (candidate.validation?.status !== "passed")
-        fail("INVALID_VALIDATION", "Unvalidated selected take.");
+      const candidate = resolveAcceptedSelection(store, projectId, slot);
       const occurrence = scene.occurrences.find(
         (o) => o.id === u.speakerOccurrenceId,
       );

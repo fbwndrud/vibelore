@@ -302,17 +302,38 @@ export function renderCast(c) {
       );
     }
     const scope = occurrence ? "occurrence" : "project";
-    const existing = s.aggregates.find(
-      (a) =>
-        a.kind === "casting" &&
-        a.value.scope === scope &&
-        a.value.roleId === role.id &&
-        (scope !== "occurrence" || a.value.occurrenceId === occurrence.id) &&
-        (a.value.state ?? null) === (presentation?.castingStateRef ?? null),
-    );
+    const scopeKey = JSON.stringify([
+      scope,
+      occurrence ? scene.productionId : null,
+      occurrence ? scene.id : null,
+      occurrence?.id ?? null,
+      role.id,
+      role.language,
+    ]);
+    const states = c.selection.castingStates ??= {};
+    const selectedState = states[scopeKey] ?? presentation?.castingStateRef ?? "";
+    const identityKey = JSON.stringify([scopeKey, selectedState]);
+    const matchesIdentity = (a) =>
+      a.kind === "casting" &&
+      a.value.scope === scope &&
+      a.value.roleId === role.id &&
+      (a.value.language ?? role.language) === role.language &&
+      !a.value.allStates &&
+      (scope !== "occurrence" ||
+        (a.value.occurrenceId === occurrence.id &&
+          a.value.sceneId === scene.id &&
+          a.value.productionId === scene.productionId)) &&
+      (a.value.state ?? "") === selectedState;
+    const existing = s.aggregates.find(matchesIdentity);
+    const formKey = `casting:${identityKey}`;
+    // A draft keeps its original decision and CAS, even if a refresh finds a
+    // different decision for the same identity. Discarding the draft reloads it.
+    const pendingIds = c.selection.castingDecisionIds ??= {};
     const decisionId =
-      existing?.id ??
-      (occurrence ? `voice-${occurrence.id}` : `voice-${role.id}`);
+      c.drafts.get(formKey) && pendingIds[identityKey]
+        ? pendingIds[identityKey]
+        : existing?.id ?? pendingIds[identityKey] ?? uid("voice");
+    pendingIds[identityKey] = decisionId;
     const d = existing?.value;
     editor.append(
       card(
@@ -320,9 +341,19 @@ export function renderCast(c) {
         note(
           occurrence ? "선택한 장면 출현에 적용" : "이 배역의 작품 기본 목소리",
         ),
+        select(
+          "편집할 목소리 상태",
+          selectedState,
+          stateOptions(c),
+          (state) => {
+            states[scopeKey] = state;
+            c.persist();
+            c.render();
+          },
+        ),
         form(
           c,
-          `casting:${decisionId}`,
+          formKey,
           [
             {
               name: "voice",
@@ -331,15 +362,15 @@ export function renderCast(c) {
               required: true,
               help: "Google 기본 목소리(Kore 등), 기존 voice_ ID 또는 수동 녹음 이름. 여러 배역이 같은 목소리를 써도 인물은 합쳐지지 않습니다.",
             },
-            {
-              name: "state",
-              label: "목소리 상태",
-              value: d?.state ?? presentation?.castingStateRef ?? "",
-              options: stateOptions(c),
-            },
           ],
-          async (p, rev) =>
-            c.send(
+          async (p, rev) => {
+            const current = c.snapshot.aggregates.find(matchesIdentity);
+            if (current && current.id !== decisionId)
+              throw Object.assign(
+                new Error("Casting identity changed while editing."),
+                { code: "REVISION_CONFLICT" },
+              );
+            await c.send(
               command(
                 s,
                 "casting.set",
@@ -350,7 +381,7 @@ export function renderCast(c) {
                   scope,
                   roleId: role.id,
                   language: role.language,
-                  state: nullish(p.state),
+                  state: nullish(selectedState),
                   voice: p.voice,
                   ...(occurrence
                     ? {
@@ -362,7 +393,8 @@ export function renderCast(c) {
                 },
                 rev,
               ),
-            ),
+            );
+          },
           {
             revision: revision(s, "casting", decisionId),
             submit: "목소리 배정 저장",

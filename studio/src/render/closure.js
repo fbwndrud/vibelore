@@ -6,11 +6,7 @@ import {
   fail,
 } from "../engine/contracts.js";
 import { requireValue } from "../engine/story.js";
-import {
-  candidateValue,
-  slotPins,
-  candidateMatchesSlot,
-} from "../engine/asset-slots.js";
+import { resolveAcceptedSelection } from "../engine/adoptions.js";
 import {
   prepareTimeline,
   timelineInputs,
@@ -90,15 +86,7 @@ function resolveShots(store, projectId, inputs, timeline, intents, profile) {
         (scope.kind === "shot" && scope.id !== shot.id)
       )
         fail("INVALID_REFERENCE", "Image is outside shot scope.");
-      const candidate = candidateValue(store, projectId, slot.candidateId);
-      candidateMatchesSlot(
-        store,
-        projectId,
-        candidate,
-        slot,
-        slotPins(store, projectId, slot),
-        true,
-      );
+      const candidate = resolveAcceptedSelection(store, projectId, slot);
       const intent = intents.find((x) => x.shotId === shot.id);
       let startFrame = Math.round(
           start + ((end - start) * i) / scene.shots.length,

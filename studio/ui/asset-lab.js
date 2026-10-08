@@ -204,6 +204,18 @@ export function renderAssetLab(c) {
 
   const candidate =
     candidates.find((x) => x.id === c.selection.candidate) ?? candidates.at(-1);
+  const suggestedScope = scene ? "scene" : "project";
+  const scopeOptions = [
+    { value: "project", label: "작품 공통" },
+    ...(c.selection.production
+      ? [{ value: "production", label: "선택 제작판" }]
+      : []),
+    ...(scene ? [{ value: "scene", label: "선택 장면" }] : []),
+    ...(c.selection.shot ? [{ value: "shot", label: "선택 샷" }] : []),
+  ];
+  const firstImage = !slot && kind === "image" && candidate &&
+    ["project", "production", "scene", "shot"].includes(candidate.target.kind);
+  const imageIntent = candidate?.slotIntent ?? candidate?.recipe?.assetIntent;
   // Declare the first bound audio slot only inside the real adoption command.
   // Generation itself targets the utterance and creates no empty aggregate.
   const adoptionSlot =
@@ -227,7 +239,12 @@ export function renderAssetLab(c) {
           castingStateRef: presentation.castingStateRef ?? null,
           utteranceId: u.id,
         })
-      : null);
+      : firstImage ? {
+          id: uid("slot"),
+          scope: candidate.target,
+          subject: imageIntent?.subject ?? { kind: "environment", id: "room" },
+          appearanceStateRef: imageIntent?.appearanceStateRef ?? null,
+        } : null);
   const accepted = s.candidates.find((x) => x.id === adoptionSlot?.candidateId);
   left.append(
     card(
@@ -265,8 +282,24 @@ export function renderAssetLab(c) {
         ),
         form(
           c,
-          `adopt:${s.slots.some((x) => x.id === adoptionSlot.id) ? adoptionSlot.id : `utterance-${u.id}`}:${candidate.id}`,
+          `adopt:${s.slots.some((x) => x.id === adoptionSlot.id) ? adoptionSlot.id : firstImage ? "first-image" : `utterance-${u.id}`}:${candidate.id}`,
           [
+            ...(firstImage ? [
+              {
+                name: "scope", label: "채택 적용 범위", value: adoptionSlot.scope.kind,
+                options: scopeOptions,
+              },
+              {
+                name: "subject", label: "채택 그림 대상",
+                value: `${adoptionSlot.subject.kind}:${adoptionSlot.subject.id}`,
+                options: [
+                  { value: "environment:room", label: "배경 / 공간" },
+                  ...s.cast.map(r => ({ value: `role:${r.id}`, label: r.name })),
+                  ...s.cast.filter(r => r.identity).map(r => ({ value: `identity:${r.characterId}`, label: `인물 · ${r.name}` })),
+                ],
+              },
+              { name: "state", label: "채택 외형 상태", value: adoptionSlot.appearanceStateRef ?? "", options: stateOptions(c) },
+            ] : []),
             {
               name: "reason",
               label: "검토 메모",
@@ -275,16 +308,37 @@ export function renderAssetLab(c) {
             },
           ],
           async (p, rev) => {
-            await c.send(
-              adoptCommand(s, adoptionSlot, candidate, p.reason, rev),
-            );
-            c.selection.slot = adoptionSlot.id;
+            const [subjectKind, subjectId] = (p.subject ?? "").split(":");
+            const destination = firstImage ? {
+              ...adoptionSlot,
+              scope: {
+                kind: p.scope,
+                id: p.scope === adoptionSlot.scope.kind ? adoptionSlot.scope.id :
+                  p.scope === "project" ? s.project.id : p.scope === "production" ? c.selection.production : p.scope === "scene" ? scene?.id : c.selection.shot,
+              },
+              subject: { kind: subjectKind, id: subjectId },
+              appearanceStateRef: p.state || null,
+            } : adoptionSlot;
+            await c.send(adoptCommand(s, destination, candidate, p.reason, rev));
+            c.selection.slot = destination.id;
           },
           {
             submit: "후보 채택",
             revision: revision(s, "assetSlot", adoptionSlot.id),
           },
         ),
+        adoptionSlot.adoptionId && kind === "image" && scene?.shots.some(sh => sh.id === c.selection.shot) &&
+          (adoptionSlot.scope.kind !== "shot" || adoptionSlot.scope.id === c.selection.shot) &&
+          (adoptionSlot.scope.kind !== "scene" || adoptionSlot.scope.id === scene.id) &&
+          (adoptionSlot.scope.kind !== "production" || adoptionSlot.scope.id === scene.productionId)
+          ? button("선택 샷에 사용", () => c.run(async () => {
+              await c.send(command(s, "scene.put", "scene", scene.id, {
+                ...scene,
+                shots: scene.shots.map(sh => sh.id === c.selection.shot ? { ...sh, referenceSlotId: adoptionSlot.id } : sh),
+              }, revision(s, "scene", scene.id)));
+              await c.refresh(true);
+            }))
+          : null,
         adoptionSlot.adoptionId
           ? button("이 슬롯 채택 되돌리기", () =>
               c.run(async () => {
@@ -297,15 +351,6 @@ export function renderAssetLab(c) {
       ),
     );
   }
-  const suggestedScope = scene ? "scene" : "project";
-  const scopeOptions = [
-    { value: "project", label: "작품 공통" },
-    ...(c.selection.production
-      ? [{ value: "production", label: "선택 제작판" }]
-      : []),
-    ...(scene ? [{ value: "scene", label: "선택 장면" }] : []),
-    ...(c.selection.shot ? [{ value: "shot", label: "선택 샷" }] : []),
-  ];
   right.append(
     card(
       slot ? "이 슬롯에 자료 추가" : "새 자료 가져오기",
