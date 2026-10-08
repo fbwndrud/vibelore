@@ -84,7 +84,7 @@ export function registerCastingCommands(service) {
       const d = envelope.payload;
       assertId(d.id);
       assertText(d.voice);
-      if (!(d.scope in levels)) fail('INVALID_INPUT', 'Unknown casting scope.');
+      if (!Object.hasOwn(levels, d.scope)) fail('INVALID_INPUT', 'Unknown casting scope.');
       if (d.state != null) {
         assertId(d.state);
         requireValue(store, envelope.projectId, 'state', d.state);

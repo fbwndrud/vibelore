@@ -85,13 +85,13 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
     },
     async snapshot(projectId) { return boundary(() => {
       return store.snapshot(projectId, snapshot => {
-      snapshot.sourcePackages = domainValues(snapshot, 'sourcePackage').map(a => a.value);
-      snapshot.story = domainValues(snapshot, 'story')[0]?.value ?? null;
-      snapshot.cast = domainValues(snapshot, 'cast').map(a => a.value);
-      snapshot.scenes = effectiveScenes(snapshot);
-      snapshot.resolvedBindings = resolvedBindings(snapshot);
-      snapshot.sourceChanges = store.all('SELECT data_json FROM source_changes WHERE project_id=? ORDER BY id', projectId).map(r => JSON.parse(r.data_json));
-      return snapshot;
+        snapshot.sourcePackages = domainValues(snapshot, 'sourcePackage').map(a => a.value);
+        snapshot.story = domainValues(snapshot, 'story')[0]?.value ?? null;
+        snapshot.cast = domainValues(snapshot, 'cast').map(a => a.value);
+        snapshot.scenes = effectiveScenes(snapshot);
+        snapshot.resolvedBindings = resolvedBindings(snapshot);
+        snapshot.sourceChanges = store.all('SELECT data_json FROM source_changes WHERE project_id=? ORDER BY id', projectId).map(r => JSON.parse(r.data_json));
+        return snapshot;
       });
     }, 'STORAGE_FAILED'); },
     async events(projectId, afterCursor = 0) { return boundary(() => store.events(projectId, afterCursor), 'STORAGE_FAILED'); },

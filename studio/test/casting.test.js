@@ -402,3 +402,20 @@ it('rejects stale scene replacement after utterance edit and accepts refreshed s
   );
   assert.equal((await service.snapshot('p1')).scenes[0].utterances[0].text, 'Accepted edit');
 });
+it('rejects inherited object names as casting scopes', async (t) => {
+  const { command } = await withStudio(t);
+  await command('production.create', { id: 'main', title: 'Main', sourcePackageId: null });
+  await command(
+    'cast.put',
+    { id: 'narrator', name: 'N', language: 'ko', characterId: null },
+    { aggregate: { kind: 'cast', id: 'narrator' } }
+  );
+  await assert.rejects(
+    command(
+      'casting.set',
+      { id: 'invalid', scope: 'toString', productionId: 'main', roleId: 'narrator', state: null, voice: 'v' },
+      { aggregate: { kind: 'casting', id: 'invalid' } }
+    ),
+    { code: 'INVALID_INPUT' }
+  );
+});
