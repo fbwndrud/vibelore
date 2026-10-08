@@ -1,3 +1,4 @@
+import { blobReferences } from '../render/closure.js';
 import { DatabaseSync } from 'node:sqlite';
 import { join } from 'node:path';
 import { assertId, assertInteger, assertSynchronous, canonicalJSON, fail } from './contracts.js';
@@ -71,6 +72,10 @@ export class ProjectStore {
     const aggregateRevision = envelope.expectedRevision + 1;
     assertInteger(aggregateRevision);
     const valueJSON = canonicalJSON(value);
+    for(const id of blobReferences(value)) {
+      const blob=this.get('SELECT status FROM blobs WHERE project_id=? AND id=?',envelope.projectId,id);
+      if(blob?.status!=='available'||this.get('SELECT 1 FROM blob_tombstones WHERE project_id=? AND blob_id=?',envelope.projectId,id)) fail('BLOB_UNAVAILABLE','A referenced blob is unavailable.');
+    }
     this.run(`INSERT INTO aggregates(project_id,kind,id,revision,data_json) VALUES(?,?,?,?,?)
       ON CONFLICT(project_id,kind,id) DO UPDATE SET revision=excluded.revision,data_json=excluded.data_json`,
     envelope.projectId, envelope.aggregate.kind, envelope.aggregate.id, aggregateRevision, valueJSON);

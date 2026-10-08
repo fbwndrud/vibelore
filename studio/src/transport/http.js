@@ -26,6 +26,7 @@ const staticFiles = new Map([
     'asset-lab.js',
     'edit.js',
     'production.js',
+    'backup.js',
     'player.js',
     'dom.js',
   ].map((file) => [`/${file}`, [file, 'text/javascript; charset=utf-8']]),

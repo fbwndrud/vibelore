@@ -1,3 +1,5 @@
+import { collectGarbage, integrityReport, supportBundle } from './recovery.js';
+import { registerBackupCommands, localBackupReceipts } from './backup.js';
 import { registerEditionCommands, decorateEditionSnapshot } from '../render/edition.js';
 import { registerTimelineCommands } from './timeline.js';
 import { registerManuscriptCommand } from '../source/manuscript.js';
@@ -44,7 +46,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   }
   const service = {
     runBackground(callback) {
-      const work = boundary(() => callback(backgroundStop.signal), 'EXECUTION_FAILED');
+      const work = boundary(() => blobs.leases.scope('worker', () => callback(backgroundStop.signal)), 'EXECUTION_FAILED');
       pendingBackground.add(work);
       work.then(() => pendingBackground.delete(work), () => pendingBackground.delete(work));
       return work;
@@ -63,8 +65,9 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
       handlers.set(type, { ...handler });
     },
     async command(input) {
-      const accepted = boundary(async () => {
+      const accepted = boundary(() => blobs.leases.scope('staging', async () => {
         const envelope = freezeJSON(validateEnvelope(input));
+        if (envelope.type === 'edition.render') blobs.leases.context.getStore().kind = 'render';
         const digest = canonicalDigest(envelope);
         function replay() {
           const previous = store.command(envelope.projectId, envelope.commandId);
@@ -89,18 +92,22 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
         // The original JSON envelope and digest are unchanged; final replay/CAS is authoritative.
         const prepared = handler.prepare ? await handler.prepare(validateContext()) : undefined;
         return store.write(() => {
+          blobs.leases.assertFence();
           const previous = replay(); if (previous) return previous;
           const context = { ...validateContext(), prepared };
           if (handler.validate) assertSynchronous(handler.validate(context));
           const value = assertSynchronous(handler.apply(context));
           return store.recordCommandAndEvent(envelope, digest, value);
         });
-      }, 'COMMAND_FAILED');
+      }), 'COMMAND_FAILED');
       pendingCommands.add(accepted);
       try { return await accepted; } finally { pendingCommands.delete(accepted); }
     },
     async snapshot(projectId) { return boundary(() => {
       return store.snapshot(projectId, snapshot => {
+        snapshot.integrity = integrityReport(blobs,projectId);
+        snapshot.backups = localBackupReceipts(store,directory,projectId,'project.backup');
+        snapshot.restores = localBackupReceipts(store,directory,projectId,'project.restore');
         snapshot.sourcePackages = domainValues(snapshot, 'sourcePackage').map(a => a.value);
         snapshot.story = domainValues(snapshot, 'story')[0]?.value ?? null;
         snapshot.cast = domainValues(snapshot, 'cast').map(a => a.value);
@@ -112,6 +119,9 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
     }, 'STORAGE_FAILED'); },
     async events(projectId, afterCursor = 0) { return boundary(() => store.events(projectId, afterCursor), 'STORAGE_FAILED'); },
     async readBlob(projectId, blobId) { return boundary(() => blobs.read(projectId, blobId), 'BLOB_READ_FAILED'); },
+    async collectGarbage(projectId, options) {return boundary(()=>collectGarbage(blobs,projectId,options),'GC_FAILED');},
+    async integrity(projectId) {return boundary(()=>integrityReport(blobs,projectId),'STORAGE_FAILED');},
+    async supportBundle(projectId) {return boundary(()=>supportBundle(service,projectId),'STORAGE_FAILED');},
     async close() {
       if (!closePromise) {
         closed = true;
@@ -165,7 +175,10 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   registerRecoveryCommands(service);
   registerTimelineCommands(service);
   registerEditionCommands(service);
+  registerBackupCommands(service);
   recoverWorkers(service);
   await revalidatePendingOutputs(service);
   return service;
 }
+
+export { restoreStudioBackup } from './backup.js';

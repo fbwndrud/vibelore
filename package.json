@@ -62,7 +62,9 @@
     "LICENSE",
     "NOTICE",
     "SECURITY.md",
-    "docs/release-review.json"
+    "docs/release-review.json",
+    "docs/LORE_STUDIO.md",
+    "docs/research/studio-implementation-evidence-2026-10-09.json"
   ],
   "bin": {
     "vibelore-mcp": "src/server.js"

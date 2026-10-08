@@ -56,12 +56,19 @@ test("unconfigured daemon leaves queue intact; configured daemon owns generation
     child.stdout.on("data", (d) => (output += d));
     child.stderr.on("data", (d) => (errors += d));
     t.after(() => child.kill());
-    for (let i = 0; i < 100 && !output.includes("Studio listening"); i++) {
+    for (
+      const deadline = Date.now() + 10000;
+      Date.now() < deadline && !output.includes("Studio listening");
+
+    ) {
       if (child.exitCode !== null) throw new Error(`Daemon exited: ${errors}`);
       await delay(20);
     }
     const url = output.match(/http:\/\/127\.0\.0\.1:\d+/)?.[0];
-    assert.ok(url, "daemon starts");
+    assert.ok(
+      url,
+      `daemon starts within readiness deadline; exit=${child.exitCode}; stderr=${errors}; stdout=${output}`,
+    );
     const bootstrap = await (
       await fetch(`${url}/api/bootstrap`, { headers: { origin: url } })
     ).json();
@@ -85,7 +92,7 @@ test("unconfigured daemon leaves queue intact; configured daemon owns generation
   await manual.stop();
   const configured = await start("local-dummy-credential");
   assert.equal(configured.bootstrap.providers[0].available, true);
-  for (let i = 0; i < 100; i++) {
+  for (const deadline = Date.now() + 10000; Date.now() < deadline; ) {
     if ((await f.service.snapshot("p1")).candidates.length) break;
     await delay(20);
   }

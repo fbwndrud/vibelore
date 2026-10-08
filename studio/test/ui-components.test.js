@@ -365,3 +365,17 @@ test("rendered player records a fresh policy-bound review after rebinding and pr
     .fire("click");
   assert.equal(c.snapshot.editionPublications[0].reviewId, fresh.id);
 });
+
+test('Production backup and fresh restore actions use common engine and preserve source project',async t=>{
+  const {withStudio}=await import('./helpers/project.js');
+  const {renderProduction}=await import('../ui/production.js');
+  const {access}=await import('node:fs/promises');const {join}=await import('node:path');
+  const f=await withStudio(t),c=await context(t,f);
+  let root=renderProduction(c);
+  const save=tree(root).find(x=>x.tag==='button'&&x.textContent==='프로젝트 백업 만들기');assert.ok(save);await save.fire('click');
+  await c.refresh();root=renderProduction(c);
+  assert.equal(c.snapshot.backups.length,1);
+  const restore=tree(root).find(x=>x.tag==='button'&&x.textContent==='새 폴더로 복원');assert.ok(restore);await restore.fire('click');
+  await c.refresh();assert.equal(c.snapshot.restores.length,1);await access(join(f.directory,c.snapshot.restores[0].directory,'studio.sqlite'));
+  assert.equal((await f.service.snapshot('p1')).project.title,'작품');
+});

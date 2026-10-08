@@ -566,6 +566,12 @@ export async function revalidatePendingOutputs(service) {
     if ((a.request.kind === 'text' && !['adaptation_proposal','scene_adaptation_proposal'].includes(a.request.recipe?.operation)) || a.validationStatus || service.store.get('SELECT id FROM generation_candidates WHERE project_id=? AND attempt_id=?', row.project_id, a.id))
       continue;
 
-    await validateAttemptOutputs({ service, projectId: row.project_id, attemptId: a.id });
+    try {
+      await validateAttemptOutputs({ service, projectId: row.project_id, attemptId: a.id });
+    } catch (error) {
+      // Retain raw history and held liability; startup integrity exposes damaged
+      // bytes for repair. A corrupt pending result must never authorize a resend.
+      if (!['BLOB_CORRUPT', 'BLOB_MISSING'].includes(error.code)) throw error;
+    }
   }
 }

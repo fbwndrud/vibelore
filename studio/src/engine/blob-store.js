@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, link, unlink, readFile, readdir } from 'node:fs/promises';
+import { BlobLeases } from './blob-leases.js';
+import { collectGarbage } from './recovery.js';
 import { join } from 'node:path';
 import { BLOB_ID, assertId, fail, publicError } from './contracts.js';
 
@@ -10,13 +12,15 @@ export class BlobStore {
     this.storageDirectory = directory;
     this.directory = join(directory, 'blobs');
     this.store = store;
+    this.leases = new BlobLeases(store);
+    this.recovered = new Map();
     this.closed = false;
     this.pending = new Set();
   }
   assertOpen() { if (this.closed) fail('STUDIO_CLOSED', 'Studio is closed.'); this.store.assertOpen(); }
   async operation(callback, failureCode) {
     this.assertOpen();
-    const promise = callback();
+    const promise = this.leases.scope('read-write', callback);
     this.pending.add(promise);
     try { return await promise; } catch (error) { throw publicError(error, failureCode, true); } finally { this.pending.delete(promise); }
   }
@@ -35,6 +39,7 @@ export class BlobStore {
       if (!(input instanceof Uint8Array)) fail('INVALID_INPUT', 'Blob writes require bytes.');
       const bytes = new Uint8Array(input);
       const blobId = hashBytes(bytes);
+      this.leases.pin(projectId, blobId);
       const directory = join(this.directory, projectId);
       await mkdir(directory, { recursive: true });
       const temporary = join(directory, `${blobId}.${randomUUID()}.tmp`);
@@ -71,6 +76,7 @@ export class BlobStore {
     return this.operation(async () => {
       assertId(projectId); this.store.requireProject(projectId);
       if (typeof blobId !== 'string' || !BLOB_ID.test(blobId)) fail('INVALID_INPUT', 'Expected a blob hash.');
+      this.leases.pin(projectId, blobId);
       const blob = this.store.get('SELECT byte_length,status FROM blobs WHERE project_id = ? AND id = ?', projectId, blobId);
       if (!blob) fail('BLOB_NOT_FOUND', 'Blob is not registered for this project.', { blobId });
       let bytes;
@@ -88,11 +94,21 @@ export class BlobStore {
     }, 'BLOB_READ_FAILED');
   }
   async recover() {
+    this.leases.recover();
+    return this.leases.scope('integrity', () => this.scanIntegrity());
+  }
+  async scanIntegrity() {
     await mkdir(this.directory, { recursive: true });
     await this.syncDirectory(this.directory);
     await this.syncDirectory(this.storageDirectory);
     for (const { id: projectId } of this.store.all('SELECT id FROM projects')) {
-      const registered = this.store.all('SELECT id,byte_length FROM blobs WHERE project_id = ?', projectId);
+      collectGarbage(this,projectId,{graceMs:0,recoverOnly:true});
+      this.recovered.set(projectId,[]);
+      const registered = this.store.write(()=>{
+        const rows=this.store.all('SELECT id,byte_length FROM blobs WHERE project_id = ?', projectId);
+        for(const row of rows) this.leases.pinLocked(projectId,row.id);
+        return rows;
+      });
       for (const blob of registered) {
         let status;
         try {
@@ -106,8 +122,17 @@ export class BlobStore {
       catch (error) { if (error.code === 'ENOENT') continue; throw error; }
       for (const entry of entries) {
         if (!entry.isFile() || !BLOB_ID.test(entry.name) || registered.some(blob => blob.id === entry.name)) continue;
+        this.leases.pin(projectId,entry.name);
         const bytes = await readFile(this.path(projectId, entry.name));
-        if (hashBytes(bytes) === entry.name) this.register(projectId, entry.name, bytes.byteLength);
+        if (hashBytes(bytes) === entry.name) {
+          const file=await open(this.path(projectId,entry.name),'r');
+          try {await file.sync();} finally {await file.close();}
+          await this.syncDirectory(join(this.directory,projectId));
+          await this.syncDirectory(this.directory);
+          await this.syncDirectory(this.storageDirectory);
+          this.register(projectId, entry.name, bytes.byteLength);
+          this.recovered.get(projectId).push(entry.name);
+        }
       }
     }
   }

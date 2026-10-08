@@ -1,3 +1,4 @@
+import { renderBackup } from './backup.js';
 import { renderPreview } from './player.js';
 import { command, revision } from "./api.js";
 import { el, card, note, form, button, uid, details } from "./dom.js";
@@ -297,5 +298,6 @@ export function renderProduction(c) {
       details("결정 식별 정보", s.adoptions),
     ),
   );
+  root.append(renderBackup(c));
   return root;
 }
