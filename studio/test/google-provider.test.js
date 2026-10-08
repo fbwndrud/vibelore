@@ -503,3 +503,19 @@ test("worker and retry recheck restored queued voice input before any HTTP dispa
   );
   assert.equal((await f.service.snapshot("p1")).attempts.length, 1);
 });
+
+test('Google failure retains safe HTTP status through durable unknown outcome without exposing response text', async t => {
+  const f = await withAudioScene(t);
+  await f.command('casting.set', { id: 'childcast', scope: 'project', roleId: 'actor', state: 'childvoice', voice: 'Kore' }, { aggregate: { kind: 'casting', id: 'childcast' } });
+  const http = await googleHttp(t, () => ({ status: 400, body: { error: { message: 'private provider text test-private-key', status: 'INVALID_ARGUMENT' } } }));
+  f.service.providers.google = await provider(http);
+  await generationCommand(f, validImageRequest({ provider: 'google', kind: 'audio', target: { kind: 'utterance', id: 'u1' }, input: { model: 'gemini-3.8-flash-tts', prompt: '같은 대사', config: { voice: 'Kore', acting: { tone: 'quiet' } } } }));
+  await runWorker({ service: f.service, drain: true });
+  const s = await f.service.snapshot('p1');
+  assert.equal(s.attempts[0].status, 'outcome_unknown');
+  assert.deepEqual(s.attempts[0].providerFailure, { code: 'PROVIDER_REJECTED', httpStatus: 400 });
+  assert.equal(s.reservations[0].status, 'held_unknown');
+  assert.equal(JSON.stringify(s).includes('private provider text'), false);
+  assert.equal(JSON.stringify(s).includes('test-private-key'), false);
+  assert.equal(http.calls.length, 1);
+});

@@ -73,6 +73,13 @@ export function renderProduction(c) {
   root.append(
     card(
       "제작 예산",
+      form(
+        c,
+        `budget:${s.project.id}`,
+        [{ name: "budget", label: "프로젝트 예산 한도 (USD)", type: "number", min: 0, step: "0.01", required: true, value: s.budget.budgetMicros / 1e6 }],
+        async (p, rev) => c.send(command(s, "project.budget.set", "project", s.project.id, { budgetMicros: Math.round(Number(p.budget) * 1e6) }, rev)),
+        { submit: "예산 한도 저장", revision: revision(s, "project", s.project.id), description: "앱의 생성 요청 한도입니다. 예약·청구 보류·정산 금액보다 낮출 수 없습니다." },
+      ),
       el(
         "div",
         { class: "metrics" },
@@ -151,6 +158,7 @@ export function renderProduction(c) {
         returnedModel: attempt.returnedModel ?? "unknown",
         returnedVoice: attempt.returnedVoice ?? "unknown",
         usage: attempt.usage ?? "unknown",
+        providerFailure: attempt.providerFailure ?? null,
         reservation,
       }),
     );

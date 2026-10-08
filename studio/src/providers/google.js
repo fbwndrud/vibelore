@@ -115,6 +115,7 @@ export function googleProvider({
           ? "PROVIDER_OUTCOME_UNKNOWN"
           : "PROVIDER_REJECTED",
         "Provider request did not return a usable result.",
+        { httpStatus: response.status },
       );
     try {
       return await response.json();

@@ -1,4 +1,5 @@
 import { collectGarbage, integrityReport, supportBundle } from './recovery.js';
+import { registerBudgetCommands } from './budget.js';
 import { registerBackupCommands, localBackupReceipts } from './backup.js';
 import { registerEditionCommands, decorateEditionSnapshot } from '../render/edition.js';
 import { registerTimelineCommands } from './timeline.js';
@@ -170,6 +171,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   registerCastingCommands(service);
   registerRebaseCommands(service);
   registerJobCommands(service);
+  registerBudgetCommands(service);
   registerAssetCommands(service);
   registerAdoptionCommands(service);
   registerRecoveryCommands(service);

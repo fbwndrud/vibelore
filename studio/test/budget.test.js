@@ -165,3 +165,31 @@ it('reattachment after unsent cancellation rolls back when its new reservation e
     false
   );
 });
+
+it('budget edits use project CAS, replay exactly, and preserve liabilities across connections', async (t) => {
+  const f = await withGeneration(t), other = await openStudio({ directory: f.directory });
+  t.after(() => other.close());
+  const envelope = { projectId: 'p1', commandId: 'budget-edit', aggregate: { kind: 'project', id: 'p1' }, expectedRevision: 1, type: 'project.budget.set', payload: { budgetMicros: 200000 } };
+  await f.service.command(envelope);
+  const before = await other.snapshot('p1');
+  assert.equal(before.project.budgetMicros, 200000);
+  assert.equal(before.aggregates.find(a => a.kind === 'project').value.budgetMicros, 200000);
+  assert.equal((await other.command(envelope)).replayed, true);
+  await assert.rejects(other.command({ ...envelope, commandId: 'stale' }), { code: 'REVISION_CONFLICT' });
+  await generationCommand(f, validImageRequest({ intent: 'fresh_variation' }));
+  await generationCommand({ ...f, command: (type, payload, overrides) => other.command({ projectId: 'p1', commandId: 'second-reservation', expectedRevision: 0, type, payload, ...overrides }) }, validImageRequest({ intent: 'fresh_variation' }));
+  await assert.rejects(f.command('project.budget.set', { budgetMicros: 199999 }), { code: 'BUDGET_BELOW_COMMITTED' });
+  const { runWorker } = await import('../src/engine/worker.js');
+  await runWorker({ service: f.service, providers: { fake: { capabilities: () => ({ kinds: ['image'], models: ['fake-v1'] }), generate: async () => { throw Error('unknown'); } } }, drain: true });
+  let s = await other.snapshot('p1');
+  assert.equal(s.budget.heldUnknownEstimateMicros, 200000);
+  await f.command('attempt.reconcile', { attemptId: s.attempts[0].id, action: 'billing', evidence: { kind: 'conservative_charge', amountMicros: 80000, actor: 'test', reference: 'test decision' } }, { aggregate: { kind: 'attempt', id: s.attempts[0].id } });
+  await assert.rejects(f.command('project.budget.set', { budgetMicros: 179999 }), { code: 'BUDGET_BELOW_COMMITTED' });
+  await f.command('project.budget.set', { budgetMicros: 180000 });
+  s = await other.snapshot('p1');
+  assert.equal(s.budget.availableMicros, 0);
+  assert.equal(s.budget.heldUnknownEstimateMicros, 100000);
+  assert.equal(s.budget.settledConservativeMicros, 80000);
+  for (const budgetMicros of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1])
+    await assert.rejects(f.command('project.budget.set', { budgetMicros }), { code: 'INVALID_INPUT' });
+});

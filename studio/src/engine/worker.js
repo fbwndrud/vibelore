@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
-import { assertText, canonicalDigest, canonicalJSON, fail } from './contracts.js';
+import { StudioError, assertId, assertText, canonicalDigest, canonicalJSON, fail } from './contracts.js';
 import { getJob, getAttempt, saveJob, saveAttempt, checkPinnedRequest, progress } from './jobs.js';
 import { holdUnknown, release, reconcileBudget } from './budget.js';
 
@@ -170,7 +170,12 @@ function completeResult(store, projectId, a, prepared) {
   }
   progress(store, projectId, a, 'attempt.succeeded');
 }
-export async function runWorker({ service, providers = service.providers, signal, drain = false }) {
+export async function runWorker({ service, providers = service.providers, signal, drain = false, projectId: selectedProjectId, attemptId: selectedAttemptId }) {
+  if (selectedProjectId !== undefined) assertId(selectedProjectId);
+  if (selectedAttemptId !== undefined) {
+    assertId(selectedAttemptId);
+    if (selectedProjectId === undefined) fail('INVALID_INPUT', 'Attempt scope requires its project.');
+  }
   return service.runBackground(async (closeSignal) => {
     const stop = signal ? AbortSignal.any([signal, closeSignal]) : closeSignal;
     const { store } = service;
@@ -204,7 +209,8 @@ export async function runWorker({ service, providers = service.providers, signal
     try {
       while (!stop.aborted) {
         const row = store.get(
-          "SELECT a.project_id,a.data_json FROM generation_outbox o JOIN generation_attempts a ON a.project_id=o.project_id AND a.id=o.attempt_id WHERE o.status='queued' AND a.status='prepared' ORDER BY o.rowid LIMIT 1"
+          "SELECT a.project_id,a.data_json FROM generation_outbox o JOIN generation_attempts a ON a.project_id=o.project_id AND a.id=o.attempt_id WHERE o.status='queued' AND a.status='prepared' AND (? IS NULL OR a.project_id=?) AND (? IS NULL OR a.id=?) ORDER BY o.rowid LIMIT 1",
+          selectedProjectId ?? null, selectedProjectId ?? null, selectedAttemptId ?? null, selectedAttemptId ?? null
         );
         if (!row) {
           if (drain) break;
@@ -310,11 +316,17 @@ export async function runWorker({ service, providers = service.providers, signal
             );
             await validateAttemptOutputs({service,projectId,attemptId:claimed.id});
           }
-        } catch {
+        } catch (error) {
           store.write(() => {
             const a = getAttempt(store, projectId, claimed.id);
-            if (a.status === 'dispatching' && a.fence === claimed.fence && a.workerId === id)
+            if (a.status === 'dispatching' && a.fence === claimed.fence && a.workerId === id) {
+              if (error instanceof StudioError && ['PROVIDER_REJECTED', 'PROVIDER_OUTCOME_UNKNOWN', 'INVALID_PROVIDER_RESULT'].includes(error.code)) {
+                a.providerFailure = { code: error.code };
+                if (Number.isInteger(error.details.httpStatus) && error.details.httpStatus >= 400 && error.details.httpStatus <= 599)
+                  a.providerFailure.httpStatus = error.details.httpStatus;
+              }
               markUnknown(store, projectId, a, 'ambiguous_provider_outcome');
+            }
           });
         }
       }

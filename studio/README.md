@@ -21,6 +21,33 @@ Leave `STUDIO_NO_KEY` unset for a local import-only workspace. The default CLI
 credential name otherwise is `GEMINI_API_KEY`; actual generation requires an
 explicitly intended configured credential and application budget.
 
+Production includes an application budget editor. `project.budget.set` uses the
+project aggregate revision and command ID, updates the stored project atomically,
+and rejects a cap below reserved estimates, unknown holds and settled amounts.
+This cap does not pay or verify the provider's bill. Provider failures retain a
+safe error code and HTTP status when available; unknown outcomes remain held.
+
+For the existing night-stop fixture, `scripts/google-demo.js` creates a separate
+Google production with six distinct prebuilt voices, verbatim Korean transcripts
+and speech-metadata acting directions. It uses the normal request/worker/adoption
+path, saves receipts, and never retries unknown results automatically. Run with
+Node 24 and an explicitly selected local environment file containing
+`GOOGLE_API_KEY` (the file and key are never copied into the project):
+
+```sh
+node studio/scripts/google-demo.js --project /your/studio-project --assets /your/demo-assets --output /your/google-output --env-file /your/config.env --phase first
+# After checking the first persisted operation and decoded WAV:
+node studio/scripts/google-demo.js --project /your/studio-project --assets /your/demo-assets --output /your/google-output --env-file /your/config.env --phase complete
+```
+
+`--phase first --cue N` generates only that numbered cue (0–11). Repeating an
+existing command reuses its result. If a cue is unknown, repair account access
+first and use Production's explicit new-attempt action with duplicate-charge
+risk acceptance; wait for that attempt to finish before rerunning this script.
+The old attempt and hold remain. `complete` renders fresh audio and landscape
+Editions only when every selected Google take is ready. Existing local-voice
+productions are retained as historical artifacts; they are never a fallback.
+
 ## Engine and extensions
 
 `openStudio({directory,providers={},renderer=null})` in `src/engine/index.js`

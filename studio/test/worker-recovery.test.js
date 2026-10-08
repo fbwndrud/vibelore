@@ -1050,3 +1050,22 @@ it('reattaching after detached success exposes decoded candidates without dispat
   assert.equal(after.candidates.length, 1);
   assert.equal(remote.requests.length, 1);
 });
+
+it('scoped drain dispatches only its exact project attempt and leaves other queued work intact', async t => {
+  const { runWorker } = await import('../src/engine/worker.js');
+  const f = await withGeneration(t);
+  await generationCommand(f, validImageRequest({ intent: 'fresh_variation' }));
+  await generationCommand(f, validImageRequest({ intent: 'fresh_variation' }));
+  const selected = (await f.service.snapshot('p1')).attempts[0];
+  const command = async (type, kind, id, payload) => f.service.command({ projectId: 'p2', commandId: `${type.replaceAll(".", "-")}-${id}`, aggregate: { kind, id }, expectedRevision: 0, type, payload });
+  await command('project.create', 'project', 'p2', { title: 'Other project', language: 'ko', budgetMicros: 1000000 });
+  await command('production.create', 'production', 'other', { id: 'other', title: 'Other', sourcePackageId: null });
+  await command('scene.put', 'scene', 'other-scene', { id: 'other-scene', productionId: 'other', occurrences: [], presentations: [], utterances: [], shots: [{ id: 'shot' }] });
+  const request = validImageRequest();
+  await command('generation.request', 'generation', request.subscriberId, request);
+  let calls = 0;
+  await runWorker({ service: f.service, projectId: 'p1', attemptId: selected.id, drain: true, providers: { fake: { capabilities: () => ({ kinds: ['image'], models: ['fake-v1'] }), generate: async () => { calls++; throw Error('unknown'); } } } });
+  assert.equal(calls, 1);
+  assert.deepEqual((await f.service.snapshot('p1')).attempts.map(a => a.status), ['outcome_unknown', 'prepared']);
+  assert.equal((await f.service.snapshot('p2')).attempts[0].status, 'prepared');
+});

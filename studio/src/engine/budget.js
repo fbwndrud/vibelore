@@ -1,5 +1,20 @@
 import { assertInteger, assertText, fail } from './contracts.js';
 
+export function registerBudgetCommands(service) {
+  service.registerCommand('project.budget.set', {
+    target: ({ envelope }) => ({ kind: 'project', id: envelope.projectId }),
+    apply({ store, envelope, aggregate }) {
+      const { budgetMicros } = envelope.payload;
+      assertInteger(budgetMicros);
+      const current = budgetSnapshot(store, envelope.projectId);
+      if (budgetMicros < current.budgetMicros - current.availableMicros)
+        fail('BUDGET_BELOW_COMMITTED', 'Budget must cover reserved, held and settled amounts.');
+      store.run('UPDATE projects SET budget_micros=? WHERE id=?', budgetMicros, envelope.projectId);
+      return { ...aggregate.value, budgetMicros };
+    },
+  });
+}
+
 export function budgetSnapshot(store, projectId) {
   const budgetMicros = store.requireProject(projectId).budgetMicros;
   const rows = store.all('SELECT * FROM budget_reservations WHERE project_id=?', projectId);

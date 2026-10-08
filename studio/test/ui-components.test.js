@@ -528,3 +528,23 @@ test('rendered Cast retains a new-state draft if another client creates that sta
   assert.equal(castRows(c).filter(x => x.roleId === 'actor' && x.state === 'adult').length, 1);
   assert.equal(castRows(c).find(x => x.id === 'other-adult').voice, 'Other adult');
 });
+
+test('Production budget form saves through project CAS and retains a conflicting draft', async t => {
+  const { renderProduction } = await import('../ui/production.js');
+  const f = await withAudioScene(t), c = await context(t, f);
+  let root = renderProduction(c), form = submitForm(root, '예산 한도 저장');
+  named(form, 'budget').value = '2.50';
+  await form.fire('submit');
+  assert.equal(c.sent.at(-1).type, 'project.budget.set');
+  assert.equal(c.snapshot.project.budgetMicros, 2500000);
+  root = renderProduction(c); form = submitForm(root, '예산 한도 저장');
+  named(form, 'budget').value = '3.00';
+  await form.fire('input');
+  await f.command('project.budget.set', { budgetMicros: 4000000 });
+  await c.refresh();
+  root = renderProduction(c); form = submitForm(root, '예산 한도 저장');
+  assert.equal(named(form, 'budget').value, '3.00');
+  await form.fire('submit');
+  assert.match(tree(form).find(x => x.role === 'alert').textContent, /다른 변경/);
+  assert.equal((await f.service.snapshot('p1')).project.budgetMicros, 4000000);
+});
