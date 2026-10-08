@@ -1,3 +1,4 @@
+import { png, basePixels } from './helpers/images.js';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 import { createServer } from 'node:http';
@@ -5,10 +6,10 @@ import { fork } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { openStudio } from '../src/engine/index.js';
-import { withGeneration, validImageRequest, generationCommand } from './helpers/project.js';
+import { withGeneration, validImageRequest, generationCommand, retainPendingOutput } from './helpers/project.js';
 
 const result = {
-  outputs: [{ bytes: [1, 2, 3], mime: 'image/png' }],
+  outputs: [{ bytes: [...await png(basePixels)], mime: 'image/png' }],
   resolvedModel: 'fake-v1',
   providerRequestId: 'req1',
   usage: null
@@ -147,10 +148,10 @@ it('opening another connection never steals a live dispatch even after its lease
   remote.responses[0].end(JSON.stringify(result));
   await until(() => w.messages.some((m) => m.stage === 'done'));
   const s = await f.service.snapshot('p1');
-  assert.equal(s.jobs[0].status, 'pending_validation');
-  assert.equal(s.candidates.length, 0);
+  assert.equal(s.jobs[0].status, 'candidate_ready');
+  assert.equal(s.candidates.length, 1);
 });
-it('stores immutable raw bytes as pending validation and does not advance scene revision', async (t) => {
+it('stores immutable raw bytes and real decoded candidates without advancing scene revision', async (t) => {
   const f = await withGeneration(t),
     remote = await httpProvider(t);
   await generationCommand(f);
@@ -163,12 +164,12 @@ it('stores immutable raw bytes as pending validation and does not advance scene 
   const s = await f.service.snapshot('p1');
   assert.equal(remote.requests.length, 1);
   assert.equal(s.attempts[0].status, 'succeeded');
-  assert.equal(s.jobs[0].status, 'pending_validation');
-  assert.equal(s.candidates.length, 0);
+  assert.equal(s.jobs[0].status, 'candidate_ready');
+  assert.equal(s.candidates.length, 1);
   assert.equal(s.aggregates.find((a) => a.kind === 'scene').revision, 1);
   assert.deepEqual(
     [...(await f.service.readBlob('p1', s.attempts[0].outputs[0].blobId))],
-    [1, 2, 3]
+    result.outputs[0].bytes
   );
   assert.equal(s.reservations[0].status, 'held_unknown');
 });
@@ -295,7 +296,7 @@ it('inspect recovers a persisted queryable operation without another generation 
         status: 'succeeded',
         result: {
           ...result,
-          outputs: [{ bytes: new Uint8Array([8]), mime: 'image/png' }],
+          outputs: [{ bytes: await png(basePixels), mime: 'image/png' }],
           usage: { outputCount: 1, apiKey: 'SECRET' }
         }
       };
@@ -316,7 +317,7 @@ it('inspect recovers a persisted queryable operation without another generation 
   s = await f.service.snapshot('p1');
   assert.equal(s.attempts.length, 1);
   assert.equal(s.attempts[0].status, 'succeeded');
-  assert.equal(s.jobs[0].status, 'pending_validation');
+  assert.equal(s.jobs[0].status, 'candidate_ready');
   assert.deepEqual(s.attempts[0].usage, { outputCount: 1 });
   assert.ok(!JSON.stringify(s).includes('SECRET'));
 });
@@ -409,12 +410,7 @@ it('output validation rechecks attempt fence after awaiting the decoder and neve
     remote = await httpProvider(t);
   await generationCommand(f);
   const { runWorker, validateAttemptOutputs } = await import('../src/engine/worker.js');
-  await runWorker({
-    service: f.service,
-    providers: { fake: remote.provider },
-    drain: true
-  });
-  const a = (await f.service.snapshot('p1')).attempts[0];
+  const a = await retainPendingOutput(f,await png(basePixels));
   let releaseDecoder, entered;
   const started = new Promise((r) => (entered = r)),
     gate = new Promise((r) => (releaseDecoder = r));
@@ -530,7 +526,7 @@ it('provider receives verified reference bytes without engine target recipe or v
           received = r;
           return {
             ...result,
-            outputs: [{ bytes: new Uint8Array([1]), mime: 'image/png' }]
+            outputs: [{ bytes: await png(basePixels), mime: 'image/png' }]
           };
         }
       }
@@ -667,19 +663,7 @@ it('rebase inventories unknown attempts, raw output and candidates and refreshes
     drain: true
   });
   await generationCommand(f, validImageRequest({ intent: 'fresh_variation' }));
-  await runWorker({
-    service: f.service,
-    providers: {
-      fake: {
-        capabilities: () => ({ kinds: ['image'], models: ['fake-v1'] }),
-        generate: async () => ({
-          ...result,
-          outputs: [{ bytes: new Uint8Array([1]), mime: 'image/png' }]
-        })
-      }
-    },
-    drain: true
-  });
+  await retainPendingOutput(f,await png(basePixels),'image/png',1);
   let s = await f.service.snapshot('p1');
   const a = s.attempts[1];
   const { makeSourcePackage } = await import('../src/source/source-package.js');
@@ -928,7 +912,7 @@ it('new request after queued cancellation reserves runnable work while preservin
   assert.equal(remote.requests.length, 1);
   assert.equal(s.attempts[0].status, 'cancelled_before_dispatch');
   assert.equal(s.attempts[1].status, 'succeeded');
-  assert.equal(s.jobs[0].status, 'pending_validation');
+  assert.equal(s.jobs[0].status, 'candidate_ready');
 });
 
 it('reattaching during an in-flight cancellation exposes the eventual validated result without another HTTP send', async (t) => {
@@ -951,7 +935,7 @@ it('reattaching during an in-flight cancellation exposes the eventual validated 
   remote.responses[0].end(JSON.stringify(result));
   await work;
   let s = await f.service.snapshot('p1');
-  assert.equal(s.jobs[0].status, 'pending_validation');
+  assert.equal(s.jobs[0].status, 'candidate_ready');
   await validateAttemptOutputs({
     service: f.service,
     projectId: 'p1',
@@ -1042,7 +1026,7 @@ it('reattaching a detached unknown intent reports unknown and preserves held fun
   assert.equal(remote.requests.length, 1);
 });
 
-it('reattaching after detached success exposes pending bytes for validation without dispatching again', async (t) => {
+it('reattaching after detached success exposes decoded candidates without dispatching again', async (t) => {
   const f = await withGeneration(t),
     remote = await httpProvider(t, { hold: true }),
     j = await generationCommand(f);
@@ -1059,10 +1043,10 @@ it('reattaching after detached success exposes pending bytes for validation with
   const before = await f.service.snapshot('p1');
   assert.equal(before.jobs[0].status, 'detached_in_flight');
   const joined = await generationCommand(f);
-  assert.equal(joined.value.status, 'pending_validation');
+  assert.equal(joined.value.status, 'candidate_ready');
   await runWorker({ service: f.service, providers: { fake: remote.provider }, drain: true });
   const after = await f.service.snapshot('p1');
   assert.deepEqual(after.attempts, before.attempts);
-  assert.equal(after.candidates.length, 0);
+  assert.equal(after.candidates.length, 1);
   assert.equal(remote.requests.length, 1);
 });

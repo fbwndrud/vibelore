@@ -1,4 +1,6 @@
-import { recoverWorkers, registerRecoveryCommands } from './worker.js';
+import { registerAdoptionCommands, decorateAssetSnapshot } from './adoptions.js';
+import { registerAssetCommands } from '../assets/commands.js';
+import { recoverWorkers, registerRecoveryCommands, revalidatePendingOutputs } from './worker.js';
 import { registerJobCommands, decorateExecutionSnapshot } from './jobs.js';
 import { registerSourceCommands } from '../source/source-package.js';
 import { registerStoryCommands, effectiveScenes, domainValues } from './story.js';
@@ -101,7 +103,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
         snapshot.scenes = effectiveScenes(snapshot);
         snapshot.resolvedBindings = resolvedBindings(snapshot);
         snapshot.sourceChanges = store.all('SELECT data_json FROM source_changes WHERE project_id=? ORDER BY id', projectId).map(r => JSON.parse(r.data_json));
-        return decorateExecutionSnapshot(store, snapshot);
+        return decorateAssetSnapshot(store, decorateExecutionSnapshot(store, snapshot));
       });
     }, 'STORAGE_FAILED'); },
     async events(projectId, afterCursor = 0) { return boundary(() => store.events(projectId, afterCursor), 'STORAGE_FAILED'); },
@@ -152,7 +154,10 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   registerCastingCommands(service);
   registerRebaseCommands(service);
   registerJobCommands(service);
+  registerAssetCommands(service);
+  registerAdoptionCommands(service);
   registerRecoveryCommands(service);
   recoverWorkers(service);
+  await revalidatePendingOutputs(service);
   return service;
 }

@@ -1,3 +1,4 @@
+import { png, basePixels } from './helpers/images.js';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 import { openStudio } from '../src/engine/index.js';
@@ -116,7 +117,7 @@ it('job reuse requires validated candidates and preserves the separate target su
       fake: {
         capabilities: () => ({ kinds: ['image'], models: ['fake-v1'] }),
         generate: async () => ({
-          outputs: [{ bytes: new Uint8Array([1]), mime: 'image/png' }],
+          outputs: [{ bytes: await png(basePixels), mime: 'image/png' }],
           resolvedModel: 'fake-v1'
         })
       }

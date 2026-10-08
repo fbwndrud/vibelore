@@ -1,3 +1,5 @@
+import { pinTarget, checkPinnedRequest, compatibleTimingPins } from './asset-slots.js';
+export { pinTarget, checkPinnedRequest } from './asset-slots.js';
 import { randomUUID } from 'node:crypto';
 import {
   assertId,
@@ -7,7 +9,6 @@ import {
   canonicalJSON,
   fail
 } from './contracts.js';
-import { readValues, requireValue } from './story.js';
 import { budgetSnapshot, reservationSnapshot, reserve, release } from './budget.js';
 
 // These tables contain execution state; worker progress never updates edit aggregate revisions.
@@ -19,9 +20,18 @@ export function executionSchema(store) {
     CREATE TABLE IF NOT EXISTS generation_outbox(project_id TEXT NOT NULL,attempt_id TEXT NOT NULL,status TEXT NOT NULL,PRIMARY KEY(project_id,attempt_id),FOREIGN KEY(project_id,attempt_id) REFERENCES generation_attempts(project_id,id));
     CREATE TABLE IF NOT EXISTS budget_reservations(project_id TEXT NOT NULL,attempt_id TEXT NOT NULL,status TEXT NOT NULL,estimate_micros INTEGER NOT NULL,settled_micros INTEGER,amount_kind TEXT,evidence_json TEXT,PRIMARY KEY(project_id,attempt_id),FOREIGN KEY(project_id,attempt_id) REFERENCES generation_attempts(project_id,id));
     CREATE TABLE IF NOT EXISTS generation_workers(id TEXT PRIMARY KEY,pid INTEGER NOT NULL,incarnation TEXT NOT NULL,hostname TEXT NOT NULL,lease_until INTEGER NOT NULL,status TEXT NOT NULL);
-    CREATE TABLE IF NOT EXISTS generation_candidates(project_id TEXT NOT NULL,id TEXT NOT NULL,attempt_id TEXT NOT NULL,data_json TEXT NOT NULL,PRIMARY KEY(project_id,id),FOREIGN KEY(project_id,attempt_id) REFERENCES generation_attempts(project_id,id));
+    CREATE TABLE IF NOT EXISTS generation_candidates(project_id TEXT NOT NULL,id TEXT NOT NULL,attempt_id TEXT,data_json TEXT NOT NULL,PRIMARY KEY(project_id,id),FOREIGN KEY(project_id,attempt_id) REFERENCES generation_attempts(project_id,id));
   `)
   );
+  // Older Studio databases required provider provenance even for local imports.
+  if (store.all('PRAGMA table_info(generation_candidates)').find(c => c.name === 'attempt_id')?.notnull) {
+    store.write(() => store.db.exec(`
+      ALTER TABLE generation_candidates RENAME TO generation_candidates_legacy;
+      CREATE TABLE generation_candidates(project_id TEXT NOT NULL,id TEXT NOT NULL,attempt_id TEXT,data_json TEXT NOT NULL,PRIMARY KEY(project_id,id),FOREIGN KEY(project_id,attempt_id) REFERENCES generation_attempts(project_id,id));
+      INSERT INTO generation_candidates SELECT * FROM generation_candidates_legacy;
+      DROP TABLE generation_candidates_legacy;
+    `));
+  }
 }
 export const jobRows = (store, projectId) =>
   store
@@ -85,159 +95,6 @@ export function progress(store, projectId, attempt, type) {
     })
   );
 }
-function pinCommonTarget(store, projectId, target) {
-  const pins = [{ kind: target.kind, id: target.id }];
-  let productionId = null,
-    sourcePackageId = target.sourcePackageId ?? null;
-  if (target.kind === 'project') {
-    if (target.id !== projectId)
-      fail('INVALID_REFERENCE', 'Project target must match command project.');
-    store.requireProject(projectId);
-  } else if (target.kind === 'production') {
-    const production = requireValue(store, projectId, 'production', target.id);
-    productionId = production.id;
-    if (sourcePackageId && sourcePackageId !== production.sourcePackageId)
-      fail('SOURCE_BINDING_STALE', 'Requested source does not match production.');
-    sourcePackageId = production.sourcePackageId;
-    pins.push({ kind: 'sourceBinding', id: productionId });
-  } else {
-    const role = requireValue(store, projectId, 'cast', target.id);
-    const definitions = readValues(store, projectId, 'cast').filter(
-      (r) => r.identity && r.identity.id === role.characterId
-    );
-    for (const definition of definitions) pins.push({ kind: 'cast', id: definition.id });
-    const origin = definitions[0]?.identity.origin;
-    if (origin?.kind === 'source') {
-      pins.push({ kind: 'sourcePackage', id: origin.packageId });
-      sourcePackageId ??= origin.packageId;
-    }
-  }
-  if (target.stateRef != null) {
-    if (target.kind !== 'cast') fail('INVALID_INPUT', 'State references require a cast target.');
-    requireValue(store, projectId, 'state', target.stateRef);
-    const local = readValues(store, projectId, 'story').find((story) =>
-      story.states.some((state) => state.id === target.stateRef)
-    );
-    if (local) pins.push({ kind: 'story', id: local.id });
-    else {
-      const declarations = readValues(store, projectId, 'sourcePackage').filter(
-        (pkg) =>
-          (!sourcePackageId || pkg.id === sourcePackageId) &&
-          pkg.sceneScopes.some((scope) =>
-            Object.values(scope.stateIds ?? {})
-              .flat()
-              .includes(target.stateRef)
-          )
-      );
-      if (!declarations.length)
-        fail('INVALID_REFERENCE', 'State is outside the selected source scope.');
-      for (const pkg of declarations) pins.push({ kind: 'sourcePackage', id: pkg.id });
-      sourcePackageId ??= declarations[0].id;
-    }
-  }
-  const source = sourcePackageId
-    ? requireValue(store, projectId, 'sourcePackage', sourcePackageId)
-    : null;
-  if (source) pins.push({ kind: 'sourcePackage', id: source.id });
-  const spans = target.sourceUnitIds ?? [];
-  if (
-    !Array.isArray(spans) ||
-    spans.some((id) => !source?.textUnits.some((unit) => unit.id === id))
-  )
-    fail('INVALID_REFERENCE', 'Source spans must belong to the pinned package.');
-  const unique = Array.from(new Map(pins.map((p) => [`${p.kind}:${p.id}`, p])).values()).map(
-    (p) => ({ ...p, revision: store.aggregate(projectId, p).revision })
-  );
-  return {
-    target,
-    productionId,
-    sceneId: null,
-    sourcePackageId,
-    sourcePackageRevision: source?.sourceRevision ?? null,
-    sourceDependencySpans: spans,
-    sourceBindingRevision: productionId
-      ? store.aggregate(projectId, { kind: 'sourceBinding', id: productionId }).revision
-      : null,
-    pins: unique,
-    castingInventory: null,
-    targetStateRef: target.stateRef ?? null
-  };
-}
-export function pinTarget(store, projectId, target) {
-  if (
-    !target ||
-    !['project', 'production', 'cast', 'shot', 'scene', 'utterance'].includes(target.kind)
-  )
-    fail('INVALID_INPUT', 'Unknown generation target kind.');
-  assertId(target.id);
-  if (['project', 'production', 'cast'].includes(target.kind))
-    return pinCommonTarget(store, projectId, target);
-  const scenes = readValues(store, projectId, 'scene');
-  const scene = scenes.find((s) =>
-    target.kind === 'scene'
-      ? s.id === target.id
-      : (target.kind === 'shot' ? s.shots : s.utterances).some((x) => x.id === target.id)
-  );
-  if (!scene) fail('INVALID_REFERENCE', 'Target does not belong to this project.');
-  const production = requireValue(store, projectId, 'production', scene.productionId);
-  const sourcePackageId = scene.sourcePackageId ?? production.sourcePackageId;
-  if (sourcePackageId !== production.sourcePackageId)
-    fail('SOURCE_BINDING_STALE', 'Scene must resolve its source binding before generation.');
-  const source = sourcePackageId
-    ? requireValue(store, projectId, 'sourcePackage', sourcePackageId)
-    : null;
-  const pins = [
-    { kind: 'scene', id: scene.id },
-    ...scene.utterances.map((u) => ({ kind: 'utterance', id: u.id })),
-    ...scene.occurrences.map((o) => ({ kind: 'cast', id: o.roleBindingId })),
-    ...readValues(store, projectId, 'cast')
-      .filter(
-        (role) => role.identity && scene.occurrences.some((o) => o.characterId === role.identity.id)
-      )
-      .map((role) => ({ kind: 'cast', id: role.id })),
-    ...readValues(store, projectId, 'story').map((story) => ({ kind: 'story', id: story.id })),
-    ...readValues(store, projectId, 'casting').map((c) => ({
-      kind: 'casting',
-      id: c.id
-    })),
-    { kind: 'sourceBinding', id: scene.productionId }
-  ];
-  const unique = Array.from(new Map(pins.map((p) => [`${p.kind}:${p.id}`, p])).values()).map(
-    (p) => ({ ...p, revision: store.aggregate(projectId, p).revision })
-  );
-  // The casting inventory also detects a newly added, more-specific binding before send.
-  return {
-    target,
-    productionId: scene.productionId,
-    sceneId: scene.id,
-    sourcePackageId,
-    sourcePackageRevision: source?.sourceRevision ?? null,
-    sourceDependencySpans: scene.sourceUnitIds ?? [],
-    sourceBindingRevision: store.aggregate(projectId, {
-      kind: 'sourceBinding',
-      id: scene.productionId
-    }).revision,
-    pins: unique,
-    castingInventory: canonicalDigest(
-      readValues(store, projectId, 'casting')
-        .map((c) => c.id)
-        .sort()
-    )
-  };
-}
-export function checkPinnedRequest(store, projectId, request) {
-  const current = pinTarget(store, projectId, request.target);
-  if (
-    current.sourcePackageId !== request.sourcePackageId ||
-    current.sourceBindingRevision !== request.sourceBindingRevision
-  )
-    fail('SOURCE_BINDING_STALE', 'Source binding changed and requires explicit review.');
-  if (
-    canonicalDigest(current) !==
-    canonicalDigest(Object.fromEntries(Object.keys(current).map((k) => [k, request[k]])))
-  )
-    fail('INPUT_STALE', 'Generation target or source dependencies changed before dispatch.');
-}
 function validatePayload(p) {
   assertId(p.subscriberId);
   assertId(p.provider);
@@ -264,6 +121,21 @@ function validatePayload(p) {
     fail('INVALID_INPUT', 'Expected registered reference blob identifiers.');
   if (!p.recipe || typeof p.recipe !== 'object' || Array.isArray(p.recipe))
     fail('INVALID_INPUT', 'Expected a generation recipe.');
+}
+function validateAudioInput(payload, pinned) {
+  if (payload.kind !== 'audio')
+    return;
+
+  const binding = pinned.utteranceBinding ?? pinned.audioBinding;
+
+  if (!binding)
+    return;
+
+  if (binding.casting.status !== 'resolved')
+    fail('CASTING_UNRESOLVED', 'Audio generation requires a resolved voice selection.');
+
+  if (canonicalDigest(payload.input.prompt) !== binding.textDigest)
+    fail('SPEECH_TEXT_MISMATCH', 'Spoken prompt must match the effective utterance text exactly.');
 }
 function newAttempt(store, projectId, job, estimateMicros, decision) {
   const a = {
@@ -322,7 +194,7 @@ function currentJobStatus(store, projectId, job) {
         attempt.id
       )
         ? 'candidate_ready'
-        : 'pending_validation';
+        : attempt.validationStatus === 'quarantined' ? 'quarantined' : 'pending_validation';
     case 'failed_definite':
       return attempt.outcomeReason === 'source_binding_stale'
         ? 'blocked_source_review'
@@ -367,7 +239,8 @@ export function registerJobCommands(service) {
     },
     validate({ envelope }) {
       validatePayload(envelope.payload);
-      pinTarget(store, envelope.projectId, envelope.payload.target);
+      const pinned=pinTarget(store, envelope.projectId, envelope.payload.target);
+      validateAudioInput(envelope.payload,pinned);
     },
     apply({ envelope, prepared }) {
       const p = envelope.payload,
@@ -447,40 +320,51 @@ export function registerJobCommands(service) {
     }
   });
   service.registerCommand('job.reuse', {
-    target: ({ envelope }) => ({
-      kind: 'generation',
-      id: envelope.payload.subscriberId
-    }),
+    target: ({ envelope }) => ({ kind: 'generation', id: envelope.payload.subscriberId }),
+
     apply({ envelope }) {
-      const p = envelope.payload,
-        projectId = envelope.projectId;
+      const p = envelope.payload, projectId = envelope.projectId;
       validatePayload(p);
       const job = getJob(store, projectId, p.jobId);
+
       if (currentJobStatus(store, projectId, job) !== 'candidate_ready')
         fail('CANDIDATE_UNAVAILABLE', 'Reuse requires validated candidates.');
+
       const pinned = pinTarget(store, projectId, p.target),
-        old = { ...job.request },
-        semantic = { ...pinned };
+            old = {
+              ...job.request
+            },
+            semantic = { ...pinned };
+
       delete semantic.target;
-      const previous = Object.fromEntries(Object.keys(semantic).map((k) => [k, old[k]]));
-      if (
-        p.intent !== 'reuse_or_generate' ||
-        p.provider !== old.provider ||
-        canonicalDigest(p.context) !== canonicalDigest(old.context) ||
-        canonicalDigest({ kind: p.kind, input: p.input }) !== job.generationInputDigest ||
-        canonicalDigest(p.recipe) !== canonicalDigest(old.recipe) ||
-        canonicalDigest(semantic) !== canonicalDigest(previous)
-      )
+      const previous = Object.fromEntries(Object.keys(semantic).map(k => [k, old[k]]));
+
+      if (p.allowTimingChanges !== undefined && (typeof p.allowTimingChanges !== 'boolean' || p.kind !== 'audio'))
+        fail('INVALID_INPUT', 'Timing compatibility is explicitly available for audio only.');
+
+      if (p.allowTimingChanges === true && !compatibleTimingPins(old, pinned))
+        fail('INCOMPATIBLE_REUSE', 'Audio timing reuse requires current engine compatibility proof.');
+
+      validateAudioInput(p, pinned);
+
+      if (p.intent !== 'reuse_or_generate' || p.provider !== old.provider || canonicalDigest(p.context) !== canonicalDigest(old.context) || canonicalDigest({ kind: p.kind, input: p.input }) !== job.generationInputDigest || canonicalDigest(p.recipe) !== canonicalDigest(old.recipe) || (canonicalDigest(semantic) !== canonicalDigest(previous) && !(p.allowTimingChanges === true && p.kind === 'audio' && job.request.kind === 'audio' && compatibleTimingPins(old, pinned))))
         fail('INCOMPATIBLE_REUSE', 'Candidate context or source dependencies do not match.');
-      if (job.subscribers.some((x) => x.id === p.subscriberId))
+
+      if (job.subscribers.some(x => x.id === p.subscriberId))
         fail('INVALID_STATE', 'Subscriber already exists.');
+
       job.subscribers.push({
         id: p.subscriberId,
         commandId: envelope.commandId,
         ...pinned,
         recipe: p.recipe,
-        status: 'attached'
+        status: 'attached',
+
+        ...(p.allowTimingChanges === true ? {
+          compatibility: { kind: 'timing_only', candidateAttemptId: job.currentAttemptId }
+        } : {})
       });
+
       job.status = 'candidate_ready';
       saveJob(store, projectId, job);
       return job;

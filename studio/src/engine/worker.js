@@ -1,3 +1,5 @@
+import { mediaValidator } from '../assets/decode.js';
+import { insertQuarantine } from './asset-slots.js';
 import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -292,6 +294,7 @@ export async function runWorker({ service, providers = service.providers, signal
             store.write(() =>
               completeResult(store, projectId, fenced(store, projectId, claimed), prepared)
             );
+            if (claimed.request.kind !== 'text') await validateAttemptOutputs({service,projectId,attemptId:claimed.id});
           }
         } catch {
           store.write(() => {
@@ -330,7 +333,8 @@ export async function validateAttemptOutputs({ service, projectId, attemptId, va
         bytes: await service.blobs.read(projectId, o.blobId)
       }))
     );
-    const validated = await validate({
+    if (!validate && original.request.kind === 'text') return [];
+    const validated = await (validate ?? mediaValidator(service,projectId))({
       kind: original.request.kind,
       request: structuredClone(original.request),
       outputs
@@ -347,114 +351,196 @@ export async function validateAttemptOutputs({ service, projectId, attemptId, va
           'INVALID_VALIDATION',
           'Validator must identify the original output and declared media kind.'
         );
-    return store.write(() => {
-      const a = getAttempt(store, projectId, attemptId);
-      if (
-        a.status !== 'succeeded' ||
-        a.fence !== original.fence ||
-        a.requestDigest !== original.requestDigest ||
-        canonicalDigest(a.outputs) !== canonicalDigest(original.outputs)
-      )
-        fail('WORKER_FENCED', 'Output ownership changed while validating.');
-      const existing = store.all(
-        'SELECT data_json FROM generation_candidates WHERE project_id=? AND attempt_id=?',
-        projectId,
-        attemptId
-      );
-      if (existing.length) return existing.map((r) => JSON.parse(r.data_json));
-      const candidates = validated.map((output, i) => ({
-        id: randomUUID(),
-        attemptId,
-        jobId: a.jobId,
-        outputIndex: i,
-        ...output,
-        target: a.request.target,
-        productionId: a.request.productionId,
-        sourcePackageId: a.request.sourcePackageId,
-        sourcePackageRevision: a.request.sourcePackageRevision,
-        sourceBindingRevision: a.request.sourceBindingRevision,
-        sourceDependencySpans: a.request.sourceDependencySpans,
-        pins: a.request.pins,
-        recipe: a.request.recipe,
-        requestDigest: a.requestDigest,
-        generationInputDigest: a.generationInputDigest
-      }));
-      for (const c of candidates)
-        store.run(
-          'INSERT INTO generation_candidates(project_id,id,attempt_id,data_json) VALUES(?,?,?,?)',
-          projectId,
-          c.id,
-          attemptId,
-          canonicalJSON(c)
-        );
-      const job = getJob(store, projectId, a.jobId);
-      if (
-        job.currentAttemptId === a.id &&
-        job.subscribers.some((subscriber) => subscriber.status === 'attached')
-      ) {
-        job.status = 'candidate_ready';
-        saveJob(store, projectId, job);
-      }
-      progress(store, projectId, a, 'attempt.validated');
-      return candidates;
-    });
+    return store.write(() => finalizeValidatedOutputs(store,projectId,original,validated));
   });
 }
+function finalizeValidatedOutputs(store, projectId, original, validated) {
+  const a = getAttempt(store, projectId, original.id);
+
+  if (a.status !== 'succeeded' || a.fence !== original.fence || a.requestDigest !== original.requestDigest || canonicalDigest(a.outputs) !== canonicalDigest(original.outputs))
+    fail('WORKER_FENCED', 'Output ownership changed while validating.');
+
+  const existing = store.all(
+    'SELECT data_json FROM generation_candidates WHERE project_id=? AND attempt_id=?',
+    projectId,
+    original.id
+  );
+
+  if (existing.length)
+    return existing.map(r => JSON.parse(r.data_json));
+
+  if (a.validationStatus === 'quarantined')
+    return [];
+
+  if (validated.some(output => output.validation?.status === 'quarantined')) {
+    for (let i = 0; i < validated.length; i++) if (validated[i].validation?.status === 'quarantined') insertQuarantine(store, projectId, {
+      id: randomUUID(),
+      attemptId: a.id,
+      outputIndex: i,
+      rawBlobId: validated[i].blobId,
+      mediaKind: a.request.kind,
+      status: 'quarantined',
+      code: validated[i].validation.code
+    });
+
+    a.validationStatus = 'quarantined';
+    saveAttempt(store, projectId, a);
+    const job = getJob(store, projectId, a.jobId);
+
+    if (job.currentAttemptId === a.id && job.subscribers.some(s => s.status === 'attached')) {
+      job.status = 'quarantined';
+      saveJob(store, projectId, job);
+    }
+
+    progress(store, projectId, a, 'attempt.quarantined');
+    return [];
+  }
+
+  const candidates = validated.map((output, i) => ({
+    id: randomUUID(),
+    attemptId: original.id,
+    jobId: a.jobId,
+    outputIndex: i,
+    ...output,
+    blobId: output.canonicalBlobId ?? output.blobId,
+    rawBlobId: output.rawBlobId ?? output.blobId,
+    target: a.request.target,
+    productionId: a.request.productionId,
+    sceneId: a.request.sceneId,
+    castingInventory: a.request.castingInventory,
+
+    ...(a.request.utterancePerformance ? { utterancePerformance: a.request.utterancePerformance } : {}),
+
+    ...(a.request.utteranceBinding ? { utteranceBinding: a.request.utteranceBinding } : {}),
+
+    ...(a.request.audioBinding ? { audioBinding: a.request.audioBinding } : {}),
+
+    sourcePackageId: a.request.sourcePackageId,
+    sourcePackageRevision: a.request.sourcePackageRevision,
+    sourceBindingRevision: a.request.sourceBindingRevision,
+    sourceDependencySpans: a.request.sourceDependencySpans,
+    pins: a.request.pins,
+    recipe: a.request.recipe,
+
+    ...(a.request.kind === 'audio' ? {
+      actualAudioInput: a.request.input,
+      configVerification: 'not_performed',
+      voiceVerification: 'not_performed',
+      actingVerification: 'not_performed',
+      transcriptionVerification: 'not_performed',
+
+      ...(a.request.utteranceBinding || a.request.audioBinding ? { speechTextDigest: canonicalDigest(a.request.input.prompt), speechVerification: 'request_matches_utterance' } : { speechVerification: 'unverified_request' })
+    } : {}),
+
+    requestDigest: a.requestDigest,
+    generationInputDigest: a.generationInputDigest,
+
+    lineage: { kind: 'provider', parentCandidateIds: [] },
+
+    ...(a.request.assetSlotId ? {
+      slotId: a.request.assetSlotId,
+
+      slotIntent: {
+        subject: a.request.slotSubject,
+        appearanceStateRef: a.request.appearanceStateRef,
+
+        ...(a.request.kind === 'audio' ? { castingStateRef: a.request.castingStateRef ?? null, utteranceId: a.request.utteranceId ?? null } : {})
+      },
+
+      baseAdoptionId: a.request.baseAdoptionId,
+      baseCandidateId: a.request.baseCandidateId
+    } : {})
+  }));
+  for (const c of candidates) store.run(
+    'INSERT INTO generation_candidates(project_id,id,attempt_id,data_json) VALUES(?,?,?,?)',
+    projectId,
+    c.id,
+    original.id,
+    canonicalJSON(c)
+  );
+
+  const job = getJob(store, projectId, a.jobId);
+
+  if (job.currentAttemptId === a.id && job.subscribers.some(subscriber => subscriber.status === 'attached')) {
+    job.status = 'candidate_ready';
+    saveJob(store, projectId, job);
+  }
+
+  a.validationStatus = 'passed';
+  saveAttempt(store, projectId, a);
+  progress(store, projectId, a, 'attempt.validated');
+  return candidates;
+}
+
 export function registerRecoveryCommands(service) {
   const { store } = service;
+
   service.registerCommand('attempt.reconcile', {
-    target: ({ envelope }) => ({
-      kind: 'attempt',
-      id: envelope.payload.attemptId
-    }),
+    target: ({ envelope }) => ({ kind: 'attempt', id: envelope.payload.attemptId }),
+
     async prepare({ envelope }) {
-      const p = envelope.payload,
-        a = getAttempt(store, envelope.projectId, p.attemptId);
+      const p = envelope.payload, a = getAttempt(store, envelope.projectId, p.attemptId);
+
       if (p.action !== 'inspect') return { original: a };
+
       const provider = service.providers[a.request.provider];
-      if (
-        a.status !== 'outcome_unknown' ||
-        !a.operationId ||
-        !a.inspectSupported ||
-        typeof provider?.inspect !== 'function'
-      )
+
+      if (a.status !== 'outcome_unknown' || !a.operationId || !a.inspectSupported || typeof provider?.inspect !== 'function')
         fail('RECOVERY_UNAVAILABLE', 'No retrievable provider operation is recorded.');
+
       const capabilities = await provider.capabilities();
+
       if (!capabilities.inspect)
         fail('RECOVERY_UNAVAILABLE', 'Provider inspection is unavailable.');
+
       const inspection = await provider.inspect(a.operationId);
-      return {
-        original: a,
-        inspection,
-        output:
-          inspection.status === 'succeeded'
-            ? await prepareResult(service, envelope.projectId, inspection.result)
-            : null
-      };
+      const output = inspection.status === 'succeeded' ? await prepareResult(service, envelope.projectId, inspection.result) : null;
+
+      const validation = output && a.request.kind !== 'text' ? await mediaValidator(service, envelope.projectId)({
+        kind: a.request.kind,
+
+        outputs: await Promise.all(output.outputs.map(async o => ({ ...o, bytes: await service.blobs.read(envelope.projectId, o.blobId) })))
+      }) : null;
+
+      return { original: a, inspection, output, validation };
     },
+
     apply({ envelope, prepared }) {
-      const p = envelope.payload,
-        a = getAttempt(store, envelope.projectId, p.attemptId),
-        old = prepared.original;
-      if (
-        a.fence !== old.fence ||
-        a.status !== old.status ||
-        a.requestDigest !== old.requestDigest ||
-        a.operationId !== old.operationId
-      )
+      const p = envelope.payload, a = getAttempt(store, envelope.projectId, p.attemptId), old = prepared.original;
+
+      if (a.fence !== old.fence || a.status !== old.status || a.requestDigest !== old.requestDigest || a.operationId !== old.operationId)
         fail('WORKER_FENCED', 'Attempt changed during reconciliation.');
+
       if (p.action === 'inspect') {
-        if (prepared.output) completeResult(store, envelope.projectId, a, prepared.output);
-        else if (prepared.inspection.status !== 'pending')
+        if (prepared.output) {
+          completeResult(store, envelope.projectId, a, prepared.output);
+
+          if (prepared.validation)
+            finalizeValidatedOutputs(store, envelope.projectId, a, prepared.validation);
+        } else if (prepared.inspection.status !== 'pending')
           fail('INVALID_PROVIDER_RESULT', 'Inspection must provide pending or a completed result.');
       } else if (p.action === 'billing') {
         if (!['outcome_unknown', 'succeeded'].includes(a.status))
           fail('INVALID_STATE', 'Billing reconciliation requires a dispatched outcome.');
+
         reconcileBudget(store, envelope.projectId, a.id, p.evidence);
         a.reconciliations = [...(a.reconciliations ?? []), p.evidence];
         saveAttempt(store, envelope.projectId, a);
-      } else fail('INVALID_INPUT', 'Unknown reconciliation action.');
+      } else
+        fail('INVALID_INPUT', 'Unknown reconciliation action.');
+
       return a;
     }
   });
+}
+
+export async function revalidatePendingOutputs(service) {
+  for (const row of service.store.all('SELECT project_id,data_json FROM generation_attempts WHERE status=\'succeeded\'')) {
+    const a = JSON.parse(row.data_json);
+
+    if (a.request.kind === 'text' || a.validationStatus || service.store.get('SELECT id FROM generation_candidates WHERE project_id=? AND attempt_id=?', row.project_id, a.id))
+      continue;
+
+    await validateAttemptOutputs({ service, projectId: row.project_id, attemptId: a.id });
+  }
 }
