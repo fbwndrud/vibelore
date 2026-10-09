@@ -1,10 +1,102 @@
-import { drawFrame } from "../render/frame.js";
+import { drawFrame, frameAt } from "../render/frame.js";
 import { command, revision } from "./api.js";
 import { el, card, note, button, select, uid, details, form } from "./dom.js";
 export const playbackFrame = (time, fps, durationFrames) =>
   Math.min(durationFrames - 1, Math.max(0, Math.round(time * fps)));
 const clock = (t) =>
   `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t % 60).toFixed(2).padStart(5, "0")}`;
+// UI guidance only. edition.create still validates accepted media and revisions.
+export function previewReadiness(snapshot, productionId, profile) {
+  const intent = snapshot.timelines?.find(t => t.productionId === productionId)?.intent ?? {};
+  const allScenes = snapshot.scenes.filter(s => s.productionId === productionId);
+  const scenes = intent.sceneIds ? intent.sceneIds.map(id => allScenes.find(s => s.id === id)).filter(Boolean) : allScenes;
+  const audio = scenes.flatMap(scene => scene.utterances.flatMap(u => {
+    const takes = snapshot.slots.filter(slot => slot.mediaKind === "audio" && slot.utteranceId === u.id && slot.candidateId && snapshot.candidates.some(c => c.id === slot.candidateId));
+    const selectedId = intent.utterances?.find(x => x.utteranceId === u.id)?.slotId;
+    return (selectedId ? takes.some(x => x.id === selectedId) : takes.length === 1) ? [] : [{ sceneId: scene.id, utteranceId: u.id, text: u.text }];
+  }));
+  const images = profile === "audio" ? [] : scenes.flatMap(scene => {
+    if (!scene.shots.length) return [{ sceneId: scene.id, shotId: null }];
+    return scene.shots.flatMap(shot => {
+      const slot = snapshot.slots.find(x => x.id === shot.referenceSlotId && x.mediaKind === "image" && x.candidateId);
+      return slot && snapshot.candidates.some(c => c.id === slot.candidateId) ? [] : [{ sceneId: scene.id, shotId: shot.id }];
+    });
+  });
+  const utterances = scenes.reduce((n, s) => n + s.utterances.length, 0);
+  return { ready: scenes.length > 0 && utterances > 0 && !audio.length && !images.length, audio, images, scenes: scenes.length, utterances };
+}
+
+export function renderWorkingShot(c, scene, shot) {
+  const canvas = el("canvas", { width: 1280, height: 720, "aria-label": "선택 샷 구도" });
+  const message = note("그림을 불러오고 있습니다.");
+  const root = card("선택 샷 구도", note("음원 없이 구도부터 확인합니다. 입력 중인 카메라 값은 저장 전에도 화면에 반영됩니다."),
+    el("div", { class: "preview-stage landscape" }, canvas), message);
+  let image, imageId, loadingId, desiredBlobId, epoch = 0, disposed = false, timeMs = 0, latest;
+  const scrub = el("input", { type: "range", min: 0, max: 5000, step: 10, value: 0, "aria-label": "샷 구도 시간", oninput: e => {
+    timeMs = Number(e.target.value);
+    update(latest);
+  } });
+  root.append(el("label", { class: "field" }, el("span", {}, "키프레임 구도 확인 (밀리초)"), scrub));
+  c.cleanups ??= new Set();
+  c.cleanups.add(() => { disposed = true; epoch++; });
+  function update(p = {}) {
+    latest = p;
+    let transform;
+    try {
+      const old = shot.transform ?? {};
+      transform = { ...old,
+        ...Object.fromEntries(["x", "y", "scale"].map(k => [k, p[k] == null ? old[k] ?? (k === "scale" ? 1 : 0) : Number(p[k])])),
+        anchor: p.anchor ?? old.anchor ?? "center", easing: p.easing ?? old.easing ?? "linear",
+        keyframes: p.keyframes == null ? old.keyframes ?? [] : JSON.parse(p.keyframes),
+      };
+      if (![transform.x, transform.y, transform.scale].every(Number.isFinite) || transform.scale <= 0 ||
+        !Array.isArray(transform.keyframes) || transform.keyframes.some(k => ![k.timeMs, k.x, k.y, k.scale].every(Number.isFinite) || k.timeMs < 0 || k.scale <= 0)) throw Error();
+    } catch { message.textContent = "카메라 값 또는 키프레임 형식을 확인하세요. 마지막 정상 구도는 유지됩니다."; return; }
+    const slotId = p.referenceSlotId ?? shot.referenceSlotId;
+    const slot = c.snapshot.slots.find(x => x.id === slotId && x.mediaKind === "image");
+    const candidate = c.snapshot.candidates.find(x => x.id === slot?.candidateId);
+    const blobId = candidate?.canonicalBlobId ?? candidate?.blobId;
+    if (desiredBlobId !== blobId) { desiredBlobId = blobId; epoch++; loadingId = null; }
+    const duration = Math.max(5000, ...transform.keyframes.map(k => k.timeMs));
+    scrub.max = duration;
+    timeMs = Math.min(timeMs, duration);
+    const edition = { closure: { profile: { fps: 30, width: 1280, height: 720 },
+      shots: [{ ...shot, transform, blobId, startFrame: 0, endFrame: Math.ceil(duration * 30 / 1000) + 1 }],
+      timeline: { sampleRate: 48000, takes: [] } } };
+    const frame = Math.round(timeMs * 30 / 1000);
+    canvas.dataset.camera = JSON.stringify(frameAt({ edition, frame }).camera);
+    canvas.dataset.referenceSlotId = slotId ?? "";
+    if (!candidate) {
+      epoch++; loadingId = null; image = null; imageId = null;
+      if (canvas.isConnected) canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+      message.textContent = "이 샷에 채택된 그림이 없습니다. Asset Lab에서 그림을 채택하고 샷에 연결하세요.";
+      return;
+    }
+    const source = c.snapshot.sourcePackages?.flatMap(x => x.assets ?? []).find(x => x.id === slot.id);
+    const referenceOnly = source?.label?.includes("전체 장면") || source?.provenance?.sourceDeclaration?.representation === "combined-cast-sheet";
+    message.textContent = referenceOnly ? "참조 원본입니다. 여러 웹툰 칸이나 인물 시트는 영상용 단일 구도로 정리해야 합니다." : "현재 입력 구도 · 완성 영상의 음성·타이밍은 제작판 미리보기에서 확인합니다.";
+    if (imageId === blobId && image && canvas.isConnected) {
+      drawFrame(canvas.getContext("2d"), { edition, frame, assets: new Map([[blobId, image]]) });
+      return;
+    }
+    if (loadingId === blobId || !canvas.isConnected) return;
+    loadingId = blobId;
+    const requestEpoch = ++epoch;
+    c.api.blob(candidate).then(url => {
+      if (disposed || requestEpoch !== epoch || !canvas.isConnected) { URL.revokeObjectURL(url); return; }
+      c.urls.add(url);
+      const loaded = new Image();
+      loaded.onload = () => { if (!disposed && requestEpoch === epoch) { image = loaded; imageId = blobId; loadingId = null; update(latest); } };
+      loaded.onerror = () => { if (!disposed && requestEpoch === epoch) { loadingId = null; message.textContent = "참조 그림을 불러오지 못했습니다. 자료 파일 상태를 확인하세요."; } };
+      loaded.src = url;
+    }).catch(() => { if (!disposed && requestEpoch === epoch) { loadingId = null; message.textContent = "참조 그림을 불러오지 못했습니다."; } });
+  }
+  const draft = c.drafts.get(`shot:${scene.id}:${shot.id}`)?.value ?? {};
+  update(draft);
+  // The host is attached after this component returns.
+  queueMicrotask(() => { if (!disposed) update(latest); });
+  return { root, update };
+}
 export function renderPreview(c) {
   const s = c.snapshot,
     productionId =
@@ -26,6 +118,7 @@ export function renderPreview(c) {
         profile = e.target.value;
         c.selection.previewProfile = profile;
         c.persist();
+        updateReadiness();
       },
     },
     ...["landscape", "portrait", "audio"].map((id) =>
@@ -40,28 +133,33 @@ export function renderPreview(c) {
       ),
     ),
   );
+  const readinessNote = note("");
+  const create = button("새 미리보기 고정", () =>
+      c.run(async () => {
+        if (!previewReadiness(s, productionId, profile).ready) return;
+        c.status("선택한 실제 자료로 미리보기를 고정하고 있습니다.");
+        const id = uid("edition");
+        await c.send(command(s, "edition.create", "edition", id, { id, productionId, profile }));
+        c.selection.edition = id;
+        c.persist();
+        await c.refresh(true);
+      }));
+  function updateReadiness() {
+    const r = previewReadiness(s, productionId, profile);
+    create.disabled = !r.ready;
+    readinessNote.textContent = !r.scenes ? "선택 제작판에 장면이 없습니다." : !r.utterances ? "먼저 장면에 발화를 추가하고 음원을 채택하세요." :
+      [r.audio.length ? `음원이 필요한 발화 ${r.audio.length}개 · Asset Lab에서 생성하거나 가져온 뒤 채택하세요.` : "",
+       r.images.length ? `참조 그림이 필요한 샷 ${r.images.length}개 · 그림을 채택하고 샷에 연결하세요.` : ""].filter(Boolean).join(" ") ||
+       "선택 타임라인의 채택 자료로 고정합니다. 저장 시 자료의 유효성을 다시 검사합니다.";
+  }
+  updateReadiness();
   const toolbar = el(
     "div",
     { class: "preview-toolbar" },
     profileSelect,
-    button("새 미리보기 고정", () =>
-      c.run(async () => {
-        c.status("선택한 실제 자료로 미리보기를 고정하고 있습니다.");
-        const id = uid("edition");
-        await c.send(
-          command(s, "edition.create", "edition", id, {
-            id,
-            productionId,
-            profile,
-          }),
-        );
-        c.selection.edition = id;
-        c.persist();
-        await c.refresh(true);
-      }),
-    ),
+    create,
   );
-  const root = card("장면 미리보기");
+  const root = card("제작판 미리보기", readinessNote);
   if (!edition) {
     root.append(toolbar);
     root.append(

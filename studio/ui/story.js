@@ -435,6 +435,7 @@ export function renderStory(c) {
           {
             submit: scene ? "장면 저장" : "장면 만들기",
             revision: scene ? revision(s, "scene", scene.id) : 0,
+            id: "scene-editor",
           },
         ),
         scene
@@ -442,6 +443,7 @@ export function renderStory(c) {
               c.selection.scene = "";
               c.persist();
               c.render();
+              c.focusEditor?.("scene-editor");
             })
           : null,
       ),

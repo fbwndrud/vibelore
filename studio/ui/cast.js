@@ -301,12 +301,23 @@ export function renderCast(c) {
         ),
       );
     }
-    const scope = occurrence ? "occurrence" : "project";
+    const productionId = c.selection.production || scene?.productionId;
+    const scopes = [
+      { value: "project", label: "작품 공통" },
+      ...(productionId ? [{ value: "production", label: "선택 제작판" }] : []),
+      ...(occurrence ? [{ value: "occurrence", label: "선택한 장면 출현" }] : []),
+    ];
+    const scopeSelectionKey = JSON.stringify([role.id, productionId ?? null, occurrence?.id ?? null]);
+    const scopeSelections = c.selection.castingScopes ??= {};
+    const scope = scopes.some(x => x.value === scopeSelections[scopeSelectionKey])
+      ? scopeSelections[scopeSelectionKey]
+      : occurrence ? "occurrence" : c.selection.production ? "production" : "project";
+    const scopedOccurrence = scope === "occurrence" ? occurrence : null;
     const scopeKey = JSON.stringify([
       scope,
-      occurrence ? scene.productionId : null,
-      occurrence ? scene.id : null,
-      occurrence?.id ?? null,
+      scope !== "project" ? productionId : null,
+      scopedOccurrence ? scene.id : null,
+      scopedOccurrence?.id ?? null,
       role.id,
       role.language,
     ]);
@@ -319,6 +330,7 @@ export function renderCast(c) {
       a.value.roleId === role.id &&
       (a.value.language ?? role.language) === role.language &&
       !a.value.allStates &&
+      (scope === "project" || a.value.productionId === productionId) &&
       (scope !== "occurrence" ||
         (a.value.occurrenceId === occurrence.id &&
           a.value.sceneId === scene.id &&
@@ -338,9 +350,19 @@ export function renderCast(c) {
     editor.append(
       card(
         "목소리 배정",
+        select("목소리 적용 범위", scope, scopes, value => {
+          scopeSelections[scopeSelectionKey] = value;
+          c.persist();
+          c.render();
+        }),
         note(
-          occurrence ? "선택한 장면 출현에 적용" : "이 배역의 작품 기본 목소리",
+          scope === "occurrence" ? "선택한 장면 출현에 적용" : scope === "production" ? "선택 제작판에서 사용하는 기본 목소리" : "이 배역의 작품 기본 목소리",
         ),
+        ...s.resolvedBindings.filter(b => b.roleBindingId === role.id && !b.shotId &&
+          (!productionId || b.productionId === productionId) && (!scene || b.sceneId === scene.id))
+          .slice(0, 1).map(b => note(b.casting.status === "resolved"
+            ? `이 장면에 적용된 목소리 · ${b.casting.voice}${d ? "" : " · 상위 범위에서 적용"}`
+            : "이 장면의 목소리가 미배정이거나 여러 설정이 충돌합니다.")),
         select(
           "편집할 목소리 상태",
           selectedState,
@@ -383,7 +405,8 @@ export function renderCast(c) {
                   language: role.language,
                   state: nullish(selectedState),
                   voice: p.voice,
-                  ...(occurrence
+                  ...(scope !== "project" ? { productionId } : {}),
+                  ...(scopedOccurrence
                     ? {
                         productionId: scene.productionId,
                         sceneId: scene.id,

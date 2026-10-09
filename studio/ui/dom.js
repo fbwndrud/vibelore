@@ -54,11 +54,11 @@ export function form(
   key,
   fields,
   onSubmit,
-  { submit = "저장", revision = 0, description = null } = {},
+  { submit = "저장", revision = 0, description = null, onDraft = null, disabled = false, id = null } = {},
 ) {
   const previous = c.drafts.get(key);
   const controls = new Map();
-  const body = el("form", { class: "form" });
+  const body = el("form", { class: "form", id });
   if (description) body.append(note(description));
   for (const field of fields) {
     const val = previous?.value[field.name] ?? field.value ?? "";
@@ -128,10 +128,11 @@ export function form(
       delete serial[f.name];
     c.drafts.set(key, serial, previous?.revision ?? revision);
     c.persist();
+    onDraft?.(serial);
   });
   const submitButton = el(
     "button",
-    { type: "submit", class: "primary" },
+    { type: "submit", class: "primary", disabled },
     submit,
   );
   body.append(
@@ -154,6 +155,7 @@ export function form(
   body.append(error);
   body.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (disabled) return;
     submitButton.disabled = true;
     error.textContent = "";
     try {
@@ -169,7 +171,7 @@ export function form(
           : `저장하지 못했습니다 · ${e.code ?? e.message}`;
       c.status(error.textContent);
     } finally {
-      submitButton.disabled = false;
+      submitButton.disabled = disabled;
     }
   });
   return body;
@@ -209,4 +211,20 @@ export function media(c, candidate, label) {
     })
     .catch(() => host.append(note("자료를 불러오지 못했습니다.")));
   return host;
+}
+
+const scopes = { project: "작품 공통", production: "제작판", scene: "장면", shot: "샷" };
+export function assetSlotLabel(snapshot, slot) {
+  const asset = snapshot.sourcePackages?.flatMap(p => p.assets ?? []).find(a => a.id === slot.id);
+  const scene = snapshot.scenes.find(s => s.id === slot.subject.id);
+  const role = snapshot.cast.find(r => r.id === slot.subject.id || r.characterId === slot.subject.id);
+  const subject = scene?.title ?? role?.name ?? (slot.subject.kind === "environment" ? "배경 / 공간" : slot.subject.id);
+  return `${slot.mediaKind === "audio" ? "음성" : "그림"} · ${subject} · ${asset?.label ?? slot.id} · ${scopes[slot.scope.kind]}`;
+}
+export function slotInContext(slot, snapshot, scene = null, shotId = null, productionId = scene?.productionId) {
+  if (slot.scope.kind === "project") return slot.scope.id === snapshot.project.id;
+  if (!productionId && !scene) return true;
+  if (slot.scope.kind === "production") return slot.scope.id === productionId;
+  if (slot.scope.kind === "scene") return slot.scope.id === scene?.id;
+  return slot.scope.kind === "shot" && slot.scope.id === shotId;
 }

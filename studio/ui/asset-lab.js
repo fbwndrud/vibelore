@@ -1,4 +1,5 @@
 import { command, revision } from "./api.js";
+import { assetSlotLabel } from "./dom.js";
 import {
   el,
   card,
@@ -126,6 +127,7 @@ const subjectName = (s, slot) =>
   )?.name ??
   (slot.subject.kind === "environment" ? "배경 / 공간" : slot.subject.id);
 export function renderAssetLab(c) {
+  const google = c.api.bootstrap.providers?.find(p => p.provider === "google");
   const s = c.snapshot,
     scene = chosenScene(c),
     root = el("div", { class: "workspace-grid" }),
@@ -173,7 +175,7 @@ export function renderAssetLab(c) {
           { value: "", label: "새 자료 슬롯" },
           ...s.slots.map((x) => ({
             value: x.id,
-            label: `${x.mediaKind === "audio" ? "음성" : "그림"} · ${subjectName(s, x)} · ${scopeName[x.scope.kind]}`,
+            label: assetSlotLabel(s, x),
           })),
         ],
         (id) => {
@@ -192,6 +194,9 @@ export function renderAssetLab(c) {
             ? `선택 발화 · ${u.text} · 음성 후보를 생성하거나 WAV를 가져올 수 있습니다.`
             : "그림 후보를 생성하거나 PNG를 가져올 수 있습니다.",
       ),
+      google?.available && s.budget.availableMicros <= 0
+        ? note("생성 가능한 예산이 없습니다. Production에서 프로젝트 예산 한도를 설정하세요. 그림·음원 가져오기와 편집은 계속 사용할 수 있습니다.")
+        : null,
     ),
   );
   const candidates = slotCandidates(s.candidates, slot).filter(
@@ -246,6 +251,7 @@ export function renderAssetLab(c) {
           appearanceStateRef: imageIntent?.appearanceStateRef ?? null,
         } : null);
   const accepted = s.candidates.find((x) => x.id === adoptionSlot?.candidateId);
+  const candidateStale = candidate?.pins?.some(pin => revision(s, pin.kind, pin.id) !== pin.revision) ?? false;
   left.append(
     card(
       "후보 비교",
@@ -325,9 +331,11 @@ export function renderAssetLab(c) {
           {
             submit: "후보 채택",
             revision: revision(s, "assetSlot", adoptionSlot.id),
+            disabled: candidateStale,
+            description: candidateStale ? "자료를 만든 뒤 장면·목소리·원작 기준이 바뀌었습니다. 그림·음원을 현재 기준으로 다시 가져오거나 생성한 후 채택하세요." : "",
           },
         ),
-        adoptionSlot.adoptionId && kind === "image" && scene?.shots.some(sh => sh.id === c.selection.shot) &&
+        adoptionSlot.candidateId && kind === "image" && scene?.shots.some(sh => sh.id === c.selection.shot) &&
           (adoptionSlot.scope.kind !== "shot" || adoptionSlot.scope.id === c.selection.shot) &&
           (adoptionSlot.scope.kind !== "scene" || adoptionSlot.scope.id === scene.id) &&
           (adoptionSlot.scope.kind !== "production" || adoptionSlot.scope.id === scene.productionId)
@@ -464,9 +472,6 @@ export function renderAssetLab(c) {
       ),
     ),
   );
-  const google = c.api.bootstrap.providers?.find(
-    (p) => p.provider === "google",
-  );
   const models = google?.catalog?.[kind] ?? [];
   right.append(
     card(
@@ -552,7 +557,7 @@ export function renderAssetLab(c) {
                 }),
               );
             },
-            { submit: "예약하고 후보 요청" },
+            { submit: "예약하고 후보 요청", disabled: s.budget.availableMicros <= 0 },
           )
         : note(
             kind === "audio"

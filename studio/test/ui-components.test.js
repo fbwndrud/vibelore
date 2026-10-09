@@ -23,6 +23,7 @@ class Element {
     this.selected = false;
     this.required = false;
     this.disabled = false;
+    this.dataset = {};
   }
   setAttribute(name, value) {
     this.attributes[name] = value;
@@ -452,6 +453,122 @@ async function castEditor(t, f) {
   return { c, choose, save, renderCast };
 }
 const castRows = c => c.snapshot.aggregates.filter(a => a.kind === 'casting').map(a => a.value);
+
+test('Cast loads and edits the selected production voice without creating a competing project default', async t => {
+  const f = await withAudioScene(t);
+  await f.command('casting.set', { id: 'main-actor', scope: 'production', productionId: 'main', roleId: 'actor', language: 'ko', state: null, voice: 'Kore' }, { aggregate: { kind: 'casting', id: 'main-actor' } });
+  const { c, renderCast } = await castEditor(t, f);
+  c.selection.production = 'main';
+  c.selection.scene = '';
+  c.selection.occurrence = '';
+  let root = renderCast(c), edit = submitForm(root, '목소리 배정 저장');
+  assert.equal(named(edit, 'voice').value, 'Kore', 'the imported production voice must be visible');
+  named(edit, 'voice').value = 'Leda';
+  await edit.fire('submit');
+  assert.equal(tree(edit).find(x => x.role === 'alert').textContent, '');
+  const row = castRows(c).find(x => x.id === 'main-actor');
+  assert.equal(row.voice, 'Leda');
+  assert.equal(row.scope, 'production');
+  assert.equal(castRows(c).filter(x => x.roleId === 'actor' && x.state == null).length, 1);
+});
+
+test('Edit blocks a frozen preview with missing audio and points to the missing takes', async t => {
+  const f = await withAudioScene(t), c = await context(t, f);
+  c.selection.production = 'main';
+  const root = renderEdit(c);
+  const create = tree(root).find(x => x.tag === 'button' && x.textContent === '새 미리보기 고정');
+  assert.equal(create.disabled, true, 'incomplete media must not appear ready to render');
+  assert.match(root.textContent, /음원.*3.*발화/);
+  assert.equal(c.sent.length, 0);
+});
+
+test('Edit shows the adopted shot composition before audio and updates camera draft without saving', async t => {
+  const { videoFixture } = await import('./helpers/render-fixture.js');
+  const f = await videoFixture(t), c = await context(t, f);
+  c.snapshot.slots = c.snapshot.slots.filter(x => x.mediaKind === 'image');
+  const root = renderEdit(c);
+  const canvas = tree(root).find(x => x.tag === 'canvas' && x['aria-label'] === '선택 샷 구도');
+  assert.ok(canvas, 'the current shot image must be inspectable without frozen audio');
+  const edit = submitForm(root, '샷 연출 저장');
+  named(edit, 'scale').value = '1.7';
+  await edit.fire('input');
+  assert.equal(JSON.parse(canvas.dataset.camera).scale, 1.7);
+  assert.equal(c.snapshot.scenes[0].shots[0].transform?.scale, undefined);
+  assert.equal(c.sent.length, 0);
+});
+
+test('Asset Lab explains a zero application budget before enabling a Google request', async t => {
+  const f = await withAudioScene(t);
+  f.service.providers.google = googleProvider({ key: 'component-test-only' });
+  await f.command('project.budget.set', { budgetMicros: 0 });
+  const c = await context(t, f);
+  c.selection.assetKind = 'audio';
+  const root = renderAssetLab(c);
+  const generate = tree(root).find(x => x.tag === 'button' && x.textContent === '예약하고 후보 요청');
+  assert.equal(generate.disabled, true);
+  assert.match(root.textContent, /Production.*예산/);
+  assert.equal(c.snapshot.jobs.length, 0);
+});
+
+test('Edit does not offer a reference image owned by another production', async t => {
+  const { videoFixture } = await import('./helpers/render-fixture.js');
+  const f = await videoFixture(t);
+  const { png, basePixels } = await import('./helpers/images.js');
+  await f.command('production.create', { id: 'other', title: 'Other', sourcePackageId: null });
+  await f.command('asset.import', { id: 'other-image', slot: { id: 'other-picture', scope: { kind: 'production', id: 'other' }, subject: { kind: 'environment', id: 'room' }, appearanceStateRef: null }, mediaKind: 'image', bytes: [...await png(basePixels)], actor: 'test' }, { aggregate: { kind: 'assetSlot', id: 'other-picture' } });
+  const c = await context(t, f);
+  const root = renderEdit(c), choices = named(submitForm(root, '샷 연출 저장'), 'referenceSlotId').children.map(x => x.value);
+  assert.ok(choices.includes('picture'));
+  assert.equal(choices.includes('other-picture'), false);
+});
+
+test('preview readiness honors a saved timeline that selects a take and excludes an unfinished scene', async t => {
+  const { audioFixture, tone } = await import('./helpers/render-fixture.js');
+  const { audioTakeSlot } = await import('./helpers/project.js');
+  const { assetImport } = await import('./helpers/images.js');
+  const f = await audioFixture(t);
+  await assetImport(f, 'alternate-audio', tone(), audioTakeSlot('alternate-take', 'u1', 'actor', 'childvoice'), 'audio');
+  await f.command('candidate.adopt', { slotId: 'alternate-take', candidateId: 'alternate-audio', actor: 'creator', reason: 'alternate' }, { aggregate: { kind: 'assetSlot', id: 'alternate-take' } });
+  const source = (await f.service.snapshot('p1')).scenes[0];
+  const occurrence = { ...source.occurrences[0], id: 'unfinished-speaker', sceneId: 'unfinished' };
+  await f.command('scene.put', { id: 'unfinished', productionId: 'main', occurrences: [occurrence], presentations: [{ ...source.presentations[0], occurrenceId: occurrence.id }], utterances: [{ ...source.utterances[0], id: 'unfinished-u', speakerOccurrenceId: occurrence.id }], shots: [] }, { aggregate: { kind: 'scene', id: 'unfinished' } });
+  await f.command('timeline.update', { productionId: 'main', sceneIds: ['scene'], utterances: [{ utteranceId: 'u1', slotId: 'take-u1' }] }, { aggregate: { kind: 'timeline', id: 'main' } });
+  const c = await context(t, f);
+  c.selection.production = 'main';
+  c.selection.previewProfile = 'audio';
+  const root = renderEdit(c), create = tree(root).find(x => x.tag === 'button' && x.textContent === '새 미리보기 고정');
+  assert.equal(create.disabled, false);
+  await create.fire('click');
+  assert.equal(c.snapshot.editions.length, 1);
+  assert.equal(c.snapshot.editions[0].closure.timeline.takes.length, 3);
+});
+
+test('a scene with no speech cannot appear ready for an audio edition', async t => {
+  const { withGeneration } = await import('./helpers/project.js');
+  const f = await withGeneration(t), c = await context(t, f);
+  c.selection.production = 'main';
+  c.selection.previewProfile = 'audio';
+  const root = renderEdit(c);
+  assert.equal(tree(root).find(x => x.tag === 'button' && x.textContent === '새 미리보기 고정').disabled, true);
+});
+
+test('Asset Lab explains a stale image before adoption and hides shot assignment after undo', async t => {
+  const { videoFixture } = await import('./helpers/render-fixture.js');
+  const { assetImport, environmentSlot, png, basePixels } = await import('./helpers/images.js');
+  const f = await videoFixture(t);
+  await assetImport(f, 'scene-picture', await png(basePixels), environmentSlot('scene-slot', { kind: 'scene', id: 'scene' }));
+  await f.command('candidate.adopt', { slotId: 'scene-slot', candidateId: 'scene-picture', actor: 'creator', reason: 'review' }, { aggregate: { kind: 'assetSlot', id: 'scene-slot' } });
+  const snapshot = await f.service.snapshot('p1');
+  await f.command('scene.put', { ...snapshot.scenes[0], title: 'Changed scene' }, { aggregate: { kind: 'scene', id: 'scene' } });
+  await f.command('adoption.undo', { slotId: 'scene-slot', adoptionId: snapshot.slots.find(x => x.id === 'scene-slot').adoptionId, actor: 'creator', reason: 'review' }, { aggregate: { kind: 'assetSlot', id: 'scene-slot' } });
+  const c = await context(t, f);
+  c.selection.slot = 'scene-slot';
+  c.selection.assetKind = 'image';
+  const root = renderAssetLab(c), adopt = tree(root).find(x => x.tag === 'button' && x.textContent === '후보 채택');
+  assert.equal(adopt.disabled, true);
+  assert.match(root.textContent, /현재 기준으로 다시 가져오거나 생성/);
+  assert.equal(tree(root).some(x => x.tag === 'button' && x.textContent === '선택 샷에 사용'), false);
+});
 
 test('rendered Cast preserves default, child and adult decisions and edits the existing selected state after reload', async t => {
   const f = await withAudioScene(t), { c, save, choose, renderCast } = await castEditor(t, f);

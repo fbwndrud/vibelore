@@ -128,7 +128,7 @@ export function renderProduction(c) {
           );
           c.selection.production = id;
         },
-        { submit: "제작판 만들기" },
+        { submit: "제작판 만들기", id: "production-editor" },
       ),
     ),
   );

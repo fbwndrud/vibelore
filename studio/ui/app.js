@@ -68,6 +68,11 @@ const c = {
     }
   },
   render,
+  focusEditor(id) {
+    const editor = document.getElementById(id);
+    editor?.scrollIntoView({ block: "center", behavior: "instant" });
+    editor?.querySelector("input:not([type=file]), textarea")?.focus({ preventScroll: true });
+  },
 };
 function normalize() {
   if (!c.snapshot) return;
@@ -236,6 +241,7 @@ function render() {
         c.selection.workspace = "production";
         c.persist();
         c.render();
+        c.focusEditor("production-editor");
       },
       { class: "quiet" },
     ),
@@ -295,6 +301,7 @@ function render() {
         c.selection.workspace = "story";
         c.persist();
         c.render();
+        c.focusEditor("scene-editor");
       },
       { class: "quiet" },
     ),

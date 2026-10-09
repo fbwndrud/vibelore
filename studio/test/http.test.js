@@ -41,6 +41,26 @@ async function start(t) {
       }),
   };
 }
+
+it('serves every module reachable from the browser entry point', async t => {
+  const app = await start(t);
+  const pending = ['/app.js'], visited = new Set();
+  while (pending.length) {
+    const path = pending.pop();
+    if (visited.has(path)) continue;
+    visited.add(path);
+    const url = new URL(path, app.url);
+    const response = await fetch(url, { headers: { origin: app.url } });
+    assert.equal(response.status, 200, `Browser dependency ${path} must be served`);
+    assert.match(response.headers.get('content-type'), /javascript/);
+    const source = await response.text();
+    for (const match of source.matchAll(/(?:from\s*|import\s*)["'](\.[^"']+)["']/g)) {
+      pending.push(new URL(match[1], url).pathname);
+    }
+  }
+  assert.ok(visited.has('/dom.js'));
+  assert.ok(visited.has('/render/frame.js'));
+});
 const production = (id = 'prod', commandId = 'prod-create') => ({
   projectId: 'p1',
   commandId,

@@ -1,5 +1,6 @@
-import { renderPreview } from "./player.js";
+import { renderPreview, renderWorkingShot } from "./player.js";
 import { command, revision, utteranceCommand } from "./api.js";
+import { assetSlotLabel, slotInContext } from "./dom.js";
 import {
   el,
   card,
@@ -48,6 +49,8 @@ export function renderEdit(c) {
     scene.utterances.find((u) => u.id === c.selection.utterance) ??
     scene.utterances[0];
   const shot = scene.shots.find((sh) => sh.id === c.selection.shot);
+  const workingShot = shot ? renderWorkingShot(c, scene, shot) : null;
+  if (workingShot) left.append(workingShot.root);
   left.append(renderPreview(c));
   if (u) {
     const occurrence = scene.occurrences.find(
@@ -241,10 +244,8 @@ export function renderEdit(c) {
             value: sh.referenceSlotId ?? "",
             options: [
               { value: "", label: "아직 없음" },
-              ...options(
-                s.slots.filter((x) => x.mediaKind === "image"),
-                "id",
-              ),
+              ...s.slots.filter(x => x.mediaKind === "image" && slotInContext(x, s, scene, shot?.id))
+                .map(x => ({ value: x.id, label: assetSlotLabel(s, x) })),
             ],
           },
           ...["x", "y", "scale"].map((name) => ({
@@ -325,7 +326,7 @@ export function renderEdit(c) {
           );
           c.selection.shot = sh.id;
         },
-        { revision: revision(s, "scene", scene.id), submit: "샷 연출 저장" },
+        { revision: revision(s, "scene", scene.id), submit: "샷 연출 저장", onDraft: workingShot?.update },
       ),
     ),
   );
