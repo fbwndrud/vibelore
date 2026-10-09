@@ -21,17 +21,16 @@ export const button = (text, action, attrs = {}) =>
 export const note = (text) => el("p", { class: "muted" }, text);
 export const card = (title, ...children) =>
   el("section", { class: "card" }, el("h2", {}, title), ...children);
-export const details = (label, value) =>
-  el(
-    "details",
-    {},
-    el("summary", {}, label),
-    el(
-      "pre",
-      {},
-      typeof value === "string" ? value : JSON.stringify(value, null, 2),
-    ),
-  );
+const recordNames = { request:'요청 내용', input:'선택 입력', config:'생성 설정', model:'모델', voice:'목소리', acting:'연기 지시', prompt:'생성 지시', status:'상태', httpStatus:'HTTP 응답', providerFailure:'서비스 오류', operationId:'서비스 응답 ID', provider:'생성 서비스', kind:'종류', title:'제목', reason:'선택 이유', text:'대사', name:'이름', revision:'변경판', sourceUnitIds:'원문 근거', validation:'자료 검사', scope:'적용 범위', subject:'대상', mediaKind:'자료 종류', label:'자료 이름', resolvedModel:'확인된 모델', returnedModel:'반환된 모델', returnedVoice:'반환된 목소리', usage:'사용량', reservation:'예약과 청구', createdAt:'기록 시간', requestedModel:'요청 모델', amountKind:'금액 근거', estimateMicros:'예약 추정액 (백만분의 달러)', settledMicros:'정산 기록 (백만분의 달러)' };
+function recordView(value) {
+  if (value == null) return el('span', { class:'muted' }, '없음 / 미확인');
+  if (typeof value !== 'object') return el('span', { class:'record-value' }, value === true ? '예' : value === false ? '아니오' : String(value));
+  const rows = Object.entries(value);
+  if (!rows.length) return note('등록된 항목 없음');
+  return el('dl', { class:'record-fields' }, rows.map(([key,v]) => [el('dt',{}, Array.isArray(value) ? `${Number(key)+1}번` : recordNames[key] ?? key), el('dd',{}, typeof v === 'object' && v != null ? el('details',{},el('summary',{}, `${Object.keys(v).length}개 항목 보기`),recordView(v)) : recordView(v))]));
+}
+export const details = (label, value) => el('details', {}, el('summary', {}, label), typeof value === 'string' ? el('p', { class:'record-value' }, value) : recordView(value));
+export const suggestedCard = (title, intro, editor, suggestions, ...rest) => card(title, intro, suggestions, editor, ...rest);
 export function select(label, value, options, onchange) {
   return el(
     "label",
@@ -59,11 +58,14 @@ export function form(
   const previous = c.drafts.get(key);
   const controls = new Map();
   const body = el("form", { class: "form", id });
+  let advanced;
   if (description) body.append(note(description));
   for (const field of fields) {
-    const val = previous?.value[field.name] ?? field.value ?? "";
+    const originalValue = previous?.value[field.name] ?? field.value ?? "";
+    const val = field.normalize ? field.normalize(originalValue) : originalValue;
     let input;
-    if (field.options)
+    if (field.render) input = field.render(val);
+    else if (field.options)
       input = el(
         "select",
         {
@@ -97,8 +99,13 @@ export function form(
         ...(field.max !== undefined ? { max: field.max } : {}),
         ...(field.step ? { step: field.step } : {}),
       });
+    input.name = field.name;
     controls.set(field.name, input);
-    body.append(
+    if (field.advanced && !advanced) {
+      advanced = el('details', { class: 'advanced-fields' }, el('summary', {}, '세부 구도·안전 영역'));
+      body.append(advanced);
+    }
+    (field.advanced ? advanced : body).append(
       el(
         "label",
         { class: "field" },
@@ -122,10 +129,24 @@ export function form(
             : input.value,
       ]),
     );
-  body.addEventListener("input", () => {
+  const draftValues = () => {
     const serial = values();
-    for (const f of fields.filter((f) => f.type === "file"))
-      delete serial[f.name];
+    for (const field of fields) {
+      if (field.type === 'file') delete serial[field.name];
+      else if (field.serializeDraft) serial[field.name] = field.serializeDraft(serial[field.name]);
+    }
+    return serial;
+  };
+  body.getDraftValues = values;
+  body.setDraftPatch = patch => {
+    for (const [name, value] of Object.entries(patch)) if (controls.has(name)) controls.get(name).value = value;
+    const serial = draftValues();
+    c.drafts.set(key, serial, previous?.revision ?? revision);
+    c.persist();
+    onDraft?.(serial);
+  };
+  body.addEventListener("input", () => {
+    const serial = draftValues();
     c.drafts.set(key, serial, previous?.revision ?? revision);
     c.persist();
     onDraft?.(serial);

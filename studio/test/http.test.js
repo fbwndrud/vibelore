@@ -649,3 +649,25 @@ it('imports actual encoded assets through the generic bounded import adapter', a
   assert.equal(result.value.candidate.mediaKind, 'image');
   assert.equal((await f.service.snapshot('p1')).candidates.length, 1);
 });
+
+it('returns bounded authenticated human history pages with saved scene changes and no raw manuscript payload', async t => {
+  const f = await start(t);
+  await f.send(production());
+  const scene = { id:'sc', productionId:'prod', title:'실제 장면', occurrences:[], presentations:[], utterances:[], shots:[{id:'sh',title:'첫 구도'}] };
+  const save = {projectId:'p1', commandId:'history-first', aggregate:{kind:'scene',id:'sc'}, expectedRevision:0, type:'scene.put',payload:scene};
+  assert.equal((await f.send(save)).status,200);
+  assert.equal((await f.send({...save,commandId:'history-second',expectedRevision:1,payload:{...scene,shots:[{id:'sh',title:'새 구도'}]}})).status,200);
+  const response = await fetch(`${f.url}/api/history?projectId=p1&limit=2`,{headers:f.headers});
+  assert.equal(response.status,200);
+  const page = await response.json();
+  assert.equal(page.entries.length,2);
+  assert.ok(page.nextBefore > 0);
+  assert.match(page.entries[0].label,/장면/);
+  assert.match(page.entries[0].summary,/샷|구도/);
+  assert.equal(page.entries[0].value,undefined,'History does not ship full source payloads');
+  const older = await (await fetch(`${f.url}/api/history?projectId=p1&limit=2&before=${page.nextBefore}`,{headers:f.headers})).json();
+  assert.ok(older.entries.every(e=>e.cursor < page.nextBefore));
+  assert.equal(new Set([...page.entries,...older.entries].map(e=>e.cursor)).size,page.entries.length+older.entries.length);
+  assert.equal((await fetch(`${f.url}/api/history?projectId=p1`)).status,403);
+  assert.equal((await fetch(`${f.url}/api/history?projectId=p1&limit=101`,{headers:f.headers})).status,400);
+});

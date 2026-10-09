@@ -29,6 +29,8 @@ const staticFiles = new Map([
     'backup.js',
     'player.js',
     'dom.js',
+    'camera.js',
+    'workflow.js',
   ].map((file) => [`/${file}`, [file, 'text/javascript; charset=utf-8']]),
   ['/render/frame.js', ['../render/frame.js', 'text/javascript; charset=utf-8']],
   ['/studio.css', ['studio.css', 'text/css; charset=utf-8']],
@@ -179,6 +181,11 @@ export async function startStudioHttp({
             throw new TransportError('INVALID_IMPORT');
           return json(response, 200, await service.command(envelope));
         }
+        if (request.method === 'GET' && target.pathname === '/api/history')
+          return json(response, 200, await service.history(queryProject(target), {
+            limit: queryCursor(target.searchParams.get('limit') ?? '50'),
+            ...(target.searchParams.has('before') ? { before: queryCursor(target.searchParams.get('before')) } : {}),
+          }));
         if (request.method === 'GET' && target.pathname === '/api/events')
           return await streamEvents(
             request,

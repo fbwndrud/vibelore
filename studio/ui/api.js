@@ -90,6 +90,11 @@ export class StudioAPI {
       )
     ).json();
   }
+  async history(before) {
+    const params = new URLSearchParams({ projectId: this.projectId, limit: '50' });
+    if (before != null) params.set('before', String(before));
+    return (await this.request(`/api/history?${params}`)).json();
+  }
   async command(envelope) {
     const body = JSON.stringify({ ...envelope, projectId: this.projectId });
     const large = [

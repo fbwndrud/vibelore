@@ -1,3 +1,4 @@
+import { renderWorkflow } from './workflow.js';
 import { StudioAPI, Drafts, command } from "./api.js";
 import { el, button, form, note, select } from "./dom.js";
 import { renderStory } from "./story.js";
@@ -284,6 +285,8 @@ function render() {
             shot.title ?? "샷",
             () => {
               c.selection.shot = shot.id;
+              const cue = scene.utterances.find(u => u.speakerOccurrenceId === shot.targetOccurrenceId);
+              if (cue) { c.selection.utterance = cue.id; c.selection.occurrence = cue.speakerOccurrenceId; }
               c.persist();
               c.render();
             },
@@ -327,6 +330,7 @@ function render() {
         }),
       ),
       el("p", { id: "live-status", class: "muted" }),
+      c.selection.workspace !== 'production' ? renderWorkflow(c, { compact: true }) : null,
       renderWorkspace(c),
     ),
   );

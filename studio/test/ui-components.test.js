@@ -665,3 +665,110 @@ test('Production budget form saves through project CAS and retains a conflicting
   assert.match(tree(form).find(x => x.role === 'alert').textContent, /다른 변경/);
   assert.equal((await f.service.snapshot('p1')).project.budgetMicros, 4000000);
 });
+
+test('camera suggestion creates editable motion without exposing JSON and saves through the scene authority', async t => {
+  const f = await withAudioScene(t), c = await context(t, f);
+  const root = renderEdit(c);
+  assert.equal(named(root, 'keyframes')?.tag === 'textarea', false, 'Creators should not author raw keyframe JSON');
+  const preset = tree(root).find(x => x.tag === 'button' && x.textContent === '완만하게 줌인');
+  assert.ok(preset, 'An actionable camera suggestion is visible');
+  await preset.fire('click');
+  assert.equal((await f.service.snapshot('p1')).scenes[0].shots[0].transform?.keyframes?.length ?? 0, 0, 'Suggestion remains an unsaved draft');
+  await submitForm(root, '샷 연출 저장').fire('submit');
+  const saved = c.snapshot.scenes[0].shots[0].transform.keyframes;
+  assert.equal(saved.length, 2);
+  assert.equal(saved[0].timeMs, 0);
+  assert.ok(saved[1].scale > saved[0].scale);
+  assert.equal(c.sent.at(-1).type, 'scene.put');
+});
+
+test('performance suggestions preserve original dialogue and structured acting on unrelated saves', async t => {
+  const f = await withAudioScene(t);
+  await f.command('utterance.update', { id: 'u1', acting: { emotion: '걱정', direction: '차분하게' } }, { aggregate: { kind: 'utterance', id: 'u1' } });
+  const c = await context(t, f), root = renderEdit(c);
+  assert.ok(!named(root, 'acting').value.includes('{'), 'No serialized acting object appears in a creator text field');
+  await submitForm(root, '이 발화 저장').fire('submit');
+  assert.deepEqual(c.snapshot.scenes[0].utterances[0].acting, { emotion: '걱정', direction: '차분하게' });
+  const next = renderEdit(c), original = c.snapshot.scenes[0].utterances[0].text;
+  const suggestion = tree(next).find(x => x.tag === 'button' && x.textContent === '따뜻한 걱정');
+  assert.ok(suggestion);
+  await suggestion.fire('click');
+  await submitForm(next, '이 발화 저장').fire('submit');
+  assert.equal(c.snapshot.scenes[0].utterances[0].text, original);
+  assert.match(c.snapshot.scenes[0].utterances[0].acting, /걱정/);
+});
+
+test('production guide exposes the actual blocker and routes to the missing utterance without charging or claiming an output', async t => {
+  const { renderProduction } = await import('../ui/production.js');
+  const f = await withAudioScene(t), c = await context(t, f);
+  c.selection.production = 'main';
+  const root = renderProduction(c);
+  assert.match(root.textContent, /완성 파일 없음/);
+  const action = tree(root).find(x => x.tag === 'button' && x.textContent === '첫 누락 음성 준비');
+  assert.ok(action, 'Next step names and opens the missing audio');
+  await action.fire('click');
+  assert.equal(c.selection.workspace, 'assets');
+  assert.equal(c.selection.utterance, 'u1');
+  assert.equal(c.selection.assetKind, 'audio');
+  assert.equal(c.sent.length, 0);
+  assert.equal((await f.service.snapshot('p1')).jobs.length, 0);
+});
+
+test('camera zoom-out suggestion respects an existing magnified frame', async t => {
+  const f = await withAudioScene(t);
+  const scene = (await f.service.snapshot('p1')).scenes[0];
+  scene.shots[0].transform = { x:0, y:0, scale:2, safeArea:{left:0,top:0,right:0,bottom:0},anchor:'center',easing:'linear',keyframes:[{timeMs:333,x:0.125,y:0,scale:1.234}] };
+  await f.command('scene.put',scene,{aggregate:{kind:'scene',id:'scene'}});
+  const c = await context(t,f), root = renderEdit(c);
+  const fractional = tree(root).filter(x=>x.tag==='input' && x['aria-label']?.includes('시점'));
+  assert.ok(fractional.every(x=>x.step==='any'),'Existing valid camera precision is accepted');
+  await tree(root).find(x=>x.tag==='button' && x.textContent==='천천히 줌아웃').fire('click');
+  await submitForm(root,'샷 연출 저장').fire('submit');
+  const frames = c.snapshot.scenes[0].shots[0].transform.keyframes;
+  assert.ok(frames[0].scale > frames[1].scale,'A zoom-out must shrink even when the saved base frame is magnified');
+  assert.equal(frames[1].scale,2);
+});
+
+test('legacy incomplete camera drafts remain recoverable and legacy acting drafts preserve structured performance', async t => {
+  const f = await withAudioScene(t);
+  const acting = { emotion: '걱정', direction: '차분하게' };
+  await f.command('utterance.update', { id:'u1', acting }, {aggregate:{kind:'utterance',id:'u1'}});
+  const c = await context(t,f);
+  c.drafts.set('shot:scene:shot', { keyframes:'[' }, 1);
+  c.drafts.set('utterance:u1', { acting:JSON.stringify(acting) }, 1);
+  const root = renderEdit(c);
+  assert.match(root.textContent,/이전 카메라 초안/);
+  assert.equal(named(root,'keyframes').value,'[');
+  assert.equal(named(root,'acting').value.includes('{'),false);
+  await submitForm(root,'이 발화 저장').fire('submit');
+  assert.deepEqual(c.snapshot.scenes[0].utterances[0].acting,acting);
+  await tree(root).find(x=>x.tag==='button'&&x.textContent==='완만하게 줌인').fire('click');
+  assert.equal(JSON.parse(named(root,'keyframes').value).length,2);
+});
+
+test('voice blocker uses only a latest unresolved Google audio request for a missing utterance', async t => {
+  const { productionProgress } = await import('../ui/workflow.js');
+  const f = await withAudioScene(t), s = await f.service.snapshot('p1');
+  const request={productionId:'main',provider:'google',kind:'audio',target:{kind:'utterance',id:'u1'}};
+  const failed={id:'failed',request,status:'outcome_unknown',providerFailure:{httpStatus:402}};
+  s.attempts=[{...failed,request:{...request,kind:'image'}}];
+  assert.equal(productionProgress(s,'main').rejection,undefined);
+  s.attempts=[failed];
+  assert.equal(productionProgress(s,'main').rejection.id,'failed');
+  s.attempts.push({...failed,id:'new',status:'succeeded'});
+  assert.equal(productionProgress(s,'main').rejection,undefined);
+});
+
+test('legacy structured acting edits survive an unrelated input and reopening the utterance', async t => {
+  const f = await withAudioScene(t);
+  await f.command('utterance.update',{id:'u1',acting:{emotion:'평온'}},{aggregate:{kind:'utterance',id:'u1'}});
+  const c=await context(t,f), draftActing={emotion:'걱정',direction:'차분하게'};
+  c.drafts.set('utterance:u1',{acting:JSON.stringify(draftActing)},1);
+  let root=renderEdit(c), edit=submitForm(root,'이 발화 저장');
+  named(edit,'holdMs').value='123';
+  await edit.fire('input');
+  root=renderEdit(c);
+  await submitForm(root,'이 발화 저장').fire('submit');
+  assert.deepEqual(c.snapshot.scenes[0].utterances[0].acting,draftActing);
+  assert.equal(c.snapshot.scenes[0].utterances[0].holdMs,123);
+});

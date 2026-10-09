@@ -474,3 +474,15 @@ test("scene adaptation builder sends only selected source, known speakers, and a
     ["speaker", "narration"],
   );
 });
+
+test('production progress does not report a WAV export as a completed landscape video', async t => {
+  const { audioFixture } = await import('./helpers/render-fixture.js');
+  const { productionProgress } = await import('../ui/workflow.js');
+  const f = await audioFixture(t);
+  await f.command('edition.create',{id:'audio-only',productionId:'main',profile:'audio'},{aggregate:{kind:'edition',id:'audio-only'}});
+  const rendered = await f.command('edition.render',{editionId:'audio-only',renderId:'audio-output'},{aggregate:{kind:'editionOutput',id:'audio-output'}});
+  assert.equal(rendered.value.status,'completed');
+  const s = await f.service.snapshot('p1');
+  assert.equal(productionProgress(s,'main','landscape').currentOutputs.length,0);
+  assert.equal(productionProgress(s,'main','audio').currentOutputs.length,1);
+});

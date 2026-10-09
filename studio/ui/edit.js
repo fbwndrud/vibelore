@@ -1,9 +1,11 @@
+import { keyframeEditor, cameraSuggestions, actingText, actingSuggestions, legacyActing } from './camera.js';
 import { renderPreview, renderWorkingShot } from "./player.js";
 import { command, revision, utteranceCommand } from "./api.js";
 import { assetSlotLabel, slotInContext } from "./dom.js";
 import {
   el,
   card,
+  suggestedCard,
   note,
   form,
   select,
@@ -53,6 +55,9 @@ export function renderEdit(c) {
   if (workingShot) left.append(workingShot.root);
   left.append(renderPreview(c));
   if (u) {
+    const originalActingText = actingText(u.acting);
+    const previousActing = legacyActing(c.drafts.get(`utterance:${u.id}`)?.value.acting);
+    let actingForm;
     const occurrence = scene.occurrences.find(
       (o) => o.id === u.speakerOccurrenceId,
     );
@@ -76,8 +81,8 @@ export function renderEdit(c) {
             c.render();
           },
         ),
-        note(`${role?.name} · ${occurrence.presence} · 이 발화만 저장`),
-        form(
+        note(`${role?.name} · ${{onscreen:'화면 속',narrator:'해설',offscreen:'화면 밖',voiceover:'보이스오버',internal:'속마음',crowd:'군중'}[occurrence.presence] ?? '출현'} · 이 발화만 저장`),
+        actingForm = form(
           c,
           `utterance:${u.id}`,
           [
@@ -91,11 +96,11 @@ export function renderEdit(c) {
             {
               name: "acting",
               label: "연기 지시",
+              normalize: v => actingText(legacyActing(v)),
+              serializeDraft: v => previousActing && typeof previousActing === 'object' && v === actingText(previousActing) ? previousActing : v === originalActingText ? u.acting ?? '' : v,
               type: "textarea",
               value:
-                typeof u.acting === "object"
-                  ? JSON.stringify(u.acting)
-                  : (u.acting ?? ""),
+                originalActingText,
             },
             {
               name: "holdMs",
@@ -115,7 +120,7 @@ export function renderEdit(c) {
                 Object.fromEntries(
                   Object.entries({
                     ...p,
-                    acting: parseActing(p.acting),
+                    acting: previousActing && typeof previousActing === "object" && p.acting === actingText(previousActing) ? previousActing : p.acting === originalActingText ? u.acting ?? "" : p.acting,
                     holdMs: Number(p.holdMs),
                   }).filter(
                     ([key, value]) => !(value === "" && u[key] == null),
@@ -126,6 +131,8 @@ export function renderEdit(c) {
             ),
           { revision: revision(s, "utterance", u.id), submit: "이 발화 저장" },
         ),
+        actingSuggestions(actingForm),
+        note(`적용 목소리 · ${s.resolvedBindings.find(b => b.occurrenceId === occurrence.id)?.casting?.voice ?? '미배정'} · Cast에서 변경`),
         details(
           "출현과 목소리 해석",
           s.resolvedBindings.filter((b) => b.occurrenceId === occurrence.id),
@@ -200,11 +207,12 @@ export function renderEdit(c) {
   );
   const sh = shot ?? { id: uid("shot") },
     tr = sh.transform ?? {};
+  let cameraForm;
   right.append(
-    card(
+    suggestedCard(
       shot ? "샷 연출" : "새 샷",
       note("카메라 의도 저장은 이미지·음성 생성 비용이 없습니다."),
-      form(
+      cameraForm = form(
         c,
         `shot:${scene.id}:${shot?.id ?? "new"}`,
         [
@@ -215,7 +223,7 @@ export function renderEdit(c) {
             value: sh.intent ?? "wide",
             options: ["wide", "close", "reaction", "insert"].map((v) => ({
               value: v,
-              label: v,
+              label: { wide: '전체 공간', close: '인물 가까이', reaction: '반응', insert: '소품 / 디테일' }[v],
             })),
           },
           {
@@ -235,6 +243,7 @@ export function renderEdit(c) {
           },
           {
             name: "prop",
+            advanced: true,
             label: "소품 대상 (선택)",
             value: sh.propTarget ?? "",
           },
@@ -250,6 +259,7 @@ export function renderEdit(c) {
           },
           ...["x", "y", "scale"].map((name) => ({
             name,
+            advanced: true,
             label: {
               x: "가로 이동",
               y: "세로 이동",
@@ -261,6 +271,7 @@ export function renderEdit(c) {
           })),
           ...["Left", "Top", "Right", "Bottom"].map((edge) => ({
             name: `safeArea${edge}`,
+            advanced: true,
             label: `안전 영역 · ${{ Left: "왼쪽", Top: "위쪽", Right: "오른쪽", Bottom: "아래쪽" }[edge]}`,
             type: "number",
             min: 0,
@@ -270,28 +281,30 @@ export function renderEdit(c) {
           })),
           {
             name: "anchor",
+            advanced: true,
             label: "기준점",
             value: tr.anchor ?? "center",
             options: ["center", "top", "bottom"].map((v) => ({
               value: v,
-              label: v,
+              label: { center: '중앙', top: '위쪽', bottom: '아래쪽' }[v],
             })),
           },
           {
             name: "easing",
+            advanced: true,
             label: "이동 곡선",
             value: tr.easing ?? "linear",
             options: ["linear", "ease-in-out"].map((v) => ({
               value: v,
-              label: v,
+              label: { linear: '일정한 속도', 'ease-in-out': '부드럽게 시작·끝' }[v],
             })),
           },
           {
             name: "keyframes",
-            label: "키프레임 (JSON)",
-            type: "textarea",
+            label: "시간별 카메라 위치",
+            render: keyframeEditor,
             value: JSON.stringify(tr.keyframes ?? []),
-            help: "timeMs는 샷 내부 밀리초입니다. x/y는 중심 기준 -1..1, scale은 양수입니다.",
+            help: "시점 사이의 이동은 선택한 이동 곡선을 따릅니다.",
           },
         ],
         async (p, rev) => {
@@ -328,12 +341,9 @@ export function renderEdit(c) {
         },
         { revision: revision(s, "scene", scene.id), submit: "샷 연출 저장", onDraft: workingShot?.update },
       ),
+      cameraSuggestions(cameraForm, tr),
     ),
   );
   root.append(left, right);
   return root;
-}
-function parseActing(text) {
-  if (text.trim().startsWith("{")) return JSON.parse(text);
-  return text;
 }

@@ -1,3 +1,4 @@
+import { renderWorkflow, renderHistory } from './workflow.js';
 import { renderBackup } from './backup.js';
 import { renderPreview } from './player.js';
 import { command, revision } from "./api.js";
@@ -69,7 +70,8 @@ const money = (n) => `$${(n / 1e6).toFixed(4)}`;
 export function renderProduction(c) {
   const s = c.snapshot;
   const root = el("div", { class: "production-view" });
-  if (c.selection.production) root.append(renderPreview(c));
+  if (c.selection.production) root.append(renderWorkflow(c), renderPreview(c));
+  root.append(renderHistory(c));
   root.append(
     card(
       "제작 예산",
@@ -147,6 +149,7 @@ export function renderProduction(c) {
     const row = card(
       `${{ image: "그림", audio: "음성", text: "각색" }[job.request.kind]} · ${statusName[job.status] ?? job.status}`,
       note(`요청 대상 · ${targetName(s, job.request.target)}`),
+      attempt.providerFailure?.httpStatus ? note(`Google 반환 · HTTP ${attempt.providerFailure.httpStatus} · 당시 요청 응답 (현재 결과는 아래 시도 상태 참조)`) : null,
       note(
         `시도 ${statusName[attempt.status] ?? attempt.status} · 예산 ${statusName[reservation?.status] ?? "없음"}`,
       ),
