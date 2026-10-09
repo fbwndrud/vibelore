@@ -1,27 +1,28 @@
-import { renderWorkflow } from './workflow.js';
+import { productionProgress } from './workflow.js';
 import { StudioAPI, Drafts, command } from "./api.js";
 import { el, button, form, note, select } from "./dom.js";
 import { renderStory } from "./story.js";
 import { renderCast } from "./cast.js";
 import { renderAssetLab } from "./asset-lab.js";
-import { renderEdit } from "./edit.js";
+import { renderEdit, renderScript, selectShot } from "./edit.js";
 import { renderProduction } from "./production.js";
 const api = new StudioAPI(),
   drafts = new Drafts(),
   root = document.querySelector("#app");
 const workspaces = {
-  story: ["Story", "원고와 각색", renderStory],
-  cast: ["Cast", "인물과 목소리", renderCast],
-  assets: ["Asset Lab", "그림과 음성", renderAssetLab],
-  edit: ["Edit", "장면 연출", renderEdit],
-  production: ["Production", "작업과 예산", renderProduction],
+  script: ['대본', '대본과 연기', renderScript],
+  edit: ['연출', '장면 연출', renderEdit],
+  production: ['제작 관리', '검수와 출력', renderProduction],
+  story: ['원작·각색', '원고와 각색', renderStory],
+  cast: ['배역·목소리', '인물과 목소리', renderCast],
+  assets: ['자료 작업실', '그림과 음성', renderAssetLab],
 };
 const c = {
   api,
   drafts,
   snapshot: null,
   selection: {
-    workspace: "story",
+    workspace: "script",
     production: "",
     scene: "",
     shot: "",
@@ -71,6 +72,8 @@ const c = {
   render,
   focusEditor(id) {
     const editor = document.getElementById(id);
+    for (let parent=editor?.parentElement;parent;parent=parent.parentElement) if(parent.tagName==='DETAILS') parent.open=true;
+    if(editor?.tagName==='DETAILS') editor.open=true;
     editor?.scrollIntoView({ block: "center", behavior: "instant" });
     editor?.querySelector("input:not([type=file]), textarea")?.focus({ preventScroll: true });
   },
@@ -89,6 +92,8 @@ function normalize() {
     )
   )
     c.selection.scene = "";
+  if (!c.selection.scene && ['script','edit','production'].includes(c.selection.workspace))
+    c.selection.scene=s.scenes.find(scene=>scene.productionId===c.selection.production)?.id??'';
   const scene = s.scenes.find((s) => s.id === c.selection.scene);
   for (const [key, list] of [
     ["shot", scene?.shots],
@@ -187,8 +192,10 @@ function render() {
     return;
   }
   const nav = el("nav", { class: "tabs", "aria-label": "작업 공간" });
+  const supporting=el('details',{class:'supporting-nav'},el('summary',{},'원작·자료'));
+  supporting.open = ['story', 'cast', 'assets'].includes(c.selection.workspace);
   for (const [key, [name, description]] of Object.entries(workspaces))
-    nav.append(
+    (['script','edit','production'].includes(key)?nav:supporting).append(
       button(
         [el("strong", {}, name), el("span", {}, description)],
         () => {
@@ -197,14 +204,17 @@ function render() {
           c.render();
         },
         {
+          "data-workspace":key,
+          "aria-label": `${name} ${description}`,
           "aria-current": c.selection.workspace === key ? "page" : null,
           class: c.selection.workspace === key ? "active" : "",
         },
       ),
     );
+  nav.append(supporting);
   nav.addEventListener("keydown", (e) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
-    const buttons = [...nav.querySelectorAll("button")],
+    const buttons = [...nav.querySelectorAll("button")].filter(b=>!b.closest("details")||b.closest("details").open),
       index = buttons.indexOf(e.target);
     if (index < 0) return;
     e.preventDefault();
@@ -216,7 +226,8 @@ function render() {
           : (index + (e.key === "ArrowRight" ? 1 : -1) + buttons.length) %
             buttons.length;
     buttons[next].click();
-    document.querySelectorAll(".tabs button")[next].focus();
+    const nextKey=buttons[next].dataset.workspace;
+    document.querySelector(`.tabs button[data-workspace="${nextKey}"]`)?.focus();
   });
   shell.append(nav);
   const body = el("div", { class: "body" }),
@@ -232,6 +243,7 @@ function render() {
       (id) => {
         c.selection.production = id;
         c.selection.scene = "";
+        c.selection.slot="";c.selection.candidate="";
         c.persist();
         c.render();
       },
@@ -284,11 +296,7 @@ function render() {
           button(
             shot.title ?? "샷",
             () => {
-              c.selection.shot = shot.id;
-              const cue = scene.utterances.find(u => u.speakerOccurrenceId === shot.targetOccurrenceId);
-              if (cue) { c.selection.utterance = cue.id; c.selection.occurrence = cue.speakerOccurrenceId; }
-              c.persist();
-              c.render();
+              selectShot(c,scene,shot.id);
             },
             {
               class: `shot-link ${c.selection.shot === shot.id ? "selected" : ""}`,
@@ -330,7 +338,7 @@ function render() {
         }),
       ),
       el("p", { id: "live-status", class: "muted" }),
-      c.selection.workspace !== 'production' ? renderWorkflow(c, { compact: true }) : null,
+      productionRibbon(),
       renderWorkspace(c),
     ),
   );
@@ -340,6 +348,13 @@ function render() {
   );
   root.append(shell);
   c.persist();
+}
+function productionRibbon() {
+  if(!c.selection.production)return null;
+  const p=productionProgress(c.snapshot,c.selection.production,c.selection.previewProfile??'landscape');
+  return el('div',{class:'production-ribbon'},
+    note(`발화 ${p.readiness.utterances}개 · 음성 ${p.readiness.utterances-p.readiness.audio.length}/${p.readiness.utterances} · ${p.steps[4].detail}`),
+    button(p.rejection?`Google HTTP ${p.rejection.providerFailure.httpStatus} · 상태 확인`:'준비 상태 보기',()=>{c.selection.workspace='production';c.persist();c.render();},{class:'quiet'}));
 }
 async function listen() {
   let after = c.snapshot?.eventCursor ?? 0;

@@ -1,9 +1,12 @@
+import { renderAssetLab } from './asset-lab.js';
+import { renderHistory, goToWork } from './workflow.js';
 import { keyframeEditor, cameraSuggestions, actingText, actingSuggestions, legacyActing } from './camera.js';
 import { renderPreview, renderWorkingShot } from "./player.js";
 import { command, revision, utteranceCommand } from "./api.js";
 import { assetSlotLabel, slotInContext } from "./dom.js";
 import {
   el,
+  button,
   card,
   suggestedCard,
   note,
@@ -36,7 +39,7 @@ export function shotCommand(
     expectedRevision,
   );
 }
-export function renderEdit(c) {
+function renderEditors(c, { script = false } = {}) {
   const s = c.snapshot,
     scene = chosenScene(c);
   if (!scene)
@@ -50,10 +53,12 @@ export function renderEdit(c) {
   const u =
     scene.utterances.find((u) => u.id === c.selection.utterance) ??
     scene.utterances[0];
-  const shot = scene.shots.find((sh) => sh.id === c.selection.shot);
-  const workingShot = shot ? renderWorkingShot(c, scene, shot) : null;
+  if (u) { c.selection.utterance = u.id; c.selection.occurrence = u.speakerOccurrenceId; }
+  const shot = scene.shots.find((sh) => sh.id === c.selection.shot) ?? scene.shots[0];
+  if (shot) c.selection.shot = shot.id;
+  const workingShot = shot && !script ? renderWorkingShot(c, scene, shot) : null;
   if (workingShot) left.append(workingShot.root);
-  left.append(renderPreview(c));
+  if (!script) left.append(renderPreview(c));
   if (u) {
     const originalActingText = actingText(u.acting);
     const previousActing = legacyActing(c.drafts.get(`utterance:${u.id}`)?.value.acting);
@@ -73,12 +78,7 @@ export function renderEdit(c) {
             label: u.text.slice(0, 45),
           })),
           (id) => {
-            c.selection.utterance = id;
-            c.selection.occurrence = scene.utterances.find(
-              (u) => u.id === id,
-            ).speakerOccurrenceId;
-            c.persist();
-            c.render();
+            selectCue(c,scene,id);
           },
         ),
         note(`${role?.name} · ${{onscreen:'화면 속',narrator:'해설',offscreen:'화면 밖',voiceover:'보이스오버',internal:'속마음',crowd:'군중'}[occurrence.presence] ?? '출현'} · 이 발화만 저장`),
@@ -205,6 +205,7 @@ export function renderEdit(c) {
       ),
     ),
   );
+  if (script) return { left, right, scene, u, shot };
   const sh = shot ?? { id: uid("shot") },
     tr = sh.transform ?? {};
   let cameraForm;
@@ -344,6 +345,114 @@ export function renderEdit(c) {
       cameraSuggestions(cameraForm, tr),
     ),
   );
-  root.append(left, right);
-  return root;
+  return { left, right, scene, u, shot, workingShot };
+}
+
+// A scene may have several cues by one speaker. Index pairing is valid only
+// when the scene explicitly has one shot per cue with a matching occurrence.
+function matchesCue(scene, shot, u) {
+  if (!shot || !u) return false;
+  if (shot.targetOccurrenceId != null) return shot.targetOccurrenceId === u.speakerOccurrenceId;
+  return scene.occurrences.find(o=>o.id===u.speakerOccurrenceId)?.presence !== 'onscreen';
+}
+export function selectCue(c, scene, utteranceId) {
+  const index = scene.utterances.findIndex(u => u.id === utteranceId);
+  if (index < 0) return;
+  const u = scene.utterances[index];
+  Object.assign(c.selection, { scene: scene.id, utterance: u.id, occurrence: u.speakerOccurrenceId });
+  const paired = scene.shots.length === scene.utterances.length && matchesCue(scene,scene.shots[index],u);
+  const shot = paired ? scene.shots[index] : scene.shots.find(sh => sh.targetOccurrenceId === u.speakerOccurrenceId);
+  if (shot) c.selection.shot = shot.id;
+  c.persist(); c.render();
+}
+export function selectShot(c, scene, shotId) {
+  const index = scene.shots.findIndex(sh => sh.id === shotId);
+  if (index < 0) return;
+  const shot = scene.shots[index];
+  const paired = scene.shots.length === scene.utterances.length && matchesCue(scene,shot,scene.utterances[index]);
+  const current = scene.utterances.find(u => u.id === c.selection.utterance && u.speakerOccurrenceId === shot.targetOccurrenceId);
+  const u = paired ? scene.utterances[index] : current ?? scene.utterances.find(u => u.speakerOccurrenceId === shot.targetOccurrenceId);
+  c.selection.shot = shot.id;
+  if (u) Object.assign(c.selection,{utterance:u.id,occurrence:u.speakerOccurrenceId});
+  c.persist(); c.render();
+}
+function cueRole(s, scene, u) {
+  const occurrence = scene.occurrences.find(o => o.id === u.speakerOccurrenceId);
+  const role = s.cast.find(r => r.id === occurrence?.roleBindingId);
+  const voice = s.resolvedBindings.find(b => b.occurrenceId === occurrence?.id && !b.shotId)?.casting?.voice;
+  return { name:role?.name ?? '화자', voice:voice ?? '목소리 미배정' };
+}
+function cueSequence(c, scene, screenplay = false) {
+  const list = el('div',{class:screenplay?'screenplay-cues':'cue-timeline','aria-label':screenplay?'장면 대본':'장면 발화 순서'});
+  for (const [i,u] of scene.utterances.entries()) {
+    const role = cueRole(c.snapshot,scene,u);
+    const draft = c.drafts.get(`utterance:${u.id}`)?.value;
+    const row = button([
+      el('span',{class:'cue-number'},String(i+1).padStart(2,'0')),
+      el('span',{class:'cue-speaker'},el('strong',{},role.name),el('small',{},role.voice)),
+      el('span',{class:'cue-content'},el('span',{class:'cue-dialogue'},draft?.text ?? u.text),
+        screenplay ? el('small',{},draft ? '편집 초안 있음' : actingText(u.acting)) : null),
+      el('small',{class:'cue-status'},`${(u.holdMs??0)/1000}초 침묵 · ${c.snapshot.slots.some(slot=>slot.mediaKind==='audio'&&slot.utteranceId===u.id&&slot.candidateId)?'음원 채택됨':'음원 미준비'}`),
+    ],()=>selectCue(c,scene,u.id),{'aria-label':`발화 ${i+1} 편집`,'aria-pressed':c.selection.utterance===u.id,class:c.selection.utterance===u.id?'cue-row selected':'cue-row'});
+    list.append(row);
+  }
+  return list;
+}
+export function renderScript(c) {
+  const editors = renderEditors(c,{script:true});
+  if (!editors.scene) return editors;
+  const {scene,right} = editors;
+  const page = el('section',{class:'screenplay-view'},
+    el('main',{class:'screenplay-paper'},el('h2',{},scene.title??'장면 대본'),note('화자를 선택해 연기와 응답 간격을 다듬습니다. 편집 초안은 연출 화면에서도 이어집니다.'),cueSequence(c,scene,true)),
+    el('aside',{class:'screenplay-inspector'},...Array.from(right.children)));
+  return page;
+}
+export function renderEdit(c) {
+  const editors = renderEditors(c);
+  if (!editors.scene) return editors;
+  const {scene,u,shot,left,right,workingShot} = editors;
+  const center = el('main',{class:'director-stage'},
+    workingShot?.root ?? card('샷 구도',note('왼쪽에서 샷을 선택하거나 새 샷을 만드세요.')),
+    el('section',{class:'sequence-panel'},el('div',{class:'sequence-heading'},el('h2',{},'장면 타임라인'),note('발화 순서 · 실제 음원 준비 후 재생 시간 확정')),cueSequence(c,scene)));
+  const preview = Array.from(left.children).find(node=>node!==workingShot?.root);
+  if (preview) center.append(el('details',{class:'review-disclosure'},el('summary',{},'고정 미리보기·출력'),preview));
+  const voice = el('div',{class:'inspector-panel'});
+  if (u) voice.append(right.children[0]);
+  const takes = Array.from(left.children).at(-1);
+  if (u && takes && takes!==preview && takes!==workingShot?.root) voice.append(takes);
+  voice.append(button('이 발화의 음성 준비',()=>goToWork(c,'assets',{assetKind:'audio',slot:'',candidate:''}),{class:'quiet'}));
+  const camera = Array.from(right.children).at(-1);
+  const inspector = el('aside',{class:'director-inspector'},el('h2',{},shot?.title??'새 샷'));
+  const tabs = el('div',{'aria-label':'샷 편집 도구',class:'inspector-tabs'});
+  const host = el('div',{class:'inspector-content'});
+  const panels = new Map([['camera',el('section',{class:'inspector-panel'},camera)],['voice',voice]]);
+  host.append(...panels.values());
+  const modes=[['camera','연출'],['voice','대사·음성'],['image','그림'],['history','이력']];
+  function display(mode) {
+    c.selection.inspector=mode;c.persist();
+    for (const b of tabs.children) b.setAttribute('aria-pressed',String(b.dataset.mode===mode));
+    if(mode==='image' && !panels.has(mode)) {
+      const imageContext = Object.create(c);
+      const imageKey = `${scene.id}:${shot?.id??'new'}`;
+      const sameImage = c.selection.imageInspectorShot===imageKey && c.selection.assetKind==='image';
+      imageContext.selection = {...c.selection,assetKind:'image',slot:sameImage?c.selection.slot:shot?.referenceSlotId??'',candidate:sameImage?c.selection.candidate:'',imageInspectorShot:imageKey};
+      // Asset actions keep the shared selection; the initial embedded view alone
+      // is scoped to the selected shot. Mutations still use the normal authority.
+      imageContext.persist=()=>{
+        if ((c.selection.workspace && c.selection.workspace!=='edit') || c.selection.scene!==scene.id || c.selection.shot!==shot?.id || c.selection.inspector!=='image') return;
+        for (const key of ['assetKind','slot','candidate','imageInspectorShot']) c.selection[key]=imageContext.selection[key];
+        c.persist();
+      };
+      imageContext.render=()=>{imageContext.persist();c.render();};
+      imageContext.persist();
+      const panel = el('section',{class:'inspector-panel'},renderAssetLab(imageContext));
+      panels.set(mode,panel);host.append(panel);
+    } else if(mode==='history' && !panels.has(mode)) {
+      const panel = el('section',{class:'inspector-panel'},renderHistory(c));panels.set(mode,panel);host.append(panel);
+    }
+    for (const [key,panel]of panels) panel.hidden=key!==mode;
+  }
+  for(const [mode,label]of modes) tabs.append(button(label,()=>display(mode),{'data-mode':mode}));
+  inspector.append(tabs,host);display(c.selection.inspector??'camera');
+  return el('div',{class:'director-view'},center,inspector);
 }

@@ -24,10 +24,12 @@ export function productionProgress(s, productionId, profile = 'landscape') {
   }
   const rejection = [...latestAudio.values()].reverse().find(a => ['outcome_unknown','failed_definite'].includes(a.status) && a.providerFailure?.httpStatus);
   const totalShots = scenes.reduce((n, sc) => n + sc.shots.length, 0);
+  const imageReadiness = profile === 'landscape' ? readiness : previewReadiness(s, productionId, 'landscape');
+  const missingImages = imageReadiness.images.filter(image => image.shotId != null).length;
   const steps = [
     { label: '원작·각색', detail: `${scenes.length}개 장면 · ${readiness.utterances}개 발화`, done: scenes.length > 0 && readiness.utterances > 0, workspace: 'story' },
     { label: '목소리 배정', detail: `${occurrenceIds.size - missingVoices.length}/${occurrenceIds.size}명 배정`, done: occurrenceIds.size > 0 && !missingVoices.length, workspace: 'cast' },
-    { label: '그림·음성 준비', detail: `그림 ${totalShots - readiness.images.length}/${totalShots} · 음성 ${readiness.utterances - readiness.audio.length}/${readiness.utterances}`, done: readiness.ready, workspace: 'assets' },
+    { label: '그림·음성 준비', detail: `그림 ${totalShots - missingImages}/${totalShots} · 음성 ${readiness.utterances - readiness.audio.length}/${readiness.utterances}`, done: readiness.ready, workspace: 'assets' },
     { label: '연출·미리보기', detail: currentEditions.length ? '현재 편집본의 고정판 있음' : editions.length ? '편집 변경 · 새 고정 필요' : '아직 고정하지 않음', done: currentEditions.length > 0, workspace: 'edit' },
     { label: '완성 파일', detail: currentOutputs.length ? `현재 편집본 ${currentOutputs.length}개 출력` : outputs.length ? `이전 편집본 ${outputs.length}개 · 새 출력 필요` : '완성 파일 없음', done: currentOutputs.length > 0, workspace: 'production' },
   ];

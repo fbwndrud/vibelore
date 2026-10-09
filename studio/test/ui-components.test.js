@@ -772,3 +772,117 @@ test('legacy structured acting edits survive an unrelated input and reopening th
   assert.deepEqual(c.snapshot.scenes[0].utterances[0].acting,draftActing);
   assert.equal(c.snapshot.scenes[0].utterances[0].holdMs,123);
 });
+
+test('director workspace provides a contextual inspector and an ordered dialogue timeline', async t => {
+  const f=await withAudioScene(t), c=await context(t,f);
+  c.selection.production='main';
+  const root=renderEdit(c);
+  assert.match(root.className,/director-view/);
+  assert.ok(tree(root).some(x=>x['aria-label']==='샷 편집 도구'));
+  assert.ok(tree(root).some(x=>x['aria-label']==='장면 발화 순서'));
+});
+
+test('screenplay selects the exact repeated-speaker cue and preserves its performance draft across director navigation', async t => {
+  const {renderScript}=await import('../ui/edit.js');
+  assert.equal(typeof renderScript,'function','A screenplay workspace is implemented');
+  const f=await withAudioScene(t), scene=(await f.service.snapshot('p1')).scenes[0];
+  scene.occurrences.find(o=>o.id==='speaker').presence='onscreen';
+  scene.utterances.splice(2,0,{...scene.utterances[0],id:'u3'});
+  scene.shots=scene.utterances.map((u,i)=>({id:`linked-shot-${i}`,targetOccurrenceId:u.speakerOccurrenceId==='speaker'?'speaker':null}));
+  await f.command('scene.put',scene,{aggregate:{kind:'scene',id:'scene'}});
+  const c=await context(t,f); c.selection.production='main';
+  let root=renderScript(c);
+  await tree(root).find(x=>x.tag==='button'&&x['aria-label']==='발화 3 편집').fire('click');
+  assert.equal(c.selection.utterance,'u3');
+  assert.equal(c.selection.shot,'linked-shot-2');
+  root=renderScript(c);
+  const edit=submitForm(root,'이 발화 저장');
+  named(edit,'acting').value='내 초안 연기'; await edit.fire('input');
+  const director=renderEdit(c);
+  assert.equal(named(submitForm(director,'이 발화 저장'),'acting').value,'내 초안 연기');
+  await submitForm(director,'이 발화 저장').fire('submit');
+  assert.equal(c.snapshot.scenes[0].utterances[2].acting,'내 초안 연기');
+});
+
+test('management separates connected references from missing voice and links to the actual pending cue', async t => {
+  const {renderProduction}=await import('../ui/production.js');
+  const f=await withAudioScene(t),c=await context(t,f);c.selection.production='main';
+  const root=renderProduction(c);
+  assert.ok(tree(root).some(x=>x.className==='management-board'),'Readiness is an actual management view');
+  assert.match(root.textContent,/연결된 자료/);
+  assert.match(root.textContent,/준비할 작업/);
+  assert.match(root.textContent,/검수와 완성 파일/);
+  const action=tree(root).find(x=>x.tag==='button'&&x.textContent==='누락 음성 준비');
+  await action.fire('click');
+  assert.equal(c.selection.utterance,'u1');assert.equal(c.selection.assetKind,'audio');
+  assert.equal(c.sent.length,0);
+});
+
+test('shot selection keeps the later repeated-speaker cue instead of jumping to the first', async t => {
+  const {selectShot}=await import('../ui/edit.js');
+  const f=await withAudioScene(t),c=await context(t,f);
+  const scene=c.snapshot.scenes[0];
+  scene.shots=scene.utterances.map((u,i)=>({id:`paired-${i}`,targetOccurrenceId:u.speakerOccurrenceId}));
+  c.selection.utterance='u1';
+  selectShot(c,scene,'paired-1');
+  assert.equal(c.selection.utterance,'u2');
+  assert.equal(c.selection.shot,'paired-1');
+  assert.equal(c.sent.length,0);
+});
+
+test('director image inspector retains a new slot choice when the shared view rerenders', async t => {
+  const {videoFixture}=await import('./helpers/render-fixture.js');
+  const f=await videoFixture(t),c=await context(t,f);
+  c.selection.production='main';c.selection.inspector='image';
+  let root=renderEdit(c);
+  const field=tree(root).find(x=>x.tag==='label'&&x.children[0]?.textContent==='자료 슬롯');
+  assert.ok(field);
+  const select=field.children.find(x=>x.tag==='select');
+  select.value='';await select.fire('change');
+  root=renderEdit(c);
+  const reopened=tree(root).find(x=>x.tag==='label'&&x.children[0]?.textContent==='자료 슬롯').children.find(x=>x.tag==='select');
+  assert.equal(reopened.value,'','New-slot selection must survive render');
+});
+
+test('an untargeted narrator shot selects its corresponding narration cue', async t => {
+  const {selectShot}=await import('../ui/edit.js');
+  const f=await withAudioScene(t),c=await context(t,f),scene=c.snapshot.scenes[0];
+  scene.shots=scene.utterances.map((u,i)=>({id:`paired-${i}`,targetOccurrenceId:u.speakerOccurrenceId==='narration'?null:u.speakerOccurrenceId}));
+  c.selection.utterance='u1';selectShot(c,scene,'paired-2');
+  assert.equal(c.selection.utterance,'uN');
+});
+
+test('management reports actual missing image references even for an audio-only output profile', async t => {
+  const {renderProduction}=await import('../ui/production.js');
+  const f=await withAudioScene(t),c=await context(t,f);
+  c.selection.production='main';c.selection.previewProfile='audio';
+  const count=c.snapshot.scenes[0].shots.length;
+  const root=renderProduction(c);
+  assert.ok(root.textContent.includes(`0/${count}개 샷 연결`));
+});
+
+test('a pending image adoption cannot restore old navigation when it completes', async t => {
+  const {videoFixture}=await import('./helpers/render-fixture.js');
+  const f=await videoFixture(t);
+  const snapshot=await f.service.snapshot('p1'),slot=snapshot.slots.find(x=>x.id==='picture');
+  await f.command('adoption.undo',{slotId:slot.id,adoptionId:slot.adoptionId,actor:'test',reason:'prepare adoption'},{aggregate:{kind:'assetSlot',id:slot.id}});
+  const c=await context(t,f);Object.assign(c.selection,{workspace:'edit',production:'main',inspector:'image'});
+  const root=renderEdit(c),adopt=tree(root).find(x=>x.tag==='button'&&x.textContent==='후보 채택');
+  assert.ok(adopt);assert.equal(adopt.disabled,false);
+  let release,started;const wait=new Promise(r=>{release=r}),sending=new Promise(r=>{started=r});
+  const send=c.send.bind(c);c.send=async envelope=>{started();await wait;return send(envelope);};
+  const pending=submitForm(root,'후보 채택').fire('submit');await sending;
+  c.selection.workspace='script';c.selection.utterance='u2';
+  release();await pending;
+  assert.equal(c.selection.workspace,'script');assert.equal(c.selection.utterance,'u2');
+  assert.ok((await f.service.snapshot('p1')).slots.find(x=>x.id==='picture').candidateId,'The requested adoption still finishes');
+});
+
+test('management handles scenes without shots without a negative connection count', async t => {
+  const {renderProduction}=await import('../ui/production.js');
+  const f=await withAudioScene(t),c=await context(t,f);
+  c.selection.production='main';c.snapshot.scenes[0].shots=[];
+  const root=renderProduction(c);
+  assert.equal(root.textContent.includes('-1/0'),false);
+  assert.match(root.textContent,/샷이 없습니다/);
+});

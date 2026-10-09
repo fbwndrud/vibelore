@@ -1,3 +1,4 @@
+import { renderManagement } from './management.js';
 import { renderWorkflow, renderHistory } from './workflow.js';
 import { renderBackup } from './backup.js';
 import { renderPreview } from './player.js';
@@ -70,9 +71,13 @@ const money = (n) => `$${(n / 1e6).toFixed(4)}`;
 export function renderProduction(c) {
   const s = c.snapshot;
   const root = el("div", { class: "production-view" });
-  if (c.selection.production) root.append(renderWorkflow(c), renderPreview(c));
-  root.append(renderHistory(c));
-  root.append(
+  if (c.selection.production) {
+    root.append(renderManagement(c), el('details',{class:'readiness-details'},el('summary',{},'단계별 준비 상세'),renderWorkflow(c)), el('section',{id:'production-preview'},renderPreview(c)));
+  }
+  root.append(el('section',{id:'production-history'},renderHistory(c)));
+  const tools = el('details',{class:'production-tools',id:'generation-records'},el('summary',{},'생성 기록·예산·프로젝트 관리'));
+  root.append(tools);
+  tools.append(
     card(
       "제작 예산",
       form(
@@ -135,7 +140,7 @@ export function renderProduction(c) {
     ),
   );
   if (!s.jobs.length)
-    root.append(
+    tools.append(
       card(
         "아직 실행한 작업이 없습니다",
         note(
@@ -294,9 +299,9 @@ export function renderProduction(c) {
           }),
         ),
       );
-    root.append(row);
+    tools.append(row);
   }
-  root.append(
+  tools.append(
     card(
       "채택 이력",
       s.adoptions.length
@@ -309,6 +314,6 @@ export function renderProduction(c) {
       details("결정 식별 정보", s.adoptions),
     ),
   );
-  root.append(renderBackup(c));
+  tools.append(renderBackup(c));
   return root;
 }
