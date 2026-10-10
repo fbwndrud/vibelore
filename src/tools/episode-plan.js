@@ -13,8 +13,10 @@ import { validatePlanningContracts } from '../../engine/src/core/narrative-plann
 import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../core/writer-episode-packet.js';
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
-import { loadLedgerConfig } from '../core/review-policy.js';
+import { loadLedgerConfig, planningReviewSelection } from '../core/review-policy.js';
+import { renderStorySpine } from './story-spine.js';
 import { ledgerBaseState } from './ledger-log.js';
+import { reviewPlanningStage } from '../core/planning-stage-review.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
@@ -186,12 +188,13 @@ async function publishApprovedEpisodePlan({ store, workId, chapter, plan }) {
 }
 
 export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', direction = '', feedback = '', providers, retryValidation = false }) {
-  const { foundation } = await planningFoundation({ store, workId, chapters: [chapter] });
+  const { foundation, planning } = await planningFoundation({ store, workId, chapters: [chapter] });
   if (!foundation) throw new Error('작품이 없습니다.');
   const arcPlan = await store.loadArcPlan(workId);
   const arcBeat = episodeForChapter(arcPlan, chapter);
   if (!arcBeat) throw new Error('승인된 아크의 해당 회차 비트가 없습니다.');
   const storyProfile = await store.loadStoryProfile(workId);
+  const storySpine = await store.loadStorySpine?.(workId);
   if (storyProfile && storyProfile.status !== 'active') throw new Error('StoryProfile 승인 후 에피소드를 계획하세요.');
   const prior = await store.loadEpisodePlan(workId, chapter);
   const summaries = await store.loadRecentChapterSummaries(workId, chapter, 5);
@@ -206,6 +209,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   const planFocus = [renderArcBeat(arcBeat, kit), renderCharacterArcBeats(characterArcBeatsForEpisode(arcPlan, arcBeat.index), foundation, kit), ...summaries.map((item) => item.summary ?? '')].join('\n');
   const planMessages = kit.messages('episode-plan', {
       profileRender: renderStoryProfile(storyProfile, kit),
+      storySpineRender: storySpine?.status === 'active' ? renderStorySpine(storySpine, kit) : '',
       identityRender: renderStoryIdentity(identity, kit),
       pilotRender: renderPilotContract(pilotContract, kit),
       ledgerRender: renderPatternLedger(patternLedger, kit),
@@ -290,6 +294,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       ? obj.readerLoad.newConcepts
       : [arcBeat.readerLoad?.newConcept].filter(Boolean);
     const plan = {
+      ...(planning ? { worldContext: planning } : {}),
       workId, episodePlanSchemaVersion: 2, contractVersion: MCP_CONTRACT_VERSION,
       chapter, arcNumber: arcPlan.arcNumber, arcEpisodeIndex: arcBeat.index,
       arcBeat: {
@@ -366,6 +371,20 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       throw new Error(`EPISODE_PACKET_OVERFLOW: 계획이 Writer Packet 예산을 초과합니다 (${packet.error.requiredTokens}/${packet.error.maxTokens} 토큰).`);
     }
   }
+  const reviewed = await reviewPlanningStage({ stage: 'episode', profile: storyProfile, candidate: plan,
+    selection: await planningReviewSelection(store, workId, 'episode', storyProfile),
+    context: { foundation, profile: storyProfile, storySpine: storySpine?.status === 'active' ? storySpine : null, arcPlan, arcBeat, summaries, state, direction, feedback }, providers, kit,
+    rebuild: value => {
+      const accepted = acceptPlan(JSON.stringify(value));
+      if (accepted.failure) throw new Error(`${accepted.failure.error.code}: ${accepted.failure.error.message}`);
+      const revised = buildPlan(accepted);
+      const packet = packetBudget(revised);
+      if (!packet.ok) throw new Error(`${packet.error.code}: ${JSON.stringify(packet.error)}`);
+      return revised;
+    } });
+  if (reviewed.preview || !reviewed.ok) return reviewed;
+  plan = reviewed.candidate;
+  if (reviewed.stageReview) plan.stageReview = reviewed.stageReview;
   const approval = await gateApprovalActivation({ store, workId, kind: 'episode', stateKey: `episode-${chapter}`, value: plan, providers, structuralErrors: episodePlanningContractViolations(plan, foundation.characters.map(c => c.id)), retryValidation });
   if (!approval.ok) return { ...approval, candidate: plan };
   await store.saveEpisodePlan(workId, plan);

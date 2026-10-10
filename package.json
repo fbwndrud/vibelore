@@ -56,6 +56,8 @@
     "docs/reference/WEBTOON_WORKFLOW.en.md",
     "docs/reference/SHARED_LORE_REGISTRY.md",
     "docs/reference/SHARED_LORE_RUNTIME.md",
+    "docs/reference/WORLD_BUILDING_WORKFLOW.md",
+    "docs/reference/STORY_PREPARATION_WORKFLOW.md",
     "docs/MULTILINGUAL_PLAN.md",
     "hosts/",
     "engine/package.json",

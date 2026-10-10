@@ -14,9 +14,16 @@ import { describe, it } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { runInit } from '../src/tools/init.js';
 import { runCreate, runRewriteTool } from '../src/tools/generate.js';
-import { runStoryProfile, runStoryProfileDecide, runStoryProfileStatus } from '../src/tools/story-profile.js';
+import { runStoryProfile as runStoryProfileTool, runStoryProfileDecide, runStoryProfileStatus } from '../src/tools/story-profile.js';
 import { runConfigureStatus } from '../src/tools/configure.js';
 import { readProfileLength, readStoredLanguage, resolveWorkLanguage } from '../src/core/work-language.js';
+
+// These tests exercise language/readability after the user chose collaboration depth.
+const runStoryProfile = args => {
+  const answer = "Decide the important choices together before writing.";
+  return runStoryProfileTool({ ...args, feedback: [args.feedback, answer].filter(Boolean).join("\n"),
+    discovery: { depth: "standard", userAnswer: answer } });
+};
 
 const WORK = 'w';
 

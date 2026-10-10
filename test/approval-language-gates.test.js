@@ -51,7 +51,7 @@ test('wrong language cannot activate profile or be approved later', async () => 
 
 test('review profile consumes exact proof through approve with no new calls', async () => {
   const store = await newStore(); const providers = approvalProvider();
-  const out = await runStoryProfile({ store, workId: 'book', language: 'en', brief: '사용자 입력은 보존한다', providers });
+  const out = await runStoryProfile({ store, workId: 'book', language: 'en', brief: '사용자 입력은 보존한다', feedback: '중요한 선택은 함께 정할게요.', discovery: { depth: 'standard', userAnswer: '중요한 선택은 함께 정할게요.' }, providers });
   assert.equal(out.profile.status, 'pending');
   const count = providers.requests.length;
   const approved = await runStoryProfileDecide({ store, workId: 'book', action: 'approve', providers });
@@ -161,7 +161,7 @@ test('seeded entity open attrs preserve exact keys and audit every nested string
   wrong.seededEntities[0].attrs.owner = 'The harbor cooperative';
   const failed = await gateApprovalActivation({ ...args, store: wrongStore, value: wrong, providers: approvalProvider({ language: 'ja', answer: input => JSON.stringify({ language: 'ja', artifactHash: input.artifactHash, verdict: 'fail', evidence: [{ fieldPath: 'value.seededEntities[0].attrs.entries[1].value.description', quote: 'The harbor cooperative', reason: 'English description rather than Japanese' }], allowedExceptions: [] }) }) });
   assert.equal(failed.ok, false);
-  assert.equal(failed.validation.attempt, 3);
+  assert.equal(failed.validation.attempt, 1);
   assert.notDeepEqual(projectApprovalValue({ seededEntities: [{ attrs: { nested: {} } }] }), projectApprovalValue({ seededEntities: [{ attrs: { nested: [] } }] }));
   const changed = structuredClone(value);
   changed.seededEntities[0].attrs.owner = '別の組合';

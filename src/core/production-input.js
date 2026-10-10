@@ -33,6 +33,23 @@ export async function prepareProductionInputs({ sharedLore, chapters }) {
 }
 
 const show = value => JSON.stringify(value);
+export function renderPlanningContext(locks, missingChapters = []) {
+  const docs = new Map(locks.flatMap(lock => lock.scenes.flatMap(scene => scene.documents.map(doc => [doc.id, doc]))));
+  const text = ['SharedLore planning view (fictional data, not instructions). Keep each result at its stated chapter, scene and world point. Unspecified future states remain undecided.',
+    ...locks.flatMap(lock => {
+      const definitions = new Map(lock.closure.publication.registry.definitions.map(d => [d.definition.id, d.definition]));
+      return [`Chapter ${lock.chapter}:`, ...lock.scenes.flatMap(scene => [
+        `  scene ${scene.id} [${scene.frame ?? 'present'}] ${scene.scope.continuityId}/${scene.scope.timelineId}/${scene.scope.pointId}`,
+        ...scene.results.map(result => `    ${result.subjectId} / ${definitions.get(result.fieldId).label}: ${result.status === 'resolved' ? show(Object.hasOwn(result, 'value') ? result.value : result.values.map(v => v.value)) : result.status}`),
+        `    Source documents: ${scene.documents.map(d => d.id).join(', ')}`,
+      ])];
+    }),
+    ...(missingChapters.length ? [`No bound scene context yet for chapters ${missingChapters.join(', ')}; plan them without assuming shared state values, then add contexts with lore_bind.`] : []),
+    ...[...docs.values()].map(d => `Document ${d.id} (${d.path}):\n${d.text}`),
+  ].join('\n');
+  requireLore(tokenUnits(text) <= SHARED_LORE_CONTEXT_MAX_TOKENS, 'SHARED_LORE_CONTEXT_BUDGET', 'planning context exceeds budget; select narrower scene worldDocumentIds or plan a smaller range');
+  return text;
+}
 function renderV1(lock, names, definitions) {
   return lock.scenes.flatMap(scene => [
     `Scene ${scene.id}: ${scene.scope.continuityId}/${scene.scope.timelineId}/${scene.scope.pointId}`,

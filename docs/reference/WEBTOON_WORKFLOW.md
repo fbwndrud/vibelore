@@ -5,19 +5,59 @@
 ## 기본 경로: 장면 통합 제작
 
 새 웹툰 작업은 `lore_webtoon_scene`을 기본으로 사용한다. 러프 없이 장면 전체와 문자를 함께 생성한다.
-기존 컷별 작업은 자동 변경하지 않는다. 승인된 API 모델 선택은 재사용하고, 인물·배경 참조(`references`)는 start마다 전달한다. 이 경로는 OpenAI 이미지 API(`gpt-image-2`, `gpt-image-2.5-sunburst`(기본), `gpt-image-2.5-flare`)만 쓰며 호스트 내장 이미지 도구 경로는 없다.
+기존 컷별 작업은 자동 변경하지 않는다. 사용자가 고른 호스트 내장 이미지 도구 또는 API와 채택한 화풍 기준을 재사용한다. 서버는 이미지를 직접 생성하지 않으며 인물·배경 참조(`references`)는 start마다 전달한다.
 새 경로는 원작 문단 범위를 고정하고 **장면 각색·영어 연출 → 생성 전 검증 → 문자 포함 장면 이미지 → 실제 시각 검토**로 진행한다.
 칸 수는 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택한다. 미선택이면 `needs_interview`(선택지 `4, 6, 8, 9, auto`)이며 모델·이미지 호출을 발급하지 않는다. `auto`는 `webtoon-scene-plan` 응답의 `panelCount`(정수 3~12)로 각색마다 다시 결정하며, 누락·범위 밖이면 `SCENE_PANEL_COUNT_UNRESOLVED`로 실패한다. 결정된 수는 `scene_panel_count_resolved` 이벤트에 기록되고 이후 renderBrief 길이·이미지 요청·관측 칸 수 검증에 그대로 쓰인다. `revise`는 auto 값을 초기화해 새 각색이 다시 고르게 한다. 정수 3 미만은 허용하지만 응답 `warnings`에 연속성 저하 경고를 실으며 차단하지 않는다. 시작 후 `panelCount`를 바꾸면 `SCENE_PANEL_COUNT_PINNED`이다(auto 작업은 `"auto"`만 허용). 칸 크기·배치·카메라는 이미지 모델에 맡긴다. 사건 단위는 컷 단위가 아니다.
 원작의 사실과 불확실성을 구분하고, 원문 대사의 화자와 글자는 보존한다. 구조 검사는 원문 포함 여부와 근거 연결만 확인하며 의미 검토를 대신하지 않는다.
 대사는 작품 언어 원문이며 이미지 프롬프트에 언어·문자 체계·읽기 방향이 명시된다. 연출 필드는 라틴 문자 영어만 허용한다.
 
-1. `action="start"`, 사용자 선택 `panelCount`, `sourceChapters`, 선택적 `sourceUnitIds`, 영어 `direction`, 사용자가 지정한 `references:[{id,path,hash,description}]`을 전달한다. 참조는 프로젝트 안에 있는 PNG/JPEG이며 description도 영어로 쓴다. 참조는 필수다(1개 이상, 직전 장면 포함 최대 16개, id `previous-scene`은 예약). 빠지면 `SCENE_REFERENCES_REQUIRED`다. 이미지 경로와 모델을 이 도구가 추정하지 않는다. 확정된 선택이 없는 작품은 모델·이미지 호출 전에 `needs_image_runtime`을 반환하고, 호스트가 실제로 가진 이미지 경로를 `imageRuntime:{host, options:[{id, execution:"host-built-in"|"api", provider, tool?, modelSelectable, models[], credential?, note?}]}`로 보고한다. 서버에는 호스트별 모델 목록이 없다. 그다음 `needs_image_choice`가 `imageChoice.options` 전체, 제안(`proposed`, 내장 경로 우선, API는 `gpt-image-2.5-sunburst`가 있으면 그것), 과금·전송 고지(`notice`)를 반환한다. 사용자가 다른 경로·모델을 고르면 `imageOption`·`imageModel`로 다시 제안받고, 확정하면 같은 start 인자에 `confirmImageChoice: imageChoice.id`와 원답 `feedback`을 넣어 다시 호출한다. 보고에 없는 선택지는 `IMAGE_OPTION_NOT_OFFERED`, 모델 인자가 없는 경로에 모델을 지정하면 `IMAGE_MODEL_NOT_SELECTABLE`, 목록에 없는 모델은 `IMAGE_MODEL_NOT_OFFERED`다. 모델 인자는 받지만 계정에서 쓸 수 있는 모델을 모르는 경로는 `models: []`로 보고하며, 그 경로를 고를 때는 사용자가 정한 `imageModel`이 필요하다(없으면 `IMAGE_MODEL_REQUIRED`). 형식이 틀린 보고는 `INVALID_IMAGE_RUNTIME: <항목>`이다. 확정은 `confirmImageChoice`만으로 하며 보고를 다시 보낼 필요는 없다. 확정한 선택은 이 작품의 다음 장면·회차에도 유지되며, 바꿀 때만 `changeImageChoice: true`로 같은 확인을 다시 한다. 실패해도 다른 경로로 자동 전환하지 않는다. 기존 활성 작업이 있으면 다른 제작 프로젝트를 사용한다.
+1. `action="start"`, 사용자 선택 `panelCount`, `sourceChapters`, 선택적 `sourceUnitIds`, 영어 `direction`(채택 화풍이 있으면 생략 가능), 사용자가 지정한 `references:[{id,path,hash,description}]`을 전달한다. 참조는 프로젝트 안에 있는 PNG/JPEG이며 description도 영어로 쓴다. 참조는 필수다(1개 이상, 자동 첨부하는 채택 화풍 예시와 직전 장면 포함 최대 16개, id `adopted-style`·`previous-scene`은 예약). 빠지면 `SCENE_REFERENCES_REQUIRED`다. 이미지 경로와 모델을 이 도구가 추정하지 않는다. 확정된 선택이 없는 작품은 모델·이미지 호출 전에 `needs_image_runtime`을 반환하고, 호스트가 실제로 가진 이미지 경로를 `imageRuntime:{host, options:[{id, execution:"host-built-in"|"api", provider, tool?, modelSelectable, models[], credential?, note?}]}`로 보고한다. 서버에는 호스트별 모델 목록이 없다. 그다음 `needs_image_choice`가 `imageChoice.options` 전체, 제안(`proposed`, 내장 경로 우선, API는 `gpt-image-2.5-sunburst`가 있으면 그것), 과금·전송 고지(`notice`)를 반환한다. 사용자가 다른 경로·모델을 고르면 `imageOption`·`imageModel`로 다시 제안받고, 확정하면 같은 start 인자에 `confirmImageChoice: imageChoice.id`와 원답 `feedback`을 넣어 다시 호출한다. 보고에 없는 선택지는 `IMAGE_OPTION_NOT_OFFERED`, 모델 인자가 없는 경로에 모델을 지정하면 `IMAGE_MODEL_NOT_SELECTABLE`, 목록에 없는 모델은 `IMAGE_MODEL_NOT_OFFERED`다. 모델 인자는 받지만 계정에서 쓸 수 있는 모델을 모르는 경로는 `models: []`로 보고하며, 그 경로를 고를 때는 사용자가 정한 `imageModel`이 필요하다(없으면 `IMAGE_MODEL_REQUIRED`). 형식이 틀린 보고는 `INVALID_IMAGE_RUNTIME: <항목>`이다. 확정은 `confirmImageChoice`만으로 하며 보고를 다시 보낼 필요는 없다. 확정한 선택은 이 작품의 다음 장면·회차에도 유지되며, 바꿀 때만 `changeImageChoice: true`로 같은 확인을 다시 한다. 실패해도 다른 경로로 자동 전환하지 않는다. 기존 활성 작업이 있으면 다른 제작 프로젝트를 사용한다.
 2. `webtoon-scene-plan` 요청에 하나의 장면 브리프를 답한다. 이어 `webtoon-scene-preflight`에서 실제 원문과 브리프의 원작 충실성·공간/물리·시간 인과·정보 부담을 검토한다. 네 검사 뒤에 전달용 `renderBrief`를 만든다. 화풍 한 줄과 사용자 칸 수만큼의 짧은 순간 설명으로 줄이고, 정확한 대사는 textIds로 연결한다. 한 순간에 여러 연속 동작을 요구하지 않으며 생략해도 이해되는 이동·준비 과정은 덜어낸다. `drawability`는 이 최종 요청의 원작 충실성·사용자 방향·연속성·분량을 다시 판단한다. 과부하는 advisory로 넘기지 않고 생성 전에 막는다. 화풍 30단어·순간당 35단어 제한은 장황함을 제한할 뿐 의미 검토를 대신하지 않는다. 네 검사와 drawability가 통과하고 blocking finding이 없어야 이미지 요청이 발급된다. 실패하면 자동 재설계 예산(`autoRevisions`, 기본 2) 안에서 실패 근거를 feedback으로 삼아 같은 작업에서 다시 설계한다. 예산을 다 쓰면 `scene_preflight_blocked`이며 `action="revise"`와 feedback으로 이어간다.
 3. `needs_scene_image.jobs`의 정확한 prompt·참조·inputHash로 호스트가 고른 경로를 실행한다. 내장 경로는 `hostRequest`(`tool`, 모델 인자가 있을 때만 `model`), API 경로는 `apiRequest`(`provider`, `model`, OpenAI면 `endpoint`, 참조가 있으면 `/v1/images/edits`)다. `referenceImages`는 실제 파일로 순서대로 첨부한다. 실행 세부는 [Codex 이미지 실행](../../skills/webtoon-discovery-interview/references/codex-images.md#scene-path-needs_scene_image)을 따른다. 하나의 장면 이미지는 완성 작화와 원문 문자를 포함한다. 이미지 모델에는 짧은 renderBrief·대사·참조 역할만 보내며 사실 목록·중복 공간 설명·불확실성 목록·이전 오류 보고서는 보내지 않는다. 검토 근거는 별도 보존한다. 전달용 요청이 바뀌면 이전 이미지 반입 해시는 무효다. 러프, 컷별 작화, 별도 벡터 조판은 이 경로에서 생성하지 않는다.
 4. `asset:{path, inputHash: jobs[0].inputHash, provenance}`로 반입한다. provenance는 내장이면 `{kind:"host-built-in", provider, tool, selectionId}`, API면 `{kind:"api", provider, requestedModel, selectionId}`, 이 계약 이전에 확정한 작품은 `{kind:"openai-api", requestedModel, selectionId}`다. `observedModel`은 호스트가 실제로 본 것(응답의 모델 필드, 이미지 C2PA 서명 등)만 적고 그대로 기록한다. 다른 provenance는 `IMAGE_EXECUTION_PROVENANCE_REQUIRED`다. 자동 재설계와 `revise`는 회마다 새 이미지 호출이다(내장은 호스트 사용량, API는 별도 과금). `webtoon-scene-image-review`는 실제 그림과 모든 문구·화자·읽기 순서를 확인한다. 관측한 글자를 기록하고 미열람 검토를 통과시키지 않는다. 불합격이면 관측 결함(칸 수 차이, 원문과 다른 글자·화자, 연속성, blocking finding)을 feedback으로 만들어 자동 재설계 예산 안에서 다시 계획·검증·이미지 요청을 발급한다. 실패한 시도의 이미지·검토·feedback은 `attempts`에 남는다. 예산을 다 쓰면 `scene_needs_revision`으로 결과와 근거를 보여준다. 이미지 모델은 인용 문구 외의 글자·화자 이름표를 그리지 말고 참조 이미지의 글자를 따라 그리지 말라는 지시를 받는다. 재설계 때 생성 전 검증은 긍정형 강조만 만든다. `renderBrief.focusTextIds`는 특히 정확히 써야 할 문구 ID이며 서버가 정확한 원문을 다시 인용한다. `renderBrief.corrections`(최대 3줄, 줄당 20단어)는 원하는 결과만 서술한다. 이전 시도·틀린 결과·금지 표현(not, no, never, instead, previous, fix 등)은 거절한다. 틀린 형태를 이미지 모델에 다시 보여 주면 그쪽으로 끌리기 때문이다.
-5. 조회는 기존 `lane="webtoon"`과 workflow ID를 사용한다. 장면 경로에는 사용자 승인 단계가 없다. `completed`는 호스트의 장면 검토 통과이며 소설 정본이나 기존 회차를 교체·발행한 뜻이 아니다. 결과는 `.vibelore/webtoon/candidates/<workflowId>/r<revision>/`에 `scene.png`/`scene.jpg`, `scene.html`, 계획 및 검토 JSON으로 보존하며 `webtoon/`에는 쓰지 않는다. 글자는 래스터에 포함되므로 별도 편집 가능한 조판이라고 설명하지 않는다. 사용자가 컷 분리·부분 편집을 원하면 별도 후속 작업으로 처리한다.
+5. 조회는 기존 `lane="webtoon"`과 workflow ID를 사용한다. 장면 완료에는 사용자 승인 단계가 없다. 화풍 예시 채택은 별도의 직접 또는 위임 결정이다. `completed`는 호스트의 장면 검토 통과이며 소설 정본이나 기존 회차를 교체·발행한 뜻이 아니다. 결과는 `.vibelore/webtoon/candidates/<workflowId>/r<revision>/`에 `scene.png`/`scene.jpg`, `scene.html`, 계획 및 검토 JSON으로 보존하며 `webtoon/`에는 쓰지 않는다. 글자는 래스터에 포함되므로 별도 편집 가능한 조판이라고 설명하지 않는다. 사용자가 컷 분리·부분 편집을 원하면 별도 후속 작업으로 처리한다.
 
 `previousWorkflowId`를 지정하면 직전 장면의 실제 이미지·설계·검토 결과를 상속한다. 원문은 직전 구간 바로 다음 문단부터 시작해야 한다. 앞 장면에 수정 필요 판정이 있어도 그 기록을 보존한 채 이어갈 수 있으며, 실패를 승인으로 바꾸지 않는다. 실제 두 이미지를 비교한 인물·배경·동작 전환 근거와 관측 칸 수를 기록하고, 칸 수 불일치나 연속성 실패는 완료 처리를 막는다. 기존 저장 작업에 칸 수 모드를 소급 적용하지 않는다. 짧은 `renderBrief` 도입 전에 저장된 장면 작업은 다음 `revise`부터 새 요청 형식을 쓰며, 그때까지의 이미지 반입 영수증은 재사용하지 않는다.
+
+### 화풍 예시와 채택
+
+사용자는 자기 말이나 참조 그림으로 원하는 느낌을 설명하고 실제 예시 한 장으로 직접 선택하거나 선택을 위임한다. 호스트 LLM이 그 말을 해석해 짧은 영어 설명을 쓰고, 이미지 모델이 그린다. Vibelore는 후보·원답·채택 판본·이미지 바이트·변경 범위를 보존한다. 세부 기법 메뉴나 여러 화풍 비교 실험을 사용자에게 필수로 요구하지 않는다.
+
+- `lore_webtoon_style(action="status")`: 현재 기준, 선택적 `proposalId`의 후보와 대기 이미지 요청, 기존 장면의 고정 판본을 조회한다. 이전 채택 판본은 `styleRevisionId`로 조회한다.
+- `propose`: 사용자 원답 `brief`와 호스트가 쓴 영어 `direction`(최대 30단어)을 받는다. `imagePath`로 제공한 예시를 보존하거나 `needs_style_image.jobs`로 한 장 생성을 요청한다. 선택이 없으면 장면과 같은 `needs_image_runtime → needs_image_choice`를 거친다. `language`는 대화 안내 언어다.
+- `import`: `proposalId`와 정확한 `asset:{path,inputHash,provenance}`로 반입한다. 장면과 같은 내장/API 실행 계약이며 오래된 해시·다른 실행 경로는 거절한다. `awaiting_style_approval`이면 호스트가 실제 `image.path`를 열어 사용자에게 보여 준다.
+- `approve`: 사용자가 채택한 `proposalId`, 실제 원답 `feedback`을 받는다. 새 불변 판본과 변경 결과를 반환한다. 후보는 만든 당시 기준에 연결되어 있어 동시에 채택된 다른 기준을 덮어쓰지 못한다. `reject`는 후보만 거절한다.
+
+기준은 `.vibelore/webtoon/styles/<workId>/`에 저장하며 소설 정본·장면 current 포인터와 분리한다. 새 장면은 채택 이미지와 설명을 `styleSnapshot`으로 고정한다. 실제 예시가 계획·생성 전 검증·이미지 요청·이미지 검토에 전달되고 `renderBrief.style`은 채택 설명을 그대로 써야 한다. 검토 요청 `images`를 실제로 열고 `styleReview:{inspectedReference:true,verdict:"matches"|"differs"|"uncertain",evidence}`를 답한다. 차이·불확실성은 advisory로 남겨 자동 재생성하지 않는다. 원작·문자·연속성 검사는 유지한다. 파일 해시와 완전한 응답은 연결 검증이며 시각 판단의 정확성을 증명하지 않는다.
+
+새 채택은 다음 장면부터 적용하고 기존 장면은 유지한다. `change.existingScenes`와 장면 조회 `styleChange`가 이를 알린다. `approve(applyToWorkflows=[...])`는 기존 장면 변경 의도를 기록할 뿐 재생성하지 않는다. 사용자가 그 장면도 바꾸려면 `lore_webtoon_scene(action="revise",workflowId,styleRevisionId,feedback)`를 명시적으로 호출한다. 필요하면 `direction`도 함께 갱신한다. 기존 이미지와 영수증은 보존하되 새 입력에 오래된 이미지 영수증을 쓸 수 없다. 완료 제작 기록은 채택 판본과 보존한 예시 해시를 포함해 재검증한다.
+
+채택 이미지와 설명을 함께 보내는 것은 MVP의 시작 방식이다. 설명 단독·이미지 단독과의 실제 화풍 재현 비교는 개발 검증으로 남으며 사용자 온보딩 단계가 아니다. [실행 안내](../../skills/webtoon-discovery-interview/references/codex-images.md#style-samples-needs_style_image).
+
+### 선택 위임과 경계 상황
+
+호스트가 현재 대화에서 사용자 원답을 해석해 `delegation:{scope,userAnswer,apiPolicy?,maxAutoRevisions?,reviseWorkflows?}`를 전달한다. 언어 해석은 LLM의 책임이고 서버는 구조화된 범위를 기록·검사한다. 기본은 직접 선택이며 무응답은 위임이 아니다. 위임은 이번 요청에만 적용한다. 과거 채택 기준과 이미지 경로는 재사용하지만 과거 위임을 새 제작 권한으로 확장하지 않는다.
+
+| 사용자 말·상황 | 처리 |
+|---|---|
+| “이 범위 웹툰으로 알아서 만들어”, “묻지 말고 진행해” | `scope=production`. 원작에 맞는 화풍을 호스트가 선택하고 본편 검증까지 진행. 빠진 칸 수는 `auto`, 명시된 정수·참조·화풍은 유지 |
+| “그림체만 알아서 골라” | `scope=style`. 예시와 채택까지 위임. 본편 제작 권한은 별도 요청에서 판단 |
+| “예시만 만들어”, “알아서 하되 먼저 보여줘” | `scope=preview`. 한 장을 만들고 `awaiting_style_approval`에서 실제 그림을 보여 줌. 채택·본편으로 자동 확장하지 않음 |
+| “좋아”, “아무거나” 또는 무응답 | 현재 제시된 결정의 문맥만 적용. 화풍 질문의 답을 전체 제작 위임으로 확대하지 않고 무응답은 진행 권한으로 취급하지 않음 |
+| 기존 화풍·모델이 있음 | 기존 선택을 사용. 새 후보나 모델 선택 확인을 반복하지 않음 |
+| 새 이미지 경로가 필요함 | 실제 `imageRuntime` 보고 후 위임이면 내장 경로를 선택·기록. `needs_image_runtime`은 호스트 확인 작업 |
+| 새 별도 API 비용 | 기본 `apiPolicy=existing-only`는 이미 승인된 API만 재사용. 새 비용은 `needs_image_choice`로 확인하거나 원답에 비용 허용이 있으면 `allow`로 기록 |
+| “이제 돈 쓰지 마” | `apiPolicy=forbid`는 이전 API 선택에도 우선. 새 API job은 발급하지 않고 허용된 경로를 선택. 진행 중 장면은 명시적 `revise`로 경로·영수증을 새로 묶음 |
+| “먼저 보여줘”로 변경 | 후보의 `set_mode(delegation=null,feedback=<최신 원답>)`. 같은 그림과 생성 영수증을 보존하고 직접 선택 대기로 전환. 위임 재개는 새 원답과 범위를 기록 |
+| “다시 그리지 마”, 재시도 제한 | `maxAutoRevisions=0` 또는 지정 상한. 더 큰 `autoRevisions`는 거절. 예산 소진·모델 실패·미열람은 결과와 원인을 보고하고 새 권한 없이 계속 재생성하지 않음 |
+| “한 장만”, 총 호출·금액 제한 | 초기 예시·인물 참조·본편까지 호스트가 실제 호출을 합산해 제한을 지킴. 기존/제공 기준을 쓰거나 본편을 바로 생성하는 `direction` 경로도 허용. `maxAutoRevisions`는 총 과금 예산을 대신하지 않음 |
+| 기존 그림도 수정하라고 명시 | 정확한 ID를 `reviseWorkflows`에 기록. 그 대상만 `applyToWorkflows`와 장면 `revise`에 사용. 광범위한 “알아서”만으로 기존 결과를 덮어쓰지 않음 |
+| 중단·인터럽트·재시작 | 사용자 중단은 예시/장면 `reject`와 원답 기록. 가능한 외부 호출을 취소하고 기존 파일 보존. 재개는 기존 후보·run·job 조회부터 시작하며 중복 생성하지 않음 |
+| 판단에 필요한 원작·인물 근거 누락 | 호스트가 읽을 수 있는 확정 자료를 우선 사용. 위임받았다고 원작 사실을 꾸며 채우지 않으며 필요한 정보만 질문 |
+
+화풍 위임 후보는 `needs_style_decision`이며 호스트가 실제 그림을 열고 `approve(choice:{inspectedImage:true,imageHash,rationale})`로 선택한다. 서버는 직접 사용자 승인(`authority=user`)과 위임 선택(`authority=delegated`)을 구분해 원답·범위·호스트 이유·대상 이미지 해시·모드 변경 이력을 보존한다. `set_mode`의 범위 변경만으로 그림을 다시 만들지 않는다. 선택 위임을 철회해도 비용 금지와 낮춘 재시도 상한은 유지하며, 사용자가 별도로 변경했을 때만 갱신한다. 이미 발급한 외부 호출은 서버가 실제 취소·과금 시점을 입증할 수 없으므로 호스트가 결과와 실행 사실을 보고한다.
+
+위임은 취향 선택을 맡기는 것이며 원작·문자·시각 검사를 끄거나 발행하는 권한은 아니다. 스타일 차이는 advisory, 관측한 사실·대사·연속성 오류는 기존 검사와 정해진 재설계 예산으로 처리한다. 새 예시의 API가 최신 제약에 막히면 후보를 보존하고 허용된 경로로 새 후보를 제안한다. 이미 돌아온 파일은 보존·반입할 수 있지만 새 호출로 오인해 재실행하지 않는다.
 
 `lore_webtoon_plan`으로 새 컷별 작업을 시작하면 `WEBTOON_PANEL_PATH_DEPRECATED`로 거절된다. 존재하지 않는 `workflowId`는 여전히 `WEBTOON_WORKFLOW_NOT_FOUND`다. 이미 시작한 컷별 작업은 계획 이어가기·렌더·승인·`lore_resume`·`lane="webtoon"` 상태·이력 조회를 그대로 지원하며, 세부는 [부록: 컷별 경로 (deprecated)](#부록-컷별-경로-deprecated)를 따른다.
 
@@ -272,6 +312,9 @@ lore_webtoon_plan({
 | 상태 | 다음 동작 |
 |---|---|
 | `needs_interview` | 사용자에게 현재 questions를 보여주고 responses/feedback으로 재개 |
+| `needs_style_image` | 화풍 예시 job을 선택한 경로로 실행하고 정확한 해시·provenance로 `lore_webtoon_style import` |
+| `needs_style_decision` | 위임받은 호스트가 실제 예시를 확인하고 `choice`로 style approve. 사용자에게 다시 묻지 않음 |
+| `awaiting_style_approval` | 직접 선택 사용자에게 실제 예시를 보여 주고 원답으로 style approve |
 | `needs_model` | 모델이 request를 읽고 `lore_resume`에 답함. 빈 답변은 대기를 유지 |
 | `awaiting_approval` | profile/plan/references/storyboard/look/final 중 현재 `approval.kind`의 실제 산출물을 보여주고 decide |
 | `needs_format_support` | 페이지형 선택을 보존하고 미지원 안내. 사용자가 W16을 변경하기 전 생성하지 않음 |

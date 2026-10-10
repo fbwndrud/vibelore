@@ -32,6 +32,7 @@ import {
   allOwnedHeadings, assertCanonicalSections, formatKeysToWrite, headingsFor, resolveDocumentFormat,
 } from './canonical-format.js';
 import { CANONICAL_FORMAT_VERSION_LEGACY_KO, CANONICAL_FORMAT_VERSION_MULTILINGUAL, normalizeLanguageTag } from '../../engine/src/core/language-policy.js';
+import { saveManagedPlanDocument } from '../core/working-tree-sync.js';
 
 /** 비교 전용 정규화. 태그가 깨졌으면 원문 그대로 비교해 오류를 숨기지 않는다. */
 function comparableLanguage(value) {
@@ -133,6 +134,7 @@ function characterToDoc(character, existingText, { version, formatKeys }) {
     section(heading.description, character.description ?? readSection(prior.body, heading.description) ?? ''),
     jsonSection(heading.dramaticModel, dramaticModel) || (alwaysEmit ? section(heading.dramaticModel, '') : ''),
     jsonSection(heading.speechProfile, speechProfile) || (alwaysEmit ? section(heading.speechProfile, '') : ''),
+    jsonSection(heading.mutable, character.mutable ?? readJsonSection(prior.body, heading.mutable)),
     preserveForeignSections(prior.body, allOwnedHeadings(CHARACTER_SECTION_KEYS)),
   ].filter((s) => s.trim() !== '').join('\n');
   return formatDocument({ ...owned, ...formatKeys, ...foreign }, body);
@@ -164,6 +166,10 @@ function docToCharacter(text, extra, { version }) {
   const description = readSection(body, heading.description) ?? '';
   const dramaticModel = readJsonSection(body, heading.dramaticModel) ?? extra?.dramaticModel;
   const speechProfile = readJsonSection(body, heading.speechProfile) ?? extra?.speechProfile;
+  const mutableSection = readSection(body, heading.mutable);
+  const mutable = mutableSection?.trim() ? readJsonSection(body, heading.mutable) : extra?.mutable;
+  if (mutableSection?.trim() && (!mutable || typeof mutable !== 'object' || Array.isArray(mutable)))
+    throw new Error('CHARACTER_STATE_INVALID: initial state must be a JSON object');
   return {
     ...(extra ?? {}),
     id: String(data.id),
@@ -190,6 +196,7 @@ function docToCharacter(text, extra, { version }) {
     ...(description ? { description } : {}),
     ...(dramaticModel ? { dramaticModel } : {}),
     ...(speechProfile ? { speechProfile } : {}),
+    ...(mutable ? { mutable } : {}),
   };
 }
 
@@ -260,7 +267,6 @@ export class MarkdownStateStore {
 
   async saveStorySpine(workId, spine) {
     assertSafeId('workId', workId);
-    await writeJson(this.sidecar('story-spine.json'), spine);
     const body = [
       section('극적 질문', spine.dramaticQuestion ?? ''),
       section('주인공의 욕망과 필요', `욕망: ${spine.protagonistWant ?? ''}\n\n필요: ${spine.protagonistNeed ?? ''}`),
@@ -270,7 +276,9 @@ export class MarkdownStateStore {
       section('최종 선택과 결말 비용', `선택: ${spine.finalChoice ?? ''}\n\n비용: ${spine.endingCost ?? ''}\n\n변화: ${spine.endingChange ?? ''}`),
       bulletSection('플롯을 바꾸는 인물 힘', (spine.characterForces ?? []).map((row) => `${row.characterId}: ${row.want} — ${row.actionThatChangesPlot}`)),
     ].join('\n');
-    await writeAtomic(this.storySpinePath, formatDocument({ workId, status: spine.status }, body));
+    await saveManagedPlanDocument({ store: this, path: this.storySpinePath,
+      text: formatDocument({ workId, status: spine.status }, body), write: writeAtomic });
+    await writeJson(this.sidecar('story-spine.json'), spine);
   }
 
   async loadWriterSkill(workId) {
@@ -280,7 +288,6 @@ export class MarkdownStateStore {
 
   async saveWriterSkill(workId, skill) {
     assertSafeId('workId', workId);
-    await writeJson(this.sidecar('writer-skill.json'), skill);
     const body = [
       section('작가의 시선', skill.aestheticThesis ?? ''),
       bulletSection('작가 판단 원칙', skill.authorCraft?.judgments ?? []),
@@ -298,7 +305,9 @@ export class MarkdownStateStore {
       bulletSection('고착 방지', skill.antiFixation ?? []),
       bulletSection('작가에게 남기는 자유', skill.discoverySpaces ?? []),
     ].join('\n');
-    await writeAtomic(this.writerSkillPath, formatDocument({ workId, status: skill.status, selectedCandidate: skill.selectedCandidate }, body));
+    await saveManagedPlanDocument({ store: this, path: this.writerSkillPath,
+      text: formatDocument({ workId, status: skill.status, selectedCandidate: skill.selectedCandidate }, body), write: writeAtomic });
+    await writeJson(this.sidecar('writer-skill.json'), skill);
   }
 
   // -- StoryExperience -----------------------------------------------------
@@ -449,6 +458,23 @@ export class MarkdownStateStore {
   async saveArcReview(workId, review) {
     assertSafeId('workId', workId);
     await writeJson(this.sidecar('arc-reviews', `${Number(review.arcNumber)}-${Number(review.chapter)}.json`), review);
+  }
+
+  async loadRangeReview(workId, reviewId) {
+    assertSafeId('workId', workId);
+    if (reviewId !== undefined) {
+      assertSafeId('reviewId', reviewId);
+      return readJsonOrNull(this.sidecar('range-reviews', `${reviewId}.json`));
+    }
+    const latest = await readJsonOrNull(this.sidecar('range-review-latest.json'));
+    return latest ? this.loadRangeReview(workId, latest.reviewId) : null;
+  }
+
+  async saveRangeReview(workId, review) {
+    assertSafeId('workId', workId);
+    assertSafeId('reviewId', review.reviewId);
+    await writeJson(this.sidecar('range-reviews', `${review.reviewId}.json`), review);
+    await writeJson(this.sidecar('range-review-latest.json'), { reviewId: review.reviewId });
   }
 
   // -- EpisodePlan ----------------------------------------------------------

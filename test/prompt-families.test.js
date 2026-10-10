@@ -14,7 +14,7 @@ import { describe, it } from 'node:test';
 
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { runInit } from '../src/tools/init.js';
-import { runStoryProfile, renderStoryProfile, recognizeReadabilityAnswer } from '../src/tools/story-profile.js';
+import { runStoryProfile as runStoryProfileTool, renderStoryProfile, recognizeReadabilityAnswer } from '../src/tools/story-profile.js';
 import { runArcPlan } from '../src/tools/arc.js';
 import { runEpisodePlan } from '../src/tools/episode-plan.js';
 import { runStorySpine } from '../src/tools/story-spine.js';
@@ -31,6 +31,13 @@ import { compileDraftInputs } from '../src/core/draft-input-compiler.js';
 import { promptKit, PROMPT_STEPS } from '../src/prompts/index.js';
 import * as ko from '../src/prompts/ko.js';
 import * as multilingual from '../src/prompts/multilingual.js';
+
+// These tests exercise language/readability after the user chose collaboration depth.
+const runStoryProfile = args => {
+  const answer = "Decide the important choices together before writing.";
+  return runStoryProfileTool({ ...args, feedback: [args.feedback, answer].filter(Boolean).join("\n"),
+    discovery: { depth: "standard", userAnswer: answer } });
+};
 
 const HANGUL = /[가-힣ᄀ-ᇿ㄰-㆏]/;
 /** 소스 코드가 비교하는 한국어 기계 값. 번역 대상이 아니므로 검사에서 제외한다. */

@@ -11,6 +11,8 @@ import { openCanonRepository } from '../core/canon-repository.js';
 import { compileCharacterArcSeeds, renderCharacterArcSeeds } from '../core/character-arc-seeds.js';
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
+import { reviewPlanningStage } from '../core/planning-stage-review.js';
+import { planningReviewSelection } from '../core/review-policy.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 
@@ -172,7 +174,7 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   const chapters = await store.listChapters();
   const startChapter = (chapters.at(-1) ?? 0) + 1;
   // A bound work plans from the same SharedLore resolver as writing, never from its local copy.
-  const { foundation } = await planningFoundation({ store, workId, chapters: Array.from({ length: episodes }, (_, i) => startChapter + i) });
+  const { foundation, planning } = await planningFoundation({ store, workId, chapters: Array.from({ length: episodes }, (_, i) => startChapter + i) });
   if (!foundation) throw new Error('작품이 없습니다.');
   const previous = await store.loadArcPlan(workId);
   if (previous?.status === 'active' && replaceActive !== true) throw new Error('ARC_IN_PROGRESS: 활성 아크가 있습니다. 계속 집필하거나 사용자가 명시적으로 교체를 요청한 경우만 replaceActive=true를 사용하세요.');
@@ -219,33 +221,47 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
     }),
   });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };
-  const obj = parse(response.text);
-  if (!obj || !Array.isArray(obj.episodes) || obj.episodes.length !== count) throw new Error(`arc-plan 응답은 정확히 ${count}개 episodes여야 합니다.`);
-  const plan = {
-    workId, arcPlanSchemaVersion: 2, characterArcSeedVersion: 1, contractVersion: MCP_CONTRACT_VERSION,
-    arcNumber, title: String(obj.title ?? '').slice(0, 200), promise: String(obj.promise ?? '').slice(0, 600),
-    type: ['small', 'standard', 'volume'].includes(obj.type) ? obj.type : 'standard',
-    storySpineNodes: shortList(obj.storySpineNodes, 8).length
-      ? shortList(obj.storySpineNodes, 8)
-      : storySpine.causalChain.slice(Math.max(0, arcNumber - 1), Math.max(1, arcNumber)),
-    startChapter, estimatedEpisodes: count, status: mode === 'auto' ? 'active' : 'pending',
-    episodes: obj.episodes.map((item, index) => normalizeEpisode(item, index, startChapter, {
-      count,
-      arcNumber,
-      complexityRamp: storyProfile?.readabilityContract?.complexityRamp ?? 'onboarding-first',
-    }, kit)),
-    characterArcs: normalizeCharacterArcs(obj.characterArcs, foundation, count, characterArcSeeds),
-    arcVoiceShifts: normalizeArcVoiceShifts(obj.arcVoiceShifts, foundation),
-    ...normalizeCommercialArc(obj, foundation),
+  const build = obj => {
+    if (!obj || !Array.isArray(obj.episodes) || obj.episodes.length !== count) throw new Error(`arc-plan 응답은 정확히 ${count}개 episodes여야 합니다.`);
+    const plan = {
+      ...(planning ? { worldContext: planning } : {}),
+      workId, arcPlanSchemaVersion: 2, characterArcSeedVersion: 1, contractVersion: MCP_CONTRACT_VERSION,
+      arcNumber, title: String(obj.title ?? '').slice(0, 200), promise: String(obj.promise ?? '').slice(0, 600),
+      type: ['small', 'standard', 'volume'].includes(obj.type) ? obj.type : 'standard',
+      storySpineNodes: shortList(obj.storySpineNodes, 8).length
+        ? shortList(obj.storySpineNodes, 8)
+        : storySpine.causalChain.slice(Math.max(0, arcNumber - 1), Math.max(1, arcNumber)),
+      startChapter, estimatedEpisodes: count, status: mode === 'auto' ? 'active' : 'pending',
+      episodes: obj.episodes.map((item, index) => normalizeEpisode(item, index, startChapter, {
+        count,
+        arcNumber,
+        complexityRamp: storyProfile?.readabilityContract?.complexityRamp ?? 'onboarding-first',
+      }, kit)),
+      characterArcs: normalizeCharacterArcs(obj.characterArcs, foundation, count, characterArcSeeds),
+      arcVoiceShifts: normalizeArcVoiceShifts(obj.arcVoiceShifts, foundation),
+      ...normalizeCommercialArc(obj, foundation),
+    };
+    if (!plan.title || !plan.promise) throw new Error('arc-plan에 title과 promise가 필요합니다.');
+    if (!plan.storySpineNodes.length) throw new Error('아크는 전진시킬 StorySpine 노드를 최소 하나 참조해야 합니다.');
+    const structuralViolations = [...characterArcBeatCollisions(obj.characterArcs, count), ...deterministicArcViolations(plan),
+      ...characterArcQuotaViolations(plan, priorState?.arcCursor ?? {})];
+    if (structuralViolations.length) throw new Error(`아크 품질 검증 실패: ${structuralViolations.map((item) => item.message).join(' ')}`);
+    return plan;
   };
-  if (!plan.title || !plan.promise) throw new Error('arc-plan에 title과 promise가 필요합니다.');
-  if (!plan.storySpineNodes.length) throw new Error('아크는 전진시킬 StorySpine 노드를 최소 하나 참조해야 합니다.');
-  const structuralViolations = [...characterArcBeatCollisions(obj.characterArcs, count), ...deterministicArcViolations(plan),
-    ...characterArcQuotaViolations(plan, priorState?.arcCursor ?? {})];
-  if (structuralViolations.length) throw new Error(`아크 품질 검증 실패: ${structuralViolations.map((item) => item.message).join(' ')}`);
-  const quality = await runArcQuality({ foundation, plan, providers, kit });
+  const selection = await planningReviewSelection(store, workId, 'arc', storyProfile);
+  const reviewed = await reviewPlanningStage({ stage: 'arc', profile: storyProfile, candidate: build(parse(response.text)), selection,
+    context: { foundation, profile: storyProfile, storySpine, characterArcSeeds, priorState, summaries, direction, feedback },
+    providers, kit, rebuild: build });
+  if (reviewed.preview || !reviewed.ok) return reviewed;
+  const plan = reviewed.candidate;
+  if (reviewed.stageReview) plan.stageReview = reviewed.stageReview;
+  const quality = selection.enabled ? await runArcQuality({ foundation, plan, providers, kit }) : { verdict: 'disabled_by_user' };
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'arc-quality' };
-  if (quality.verdict !== 'passed') throw new Error(`아크 품질 검증 실패: ${quality.findings.map((item) => item.message).join(' ') || `총점 ${quality.score}, 취약 차원 ${quality.weakDimensions.join(', ')}`}`);
+  if (selection.enabled && quality.verdict !== 'passed') {
+    if (reviewed.stageReview) return { status: 'needs_revision', code: 'ARC_QUALITY_REVISION_REQUIRED', needsRevision: true,
+      candidate: { ...plan, status: 'pending', quality }, details: quality, instruction: '후보와 품질 검토 근거를 보여 주고 lore_arc_plan feedback으로 같은 단계의 수정·재검토를 이어가세요.' };
+    throw new Error(`아크 품질 검증 실패: ${quality.findings.map((item) => item.message).join(' ') || `총점 ${quality.score}, 취약 차원 ${quality.weakDimensions.join(', ')}`}`);
+  }
   plan.quality = quality;
   plan.createdAt = new Date().toISOString();
   const approval = await gateApprovalActivation({ store, workId, kind: 'arc', value: plan, providers, resolution: workLanguage, structuralErrors: deterministicArcViolations(plan), retryValidation });
