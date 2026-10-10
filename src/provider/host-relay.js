@@ -76,6 +76,7 @@ export function createHostRelay(answers = {}) {
           id: key,
           step: req.step ?? 'unknown',
           jsonMode: req.jsonMode ?? false,
+          ...(req.images?.length ? { images: req.images } : {}),
           ...(req.stage ? { stage: req.stage } : {}),
           ...(routed ? { model: { provider: req.model.provider, modelId: req.model.modelId } } : {}),
           ...(req.model?.reasoningEffort ? { reasoningEffort: req.model.reasoningEffort } : {}),

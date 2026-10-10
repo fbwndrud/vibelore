@@ -8,6 +8,8 @@ import {
   resolveProposedLength, resolveWorkLanguage,
 } from '../core/work-language.js';
 import { asKit, promptKit } from '../prompts/index.js';
+import { resolveWorldbuildingChoice, ensureWorldbuildingQuestion, WORLDBUILDING_QUESTION_ID, prepareWorldbuildingSource, storedWorldbuildingSelection } from '../core/worldbuilding.js';
+import { resolveDiscoveryPreference, applyDiscoveryQuestions, DISCOVERY_QUESTION_ID } from '../core/discovery-preference.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const READABILITY_QUESTION_ID = 'reading-experience-contract';
@@ -294,9 +296,25 @@ function voiceContract(value) {
   };
 }
 
-export async function runStoryProfile({ store, workId, brief, mode = 'review', feedback = '', language = null, length = null, providers, retryValidation = false }) {
+export async function runStoryProfile({ store, workId, brief, action = 'design', mode = 'review', feedback = '', discovery, worldbuilding, worldbuildingSource, language = null, length = null, providers, retryValidation = false }) {
   const foundation = await store.loadFoundation(workId);
-  const stored = normalizeStoryProfile(await store.loadStoryProfile(workId));
+  const storedRaw = await store.loadStoryProfile(workId);
+  const stored = normalizeStoryProfile(storedRaw);
+  if (action === 'preferences') {
+    if (stored?.status !== 'active' || !discovery || worldbuilding !== undefined || worldbuildingSource !== undefined || language !== null || length !== null)
+      throw new Error('INVALID_DISCOVERY_PREFERENCE: preferences는 활성 프로필의 질문·준비 선호만 실제 답변으로 바꿉니다.');
+    const source = `${brief || stored.sourceBrief || ''}\n${feedback}`;
+    const choice = resolveDiscoveryPreference({ requested: discovery, existing: stored.discovery, source,
+      changeSource: `${brief && brief !== stored.sourceBrief ? brief : ''}\n${feedback}`, mode: 'review' });
+    const next = { ...storedRaw, discovery: choice, revision: Number(stored.revision ?? 0) + 1, updatedAt: new Date().toISOString() };
+    const resolution = await resolveWorkLanguage({ store, workId, foundation, profile: next });
+    const approval = await gateApprovalActivation({ store, workId, kind: 'profile', value: next, providers, resolution, retryValidation });
+    if (!approval.ok) return { ...approval, candidate: next };
+    await store.saveStoryProfile(workId, next);
+    return { profile: next, needsApproval: false, preferenceUpdated: true,
+      instruction: '최신 준비 선호를 이후 대화와 단계 검토에 적용하세요. 기존 세계·작품 약속·계획·원고는 보존하며 내용 변경은 해당 단계에서 별도로 검토합니다.' };
+  }
+  if (action !== 'design') throw new Error('action은 design 또는 preferences여야 합니다.');
   // foundation 이전의 명시적 언어 변경은 새 revision 이다. 이전 언어의 예시·승인·
   // 대기 질문을 계승하지 않는다. foundation 이 이미 있으면 아래 resolveWorkLanguage
   // 가 WORK_LANGUAGE_IMMUTABLE 로 거부한다.
@@ -308,6 +326,8 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
   const kit = promptKit({ contract: workLanguage.contract });
   const source = String(brief || foundation?.brief || '').trim();
   if (!source) throw new Error('작품의 장르·톤·이야기 방향을 설명하는 brief가 필요합니다.');
+  const selectedSource = worldbuildingSource ?? storedWorldbuildingSelection(existing?.worldbuilding?.source ?? foundation?.worldbuilding?.source);
+  const worldSource = selectedSource ? await prepareWorldbuildingSource({ source: selectedSource }) : null;
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'story-profile',
     messages: kit.messages('story-profile', {
@@ -315,6 +335,9 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
       genre: foundation?.genre ?? kit.phrases.common.newWork,
       existingJson: existing ? JSON.stringify(existing) : kit.phrases.common.noneParen,
       feedback: feedback || kit.phrases.common.noneParen,
+      worldbuildingJson: worldbuilding ? JSON.stringify(worldbuilding) : kit.phrases.common.noneParen,
+      discoveryJson: discovery ? JSON.stringify(discovery) : kit.phrases.common.noneParen,
+      worldSourceText: worldSource?.contextText,
       engineGenres: ENGINE_GENRES.join(', '),
     }),
   });
@@ -367,6 +390,11 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
     promptGuidance: guidance(obj.promptGuidance),
     designReview: null,
     sourceBrief: source,
+    discovery: resolveDiscoveryPreference({ requested: discovery, proposed: obj.discovery, existing: stored?.discovery,
+      source: `${source}\n${feedback}`, changeSource: `${existing?.sourceBrief === source ? '' : source}\n${feedback}`, mode,
+      legacy: Boolean(stored && !stored.discovery) }),
+    worldbuilding: resolveWorldbuildingChoice({ requested: worldbuilding, proposed: obj.worldbuilding, existing: existing?.worldbuilding,
+      source: `${source}\n${feedback}`, changeSource: `${existing?.sourceBrief === source ? '' : source}\n${feedback}`, mode }),
     status: mode === 'auto' ? 'active' : 'pending',
     createdAt: new Date().toISOString(),
     // revision 은 계속 증가한다. 언어를 바꾼 revision 은 새 번호를 받되 이전 언어의
@@ -376,6 +404,7 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
       ? { languageChangedFrom: languageChange.from, supersedesRevision: stored?.revision ?? null }
       : {}),
   };
+  if (worldSource) profile.worldbuilding.source = Object.fromEntries(Object.entries(worldSource).filter(([key]) => key !== 'contextText'));
   profile.designReview = ensureReadabilityQuestion(
     designReview(obj.designReview, existing?.designReview, kit),
     profile.readabilityContract,
@@ -383,6 +412,10 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
     kit,
     obj.designReview,
   );
+  profile.designReview = ensureWorldbuildingQuestion(profile.designReview, profile.worldbuilding, mode, kit);
+  profile.designReview = applyDiscoveryQuestions(profile.designReview, profile.discovery, mode, kit);
+  profile.designReview.askedQuestionIds = [...new Set([...(existing?.designReview?.askedQuestionIds ?? []),
+    ...profile.designReview.openQuestions.map(q => q.id)])].slice(-40);
   const approvalResolution = await resolveWorkLanguage({ store, workId, foundation, profile, requested: profile.language, length: profile.format.length });
   const approval = await gateApprovalActivation({ store, workId, kind: 'profile', value: profile, providers, resolution: approvalResolution, retryValidation });
   if (!approval.ok) return { ...approval, candidate: profile };
@@ -401,7 +434,9 @@ export async function runStoryProfile({ store, workId, brief, mode = 'review', f
       }
       : {}),
     ...(profile.status === 'pending'
-      ? { needsApproval: true, instruction: profile.designReview.openQuestions.length
+      ? { needsApproval: true, ...(profile.discovery.authority === 'unconfirmed' ? { needsDiscovery: true } : {}), instruction: profile.discovery.authority === 'unconfirmed'
+        ? '다른 설계 질문이나 잠정 프로필을 먼저 보여 주지 말고, 시작 전 얼마나 함께 묻고 정할지 이 질문 하나부터 보여 주세요. 자유로운 답변을 feedback과 discovery에 기록해 다음 라운드를 이어가세요.'
+        : profile.designReview.openQuestions.length
         ? 'StoryProfile과 작품 발견 인터뷰의 열린 질문을 사용자에게 보여주세요. 답변은 lore_profile의 feedback으로 넘겨 다음 review 라운드를 이어가며, 사용자가 현재 결정을 의도적으로 승인하면 바로 승인할 수도 있습니다.'
         : '사용자에게 장르·톤·이야기 동력·작법 지침을 보여주고 승인 여부를 물으세요.' }
       : { needsApproval: false }),
@@ -412,16 +447,18 @@ export async function runStoryProfileDecide({ store, workId, action, providers, 
   const profile = normalizeStoryProfile(await store.loadStoryProfile(workId));
   if (!profile) throw new Error('검토할 StoryProfile이 없습니다.');
   if (action === 'approve') {
+    if (profile.discovery?.authority === 'unconfirmed') throw new Error('DISCOVERY_PREFERENCE_REQUIRED: 시작 전 얼마나 함께 묻고 정할지 먼저 사용자에게 확인하세요.');
     const kit = promptKit({ profile });
     const readability = { ...profile.readabilityContract, confirmedByUser: true };
     const settled = kit.phrases.profile.readabilitySettled(readability);
     const active = {
       ...profile,
+      ...(profile.worldbuilding ? { worldbuilding: { ...profile.worldbuilding, authority: profile.worldbuilding.authority === 'unconfirmed' ? 'approval' : profile.worldbuilding.authority } } : {}),
       readabilityContract: readability,
       designReview: {
         ...profile.designReview,
         settledDecisions: [...new Set([...(profile.designReview?.settledDecisions ?? []), settled])].slice(0, 40),
-        openQuestions: (profile.designReview?.openQuestions ?? []).filter((item) => item.id !== READABILITY_QUESTION_ID),
+        openQuestions: (profile.designReview?.openQuestions ?? []).filter((item) => ![READABILITY_QUESTION_ID, WORLDBUILDING_QUESTION_ID, DISCOVERY_QUESTION_ID].includes(item.id)),
       },
       status: 'active', approvedAt: new Date().toISOString(),
     };

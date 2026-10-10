@@ -10,6 +10,8 @@ import { createPublicationUnit } from './publication-unit.js';
 import { createGenreProfileRegistry } from '../../engine/src/continuity/genre-profile.js';
 import { CHARACTER_ARC_BEATS } from '../../engine/src/continuity/character-arc.js';
 import { phrases as multilingualPhrases } from '../prompts/multilingual.js';
+import { WORLDBUILDING_QUESTIONS } from './worldbuilding.js';
+import { DISCOVERY_QUESTIONS } from './discovery-preference.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const MAX_ATTEMPTS = 3;
@@ -25,6 +27,7 @@ export const APPROVAL_LANGUAGE_FIELDS = Object.freeze({ humanTextFields: Object.
 
 function machineLeaf(key, path, value) {
   const parent = path.at(-1);
+  if (['worldbuilding', 'discovery'].includes(parent) && ['scope', 'depth', 'authority', 'userAnswer', 'focus'].includes(key)) return true;
   if (key === 'cast') return path.length === 0;
   if (key === 'beat' && (path.includes('characterArcs') || path.includes('characterArcBeats'))) return CHARACTER_ARC_BEATS.includes(value);
   if (key === 'previousBeat') return parent === 'inheritedState' && CHARACTER_ARC_BEATS.includes(value);
@@ -67,16 +70,25 @@ const isHostReadabilityQuestion = (value, path, promptFamily) => promptFamily !=
   && path.length === 2 && path[0] === 'designReview' && path[1] === 'openQuestions'
   && Object.keys(value).length === 4 && JSON.stringify({
     id: value.id, title: value.title, question: value.question, recommendation: value.recommendation }) === HOST_READABILITY_QUESTION;
+const isHostWorldbuildingQuestion = (value, path, promptFamily) => promptFamily !== 'ko'
+  && path.length === 2 && path[0] === 'designReview' && path[1] === 'openQuestions'
+  && Object.keys(value).length === 4 && JSON.stringify({ id: value.id, title: value.title, question: value.question, recommendation: value.recommendation }) === JSON.stringify(WORLDBUILDING_QUESTIONS.multilingual);
+const isHostDiscoveryQuestion = (value, path, promptFamily) => promptFamily !== 'ko'
+  && path.length === 2 && path[0] === 'designReview' && path[1] === 'openQuestions'
+  && Object.keys(value).length === 4 && JSON.stringify({ id: value.id, title: value.title, question: value.question, recommendation: value.recommendation }) === JSON.stringify(DISCOVERY_QUESTIONS.multilingual);
 
 /** `promptFamily` is the work's family; the default `ko` exempts no host text. */
 export function projectApprovalValue(value, path = [], options = {}) {
   const { promptFamily = 'ko' } = options;
   if (Array.isArray(value)) return value.map(item => projectApprovalValue(item, path, options));
   if (!value || typeof value !== 'object') return value;
-  if (isHostReadabilityQuestion(value, path, promptFamily)) return { id: hash(value) };
+  if (isHostReadabilityQuestion(value, path, promptFamily) || isHostWorldbuildingQuestion(value, path, promptFamily) || isHostDiscoveryQuestion(value, path, promptFamily)) return { id: hash(value) };
   const out = {};
   for (const [key, item] of Object.entries(value)) {
     if (CONTROL.has(key) || item === undefined) continue;
+    // Approval changes selection authority, while the checked choice and answer stay fixed.
+    if (key === 'authority' && path.at(-1) === 'worldbuilding') continue;
+    if ((key === 'worldContext' && path.length === 0) || (key === 'source' && path.at(-1) === 'worldbuilding')) { out[key] = { id: JSON.stringify(item) }; continue; }
     if (key === 'attrs' && path.length === 1 && path[0] === 'seededEntities') out[key] = projectEntityAttributes(item);
     else if (PROVENANCE.has(key)) out[key] = typeof item === 'string' ? item : JSON.stringify(item);
     else if (CONFIG.has(key)) out[key] = { id: JSON.stringify(item) };
@@ -85,12 +97,36 @@ export function projectApprovalValue(value, path = [], options = {}) {
     // 언어로 계획 승인을 막지 않는다(2026-09-14 en/ko/ja 표본). 검토자에게는 기록의 sha256 만
     // 보인다: 직렬화 원문을 id 로 넘기면 검토자가 그 안의 영어 코드(REMOVABLE_LINK)와 코멘트를
     // 지목해 근거 불완전으로 세 번 다 실패했다(2026-09-15 zh-Hant 표본).
+    else if (key === 'stageReview' && path.length === 0) out[key] = { id: hash(item) };
     else if (key === 'quality' && path.length === 0 && item && typeof item === 'object' && !Array.isArray(item) && typeof item.verdict === 'string' && item.dimensions) out[key] = { id: hash(item) };
     else if (machineLeaf(key, path, item) && (typeof item === 'string' || Array.isArray(item) && item.every(v => typeof v === 'string'))) out[key] = { id: item };
     else if (['rationale', 'serialization'].includes(key) && typeof item === 'string') out[key] = { description: item };
     else out[key] = projectApprovalValue(item, [...path, key], options);
   }
   return out;
+}
+
+/** Only generated prose may be proposed for a minimal translation repair. */
+export function approvalRepairFields(value, evidence = []) {
+  const fields = [];
+  const protectedKeys = new Set([...CONTROL, ...PROVENANCE, ...CONFIG, 'title', 'brief', 'canonicalName', 'aliases', 'worldbuilding', 'sharedLore', 'stageReview', 'quality']);
+  function visit(item, path = [], schemaPath = []) {
+    if (typeof item === 'string') {
+      const key = schemaPath.at(-1);
+      if ((schemaPath.includes('attrs') || APPROVAL_LANGUAGE_FIELDS.humanTextFields.includes(key))
+        && evidence.some(e => typeof e.quote === 'string' && e.quote && item.includes(e.quote))) fields.push({ path: path.join('.'), before: item });
+      return;
+    }
+    if (Array.isArray(item)) { item.forEach((v, i) => visit(v, [...path, String(i)], schemaPath)); return; }
+    if (!item || typeof item !== 'object') return;
+    for (const [key, child] of Object.entries(item)) {
+      if (protectedKeys.has(key) || ['__proto__', 'constructor', 'prototype'].includes(key) || /(?:^id$|Id$|Hash$|Revision$)/.test(key)
+        || machineLeaf(key, schemaPath, child) && !schemaPath.includes('attrs')) continue;
+      visit(child, [...path, key], [...schemaPath, key]);
+    }
+  }
+  visit(value);
+  return fields;
 }
 
 const checkerPlan = Object.freeze({ rows: [
@@ -255,8 +291,9 @@ export async function gateApprovalActivation({ store, workId, kind, value, provi
         return resultFailure(state, error.code);
       }
       state = { ...state, attempt, fingerprints: [...state.fingerprints, fingerprint], failureCode: error.code ?? 'VALIDATION_INCOMPLETE', failureMessage: error.message, failureDetails: error.details ?? null,
-        status: attempt >= MAX_ATTEMPTS ? 'clean_fail' : 'pending' };
+        status: error.code === 'OUTPUT_LANGUAGE_MISMATCH' || attempt >= MAX_ATTEMPTS ? 'clean_fail' : 'pending' };
       await store.saveApprovalValidation(workId, stateKey, state);
+      if (state.status === 'clean_fail') return resultFailure(state, state.failureCode, state.failureDetails);
     }
   }
   return resultFailure(state, state.failureCode);

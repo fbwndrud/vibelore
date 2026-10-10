@@ -48,7 +48,11 @@ export function validateLoreScenes(scenes, { continuityId, sceneIds = new Set(),
   for (const scene of scenes) {
     requireLore(scene && typeof scene === 'object', 'INVALID_LORE_DATA', 'invalid scene');
     for (const [key, capability] of Object.entries(LORE_UNSUPPORTED_SCENE_KEYS)) requireLore(!Object.hasOwn(scene, key) && !Object.hasOwn(scene.scope ?? {}, key), 'REQUIRED_CAPABILITY', `${capability} is not implemented (${key})`, { capability });
-    closed(scene, ['id', 'frame', 'scope', 'entityIds', 'requirements'], ['id', 'frame', 'scope', 'entityIds', 'requirements'], 'scene'); id(scene.id, 'sceneId');
+    closed(scene, ['id', 'frame', 'scope', 'entityIds', 'requirements', 'worldDocumentIds'], ['id', 'frame', 'scope', 'entityIds', 'requirements'], 'scene'); id(scene.id, 'sceneId');
+    if (scene.worldDocumentIds !== undefined) {
+      requireLore(Array.isArray(scene.worldDocumentIds) && scene.worldDocumentIds.length <= 1000 && new Set(scene.worldDocumentIds).size === scene.worldDocumentIds.length, 'INVALID_LORE_DATA', 'worldDocumentIds must be unique');
+      scene.worldDocumentIds.forEach(docId => id(docId, 'worldDocumentIds'));
+    }
     requireLore(LORE_SCENE_FRAMES.includes(scene.frame), 'INVALID_LORE_DATA', `scene ${scene.id} frame must be present or flashback`);
     requireLore(!sceneIds.has(scene.id) && Array.isArray(scene.entityIds) && new Set(scene.entityIds).size === scene.entityIds.length && Array.isArray(scene.requirements), 'INVALID_LORE_DATA', 'invalid scene selection'); sceneIds.add(scene.id);
     scene.entityIds.forEach(entityId => id(entityId, 'entityId'));
@@ -100,7 +104,8 @@ export function resolveLoreScenes({ revision, resolver, documents, entities, def
     }
     const selectedDocs = new Map(), results = new Map(), stateIds = {};
     const include = ids => ids.forEach(docId => { const doc = documents.get(docId); if (doc.visibility === 'context') selectedDocs.set(docId, doc); });
-    include(revision.content.worldDocumentIds);
+    if (scene.worldDocumentIds !== undefined) requireLore(scene.worldDocumentIds.every(id => revision.content.worldDocumentIds.includes(id)), 'LORE_DOCUMENT_MISSING', 'scene worldDocumentIds must select adopted world documents');
+    include(scene.worldDocumentIds ?? revision.content.worldDocumentIds);
     for (const entityId of scene.entityIds) {
       requireLore(entities.has(entityId), 'INVALID_ENTITY_REFERENCE', entityId);
       include(entities.get(entityId).documentIds);
@@ -114,6 +119,16 @@ export function resolveLoreScenes({ revision, resolver, documents, entities, def
       const token = `${r.entityId}\0${r.fieldId}`;
       if (!results.has(token)) results.set(token, resolver.resolve({ subjectId: r.entityId, fieldId: r.fieldId, scope: scene.scope }));
       const result = results.get(token);
+      // Opt-in selection keeps old locks byte-identical. Requested value
+      // evidence remains context even when its world document was not selected.
+      if (scene.worldDocumentIds !== undefined) {
+        const evidenceIds = evidenceOf(result).evidenceIds;
+        for (const docId of evidenceIds) {
+          const futureState = revision.content.states.find(s => s.documentIds.includes(docId) && !loreStateApplies(s, scene.scope, revision.content.timelines));
+          requireLore(!futureState, 'SHARED_LORE_EVIDENCE_SCOPE', `evidence ${docId} is outside scene ${scene.id}`);
+        }
+        include(evidenceIds);
+      }
       if (result.status !== 'resolved' && (r.required || ['conflict', 'incomplete'].includes(result.status)) && !blockers.some(b => b.sceneId === scene.id && b.entityId === r.entityId && b.fieldId === r.fieldId)) blockers.push({ sceneId: scene.id, ...r, status: result.status });
     }
     const projections = [];

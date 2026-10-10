@@ -5,7 +5,7 @@
 호스트 AI와 직접 연동하는 사용자를 위한 호출 참조입니다. 일반 사용자는 인자를 직접 작성할
 필요 없이 [시작 안내](GETTING_STARTED.md)와 [웹툰 만들기](WEBTOON.md)를 따라 요청하세요.
 
-기본 서버가 노출하는 32개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
+기본 서버가 노출하는 33개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
 새 작품은 승인된 프로필·전체 스토리·작가 스킬·아크를 준비합니다. 이후 집필은
 `lore_arc_status`로 활성 아크를 확인하고 `lore_write`로 시작하며, 승인 대기일 때 `lore_decide`를 사용합니다.
 저수준 도구는 호환과 엔진 디버깅을 위해 유지하지만 기본 `tools/list`에는 나타나지 않습니다.
@@ -17,7 +17,7 @@
 집필에서는 이 도구들을 직접 조합하지 않습니다.
 
 기존 컷별 웹툰 마무리에는 `VIBELORE_MCP_SURFACE=compat`로 deprecated 3개 도구를
-추가 노출합니다(총 35개). 새 웹툰은 기본 표면의 `lore_webtoon_scene`을 사용합니다.
+추가 노출합니다(총 36개). 새 웹툰은 기본 표면의 `lore_webtoon_scene`을 사용합니다.
 
 ## 읽는 법
 
@@ -59,6 +59,9 @@ migration 후보로만 기록하며, 미지원 capability(`status.unsupportedCap
 정확한 스키마·호스트 AI 절차·지원 범위는 [SharedLore 등록부 계약](reference/SHARED_LORE_REGISTRY.md)을 따릅니다.
 
 ### `lore_universe`
+
+`documents(loreRevisionId,documentIds?)`는 고정 판본의 문서 목록·소유·시점을 반환합니다.
+ID를 지정하면 실제 원문도 반환합니다. 호스트 AI가 각 단계에 필요한 근거를 선택할 때 씁니다.
 
 `action,worldRoot,universeId`로 공유 세계를 관리합니다. `propose(expectedHead,registryRevisionId,content,reason)`는
 원문·인물·상태·값의 전체 후보와 실제 변경을 검증해 보여 줍니다. 사용자 승인 후
@@ -170,8 +173,13 @@ StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 �
 구형 저장 데이터는 수정하지 않습니다. 선택 인자를 넘기면 작가 지원 설정만 저장합니다.
 
 - `disabledReviews`: 끌 매 화 검토 목록 전체(`story-profile-check`, `coherence-judge`,
-  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`). 꺼진 검토는
+  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`). 꺼진 검토는
   요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다.
+- `planningReviews`: `{story?, arc?, episode?}`. false면 해당 단계의 의미·품질 모델 검토를 모두
+  생략합니다. true면 켭니다. 지정한 필드만 갱신하며 구조·참조·설정·언어 검사는 유지합니다.
+  기존 작품도 명시적으로 true를 지정하면 단계별 의미 검토를 적용합니다.
+- `arcReview`: `{everyEpisodes?, atEnd?}`. 기본은 5화 단위와 아크 종료 검토입니다. everyEpisodes는
+  0~20의 정수이며 0은 중간 검토 생략입니다. atEnd로 종료 검토를 고릅니다. 지정한 필드만 갱신합니다.
 - `disabledDraftSections`: 초고에서 뺄 선택 섹션 목록 전체(`older-memory`, `previous-tail`,
   `author-craft`, `style-anchor`).
 - `tracking`: 추적 기능 켜기/끄기(`objects`, `knowledge`, `scheduled`, `hooks`). 기본은 모두 켜짐.
@@ -189,7 +197,7 @@ StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 �
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `disabledReviews`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
+| `workId` | `project`, `disabledReviews`, `planningReviews`, `arcReview`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
 
 ### `lore_style_anchor`
 
@@ -225,6 +233,18 @@ Published HEAD 이후 사람이 수정한 `world/`, `characters/`, `chapters/` M
 
 ### `lore_profile`
 
+처음에는 작품 전체를 얼마나 함께 질문·준비할지 `discovery={depth:quick|standard|deep,focus?,userAnswer}`로
+확인합니다. 미선택 review는 `discovery-depth` 하나만 보여 주며 답하기 전에는 승인할 수 없습니다.
+실제 답변 원문을 brief/feedback에 넣고 기록합니다. `action=preferences`는 활성 프로필의 선호만 갱신하고
+작품 내용과 active 상태를 보존합니다. [작품 준비와 단계별 검토](reference/STORY_PREPARATION_WORKFLOW.md)를 따릅니다.
+
+세계관 범위는 협업 깊이·읽기 난도와 별도로 `worldbuilding={scope:starter|story|universe,focus?,userAnswer}`에
+기록합니다. userAnswer는 brief/feedback의 실제 답변입니다. 세계 범위가 필요한 미결정일 때 질문하며 확정 선택은 후속 라운드에 유지합니다. [상세 준비와 단계별 참조](reference/WORLD_BUILDING_WORKFLOW.md)를 따릅니다.
+
+`worldbuildingSource={worldRoot,universeId,loreRevisionId,documentIds}`를 넘기면 첫 인터뷰부터 채택한
+공개 세계 문서를 읽습니다. 다음 라운드와 `lore_create`는 같은 선택을 계승합니다. 원문 drift·공개 범위·
+문맥 예산 검사를 적용하며 `action=preferences`에서는 원천 선택을 바꾸지 않습니다.
+
 작품 발견 인터뷰에서 정리한 자연어 브리프를 StoryProfile로 컴파일합니다. 새 작품 요청은
 repo skill `story-discovery-interview`가 대화를 진행하고, 이 도구가 답변을 작품별 정본으로
 정규화합니다.
@@ -250,7 +270,7 @@ StoryProfile의 `readerLegibility`는 전문 지식 없이도 장면의 목표·
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `brief` | `project`, `mode: review\|auto`, `feedback`, `language`, `length` |
+| `workId`, `brief` | `project`, `action: design\|preferences`, `mode: review\|auto`, `feedback`, `discovery`, `worldbuilding`, `worldbuildingSource`, `language`, `length` |
 
 ```json
 {
@@ -279,12 +299,18 @@ pending StoryProfile을 승인하거나 거절합니다.
 
 ### `lore_create`
 
+`worldbuildingSource={worldRoot,universeId,loreRevisionId,documentIds}`는 승인한 상세 세계와 도입 문서
+선택입니다. scope=story/universe이면 먼저 세계를 채택하고 이 원천을 전달해야 합니다. 생성 후
+lore_bind로 연결한 뒤 전체 이야기를 계획합니다. 큰 세계를 5~10개 출발 사실로 대체하지 않습니다.
+프로필에 원천 선택이 있으면 생성 시 생략해도 계승합니다. 생성된 문구의 언어 오류는 제한된 번역과
+의미 비교 후 새 hash로 검사하며, 성공하면 `languageRepair`에 실제 전후 변경과 근거를 반환합니다.
+
 승인된 프로필과 브리프로 세계, 캐스트, 추적 엔티티를 만듭니다. 모델 pre-flight가 끝나기
 전에는 정본을 쓰지 않습니다.
 
 | 필수 | 선택 |
 |---|---|
-| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `language`, `length` |
+| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `worldbuildingSource`, `language`, `length` |
 
 ### `lore_story_plan`
 
@@ -397,7 +423,8 @@ pending ArcPlan을 승인하거나 거절합니다.
 
 ### `lore_arc_review`
 
-이미 작성된 아크를 5화 단위 체크포인트 또는 종결화까지 다시 읽습니다. 전 화의 의미
+`scope="arc"`(기본)는 현재 아크를 5화 단위 체크포인트 또는 종결화까지 점검합니다. 요약과 최근 원고를
+활용하며 전체 원고를 모두 읽는 검토가 아닙니다. 사용자가 켠 경우에만 전 화의 의미
 PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 반복, 상업적 추진력을 아크
 단위로 평가합니다. 완료된 마지막 아크의 리뷰는 다음 `lore_arc_plan`에 advisory evidence로
 전달되지만, 특정 장면이나 표현을 강제하는 규칙으로 승격되지는 않습니다.
@@ -405,9 +432,20 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 별도로 점검합니다. 이 결과는 평균 점수에 섞이지 않고 근거와 확신도가 있는 advisory로
 노출되며 자동 재작성이나 커밋 차단 사유가 되지 않습니다.
 
+`scope="range"`는 fromChapter(기본 1)~throughChapter(기본 정본 마지막 화)의 **전체 정본 원고**를
+빠짐없이 조각별로 읽고, 실제 인용을 확인한 뒤 현재 승인된 전체 이야기·관련 아크와 비교합니다.
+긴 구간은 읽기 기록을 계층적으로 종합합니다. `focus`로 특히 볼 부분을 전달할 수 있습니다.
+각 화의 봉인된 세계 입력이 있으면 그 판본을 사용하며, 비교하는 설계는 현재 승인 설계라고 명시합니다.
+정본 HEAD·화별 원고 hash·전달 범위·읽기 기록·인용·종합 의견을 `.vibelore/range-reviews/`에 저장합니다.
+`action="status"`로 조회하며 reviewId를 생략하면 최신 검토입니다. 결과는 advisory이고 원고는 바뀌지 않습니다.
+정본·설계가 이후 바뀐 과거 검토는 freshness=stale로 표시합니다. 응답에는 결론·인용·범위·전체 보고서 경로가 포함됩니다.
+자동 arc-review가 꺼져 있어도 명시적인 수동 요청은 실행합니다. range는 PatternLedger를 재생성하지 않습니다.
+선택 구간은 연속된 1~1000화, 최대 2000개 원고 조각입니다. 문맥 예산을 넘으면 조용히 잘라내지 않고
+범위를 줄이거나 설계를 정리하도록 오류를 반환합니다. 읽기 조각·종합 묶음마다 모델 응답이 필요합니다.
+
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `throughChapter` |
+| `workId` | `project`, `scope: arc\|range`, `action: review\|status`, `reviewId`, `fromChapter`, `throughChapter`, `focus` |
 
 모델 작업이 필요하면 `status=needs_model`을 반환하며 `lore_resume`으로 이어갑니다.
 
@@ -544,12 +582,29 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 기존 원작을 사용하는 별도 workflow입니다. 실제 질문·이미지 job·승인 ID는 응답을 기준으로
 이어가며, 상세 흐름은 [WEBTOON.md](reference/WEBTOON_WORKFLOW.md)를 봅니다.
 
+### `lore_webtoon_style`
+
+사용자 말 → 예시 한 장 → 사용자 채택 → 다음 장면에 재사용하는 화풍 기준 도구입니다. 소설 정본이나 장면 current 포인터를 바꾸지 않습니다.
+`action=status|propose|import|approve|reject|set_mode`를 받습니다. `propose`에는 사용자 원답 `brief`와 호스트가 쓴 짧은 영어 `direction`을 전달합니다.
+사용자 제공 `imagePath`를 보존하거나 `needs_style_image.jobs`를 호스트가 선택한 내장/API 경로로 실행합니다.
+`import`는 `proposalId`, `asset:{path,inputHash,provenance}`를 받고 `awaiting_style_approval`로 실제 그림을 보여 줍니다.
+`approve`는 `proposalId`와 사용자 원답 `feedback`으로 이미지·설명·불변 판본을 채택합니다. 새 장면은 자동으로 고정해 전달합니다.
+`applyToWorkflows`는 기존 장면 변경 의도만 기록하며 실제 변경은 `lore_webtoon_scene revise(styleRevisionId,feedback)`입니다.
+현재/과거 기준은 `status`와 선택적 `styleRevisionId`, 후보·대기 작업은 `proposalId`로 조회합니다. 동시 채택·파일 변경·오래된 영수증을 검사합니다.
+화풍 차이는 시각 검토 advisory이며 자동 재생성 이유가 아닙니다. [화풍 계약](reference/WEBTOON_WORKFLOW.md#화풍-예시와-채택).
+
+`delegation`은 이번 요청의 사용자 원답과 `scope=preview|style|production`, 비용·재시도·기존 장면 수정 범위를 기록합니다.
+위임 화풍은 `needs_style_decision`에서 호스트가 실제 예시의 `choice:{inspectedImage,imageHash,rationale}`로 채택합니다.
+`set_mode`는 새 위임 또는 `delegation=null`과 원답으로 같은 후보의 선택 방식을 바꿉니다. 제작 위임은 미지정 칸 수를 `auto`로 선택하고
+최신 비용·재시도 제한을 지킵니다. 장면 `reject`는 사용자 중단을 기록하고 대기 요청을 해제하며 파일은 보존합니다.
+[위임 경계 상황](reference/WEBTOON_WORKFLOW.md#선택-위임과-경계-상황).
+
 ### `lore_webtoon_scene`
 
 새 웹툰 작업의 기본 경로입니다. 러프 없이 장면 전체와 대사를 함께 생성합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 이미지 선택이 없는 작품은 start가 먼저 `needs_image_runtime`을 반환합니다. 호스트가 실제로 가진 이미지 경로(내장 도구, API)를 `imageRuntime`으로 보고하면 `needs_image_choice`가 선택지 전체와 제안(내장 경로 우선)을 돌려주고, 사용자의 원답을 `feedback`에 넣어 `confirmImageChoice`로 확정합니다. 확정한 선택은 작품별로 유지되며 `changeImageChoice`로만 바꿉니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
 이 별도 경로는 원작 범위 고정 → 통합 영어 연출 → 생성 전 검증 → 장면 이미지 → 실제 시각 검토로 진행합니다.
-`action=start|revise|retry|verify`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
-`previousWorkflowId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback`, `asset`을 받습니다.
+`action=start|revise|retry|verify|reject`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
+`previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback`, `asset`을 받습니다.
 이미지 선택이 없으면 start가 `needs_image_runtime` → `needs_image_choice`를 반환하며, `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`을 사용합니다.
 생성 전 검증이 통과해야 `needs_scene_image`가 나오며 이때만 고른 경로(`hostRequest` 또는 `apiRequest`)로 그림을 그립니다.
 원작·참조·계획 해시가 바뀐 반입과 미열람 시각 검토는 거절합니다.
@@ -741,7 +796,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 | 새 자유 장르 작품 | `profile → create → story_plan → writer_skill → arc_plan` |
 | 다음 화 작성 | `lore_write` |
 | 완성 원고 승인 | `lore_decide` |
-| 기존 소설 웹툰화 | `lore_webtoon_scene` (컷별 경로 `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide`는 deprecated) |
+| 기존 소설 웹툰화 | `lore_webtoon_style → lore_webtoon_scene` (컷별 경로 `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide`는 deprecated) |
 | 웹툰 진행·검토 이력 | `lore_workflow_status/history(lane="webtoon")` |
 | 멈춘 모델 작업 | `lore_resume` |
 | 현재 진행 확인 | `lore_workflow_status` |

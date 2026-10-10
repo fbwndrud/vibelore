@@ -2,6 +2,7 @@ import { runPatternAnalysis } from './story-experience.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { saveExperienceLedgerForHead } from '../core/experience-ledger.js';
 import { resolveWorkKit } from '../prompts/index.js';
+import { DEFAULT_ARC_REVIEW, loadArcReviewSchedule, loadDisabledReviews } from '../core/review-policy.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 export const MIN_ARC_REVIEW_DIMENSION = 60;
@@ -20,17 +21,17 @@ function parse(raw) {
   catch { return null; }
 }
 
-export function arcReviewCheckpoint(arcPlan, chapter) {
+export function arcReviewCheckpoint(arcPlan, chapter, schedule = DEFAULT_ARC_REVIEW) {
   const episode = arcPlan?.episodes?.find((item) => item.chapter === chapter);
   if (!episode) return null;
   const index = Number(episode.index);
   const total = Number(arcPlan.estimatedEpisodes) || arcPlan.episodes.length;
-  if (index === total) return 'final';
-  return index > 0 && index % 5 === 0 ? 'checkpoint' : null;
+  if (index === total) return schedule.atEnd ? 'final' : null;
+  return schedule.everyEpisodes > 0 && index > 0 && index % schedule.everyEpisodes === 0 ? 'checkpoint' : null;
 }
 
-export async function runArcReview({ store, workId, arcPlan, chapter, prose, patternEntry, patternEntries, providers, kit: kitSource }) {
-  const checkpoint = arcReviewCheckpoint(arcPlan, chapter);
+export async function runArcReview({ store, workId, arcPlan, chapter, prose, patternEntry, patternEntries, providers, kit: kitSource, schedule }) {
+  const checkpoint = arcReviewCheckpoint(arcPlan, chapter, schedule ?? await loadArcReviewSchedule(store, workId));
   if (!checkpoint) return null;
   const priorSummaries = (await store.loadRecentChapterSummaries(workId, chapter, arcPlan.estimatedEpisodes ?? 20))
     .filter((item) => item.chapterNumber >= arcPlan.startChapter)
@@ -118,10 +119,12 @@ export async function runStoredArcReview({ store, workId, throughChapter, provid
   const chapter = Number(throughChapter) || Math.min(chapters.at(-1) ?? 0, lastArcChapter ?? 0);
   if (!arcReviewCheckpoint(arcPlan, chapter)) throw new Error('아크 리뷰는 5화 단위 체크포인트 또는 아크 종결화에서 실행하세요.');
 
+  const disabled = await loadDisabledReviews(store, workId);
   const refreshed = [];
   for (const episode of arcPlan.episodes.filter((item) => item.chapter <= chapter)) {
     const artifact = await store.loadArtifact(workId, episode.chapter);
     if (!artifact?.prose) throw new Error(`${episode.chapter}화 본문을 찾을 수 없습니다.`);
+    if (disabled.includes('pattern-ledger')) continue;
     refreshed.push(await runPatternAnalysis({ chapter: episode.chapter, prose: artifact.prose, providers, kit }));
     if ((providers.pending?.length ?? 0) > 0) {
       return {
@@ -133,7 +136,7 @@ export async function runStoredArcReview({ store, workId, throughChapter, provid
   const currentArtifact = await store.loadArtifact(workId, chapter);
   const review = await runArcReview({
     store, workId, arcPlan, chapter, prose: currentArtifact.prose,
-    patternEntry: refreshed.find((entry) => entry.chapter === chapter), patternEntries: refreshed, providers, kit,
+    patternEntry: refreshed.find((entry) => entry.chapter === chapter), patternEntries: refreshed, providers, kit, schedule: DEFAULT_ARC_REVIEW,
   });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'arc_review_backfill', chapter };
 
@@ -145,8 +148,8 @@ export async function runStoredArcReview({ store, workId, throughChapter, provid
     const publication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
     if (!publication.ok) throw new Error(`CORRUPT_PUBLICATION: ${publication.error.code}`);
     sourceHead = publication.value?.head ?? sourceHead;
-    await saveExperienceLedgerForHead({ store, workId, sourceHead, entries, criticVersion: 'pattern-ledger-legacy' });
-  } else {
+    if (refreshed.length) await saveExperienceLedgerForHead({ store, workId, sourceHead, entries, criticVersion: 'pattern-ledger-legacy' });
+  } else if (refreshed.length) {
     await store.savePatternLedger(workId, entries.sort((a, b) => a.chapter - b.chapter));
   }
   await store.saveArcReview(workId, { ...review, sourceHead });

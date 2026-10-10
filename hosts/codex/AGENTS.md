@@ -1,6 +1,8 @@
 # 소설 집필 — vibelore
 
-웹툰화 요청은 설치된 `webtoon-discovery-interview` 스킬을 읽고 `lore_webtoon_scene`으로 시작한다. 스킬이 자동 로드되지 않는 MCP 단독 연결이면 vibelore 설치 경로의 `skills/webtoon-discovery-interview/SKILL.md`를 읽는다. 원작 범위·화풍·참조·칸 수·이미지 모델 확인을 거치며, 웹툰 조회에는 `lane="webtoon"`을 지정한다. `lore_webtoon_plan`은 deprecated이며 이미 시작된 컷별 작업을 마무리할 때만 쓴다. 소설 정본과 웹툰 산출물을 분리한다.
+웹툰화 요청은 설치된 `webtoon-discovery-interview` 스킬을 읽고 `lore_webtoon_scene`으로 시작한다. 스킬이 자동 로드되지 않는 MCP 단독 연결이면 vibelore 설치 경로의 `skills/webtoon-discovery-interview/SKILL.md`를 읽는다. 원작 범위·화풍·참조·칸 수·이미지 모델을 직접 선택하거나 명시적으로 위임하며, 웹툰 조회에는 `lane="webtoon"`을 지정한다. `lore_webtoon_plan`은 deprecated이며 이미 시작된 컷별 작업을 마무리할 때만 쓴다. 소설 정본과 웹툰 산출물을 분리한다.
+
+“알아서”는 이번 요청의 선택 위임으로 기록한다. 스킬의 위임 분기에 따라 예시만·화풍 선택·제작 범위를 구분하고, 위임받은 결정을 다시 묻지 않는다. 최신 비용·재시도 제한과 기존 장면 수정 범위를 지킨다.
 
 이 저장소는 vibelore 소설 프로젝트입니다. `world/`, `characters/`, `chapters/` 는
 사람이 읽고 고치는 마크다운이고, `.vibelore/` 는 건드리지 마세요.
@@ -33,3 +35,5 @@ hard 위반은 확정된 사실과의 충돌이므로 고친다. soft 위반은 
 판단을 받는다 — 도구를 이기려고 본문을 망치지 않는다.
 
 한 `needs_model` 응답의 `requests`는 서로 독립이므로 병렬로(동시 CLI 실행) 답해도 되며, 모든 답을 한 번의 `lore_resume`에 함께 넘깁니다. 검토 요청의 `system`·`user`에 담긴 현재 원고를 읽고 근거를 확인한 뒤 요청 ID별로 답합니다. 단계 이름만으로 미리 만든 평가를 공급하지 않습니다. 같은 호스트의 검토는 자기검토로 보고하며, 전체 발견은 `lore_workflow_history`에 보존됩니다. 실제 요청·응답이 필요하면 `includeModelExchanges=true`로 조회합니다.
+
+새 작품은 세계관·인물·이야기·문체 전체를 얼마나 함께 질문·준비할지 먼저 확인해 `lore_profile.discovery`에 실제 답변/위임을 기록한다. 최신 선호 변경, 단계별 검토·재작성·상위 설계/조사 복귀는 [작품 준비 흐름](../../docs/reference/STORY_PREPARATION_WORKFLOW.md)을 따른다. 세계관 규모는 별도 선택이며 상세 세계의 채택·연결·문서 참조는 그 문서의 세계관 경로를 따른다.

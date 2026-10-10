@@ -1,12 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { readFile, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
+import { WebtoonStyleStore, STYLE_REFERENCE_ID, styleReference, verifyStyleSnapshot } from '../store/webtoon-style-store.js';
 import { resolveProductionSource, verifyProductionSource } from '../core/production-source.js';
 import { readSealedProductionInput } from '../core/input-objects.js';
 import { join, resolve, relative, sep } from 'node:path';
 import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.js';
 import { importWebtoonImages } from '../core/webtoon-board.js';
-import { validateImageRuntime, sceneImagePolicy, savedSceneSelection, sceneImageRequest, validateSceneImageProvenance } from '../core/webtoon-images.js';
+import { sceneImageRequest, validateSceneImageProvenance } from '../core/webtoon-images.js';
+import { confirmedWebtoonSelection } from '../core/webtoon-image-selection.js';
+import { webtoonDelegation } from '../core/webtoon-delegation.js';
 import { webtoonMessage } from '../core/webtoon-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { newRunId, saveRun, dropRun } from '../runs.js';
@@ -29,12 +32,24 @@ export function scenePublicState(w) {
     panelCountMode: scenePanelCountMode(w), panelCount: w.panelCount ?? null, warnings: sceneWarnings(w), previousScene: w.previousScene,
     artifacts: w.artifacts, timings: w.timings, failures: w.failures,
     autoRevision: w.autoRevision ?? { limit: 0, used: 0 }, attempts: w.attempts ?? [],
+    style: w.styleSnapshot ?? null,
+    delegation: w.delegation ?? null,
+    apiRestriction: w.apiRestriction ?? w.delegation?.apiPolicy ?? 'existing-only',
     limitations: ['Whole-scene raster with generated lettering; not editable vector lettering.', 'Host review is self-reported, not independent reader evaluation.'] };
+}
+
+export async function sceneStyleChange(repo, w) {
+  const active = await new WebtoonStyleStore(repo, w.workId).head();
+  const pinned = w.styleSnapshot?.revisionId ?? null;
+  return active !== pinned ? { pinnedRevisionId: pinned, activeRevisionId: active, existingScene: 'kept',
+    notice: webtoonMessage(w.source, '화풍 기준이 변경되었습니다. 이 장면은 시작할 때의 기준을 유지합니다. 바꾸려면 새 styleRevisionId와 수정 피드백을 명시하세요.',
+      'The style changed. This scene keeps its pinned basis; revise explicitly with the new styleRevisionId and user feedback to apply it.') } : null;
 }
 
 async function verifyInputs(repo, w) {
   // Novel sources keep the original snapshot; script sources read only the adopted script and sealed inputs.
   await verifyProductionSource(repo.store, w.source, w.workId);
+  if (w.styleSnapshot) await verifyStyleSnapshot(w.styleSnapshot);
   for (const r of w.sceneReferences) {
     const images = await importWebtoonImages(repo.store.rootDir, [{ shotId: r.id, path: r.path }], [r.id]);
     if (images[r.id].hash !== r.hash) throw new Error('SCENE_REFERENCE_CHANGED');
@@ -53,6 +68,7 @@ function needCurrentPreflight(w) {
 /** Start a new plan revision; earlier candidates stay on disk under their own revision directory. */
 function beginRevision(w, feedback) {
   w.previousFindings = w.visualReview ?? w.preflight; w.feedback = feedback;
+  w.imagePromptVersion = 2;
   w.revision++; w.pending = null; w.preflight = null; w.visualReview = null; w.scenePlan = null; w.sceneImage = null; w.artifacts = {}; w.stage = 'scene_generate';
   if (scenePanelCountMode(w) === 'auto') w.panelCount = undefined;
 }
@@ -103,9 +119,11 @@ async function drive(repo, w, providers) {
         : 'Honor the user-selected panelCount ')
       + 'without making one beat equal one panel. Do not prescribe panel rectangles, coordinates or a camera per sentence. Identify only necessary spatial facts. Separate ambiguity from facts, never invent physics to fill a gap. Let the image artist choose composition. Preserve causality, character motivation and exact speaker identities. A beat is an event, not a panel. Do not reuse prior shot lists.',
       { source: w.sceneUnits, foundation: w.source.foundation, documents: w.source.documents,
+        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'This is the user-adopted visual treatment. Preserve it; source facts and identities remain authoritative. Any source expression profile is subordinate for presentation only.' } : {}),
         ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText, cast: w.source.cast, expression: w.source.expression } : {}), direction: w.direction,
         panelCount: auto ? 'auto' : w.panelCount, previousScene: w.previousScene,
-        feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...SCENE_SCHEMA, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : SCENE_SCHEMA }, providers);
+        feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...SCENE_SCHEMA, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : SCENE_SCHEMA }, providers,
+      w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
     if (r.waiting) return r.result;
     w.scenePlan = validateScenePlan(r.value, w.sceneUnits, { resolvePanelCount: auto });
     if (auto) { w.panelCount = w.scenePlan.panelCount; record(w, 'scene_panel_count_resolved', { panelCount: w.panelCount }); }
@@ -116,9 +134,11 @@ async function drive(repo, w, providers) {
     const r = await modelTask(repo, w, 'webtoon-scene-preflight',
       `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. Keep camera and layout free. Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
       { source: w.sceneUnits, ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText } : {}), plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
+        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Copy styleBasis.profile.style exactly into renderBrief.style. The sample is for visual treatment only; preserve source identities and facts.' } : {}),
         ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
         coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
-        renderBrief: { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers);
+        renderBrief: { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers,
+      w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
     if (r.waiting) return r.result;
     const passed = validateScenePreflight(r.value, w);
     w.preflight = { ...r.value, passed, reviewedAt: new Date().toISOString(), ...(passed ? { renderBriefHash: digest(r.value.renderBrief) } : {}) };
@@ -128,6 +148,9 @@ async function drive(repo, w, providers) {
     if (!passed && autoRevise(w)) return drive(repo, w, providers);
   }
   if (w.stage === 'needs_scene_image') {
+    if ((w.apiRestriction ?? w.delegation?.apiPolicy) === 'forbid' && w.imagePolicy.execution !== 'host-built-in') return { ...scenePublicState(w), status: 'needs_image_runtime', jobs: [], blockedBy: 'api-forbidden',
+      nextAction: webtoonMessage(w.source, '최신 비용 제한으로 API 호출을 발급하지 않습니다. 허용된 이미지 경로를 보고하고 같은 revise를 이어가세요.',
+        'The latest cost constraint blocks API calls. Report an allowed image path and continue the same revise.') };
     needCurrentPreflight(w);
     const prompt = sceneImagePrompt(w); await repo.writeCandidate(w, 'scene-image.prompt.txt', prompt);
     return { ...scenePublicState(w), jobs: [{ kind: 'scene', sceneId: 'scene', inputHash: sceneImageBinding(w),
@@ -139,15 +162,20 @@ async function drive(repo, w, providers) {
     const r = await modelTask(repo, w, 'webtoon-scene-image-review',
       'Open the actual attached image before reviewing. Check narrative events, physical relationships, reading order and every exact text/speaker. Transcribe what is actually visible, not what the prompt requested. Transcribe lettering in the script it is drawn in; never transliterate, translate or normalize spelling. Count actual visible panels in observedPanelCount, including insets. If previousScene is supplied, open its actual image too and compare character identity/clothing, setting/props and the action transition with specific visible evidence. Prior findings are not facts to copy. Report missing or invented actions in evidence. Return inspectedImages=false if unavailable. Do not claim independent evaluation. Findings must remain visible; no silent regeneration.',
       { source: w.sceneUnits, plan: w.scenePlan, renderBrief: w.preflight?.renderBrief, previousScene: w.previousScene, requestedPanelCount: w.panelCount, image: { path: w.sceneImage.path, hash: w.sceneImage.hash },
+        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Open the adopted sample too. Compare actual visual treatment to the user preference and sample, not its cast or composition. Report matches, differs or uncertain with visible evidence. Style taste is advisory, never a blocking finding or automatic regeneration reason.' } : {}),
         schema: { subjectHash: digest({ binding: sceneImageBinding(w), imageHash: w.sceneImage.hash }), inspectedImages: false, observedPanelCount: null,
           ...(w.previousScene ? { continuity: { inspectedPreviousImage: false, ...Object.fromEntries(CONTINUITY_CHECKS.map(k => [k, { passed: false, evidence: '' }])) } } : {}),
+          ...(w.styleSnapshot ? { styleReview: { inspectedReference: false, verdict: 'matches|differs|uncertain', evidence: '' } } : {}),
           coveredBeatIds: w.scenePlan.beats.map(b => b.id), textObservations: w.scenePlan.texts.map(t => ({ id: t.id, observedText: '', readable: false, speakerCorrect: false, evidence: '' })),
           spatialCoherence: false, readingOrder: false, evidence: '', findings: [], findingItem: SCENE_FINDING_SHAPE } }, providers,
-      [w.sceneImage, w.previousScene?.image].filter(Boolean).map(({ path, mime }) => ({ path, mime })));
+      [w.sceneImage, w.previousScene?.image, w.styleSnapshot?.image].filter(Boolean).map(({ path, mime }) => ({ path, mime })));
     if (r.waiting) return r.result;
     const passed = validateSceneImageReview(r.value, w); w.visualReview = { ...r.value, passed };
+    if (w.styleSnapshot && r.value.styleReview.verdict !== 'matches') {
+      w.visualReview.findings = [...w.visualReview.findings, { severity: 'advisory', category: 'style', evidence: r.value.styleReview.evidence }];
+    }
     await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
-    const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(r.value.findings, null, 2))}</pre></html>`;
+    const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(w.visualReview.findings, null, 2))}</pre></html>`;
     await repo.writeCandidate(w, 'scene.html', html);
     // The record is written before the stage says completed, so a failed write retries instead of leaving an unverifiable scene.
     if (passed && w.productionRecord) await writeProductionRecord(repo, w);
@@ -168,81 +196,36 @@ async function loadPreviousScene(repo, args) {
   return previous;
 }
 
-const RUNTIME_REQUEST = { host: 'host id, e.g. codex', options: [{ id: 'option id', execution: 'host-built-in | api', provider: 'e.g. codex, openai, google, local',
-  tool: 'built-in tool name (host-built-in only)', modelSelectable: 'boolean: does this path take a model argument', models: ['model ids this path accepts (empty when not selectable)'],
-  credential: 'env var the API path needs (api only, name only, never the value)', note: 'what the host actually knows, e.g. which model its built-in tool uses' }] };
-
-function imageChoiceNotice(source, policy) {
-  const model = policy.targetModel ?? webtoonMessage(source, `호스트가 정함(${policy.tool}에 모델 선택 인자 없음)`, `chosen by the host (${policy.tool} has no model argument)`);
-  const note = policy.hostNote ? ` ${webtoonMessage(source, '호스트 설명', 'Host note')}: ${policy.hostNote}` : '';
-  const keep = webtoonMessage(source, ' 선택은 이 작품의 다음 장면·회차에도 유지되며, 실패해도 다른 경로로 자동 전환하지 않습니다.',
-    ' The choice persists for this work\'s next scenes and chapters; a failure never switches to another path automatically.');
-  if (policy.execution === 'host-built-in') return webtoonMessage(source,
-    `${policy.host} 내장 ${policy.tool}로 그립니다. 호스트 사용량(구독) 안에서 실행되며 별도 API 과금은 없습니다. 모델: ${model}.`,
-    `Draws with ${policy.host}'s built-in ${policy.tool} inside the host's own usage (subscription); no separate API billing. Model: ${model}.`) + note + keep;
-  return webtoonMessage(source,
-    `${policy.provider} API ${model}로 그립니다. 별도 API 과금이 붙고 실행 환경의 ${policy.credential ?? 'API 키'}가 필요하며, 원작·참조 이미지를 ${policy.provider}에 전송합니다.`,
-    `Draws with the ${policy.provider} API model ${model}. Separate API billing applies, the host needs ${policy.credential ?? 'an API key'}, and the source and reference images are sent to ${policy.provider}.`) + note + keep;
-}
-
-/** The host reports its image paths, the user picks one (built-in proposed first), and the answer is kept for this work. */
-async function confirmedSceneSelection(repo, args, source) {
-  const kept = args.changeImageChoice ? null : savedSceneSelection(await readJson(repo.path('image-selection.json')), args.workId);
-  if (kept) return kept;
-  const base = { lane: 'webtoon', productionMode: SCENE_PRODUCTION_MODE, jobs: [] };
-  const pendingPath = repo.path('image-choice-pending.json');
-  const pending = await readJson(pendingPath);
-  // A proposal is confirmed by its id; the host need not resend the runtime report it already made.
-  const byId = args.confirmImageChoice !== undefined && args.imageRuntime === undefined && args.imageOption === undefined && args.imageModel === undefined;
-  if (args.imageRuntime === undefined && !byId) return { ...base, status: 'needs_image_runtime', runtimeRequest: RUNTIME_REQUEST,
-    nextAction: webtoonMessage(source,
-      '이 호스트에서 실제로 쓸 수 있는 이미지 생성 경로(내장 도구, API)와 각 경로가 받는 모델을 확인해 imageRuntime으로 같은 start를 다시 호출하세요. 모르는 것은 추측하지 말고 note에 그대로 적습니다.',
-      'Check which image paths this host really offers (built-in tools, APIs) and the models each accepts, then call the same start again with imageRuntime. Do not guess; write what is unknown in note.') };
-  const runtime = byId ? null : validateImageRuntime(args.imageRuntime);
-  const policy = byId ? pending?.policy : sceneImagePolicy(runtime, args.imageOption, args.imageModel);
-  if (args.confirmImageChoice === undefined) {
-    const choice = pending?.workId === args.workId && digest(pending.policy) === digest(policy) ? pending
-      : { id: `wic-${randomUUID()}`, workId: args.workId, policy, options: runtime.options, proposed: { optionId: policy.optionId, model: policy.targetModel },
-        remember: 'this-work', proposedAt: new Date().toISOString(), notice: imageChoiceNotice(source, policy) };
-    if (choice !== pending) await atomicWrite(pendingPath, JSON.stringify(choice, null, 2));
-    return { ...base, status: 'needs_image_choice', imageChoice: choice,
-      nextAction: webtoonMessage(source,
-        'options 전체와 제안(proposed)·notice를 사용자에게 보여 주세요. 사용자가 다른 경로나 모델을 고르면 imageOption·imageModel을 바꿔 다시 제안받고, 확정하면 같은 start 인자에 confirmImageChoice ID와 원답 feedback을 넣어 다시 호출하세요.',
-        'Show the user every option, the proposal and the notice. If they pick another path or model, call again with imageOption/imageModel for a new proposal; once they choose, call the same start again with confirmImageChoice and their own answer in feedback.') };
-  }
-  if (!pending || !policy || pending.id !== args.confirmImageChoice || pending.workId !== args.workId || digest(pending.policy) !== digest(policy)) throw new Error('STALE_IMAGE_CHOICE');
-  if (!nonempty(args.feedback)) throw new Error('IMAGE_CHOICE_USER_ANSWER_REQUIRED');
-  const confirmed = { workId: args.workId, policy, selection: { id: pending.id, workId: args.workId, policyHash: digest(policy), confirmedAt: new Date().toISOString(),
-    userAnswer: args.feedback, billing: policy.billing, scope: 'this-work-until-user-changes', preserveReferences: false, source: TOOL } };
-  await atomicWrite(repo.path('image-selection.json'), JSON.stringify(confirmed, null, 2));
-  await rm(pendingPath, { force: true });
-  return { policy, saved: confirmed };
-}
-
 /** Validate every user choice before any model or image call; returns the interview instead of a workflow when the count is missing. */
 async function startScene(store, repo, args, current) {
+  const delegation = webtoonDelegation(args.delegation);
+  if (delegation && delegation.scope !== 'production') throw new Error('SCENE_DELEGATION_SCOPE');
+  const panelCount = args.panelCount ?? (delegation ? 'auto' : undefined);
   if (args.scriptId !== undefined && args.sourceChapters !== undefined) throw new Error('SCENE_SOURCE_AMBIGUOUS: choose sourceChapters (novel) or scriptId (scene script), not both');
   const source = args.scriptId !== undefined
     ? await resolveProductionSource(store, args.workId, { kind: 'scene-script', scriptId: args.scriptId })
     : await resolveWebtoonSource(store, args.workId, args.sourceChapters);
-  if (args.panelCount === undefined) return { status: 'needs_interview', questions: [{ id: 'panelCount', question: webtoonMessage(source,
+  if (panelCount === undefined) return { status: 'needs_interview', questions: [{ id: 'panelCount', question: webtoonMessage(source,
     `이 장면을 몇 칸으로 생성할까요? "auto"는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 고릅니다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성이 떨어질 수 있습니다. 칸 크기와 배치는 AI가 정합니다.`,
     `How many panels should this scene have? "auto" lets the AI choose ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} panels on every adaptation. Fewer than ${SCENE_PANEL_LIMITS.continuityMin} panels may weaken continuity. The AI decides panel sizes and layout.`),
     options: SCENE_PANEL_OPTIONS }], jobs: [] };
-  const auto = args.panelCount === 'auto';
-  if (!auto && (!Number.isInteger(args.panelCount) || args.panelCount < SCENE_PANEL_LIMITS.min || args.panelCount > SCENE_PANEL_LIMITS.max)) throw new Error('INVALID_SCENE_PANEL_COUNT');
+  const auto = panelCount === 'auto';
+  if (!auto && (!Number.isInteger(panelCount) || panelCount < SCENE_PANEL_LIMITS.min || panelCount > SCENE_PANEL_LIMITS.max)) throw new Error('INVALID_SCENE_PANEL_COUNT');
   const previous = args.previousWorkflowId ? await loadPreviousScene(repo, args) : undefined;
   if (current && !terminal(current) && !(previous?.workflowId === current.workflowId && current.stage === 'scene_needs_revision')) throw new Error('WEBTOON_WORKFLOW_ACTIVE');
-  if (!isEnglish(args.direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
-  const autoLimit = args.autoRevisions ?? SCENE_AUTO_REVISIONS.default;
+  const styleSnapshot = await new WebtoonStyleStore(repo, args.workId).adopted(args.styleRevisionId);
+  const direction = args.direction ?? styleSnapshot?.profile.style;
+  if (!isEnglish(direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
+  const autoLimit = args.autoRevisions ?? delegation?.maxAutoRevisions ?? SCENE_AUTO_REVISIONS.default;
   if (!Number.isInteger(autoLimit) || autoLimit < 0 || autoLimit > SCENE_AUTO_REVISIONS.max) throw new Error('INVALID_SCENE_AUTO_REVISIONS');
+  if (delegation?.maxAutoRevisions !== undefined && autoLimit > delegation.maxAutoRevisions) throw new Error('WEBTOON_DELEGATION_RETRY_LIMIT');
   const selected = args.sourceUnitIds ?? source.units.map(u => u.id);
   if (!Array.isArray(selected) || !selected.length || new Set(selected).size !== selected.length || selected.some(id => !source.units.some(u => u.id === id))) throw new Error('INVALID_SCENE_SOURCE_SCOPE');
   if (previous) {
     const ids = source.units.map(u => u.id), prior = previous.sceneUnits.map(u => ids.indexOf(u.id));
     if (prior.some(i => i < 0) || Math.min(...selected.map(id => ids.indexOf(id))) !== Math.max(...prior) + 1) throw new Error('SCENE_CONTINUATION_SCOPE');
   }
-  const selection = await confirmedSceneSelection(repo, args, source);
+  const selection = await confirmedWebtoonSelection(repo, args, source);
   if (selection.status) return selection;
   const { policy, saved } = selection;
   // Catalog references resolve to the bytes sealed in this work, never to a world path.
@@ -254,17 +237,22 @@ async function startScene(store, repo, args, current) {
   }) : args.references;
   // A failed scene stays available to the continuity review, but its image never feeds the next drawing.
   const drawFromPrevious = Boolean(previous?.visualReview.passed);
-  if (!Array.isArray(references) || !references.length || references.length > SCENE_LIMITS.referenceImages - (drawFromPrevious ? 1 : 0)
-    || references.some(r => r.id === PREVIOUS_SCENE_ID) || new Set(references.map(r => r.id)).size !== references.length
+  if (!Array.isArray(references) || !references.length || references.length > SCENE_LIMITS.referenceImages - (drawFromPrevious ? 1 : 0) - (styleSnapshot ? 1 : 0)
+    || references.some(r => [PREVIOUS_SCENE_ID, STYLE_REFERENCE_ID].includes(r.id)) || new Set(references.map(r => r.id)).size !== references.length
     || references.some(r => !safeId(r.id) || !isEnglish(r.description) || !nonempty(r.hash))) throw new Error('SCENE_REFERENCES_REQUIRED');
-  const w = { workflowId: `wt-${randomUUID()}`, productionMode: SCENE_PRODUCTION_MODE, workId: args.workId, revision: 1,
-    stage: 'scene_generate', source, sceneUnits: source.units.filter(u => selected.includes(u.id)), direction: args.direction,
-    panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount: args.panelCount }),
+  const w = { workflowId: `wt-${randomUUID()}`, productionMode: SCENE_PRODUCTION_MODE, imagePromptVersion: 2, workId: args.workId, revision: 1,
+    stage: 'scene_generate', source, sceneUnits: source.units.filter(u => selected.includes(u.id)), direction,
+    ...(styleSnapshot ? { styleSnapshot } : {}),
+    ...(delegation ? { delegation, apiRestriction: delegation.apiPolicy } : {}),
+    panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount }),
     ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: previous.visualReview.findings, reviewPassed: previous.visualReview.passed } } : {}),
     imagePolicy: policy, imageSelection: saved.selection, autoRevision: { limit: autoLimit, used: 0 }, attempts: [],
-    sceneReferences: [...references, ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
+    sceneReferences: [...references, ...(styleSnapshot ? [styleReference(styleSnapshot)] : []),
+      ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: styleSnapshot
+        ? 'Previous scene: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
+        : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
     acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity(), productionRecord: true };
-  record(w, 'scene_started', { sourceHash: source.hash });
+  record(w, 'scene_started', { sourceHash: source.hash, ...(delegation ? { delegation } : {}) });
   return w;
 }
 
@@ -279,7 +267,10 @@ async function writeProductionRecord(repo, w) {
     source: { kind: w.source.kind ?? 'novel-chapters', sourceVersion: w.source.sourceVersion ?? 1, hash: w.source.hash, sourceCanonHead: w.source.sourceCanonHead ?? null,
       ...(w.source.kind === 'scene-script' ? { scriptId: w.source.scriptId, scriptRevisionId: w.source.scriptRevisionId, productionLockId: w.source.productionLockId, loreRevisionId: w.source.loreRevisionId, assetCatalogRevisionId: w.source.assetCatalogRevisionId } : { chapters: w.source.chapters.map(c => ({ chapter: c.chapter, hash: c.hash })) }) },
     sourceUnitIds: w.sceneUnits.map(u => u.id), language: w.source.languageContract?.language ?? 'ko',
-    references: w.sceneReferences.map(r => ({ id: r.id, hash: r.hash, ...(r.assetId ? { assetId: r.assetId, assetRevisionId: r.assetRevisionId, preserved: 'sealed-input' } : { preserved: r.id === PREVIOUS_SCENE_ID ? 'workflow-candidate' : 'path-only' }) })),
+    references: w.sceneReferences.map(r => ({ id: r.id, hash: r.hash, ...(r.assetId ? { assetId: r.assetId, assetRevisionId: r.assetRevisionId, preserved: 'sealed-input' } : { preserved: r.id === STYLE_REFERENCE_ID ? 'style-candidate' : r.id === PREVIOUS_SCENE_ID ? 'workflow-candidate' : 'path-only' }) })),
+    ...(w.styleSnapshot ? { styleRevisionId: w.styleSnapshot.revisionId } : {}),
+    ...(w.delegation ? { delegation: w.delegation } : {}),
+    ...(w.apiRestriction ? { apiRestriction: w.apiRestriction } : {}),
     image: { hash: w.sceneImage.hash, mime: w.sceneImage.mime, path: relative(repo.store.rootDir, resolve(repo.store.rootDir, w.sceneImage.path)).split(sep).join('/') }, planHash: digest(w.scenePlan), preflightHash: digest(w.preflight), reviewHash: digest(w.visualReview),
     imagePolicy: w.imagePolicy, completedAt: new Date().toISOString() };
   await atomicWrite(recordPath(repo, w), JSON.stringify(rec, null, 2));
@@ -297,6 +288,11 @@ async function verifyProduction(repo, w) {
     || recordFile.references.length !== w.sceneReferences.length || recordFile.references.some(r => w.sceneReferences.find(x => x.id === r.id)?.hash !== r.hash)) changed();
   const bytesOf = async path => { try { return await readFile(resolve(root, path)); } catch (e) { if (e.code === 'ENOENT') throw new Error(`SCENE_PRODUCTION_INPUT_MISSING: ${path}`); throw e; } };
   const checks = [], unpreserved = recordFile.references.filter(r => r.preserved === 'path-only').map(r => r.id);
+  if (w.styleSnapshot) {
+    if (recordFile.styleRevisionId !== w.styleSnapshot.revisionId) changed();
+    await verifyStyleSnapshot(w.styleSnapshot);
+    checks.push({ check: 'adopted-style', styleRevisionId: w.styleSnapshot.revisionId, imageHash: w.styleSnapshot.image.hash });
+  }
   let lock = null;
   if (recordFile.source.kind === 'scene-script') {
     const sealed = await readSealedProductionInput({ rootDir: root, productionLockId: recordFile.source.productionLockId });
@@ -315,7 +311,7 @@ async function verifyProduction(repo, w) {
     if (r.preserved === 'sealed-input') {
       const pinned = lock?.assets?.find(a => a.assetId === r.assetId);
       if (!pinned || pinned.assetRevisionId !== r.assetRevisionId || pinned.blob.blobId !== r.hash) changed();
-    } else if (r.preserved !== 'workflow-candidate') continue;
+    } else if (!['workflow-candidate', 'style-candidate'].includes(r.preserved)) continue;
     if (digest(await bytesOf(ref.path)) !== r.hash) throw new Error('SCENE_REFERENCE_CHANGED');
     checks.push({ check: 'reference-bytes', id: r.id, ...(r.assetId ? { assetId: r.assetId } : {}), hash: r.hash });
   }
@@ -341,10 +337,48 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
     } else if (!isScene(w)) throw new Error('SCENE_WORKFLOW_NOT_FOUND');
     if (args.revision !== undefined && args.revision !== w.revision) throw new Error('STALE_WEBTOON_REVISION');
     if (args.action !== 'start' && args.panelCount !== undefined && args.panelCount !== (scenePanelCountMode(w) === 'auto' ? 'auto' : w.panelCount)) throw new Error('SCENE_PANEL_COUNT_PINNED');
+    if (!['start', 'revise'].includes(args.action) && args.styleRevisionId !== undefined && args.styleRevisionId !== w.styleSnapshot?.revisionId) throw new Error('SCENE_STYLE_PINNED');
     if (run && (!w.pending || w.pending.runId !== run.id || run.args.revision !== w.revision)) throw new Error('STALE_WEBTOON_RUN');
+    if (!run && args.action === 'reject') {
+      if (!nonempty(args.feedback)) throw new Error('SCENE_USER_ANSWER_REQUIRED');
+      if (w.stage !== 'rejected') {
+        if (w.pending) await dropRun(store.rootDir, w.pending.runId);
+        w.pending = null; w.stage = 'rejected';
+        record(w, 'scene_rejected', { feedback: args.feedback });
+        await repo.save(w);
+      }
+      return scenePublicState(w);
+    }
     await verifyInputs(repo, w);
     if (!run && args.action === 'revise') {
       if (!nonempty(args.feedback)) throw new Error('SCENE_REVISION_FEEDBACK_REQUIRED');
+      if (args.delegation === null) delete w.delegation;
+      if (args.delegation != null) {
+        const delegation = webtoonDelegation({ ...args.delegation, apiPolicy: args.delegation.apiPolicy ?? w.apiRestriction ?? 'existing-only' });
+        if (delegation.scope !== 'production' || !delegation.reviseWorkflows?.includes(w.workflowId)) throw new Error('SCENE_DELEGATION_SCOPE');
+        w.delegation = delegation; w.apiRestriction = delegation.apiPolicy;
+        if (delegation.maxAutoRevisions !== undefined && w.autoRevision) w.autoRevision.limit = Math.min(w.autoRevision.limit, w.autoRevision.used + delegation.maxAutoRevisions);
+      }
+      if (args.changeImageChoice || (w.apiRestriction === 'forbid' && w.imagePolicy.execution !== 'host-built-in')) {
+        // Persist the latest restriction even while the host is gathering a new runtime report.
+        await repo.save(w);
+        const selection = await confirmedWebtoonSelection(repo, { ...args, delegation: w.delegation, apiRestriction: w.apiRestriction, changeImageChoice: true }, w.source);
+        if (selection.status) return selection;
+        w.imagePolicy = selection.policy; w.imageSelection = selection.saved.selection;
+        record(w, 'scene_image_selection_changed', { selectionId: w.imageSelection.id });
+      }
+      if (args.direction !== undefined && !isEnglish(args.direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
+      if (args.styleRevisionId !== undefined) {
+        const adopted = await new WebtoonStyleStore(repo, w.workId).adopted(args.styleRevisionId);
+        if (w.direction === w.styleSnapshot?.profile.style) w.direction = adopted.profile.style;
+        const refs = w.sceneReferences.filter(r => r.id !== STYLE_REFERENCE_ID);
+        if (refs.length >= SCENE_LIMITS.referenceImages) throw new Error('SCENE_REFERENCES_REQUIRED');
+        const last = refs.at(-1)?.id === PREVIOUS_SCENE_ID ? refs.pop() : null;
+        w.styleSnapshot = adopted; w.sceneReferences = [...refs, styleReference(adopted), ...(last ? [{ ...last,
+          description: 'Previous scene: identities, clothing, setting and temporal continuity. Visual treatment comes from the adopted style sample.' }] : [])];
+        record(w, 'scene_style_changed', { styleRevisionId: adopted.revisionId });
+      }
+      if (args.direction !== undefined) w.direction = args.direction;
       if (w.pending) await dropRun(store.rootDir, w.pending.runId);
       beginRevision(w, args.feedback);
       record(w, 'scene_revision_requested', { feedback: args.feedback });
@@ -369,6 +403,6 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
     catch (e) { w.failedStage = w.stage; w.stage = 'scene_model_failed'; w.failures.push({ message: e.message, at: new Date().toISOString() }); await repo.save(w); throw e; }
     await repo.save(w);
     for (const id of w.consumedRunIds) await dropRun(store.rootDir, id);
-    return result;
+    return { ...result, styleChange: await sceneStyleChange(repo, w) };
   });
 }

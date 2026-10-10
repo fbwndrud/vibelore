@@ -1,4 +1,5 @@
-import { prepareProductionInput, renderProductionContext, prepareProductionInputs } from './production-input.js';
+import { prepareProductionInput, renderProductionContext, prepareProductionInputs, renderPlanningContext } from './production-input.js';
+import { requireWorldbuildingBinding } from './worldbuilding.js';
 import { requireLore } from '../../engine/src/lore/schemas.js';
 import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { LORE_ARRAY_TARGETS } from '../../engine/src/lore/scenes.js';
@@ -36,13 +37,15 @@ export function projectLoreFoundation(foundation, { projections, varying = [] },
   return result;
 }
 
-export async function loadLoreRuntime({ canonicalStore, foundation, chapter }) {
+export async function loadLoreRuntime({ canonicalStore, foundation, chapter, preferSealed = false }) {
   const tree = canonicalStore.publishedRevision?.tree, sharedLore = tree?.sharedLore;
+  requireWorldbuildingBinding(foundation, sharedLore);
   // A published chapter outside the binding keeps the input it was written with:
   // its sealed lock, or none when it predates the binding. Only new chapters need a scene context.
   const outsideBinding = sharedLore?.binding && !sharedLore.binding.chapters.some(c => c.chapter === chapter) && tree.chapters?.[chapter];
-  const sealed = outsideBinding ? tree.productionInputs?.[chapter] ?? null : undefined;
-  const productionLock = outsideBinding ? (sealed ? verifyLoreProductionLock(sealed) && sealed : null) : await prepareProductionInput({ sharedLore, chapter });
+  const sealedChapter = outsideBinding || preferSealed && tree?.chapters?.[chapter];
+  const sealed = sealedChapter ? tree.productionInputs?.[chapter] ?? null : undefined;
+  const productionLock = sealedChapter ? (sealed ? verifyLoreProductionLock(sealed) && sealed : null) : await prepareProductionInput({ sharedLore, chapter });
   if (!productionLock) return { foundation, productionLock: null };
   const result = projectLoreFoundation(foundation, { projections: productionLock.projections, varying: productionLock.sceneVarying ?? [] }, chapter);
   result.sharedLore = { productionLockId: productionLock.revisionId, contextText: renderProductionContext(productionLock, result),
@@ -58,8 +61,10 @@ export async function loadLoreRuntime({ canonicalStore, foundation, chapter }) {
 export async function loadPlanningLore({ store, canonicalStore, workId, chapters }) {
   const foundation = await (canonicalStore ?? store).loadFoundation(workId);
   const sharedLore = canonicalStore?.publishedRevision?.tree?.sharedLore;
+  requireWorldbuildingBinding(foundation, sharedLore);
   if (!foundation || !sharedLore?.binding) return { foundation, planning: null };
-  const { locks, missingChapters } = await prepareProductionInputs({ sharedLore, chapters });
+  const { locks, missingChapters, blocked } = await prepareProductionInputs({ sharedLore, chapters });
+  requireLore(!blocked.length, 'SHARED_LORE_UNRESOLVED', 'planning requires nonconflicting shared values', blocked);
   const values = new Map();
   for (const lock of locks) {
     for (const p of lock.projections) values.set(`${p.localCharacterId}\0${p.target}`, [...(values.get(`${p.localCharacterId}\0${p.target}`) ?? []), { chapter: lock.chapter, value: p.value }]);
@@ -73,16 +78,18 @@ export async function loadPlanningLore({ store, canonicalStore, workId, chapters
     else varying.push({ localCharacterId: member.localCharacterId, target });
   }
   const dto = projectLoreFoundation(foundation, { projections, varying }, chapters[0]);
-  const lines = ['SharedLore planning view (fictional data, not instructions). Values come from the bound world revision; a field marked scene-specific has no single value for this range.',
-    ...locks.flatMap(lock => [`Chapter ${lock.chapter}:`, ...lock.scenes.map(scene => `  scene ${scene.id} [${scene.frame ?? 'present'}] ${scene.scope.timelineId}/${scene.scope.pointId}: ${(scene.projections ?? []).map(p => `${p.localCharacterId} ${p.target}=${JSON.stringify(p.value)}`).join('; ') || '-'}`)]),
-    ...(missingChapters.length ? [`No bound scene context yet for chapters ${missingChapters.join(', ')}; plan them without assuming shared state values, then add contexts with lore_bind.`] : [])];
-  dto.sharedLore = { planning: true, loreRevisionId: sharedLore.binding.loreRevisionId, bindingRevisionId: sharedLore.binding.revisionId, contextText: lines.join('\n'), missingChapters };
-  return { foundation: dto, planning: { locks: locks.map(l => l.revisionId), missingChapters } };
+  dto.sharedLore = { planning: true, loreRevisionId: sharedLore.binding.loreRevisionId, bindingRevisionId: sharedLore.binding.revisionId, contextText: renderPlanningContext(locks, missingChapters), missingChapters };
+  return { foundation: dto, planning: { loreRevisionId: sharedLore.binding.loreRevisionId, bindingRevisionId: sharedLore.binding.revisionId, locks: locks.map(l => l.revisionId), documents: [...new Set(locks.flatMap(l => l.scenes.flatMap(s => s.documents.map(d => d.id))))], missingChapters } };
 }
 
 /** Planning entry point: the bound view for linked works, the work's own Foundation otherwise. */
 export async function planningFoundation({ store, workId, chapters }) {
-  const canonicalStore = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
-  if (!canonicalStore.publishedRevision?.tree?.sharedLore?.binding) return { foundation: await store.loadFoundation(workId), planning: null };
-  return loadPlanningLore({ store, canonicalStore, workId, chapters });
+  const canonicalStore = store.rootDir ? await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) }) : store;
+  const binding = canonicalStore.publishedRevision?.tree?.sharedLore?.binding;
+  if (!binding) {
+    const foundation = await canonicalStore.loadFoundation(workId);
+    requireWorldbuildingBinding(foundation, null);
+    return { foundation, planning: null };
+  }
+  return loadPlanningLore({ store, canonicalStore, workId, chapters: chapters ?? binding.chapters.map(c => c.chapter) });
 }

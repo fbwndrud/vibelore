@@ -23,7 +23,7 @@ import { compactWebtoonState, unavailableReview } from '../core/webtoon-efficien
 import { runReviewBatch } from '../core/webtoon-review-batch.js';
 import { interviewAreas } from '../core/webtoon-contract.js';
 import { PRESENTATION_REQUIRED, presentationOf } from '../core/webtoon-presentation.js';
-import { scenePublicState } from './webtoon-scene.js';
+import { scenePublicState, sceneStyleChange } from './webtoon-scene.js';
 import { SCENE_PRODUCTION_MODE } from '../core/webtoon-scene.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
@@ -1008,7 +1008,7 @@ export async function readWebtoonWorkflow({ store, workId, workflowId, includeMo
   const repo = new WebtoonStore(store); const workflow = await repo.load(workflowId);
   if (!workflow) return { active: false, found: false, lane: 'webtoon' };
   if (workflow.workId !== workId) throw new Error('WORKFLOW_WORK_MISMATCH');
-  if (workflow.productionMode === SCENE_PRODUCTION_MODE) return { ...scenePublicState(workflow), found: true, active: !terminal(workflow),
+  if (workflow.productionMode === SCENE_PRODUCTION_MODE) return { ...scenePublicState(workflow), found: true, active: !terminal(workflow), styleChange: await sceneStyleChange(repo, workflow),
     ...(history ? { events: workflow.events } : {}) };
   const result = { ...publicState(workflow), active: !terminal(workflow), found: true,
     drift: digest(await repo.inventory()) !== digest(workflow.acceptedInventory),

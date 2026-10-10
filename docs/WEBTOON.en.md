@@ -26,7 +26,7 @@ sent to the connected AI service. See [Data and security](../SECURITY.md).
 
 ## How to ask
 
-> Make chapter 1 into a webtoon. Read the source settings, and ask me about the adaptation direction, art style and lettering first. Draw each whole scene as one image, dialogue included.
+> Make chapter 1 into a webtoon. I want a warm, playful feeling. Show me one style sample first; if I like it, carry that feeling into the comic.
 
 If you have several works, mention the work folder or work name too. You can also combine several chapters into one episode,
 as in "source chapters 1-2 into webtoon episode 1". Within one work, webtoon episodes are made one at a time.
@@ -56,20 +56,29 @@ show it**.
 | What you decide | Example answer |
 |---|---|
 | The source range and the core of the adaptation | "The opening of chapter 1; the strangeness of coming back is the center. Cut exposition, but keep the motive of looking for his daughter." |
-| Art style | "Vivid color, natural anatomy, slightly exaggerated expressions." |
+| Art style | "Like hearing an old story from a friend. Show me a sample first." |
 | Lettering, page format and layout freedom | "Inner thoughts in light boxes, actual speech in balloons. Draw it as one tall vertical image." |
 | Reference art | "Use `refs/hero.png` for the character and `refs/street.png` for the street." |
 | Panel count | "Use auto." |
 | Drawing path, model and cost | "Use the proposed built-in tool; I know every redraw uses more of my usage." |
 
-Lettering, page format and layout freedom are not separate menu choices; they go into the English direction (`direction`).
-When the AI shows your answers summed up in English, check that they mean what you meant.
+Describe the style in everyday words, show a picture you like, or name an artist as a starting point. The AI interprets that
+request and **shows one actual sample for you to choose**. Ask for changes such as "cuter" or "less frightening". You can also
+adopt a sample you supplied without drawing another one. Artist names and references do not guarantee an exact reproduction.
 
-Even if you say "just go ahead", the panel count and the drawing path, model and cost are confirmed with you. The AI first checks
-the paths and models it can really use on this host, shows them all, and proposes the built-in tool first if there is one. The choice is kept
-once made, for this work's later scenes and episodes too, and you are asked again only when you say to change it, as in "From now on draw with the API".
-When it can't run, it is not secretly switched to another path or model.
-Reference art is named each time a scene starts.
+The adopted sample and short summary carry into future scenes. Changing the style applies to future scenes and keeps existing
+images; say which earlier scenes you want redrawn too. The AI explains the change and its scope. It writes page and lettering
+direction for you; you do not need to author an English prompt.
+
+If you say "just go ahead", the AI chooses a source-based style and uses `auto` for an unspecified panel count, then continues
+through production checks. It keeps the sample as a reference and explains its choice with the result. "Just choose the style"
+delegates only that choice; "only a sample" or "show me first" creates the sample and waits for you.
+
+Existing styles and image paths are reused. A new path uses an available built-in tool first. New API billing needs an earlier
+approval or explicit permission to choose paid API usage now. Limits such as "no spending", "no redraws" or "only one image"
+take priority; failure never silently switches the path or model. You can say "let me choose" or "stop" midway; the sample and
+completed files stay preserved. Earlier scenes change only when you explicitly ask to revise them.
+Character and background reference art is named each time a scene starts. The adopted style sample carries over automatically.
 
 ## Whole scene: one image, dialogue included
 

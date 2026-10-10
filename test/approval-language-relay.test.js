@@ -27,7 +27,7 @@ async function invoke({ store, toolName = 'lore_profile', args, executeTool, pre
 
 test('real preflight → resume → profile decide uses stable exact proof despite timestamps', async () => {
   const store = await newStore();
-  const args = { workId: 'book', language: 'en', brief: '한국어 원문', mode: 'review' };
+  const args = { workId: 'book', language: 'en', brief: '한국어 원문', mode: 'review', feedback: '중요한 선택은 함께 정할게요.', discovery: { depth: 'standard', userAnswer: '중요한 선택은 함께 정할게요.' } };
   const executeTool = (store, _name, args, providers) => runStoryProfile({ store, ...args, providers });
   const first = await invoke({ store, args, executeTool });
   assert.equal(first.status, 'needs_model'); assert.equal(first.requests[0].step, 'story-profile');

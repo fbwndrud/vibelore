@@ -1,6 +1,6 @@
 ---
 name: webtoon-discovery-interview
-description: Use when adapting a vibelore novel, world and characters into a webtoon (웹툰화, 웹툰 각색, 웹툰으로 만들기). It inherits the existing settings and interviews only the differences of webtoon presentation. With the `lore_webtoon_scene` whole-scene path it settles the direction, references, panel count and image model, then runs the pre-generation check and the visual review. The per-panel `lore_webtoon_plan` path is deprecated and used only to continue existing work. The next scene continues with `previousWorkflowId`.
+description: Use when adapting a vibelore novel, world and characters into a webtoon (웹툰화, 웹툰 각색, 웹툰으로 만들기). It inherits the existing settings and interviews only the differences of webtoon presentation. With the `lore_webtoon_scene` whole-scene path it adopts a user-chosen style sample with `lore_webtoon_style` and settles references, panel count and image model, then runs the pre-generation check and the visual review. The per-panel `lore_webtoon_plan` path is deprecated and used only to continue existing work. The next scene continues with `previousWorkflowId`.
 ---
 
 # Webtoon discovery interview
@@ -30,30 +30,66 @@ already resolves to `ko`). `lore_status` doesn't return it. The image
 prompt automatically states the language, script (ISO 15924) and reading direction, so don't create separate
 translation instructions in the interview.
 
+## Direct choice or delegation
+
+Interpret the user's latest words in the current request context before asking questions. "알아서 해줘", "you choose" and
+"don't ask me" are explicit delegation, not missing answers. Record the actual words in `delegation.userAnswer` and choose
+`scope=preview|style|production`: preview only creates a sample and waits; style also delegates adoption; production covers the
+requested source range and defaults an omitted panel count to `auto`. "그림체만" delegates style only. "알아서, 먼저 보여줘"
+uses preview, and a reply to a style question does not automatically delegate the whole production. A vague "좋아" approves
+only the concrete pending choice. Silence is neither adoption nor delegation. User-specified style, count and references stay fixed.
+
+Use an existing style and image choice. For a new choice, report actual runtime capabilities; under delegation the tool selects
+a built-in path without another user question. New API billing requires explicit authority (`apiPolicy=allow`) or the normal
+cost confirmation. The default `existing-only` permits an already approved API; "돈 쓰지 마" is `forbid` and overrides it.
+Record stated retry limits in `maxAutoRevisions`; 0 means no automatic redraw. It is a per-scene retry cap, not a total billing
+budget. For total image-call or money limits, track actual calls in the host and fit sample/reference/scene generation inside
+that limit; a one-image request can use a supplied/existing style or create the requested final scene directly with `direction`.
+Ask only for genuinely missing source/identity facts or permission outside the grant. Never invent novel facts to fill gaps.
+
+For delegated style adoption, open the actual sample and call `approve` with `choice={inspectedImage:true,imageHash,rationale}`.
+The tool records the host's choice separately from the user delegation; show the sample and reason with the result and keep
+working within the request scope. `needs_style_decision` is host work, not a user question or a `lore_resume` request. At
+`awaiting_style_approval` the user chooses instead. Change a candidate's grant with `set_mode(delegation=..., proposalId)`;
+`delegation=null` plus the latest user `feedback` restores direct choice without drawing another sample. `reject` closes it.
+
+Delegation belongs to this request; a saved style is reusable, but its old grant is not authority for new production. Existing
+scenes change only when explicitly requested: list their exact IDs in `reviseWorkflows` and `applyToWorkflows`, then call
+scene `revise` for those IDs. Stop at the retry budget, report factual failures and style advisory, and retain the results.
+On "stop", close the current scene with `reject` and the user's words in `feedback`, cancel external pending calls if possible,
+and preserve completed files. For changes to costs during a scene, call explicit `revise` with the latest grant; report the
+allowed runtime and follow its response. Execution failure never authorizes a provider switch. After interruption, read status
+and resume the existing candidate/run/job; show the result without demanding an approval already delegated.
+
+See the full [edge cases](../../docs/reference/WEBTOON_WORKFLOW.md#선택-위임과-경계-상황).
+
 ## Inputs to gather, in order
 
 1. **Source range.** `sourceChapters`, and `sourceUnitIds` if needed. Specify only the range that was read. For a work with no
    novel, the source is a standalone scene script adopted with `lore_scene_script` (inspect, show the preview, apply after the user
    approves); pass its `scriptId` instead of `sourceChapters`, never both.
-2. **Art style and direction.** Take the user's own answer and turn it into an English `direction`. Show the English text you wrote to
-   the user, and pass it on only after they confirm it matches their intent.
+2. **Art style.** Check `lore_webtoon_style(action="status")` first. Reuse an adopted style for the next scene unless the user asks
+   to change it. For a new style, use the delegated source-based choice or ask in the user's language what they want the comic to feel like; an everyday description,
+   an artist name, or a reference image can be the starting point. Do not require an art-technique questionnaire or comparisons
+   of several styles. Follow [Adopting a style sample](#adopting-a-style-sample) below. The host writes the short English
+   summary; the user chooses by looking at the image. Page format and adaptation priorities may remain in `direction`.
 3. **Reference images.** File paths of character and background reference images the user supplies, with an English `description`.
-   They are required on every `start` (at least one; at most 16, or 15 when continuing a previous scene; the id `previous-scene`
-   is reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. With a script source, a catalog image the script
-   pinned is passed as `{id, assetId, description}` instead of a path. Only the confirmed image model is reused between
-   scenes, never the references. The field name is `hash` (`inputHash` is a field only for the `asset` that imports a generated
+   They are required on every `start` (at least one; total 16 including the automatically attached adopted-style sample
+   and any preceding scene image; ids `adopted-style` and `previous-scene` are reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. With a script source, a catalog image the script
+   pinned is passed as `{id, assetId, description}` instead of a path. The confirmed image model and adopted style sample are reused between scenes; character and background references
+   are supplied on each start. The field name is `hash` (`inputHash` is a field only for the `asset` that imports a generated
    scene image; they are different contracts).
-4. **`panelCount`.** An integer 1-12 or `"auto"`. The user chooses. If not chosen, the result is
+4. **`panelCount`.** An integer 1-12 or `"auto"`. Respect an explicit choice; under production delegation an omitted count becomes `auto`. If not chosen, the result is
    `needs_interview` (options `4, 6, 8, 9, auto`); `auto` lets the AI choose 3-12 panels anew for each adaptation, and fewer
    than 3 panels are shown as a continuity warning in the response `warnings`.
-5. **Image path, model and cost.** If this work has no confirmed choice, `action="start"` first returns
-   `needs_image_runtime`. Check what this host really offers and call the same `start` again with
+5. **Image path, model and cost.** If this work has no confirmed choice, style `propose` or scene `start` first returns
+   `needs_image_runtime`. Check what this host really offers and call the same request again with
    `imageRuntime={host, options:[...]}`: every built-in image tool (`execution="host-built-in"`, its `tool` name, whether it takes a
    model argument, the models it accepts) and every API path (`execution="api"`, `provider`, `models`, the `credential` name, never
    its value). Leave `models` empty when a path takes a model argument but you cannot tell which models the account can use. Report only what you checked; write anything unknown, such as which model a built-in tool uses, in `note`.
-   The result is `needs_image_choice`: show every entry of `imageChoice.options`, the proposal (`imageChoice.proposed`, the
+   Without delegation, the result is `needs_image_choice`: show every entry of `imageChoice.options`, the proposal (`imageChoice.proposed`, the
    built-in path first) and `imageChoice.notice` as they are. If the user picks another path or model, call again with
-   `imageOption` and `imageModel` for a new proposal. Once they choose, call the same `start` again with
+   `imageOption` and `imageModel` for a new proposal. Once they choose, call the same request again with
    `confirmImageChoice=imageChoice.id` and `feedback=<the user's own answer>` (the runtime report need not be resent); this becomes the work's choice. A displayed
    default or no answer is not approval. When the user later says to switch (for example "from now on use the API"), start with
    `changeImageChoice=true` plus a fresh `imageRuntime` and repeat the same confirmation.
@@ -64,10 +100,38 @@ For `needs_model` (`webtoon-scene-plan`, `webtoon-scene-preflight`,
 exact `runId` and JSON per request ID. This is model work; keep it separate from questions for the user.
 Lookups use `lore_workflow_status`/`history(lane="webtoon")`.
 
-At `needs_scene_image`, read [Codex image execution](references/codex-images.md#scene-path-needs_scene_image). The host runs
-the one job through the OpenAI image API and imports the file with `asset: { path, inputHash: jobs[0].inputHash, provenance:
-{ kind: "openai-api", requestedModel: jobs[0].apiRequest.model, selectionId: jobs[0].apiRequest.selectionId } }`; any other
-provenance fails with `IMAGE_EXECUTION_PROVENANCE_REQUIRED`. Every automatic re-plan and every `revise` is another paid image call.
+At `needs_scene_image`, read [Codex image execution](references/codex-images.md#scene-path-needs_scene_image). Execute
+`hostRequest` or `apiRequest` as selected and import the exact `inputHash` and execution provenance. Every automatic re-plan
+and every `revise` consumes another image call on that path. Open each actual file in a model request's `images` before
+answering; file paths or a prose description alone are not an image review.
+
+## Adopting a style sample
+
+The user decides visual preference and where a change applies, directly or by explicit delegation. The host interprets the words and runs the image tool; the
+image model draws. Vibelore preserves the words, candidates, adopted image, short summary, input hashes and versions.
+A review LLM observes source fidelity and visible defects; it does not approve the user's taste.
+
+1. Pass the user's original words as `brief` and your English interpretation as `direction` (at most 30 words) to
+   `lore_webtoon_style(action="propose")`. Include the scoped `delegation` when authorized. Use `language` for conversation notices. If the user supplies a sample to adopt,
+   pass `imagePath`; no image call is issued. Otherwise follow runtime/model confirmation above and generate the single
+   returned `needs_style_image` job as described in [Style samples](references/codex-images.md#style-samples-needs_style_image).
+2. Open the actual returned `image.path`. With delegation, choose and continue as above. For direct choice, show it with a short explanation in the user's language: for example,
+   "이 그림체로 갈까요? 더 귀엽게, 더 묵직하게 바꿔도 돼요." An image is the choice surface; don't make approval of an English
+   prompt a separate user step. Do not promise an artist-name request or reference will be reproduced exactly.
+3. On a change request, retain the candidate and propose another from the updated brief. On adoption, call `approve` with
+   `proposalId` and the user's actual answer in `feedback`, or the required `choice` under recorded delegation. A preview alone is not adoption. Existing explicit
+   authorization can be used; don't ask the same question twice. On rejection use `reject`; the old adopted style is kept.
+4. A new scene automatically pins the adopted image and summary. Omit `direction` to use its summary, or provide additional
+   page/adaptation direction. The sample is automatically included in planning, preflight, drawing and visual review, and
+   does not replace identity references. Do not add the sample manually to `references`.
+5. A new adoption applies to future scenes. Existing scenes stay pinned and `styleChange` reports the difference. If the user
+   wants existing scenes redrawn, record their IDs in `applyToWorkflows` on adoption, then explicitly call scene `revise` with
+   the new `styleRevisionId` and their feedback for each. Recording the scope alone does not redraw anything. Keep earlier files.
+
+For an adopted style, the image reviewer must open the actual sample and return `styleReview` with `inspectedReference=true`,
+`verdict=matches|differs|uncertain` and concrete `evidence`. Differences in style are advisory and are shown to the user; they do
+not trigger automatic regeneration. Actual source, lettering and continuity failures retain their normal checks. Text-only,
+image-only and combined conditioning comparisons are developer quality evaluations, not required user onboarding.
 
 ## Latin-script English sent to the server
 

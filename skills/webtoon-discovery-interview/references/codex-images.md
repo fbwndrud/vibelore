@@ -6,6 +6,8 @@ Vibelore handles the plan, state and review, and the host draws with the path th
 
 This is the default path (`lore_webtoon_scene`). The user picks how images are drawn: a built-in image tool of the host, or an API.
 The server never generates images and holds no per-host model list; you report what this host really has.
+For delegated requests, follow the skill's [decision path](../SKILL.md#direct-choice-or-delegation): runtime reporting is host work,
+and an authorized built-in choice is recorded without another user confirmation. Steps below describe the direct-choice branch.
 
 1. **Report the host's image paths (`needs_image_runtime`).** Call `start` again with `imageRuntime`. In Codex, checked on
    codex-cli 0.159.2:
@@ -41,6 +43,26 @@ The server never generates images and holds no per-host model list; you report w
 The lettering is part of the image; there is no separate text layer or SVG. Every automatic re-plan after a failed check or review,
 and every user `revise`, issues a new job with a new `inputHash`: another host-usage call on the built-in path, another paid call on
 the API path. Don't resend a request on your own after an uncertain failure, and never switch paths without the user's choice.
+
+## Style samples (`needs_style_image`)
+
+`lore_webtoon_style(action="propose", brief=<user words>, direction=<short English interpretation>)` returns one sample job.
+Runtime and model choice are the same as the scene path above and persist for this work. The user chooses directly or delegates within this request;
+style adoption is a separate decision about the actual sample. Passing a supplied `imagePath` skips generation and preserves it.
+
+Execute the returned job's exact prompt, reference images and `hostRequest`/`apiRequest`. Copy the result into the work folder,
+then call `lore_webtoon_style(action="import", proposalId, asset={path,inputHash,provenance})` with the same provenance shapes
+as scene import above. For direct choice, show the preserved `image.path`, then call `approve` with the proposal ID and
+user's answer in `feedback`. Under scoped delegation, `needs_style_decision` asks the host to open the sample and supply
+`choice={inspectedImage:true,imageHash,rationale}` directly to `approve`; continue without another user confirmation.
+`awaiting_style_approval` is a user decision. Neither state is answered through `lore_resume`.
+`set_mode` changes or revokes delegation while preserving the sample and existing cost/retry restrictions. Follow the skill's
+[decision path](../SKILL.md#direct-choice-or-delegation) for scope, costs and cancellation.
+
+After interruption, `status` with `proposalId` returns the candidate and any pending job; reuse it instead of issuing another
+paid call. Approval keeps the image bytes and summary as an immutable revision. New scenes attach it automatically; existing
+scenes change only on an explicit scene `revise(styleRevisionId=..., feedback=...)`. A single generated sample does not establish
+how accurately the model will follow its style in production; evaluate that separately.
 
 ## Per-panel path (deprecated)
 

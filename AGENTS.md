@@ -1,8 +1,12 @@
 # 소설 집필 — vibelore
 
-웹툰 각색·제작·수정 요청은 `webtoon-discovery-interview` 스킬과 [웹툰 작업 흐름](docs/reference/WEBTOON_WORKFLOW.md)을 따른다. 새 작업은 `lore_webtoon_scene` 장면 경로로 만든다. 사용자가 원작 범위·화풍·참조·칸 수(정수 또는 `auto`)·이미지 모델을 고르고, 대사는 작품 언어 원문 그대로 이미지에 들어간다. `lore_webtoon_plan` 컷별 경로는 deprecated이며 진행 중인 기존 작업을 마무리할 때만 쓴다. `needs_interview`는 사용자 질문, `needs_model`은 모델 응답이다. 조회는 `lane="webtoon"`을 사용하고 웹툰 결과는 소설 정본과 분리한다.
+웹툰 각색·제작·수정 요청은 `webtoon-discovery-interview` 스킬과 [웹툰 작업 흐름](docs/reference/WEBTOON_WORKFLOW.md)을 따른다. 새 작업은 `lore_webtoon_scene` 장면 경로로 만든다. 사용자가 원작 범위·화풍·참조·칸 수(정수 또는 `auto`)·이미지 모델을 직접 고르거나 명시적으로 위임하며, 대사는 작품 언어 원문 그대로 이미지에 들어간다. `lore_webtoon_plan` 컷별 경로는 deprecated이며 진행 중인 기존 작업을 마무리할 때만 쓴다. `needs_interview`는 사용자 질문, `needs_model`은 모델 응답이다. 조회는 `lane="webtoon"`을 사용하고 웹툰 결과는 소설 정본과 분리한다.
+
+“알아서/자동으로/묻지 말고”는 웹툰 선택 위임으로 기록한다. `lore_webtoon_style`의 `delegation.scope`로 예시만·화풍 선택·제작 범위를 나누고, 제작 위임이면 미지정 칸 수는 `auto`다. 위임 선택은 실제 예시를 본 호스트의 `choice`로 기록하며 사용자 직접 승인으로 보고하지 않는다. 최신 비용·재시도 제한을 지키고 기존 장면 수정은 명시된 대상만 한다. 자세한 경계 상황은 웹툰 스킬과 실행 규약을 따른다.
 
 `world/`, `characters/`, `chapters/`는 사람이 읽고 고치는 정본이며 `.vibelore/`는 직접 수정하지 않는다.
+
+새 작품은 세계관·인물·이야기·문체 전체를 얼마나 함께 질문·준비할지 먼저 확인해 `lore_profile.discovery`에 실제 답변/위임을 기록한다. 최신 선호 변경, 단계별 검토·재작성·상위 설계/조사 복귀는 [작품 준비 흐름](docs/reference/STORY_PREPARATION_WORKFLOW.md)을 따른다. 세계관 규모는 별도 선택이며 상세 세계의 채택·연결·문서 참조는 그 문서의 세계관 경로를 따른다.
 
 소설을 이어 쓸 때는 기본적으로 `lore_write`만 호출한다. `guided`는 검사 완료 원고와 advisory를 사용자에게 보여준 뒤 `lore_decide`, `auto`는 불변식 검사를 통과하고 켜 둔 critic이 정상 완료된 경우에만 자동 커밋한다. 사용자가 `lore_configure(disabledReviews=[...])`로 끈 검토는 요청하지 않고 실패로 보지 않는다. `needs_model`이면 요청에 답해 `lore_resume`으로 이어간다. 한 응답의 `requests`는 서로 독립이므로 병렬로 답해도 되며 모든 답을 한 번의 `lore_resume`에 함께 넘긴다. 요청마다 새 프로세스나 API 호출로 답할 때는 `promptCache.warmFirst=true` 요청을 먼저 보내 첫 출력이 시작된 뒤 나머지를 보낸다. 화별 계획·초고·결정론 검사·critic 검토 묶음·필요한 최소 수정·검사 영수증·커밋의 순서를 임의로 해체하지 않는다.
 
