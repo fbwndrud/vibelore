@@ -46,9 +46,37 @@ export async function sceneStyleChange(repo, w) {
       'The style changed. This scene keeps its pinned basis; revise explicitly with the new styleRevisionId and user feedback to apply it.') } : null;
 }
 
+/** Asset adoption is script-wide; a media excerpt must enforce its narrower scene scope. */
+function catalogReferenceScope(source, units, reference) {
+  const asset = source.assets?.find(a => a.assetId === reference.assetId);
+  if (!asset) throw new Error('SCENE_ASSET_NOT_PINNED');
+  const selectedScenes = new Set(units.map(unit => unit.sceneId));
+  const sceneIds = asset.sceneIds.filter(id => selectedScenes.has(id));
+  if (!sceneIds.length) throw new Error('SCENE_ASSET_STATE_MISMATCH: the asset does not apply to any selected scene');
+  return { asset, sceneIds };
+}
+
+function referenceContext(w) {
+  const references = w.sceneReferences.filter(r => r.assetId).map(({ id, assetId, entityId, stateIds, sceneIds }) =>
+    ({ id, assetId, entityId, stateIds, sceneIds }));
+  return references.length ? { references } : {};
+}
+
+function verifyReferenceScopes(w) {
+  for (const reference of w.sceneReferences.filter(r => r.assetId)) {
+    const { asset, sceneIds } = catalogReferenceScope(w.source, w.sceneUnits, reference);
+    if (reference.hash !== asset.hash || reference.assetRevisionId !== asset.assetRevisionId
+      || reference.sceneIds && (digest(reference.sceneIds) !== digest(sceneIds)
+        || digest(reference.stateIds) !== digest(asset.stateIds) || reference.entityId !== asset.entityId)) {
+      throw new Error('SCENE_REFERENCE_CHANGED');
+    }
+  }
+}
+
 async function verifyInputs(repo, w) {
   // Novel sources keep the original snapshot; script sources read only the adopted script and sealed inputs.
   await verifyProductionSource(repo.store, w.source, w.workId);
+  verifyReferenceScopes(w);
   if (w.styleSnapshot) await verifyStyleSnapshot(w.styleSnapshot);
   for (const r of w.sceneReferences) {
     const images = await importWebtoonImages(repo.store.rootDir, [{ shotId: r.id, path: r.path }], [r.id]);
@@ -118,7 +146,7 @@ async function drive(repo, w, providers) {
       + (auto ? `panelCount is "auto": choose the panel count (integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max}) that this adaptation needs and return it as panelCount; choose again from scratch on every revision. `
         : 'Honor the user-selected panelCount ')
       + 'without making one beat equal one panel. Do not prescribe panel rectangles, coordinates or a camera per sentence. Identify only necessary spatial facts. Separate ambiguity from facts, never invent physics to fill a gap. Let the image artist choose composition. Preserve causality, character motivation and exact speaker identities. A beat is an event, not a panel. Do not reuse prior shot lists.',
-      { source: w.sceneUnits, foundation: w.source.foundation, documents: w.source.documents,
+      { source: w.sceneUnits, foundation: w.source.foundation, documents: w.source.documents, ...referenceContext(w),
         ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'This is the user-adopted visual treatment. Preserve it; source facts and identities remain authoritative. Any source expression profile is subordinate for presentation only.' } : {}),
         ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText, cast: w.source.cast, expression: w.source.expression } : {}), direction: w.direction,
         panelCount: auto ? 'auto' : w.panelCount, previousScene: w.previousScene,
@@ -133,7 +161,7 @@ async function drive(repo, w, providers) {
     const hash = sceneBinding(w);
     const r = await modelTask(repo, w, 'webtoon-scene-preflight',
       `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. Keep camera and layout free. Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
-      { source: w.sceneUnits, ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText } : {}), plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
+      { source: w.sceneUnits, ...referenceContext(w), ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText } : {}), plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
         ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Copy styleBasis.profile.style exactly into renderBrief.style. The sample is for visual treatment only; preserve source identities and facts.' } : {}),
         ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
         coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
@@ -221,6 +249,7 @@ async function startScene(store, repo, args, current) {
   if (delegation?.maxAutoRevisions !== undefined && autoLimit > delegation.maxAutoRevisions) throw new Error('WEBTOON_DELEGATION_RETRY_LIMIT');
   const selected = args.sourceUnitIds ?? source.units.map(u => u.id);
   if (!Array.isArray(selected) || !selected.length || new Set(selected).size !== selected.length || selected.some(id => !source.units.some(u => u.id === id))) throw new Error('INVALID_SCENE_SOURCE_SCOPE');
+  const sceneUnits = source.units.filter(u => selected.includes(u.id));
   if (previous) {
     const ids = source.units.map(u => u.id), prior = previous.sceneUnits.map(u => ids.indexOf(u.id));
     if (prior.some(i => i < 0) || Math.min(...selected.map(id => ids.indexOf(id))) !== Math.max(...prior) + 1) throw new Error('SCENE_CONTINUATION_SCOPE');
@@ -233,7 +262,9 @@ async function startScene(store, repo, args, current) {
     if (r?.assetId === undefined) return r;
     const asset = source.assets?.find(a => a.assetId === r.assetId);
     if (!asset || r.path !== undefined || r.hash !== undefined) throw new Error('SCENE_ASSET_NOT_PINNED: an assetId reference must name an asset selected in the adopted script');
-    return { id: r.id, path: asset.path, hash: asset.hash, description: r.description, assetId: asset.assetId, assetRevisionId: asset.assetRevisionId };
+    const { sceneIds } = catalogReferenceScope(source, sceneUnits, r);
+    return { id: r.id, path: asset.path, hash: asset.hash, description: r.description,
+      assetId: asset.assetId, assetRevisionId: asset.assetRevisionId, entityId: asset.entityId, stateIds: asset.stateIds, sceneIds };
   }) : args.references;
   // A failed scene stays available to the continuity review, but its image never feeds the next drawing.
   const drawFromPrevious = Boolean(previous?.visualReview.passed);
@@ -241,7 +272,7 @@ async function startScene(store, repo, args, current) {
     || references.some(r => [PREVIOUS_SCENE_ID, STYLE_REFERENCE_ID].includes(r.id)) || new Set(references.map(r => r.id)).size !== references.length
     || references.some(r => !safeId(r.id) || !isEnglish(r.description) || !nonempty(r.hash))) throw new Error('SCENE_REFERENCES_REQUIRED');
   const w = { workflowId: `wt-${randomUUID()}`, productionMode: SCENE_PRODUCTION_MODE, imagePromptVersion: 2, workId: args.workId, revision: 1,
-    stage: 'scene_generate', source, sceneUnits: source.units.filter(u => selected.includes(u.id)), direction,
+    stage: 'scene_generate', source, sceneUnits, direction,
     ...(styleSnapshot ? { styleSnapshot } : {}),
     ...(delegation ? { delegation, apiRestriction: delegation.apiPolicy } : {}),
     panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount }),
@@ -279,6 +310,7 @@ async function writeProductionRecord(repo, w) {
 }
 /** Read-only proof that a completed scene's preserved inputs and image still match. */
 async function verifyProduction(repo, w) {
+  verifyReferenceScopes(w);
   if (w.stage !== 'completed' || !w.productionRecordHash) throw new Error('SCENE_PRODUCTION_NOT_RECORDED');
   const root = repo.store.rootDir, recordFile = await readJson(recordPath(repo, w));
   const changed = () => { throw new Error('SCENE_PRODUCTION_RECORD_CHANGED'); };

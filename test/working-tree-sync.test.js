@@ -26,7 +26,7 @@ describe('working tree and experience generations', () => {
     assert.deepEqual(drift.changed, ['world/setting.md']);
   });
 
-  it('treats a whitespace-only hand edit as no drift but still sees a changed word', async () => {
+  it('tracks whitespace and paragraph edits as well as changed words', async () => {
     const root = await mkdtemp(join(tmpdir(), 'vibelore-drift-space-'));
     const store = new MarkdownStateStore(root);
     await mkdir(join(root, 'chapters'), { recursive: true });
@@ -34,7 +34,7 @@ describe('working tree and experience generations', () => {
     await writeFile(path, '# 1화\n\n"가자." 리아가 말했다.\n', 'utf8');
     await captureWorkingTreeFingerprint({ store, sourceHead: 'sha256:head-a' });
     await writeFile(path, '# 1화\n\n\n"가자."\n리아가  말했다.\n\n', 'utf8');
-    assert.equal((await detectWorkingTreeDrift({ store, sourceHead: 'sha256:head-a' })).status, 'clean');
+    assert.equal((await detectWorkingTreeDrift({ store, sourceHead: 'sha256:head-a' })).status, 'modified');
     await writeFile(path, '# 1화\n\n"가자." 도윤이 말했다.\n', 'utf8');
     const drift = await detectWorkingTreeDrift({ store, sourceHead: 'sha256:head-a' });
     assert.deepEqual([drift.status, drift.changed], ['modified', ['chapters/001.md']]);

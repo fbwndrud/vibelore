@@ -356,7 +356,7 @@ export async function runStoryProfile({ store, workId, brief, action = 'design',
   // true 로 답해도 사용자 원문 근거가 없으면 승인으로 세지 않는다. 근거는 모델이
   // 고른 축 값과도 맞아야 한다.
   const proposedReadability = normalizeReadabilityContract(obj.readabilityContract);
-  const readabilityAnswer = recognizeReadabilityAnswer(
+  let readabilityAnswer = recognizeReadabilityAnswer(
     `${source}\n${feedback}`,
     obj.readabilityContract?.userAnswerEvidence,
     {
@@ -364,6 +364,15 @@ export async function runStoryProfile({ store, workId, brief, action = 'design',
       selected: Object.fromEntries(READABILITY_AXES.map((axis) => [axis, proposedReadability[axis]])),
     },
   );
+  // A new interview answer need not repeat all prior answers. Only carry proof
+  // across the same language and exact four-axis selection, never to new choices.
+  const retainReadability = existing?.readabilityContract?.confirmedByUser === true
+    && existing.language === workLanguage.language
+    && READABILITY_AXES.every(axis => existing.readabilityContract[axis] === proposedReadability[axis]);
+  if (!readabilityAnswer.confirmed && retainReadability) readabilityAnswer = {
+    confirmed: true, method: 'previous-confirmed-contract',
+    evidence: existing.readabilityContract.userAnswerEvidence ?? null, rejection: null,
+  };
   const profile = {
     workId, profileSchemaVersion: STORY_PROFILE_SCHEMA_VERSION, contractVersion: MCP_CONTRACT_VERSION,
     language: workLanguage.language,
@@ -379,7 +388,7 @@ export async function runStoryProfile({ store, workId, brief, action = 'design',
     narrativeContract: narrativeContract(obj.narrativeContract, kit),
     readabilityContract: normalizeReadabilityContract({
       ...obj.readabilityContract,
-      confirmedByUser: mode === 'review'
+      confirmedByUser: retainReadability || mode === 'review'
         && obj.readabilityContract?.confirmedByUser === true
         && readabilityAnswer.confirmed,
       userAnswerEvidence: readabilityAnswer.confirmed ? readabilityAnswer.evidence : null,

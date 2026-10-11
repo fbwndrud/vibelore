@@ -222,6 +222,10 @@ and is not treated as a new obligation for the whole work. The existing style re
 Detects `world/`, `characters/` and `chapters/` Markdown edited by people after the Published HEAD.
 `inspect` classifies the changes; the last chapter is republished only when `apply` is called with the `approvalId`
 that `validate` issued after checking it. Changes to earlier chapters and design are not applied automatically without an impact analysis.
+File byte changes, including whitespace, word boundaries and paragraph breaks, count as drift. Older fingerprints use their stored raw byte hashes.
+Edits to `world/story-spine.md` or `world/writer-skill.md` are classified as `plan_review_required`;
+`validate`/`apply` block with `PLAN_DOCUMENT_SYNC_UNSUPPORTED`. Preserve the edited text separately, restore the document
+to its last approved version, then pass the changes as `feedback` to `lore_story_plan` or `lore_writer_skill` for review and approval.
 
 | Required | Optional |
 |---|---|
@@ -619,6 +623,8 @@ Starting with `scriptId` uses only the script adopted through `lore_scene_script
 images as `{id,assetId,description}`. A newly started scene writes a record of the source revision, lock, references and image hash to
 `.vibelore/productions/` on completion, and `action=verify` re-checks that record and the sealed bytes without the world directory.
 References given only as paths are reported as `unpreserved`; no reproducibility is claimed for them.
+A catalog reference that applies to none of the selected source scenes is rejected with `SCENE_ASSET_STATE_MISMATCH`.
+References retain their `entityId`, `stateIds` and applicable `sceneIds`; image requests name the applicable moments when multiple states are depicted.
 For the detailed contract, see [Default path](reference/WEBTOON_WORKFLOW.en.md#default-path-whole-scene-production).
 
 ### `lore_webtoon_plan` (deprecated)

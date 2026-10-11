@@ -150,10 +150,22 @@ describe('standalone scene script', () => {
     assert.equal(ambiguous.structuredContent.code, 'SCENE_SOURCE_AMBIGUOUS');
     const unpinned = await rpc(root, 'lore_webtoon_scene', { ...start, references: [{ id: 'ts', assetId: 'ts-portrait', description: 'Not pinned.' }] });
     assert.equal(unpinned.structuredContent.code, 'SCENE_ASSET_NOT_PINNED');
+    for (const [sourceUnitIds, references] of [
+      [['s1-p-1'], [start.references[1]]],
+      [['s2-p-1'], [start.references[0]]],
+    ]) {
+      const wrongState = await rpc(root, 'lore_webtoon_scene', { ...start, sourceUnitIds, references });
+      assert.equal(wrongState.isError, true);
+      assert.equal(wrongState.structuredContent.code, 'SCENE_ASSET_STATE_MISMATCH');
+    }
     const seen = [];
     const answer = request => { const d = JSON.parse(request.user); seen.push({ step: request.step, d });
       if (request.step === 'webtoon-scene-plan') return scenePlan(d.source);
-      if (request.step === 'webtoon-scene-preflight') return scenePreflight(d);
+      if (request.step === 'webtoon-scene-preflight') {
+        const review = scenePreflight(d);
+        review.renderBrief.moments.forEach((moment, i) => { moment.sourceIds = [d.source[i % d.source.length].id]; });
+        return review;
+      }
       return { ...d.schema, observedPanelCount: 4, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspected the imported image.',
         textObservations: d.plan.texts.map(x => ({ id: x.id, observedText: x.text, readable: true, speakerCorrect: true, evidence: 'Visible.' })) }; };
     const drive = async result => {
@@ -168,6 +180,10 @@ describe('standalone scene script', () => {
     assert.doesNotMatch(JSON.stringify(plan), /TS_ONLY|FUTURE_SECRET_TOKEN/);
     assert.equal(plan.foundation, null);
     assert.equal(result.references.find(r => r.id === 'adult').assetId, 'adult-portrait');
+    assert.deepEqual(plan.references.map(r => [r.assetId, r.sceneIds]), [['adult-portrait', ['s1']], ['child-portrait', ['s2']]]);
+    assert.deepEqual(result.references.find(r => r.id === 'adult').stateIds, ['state-adult']);
+    assert.match(result.jobs[0].prompt, /Image 1:.*moments 1, 2, 4 only/);
+    assert.match(result.jobs[0].prompt, /Image 2:.*moments 3 only/);
     const imagePath = join(root, 'generated.png'); await writeFile(imagePath, png(42, 8, 12));
     result = await drive(ok(await rpc(root, 'lore_webtoon_scene', { workId, asset: { path: 'generated.png', inputHash: result.jobs[0].inputHash, provenance: { kind: 'openai-api', requestedModel: 'gpt-image-2.5-sunburst', selectionId: 'selected-api' } } })));
     assert.equal(result.status, 'completed', JSON.stringify(result).slice(0, 800));
