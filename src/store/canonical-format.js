@@ -50,6 +50,7 @@ export const CANONICAL_HEADINGS = Object.freeze({
     description: '설명',
     dramaticModel: '극적 모델',
     speechProfile: '말투 프로필',
+    mutable: '인물 시작 상태',
     summary: '요약',
   }),
   [CANONICAL_FORMAT_VERSION_MULTILINGUAL]: Object.freeze({
@@ -58,12 +59,13 @@ export const CANONICAL_HEADINGS = Object.freeze({
     description: 'Description',
     dramaticModel: 'Dramatic model',
     speechProfile: 'Speech profile',
+    mutable: 'Initial character state',
     summary: 'Summary',
   }),
 });
 
 export const SETTING_SECTION_KEYS = Object.freeze(['worldFacts']);
-export const CHARACTER_SECTION_KEYS = Object.freeze(['contradiction', 'description', 'dramaticModel', 'speechProfile']);
+export const CHARACTER_SECTION_KEYS = Object.freeze(['contradiction', 'description', 'dramaticModel', 'speechProfile', 'mutable']);
 /** summaries/NNN.md 의 소유 표제. */
 export const SUMMARY_SECTION_KEYS = Object.freeze(['summary']);
 

@@ -72,20 +72,21 @@ For verified versions and caveats, see [HOSTS.en.md](../HOSTS.en.md).
 
 ## Tool surface
 
-The default server exposes 32 user flows including design, integrated writing, webtoon production, approval, recovery and shared world management.
+The default server exposes 33 user flows including design, integrated writing, webtoon production, approval, recovery and shared world management.
 Per-stage primitive tools such as `lore_context`, `lore_draft`, `lore_check` and `lore_commit` can bypass the normal
 writing order, so they are left out of the default list.
 
 Only in development environments that need engine debugging or compatibility checks, setting
-`VIBELORE_MCP_SURFACE=advanced` on the server process exposes all 48 tools. Don't put this value in a
+`VIBELORE_MCP_SURFACE=advanced` on the server process exposes all 49 tools. Don't put this value in a
 configuration used for writing works.
 
 Use `VIBELORE_MCP_SURFACE=compat` only to finish existing panel-based webtoon workflows.
-It exposes the 32 default tools plus the three deprecated `lore_webtoon_plan/render/decide` tools,
+It exposes the 33 default tools plus the three deprecated `lore_webtoon_plan/render/decide` tools,
 without low-level prose tools. Starting new panel-based work remains blocked on this surface.
 
 ## Common inputs and responses
 
+Use `lore_webtoon_style` to adopt an actual style sample from the user's words and reuse it for future scenes.
 Webtoons are generated with `lore_webtoon_scene`, one whole scene per image with dialogue, without roughs.
 `lore_webtoon_plan` (interview and adaptation), `lore_webtoon_render` (image jobs, roughs, lettering) and
 `lore_webtoon_decide` (approval bound to the current ID) are [deprecated] and are used only to continue per-panel work

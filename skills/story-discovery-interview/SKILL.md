@@ -27,11 +27,23 @@ For a Korean-speaking user or a `ko` work, use the exact Korean strings marked `
 
 ## How to converse
 
-- Ask only 4-5 related questions per round. Attach to each question a recommendation and a short note on how that choice changes the reading experience.
+Before other design questions, settle how much the user wants to ask and prepare together across the whole work:
+just the essentials, important choices together, or thorough exploration of their chosen areas. Accept free answers,
+reuse an existing answer, and record the actual brief/feedback quote in `lore_profile.discovery`.
+This is independent of world extent, thematic depth and reading difficulty. For the initial question, interpretation,
+changes during work, stage-specific review/revision and different world types, follow
+[Story preparation and stage review](../../docs/reference/STORY_PREPARATION_WORKFLOW.md).
+Preparation depth does not turn reviews on or off. When the user asks to change review stages or frequency,
+follow that guide's review-choice section and use `lore_configure`; preserve their existing choices and use
+the defaults when they delegate without a review preference. Completed-manuscript review uses its range path.
+World scope is a later choice only when it matters to design. Detailed worlds follow
+[World preparation and stage context](../../docs/reference/WORLD_BUILDING_WORKFLOW.md).
+
+- Ask at most 3 essential questions per round for quick preparation, or 5 for standard/deep preparation. Attach to each question a recommendation and a short note on how that choice changes the reading experience.
 - Offer 2-4 concrete examples so the choice is easy, but accept free answers too. You may tidy up the user's wording, but don't turn a preference into more complicated settings.
 - When an answer reveals a new preference or a contradiction, dig into it in the next round. Don't ask about questions already answered, names or props the model will decide during design, or per-chapter micro-rules.
 - Ask about scene outcomes rather than vague yes/no. For example, instead of "Is the mood dark?" ask "When chapter 1 ends, should the reader feel catharsis or unease more strongly?" (in Korean: “어두운 분위기인가?”보다 “1화가 끝났을 때 독자가 통쾌함과 불안 중 무엇을 더 크게 느껴야 하는가?”).
-- A short initial idea can typically take 4-6 rounds and produce 20-30 decisions in total. With a sufficient brief, finish early; don't invent questions to reach a number.
+- Continue only while relevant choices remain open at the user's chosen depth. End early when the brief is sufficient; question counts and rounds are not completion goals.
 
 ## What to investigate
 
@@ -48,7 +60,7 @@ Look only for open decisions in these areas that would still change the result.
 - The texture of dialogue, each character's way of speaking, sentence rhythm, chapter length and line breaks, and when to use figures, precise times and jargon versus everyday expressions
 - Material, emotional lines and plot formulas to avoid, and the group of works to compare against
 
-Don't ask about every area equally deeply. Focus questions on areas where the choice changes the first 10 chapters or the repeating engine.
+Explore the user-selected focus areas deeply and keep other areas at the needed level. Quick preparation prioritizes choices that change the opening or repeating engine. World scope does not determine how deeply to interview about characters, story or voice.
 
 ## Required reading-difficulty contract
 
@@ -85,6 +97,8 @@ When the important open decisions are gone, show the following at once.
 
 - A one-sentence promise of the work (ko: 한 문장의 작품 약속)
 - The settled key decisions (ko: 확정된 핵심 결정)
+- The chosen collaboration/preparation depth and focus (ko: 함께 정할 정도와 관심 영역)
+- World extent when relevant (ko: 세계관 범위)
 - The author's latitude deliberately left open (ko: 의도적으로 열어 둔 작가 재량)
 - The quality criteria for the first 10 chapters (ko: 첫 10화 품질 평가 기준)
 - A summary of the generated StoryProfile (ko: 생성된 StoryProfile의 요약)

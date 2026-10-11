@@ -54,6 +54,26 @@ export async function captureWorkingTreeFingerprint({ store, sourceHead }) {
   return record;
 }
 
+/** Accept only the exact document written by a planning tool, never other edits. */
+export async function saveManagedPlanDocument({ store, path, text, write }) {
+  const accepted = await store.loadWorkingTreeFingerprint();
+  const local = relative(store.rootDir, path).split(sep).join('/');
+  let before = null;
+  try { before = await readFile(path); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const entry = accepted?.inventory?.find(item => item.path === local);
+  if (accepted && (entry ? !before || (entry.contentDigest ? contentDigestOf(before) !== entry.contentDigest : sha256(before) !== entry.digest) : before !== null)) {
+    throw Object.assign(new Error(`WORKING_TREE_DRIFT: sync ${local} before replacing its plan`), { code: 'WORKING_TREE_DRIFT' });
+  }
+  await write(path, text);
+  if (!accepted) return;
+  const bytes = Buffer.from(text);
+  const inventory = [...accepted.inventory.filter(item => item.path !== local),
+    { path: local, digest: sha256(bytes), contentDigest: contentDigestOf(bytes) }].sort((a, b) => a.path.localeCompare(b.path));
+  await store.saveWorkingTreeFingerprint({ ...accepted, inventory,
+    digest: sha256(JSON.stringify(inventory.map(({ path, contentDigest, digest }) => ({ path, contentDigest: contentDigest ?? digest })))),
+    capturedAt: new Date().toISOString() });
+}
+
 export async function advanceWorkingTreeFingerprint({ store, previousHead, sourceHead }) {
   if (previousHead) {
     const drift = await detectWorkingTreeDrift({ store, sourceHead: previousHead });
