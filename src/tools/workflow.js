@@ -20,6 +20,7 @@ import { assessContractLength, assessChapterLength, chapterDensityViolations } f
 import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '../core/quality-policy.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
+import { loadLoreRuntime } from '../core/lore-runtime.js';
 import { renderSummaries } from '../core/prompt-sections.js';
 import { ensureArcSummaries } from './arc-summary.js';
 import { ensureLedgerLog, openMergeCandidates, proposeLedgerMerges } from './ledger-migration.js';
@@ -327,6 +328,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   const chapters = await store.listChapters();
   const chapter = (chapters.at(-1) ?? 0) + 1;
   let foundation = await store.loadFoundation(workId);
+  const sharedCanon = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
+  if (sharedCanon.publishedRevision?.tree.sharedLore?.binding) foundation = (await loadLoreRuntime({ canonicalStore: sharedCanon, foundation: await sharedCanon.loadFoundation(workId), chapter })).foundation;
   const profile = await store.loadStoryProfile(workId);
   const storySpine = await store.loadStorySpine(workId);
   const writerSkill = await store.loadWriterSkill(workId);

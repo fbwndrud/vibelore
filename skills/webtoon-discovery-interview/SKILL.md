@@ -62,15 +62,17 @@ existing approval gates.
 
 ## Inputs to resolve, in order
 
-1. **Source range.** `sourceChapters`, and `sourceUnitIds` if needed. Specify only the range that was read.
+1. **Source range.** `sourceChapters`, and `sourceUnitIds` if needed. Specify only the range that was read. For a work with no
+   novel, use a standalone scene script adopted with `lore_scene_script` (inspect, show the preview, apply under the user's
+   authorization); pass its `scriptId` instead of `sourceChapters`, never both.
 2. **Art style and direction.** Take the user's own answer and turn it into an English `direction`, using
    [Authorization and defaults](#authorization-and-defaults) to decide whether a question is needed.
 3. **Reference images.** File paths of supplied or authorized generated character and background references, with an English
-   `description`.
-   They are required on every `start` (at least one; at most 16, or 15 when continuing a previous scene; the id `previous-scene`
-   is reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. The server retains the confirmed image choice
-   between scenes; pass the reference files and hashes again on every start. The field name is `hash` (`inputHash` is a field
-   only for the `asset` that imports a generated scene image; they are different contracts).
+   `description`. They are required on every `start` (at least one; at most 16, or 15 when continuing a previous scene;
+   the id `previous-scene` is reserved), otherwise the start fails with `SCENE_REFERENCES_REQUIRED`. With a script source,
+   pass a pinned catalog image as `{id, assetId, description}` instead of a path. The server retains the confirmed image
+   choice between scenes; pass reference files and hashes again on every start. The field name is `hash` (`inputHash` is a
+   field only for the `asset` that imports a generated scene image; they are different contracts).
 4. **`panelCount`.** An integer 1-12 or `"auto"`, explicit or delegated under [Authorization and defaults](#authorization-and-defaults).
    If omitted from the tool call, the result is
    `needs_interview` (options `4, 6, 8, 9, auto`); `auto` lets the AI choose 3-12 panels anew for each adaptation, and fewer

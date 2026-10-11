@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { readFile, rm } from 'node:fs/promises';
 import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
+import { resolveProductionSource, verifyProductionSource } from '../core/production-source.js';
+import { readSealedProductionInput } from '../core/input-objects.js';
+import { join, resolve, relative, sep } from 'node:path';
 import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.js';
 import { importWebtoonImages } from '../core/webtoon-board.js';
 import { validateImageRuntime, sceneImagePolicy, savedSceneSelection, sceneImageRequest, validateSceneImageProvenance } from '../core/webtoon-images.js';
@@ -30,8 +33,8 @@ export function scenePublicState(w) {
 }
 
 async function verifyInputs(repo, w) {
-  const source = await resolveWebtoonSource(repo.store, w.workId, w.source.chapters.map(c => c.chapter));
-  if (source.hash !== w.source.hash) throw new Error('SCENE_SOURCE_CHANGED');
+  // Novel sources keep the original snapshot; script sources read only the adopted script and sealed inputs.
+  await verifyProductionSource(repo.store, w.source, w.workId);
   for (const r of w.sceneReferences) {
     const images = await importWebtoonImages(repo.store.rootDir, [{ shotId: r.id, path: r.path }], [r.id]);
     if (images[r.id].hash !== r.hash) throw new Error('SCENE_REFERENCE_CHANGED');
@@ -99,7 +102,8 @@ async function drive(repo, w, providers) {
       + (auto ? `panelCount is "auto": choose the panel count (integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max}) that this adaptation needs and return it as panelCount; choose again from scratch on every revision. `
         : 'Honor the user-selected panelCount ')
       + 'without making one beat equal one panel. Do not prescribe panel rectangles, coordinates or a camera per sentence. Identify only necessary spatial facts. Separate ambiguity from facts, never invent physics to fill a gap. Let the image artist choose composition. Preserve causality, character motivation and exact speaker identities. A beat is an event, not a panel. Do not reuse prior shot lists.',
-      { source: w.sceneUnits, foundation: w.source.foundation, documents: w.source.documents, direction: w.direction,
+      { source: w.sceneUnits, foundation: w.source.foundation, documents: w.source.documents,
+        ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText, cast: w.source.cast, expression: w.source.expression } : {}), direction: w.direction,
         panelCount: auto ? 'auto' : w.panelCount, previousScene: w.previousScene,
         feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...SCENE_SCHEMA, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : SCENE_SCHEMA }, providers);
     if (r.waiting) return r.result;
@@ -111,7 +115,7 @@ async function drive(repo, w, providers) {
     const hash = sceneBinding(w);
     const r = await modelTask(repo, w, 'webtoon-scene-preflight',
       `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. Keep camera and layout free. Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
-      { source: w.sceneUnits, plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
+      { source: w.sceneUnits, ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText } : {}), plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
         ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
         coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
         renderBrief: { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers);
@@ -145,6 +149,8 @@ async function drive(repo, w, providers) {
     await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
     const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(r.value.findings, null, 2))}</pre></html>`;
     await repo.writeCandidate(w, 'scene.html', html);
+    // The record is written before the stage says completed, so a failed write retries instead of leaving an unverifiable scene.
+    if (passed && w.productionRecord) await writeProductionRecord(repo, w);
     w.stage = passed ? 'completed' : 'scene_needs_revision';
     record(w, 'scene_reviewed', { passed, imageHash: w.sceneImage.hash });
     if (!passed && autoRevise(w)) return drive(repo, w, providers);
@@ -215,7 +221,10 @@ async function confirmedSceneSelection(repo, args, source) {
 
 /** Validate every user choice before any model or image call; returns the interview instead of a workflow when the count is missing. */
 async function startScene(store, repo, args, current) {
-  const source = await resolveWebtoonSource(store, args.workId, args.sourceChapters);
+  if (args.scriptId !== undefined && args.sourceChapters !== undefined) throw new Error('SCENE_SOURCE_AMBIGUOUS: choose sourceChapters (novel) or scriptId (scene script), not both');
+  const source = args.scriptId !== undefined
+    ? await resolveProductionSource(store, args.workId, { kind: 'scene-script', scriptId: args.scriptId })
+    : await resolveWebtoonSource(store, args.workId, args.sourceChapters);
   if (args.panelCount === undefined) return { status: 'needs_interview', questions: [{ id: 'panelCount', question: webtoonMessage(source,
     `이 장면을 몇 칸으로 생성할까요? "auto"는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 고릅니다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성이 떨어질 수 있습니다. 칸 크기와 배치는 AI가 정합니다.`,
     `How many panels should this scene have? "auto" lets the AI choose ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} panels on every adaptation. Fewer than ${SCENE_PANEL_LIMITS.continuityMin} panels may weaken continuity. The AI decides panel sizes and layout.`),
@@ -236,7 +245,13 @@ async function startScene(store, repo, args, current) {
   const selection = await confirmedSceneSelection(repo, args, source);
   if (selection.status) return selection;
   const { policy, saved } = selection;
-  const references = args.references;
+  // Catalog references resolve to the bytes sealed in this work, never to a world path.
+  const references = Array.isArray(args.references) ? args.references.map(r => {
+    if (r?.assetId === undefined) return r;
+    const asset = source.assets?.find(a => a.assetId === r.assetId);
+    if (!asset || r.path !== undefined || r.hash !== undefined) throw new Error('SCENE_ASSET_NOT_PINNED: an assetId reference must name an asset selected in the adopted script');
+    return { id: r.id, path: asset.path, hash: asset.hash, description: r.description, assetId: asset.assetId, assetRevisionId: asset.assetRevisionId };
+  }) : args.references;
   // A failed scene stays available to the continuity review, but its image never feeds the next drawing.
   const drawFromPrevious = Boolean(previous?.visualReview.passed);
   if (!Array.isArray(references) || !references.length || references.length > SCENE_LIMITS.referenceImages - (drawFromPrevious ? 1 : 0)
@@ -248,9 +263,65 @@ async function startScene(store, repo, args, current) {
     ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: previous.visualReview.findings, reviewPassed: previous.visualReview.passed } } : {}),
     imagePolicy: policy, imageSelection: saved.selection, autoRevision: { limit: autoLimit, used: 0 }, attempts: [],
     sceneReferences: [...references, ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
-    acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity() };
+    acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity(), productionRecord: true };
   record(w, 'scene_started', { sourceHash: source.hash });
   return w;
+}
+
+const recordPath = (repo, w) => join(repo.store.rootDir, '.vibelore', 'productions', `${w.workflowId}-r${w.revision}.json`);
+/**
+ * Completion seals what was used: source revision and lock, reference bytes,
+ * the reviewed image and the review digests. Path-only references are marked
+ * unpreserved; they are not claimed reproducible.
+ */
+async function writeProductionRecord(repo, w) {
+  const rec = { schemaVersion: 1, kind: 'webtoon-scene', workId: w.workId, workflowId: w.workflowId, revision: w.revision,
+    source: { kind: w.source.kind ?? 'novel-chapters', sourceVersion: w.source.sourceVersion ?? 1, hash: w.source.hash, sourceCanonHead: w.source.sourceCanonHead ?? null,
+      ...(w.source.kind === 'scene-script' ? { scriptId: w.source.scriptId, scriptRevisionId: w.source.scriptRevisionId, productionLockId: w.source.productionLockId, loreRevisionId: w.source.loreRevisionId, assetCatalogRevisionId: w.source.assetCatalogRevisionId } : { chapters: w.source.chapters.map(c => ({ chapter: c.chapter, hash: c.hash })) }) },
+    sourceUnitIds: w.sceneUnits.map(u => u.id), language: w.source.languageContract?.language ?? 'ko',
+    references: w.sceneReferences.map(r => ({ id: r.id, hash: r.hash, ...(r.assetId ? { assetId: r.assetId, assetRevisionId: r.assetRevisionId, preserved: 'sealed-input' } : { preserved: r.id === PREVIOUS_SCENE_ID ? 'workflow-candidate' : 'path-only' }) })),
+    image: { hash: w.sceneImage.hash, mime: w.sceneImage.mime, path: relative(repo.store.rootDir, resolve(repo.store.rootDir, w.sceneImage.path)).split(sep).join('/') }, planHash: digest(w.scenePlan), preflightHash: digest(w.preflight), reviewHash: digest(w.visualReview),
+    imagePolicy: w.imagePolicy, completedAt: new Date().toISOString() };
+  await atomicWrite(recordPath(repo, w), JSON.stringify(rec, null, 2));
+  w.productionRecordHash = digest(rec);
+  record(w, 'production_recorded', { recordHash: w.productionRecordHash });
+}
+/** Read-only proof that a completed scene's preserved inputs and image still match. */
+async function verifyProduction(repo, w) {
+  if (w.stage !== 'completed' || !w.productionRecordHash) throw new Error('SCENE_PRODUCTION_NOT_RECORDED');
+  const root = repo.store.rootDir, recordFile = await readJson(recordPath(repo, w));
+  const changed = () => { throw new Error('SCENE_PRODUCTION_RECORD_CHANGED'); };
+  if (!recordFile || digest(recordFile) !== w.productionRecordHash) changed();
+  // The record must agree with the workflow state it was written from.
+  if (recordFile.image.hash !== w.sceneImage?.hash || recordFile.source.hash !== w.source.hash
+    || recordFile.references.length !== w.sceneReferences.length || recordFile.references.some(r => w.sceneReferences.find(x => x.id === r.id)?.hash !== r.hash)) changed();
+  const bytesOf = async path => { try { return await readFile(resolve(root, path)); } catch (e) { if (e.code === 'ENOENT') throw new Error(`SCENE_PRODUCTION_INPUT_MISSING: ${path}`); throw e; } };
+  const checks = [], unpreserved = recordFile.references.filter(r => r.preserved === 'path-only').map(r => r.id);
+  let lock = null;
+  if (recordFile.source.kind === 'scene-script') {
+    const sealed = await readSealedProductionInput({ rootDir: root, productionLockId: recordFile.source.productionLockId });
+    lock = sealed.lock;
+    if (lock.scriptRevisionId !== recordFile.source.scriptRevisionId) changed();
+    checks.push({ check: 'sealed-lock', productionLockId: lock.revisionId, loreRevisionId: lock.loreRevisionId, assetCatalogRevisionId: lock.assetCatalogRevisionId, blobs: sealed.blobs.length });
+  } else {
+    // A novel source is kept as canon history, not sealed here; report whether it still matches.
+    let current = null;
+    try { current = (await resolveWebtoonSource(repo.store, w.workId, recordFile.source.chapters.map(c => c.chapter))).hash; } catch { current = null; }
+    checks.push({ check: 'source-current', matches: current === recordFile.source.hash });
+    unpreserved.push('source');
+  }
+  for (const r of recordFile.references) {
+    const ref = w.sceneReferences.find(x => x.id === r.id);
+    if (r.preserved === 'sealed-input') {
+      const pinned = lock?.assets?.find(a => a.assetId === r.assetId);
+      if (!pinned || pinned.assetRevisionId !== r.assetRevisionId || pinned.blob.blobId !== r.hash) changed();
+    } else if (r.preserved !== 'workflow-candidate') continue;
+    if (digest(await bytesOf(ref.path)) !== r.hash) throw new Error('SCENE_REFERENCE_CHANGED');
+    checks.push({ check: 'reference-bytes', id: r.id, ...(r.assetId ? { assetId: r.assetId } : {}), hash: r.hash });
+  }
+  if (digest(await bytesOf(recordFile.image.path)) !== recordFile.image.hash) throw new Error('SCENE_IMAGE_CHANGED');
+  checks.push({ check: 'image-bytes', hash: recordFile.image.hash });
+  return { status: 'verified', lane: 'webtoon', workflowId: w.workflowId, recordHash: w.productionRecordHash, record: recordFile, checks, unpreserved };
 }
 
 /** Opt-in scene workflow: never migrates or republishes an existing panel workflow. */
@@ -260,6 +331,10 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
   return repo.locked(async () => {
     let w = await repo.load(args.workflowId);
     if (w && w.workId !== args.workId) throw new Error('WORKFLOW_WORK_MISMATCH');
+    if (!run && args.action === 'verify') {
+      if (!isScene(w)) throw new Error('SCENE_WORKFLOW_NOT_FOUND');
+      return verifyProduction(repo, w);
+    }
     if (!run && args.action === 'start') {
       w = await startScene(store, repo, args, w);
       if (['needs_interview', 'needs_image_runtime', 'needs_image_choice'].includes(w.status)) return w;

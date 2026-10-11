@@ -124,3 +124,23 @@ test('malformed or unregistered cast metadata never supplies mandatory schema pr
   assert.notEqual(result.validationComplete,true);assert.equal(result.coverage.coverageById.SCHEMA,'failed');assert.equal(result.checkId,undefined);
  }
 });
+
+test('explicit manual retry after an accepted prefix change performs fresh validation and keeps the old receipt stale', async () => {
+ const store = await chapterStore();
+ const secondInput = { ...input(store), chapter: 2 };
+ const original = await runCheck({ ...secondInput, providers: chapterProvider() });
+ assert.equal(original.validationComplete, true, JSON.stringify(original));
+ const first = await runCheck({ ...input(store), providers: chapterProvider() });
+ await runCommit({ ...input(store), providers: chapterProvider(), checkId: first.checkId });
+ await assert.rejects(runCommit({ ...secondInput, providers: chapterProvider(), checkId: original.checkId }));
+ const providers = chapterProvider();
+ const retried = await runCheck({ ...secondInput, providers, retryValidation: true });
+ assert.equal(retried.validationComplete, true, JSON.stringify(retried));
+ assert.notEqual(retried.checkId, original.checkId);
+ for (const step of ['continuity-extract', 'continuity-check', 'chapter-summary', 'language-contract']) {
+  assert.ok(providers.requests.some(request => request.step === step), step);
+ }
+ assert.equal((await store.loadCheckReceipt('w', original.checkId)).stale, true);
+ await runCommit({ ...secondInput, providers: chapterProvider(), checkId: retried.checkId });
+ await assert.rejects(runCommit({ ...secondInput, providers: chapterProvider(), checkId: original.checkId }));
+});

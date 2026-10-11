@@ -1233,7 +1233,7 @@ function activeEpisodePlan() {
 }
 
 function emptyDelta(chapterNumber) {
-  return { chapterNumber, appearedCharacterIds: [], mutableChanges: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], trackedEntityOps: [], entityOps: [], lexiconAdditions: [] };
+  return { chapterNumber, appearedCharacterIds: [], mutableChanges: [], newAddressEntries: [], relationshipOps: [], hookChanges: [], trackedEntityOps: [], entityOps: [] };
 }
 
 

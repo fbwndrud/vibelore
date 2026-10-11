@@ -10,7 +10,6 @@
  *   2. `continuityCheck` — diff the delta against `StoryState(N-1) + Foundation`:
  *        * intrinsic / invariant violations → HARD FAIL
  *        * mutable changes without a narrative event → SOFT FLAG
- *        * unknown honorific terms → classify, append to HonorificLexicon
  *
  * Both functions use one LLM call apiece via ProviderRegistry so the layer
  * benefits from model upgrades automatically (Epic #23). Parsing is permissive —
@@ -22,8 +21,8 @@
  *     language is resolved through `resolveStepPromptLanguage` **before** any
  *     provider call, so an explicit language that conflicts with the stored
  *     contract fails fast instead of producing a prompt in the wrong language.
- *   - ko-lexical deterministic scanners (`scanLexicon`, the Hangul proper-noun
- *     heuristic) do not run as proof on non-ko works; the result says so.
+ *   - the ko-lexical Hangul proper-noun heuristic does not run as proof on
+ *     non-ko works; the result says so.
  *   - With a `checkerPlan` the same (single) continuityCheck call also asks for
  *     structured per-invariant semantic verdicts bound to a deterministic
  *     context hash (`result.semanticValidation`). Unusable answers stay
@@ -32,7 +31,6 @@
 import { createHash } from 'node:crypto';
 import { computeLanguageContractHash } from '../core/language-policy.js';
 import { languageSystemLines, pickByFamily, promptFamilyCaptureContext, resolveStepPromptLanguage, } from '../core/prompt-language.js';
-import { scanLexicon, } from './lexicon-scan.js';
 import { isHookActive, normalizeHook, normalizeStoryState, VITAL_STATUSES } from './story-state.js';
 import { LEDGER_FEATURES, RECORD_STATUSES, trackingEnabled } from './ledger.js';
 // ───────────────────────────── cast-manifest parsing ──────────────────────
@@ -125,8 +123,8 @@ function findUnregisteredNamed(prose, foundation) {
     return Array.from(candidates);
 }
 /**
- * ko-lexical detectors (`findUnregisteredNamed`, `scanLexicon`) read Korean
- * syllables and a Korean honorific lexicon. On a non-ko work they cannot
+ * The ko-lexical detector (`findUnregisteredNamed`) reads Korean
+ * syllables. On a non-ko work it cannot
  * observe anything, and an empty finding from a detector that never applied is
  * not evidence. They are skipped and the skip is reported instead — coverage
  * aggregation belongs to the checker-registry owner, not to this module.
@@ -342,7 +340,7 @@ export function unsupportedRequiredSemanticInvariantIds(checkerPlan) {
     return Array.from(ids).sort();
 }
 const INVARIANT_DESCRIPTIONS_KO = Object.freeze({
-    ADDRESSING: '인물 사이의 호칭·경어 사용이 등록된 관계·지위와 맞는가',
+    ADDRESSING: '인물 사이의 호칭·경어 사용이 등록된 관계·지위, 그리고 인물 intrinsic.addressing 의 호칭 목록(acceptedPronouns·acceptedGenderedTerms·forbiddenGenderedTerms)과 맞는가',
     FORMAT: '승인된 대사·문단 형식(dialogueBreakMode)을 본문이 지키는가. 목표 언어의 인용 관습이 고립 검사와 다르면 그 관습을 기준으로 판정한다',
     INTRINSIC: '본문 묘사가 Foundation 의 캐릭터 intrinsic(성별·연령대·역할·핵심 외형)과 맞는가',
     POV: 'Foundation 요약의 povMode·povDesign(mode, openingViewpoint, switchPolicy)으로 선언된 시점·서술자가 회차 내내 유지되는가. povCharacterId 가 있으면 이번 회차의 시점 인물은 그 인물이다(회차 사이의 교대는 승인된 계획이 정한다)',
@@ -351,7 +349,7 @@ const INVARIANT_DESCRIPTIONS_KO = Object.freeze({
     WORLD: '본문이 확정된 세계 사실·집단 규칙과 충돌하지 않는가',
 });
 const INVARIANT_DESCRIPTIONS_EN = Object.freeze({
-    ADDRESSING: 'do the address terms and politeness levels between characters match the registered relationships and status',
+    ADDRESSING: 'do the address terms and politeness levels between characters match the registered relationships and status, and each character\'s intrinsic.addressing lists (acceptedPronouns, acceptedGenderedTerms, forbiddenGenderedTerms)',
     FORMAT: 'does the chapter follow the approved dialogue and paragraph format (dialogueBreakMode); when the target language quote conventions are not the isolation checker, judge against those conventions',
     INTRINSIC: 'does the text agree with the Foundation character intrinsics (gender, age band, role, core appearance)',
     POV: 'is the point of view and narrator declared by povMode and povDesign (mode, openingViewpoint, switchPolicy) in the Foundation summary held throughout the chapter; when povCharacterId is given, that character is this chapter\'s viewpoint (alternation between chapters is decided by the approved plan)',
@@ -1111,7 +1109,6 @@ export const CONTINUITY_CHECK_SYSTEM = [
     '본문, 이전 상태 요약, Foundation 요약, 회차 Delta, 장르 invariant 목록을 받아',
     '본문과 구조화 데이터가 충돌하는 지점을 골라낸다. 출력은 순수 JSON 한 개.',
     '의심만으로 hard 위반을 만들지 말 것. Foundation·delta·prevState 와 본문이 명확히 모순되는 경우만 hard 로 분류.',
-    '본문에 새로 등장한 호칭(존칭/대명사)이 있고 함의(성별/화자성별/지위)가 명확히 추론되면 lexiconAdditions 에 담는다.',
 ].join(' ');
 /** 다국어 계열. `message`·`reason` 같은 설명 값만 목표 작품 언어로 쓴다. */
 export const CONTINUITY_CHECK_SYSTEM_MULTILINGUAL = [
@@ -1119,7 +1116,6 @@ export const CONTINUITY_CHECK_SYSTEM_MULTILINGUAL = [
     'You receive the chapter text, the previous state summary, a Foundation summary, this chapter\'s Delta and the genre invariant list,',
     'and you pick out the places where the text contradicts the structured data. Output one pure JSON object.',
     'Never raise a hard violation on suspicion alone. Classify as hard only where the text plainly contradicts Foundation, delta or prevState.',
-    'When the text uses an address term (honorific or pronoun) that is not yet known and its implication (gender / speaker gender / status) is clearly inferable, put it in lexiconAdditions.',
     'Write every message and reason in the target work language; keep JSON keys, enum values, invariant IDs and character IDs exactly as given.',
 ].join(' ');
 const CHECK_LABELS_KO = Object.freeze({
@@ -1134,7 +1130,6 @@ const CHECK_LABELS_KO = Object.freeze({
         '- intrinsic 위반: Foundation 의 캐릭터 intrinsic(성별/연령대/역할 등)과 본문 묘사가 충돌하는 사례',
         '- invariant 위반: 위 invariant 목록 중 본문/Delta 에서 깨진 항목 (invariantId 명시)',
         '- 정당화되지 않은 mutable 변경: location/status 변화가 본문에 명시되지 않는 경우',
-        '- lexicon 추가: 본문에 등장한 호칭이 알려지지 않은 경우 함의 분류',
     ]),
     schemaHeading: '## 출력 스키마 (이 JSON 한 개만 출력)',
 });
@@ -1150,7 +1145,6 @@ const CHECK_LABELS_EN = Object.freeze({
         '- intrinsic violation: the text describes a character in a way that conflicts with the Foundation intrinsics (gender / age band / role and so on)',
         '- invariant violation: an entry of the invariant list above that the text or the Delta breaks (state the invariantId)',
         '- unjustified mutable change: a location/status change that the text does not show',
-        '- lexicon addition: an address term used in the text that is not yet known, classified by its implication',
     ]),
     schemaHeading: '## Output schema (output this one JSON object only)',
 });
@@ -1158,7 +1152,6 @@ const CHECK_SCHEMA_ENTRIES = Object.freeze([
     '  "intrinsicViolations": [{ "characterId": "...", "message": "..." }]',
     '  "invariantViolations": [{ "invariantId": "...", "message": "..." }]',
     '  "unjustifiedMutable": [{ "characterId": "...", "message": "..." }]',
-    '  "lexiconAdditions": [{ "term": "...", "genderImplication": "male|female|null", "speakerGenderImplication": "male|female|null", "statusImplication": "..." }]',
 ]);
 const SEMANTIC_SCHEMA_ENTRY_KO = [
     '  "semanticValidation": {',
@@ -1301,11 +1294,6 @@ const CHECK_FALLBACK_EN = Object.freeze({
     deadOnStage: (id, since) => `character "${id}", recorded dead in chapter ${since}, is in this chapter's cast manifest. Unless the chapter reveals them alive, make it a memory or mention and drop them from the manifest.`,
     revived: (id, since) => `character "${id}", recorded dead in chapter ${since}, comes back alive in this chapter. The author should confirm the reveal is intended.`,
 });
-function normaliseGender(value) {
-    if (value === 'male' || value === 'female')
-        return value;
-    return undefined;
-}
 // ───────────────────────────── semantic validation ────────────────────────
 const FIELD_PATH_ROOTS = Object.freeze(['prose', 'delta', 'foundation', 'prevState']);
 function tokenizeFieldPath(fieldPath) {
@@ -1536,20 +1524,6 @@ export async function continuityCheck(input) {
     const ctx = resolveStepPromptLanguage(input);
     const fallback = pickByFamily(ctx, { ko: CHECK_FALLBACK_KO, multilingual: CHECK_FALLBACK_EN });
     const violations = [];
-    // ─── Layer-1: deterministic lexicon scan ──────────────────────────────
-    // ko 전용 사전 기반 검사다. 비ko 에서는 돌리지 않고 건너뛴 사실을 알린다 —
-    // 실행되지 않은 검사의 빈 결과는 통과 증거가 아니다.
-    const deterministicScan = scanMarker('scanLexicon', ctx.isKo);
-    if (ctx.isKo) {
-        const layer1 = scanLexicon({
-            prose: input.prose,
-            chapterNumber: input.chapterNumber,
-            foundation: input.foundation,
-            lexicon: input.lexicon,
-        });
-        for (const v of layer1.violations)
-            violations.push(v);
-    }
     // ─── Structural: mutableChanges against an unknown character ──────────
     const characterIds = new Set(input.foundation.characters.map((c) => c.id));
     for (const change of input.delta.mutableChanges) {
@@ -1694,24 +1668,6 @@ export async function continuityCheck(input) {
             message,
         });
     }
-    const lexiconAdditions = [];
-    for (const raw of asArray(parsed.lexiconAdditions)) {
-        const e = asRecord(raw);
-        const term = asString(e.term);
-        if (!term)
-            continue;
-        const entry = { term };
-        const gender = normaliseGender(e.genderImplication);
-        if (gender)
-            entry.genderImplication = gender;
-        const speakerGender = normaliseGender(e.speakerGenderImplication);
-        if (speakerGender)
-            entry.speakerGenderImplication = speakerGender;
-        const status = asString(e.statusImplication);
-        if (status)
-            entry.statusImplication = status;
-        lexiconAdditions.push(entry);
-    }
     const passed = violations.every((v) => v.severity !== 'hard');
-    return { passed, violations, lexiconAdditions, semanticValidation: semantic, deterministicScan };
+    return { passed, violations, semanticValidation: semantic };
 }
