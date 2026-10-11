@@ -395,9 +395,21 @@ If you use Git, check that ignore rules don't leave out candidates, images or ru
 ## Before a release
 
 ```bash
-npm run test:all
-git diff --check
+npm run check:publish
 ```
+
+GitHub CI and CodeQL are disabled. Local validation runs all tests, source checks,
+version-specific release approval, whitespace checks, and actual package contents
+and integrity checks. Any failure stops publication. Commit the prepared version
+and approval, then use `npm run release:npm` to publish its verified tarball.
+Use `npm run release:npm -- --dry-run` to prepare the package without publishing.
+Both release commands require a clean checkout and a supported Node.js version.
+Direct `npm publish` from the source checkout also validates through `prepublishOnly`.
+Do not bypass scripts or publish an independently packed tarball; those paths bypass
+this gate. Keep the printed integrity and verify the npm version, `latest`, downloaded
+tarball, and GitHub release and tag afterward. Platform/Node matrix tests, CodeQL and
+history-wide secret scans no longer run automatically. GitHub Pages publication
+remains enabled separately.
 
 When you change the MCP surface, update these together.
 

@@ -404,9 +404,19 @@ Git을 사용한다면 ignore 규칙으로 후보·이미지·실행 기록이 �
 ## 릴리스 전 확인
 
 ```bash
-npm run test:all
-git diff --check
+npm run check:publish
 ```
+
+GitHub CI와 CodeQL은 사용하지 않습니다. 로컬에서 전체 테스트·소스·버전별 릴리스 승인·
+공백 오류·실제 패키지 구성과 무결성을 검사하며, 하나라도 실패하면 배포를 중단합니다.
+버전과 승인을 기록하고 커밋한 뒤 `npm run release:npm`을 사용합니다.
+`npm run release:npm -- --dry-run`은 같은 검증을 거쳐 패키지만 만들고 배포하지 않습니다.
+배포 명령은 깨끗한 작업 트리와 지원 Node.js 버전을 요구하며, 검증한 tarball을 그대로 올립니다.
+소스 폴더에서 직접 `npm publish`해도 `prepublishOnly` 검사를 실행합니다.
+스크립트 생략이나 별도로 만든 tarball 직접 배포는 이 검증을 우회하므로 사용하지 않습니다.
+출력한 무결성을 보관하고 npm 버전·`latest`·다운로드한 패키지와 GitHub 릴리스·태그를 확인합니다.
+여러 운영체제·Node 버전 테스트, CodeQL, 전체 Git 이력의 비밀정보 검사는 자동 실행되지 않습니다.
+예시 사이트의 GitHub Pages 배포는 별도로 유지합니다.
 
 MCP 표면을 바꾸면 다음을 함께 갱신합니다.
 
