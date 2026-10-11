@@ -18,9 +18,11 @@ The server never generates images and holds no per-host model list; you report w
      run through the `imagegen` skill's bundled CLI (`scripts/image_gen.py --model`). List the models the user's account can use, or leave `models` empty
      when you cannot tell (the user then names one, for example `gpt-image-2.5-sunburst`); the CLI accepts any `gpt-image*` id.
    Another host lists its own tools the same way. Never report a path you have not checked.
-2. **Confirm the choice (`needs_image_choice`).** Show every option, the proposal (built-in first) and the notice. Confirm with
-   `confirmImageChoice` and the user's own answer. The choice is kept for the work's later scenes; to switch later, start with
-   `changeImageChoice=true`.
+2. **Confirm the choice (`needs_image_choice`).** Show every option, the proposal (built-in first) and the notice. Apply
+   [Authorization and defaults](../SKILL.md#authorization-and-defaults): a reply authorizing production in context also covers
+   the built-in default or the work's confirmed choice. Bind `confirmImageChoice` with that user reply as `feedback`
+   and continue without another permission question. Obtain consent for a newly billed API path or a change outside that
+   authorization. The choice is kept for the work's later scenes; to switch later, start with `changeImageChoice=true`.
 3. **Draw.** `needs_scene_image` returns one job, `jobs[0]`, only after the pre-generation check passed. Attach every file in
    `jobs[0].referenceImages` as an actual image, in the listed order (the prompt calls them Image 1, Image 2, ...).
    - `jobs[0].hostRequest` (built-in): call `hostRequest.tool` with `jobs[0].prompt` and the references
