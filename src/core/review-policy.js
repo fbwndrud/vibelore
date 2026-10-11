@@ -13,8 +13,37 @@ import { LEDGER_FEATURES, TRACKING_FEATURES } from '../../engine/src/continuity/
  */
 export const OPTIONAL_REVIEWS = Object.freeze([
   'story-profile-check', 'coherence-judge', 'editorial-quality',
-  'character-fidelity', 'reader-hook', 'pattern-ledger',
+  'character-fidelity', 'reader-hook', 'pattern-ledger', 'arc-review',
 ]);
+export const PLANNING_REVIEW_STAGES = Object.freeze(['story', 'arc', 'episode']);
+export const DEFAULT_ARC_REVIEW = Object.freeze({ everyEpisodes: 5, atEnd: true });
+
+/** Read-only defaults keep old works on their original model path until opted in. */
+export async function loadPlanningReviews(store, workId) {
+  return { ...Object.fromEntries(PLANNING_REVIEW_STAGES.map(stage => [stage, true])), ...(await loadPolicy(store, workId)).planningReviews };
+}
+
+export async function loadArcReviewSchedule(store, workId) {
+  return { ...DEFAULT_ARC_REVIEW, ...(await loadPolicy(store, workId)).arcReview };
+}
+
+export async function planningReviewSelection(store, workId, stage, profile) {
+  const policy = await loadPolicy(store, workId);
+  const choice = policy.planningReviews?.[stage];
+  return { enabled: choice !== false, semantic: choice === true || Boolean(profile?.discovery && profile.discovery.authority !== 'legacy'), revision: policy.reviewRevision ?? 0 };
+}
+
+function checkedReviewOptions(value, keys, kind) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !keys.includes(key))) {
+    throw new Error(`INVALID_${kind}`);
+  }
+  for (const [key, option] of Object.entries(value)) {
+    if (key === 'everyEpisodes' ? !Number.isInteger(option) || option < 0 || option > 20 : typeof option !== 'boolean') {
+      throw new Error(`INVALID_${kind}: ${key}`);
+    }
+  }
+  return structuredClone(value);
+}
 export const OPTIONAL_DRAFT_SECTIONS = Object.freeze([
   'older-memory', 'previous-tail', 'author-craft', 'style-anchor',
 ]);
@@ -125,7 +154,7 @@ export async function loadDisabledDraftSections(store, workId) {
 }
 
 /** Replaces the given lists; a list left undefined keeps its stored value. */
-export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, tracking, customTracking, mergeRecords } = {}) {
+export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords } = {}) {
   const current = await loadPolicy(store, workId);
   const atChapter = await nextChapter(store);
   const merges = [...(current.merges ?? [])];
@@ -139,8 +168,11 @@ export async function saveWriterSupportPolicy(store, workId, { disabledReviews, 
     : checkedCustom(customTracking, current.customTracking, current.customIdCounter ?? maxCustomId(current.customTracking));
   const nextTracking = tracking === undefined ? (current.tracking ?? {}) : checkedTracking(tracking);
   const next = {
+    ...current,
     disabled: disabledReviews === undefined ? (current.disabled ?? []) : checked(disabledReviews, OPTIONAL_REVIEWS, 'REVIEW'),
     draftSectionsOff: disabledDraftSections === undefined ? (current.draftSectionsOff ?? []) : checked(disabledDraftSections, OPTIONAL_DRAFT_SECTIONS, 'DRAFT_SECTION'),
+    ...(planningReviews === undefined ? {} : { planningReviews: { ...(current.planningReviews ?? {}), ...checkedReviewOptions(planningReviews, PLANNING_REVIEW_STAGES, 'PLANNING_REVIEWS') } }),
+    ...(arcReview === undefined ? {} : { arcReview: { ...(current.arcReview ?? {}), ...checkedReviewOptions(arcReview, ['everyEpisodes', 'atEnd'], 'ARC_REVIEW_SCHEDULE') } }),
     tracking: nextTracking,
     customTracking: customResult.list,
     customIdCounter: customResult.counter,
@@ -148,6 +180,12 @@ export async function saveWriterSupportPolicy(store, workId, { disabledReviews, 
     merges,
     updatedAt: new Date().toISOString(),
   };
+  const reviewChoices = policy => ({ disabled: policy.disabled ?? [], planningReviews: policy.planningReviews ?? {}, arcReview: policy.arcReview ?? {} });
+  if (JSON.stringify(reviewChoices(current)) !== JSON.stringify(reviewChoices(next))) {
+    next.reviewRevision = Number(current.reviewRevision ?? 0) + 1;
+    next.reviewHistory = [...(current.reviewHistory ?? []), { revision: next.reviewRevision, atChapter,
+      at: next.updatedAt, before: reviewChoices(current), after: reviewChoices(next) }];
+  }
   await store.saveReviewPolicy(workId, next);
   return next;
 }

@@ -15,11 +15,18 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { projectApprovalValue } from '../src/core/approval-language-gate.js';
-import { runStoryProfile, runStoryProfileDecide } from '../src/tools/story-profile.js';
+import { runStoryProfile as runStoryProfileTool, runStoryProfileDecide } from '../src/tools/story-profile.js';
 import { phrases as multilingualPhrases } from '../src/prompts/multilingual.js';
 import { phrases as koPhrases } from '../src/prompts/ko.js';
 import { promptKit } from '../src/prompts/index.js';
 import { buildLanguageContract } from '../engine/src/core/language-policy.js';
+
+// These tests exercise language/readability after the user chose collaboration depth.
+const runStoryProfile = args => {
+  const answer = "Decide the important choices together before writing.";
+  return runStoryProfileTool({ ...args, feedback: [args.feedback, answer].filter(Boolean).join("\n"),
+    discovery: { depth: "standard", userAnswer: answer } });
+};
 
 const QUESTION_ID = 'reading-experience-contract';
 const newStore = async () => new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'profile-readability-')));
@@ -65,7 +72,7 @@ test('a readability question the model wrote in the work language is kept and re
   assert.equal(out.status, undefined, JSON.stringify(out.validation?.failureDetails ?? out.code));
   const questions = out.profile.designReview.openQuestions;
   assert.deepEqual(questions.map(item => item.id), ['first-payoff', QUESTION_ID]);
-  assert.deepEqual(questions.at(-1), arabicQuestion);
+  assert.deepEqual(questions.find(q => q.id === QUESTION_ID), arabicQuestion);
   assert.ok(JSON.stringify(providers.reviewed.at(-1)).includes(arabicQuestion.question), 'generated question text is language-reviewed');
 });
 
@@ -114,7 +121,7 @@ test('ko replaces a model-written readability question with the static ko questi
   const out = await runStoryProfile({ store, workId: 'book', language: 'ko', brief: '항구 이야기', mode: 'review', providers });
   // Review Minor 3: a ko work's reviewer sees the Korean question text, as before B2 (no digest).
   assert.ok(JSON.stringify(reviewed.at(-1)).includes(koPhrases.profile.readabilityQuestion));
-  assert.deepEqual(out.profile.designReview.openQuestions, [{ id: QUESTION_ID, title: koPhrases.profile.readabilityQuestionTitle, question: koPhrases.profile.readabilityQuestion, recommendation: koPhrases.profile.readabilityRecommendation }]);
+  assert.deepEqual(out.profile.designReview.openQuestions.filter(q => q.id === QUESTION_ID), [{ id: QUESTION_ID, title: koPhrases.profile.readabilityQuestionTitle, question: koPhrases.profile.readabilityQuestion, recommendation: koPhrases.profile.readabilityRecommendation }]);
 });
 
 test('the multilingual profile prompt asks the model for the readability question in the work language', () => {

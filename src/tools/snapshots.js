@@ -9,7 +9,7 @@ import { rebuildLedgerLog } from './ledger-log.js';
 import { managedWorkFile } from '../core/working-tree-sync.js';
 
 const canonicalDirs = ['world', 'characters', 'chapters', 'summaries', 'work.md'];
-const machineEntries = ['foundation.json', 'story-profile.json', 'story-spine.json', 'writer-skill.json', 'story-identity.json', 'pilot-contract.json', 'arc-plan.json', 'arcs', 'arc-reviews', 'arc-summaries', 'episode-plans', 'artifacts', 'story-state', 'summaries', 'entities.json', 'pattern-ledger.json', 'experience-ledger.json', 'style-anchor.json', 'review-policy.json'];
+const machineEntries = ['foundation.json', 'story-profile.json', 'story-spine.json', 'writer-skill.json', 'story-identity.json', 'pilot-contract.json', 'arc-plan.json', 'arcs', 'arc-reviews', 'range-reviews', 'range-review-latest.json', 'arc-summaries', 'episode-plans', 'artifacts', 'story-state', 'summaries', 'entities.json', 'pattern-ledger.json', 'experience-ledger.json', 'style-anchor.json', 'review-policy.json'];
 const webtoonEntries = ['webtoon', 'webtoon-publication'];
 const infrastructure = new Set(['publication', 'snapshots', 'rollback-archives', 'rollback-pending.json', 'project.lock', 'project.lock.cleanup', 'shared-lore',
   // Script sources, sealed production inputs and production records are not chapter state; rollback keeps them.

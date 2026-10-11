@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+- 단계 검토에서 사용자 요구·확정 사실과 집필 제안을 구분하고, 잘못된 검토 응답과 상위 복귀 판단을 근거로 재확인합니다.
+  자동 기반 생성의 언어 오류를 제한된 번역·의미 비교·새 검증으로 복구합니다. 첫 프로필부터 고정 세계 자료를 전달하고,
+  인물 시작 상태를 Markdown에 표시하며 시스템 계획 저장 시 다른 손수정의 drift를 보존합니다.
+
+- 전체 이야기·아크·에피소드 검토와 누적 아크 검토 빈도를 `lore_configure`에서 선택합니다.
+  에피소드 생성·검토가 승인된 전체 이야기의 약속을 직접 참조합니다. `lore_arc_review scope=range`로
+  완성 구간의 정본 원고 전체를 나누어 읽고, 실제 인용·판본·전달 범위를 기록한 advisory를 저장·조회합니다.
+
+- 작품 전체를 얼마나 함께 질문·준비할지 먼저 확인하고 세계 규모와 구분합니다. 최신 선호만 갱신하는
+  `lore_profile action=preferences`와 전체 이야기·아크·에피소드별 근거 검토·최소 재작성·재검토를 추가합니다.
+  상위 설계·추가 조사로 돌아가는 흐름을 정리했습니다.
+
+- Ask and preserve the user's world preparation scope; detailed starts require an adopted world and binding. Scene document selection retains required evidence, and story/arc/episode planning receives pinned original documents and custom values with bounded context.
+
+- 웹툰의 명시적 선택 위임을 예시만·화풍 선택·제작 범위로 기록합니다. 위임 채택은 실제 예시를 본 호스트의 선택 이유를 남기며
+  제작 위임의 미지정 칸 수는 `auto`입니다. 후보 선택 모드 변경, 최신 비용·재시도 제한, 명시된 기존 장면 수정과 사용자 중단을 처리합니다.
+
+- `lore_webtoon_style`로 사용자 말·제공 이미지에서 예시 한 장을 제안하고 사용자 채택을 기록합니다.
+  채택한 이미지와 짧은 설명은 새 장면의 계획·생성·검토에 고정해 전달합니다.
+- 새 화풍은 다음 장면부터 적용하며 기존 장면은 명시적 `revise(styleRevisionId, feedback)`로만 바꿉니다.
+  화풍 차이는 advisory로 남기고 자동 재생성하지 않습니다. 오래된 이미지 영수증과 변경된 참조는 거절합니다.
+- 호스트 모델 중계가 실제 이미지 첨부 경로를 전달하고, 새 장면 프롬프트의 일괄 컬러 강제를 제거합니다.
+  기존 장면의 대기 요청은 수정 전까지 유지합니다. 기본/호환/고급 도구 표면은 33/36/49개입니다.
+
 ## 0.4.8 — 2026-10-01
 
 - 활성 아크 재계획은 `ARC_IN_PROGRESS`로 거부하며 명시적 교체만 `replaceActive=true`로 허용합니다.

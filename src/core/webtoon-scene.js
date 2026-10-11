@@ -109,7 +109,9 @@ export function validateScenePlan(plan, units, { resolvePanelCount = false } = {
 export const sceneBinding = w => digest({ version: 2, sourceHash: w.source.hash, selectedUnits: w.sceneUnits,
   direction: w.direction, plan: w.scenePlan, references: w.sceneReferences, policy: w.imagePolicy, selection: w.imageSelection?.id,
   ...(w.panelCount !== undefined ? { panelCount: w.panelCount } : {}), ...(w.panelCountMode === 'auto' ? { panelCountMode: 'auto' } : {}),
-  ...(w.previousScene ? { previousScene: w.previousScene } : {}) });
+  ...(w.previousScene ? { previousScene: w.previousScene } : {}),
+  ...(w.imagePromptVersion ? { imagePromptVersion: w.imagePromptVersion } : {}),
+  ...(w.styleSnapshot ? { styleSnapshot: w.styleSnapshot } : {}) });
 
 // Separate the source-review receipt from the drawing request it produces.
 export const sceneImageBinding = w => digest({ scene: sceneBinding(w), renderBrief: w.preflight?.renderBrief });
@@ -117,6 +119,7 @@ export const sceneImageBinding = w => digest({ scene: sceneBinding(w), renderBri
 export function validateSceneRenderBrief(brief, w) {
   need(brief && isEnglish(brief.style) && Array.isArray(brief.moments), 'SCENE_RENDER_BRIEF_REQUIRED');
   need(words(brief.style) <= SCENE_LIMITS.styleWords && brief.moments.length === w.panelCount, 'SCENE_RENDER_BRIEF_OVERLOADED');
+  if (w.styleSnapshot) need(brief.style === w.styleSnapshot.profile.style, 'SCENE_STYLE_BRIEF_MISMATCH');
   const ids = new Set(w.sceneUnits.map(u => u.id));
   const texts = [];
   for (const m of brief.moments) {
@@ -162,9 +165,13 @@ export function sceneImagePrompt(w) {
     return `\n   ${t.kind === 'physical' ? 'written on an object, no balloon' : `${t.kind}, ${t.speaker}`}: ${JSON.stringify(letteringText(t.text))}`; };
   const physical = w.scenePlan.texts.some(t => t.kind === 'physical')
     ? 'Letter each text marked "written on an object" directly on that paper, sign or screen in the scene, never in a balloon or caption box.\n' : '';
-  return `Draw a finished color comic with EXACTLY ${w.panelCount} panels${scenePanelCountMode(w) === 'auto' ? ' (count fixed during adaptation)' : ''}. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
+  // Keep pending pre-v2 jobs byte-for-byte stable until an explicit revision issues a new receipt.
+  const references = w.imagePromptVersion === 2
+    ? `Match the character reference identities. ${w.previousScene ? 'The last image is the preceding page: continue its identities, current state and setting, not its events or layout.' : 'Reference sheets are for their described roles, not page layout.'}`
+    : `Match the reference identities. ${w.previousScene ? 'The last image is the preceding page: continue its appearance and setting, not its events or layout.' : 'Reference sheets are for appearance, not page layout.'}`;
+  return `Draw a finished ${w.imagePromptVersion === 2 ? 'comic' : 'color comic'} with EXACTLY ${w.panelCount} panels${scenePanelCountMode(w) === 'auto' ? ' (count fixed during adaptation)' : ''}. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
 Style: ${brief.style}
-Match the reference identities. ${w.previousScene ? 'The last image is the preceding page: continue its appearance and setting, not its events or layout.' : 'Reference sheets are for appearance, not page layout.'}
+${w.styleSnapshot ? 'The adopted style sample sets visual treatment, including color or monochrome. Use character and setting references for identity and scene facts.\n' : ''}${references}
 References:\n${w.sceneReferences.map((r, i) => `Image ${i + 1}: ${r.description}`).join('\n')}
 Show these moments in order. Include each quoted text once, exactly as written, letter by letter. Show who speaks only through balloon tails and placement; never add speaker names, name tags or labels.
 ${sceneLetteringLine(w.source)}
@@ -184,6 +191,9 @@ export function validateSceneImageReview(review, w) {
   need(Array.isArray(review.findings) && typeof review.spatialCoherence === 'boolean' && typeof review.readingOrder === 'boolean' && nonempty(review.evidence), 'INCOMPLETE_SCENE_IMAGE_REVIEW');
   need(review.findings.every(f => ['blocking', 'advisory'].includes(f.severity) && nonempty(f.evidence)), 'INVALID_SCENE_FINDING');
   need(Number.isInteger(review.observedPanelCount) && review.observedPanelCount > 0, 'SCENE_PANEL_COUNT_NOT_OBSERVED');
+  if (w.styleSnapshot) need(review.styleReview?.inspectedReference === true
+    && ['matches', 'differs', 'uncertain'].includes(review.styleReview.verdict)
+    && nonempty(review.styleReview.evidence), 'INCOMPLETE_SCENE_STYLE_REVIEW');
   if (w.previousScene) need(review.continuity?.inspectedPreviousImage === true && CONTINUITY_CHECKS.every(k =>
     typeof review.continuity[k]?.passed === 'boolean' && nonempty(review.continuity[k]?.evidence)), 'INCOMPLETE_SCENE_CONTINUITY_REVIEW');
   return review.observedPanelCount === w.panelCount

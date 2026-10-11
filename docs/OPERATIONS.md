@@ -480,6 +480,18 @@ Opus 4.6·Haiku 4.5는 4096토큰입니다. API 기본 TTL은 5분이고 읽기�
 5. 매 화 검토(`story-profile-check`, `coherence-judge`, `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`)는 작가를 돕는 선택 기능입니다. 사용자가 원하면 `lore_configure`에 `disabledReviews`로 끌 목록 전체를 넘깁니다. 꺼진 검토는 요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다. `editorial-quality`를 끄면 분량·밀도 조언도 나오지 않습니다. 연속성 추출·검사는 끌 수 없습니다. 초고 요청의 선택 섹션(`older-memory`, `previous-tail`, `author-craft`, `style-anchor`)도 `disabledDraftSections`로 뺄 수 있고, 적용 결과는 `draft_context_supplied.disabledDraftSections`에 남습니다.
 6. `lore_workflow_history`와 `quality.review`에서 전체 발견 및 출처를 확인합니다. 같은 호스트 문맥으로 작성·검토했다면 자기검토로 보고합니다. 근거와 실행 경로를 조사할 때만 `includeModelExchanges=true`로 전문을 조회합니다.
 
+전체 이야기·아크·에피소드의 단계 검토는 필수 수정에 실제 권한 원문의 연속 인용을 요구합니다.
+모델의 집필 기법은 그 자체로 필수 조건이 아닙니다. 잘못된 검토 응답은 동일 후보로 한 번 다시 요청하며,
+상위 복귀·추가 조사는 별도 근거 확인을 거칩니다. 성공한 형식 복구의 응답 hash는
+`stageReview.attempts[].responseRepairs`, 복귀 판단은 `escalationAudit`에 남습니다. 재실패도 실제
+host relay의 모델 입출력을 보존하며 통과로 계산하지 않습니다. 비용과 재개 규약은
+[작품 준비 흐름](reference/STORY_PREPARATION_WORKFLOW.md)을 따릅니다.
+
+자동 기반 생성의 유효한 언어 실패는 같은 후보를 반복 검사하지 않고 최대 한 번의 제한된 번역으로
+복구합니다. 의미 보존 검토와 새 hash의 언어 영수증이 모두 필요합니다. 원본 실패는 `foundation`,
+교정 검증과 전후 패치·의미 비교는 `foundation-repaired` 상태에 별도로 저장합니다. 형식·불완전 응답의
+기존 재시도 한도는 유지합니다. 수동 초기화와 승인 완료된 결과의 자동 변경은 이 경로가 아닙니다.
+
 `lore_workflow_history` 호출 인자 예시:
 
 ```json
