@@ -174,7 +174,8 @@ function buildFoundationContext(foundation, chapterNumber, violations) {
             description: inv.description,
             severity: inv.severity,
         }));
-    return { characters, invariants };
+    // A SharedLore-bound chapter carries its pinned scene list; unbound works get the same context as before.
+    return { characters, invariants, ...(foundation.sharedLore?.contextText ? { sharedLore: foundation.sharedLore.contextText } : {}) };
 }
 /**
  * Run one revise LLM call. Returns full chapter prose with a trailing manifest;

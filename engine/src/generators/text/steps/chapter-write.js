@@ -5,7 +5,6 @@
  *
  *   loadState → chapterPlan → draft(+ cast-manifest sentinel)
  *     → registerCharacter? (deferred — see jsdoc on `performChapterWrite`)
- *     → lexicon scan (folded into continuityCheck)
  *     → extractDelta → continuityCheck
  *     → [HARD FAIL → bounded revise — see chapter-write-with-revise.ts]
  *     → sanitize (strip sentinels, assert no leak)
@@ -25,7 +24,6 @@ import { renderEntityContext, resolveEntityContext } from '../../../core/entity-
 import { scanEntityMentions } from '../../../core/mention-scan.js';
 import { resolveWorkPromptLanguage } from '../../../core/prompt-language.js';
 import { buildSlidingWindow, renderSlidingWindow } from '../../../core/sliding-window.js';
-import { DefaultHonorificLexicon } from '../../../continuity/honorific-lexicon.js';
 import { continuityCheck, extractDelta, } from '../../../continuity/continuity-check.js';
 import { emptyStoryState, reduceStoryState, } from '../../../continuity/story-state.js';
 import { DefaultStyleLexicon } from '../../../continuity/style-lexicon.js';
@@ -364,10 +362,6 @@ export async function commitPhase(ctx, args) {
     // cast-manifest sentinel parsed BEFORE sanitize (sanitize strips it).
     const manifestBlock = ctx.sanitizer.extractBlock(raw, 'cast-manifest');
     const castManifestRaw = manifestBlock?.body ?? '{"cast":[]}';
-    // Shared lexicon — currently per-call. Future task will lift this to
-    // JobContext so `lexiconAdditions` from continuityCheck persist across
-    // chapters within a single job.
-    const lexicon = new DefaultHonorificLexicon();
     const { delta, manifest, unregisteredNamed } = await extractDelta({
         prose: raw,
         castManifestRaw,
@@ -377,14 +371,13 @@ export async function commitPhase(ctx, args) {
         providers: ctx.providers,
         model: ctx.model,
     });
-    // 5. continuityCheck (aggregates layer-1 lexicon scan + layer-2 LLM) ───────
+    // 5. continuityCheck (structural checks + LLM semantic pass) ───────────────
     const check = await continuityCheck({
         prose: raw,
         chapterNumber,
         delta,
         prevState,
         foundation,
-        lexicon,
         providers: ctx.providers,
         model: ctx.model,
     });

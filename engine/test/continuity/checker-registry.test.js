@@ -223,11 +223,40 @@ describe('checker registry', () => {
         }]);
         expect(hasAddressingContract({ foundation: real })).toBe(true);
         const plan = describeCheckerPlan({ language: 'en', foundation: real });
-        const addressing = plan.rows.find((r) => r.checkerId === 'scanLexicon');
+        const addressing = plan.rows.find((r) => r.invariantId === 'ADDRESSING');
         expect(addressing.invariant).toBe('required');
         expect(addressing.requiresSemantic).toBe(true);
         const waived = describeCheckerPlan({ language: 'en', foundation: empty });
-        expect(waived.rows.find((r) => r.checkerId === 'scanLexicon').invariant).toBe('not_applicable');
+        expect(waived.rows.find((r) => r.invariantId === 'ADDRESSING').invariant).toBe('not_applicable');
+    });
+
+    it('ADDRESSING is judged by the semantic review only, in every language', () => {
+        expect(REQUIRED_INVARIANTS.ADDRESSING.detectorIds).toEqual([]);
+        const real = foundation('limited-third', [{
+            ...char('a', '아린'),
+            intrinsic: {
+                ...char('a', '아린').intrinsic,
+                addressing: { acceptedPronouns: [], acceptedGenderedTerms: [], forbiddenGenderedTerms: ['도련님'] },
+            },
+        }]);
+        for (const language of ['ko', 'en']) {
+            const plan = describeCheckerPlan({ language, foundation: real });
+            const rows = plan.rows.filter((r) => r.invariantId === 'ADDRESSING');
+            expect(rows.length).toBe(1);
+            expect(rows[0]).toMatchObject({
+                checkerId: null, runDetector: false, applicability: 'run',
+                invariant: 'required', requiresSemantic: true,
+            });
+            const unchecked = aggregateCheckerCoverage(plan, [], {});
+            expect(unchecked.invariants.ADDRESSING.coverage).toBe('unvalidated');
+            expect(unchecked.unvalidatedRequired).toContain('ADDRESSING');
+            expect(aggregateCheckerCoverage(plan, [], { ADDRESSING: 'pass' }).invariants.ADDRESSING.coverage).toBe('validated');
+            expect(aggregateCheckerCoverage(plan, [], { ADDRESSING: 'fail' }).failedRequired).toContain('ADDRESSING');
+        }
+        const waived = describeCheckerPlan({ language: 'ko', foundation: foundation('limited-third', [char('a', '아린')]) });
+        const coverage = aggregateCheckerCoverage(waived, [], {});
+        expect(coverage.invariants.ADDRESSING.coverage).toBe('not_applicable');
+        expect(coverage.unvalidatedRequired).not.toContain('ADDRESSING');
     });
 
     it('adult sensitive skip is advisory; youth hard categories require semantic replacement', () => {

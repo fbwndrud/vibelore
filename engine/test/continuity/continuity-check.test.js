@@ -2,13 +2,12 @@
  * Tests for layer-2 LLM extractDelta + continuityCheck.
  *
  * The provider registry is mocked with a deterministic adapter so tests are
- * hermetic. Layer-1 integration is exercised by setting up a scanLexicon-hit
- * case (female character + "도련님" in prose) and asserting the violation
- * propagates to the aggregate result.
+ * hermetic. Address terms are judged by the model, not by a built-in
+ * dictionary: a female character called "도련님" yields no deterministic
+ * finding.
  */
 import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { createGenreProfileRegistry } from '../../src/continuity/genre-profile.js';
-import { DefaultHonorificLexicon } from '../../src/continuity/honorific-lexicon.js';
 import { emptyStoryState } from '../../src/continuity/story-state.js';
 import { computeExtractionContextHash, continuityCheck, EXTRACTION_CONTEXT_HASH_VERSION, extractDelta, } from '../../src/continuity/continuity-check.js';
 import { createProviderRegistry, } from '../../src/core/provider-registry.js';
@@ -253,7 +252,6 @@ describe('continuityCheck', () => {
             delta: emptyDelta(2, ['c1']),
             prevState: emptyStoryState('work-test'),
             foundation,
-            lexicon: new DefaultHonorificLexicon([]),
             providers,
             model: MODEL,
         });
@@ -279,7 +277,6 @@ describe('continuityCheck', () => {
             delta: emptyDelta(2, ['c1']),
             prevState: emptyStoryState('work-test'),
             foundation,
-            lexicon: new DefaultHonorificLexicon([]),
             providers,
             model: MODEL,
         });
@@ -309,7 +306,6 @@ describe('continuityCheck', () => {
             delta: emptyDelta(2, ['c1']),
             prevState: emptyStoryState('work-test'),
             foundation,
-            lexicon: new DefaultHonorificLexicon([]),
             providers,
             model: MODEL,
         });
@@ -317,13 +313,10 @@ describe('continuityCheck', () => {
         const inv = result.violations.find((v) => v.code === 'INVARIANT_VIOLATION');
         expect(inv?.severity).toBe('hard');
     });
-    it('integrates layer-1 scanLexicon — hard violation from prose surfaces in result', async () => {
-        // Mode B (no hints): single conflicting character whose name appears in prose
-        // → layer-1 emits a soft violation. We assert presence (the integration
-        // contract is "layer-1 violations propagate"); severity per scanLexicon is
-        // soft in this mode.
+    it('does not judge address terms with a built-in dictionary — the model owns ADDRESSING', async () => {
+        const calls = [];
         const providers = createProviderRegistry([
-            makeMockAdapter({ default: '{}' }),
+            makeMockAdapter({ default: '{}', recordCalls: calls }),
         ]);
         const character = femaleChar('c2', '소영');
         const foundation = makeFoundation({ characters: [character] });
@@ -333,52 +326,14 @@ describe('continuityCheck', () => {
             delta: emptyDelta(2, ['c2']),
             prevState: emptyStoryState('work-test'),
             foundation,
-            lexicon: new DefaultHonorificLexicon(),
             providers,
             model: MODEL,
         });
-        const layer1Hit = result.violations.find((v) => v.code === 'GENDER_HONORIFIC_MISMATCH');
-        expect(layer1Hit).toBeDefined();
-        expect(layer1Hit?.characterId).toBe('c2');
-    });
-    it('returns lexiconAdditions when LLM emits them', async () => {
-        const providers = createProviderRegistry([
-            makeMockAdapter({
-                default: JSON.stringify({
-                    lexiconAdditions: [
-                        {
-                            term: '소공자',
-                            genderImplication: 'male',
-                            statusImplication: '귀족',
-                        },
-                        {
-                            term: '낭자',
-                            genderImplication: 'female',
-                            speakerGenderImplication: 'male',
-                        },
-                    ],
-                }),
-            }),
-        ]);
-        const foundation = makeFoundation({});
-        const result = await continuityCheck({
-            prose: 'noop',
-            chapterNumber: 2,
-            delta: emptyDelta(2),
-            prevState: emptyStoryState('work-test'),
-            foundation,
-            lexicon: new DefaultHonorificLexicon([]),
-            providers,
-            model: MODEL,
-        });
-        expect(result.lexiconAdditions).toEqual([
-            { term: '소공자', genderImplication: 'male', statusImplication: '귀족' },
-            {
-                term: '낭자',
-                genderImplication: 'female',
-                speakerGenderImplication: 'male',
-            },
-        ]);
+        expect(result.violations).toEqual([]);
+        expect(Object.keys(result).sort()).toEqual(['passed', 'semanticValidation', 'violations']);
+        const req = calls.find((r) => r.step === 'continuity-check');
+        const text = req.messages.map((m) => m.content).join('\n');
+        expect(text.includes('genderImplication')).toBe(false);
     });
     it('mutableChanges referencing unknown character with knownFactsAdded → hard INTRINSIC_VIOLATION', async () => {
         const providers = createProviderRegistry([
@@ -396,7 +351,6 @@ describe('continuityCheck', () => {
             delta,
             prevState: emptyStoryState('work-test'),
             foundation,
-            lexicon: new DefaultHonorificLexicon([]),
             providers,
             model: MODEL,
         });
@@ -422,12 +376,11 @@ describe('continuityCheck', () => {
             delta: emptyDelta(1),
             prevState,
             foundation,
-            lexicon: new DefaultHonorificLexicon([]),
             providers,
             model: MODEL,
         })).resolves.toBeDefined();
     });
-    it('LLM provider failure does not throw — degrades to layer-1-only result', async () => {
+    it('LLM provider failure does not throw — degrades to the structural-only result', async () => {
         const failing = {
             provider: 'openai',
             async complete() {
@@ -442,13 +395,11 @@ describe('continuityCheck', () => {
             delta: emptyDelta(1),
             prevState: emptyStoryState('work-test'),
             foundation,
-            lexicon: new DefaultHonorificLexicon([]),
             providers,
             model: MODEL,
         });
         expect(result.passed).toBe(true);
         expect(result.violations).toEqual([]);
-        expect(result.lexiconAdditions).toEqual([]);
     });
 });
 
@@ -485,7 +436,7 @@ describe('relay-aware continuity prompts', () => {
         };
         await continuityCheck({
             prose: '이세종이 문을 밀었다.', chapterNumber: 2, foundation, delta,
-            prevState: emptyStoryState('work-test'), lexicon: new DefaultHonorificLexicon(), providers, model: MODEL,
+            prevState: emptyStoryState('work-test'), providers, model: MODEL,
         });
         const user = calls.find((req) => req.step === 'continuity-check').messages.find((m) => m.role === 'user').content;
         const deltaSection = user.split('## 이번 회차 Delta\n')[1].split('\n\n')[0];
@@ -564,7 +515,7 @@ describe('continuityCheck character presence', () => {
     const deadState = { ...emptyStoryState('work-test'), chapterNumber: 4, characterStates: { c2: { vitalStatus: 'dead', knownFacts: [], sinceChapter: 3 } } };
     const check = (delta) => continuityCheck({
         prose: '소영이 문을 열었다.', chapterNumber: 5, delta, prevState: deadState, foundation,
-        lexicon: new DefaultHonorificLexicon([]), providers: createProviderRegistry([makeMockAdapter({ default: '{}' })]), model: MODEL,
+        providers: createProviderRegistry([makeMockAdapter({ default: '{}' })]), model: MODEL,
     });
     it('blocks a character recorded dead from appearing on stage', async () => {
         const result = await check(emptyDelta(5, ['c1', 'c2']));

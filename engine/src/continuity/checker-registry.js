@@ -76,10 +76,9 @@ export const REQUIRED_INVARIANTS = Object.freeze({
     ADDRESSING: Object.freeze({
         id: 'ADDRESSING',
         required: 'conditional',
-        detectorIds: Object.freeze(['scanLexicon']),
+        detectorIds: Object.freeze([]),
         exhaustive: false,
-        koHard: true,
-        notes: 'Required only when canonical intrinsic.addressing has non-empty term lists.',
+        notes: 'Required only when canonical intrinsic.addressing has non-empty term lists. Judged by the semantic review only; the engine keeps no address-term dictionary.',
     }),
     OUTPUT_LANGUAGE: Object.freeze({
         id: 'OUTPUT_LANGUAGE',
@@ -132,7 +131,6 @@ const FORMAT_LAYOUT_INVARIANTS = new Set([
 
 export const CHECKER_IDS = Object.freeze([
     'checkPov',
-    'scanLexicon',
     'scanSensitive',
     'scanQuality',
     'scanStyle',
@@ -326,19 +324,18 @@ export function describeCheckerPlan(input = {}) {
         koHard: true,
     });
 
+    // Address terms are the author's own lists; whether the prose honours them
+    // is a reading judgement, so the semantic review owns it in every language.
     push({
-        checkerId: 'scanLexicon',
+        checkerId: null,
         invariantId: 'ADDRESSING',
-        runDetector: !multilingual && addressing,
+        runDetector: false,
         applicability: addressing ? 'run' : 'not_applicable',
         invariant: addressing ? 'required' : 'not_applicable',
         ifSkipped: addressing ? 'semantic_required' : 'none',
-        skipReason: addressing
-            ? (multilingual ? 'ko_lexical_unsupported' : null)
-            : 'no_addressing_contract',
-        requiresSemantic: addressing && multilingual,
+        skipReason: addressing ? 'semantic_only' : 'no_addressing_contract',
+        requiresSemantic: addressing,
         exhaustive: false,
-        koHard: true,
     });
 
     push({
@@ -497,19 +494,6 @@ export function skipKoLexical(input, checkerId) {
             requiresSemantic: required,
             sensitiveMode: mode,
             hardCategories: hard,
-        };
-    }
-    if (checkerId === 'scanLexicon') {
-        const addressing = hasAddressingContract(input);
-        return {
-            violations: [],
-            stats: null,
-            score: null,
-            status: 'skipped',
-            skipReason: addressing ? 'ko_lexical_unsupported' : 'no_addressing_contract',
-            checkerId,
-            invariantCoverage: addressing ? 'unvalidated' : 'not_applicable',
-            requiresSemantic: addressing,
         };
     }
     const required = checkerId === 'checkPov' || checkerId === 'scanWorldGroupConflict' || checkerId === 'scanInfoRestate';

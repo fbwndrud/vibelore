@@ -35,7 +35,6 @@ import {
 import { countLength } from '../../engine/src/core/length-measure.js';
 import { DefaultOutputSanitizer } from '../../engine/src/core/output-sanitizer.js';
 import { buildLanguageDirective, computeLanguageContractHash } from '../../engine/src/core/language-policy.js';
-import { scanLexicon } from '../../engine/src/continuity/lexicon-scan.js';
 import { scanSensitive } from '../../engine/src/continuity/sensitive-lexicon.js';
 import { scanQuality } from '../../engine/src/continuity/quality-scan.js';
 import { checkPov } from '../../engine/src/continuity/pov-check.js';
@@ -193,7 +192,6 @@ function detectorFns(ctx) {
     checkPov: () => checkPov({
       ...languageInput, narratorId: foundation?.narratorId, emotionLexicon: lex.emotion,
     }),
-    scanLexicon: () => scanLexicon({ ...languageInput, lexicon: lex.honorific }),
     scanSensitive: () => scanSensitive({ ...languageInput, lexicon: lex.sensitive }),
     scanQuality: () => scanQuality({
       ...languageInput, emotionLexicon: lex.emotion, simileLexicon: lex.simile, onomatopoeiaLexicon: lex.onomatopoeia,

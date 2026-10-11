@@ -9,7 +9,6 @@
  * findings, and the relay only adds the semantic layer on top.
  */
 import { extractDelta, continuityCheck } from '../../engine/src/continuity/continuity-check.js';
-import { scanLexicon } from '../../engine/src/continuity/lexicon-scan.js';
 import { scanSensitive } from '../../engine/src/continuity/sensitive-lexicon.js';
 import { scanQuality } from '../../engine/src/continuity/quality-scan.js';
 import { checkPov } from '../../engine/src/continuity/pov-check.js';
@@ -31,6 +30,7 @@ import { promptKit } from '../prompts/index.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { runContractCheck, shouldUseContractCheck } from './check-contract.js';
 import { ledgerBaseState } from './ledger-log.js';
+import { createPublicationUnit } from '../core/publication-unit.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 
@@ -43,6 +43,9 @@ function safely(label, fn) {
 const SEVERITY_RANK = { hard: 0, soft: 1, info: 2 };
 
 export async function runCheck({ store, workId, chapter, prose, title, summary, castManifestRaw, providers, targetChapters, dialogueBreakMode = 'strict', includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = false, forceContract = false, workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, metadataCompanion = null }) {
+  const sharedPublication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
+  if (!sharedPublication.ok) throw new Error(`CORRUPT_PUBLICATION: ${sharedPublication.error.code}`);
+  forceContract ||= Boolean(sharedPublication.value?.tree?.sharedLore?.binding);
   const gated = await shouldUseContractCheck({ store, workId, chapter, forceContract });
   if (gated.gated) {
     return runContractCheck({
@@ -65,7 +68,6 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
 
   // -- deterministic layer, no model needed ---------------------------------
   const violations = [
-    ...collect('lexicon', () => scanLexicon({ prose, chapterNumber: chapter, foundation, lexicon: lex.honorific })),
     ...collect('sensitive', () => scanSensitive({ prose, chapterNumber: chapter, lexicon: lex.sensitive })),
     ...collect('quality', () => scanQuality({
       prose, chapterNumber: chapter,
@@ -126,7 +128,7 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
   if (includeSemanticContinuity && (providers?.pending?.length ?? 0) === 0) {
     const semantic = await continuityCheck({
       prose, chapterNumber: chapter, foundation, delta, prevState,
-      lexicon: lex.honorific, providers, model: MODEL,
+      providers, model: MODEL,
     });
     violations.push(...(semantic.violations ?? []));
   }
