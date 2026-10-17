@@ -34,7 +34,7 @@ describe('AI definition extension', () => {
     const store = new LoreRegistryStore(w.root, 'u1');
     const needs = [
       { definition: def('curse-mark', 'curse.mark'), why: '저주 표식이 장면마다 바뀐다' },
-      { definition: def('gender-copy', 'body.gender', { valueType: { kind: 'enum', values: ['male', 'female'] } }), why: '같은 의미의 새 ID 제안' },
+      { definition: def('gender-copy', 'body.gender', { valueType: { kind: 'enum', values: ['male', 'female'] }, definition: 'body.gender의 명시된 값' }), why: '같은 의미의 새 ID 제안' },
       { definition: def('name', 'character.name', { owner: 'state' }), why: '이름을 시점별로 바꾸려는 제안' },
       { definition: def('loop-memory', 'loop.memory', { requiredCapabilities: ['experience-path-v1'] }), why: '회귀 기억' },
     ];
@@ -59,6 +59,16 @@ describe('AI definition extension', () => {
     await rm(store.operationPath('write-run-0002'));
     const resumed = await store.ensure({ needs: crashNeeds, reason: '중단', operationId: 'write-run-0002', expectedHead: headBefore });
     assert.equal(resumed.replayed, true); assert.equal(resumed.head, crashed.head); assert.deepEqual(resumed.addedRevisionIds, crashed.addedRevisionIds); assert.equal(resumed.previousHead, headBefore);
+  });
+  it('returns meaning disambiguation over MCP without publishing a changed definition', async t => {
+    const w = await sharedSaga(); t.after(() => rm(w.root, { recursive: true, force: true }));
+    const registry = new LoreRegistryStore(w.root, 'u1'), head = await registry.head();
+    const result = await rpc('lore_registry', { action: 'ensure', registryRoot: w.root, universeId: 'u1', reason: '다른 의미',
+      operationId: 'different-meaning-01', needs: [{ definition: def('other-gender', 'body.gender', { valueType: { kind: 'enum', values: ['male', 'female'] }, definition: '사회적 계층' }) }] });
+    assert.equal(result.isError, undefined);
+    assert.equal(result.structuredContent.outcomes[0].outcome, 'needs_disambiguation');
+    assert.equal(result.structuredContent.outcomes[0].candidates[0].definitionId, 'body-gender');
+    assert.equal(await registry.head(), head);
   });
   it('replays ensure over public MCP for a resumed host call', async t => {
     const w = await sharedSaga(); t.after(() => rm(w.root, { recursive: true, force: true }));

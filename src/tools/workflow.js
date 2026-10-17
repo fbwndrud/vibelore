@@ -1,3 +1,4 @@
+import { createIdentityResolver } from '../../engine/src/core/identity-reference.js';
 import { createHash, randomUUID } from 'node:crypto';
 
 import { DefaultOutputSanitizer } from '../../engine/src/core/output-sanitizer.js';
@@ -84,12 +85,8 @@ function parseInfluenceObservation(raw, foundation) {
   let parsed;
   try { parsed = JSON.parse(String(raw ?? '').replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim()); }
   catch { return null; }
-  const idByReference = new Map();
-  for (const character of foundation.characters ?? []) {
-    idByReference.set(character.id, character.id);
-    idByReference.set(character.canonicalName, character.id);
-    for (const alias of character.aliases ?? []) idByReference.set(alias, character.id);
-  }
+  const resolve = createIdentityResolver(foundation.characters ?? []);
+  const idByReference = { get(ref) { const result = resolve(ref); return result.status === 'resolved' ? result.id : null; } };
   const events = (Array.isArray(parsed?.influenceEvents) ? parsed.influenceEvents : []).flatMap((event) => {
     const characterId = idByReference.get(event?.characterId);
     const anchor = typeof event?.anchor === 'string' ? event.anchor.trim() : '';

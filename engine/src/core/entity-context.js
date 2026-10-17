@@ -8,6 +8,7 @@
  * "registered 된 모든 entity dump" 의 token 폭증 방지 — 이번 화 무대 entity 만
  * inject. 100화 작품 token ~70% 감소가 목표.
  */
+import { createIdentityResolver } from './identity-reference.js';
 import { pickByFamily } from './prompt-language.js';
 import { budgetEstimator } from './token-units.js';
 export const EMPTY_SCENE = {
@@ -63,7 +64,8 @@ export function resolveEntityContext(input) {
         };
     }
     const byId = new Map(input.snapshots.map((s) => [s.entityId, s]));
-    const byName = new Map(input.snapshots.map((s) => [s.canonicalName, s]));
+    const resolve = createIdentityResolver(input.snapshots, { idOf: s => s.entityId });
+    const ambiguousRefs = [];
     const seenIds = new Set();
     const matched = [];
     const missingIds = [];
@@ -76,7 +78,12 @@ export function resolveEntityContext(input) {
             }
             continue;
         }
-        const named = byName.get(ref);
+        const resolution = resolve(ref);
+        if (resolution.status === 'ambiguous') {
+            ambiguousRefs.push({ ref, candidateIds: resolution.candidateIds });
+            continue;
+        }
+        const named = byId.get(resolution.id);
         if (named) {
             if (!seenIds.has(named.entityId) && named.status !== 'retired' && named.status !== 'destroyed') {
                 seenIds.add(named.entityId);
@@ -98,6 +105,7 @@ export function resolveEntityContext(input) {
     }
     return {
         injected: kept,
+        ...(ambiguousRefs.length ? { ambiguousRefs } : {}),
         missingIds,
         trimmedCount: matched.length - kept.length,
         estimatedTokens: used,
@@ -112,6 +120,7 @@ export function resolveEntityContext(input) {
  * 작품 데이터이므로 계열과 무관하게 그대로 싣는다. 라벨만 두 계열로 관리한다.
  */
 export function renderEntityContext(result, context) {
+    if (result.ambiguousRefs?.length) throw Object.assign(new Error('Ambiguous entity reference: use a stable ID'), { code: 'AMBIGUOUS_ENTITY_REFERENCE', candidates: result.ambiguousRefs });
     const labels = context === undefined || context === null
         ? ENTITY_LABELS_KO
         : pickByFamily(context, { ko: ENTITY_LABELS_KO, multilingual: ENTITY_LABELS_EN });

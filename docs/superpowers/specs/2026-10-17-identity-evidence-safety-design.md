@@ -33,3 +33,9 @@ Committed observations remain editorially accepted artifacts. Preserve influence
 ## Verification and completion
 
 TDD every behavior change. Test v1 replay/v2 homonyms, explicit IDs, multiple aliases, ambiguous names, normalized definition meaning, duplicate lexical seeds, stale evidence/quote spans, support/contradiction/cycle policies, author decisions before revelation, character reports, and pinned historical evidence reads. Exercise public MCP with synthetic worlds. Run both complete engine and plugin suites plus check:source and package dry-run. Fresh independent whole-branch review before PR; fix important findings with regressions. Push only the new feature branch, open PR against main linking both issues; do not merge or publish.
+
+## Builder-check decisions
+
+- Contradicting evidence references block adoption/verification while present; a later immutable revision may remove a resolved reference, and prior revisions preserve its history.
+- Rule-derived evidence qualifies only when its nonempty dependency set all recursively qualifies; reject cycles first.
+- Existing value.evidenceIds remain document IDs. Claim support/contradiction IDs refer to ledger evidence records. These namespaces are never reinterpreted.

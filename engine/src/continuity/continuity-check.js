@@ -1,3 +1,4 @@
+import { createIdentityResolver } from '../core/identity-reference.js';
 /**
  * Layer-2 continuity gate — LLM semantic layer.
  *
@@ -925,14 +926,8 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
     };
 }
 function characterIdResolver(foundation) {
-    const idByReference = new Map();
-    for (const character of foundation.characters) {
-        idByReference.set(character.id, character.id);
-        idByReference.set(character.canonicalName, character.id);
-        for (const alias of character.aliases ?? [])
-            idByReference.set(alias, character.id);
-    }
-    return (value) => idByReference.get(value) ?? null;
+    const resolve = createIdentityResolver(foundation.characters);
+    return value => { const result = resolve(value); return result.status === 'resolved' ? result.id : null; };
 }
 function resolveCharacterIds(delta, resolveId) {
     delta.relationshipOps = delta.relationshipOps.map(({ from: rawFrom, ...rest }) => {
