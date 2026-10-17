@@ -206,7 +206,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     const reviewLedger = () => {
       const delta = state.extracted.delta;
       const reviewed = reviewLedgerOps({ state: prevState, ops: delta.ledgerOps ?? [], prose: input.prose,
-        cast: delta.appearedCharacterIds ?? [], config: ledgerConfig });
+        cast: delta.appearedCharacterIds ?? [], config: ledgerConfig, identityVersion: delta.ledgerIdentityVersion ?? 1 });
       state.extracted.delta = { ...delta, ledgerOps: reviewed.ops };
       const stepped = ledgerStep(prevState, state.extracted.delta, { config: ledgerConfig }).violations
         .map((v) => (EXTRACTION_LEDGER_CODES.has(v.code) ? { ...v, message: ledgerSlipMessage(v, reviewed.ops, prevState) } : v));

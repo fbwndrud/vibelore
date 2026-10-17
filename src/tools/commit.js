@@ -1,3 +1,4 @@
+import { buildChapterObservation } from '../core/chapter-observation.js';
 /**
  * lore_commit -- fold a finished chapter into the work's canonical state.
  *
@@ -190,34 +191,12 @@ export async function runCommit({
     transactionTime: new Date().toISOString(), policyRevision: 'vibelore-1',
     semanticGeneration: 'vibelore-1', fencingToken: token.value.fencingToken,
   };
-  const proseHash = `sha256:${createHash('sha256').update(prose).digest('hex')}`;
   const influenceEvents = Array.isArray(delta.influenceEvents) ? delta.influenceEvents : [];
   const strictPlanningRequired = storySpine?.status === 'active' && (foundation.characters?.length ?? 0) >= 2;
   if (strictPlanningRequired && influenceEvents.length === 0 && !String(delta.noInfluenceReason ?? '').trim()) {
     throw new Error('INFLUENCE_OBSERVATION_REQUIRED: 선택·비용·인식·관계 변화 또는 명시적 noInfluenceReason이 필요합니다.');
   }
-  const assertionValidity = {
-    storyValidity: { from: chapter, to: null }, publicationValidity: { from: chapter, to: null }, transactionValidity: { from: chapter, to: null },
-  };
-  const observationArtifact = {
-    observationId: checkReceipt ? `check:${checkReceipt.checkId}` : `legacy-manual:${chapter}:${proseHash}`,
-    sourceHash: proseHash, status: 'accepted', acceptedAt: executionContext.transactionTime,
-    policyRevision: executionContext.policyRevision, worldline: 'main', influenceEvents,
-    noInfluenceReason: influenceEvents.length ? null : String(delta.noInfluenceReason ?? '').trim() || null,
-    temporal: {
-      storyTimeScope: { worldline: 'main', startOrdinal: chapter, endOrdinalExclusive: null, precision: 'chapter', tieGroup: null },
-      publicationFrom: chapter, publicationTo: null, transactionFrom: chapter, transactionTo: null,
-    },
-    epistemic: {
-      truthAssertions: [{ status: 'established', evidenceIds: [], ...assertionValidity }],
-      readerAssertions: [{ visibility: 'revealed', evidenceIds: [], ...assertionValidity }],
-      knowers: [], believers: influenceEvents.flatMap((event) => (event.relationshipClaims ?? []).map((claim) => ({ characterId: claim.from, confidence: 1, ...assertionValidity }))), disbelievers: [],
-    },
-    acceptance: checkReceipt ? {
-      kind: 'workflow_check_and_canon_acceptance', checkId: checkReceipt.checkId,
-      workflowId: checkReceipt.workflowId, checkedAt: checkReceipt.checkedAt, proseHash: checkReceipt.proseHash,
-    } : { kind: 'legacy_manual_commit', migrationRequired: true },
-  };
+  const observationArtifact = buildChapterObservation({ chapter, prose, delta, checkReceipt, executionContext });
   const dynamics = foldLegacyChapterCharacterDynamics(executionContext, {
     foundation: baseFoundation, delta: { ...delta, chapterNumber: chapter }, episodePlan,
     previous: publishedBefore.value?.projections?.characterDynamics,

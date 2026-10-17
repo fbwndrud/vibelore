@@ -192,7 +192,7 @@ export function ledgerStep(prev, delta, { config = {} } = {}) {
     const effective = ledgerConfigAt(config, delta.chapterNumber);
     const before = applyMerges(state.ledger, effective.merges, delta.chapterNumber);
     const ops = [...legacyLedgerOps(state, delta), ...(delta.ledgerOps ?? [])];
-    const applied = applyLedgerOps({ ...state, ledger: before.ledger }, ops, { chapter: delta.chapterNumber, config: effective });
+    const applied = applyLedgerOps({ ...state, ledger: before.ledger }, ops, { chapter: delta.chapterNumber, config: effective, identityVersion: delta.ledgerIdentityVersion ?? 1 });
     const after = applyMerges(applied.ledger, effective.merges, delta.chapterNumber);
     return { ledger: after.ledger, hooks: applied.hooks, events: [...before.events, ...applied.events, ...after.events], violations: applied.violations };
 }
