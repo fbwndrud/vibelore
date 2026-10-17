@@ -78,4 +78,12 @@
 - [x] Run npm run test:all, npm run check:source, git diff --check and npm pack --dry-run --json using Node 24; Expected: pass and no private/dev state packed.
 - [x] Commit docs and request fresh whole-branch review per superpowers:requesting-code-review using the spec, plan and Review Focus above.
 - [x] Fix Critical/Important review findings RED→GREEN and rerun full checks; Expected: green.
-- [ ] Push codex/identity-evidence-safety and open PR against main closing #27 and #28; attach the created PR to this chat.
+- [x] Push codex/identity-evidence-safety and open PR against main closing #27 and #28; attach the created PR to this chat.
+
+## Execution result — 2026-10-17
+
+- Implemented all five tasks in the isolated `codex/identity-evidence-safety` branch; primary checkout changes were preserved.
+- Fresh Node v24.19.0 full verification after the review fixes: engine 1,239/1,239 and plugin 1,005/1,005, zero failures (2,244 total). Source checks, diff whitespace check and package dry-run passed; package contains 286 allowed files and no personal/runtime/development state.
+- Fresh independent Superpowers review identified three Important defects in custom tracking and private-perspective qualification. Regression tests reproduced them before fixes. Writer pinning and malformed Unicode anchor boundaries were also covered in the same fix pass.
+- Issues [#27](https://github.com/fbwndrud/vibelore/issues/27) and [#28](https://github.com/fbwndrud/vibelore/issues/28) are linked to [PR #29](https://github.com/fbwndrud/vibelore/pull/29), open against main. No merge or release was performed.
+- Semantic entailment and causal/temporal interpretation stay in author/model review; exact source integrity is enforced. The final design records v2 custom-ID binding and evidence perspective decisions.
