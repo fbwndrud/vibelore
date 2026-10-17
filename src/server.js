@@ -90,20 +90,20 @@ const webtoonImageChoiceArgs = {
 const TOOLS = [
   {
     name: 'lore_universe', annotations: writes(),
-    description: '소설 없이 공유 세계의 설정 원문·인물·상태·typed values를 채택한다. status→propose에서 전체 후보·원문 변경·영향을 보여 주고 사용자 승인 후 decide(decision=approve)한다. 값·근거·소유·기간 충돌을 검사하며 독립 lore HEAD를 발행한다. resolve는 고정 판본 값 조회, documents는 고정 문서 목록·선택 원문 조회, recover는 발행 후 원문 반영 중단 복구다. .vibelore를 직접 편집하지 않는다.',
+    description: '소설 없이 공유 세계의 설정 원문·인물·상태·typed values를 채택한다. status→propose에서 전체 후보·원문 변경·영향을 보여 주고 사용자 승인 후 decide(decision=approve)한다. 값·근거·소유·기간 충돌을 검사하며 독립 lore HEAD를 발행한다. evidence는 고정 판본의 근거·주장·미해결 질문 조회(자동 승격 없음), resolve는 고정 판본 값 조회, documents는 고정 문서 목록·선택 원문 조회, recover는 발행 후 원문 반영 중단 복구다. .vibelore를 직접 편집하지 않는다.',
     inputSchema: { type: 'object', additionalProperties: false, properties: {
-      action: { type: 'string', enum: ['status', 'propose', 'decide', 'resolve', 'documents', 'recover'], description: '세계 조회·후보 검증·작가의 채택 결정·고정 값/문서 조회·원문 반영 복구.' },
+      action: { type: 'string', enum: ['status', 'propose', 'decide', 'resolve', 'documents', 'evidence', 'recover'], description: '세계 조회·후보 검증·작가의 채택 결정·고정 값/문서 조회·원문 반영 복구.' },
       worldRoot: { type: 'string', description: '공유 세계의 절대 경로. registryRoot와 같은 세계 디렉터리.' },
       universeId: { type: 'string', description: '공유 세계의 안정적인 ID.' },
       expectedHead: { anyOf: [{ type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, { enum: [null] }], description: 'propose/decide에 필요. status의 lore HEAD. 최초 null.' },
       registryRevisionId: { type: 'string', description: 'propose가 사용할 정확한 정의 등록부 판본.' },
       documentIds: { type: 'array', maxItems: 100, uniqueItems: true, items: { type: 'string' }, description: 'documents에서 원문을 읽을 ID. 생략하면 해당 판본의 문서 목록·소유·시점만 반환한다. 호스트 AI가 계획과 장면에 필요한 문서를 선택한다.' },
-      content: { type: 'object', description: 'propose의 전체 entities[{id,typeDefinitionRevisionId,documentIds,valueIds}],states[{id,entityId,documentIds,valueIds,storyScope}],timelines,values,documents[{id,path,text,visibility:author|context}],worldDocumentIds. 값은 승인할 documents ID를 근거로 참조한다.' },
+      content: { type: 'object', description: 'propose의 전체 entities[{id,typeDefinitionRevisionId,documentIds,valueIds}],states[{id,entityId,documentIds,valueIds,storyScope}],timelines,values,documents[{id,path,text,visibility:author|context}],worldDocumentIds. 값은 승인할 documents ID를 근거로 참조한다. 선택 evidenceLedger:{schemaVersion:1,evidence,claims,questions}는 판본·인용·근거 방식·채택/관점·미해결 질문을 별도로 검증하며 값의 evidenceIds 문서 ID 의미는 유지한다.' },
       reason: { type: 'string', description: 'propose의 세계 변경 근거. 실제 후보 판본에 보존.' },
       proposalId: { type: 'string', description: 'decide에서 검토한 불변 후보 ID.' },
       decision: { type: 'string', enum: ['approve', 'reject'], description: 'decide의 사용자 결정. approve는 검토한 실제 후보를 승인받은 뒤 호출.' },
-      loreRevisionId: { type: 'string', description: 'resolve/documents의 불변 lore HEAD. 최신 판본을 암묵적으로 사용하지 않는다.' },
-      query: { type: 'object', description: 'resolve의 subjectId,fieldId,scope,maxCandidates?. 등록부 해석 계약과 동일.' },
+      loreRevisionId: { type: 'string', description: 'resolve/documents/evidence의 불변 lore HEAD. 최신 판본을 암묵적으로 사용하지 않는다.' },
+      query: { type: 'object', description: 'resolve의 subjectId,fieldId,scope,maxCandidates?. evidence에서는 {valueId} 또는 {claimId} 또는 {questionId}, 생략하면 원장 요약. 등록부 해석 계약과 구분한다.' },
     }, required: ['action', 'worldRoot', 'universeId'] },
   },
   {
