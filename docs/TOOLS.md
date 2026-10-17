@@ -224,6 +224,11 @@ StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 �
 Published HEAD 이후 사람이 수정한 `world/`, `characters/`, `chapters/` Markdown을 감지합니다.
 `inspect`는 변경을 분류하고, 마지막 화는 `validate`가 검사한 뒤 발급한 `approvalId`로
 `apply`해야 재발행됩니다. 이전 화와 설계 변경은 영향 분석 없이 자동 적용하지 않습니다.
+공백·단어 경계·문단 경계를 포함한 파일 바이트 변경을 감지합니다. 구형 fingerprint도 저장된 원본 바이트 hash로 비교합니다.
+`world/story-spine.md`, `world/writer-skill.md` 손수정은 `plan_review_required`로 분류하며,
+`validate`/`apply`는 `PLAN_DOCUMENT_SYNC_UNSUPPORTED`로 차단합니다. 편집 원문을 별도 보존하고 파일을
+마지막 승인본으로 복원한 뒤 변경 내용을 `lore_story_plan` 또는 `lore_writer_skill`의 `feedback`으로 전달해 검토·승인하세요.
+기준 fingerprint가 없는 구형 작품도 계획 문서와 실행 계획의 정확한 일치를 확인한 뒤에만 기준선을 만들며, 파싱하지 않는 문서를 자동 채택하지 않습니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -619,6 +624,9 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 대본이 고정한 카탈로그 이미지를 지정합니다. 새로 시작한 장면은 완료 때 `.vibelore/productions/`에 원천 판본·잠금·참조와
 이미지 해시를 기록하며, `action=verify`가 세계 디렉터리 없이 그 기록과 봉인 바이트를 다시 검증합니다. 경로로만 받은 참조는
 `unpreserved`로 표시하고 재현을 주장하지 않습니다.
+카탈로그 참조가 선택한 원문 장면 어디에도 적용되지 않으면 `SCENE_ASSET_STATE_MISMATCH`로 거절합니다.
+참조의 `entityId`, `stateIds`, 적용 `sceneIds`를 보존하고, 여러 시점을 함께 그릴 때 이미지 요청에 적용 순간을 명시합니다.
+재개는 검증된 원천을 사용합니다. 완료본 검증은 원본 세계 폴더가 없어도 보존 원장의 발췌 범위와 카탈로그 참조 ID·범위를 대조합니다.
 세부 계약은 [기본 경로](reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)를 참고하세요.
 
 ### `lore_webtoon_plan` (deprecated)

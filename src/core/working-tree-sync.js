@@ -31,9 +31,9 @@ async function markdownFiles(rootDir) {
 }
 
 const sha256 = (value) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
-// Whitespace carries no canon: a hand edit that only moves spaces or line
-// breaks must not stop writing or trigger a model re-check.
-const contentDigestOf = (bytes) => sha256(bytes.toString('utf8').normalize('NFC').replace(/\s+/gu, ''));
+// Word boundaries, JSON strings and Markdown paragraph breaks can carry meaning.
+// Keep the contentDigest field for stored-record compatibility, but hash exact bytes.
+const contentDigestOf = sha256;
 
 export async function fingerprintWorkingTree(rootDir) {
   const files = await markdownFiles(rootDir);
@@ -61,7 +61,7 @@ export async function saveManagedPlanDocument({ store, path, text, write }) {
   let before = null;
   try { before = await readFile(path); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const entry = accepted?.inventory?.find(item => item.path === local);
-  if (accepted && (entry ? !before || (entry.contentDigest ? contentDigestOf(before) !== entry.contentDigest : sha256(before) !== entry.digest) : before !== null)) {
+  if (accepted && (entry ? !before || sha256(before) !== entry.digest : before !== null)) {
     throw Object.assign(new Error(`WORKING_TREE_DRIFT: sync ${local} before replacing its plan`), { code: 'WORKING_TREE_DRIFT' });
   }
   await write(path, text);
@@ -89,12 +89,13 @@ export async function detectWorkingTreeDrift({ store, sourceHead }) {
   const current = await fingerprintWorkingTree(store.rootDir);
   const before = new Map((accepted.inventory ?? []).map((item) => [item.path.replaceAll('\\', '/'), item]));
   const after = new Map(current.inventory.map((item) => [item.path.replaceAll('\\', '/'), item]));
-  // Records captured before content digests existed compare raw bytes.
+  // Every old inventory already has raw digests. Use them even when an older
+  // contentDigest ignored whitespace, without accepting or invalidating unchanged files.
   const differs = (path) => {
     const old = before.get(path);
     const now = after.get(path);
     if (!old || !now) return true;
-    return old.contentDigest ? old.contentDigest !== now.contentDigest : old.digest !== now.digest;
+    return old.digest !== now.digest;
   };
   const changed = [...new Set([...before.keys(), ...after.keys()])].filter(differs).sort();
   if (accepted.sourceHead !== sourceHead) return { status: 'stale_fingerprint', sourceHead, acceptedHead: accepted.sourceHead, changed };

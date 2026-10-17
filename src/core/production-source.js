@@ -30,8 +30,7 @@ async function resolveScriptSource(store, workId, { scriptId, scriptRevisionId, 
   const lockId = productionLockId ?? (head.revisionId === script.revisionId ? head.productionLockId : requireLore(false, 'PRODUCTION_INPUT_MISSING', 'pin the production lock of an older script revision'));
   const { lock, blobs } = await readSealedProductionInput({ rootDir: store.rootDir, productionLockId: lockId });
   requireLore(lock.sourceKind === 'scene-script' && lock.scriptRevisionId === script.revisionId && lock.workId === workId, 'LORE_INTEGRITY', 'sealed lock does not belong to this script revision');
-  const units = lock.scenes.flatMap(scene => loreSceneParagraphs(script.scenes.find(s => s.id === scene.id).text)
-    .map((p, i) => ({ id: `${scene.id}-p-${i + 1}`, sceneId: scene.id, text: p.text, hash: digest(p.text) })));
+  const units = scriptSourceUnits(lock);
   const documents = [...new Map(lock.scenes.flatMap(scene => scene.documents.map(doc => [doc.id, { id: doc.id, path: doc.path, raw: doc.text, hash: digest(doc.text), temporalScope: 'pinned-scene-state' }]))).values()];
   const names = new Map(lock.projections.filter(p => p.target === 'canonicalName').map(p => [p.localCharacterId, p.value]));
   const snapshot = {
@@ -46,6 +45,12 @@ async function resolveScriptSource(store, workId, { scriptId, scriptRevisionId, 
     units,
   };
   return { ...snapshot, hash: digest(snapshot) };
+}
+
+/** Reconstruct exact excerpt units using only a verified, preserved input lock. */
+export function scriptSourceUnits(lock) {
+  return lock.scenes.flatMap(scene => loreSceneParagraphs(lock.closure.script.scenes.find(s => s.id === scene.id).text)
+    .map((p, i) => ({ id: `${scene.id}-p-${i + 1}`, sceneId: scene.id, text: p.text, hash: digest(p.text) })));
 }
 
 /** Re-verify a running workflow's source: same bytes, same lock, no unadopted edits. */

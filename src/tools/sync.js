@@ -1,4 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { captureWorkingTreeFingerprint, detectWorkingTreeDrift, fingerprintWorkingTree } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
@@ -9,12 +11,34 @@ import { runCheck } from './check.js';
 import { runCommit } from './commit.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { ledgerLogStatus, rebuildLedgerLog } from './ledger-log.js';
+import { renderStorySpineDocument, renderWriterSkillDocument } from '../store/plan-documents.js';
 
 const CHAPTER_PATH = /^chapters\/(\d+)\.md$/;
+const PLAN_DOCUMENTS = new Set(['world/story-spine.md', 'world/writer-skill.md']);
+const planEditGuidance = '계획 Markdown 손수정은 아직 직접 채택할 수 없습니다. 편집 원문을 별도 보존하고 해당 파일을 마지막 승인본으로 복원한 뒤, 변경 내용을 lore_story_plan 또는 lore_writer_skill의 feedback으로 전달해 검토·승인하세요.';
+const blockedPlanEdit = inspected => ({ ...inspected, status: 'blocked', code: 'PLAN_DOCUMENT_SYNC_UNSUPPORTED', nextAction: planEditGuidance });
 const proseHash = (prose) => `sha256:${createHash('sha256').update(String(prose)).digest('hex')}`;
 const pending = (providers) => (providers?.pending?.length ?? 0) > 0;
 const stable = (value) => Array.isArray(value) ? value.map(stable)
   : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])])) : value;
+
+/** Without an old fingerprint, compare plan copies to their runtime source. */
+async function inspectUntrackedDocuments(store, workId) {
+  const planChanges = [];
+  const plans = [
+    ['world/story-spine.md', await store.loadStorySpine(workId), renderStorySpineDocument],
+    ['world/writer-skill.md', await store.loadWriterSkill(workId), renderWriterSkillDocument],
+  ];
+  for (const [path, value, render] of plans) {
+    let bytes = null;
+    try { bytes = await readFile(join(store.rootDir, path)); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (value ? !bytes?.equals(Buffer.from(render(workId, value))) : bytes !== null) planChanges.push(path);
+  }
+  const fingerprint = await fingerprintWorkingTree(store.rootDir);
+  const unknownChanges = fingerprint.inventory.map(item => item.path).filter(path => !PLAN_DOCUMENTS.has(path)
+    && path !== 'world/setting.md' && !/^characters\/[^/]+\.md$/.test(path) && !CHAPTER_PATH.test(path));
+  return { planChanges, unknownChanges };
+}
 
 async function inspectSync({ store, workId }) {
   const publication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
@@ -30,6 +54,13 @@ async function inspectSync({ store, workId }) {
     };
   }
   if (drift.status === 'untracked') {
+    const { planChanges, unknownChanges } = await inspectUntrackedDocuments(store, workId);
+    if (planChanges.length || unknownChanges.length) return {
+      status: 'needs_review', sourceHead: publication.value.head, changed: [...planChanges, ...unknownChanges].sort(),
+      classification: planChanges.length ? 'plan_review_required' : 'unsupported_change',
+      planChanges, unknownChanges, designChanges: [], chapterCandidates: [],
+      nextAction: planChanges.length ? planEditGuidance : '기준선이 없는 미지원 문서를 자동 채택하지 않습니다. 원문을 별도 보존하고 변경 경로를 검토하세요.',
+    };
     const publishedFoundation = publication.value.tree?.foundation ?? null;
     const workingFoundation = await store.loadFoundation(workId);
     const publishedChapters = publication.value.tree?.chapters ?? {};
@@ -52,8 +83,10 @@ async function inspectSync({ store, workId }) {
   }
 
   const chapterChanges = drift.changed.map((path) => ({ path, match: CHAPTER_PATH.exec(path) })).filter((item) => item.match);
-  const designChanges = drift.changed.filter((path) => path.startsWith('world/') || path.startsWith('characters/'));
-  const unknownChanges = drift.changed.filter((path) => !designChanges.includes(path) && !CHAPTER_PATH.test(path));
+  const planChanges = drift.changed.filter(path => PLAN_DOCUMENTS.has(path));
+  // loadFoundation parses only setting.md and direct character documents.
+  const designChanges = drift.changed.filter(path => path === 'world/setting.md' || /^characters\/[^/]+\.md$/.test(path));
+  const unknownChanges = drift.changed.filter(path => !planChanges.includes(path) && !designChanges.includes(path) && !CHAPTER_PATH.test(path));
   const chapterCandidates = [];
   for (const { path, match } of chapterChanges) {
     const chapter = Number(match[1]);
@@ -67,7 +100,10 @@ async function inspectSync({ store, workId }) {
   const lastChapter = publishedChapters.at(-1) ?? 0;
   let classification = 'unsupported_change';
   let nextAction = '변경 파일을 직접 덮어쓰지 않습니다. 변경 유형을 검토하세요.';
-  if (designChanges.length) {
+  if (planChanges.length) {
+    classification = 'plan_review_required';
+    nextAction = planEditGuidance;
+  } else if (designChanges.length) {
     classification = 'design_review_required';
     nextAction = chapterCandidates.length || unknownChanges.length
       ? '세계·인물 변경과 원고 변경이 섞여 있습니다. 원고 변경을 되돌리거나 따로 처리한 뒤 lore_sync action=validate로 세계·인물 변경을 검토하세요.'
@@ -81,7 +117,7 @@ async function inspectSync({ store, workId }) {
   }
   return {
     status: 'needs_review', sourceHead: publication.value.head, changed: drift.changed,
-    classification, designChanges, chapterCandidates, unknownChanges, nextAction,
+    classification, designChanges, planChanges, chapterCandidates, unknownChanges, nextAction,
   };
 }
 
@@ -210,6 +246,7 @@ export async function runSyncStatus({ store, workId, action = 'inspect', approva
   if (action === 'validate') {
     await repairLedgerLog({ store, workId });
     const inspected = await inspectSync({ store, workId });
+    if (inspected.planChanges?.length) return blockedPlanEdit(inspected);
     if (inspected.classification === 'design_review_required') return validateDesign({ store, workId, inspected });
     if (inspected.classification !== 'latest_chapter_review_required') return inspected;
     const chapter = inspected.chapterCandidates[0].chapter;
@@ -252,6 +289,10 @@ export async function runSyncStatus({ store, workId, action = 'inspect', approva
     await repairLedgerLog({ store, workId });
     const candidate = await store.loadSyncCandidate(workId);
     if (!candidate || candidate.consumedAt || candidate.approvalId !== approvalId) throw new Error('유효한 미사용 sync approvalId가 없습니다.');
+    // Old candidates must not turn unsupported plan edits into an accepted baseline.
+    const inspected = await inspectSync({ store, workId });
+    if (inspected.planChanges?.length) return blockedPlanEdit(inspected);
+    if (inspected.unknownChanges?.length) return { ...inspected, status: 'blocked', code: 'UNSUPPORTED_WORKING_TREE_CHANGES' };
     if (candidate.kind === 'design') {
       if (candidate.stale) throw new Error('STALE_SYNC_CANDIDATE: 다시 검토해야 합니다.');
       let published;
