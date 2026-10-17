@@ -769,10 +769,10 @@ function validateExtractionPayload(parsed, { explicit, contextHash, resolveId })
         return { ok: false, code: 'malformed' };
     return { ok: true };
 }
-function extractionValidationResult(status, contextHash, code) {
+function extractionValidationResult(status, contextHash, code, references = null) {
     const result = { status, contextHash };
     if (status !== 'completed' && code)
-        result.diagnostics = Object.freeze({ code });
+        result.diagnostics = Object.freeze({ code, ...(references ? { references } : {}) });
     return Object.freeze(result);
 }
 const LEDGER_OP_KEYS = Object.freeze({
@@ -928,12 +928,21 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
 }
 function characterIdResolver(foundation) {
     const resolve = createIdentityResolver(foundation.characters);
-    return value => { const result = resolve(value); return result.status === 'resolved' ? result.id : null; };
+    const ambiguousReferences = new Map();
+    const resolveId = value => {
+        const result = resolve(value);
+        if (result.status === 'ambiguous') ambiguousReferences.set(value, result.candidateIds);
+        return result.status === 'resolved' ? result.id : null;
+    };
+    return { resolveId, ambiguousReferences };
 }
-function resolveCharacterIds(delta, resolveId) {
-    delta.relationshipOps = delta.relationshipOps.map(({ from: rawFrom, ...rest }) => {
+function resolveCharacterIds(delta, resolveId, ambiguousReferences) {
+    delta.relationshipOps = delta.relationshipOps.flatMap(({ from: rawFrom, ...rest }) => {
         const from = rawFrom ? resolveId(rawFrom) : null;
-        return { ...(from ? { from } : {}), ...rest, to: resolveId(rest.to) ?? rest.to };
+        const to = resolveId(rest.to);
+        // An ambiguous endpoint must never become an unscoped legacy update.
+        if (ambiguousReferences.has(rawFrom) || ambiguousReferences.has(rest.to)) return [];
+        return [{ ...(from ? { from } : {}), ...rest, to: to ?? rest.to }];
     });
     delta.mutableChanges = delta.mutableChanges.flatMap((change) => {
         const characterId = resolveId(change.characterId);
@@ -994,7 +1003,7 @@ export async function extractDelta(input) {
         sawThrow = true;
     }
     const appearedCharacterIds = manifest.map((c) => c.characterId);
-    const resolveId = characterIdResolver(input.foundation);
+    const { resolveId, ambiguousReferences } = characterIdResolver(input.foundation);
     let parsed = llmText ? tryParseJson(llmText) : null;
     let delta = parseChapterDeltaPayload(parsed, input.chapterNumber, appearedCharacterIds);
     // Explicit contracts share the caller's persisted attempt budget: each
@@ -1034,14 +1043,15 @@ export async function extractDelta(input) {
     const validated = validateExtractionPayload(parsed, {
         explicit: requireHash, contextHash, resolveId,
     });
-    resolveCharacterIds(delta, resolveId);
+    resolveCharacterIds(delta, resolveId, ambiguousReferences);
     const rejectedAddressEntries = filterAddressEntries(delta, input.foundation, input.prose);
     const rejectedRevivals = filterRevivals(delta, input.prevState, input.prose);
     let extraction;
-    if (validated.ok)
+    const references = ambiguousReferences.size ? [...ambiguousReferences].map(([ref, candidateIds]) => ({ ref, candidateIds })) : null;
+    if (validated.ok && !references)
         extraction = extractionValidationResult('completed', contextHash);
     else if (sawResponse)
-        extraction = extractionValidationResult('invalid', contextHash, validated.code);
+        extraction = extractionValidationResult('invalid', contextHash, references ? 'ambiguous_character_reference' : validated.code, references);
     else
         extraction = extractionValidationResult('error', contextHash, sawThrow ? 'provider_error' : 'malformed');
     return { delta, manifest, unregisteredNamed, unregisteredNamedScan, rejectedAddressEntries, rejectedRevivals, extractionValidation: extraction };

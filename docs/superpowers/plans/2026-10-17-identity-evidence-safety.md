@@ -87,3 +87,10 @@
 - Fresh independent Superpowers review identified three Important defects in custom tracking and private-perspective qualification. Regression tests reproduced them before fixes. Writer pinning and malformed Unicode anchor boundaries were also covered in the same fix pass.
 - Issues [#27](https://github.com/fbwndrud/vibelore/issues/27) and [#28](https://github.com/fbwndrud/vibelore/issues/28) are linked to [PR #29](https://github.com/fbwndrud/vibelore/pull/29), open against main. No merge or release was performed.
 - Semantic entailment and causal/temporal interpretation stay in author/model review; exact source integrity is enforced. The final design records v2 custom-ID binding and evidence perspective decisions.
+
+## Pre-merge re-review — 2026-10-17
+
+- User requested another review and authorized merging PR #29 if clear. Standards review found no issues; Spec review found one P2: an ambiguous relationship source could be dropped, mutating a legacy unscoped relationship instead.
+- Reproduced ambiguous source and target failures through public extraction and state reduction under legacy and explicit contracts (four failing regressions). Extraction now rejects ambiguity with candidate IDs and drops the entire ambiguous relationship operation; truly absent legacy sources and exact IDs remain valid (two compatibility cases).
+- Independent follow-up confirmed the finding resolved; all 41 targeted identity/continuity tests passed. Full verification is repeated before merge.
+- Final Node 24 verification after the fix passed: engine 1,239/1,239, plugin 1,011/1,011 (2,250 total), zero failures. Source checks, diff whitespace checks and the 286-file package dry-run passed.

@@ -73,6 +73,7 @@ migration 후보로만 기록하며, 미지원 capability(`status.unsupportedCap
 `evidence(loreRevisionId,query?)`의 query는 `{valueId}`, `{claimId}`, `{questionId}` 중 하나이며 생략 시 건수 요약입니다.
 원장 없는 과거 세계는 `legacy_unclassified`로 표시합니다. 추론·인물 발언·제안 주장은 자동으로 세계 사실이 되지 않습니다.
 전체 스키마와 승격 조건은 [근거 원장 계약](reference/SHARED_LORE_RUNTIME.md#선택적-근거-원장-2026-10-17)에 있습니다.
+인물 참조가 모호하면 추출은 invalid가 되고 `diagnostics.code:ambiguous_character_reference`, `references:[{ref,candidateIds}]`를 반환합니다. 관계의 어느 한쪽이 모호해도 해당 변경 전체를 제외하며 출발점 없는 과거 관계 변경으로 바꾸지 않습니다. 정확한 인물 ID로 다시 추출합니다.
 
 ### `lore_bind`
 

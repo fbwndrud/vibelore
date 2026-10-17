@@ -74,6 +74,7 @@ Optional `content.evidenceLedger` preserves evidence basis, exact source hash/qu
 Legacy worlds return `legacy_unclassified`. Inference, character reports and proposed claims never automatically become world facts.
 See the [evidence ledger contract (Korean)](reference/SHARED_LORE_RUNTIME.md#선택적-근거-원장-2026-10-17) for the exact schema and qualification rules.
 New chapter deltas use `ledgerIdentityVersion:2`: register creates a distinct target, and ambiguous updates are blocked. Historical unmarked deltas retain v1 replay.
+Ambiguous character references invalidate extraction with `diagnostics.code:ambiguous_character_reference` and `references:[{ref,candidateIds}]`. A relationship with an ambiguous endpoint is discarded rather than converted into an unscoped legacy update; use exact character IDs when retrying.
 
 ### `lore_bind`
 
