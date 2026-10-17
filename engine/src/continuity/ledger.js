@@ -210,22 +210,35 @@ export function withLegacyEntities(ledger, entities) {
 export function trackingEnabled(config, feature) {
     return config?.tracking?.[feature] !== false;
 }
-function customItem(config, ref) {
-    return (config?.customTracking ?? []).find((item) => item.id === ref || ledgerNameKey(item.name) === ledgerNameKey(ref)) ?? null;
+function customItem(config, ref, { identityVersion = 1, feature = null } = {}) {
+    const items = (config?.customTracking ?? []).filter(item => !feature || item.feature === feature);
+    if (identityVersion === 1) return items.find(item => item.id === ref || ledgerNameKey(item.name) === ledgerNameKey(ref)) ?? null;
+    const exact = items.filter(item => item.id === ref);
+    if (exact.length) return exact.length === 1 ? exact[0] : null;
+    const named = items.filter(item => ledgerNameKey(item.name) === ledgerNameKey(ref));
+    return named.length === 1 ? named[0] : null;
 }
 /**
  * The author's item for a record: by id (or an id merged into it), or by a
  * name or alias the record goes by. An item added after its record was
  * registered under an `o`/`k`/`s` id still applies its rules to that record.
  */
-export function customItemFor(config, record) {
-    if (!record)
-        return null;
+export function customItemFor(config, record, { identityVersion = 1, ledger = null } = {}) {
+    if (!record) return null;
     const keys = new Set(recordNames(record).map(ledgerNameKey));
     const ids = new Set([record.id, ...(record.mergedIds ?? [])]);
-    return (config?.customTracking ?? []).find((item) => item.feature === record.feature
-        && (ids.has(item.id) || keys.has(ledgerNameKey(item.name)))) ?? null;
+    const items = (config?.customTracking ?? []).filter(item => item.feature === record.feature);
+    if (identityVersion === 1) return items.find(item => ids.has(item.id) || keys.has(ledgerNameKey(item.name))) ?? null;
+    const exact = items.filter(item => ids.has(item.id));
+    if (exact.length) return exact.length === 1 ? exact[0] : null;
+    const records = ledger?.records ?? [];
+    const named = items.filter(item => keys.has(ledgerNameKey(item.name))
+        && !records.some(other => other.id !== record.id && (other.id === item.id || (other.mergedIds ?? []).includes(item.id))));
+    if (named.length !== 1) return null;
+    const targets = records.filter(other => other.feature === record.feature && recordNames(other).some(name => ledgerNameKey(name) === ledgerNameKey(named[0].name)));
+    return targets.length === 1 && targets[0].id === record.id ? named[0] : null;
 }
+
 /**
  * The ledger config in effect at `chapter`. Tracking and author items change
  * at the chapter recorded in `history` ({ atChapter, tracking, customTracking },
@@ -264,8 +277,8 @@ function firstNumber(value) {
     const match = /-?\d+(?:\.\d+)?/.exec(String(value ?? '').replace(/,/g, ''));
     return match ? Number(match[0]) : null;
 }
-function ruleFindings(record, before, event, config) {
-    const item = customItemFor(config, record);
+function ruleFindings(record, before, event, config, identity) {
+    const item = customItemFor(config, record, identity);
     const findings = [];
     for (const rule of item?.rules ?? []) {
         const severity = rule.severity === 'hard' ? 'hard' : 'soft';
@@ -315,8 +328,9 @@ export function applyLedgerOps(state, ops, { chapter, config = {}, identityVersi
             }
             else {
                 const similar = similarRecord(next.ledger, op.feature, op.name);
-                const custom = customItem(config, op.name);
-                const useCustomId = custom && custom.feature === op.feature;
+                const custom = customItem(config, op.name, { identityVersion, ...(identityVersion === 2 ? { feature: op.feature } : {}) });
+                const customAvailable = custom && !next.ledger.records.some(item => item.id === custom.id || (item.mergedIds ?? []).includes(custom.id));
+                const useCustomId = custom && custom.feature === op.feature && (identityVersion === 1 || (!op.id && customAvailable));
                 // A record converted from a legacy entity keeps its entityId so later ops on that id still land.
                 const legacyId = typeof op.id === 'string' && op.id && !next.ledger.records.some((item) => item.id === op.id || (item.mergedIds ?? []).includes(op.id)) ? op.id : null;
                 // A thing first seen already destroyed or prevented starts in that status.
@@ -325,7 +339,7 @@ export function applyLedgerOps(state, ops, { chapter, config = {}, identityVersi
                     violations.push({ severity: 'soft', code: 'LEDGER_INVALID_STATUS', ledgerId: op.name, message: `"${op.status}" is not a ${op.feature} status` });
                 const status = op.status !== undefined && validStatus ? op.status : INITIAL_STATUS[op.feature];
                 const record = {
-                    id: useCustomId ? custom.id : legacyId ?? nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
+                    id: identityVersion === 2 ? legacyId ?? (useCustomId ? custom.id : nextLedgerId(next, op.feature)) : useCustomId ? custom.id : legacyId ?? nextLedgerId(next, op.feature), feature: op.feature, label: String(op.label ?? ''), name: op.name.trim(),
                     aliases: (op.aliases ?? []).map((alias) => aliasOf(alias, chapter)).filter(Boolean),
                     status, fields: { ...(op.fields ?? {}) }, registeredAt: chapter, recent: [],
                     ...(similar ? { possibleDuplicateOf: similar.id } : {}),
@@ -338,23 +352,20 @@ export function applyLedgerOps(state, ops, { chapter, config = {}, identityVersi
             }
         }
         if (op?.op === 'event' || op?.op === 'alias') {
-            const resolution = identityVersion === 2 ? resolveLedgerReference(next.ledger, op.id) : null;
+            const explicitCustom = identityVersion === 2 && (config.customTracking ?? []).some(item => item.id === op.id);
+            const exactRecord = next.ledger.records.some(item => item.id === op.id || (item.mergedIds ?? []).includes(op.id));
+            const resolution = identityVersion === 2 ? (explicitCustom && !exactRecord ? { status: 'unknown', candidateIds: [] } : resolveLedgerReference(next.ledger, op.id)) : null;
             if (resolution?.status === 'ambiguous') {
                 violations.push({ severity: 'hard', code: 'LEDGER_AMBIGUOUS_REFERENCE', ledgerId: op.id, candidateIds: resolution.candidateIds, message: 'ambiguous name: use a stable ledger ID' });
                 continue;
             }
-            let record = findRecord(next.ledger, resolution?.id ?? op.id);
-            const custom = !record ? customItem(config, op.id) : null;
+            let record = identityVersion === 2 ? (resolution.status === 'resolved' ? findRecord(next.ledger, resolution.id) : null) : findRecord(next.ledger, op.id);
+            const custom = !record ? customItem(config, op.id, { identityVersion }) : null;
             if (!record && custom) {
                 if (!trackingEnabled(config, custom.feature))
                     continue;
-                // An author item named like an existing record is that record.
-                const customRef = identityVersion === 2 ? resolveLedgerReference(next.ledger, custom.name) : null;
-                if (customRef?.status === 'ambiguous') {
-                    violations.push({ severity: 'hard', code: 'LEDGER_AMBIGUOUS_REFERENCE', ledgerId: op.id, candidateIds: customRef.candidateIds, message: 'custom tracking name is ambiguous; use a stable ledger ID' });
-                    continue;
-                }
-                record = findRecord(next.ledger, customRef?.id ?? custom.name, custom.feature);
+                // v1 supports historical late name attachment; v2 keeps the explicit custom ID.
+                record = identityVersion === 1 ? findRecord(next.ledger, custom.name, custom.feature) : null;
                 if (!record) {
                     record = { id: custom.id, feature: custom.feature, label: '', name: custom.name, aliases: [], status: INITIAL_STATUS[custom.feature], fields: {}, registeredAt: chapter, recent: [] };
                     next.ledger.records.push(record);
@@ -399,7 +410,7 @@ export function applyLedgerOps(state, ops, { chapter, config = {}, identityVersi
                 }
                 if (record.feature === 'scheduled' && op.status === 'pending' && ['happened', 'prevented'].includes(record.status))
                     violations.push({ severity: 'soft', code: 'LEDGER_SCHEDULED_REOPENED', ledgerId: record.id, message: `"${record.name}" was ${record.status} and is pending again` });
-                violations.push(...ruleFindings(record, before, op, config));
+                violations.push(...ruleFindings(record, before, op, config, { identityVersion, ledger: next.ledger }));
                 record.status = op.status;
                 // A status change often moves fields with it (a secret out, and who knows it now).
                 if (set)
@@ -408,7 +419,7 @@ export function applyLedgerOps(state, ops, { chapter, config = {}, identityVersi
                 continue;
             }
             if (op.event === 'changed' && set) {
-                violations.push(...ruleFindings(record, before, op, config));
+                violations.push(...ruleFindings(record, before, op, config, { identityVersion, ledger: next.ledger }));
                 record.fields = { ...record.fields, ...set };
                 emit('record', record, { event: 'changed', ...note, set });
                 continue;

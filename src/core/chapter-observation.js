@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 
+const splitSurrogate = (source, offset) => offset > 0 && offset < source.length
+  && /[\uD800-\uDBFF]/u.test(source[offset - 1]) && /[\uDC00-\uDFFF]/u.test(source[offset]);
+
 /** Editorial acceptance of an extraction is separate from the truth of its interpretations. */
 export function buildChapterObservation({ chapter, prose, delta, checkReceipt = null, executionContext }) {
   const sourceHash = `sha256:${createHash('sha256').update(prose).digest('hex')}`;
@@ -9,10 +12,11 @@ export function buildChapterObservation({ chapter, prose, delta, checkReceipt = 
     const anchor = typeof event.anchor === 'string' ? event.anchor : '';
     const from = anchor.trim() ? prose.indexOf(anchor) : -1, evidenceId = `influence-${index}-anchor`;
     const repeated = from >= 0 && prose.indexOf(anchor, from + 1) >= 0;
-    const exact = from >= 0 && !repeated;
+    const boundary = !splitSurrogate(prose, from) && !splitSurrogate(prose, from + anchor.length);
+    const exact = from >= 0 && !repeated && boundary;
     evidence.push({ id: evidenceId, basis: exact ? 'text-explicit' : 'model-inferred', sourceKind: 'chapter', chapter, sourceHash,
       span: exact ? { from, to: from + anchor.length } : null, quote: exact ? anchor : null, anchor,
-      limitations: [exact ? 'quote_presence_only' : repeated ? 'ambiguous_anchor' : 'anchor_not_found'], dependsOn: [],
+      limitations: [exact ? 'quote_presence_only' : repeated ? 'ambiguous_anchor' : from >= 0 && !boundary ? 'invalid_anchor_boundary' : 'anchor_not_found'], dependsOn: [],
       producer: { kind: 'model-extraction', checkId: checkReceipt?.checkId ?? null, workflowId: checkReceipt?.workflowId ?? null } });
     const common = { basis: 'model-inferred', canonStatus: 'proposed', evidenceIds: [evidenceId],
       storyScope: { worldline: executionContext.worldline ?? 'main', chapter } };

@@ -143,3 +143,5 @@ one 필드에서 같은 범위의 다른 값이 겹치면 conflict다. 같은 �
 인물·사물 문맥의 이름/별칭 조회는 후보가 하나일 때만 해석하며 정확한 ID가 표기보다 우선한다. 모호한 문맥은 `AMBIGUOUS_ENTITY_REFERENCE`로 막고 후보 ID를 반환한다. 이름과 같은 다른 대상이 있어도 명시 ID는 그 ID의 대상을 가리킨다. 언급 스캔의 복수 활성 후보는 식별 확정이 아니다.
 
 새 원고 추출은 `ledgerIdentityVersion:2`를 delta에 기록한다(추출 문맥 hash v3). v2 `register`는 같은 이름이어도 별개 대상이며, 새 ID를 선택적으로 지정할 수 있다. 이미 있는 ID의 register는 `LEDGER_ID_CONFLICT`, 모호한 이름으로 event/alias를 적용하면 `LEDGER_AMBIGUOUS_REFERENCE` hard다. 기존 항목 변경에는 `event`와 안정적인 ID를 사용한다. 이 표지가 없는 과거 delta는 v1 이름 재사용 의미로 재생한다. 기존 항목을 자동 분리하거나 과거 delta·lock을 다시 쓰지 않는다. Map 기반 민감어·감정동사·의성의태어 seed의 중복 키는 `DUPLICATE_LEXICON_KEY`로 거부한다.
+
+사용자 지정 추적도 v2에서 명시 ID가 이름보다 우선한다. 새 등록은 이미 사용한 custom ID를 다시 배정하지 않는다. 규칙은 정확한 ID에 우선 연결하고, 늦게 추가한 이름 기반 규칙은 같은 feature에서 장부 대상과 사용자 항목이 각각 하나일 때만 연결한다. 다른 대상의 ID로 이미 소유된 규칙을 동명 대상에 적용하지 않는다. 아직 장부에 없는 custom ID를 지정한 이벤트는 그 ID의 대상을 생성하며 다른 동명 대상을 변경하지 않는다. 현재 문맥의 고정(pinned)·별칭 안내도 같은 유일성 판단을 쓴다. 과거 v1 규칙 재생은 기존 해석을 유지한다.

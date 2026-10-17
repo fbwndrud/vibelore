@@ -107,6 +107,15 @@ describe('scoped world evidence', () => {
     const w = await world(t), content = withLedger(w.content); change(content);
     assert.throws(() => validateLoreContent({ registry: w.registry, content }), { code });
   });
+  it('does not adopt a character claim based on another private perspective', async t => {
+    const w = await world(t), content = withLedger(w.content), ledger = content.evidenceLedger;
+    content.entities.push({ id: 'character-b', typeDefinitionRevisionId: content.entities[0].typeDefinitionRevisionId, documentIds: [], valueIds: [] });
+    ledger.claims = ['character-a', 'character-b'].map((characterId, index) => ({ ...ledger.claims[0], id: `belief-${index}`, valueId: null,
+      perspective: { kind: 'character', characterId }, dependsOn: index ? [] : ['belief-1'] }));
+    assert.throws(() => validateLoreContent({ registry: w.registry, content }), { code: 'LORE_CLAIM_UNSUPPORTED' });
+    ledger.claims[1].perspective.characterId = 'character-a';
+    assert.doesNotThrow(() => validateLoreContent({ registry: w.registry, content }));
+  });
   it('does not let an adopted world claim depend on a proposed interpretation', async t => {
     const w = await world(t), content = withLedger(w.content), ledger = content.evidenceLedger;
     ledger.claims.push({ ...ledger.claims[0], id: 'guess', canonStatus: 'proposed', valueId: null });

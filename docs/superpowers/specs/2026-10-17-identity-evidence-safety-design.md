@@ -45,3 +45,9 @@ TDD every behavior change. Test v1 replay/v2 homonyms, explicit IDs, multiple al
 - Adopted claims cannot depend on proposed claims or incompatible world/character perspectives. Verified questions require resolved dependencies. These guards prevent qualification through unrelated strong evidence.
 - Document catalogs return sourceHash for constructing exact evidence without a separate hash-computation tool.
 - Chapter source anchors must occur uniquely; repeated/missing anchors remain inferred and report a limitation. Quote presence alone does not prove an interpretation.
+
+## Final review decisions
+
+- v2 custom tracking preserves explicit registration IDs and allocates an automatic custom ID only while unused. Existing custom rules bind by exact ID first; late name attachment is allowed only for a unique record and unique custom candidate whose ID does not own another record. Explicit unregistered custom IDs create that target instead of retargeting another record by name. Current prompt pinning and alias metadata use the same full-ledger uniqueness check. v1 rule interpretation remains unchanged.
+- Character claim dependencies require the same characterId and perspective kind. Private belief transfer needs independently represented support.
+- Chapter anchors follow the same UTF-16 boundary rule as world evidence; malformed half-surrogates remain inferred with an explicit limitation.

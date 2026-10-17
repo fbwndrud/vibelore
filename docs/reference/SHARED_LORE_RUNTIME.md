@@ -231,7 +231,7 @@ planningFoundation을 사용한다. 계획에서 필수 값이 미정·충돌·�
 - 원장의 evidenceIds는 근거 레코드 ID다. 기존 **value.evidenceIds는 계속 documents ID**이며 바뀌지 않는다. value에 연결된 claim의 지지 근거 및 의존 근거 문서는 value의 문서 근거에도 포함되어야 한다.
 - claim의 canonStatus: `proposed|adopted|rejected|superseded`. `valueId:null`인 주장은 원고/값으로 자동 반영되지 않는다. non-null valueId는 같은 subject의 실제 값이어야 하며 adopted claim만 이를 뒷받침할 수 있다. 주장의 시점·필드 범위는 연결한 value에서 정한다. value 없는 제안은 세계 범위의 메모이며 장면에 주입하지 않는다.
 - perspective는 `{kind:"world"}` 또는 `{kind:"character",characterId}`다. 후자는 해당 인물로 범위를 고정한 owner=observer 값만 뒷받침할 수 있다. 세계 진실과 인물의 인식은 별개다.
-- adopted world claim은 작가 결정·직접 원문·자격 있는 도출 중 하나가 필요하다. 도출은 모든 의존 근거가 재귀적으로 자격을 충족해야 한다. 추론이나 인물의 발언만으로 세계 사실을 만들지 않는다. adopted claim은 미해결 반박을 갖거나 proposed claim/다른 관점에 의존할 수 없다.
+- adopted world claim은 작가 결정·직접 원문·자격 있는 도출 중 하나가 필요하다. 도출은 모든 의존 근거가 재귀적으로 자격을 충족해야 한다. 추론이나 인물의 발언만으로 세계 사실을 만들지 않는다. adopted claim은 미해결 반박을 갖거나 proposed claim/다른 관점에 의존할 수 없다. character 의존은 같은 characterId끼리만 허용하며 다른 인물의 사적 믿음 전파는 별도 근거로 표현한다.
 - 질문 status: `open|investigating|blocked|resolved`. resolved에만 disposition `verified|withdrawn|out-of-scope`를 쓴다. verified는 해결 근거가 지지에도 포함되고 자격 있는 근거를 가지며, 반박이 없고 의존 질문이 모두 resolved여야 한다. 철회·범위 밖 처리는 검증 완료와 다르다.
 - 근거/주장/질문의 ID 중복·없는 참조·순환 의존을 거부한다. 참조 오류는 `LORE_EVIDENCE_REFERENCE`, 순환은 `LORE_EVIDENCE_CYCLE`이다. 반박이 있는 adopted claim은 `LORE_CLAIM_CONTRADICTED`, 지지 자격 부족은 `LORE_CLAIM_UNSUPPORTED`/`LORE_QUESTION_UNSUPPORTED`다. 반박 해결은 새 불변 판본에서 현재 참조를 바꾸며 이전 이력은 남는다.
 
@@ -241,6 +241,6 @@ planningFoundation을 사용한다. 계획에서 필수 값이 미정·충돌·�
 
 ### 화 커밋의 관측과 해석
 
-새 커밋은 기존 accepted 관측과 influenceEvents를 보존하고 `evidenceLedger:{schemaVersion:1,evidence,claims}`를 추가한다. chapter 원문 hash와 유일하게 일치하는 anchor만 정확한 span/quote로 기록한다. 반복·미발견 anchor는 span 없이 `model-inferred`와 `ambiguous_anchor`/`anchor_not_found` 한계를 기록한다. 인물 해석·성격 가설·관계 인식은 proposed/model-inferred claim이며, world 근거 원장과 source 형식이 다르다. 이벤트의 editorial acceptance가 개별 해석의 정본 채택을 뜻하지 않는다.
+새 커밋은 기존 accepted 관측과 influenceEvents를 보존하고 `evidenceLedger:{schemaVersion:1,evidence,claims}`를 추가한다. chapter 원문 hash와 유일하게 일치하는 anchor만 정확한 span/quote로 기록한다. 반복·미발견 anchor는 span 없이 `model-inferred`와 `ambiguous_anchor`/`anchor_not_found` 한계를 기록한다. UTF-16 surrogate pair를 자르는 anchor는 `invalid_anchor_boundary`로 기록한다. 인물 해석·성격 가설·관계 인식은 proposed/model-inferred claim이며, world 근거 원장과 source 형식이 다르다. 이벤트의 editorial acceptance가 개별 해석의 정본 채택을 뜻하지 않는다.
 
 전체 관측을 established·revealed로 포장하거나 관계 인식에 confidence=1을 부여하지 않는다. 기존 CharacterDynamics는 동일한 influenceEvents를 그대로 fold한다. 과거 관측·projection·lock은 자동 이행하지 않는다. soft와 critic advisory의 권한, 실패한 critic의 guided 강등과 사용자 disabled 검토 처리는 그대로다.

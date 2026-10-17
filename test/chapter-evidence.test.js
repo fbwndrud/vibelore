@@ -53,3 +53,12 @@ it('does not claim an exact source location for missing or repeated extraction a
     assert.ok(result.evidenceLedger.evidence[0].limitations.includes(expected));
   }
 });
+
+it('does not label half of a UTF-16 surrogate pair as explicit quoted evidence', async () => {
+  const { buildChapterObservation } = await import('../src/core/chapter-observation.js');
+  const result = buildChapterObservation({ chapter: 1, prose: '😀', executionContext: { transactionTime: 'now', policyRevision: 'test' },
+    delta: { influenceEvents: [{ characterId: 'hero', anchor: '\ud83d', interpretation: '추론', relationshipClaims: [] }] } });
+  assert.equal(result.evidenceLedger.evidence[0].span, null);
+  assert.equal(result.evidenceLedger.evidence[0].basis, 'model-inferred');
+  assert.ok(result.evidenceLedger.evidence[0].limitations.includes('invalid_anchor_boundary'));
+});

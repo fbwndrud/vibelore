@@ -75,7 +75,7 @@
 **Interfaces:** Documents actual public args/outcomes, evidence schema, v1/v2 compatibility and semantic limits.
 
 - [x] Update Korean/English tool references, input schema descriptions and compatibility notes, with synthetic examples and no unsupported completeness claims.
-- [ ] Run npm run test:all, npm run check:source, git diff --check and npm pack --dry-run --json using Node 24; Expected: pass and no private/dev state packed.
-- [ ] Commit docs and request fresh whole-branch review per superpowers:requesting-code-review using the spec, plan and Review Focus above.
-- [ ] Fix Critical/Important review findings RED→GREEN and rerun full checks; Expected: green.
+- [x] Run npm run test:all, npm run check:source, git diff --check and npm pack --dry-run --json using Node 24; Expected: pass and no private/dev state packed.
+- [x] Commit docs and request fresh whole-branch review per superpowers:requesting-code-review using the spec, plan and Review Focus above.
+- [x] Fix Critical/Important review findings RED→GREEN and rerun full checks; Expected: green.
 - [ ] Push codex/identity-evidence-safety and open PR against main closing #27 and #28; attach the created PR to this chat.

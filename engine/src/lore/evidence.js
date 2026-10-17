@@ -100,7 +100,8 @@ export function validateLoreEvidence(content) {
     checkRefs(claim.evidenceIds, evidence); checkRefs(claim.contradictingEvidenceIds, evidence);
     if (claim.canonStatus === 'adopted') {
       requireLore(claim.dependsOn.every(ref => claims.get(ref).canonStatus === 'adopted'
-        && (perspective.kind === 'character' || claims.get(ref).perspective?.kind === 'world')), 'LORE_CLAIM_UNSUPPORTED', 'adopted claim depends on an unadopted or incompatible perspective');
+        && claims.get(ref).perspective?.kind === perspective.kind
+        && (perspective.kind === 'world' || claims.get(ref).perspective.characterId === perspective.characterId)), 'LORE_CLAIM_UNSUPPORTED', 'adopted claim depends on an unadopted or incompatible perspective');
       requireLore(claim.contradictingEvidenceIds.length === 0, 'LORE_CLAIM_CONTRADICTED', claim.id);
       requireLore(claim.evidenceIds.length > 0 && (perspective.kind === 'character' || claim.evidenceIds.some(ref => qualifying.get(ref))), 'LORE_CLAIM_UNSUPPORTED', claim.id);
     }
