@@ -206,6 +206,26 @@ describe('standalone scene script', () => {
     // A record rewritten to another image is caught even if the workflow's record hash is updated to match.
     const workflowFile = join(root, '.vibelore/webtoon/workflows', `${verified.workflowId}.json`), recordFile = join(root, '.vibelore/productions', (await readdir(join(root, '.vibelore/productions')))[0]);
     const [workflowBytes, recordBytes] = await Promise.all([readFile(workflowFile, 'utf8'), readFile(recordFile, 'utf8')]);
+    // Scope metadata must agree with the sealed lock, not just another mutable copy.
+    for (const changeExcerpt of [false, true]) {
+      const changedScope = JSON.parse(workflowBytes);
+      changedScope.source.assets.find(a => a.assetId === 'child-portrait').sceneIds = ['s1'];
+      changedScope.sceneReferences.find(r => r.assetId === 'child-portrait').sceneIds = ['s1'];
+      if (changeExcerpt) changedScope.sceneUnits = changedScope.sceneUnits.filter(u => u.sceneId === 's1');
+      await writeFile(workflowFile, JSON.stringify(changedScope));
+      const checked = await rpc(root, 'lore_webtoon_scene', { workId, action: 'verify' });
+      assert.equal(checked.isError, true, 'mutable scope copies cannot override the sealed input');
+    }
+    await writeFile(workflowFile, workflowBytes);
+    // Removing catalog identity in the workflow cannot downgrade a sealed reference.
+    const hiddenCatalog = JSON.parse(workflowBytes), hiddenRecord = JSON.parse(recordBytes);
+    hiddenCatalog.sceneUnits = hiddenCatalog.sceneUnits.filter(u => u.sceneId === 's1');
+    delete hiddenCatalog.sceneReferences.find(r => r.assetId === 'child-portrait').assetId;
+    hiddenRecord.sourceUnitIds = hiddenCatalog.sceneUnits.map(u => u.id);
+    hiddenCatalog.productionRecordHash = digest(hiddenRecord);
+    await Promise.all([writeFile(workflowFile, JSON.stringify(hiddenCatalog)), writeFile(recordFile, JSON.stringify(hiddenRecord))]);
+    assert.equal((await rpc(root, 'lore_webtoon_scene', { workId, action: 'verify' })).isError, true);
+    await Promise.all([writeFile(workflowFile, workflowBytes), writeFile(recordFile, recordBytes)]);
     const forged = { ...JSON.parse(recordBytes), image: { ...JSON.parse(recordBytes).image, path: 'other.png', hash: digest(png(5)) } };
     await writeFile(join(root, 'other.png'), png(5)); await writeFile(recordFile, JSON.stringify(forged));
     await writeFile(workflowFile, JSON.stringify({ ...JSON.parse(workflowBytes), productionRecordHash: digest(forged) }));

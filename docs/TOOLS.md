@@ -228,6 +228,7 @@ Published HEAD 이후 사람이 수정한 `world/`, `characters/`, `chapters/` M
 `world/story-spine.md`, `world/writer-skill.md` 손수정은 `plan_review_required`로 분류하며,
 `validate`/`apply`는 `PLAN_DOCUMENT_SYNC_UNSUPPORTED`로 차단합니다. 편집 원문을 별도 보존하고 파일을
 마지막 승인본으로 복원한 뒤 변경 내용을 `lore_story_plan` 또는 `lore_writer_skill`의 `feedback`으로 전달해 검토·승인하세요.
+기준 fingerprint가 없는 구형 작품도 계획 문서와 실행 계획의 정확한 일치를 확인한 뒤에만 기준선을 만들며, 파싱하지 않는 문서를 자동 채택하지 않습니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -625,6 +626,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 `unpreserved`로 표시하고 재현을 주장하지 않습니다.
 카탈로그 참조가 선택한 원문 장면 어디에도 적용되지 않으면 `SCENE_ASSET_STATE_MISMATCH`로 거절합니다.
 참조의 `entityId`, `stateIds`, 적용 `sceneIds`를 보존하고, 여러 시점을 함께 그릴 때 이미지 요청에 적용 순간을 명시합니다.
+재개는 검증된 원천을 사용합니다. 완료본 검증은 원본 세계 폴더가 없어도 보존 원장의 발췌 범위와 카탈로그 참조 ID·범위를 대조합니다.
 세부 계약은 [기본 경로](reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)를 참고하세요.
 
 ### `lore_webtoon_plan` (deprecated)

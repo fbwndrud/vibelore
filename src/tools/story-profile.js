@@ -356,8 +356,10 @@ export async function runStoryProfile({ store, workId, brief, action = 'design',
   // true 로 답해도 사용자 원문 근거가 없으면 승인으로 세지 않는다. 근거는 모델이
   // 고른 축 값과도 맞아야 한다.
   const proposedReadability = normalizeReadabilityContract(obj.readabilityContract);
+  // A repeated brief is context, not a new answer for changed choices or language.
+  const readabilitySource = stored?.sourceBrief === source ? feedback : `${source}\n${feedback}`;
   let readabilityAnswer = recognizeReadabilityAnswer(
-    `${source}\n${feedback}`,
+    readabilitySource,
     obj.readabilityContract?.userAnswerEvidence,
     {
       language: workLanguage.language,

@@ -98,6 +98,37 @@ test('a pending design approval cannot bless a later plan edit', async t => {
   assert.equal((await unit.readPublished()).value.head, head);
 });
 
+for (const name of ['story-spine', 'writer-skill']) test(`untracked legacy sync does not bless an edited ${name} document`, async t => {
+  const store = await publishedStore(t), path = join(store.rootDir, 'world', `${name}.md`);
+  const before = name === 'story-spine' ? await store.loadStorySpine(workId) : await store.loadWriterSkill(workId);
+  const head = (await createPublicationUnit({ rootDir: store.rootDir }).readPublished()).value.head;
+  await store.saveWorkingTreeFingerprint(null);
+  const edited = `${await readFile(path, 'utf8')}\nAuthor changed this plan.\n`;
+  await writeFile(path, edited);
+  for (const action of ['inspect', 'validate']) {
+    const result = await runSyncStatus({ store, workId, action });
+    assert.equal(result.classification, 'plan_review_required');
+    assert.deepEqual(result.planChanges, [`world/${name}.md`]);
+  }
+  assert.equal(await store.loadWorkingTreeFingerprint(), null);
+  assert.equal((await createPublicationUnit({ rootDir: store.rootDir }).readPublished()).value.head, head);
+  assert.deepEqual(name === 'story-spine' ? await store.loadStorySpine(workId) : await store.loadWriterSkill(workId), before);
+  assert.equal(await readFile(path, 'utf8'), edited);
+});
+
+test('untracked legacy sync captures unchanged plan documents but refuses unparsed world documents', async t => {
+  const store = await publishedStore(t);
+  await store.saveWorkingTreeFingerprint(null);
+  assert.equal((await runSyncStatus({ store, workId })).status, 'baseline_captured');
+  assert.equal((await runSyncStatus({ store, workId })).status, 'clean');
+  await store.saveWorkingTreeFingerprint(null);
+  await writeFile(join(store.rootDir, 'world', 'notes.md'), 'Unparsed author notes.\n');
+  const result = await runSyncStatus({ store, workId });
+  assert.equal(result.classification, 'unsupported_change');
+  assert.deepEqual(result.unknownChanges, ['world/notes.md']);
+  assert.equal(await store.loadWorkingTreeFingerprint(), null);
+});
+
 const answer = '문장은 쉽게 읽히게, 새 개념은 천천히, 추론 부담은 명확하게, 초반은 쉽게 시작해주세요.';
 const readability = { surfaceEase: 'easy', conceptPacing: 'slow', inferenceLoad: 'explicit', complexityRamp: 'onboarding-first', confirmedByUser: true };
 test('a confirmed reading contract survives an unrelated interview round, but new choices need evidence', async t => {
@@ -137,4 +168,20 @@ test('quoted reading answers survive new rounds, while a work-language change re
   assert.deepEqual(next.profile.readabilityContract.userAnswerEvidence, evidence);
   const changed = await runStoryProfile({ ...args, language: 'ja', feedback: 'The father and daughter are close.' });
   assert.equal(changed.profile.readabilityContract.confirmedByUser, false);
+});
+
+test('a repeated original brief cannot confirm a changed reading selection or new work language', async t => {
+  const store = await temporaryStore(t);
+  const value = { genreLabel: '가족 이야기', discovery: { depth: 'quick', userAnswer: '필수만 정하고 시작해요.' }, readabilityContract: { ...readability } };
+  const providers = { pending: [], async complete(req) { return approvalResponse(req) ?? { text: JSON.stringify(value) }; } };
+  const args = { store, workId: 'book', brief: `가족 이야기. 필수만 정하고 시작해요. ${answer}`, providers };
+  assert.equal((await runStoryProfile(args)).profile.readabilityContract.confirmedByUser, true);
+  value.readabilityContract.surfaceEase = 'dense';
+  const changed = await runStoryProfile({ ...args, feedback: '아버지와 딸은 가까운 사이입니다.' });
+  assert.equal(changed.profile.readabilityContract.confirmedByUser, false);
+  assert.ok(changed.profile.designReview.openQuestions.some(q => q.id === 'reading-experience-contract'));
+  const fresh = await runStoryProfile({ ...args, feedback: '문장 난도는 높게, 새 개념은 천천히, 추론 부담은 명확하게, 초반은 쉽게 시작해주세요.' });
+  assert.equal(fresh.profile.readabilityContract.confirmedByUser, true);
+  const languageChange = await runStoryProfile({ ...args, language: 'ja', feedback: 'The father and daughter are close.' });
+  assert.equal(languageChange.profile.readabilityContract.confirmedByUser, false);
 });

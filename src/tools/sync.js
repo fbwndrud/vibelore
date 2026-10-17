@@ -1,4 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { captureWorkingTreeFingerprint, detectWorkingTreeDrift, fingerprintWorkingTree } from '../core/working-tree-sync.js';
 import { loadCurrentExperienceLedger, saveExperienceLedgerForHead } from '../core/experience-ledger.js';
@@ -9,6 +11,7 @@ import { runCheck } from './check.js';
 import { runCommit } from './commit.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { ledgerLogStatus, rebuildLedgerLog } from './ledger-log.js';
+import { renderStorySpineDocument, renderWriterSkillDocument } from '../store/plan-documents.js';
 
 const CHAPTER_PATH = /^chapters\/(\d+)\.md$/;
 const PLAN_DOCUMENTS = new Set(['world/story-spine.md', 'world/writer-skill.md']);
@@ -18,6 +21,24 @@ const proseHash = (prose) => `sha256:${createHash('sha256').update(String(prose)
 const pending = (providers) => (providers?.pending?.length ?? 0) > 0;
 const stable = (value) => Array.isArray(value) ? value.map(stable)
   : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])])) : value;
+
+/** Without an old fingerprint, compare plan copies to their runtime source. */
+async function inspectUntrackedDocuments(store, workId) {
+  const planChanges = [];
+  const plans = [
+    ['world/story-spine.md', await store.loadStorySpine(workId), renderStorySpineDocument],
+    ['world/writer-skill.md', await store.loadWriterSkill(workId), renderWriterSkillDocument],
+  ];
+  for (const [path, value, render] of plans) {
+    let bytes = null;
+    try { bytes = await readFile(join(store.rootDir, path)); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (value ? !bytes?.equals(Buffer.from(render(workId, value))) : bytes !== null) planChanges.push(path);
+  }
+  const fingerprint = await fingerprintWorkingTree(store.rootDir);
+  const unknownChanges = fingerprint.inventory.map(item => item.path).filter(path => !PLAN_DOCUMENTS.has(path)
+    && path !== 'world/setting.md' && !/^characters\/[^/]+\.md$/.test(path) && !CHAPTER_PATH.test(path));
+  return { planChanges, unknownChanges };
+}
 
 async function inspectSync({ store, workId }) {
   const publication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
@@ -33,6 +54,13 @@ async function inspectSync({ store, workId }) {
     };
   }
   if (drift.status === 'untracked') {
+    const { planChanges, unknownChanges } = await inspectUntrackedDocuments(store, workId);
+    if (planChanges.length || unknownChanges.length) return {
+      status: 'needs_review', sourceHead: publication.value.head, changed: [...planChanges, ...unknownChanges].sort(),
+      classification: planChanges.length ? 'plan_review_required' : 'unsupported_change',
+      planChanges, unknownChanges, designChanges: [], chapterCandidates: [],
+      nextAction: planChanges.length ? planEditGuidance : '기준선이 없는 미지원 문서를 자동 채택하지 않습니다. 원문을 별도 보존하고 변경 경로를 검토하세요.',
+    };
     const publishedFoundation = publication.value.tree?.foundation ?? null;
     const workingFoundation = await store.loadFoundation(workId);
     const publishedChapters = publication.value.tree?.chapters ?? {};

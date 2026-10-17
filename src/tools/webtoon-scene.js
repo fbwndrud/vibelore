@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
 import { WebtoonStyleStore, STYLE_REFERENCE_ID, styleReference, verifyStyleSnapshot } from '../store/webtoon-style-store.js';
-import { resolveProductionSource, verifyProductionSource } from '../core/production-source.js';
+import { resolveProductionSource, scriptSourceUnits, verifyProductionSource } from '../core/production-source.js';
 import { readSealedProductionInput } from '../core/input-objects.js';
 import { join, resolve, relative, sep } from 'node:path';
 import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.js';
@@ -62,9 +62,9 @@ function referenceContext(w) {
   return references.length ? { references } : {};
 }
 
-function verifyReferenceScopes(w) {
+function verifyReferenceScopes(w, source = w.source, units = w.sceneUnits) {
   for (const reference of w.sceneReferences.filter(r => r.assetId)) {
-    const { asset, sceneIds } = catalogReferenceScope(w.source, w.sceneUnits, reference);
+    const { asset, sceneIds } = catalogReferenceScope(source, units, reference);
     if (reference.hash !== asset.hash || reference.assetRevisionId !== asset.assetRevisionId
       || reference.sceneIds && (digest(reference.sceneIds) !== digest(sceneIds)
         || digest(reference.stateIds) !== digest(asset.stateIds) || reference.entityId !== asset.entityId)) {
@@ -75,8 +75,10 @@ function verifyReferenceScopes(w) {
 
 async function verifyInputs(repo, w) {
   // Novel sources keep the original snapshot; script sources read only the adopted script and sealed inputs.
-  await verifyProductionSource(repo.store, w.source, w.workId);
-  verifyReferenceScopes(w);
+  const source = await verifyProductionSource(repo.store, w.source, w.workId);
+  const units = source.units.filter(unit => w.sceneUnits.some(selected => selected.id === unit.id));
+  if (digest(units) !== digest(w.sceneUnits)) throw new Error('SCENE_SOURCE_CHANGED');
+  verifyReferenceScopes(w, source, units);
   if (w.styleSnapshot) await verifyStyleSnapshot(w.styleSnapshot);
   for (const r of w.sceneReferences) {
     const images = await importWebtoonImages(repo.store.rootDir, [{ shotId: r.id, path: r.path }], [r.id]);
@@ -310,14 +312,16 @@ async function writeProductionRecord(repo, w) {
 }
 /** Read-only proof that a completed scene's preserved inputs and image still match. */
 async function verifyProduction(repo, w) {
-  verifyReferenceScopes(w);
   if (w.stage !== 'completed' || !w.productionRecordHash) throw new Error('SCENE_PRODUCTION_NOT_RECORDED');
   const root = repo.store.rootDir, recordFile = await readJson(recordPath(repo, w));
   const changed = () => { throw new Error('SCENE_PRODUCTION_RECORD_CHANGED'); };
   if (!recordFile || digest(recordFile) !== w.productionRecordHash) changed();
   // The record must agree with the workflow state it was written from.
   if (recordFile.image.hash !== w.sceneImage?.hash || recordFile.source.hash !== w.source.hash
-    || recordFile.references.length !== w.sceneReferences.length || recordFile.references.some(r => w.sceneReferences.find(x => x.id === r.id)?.hash !== r.hash)) changed();
+    || recordFile.references.length !== w.sceneReferences.length || recordFile.references.some(r => {
+      const reference = w.sceneReferences.find(x => x.id === r.id);
+      return !reference || reference.hash !== r.hash || reference.assetId !== r.assetId || reference.assetRevisionId !== r.assetRevisionId;
+    })) changed();
   const bytesOf = async path => { try { return await readFile(resolve(root, path)); } catch (e) { if (e.code === 'ENOENT') throw new Error(`SCENE_PRODUCTION_INPUT_MISSING: ${path}`); throw e; } };
   const checks = [], unpreserved = recordFile.references.filter(r => r.preserved === 'path-only').map(r => r.id);
   if (w.styleSnapshot) {
@@ -329,7 +333,10 @@ async function verifyProduction(repo, w) {
   if (recordFile.source.kind === 'scene-script') {
     const sealed = await readSealedProductionInput({ rootDir: root, productionLockId: recordFile.source.productionLockId });
     lock = sealed.lock;
-    if (lock.scriptRevisionId !== recordFile.source.scriptRevisionId) changed();
+    if (lock.scriptRevisionId !== recordFile.source.scriptRevisionId || lock.workId !== w.workId || lock.scriptId !== recordFile.source.scriptId) changed();
+    const units = scriptSourceUnits(lock).filter(unit => recordFile.sourceUnitIds.includes(unit.id));
+    if (digest(units.map(unit => unit.id)) !== digest(recordFile.sourceUnitIds) || digest(units) !== digest(w.sceneUnits)) changed();
+    verifyReferenceScopes(w, { assets: lock.assets.map(asset => ({ ...asset, hash: asset.blob.blobId })) }, units);
     checks.push({ check: 'sealed-lock', productionLockId: lock.revisionId, loreRevisionId: lock.loreRevisionId, assetCatalogRevisionId: lock.assetCatalogRevisionId, blobs: sealed.blobs.length });
   } else {
     // A novel source is kept as canon history, not sealed here; report whether it still matches.
