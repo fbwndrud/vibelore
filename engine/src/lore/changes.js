@@ -1,3 +1,4 @@
+import { validateLoreEvidence } from './evidence.js';
 import { compileLoreRegistry, encodeLore, hashLore, isLoreRevisionId } from './registry.js';
 import { createLoreResolver } from './resolve.js';
 import { requireLore, validateShape, LORE_ID_SCHEMA } from './schemas.js';
@@ -10,8 +11,9 @@ const unique = (list, name) => { requireLore(Array.isArray(list) && new Set(list
 
 /** Rich source documents plus a selectively structured value view; never flatten prose into facts. */
 export function validateLoreContent({ registry, content }) {
-  shape(content, ['entities', 'states', 'timelines', 'values', 'documents', 'worldDocumentIds'], 'lore content');
-  for (const key of Object.keys(content)) requireLore(Array.isArray(content[key]) && content[key].length <= 100000, 'INVALID_LORE_DATA', `${key} must be a bounded array`);
+  const contentKeys = ['entities', 'states', 'timelines', 'values', 'documents', 'worldDocumentIds'];
+  shape(content, [...contentKeys, ...(content && Object.hasOwn(content, 'evidenceLedger') ? ['evidenceLedger'] : [])], 'lore content');
+  for (const key of contentKeys) requireLore(Array.isArray(content[key]) && content[key].length <= 100000, 'INVALID_LORE_DATA', `${key} must be a bounded array`);
   requireLore(content.documents.length <= 1000, 'INVALID_LORE_DATA', 'too many source documents');
   const definitions = compileLoreRegistry(registry), documents = new Map(), paths = new Set(), entities = new Map(), claimedValues = new Map(), claimedDocuments = new Map();
   for (const doc of content.documents) {
@@ -70,6 +72,7 @@ export function validateLoreContent({ registry, content }) {
     const result = resolver.resolve(query);
     requireLore(!['conflict', 'incomplete'].includes(result.status), 'LORE_VALUE_CONFLICT', `${field.id}/${value.subject.entityId}`, result);
   }
+  validateLoreEvidence(content);
   return { resolver, definitions, documents, entities };
 }
 export function createLoreRevision({ universeId, parentRevisionId = null, registry, content, reason }) {

@@ -12,6 +12,7 @@ export class DefaultOnomatopoeiaLexicon {
         this.byCategoryMap = new Map();
         const source = seed ?? KO_ONOMATOPOEIA_SEED;
         for (const entry of source) {
+            if (this.entries.has(entry.word)) throw Object.assign(new Error(`Duplicate lexicon key: ${entry.word}`), { code: 'DUPLICATE_LEXICON_KEY', key: entry.word });
             this.entries.set(entry.word, entry);
             const arr = this.byCategoryMap.get(entry.category) ?? [];
             arr.push(entry);

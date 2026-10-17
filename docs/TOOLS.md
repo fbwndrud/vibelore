@@ -53,7 +53,8 @@ flowchart LR
 `resolve`는 `revisionId`, `input`, `query`를 명시해 `resolved`, `unknown`, `conflict`,
 `incomplete`를 구별합니다. 등록만으로 기존 집필·웹툰에 설정이 채택되지는 않습니다.
 `ensure(needs,reason,operationId,expectedHead?)`는 AI가 집필 중 발견한 새 항목을 검색→재사용→검증→비파괴 추가로
-한 번에 처리합니다. 결과 `outcomes`는 `reused|registered|migration_required|unsupported|invalid`이고,
+한 번에 처리합니다. 결과 `outcomes`는 `reused|registered|needs_disambiguation|migration_required|unsupported|invalid`이고,
+이름 후보가 하나이고 정규화 의미문·구조가 같을 때만 재사용합니다. 다른 의미·복수 후보는 `needs_disambiguation`, 재사용 중 등록되지 않은 이름은 `unregisteredNames`로 표시합니다.
 같은 `operationId`의 재시도·재개는 첫 결과를 재생합니다(다른 요청이면 `OPERATION_CONFLICT`). 의미·타입·소유 변경은
 migration 후보로만 기록하며, 미지원 capability(`status.unsupportedCapabilities`)는 등록하지 않습니다.
 정확한 스키마·호스트 AI 절차·지원 범위는 [SharedLore 등록부 계약](reference/SHARED_LORE_REGISTRY.md)을 따릅니다.
@@ -61,12 +62,18 @@ migration 후보로만 기록하며, 미지원 capability(`status.unsupportedCap
 ### `lore_universe`
 
 `documents(loreRevisionId,documentIds?)`는 고정 판본의 문서 목록·소유·시점을 반환합니다.
-ID를 지정하면 실제 원문도 반환합니다. 호스트 AI가 각 단계에 필요한 근거를 선택할 때 씁니다.
+각 문서의 원문 문자열 hash인 `sourceHash`도 반환하며, ID를 지정하면 실제 원문도 반환합니다. 호스트 AI가 각 단계에 필요한 근거를 선택할 때 씁니다.
 
 `action,worldRoot,universeId`로 공유 세계를 관리합니다. `propose(expectedHead,registryRevisionId,content,reason)`는
 원문·인물·상태·값의 전체 후보와 실제 변경을 검증해 보여 줍니다. 사용자 승인 후
 `decide(proposalId,expectedHead,decision=approve|reject)`합니다. `resolve(loreRevisionId,query)`는 고정 판본 조회,
 `status`는 HEAD와 원문 drift, `recover`는 발행 뒤 중단된 원문 반영 복구입니다.
+
+`content.evidenceLedger`로 근거 방식·정확한 원문 인용/판본·관점별 주장·미해결 질문을 선택적으로 보존합니다.
+`evidence(loreRevisionId,query?)`의 query는 `{valueId}`, `{claimId}`, `{questionId}` 중 하나이며 생략 시 건수 요약입니다.
+원장 없는 과거 세계는 `legacy_unclassified`로 표시합니다. 추론·인물 발언·제안 주장은 자동으로 세계 사실이 되지 않습니다.
+전체 스키마와 승격 조건은 [근거 원장 계약](reference/SHARED_LORE_RUNTIME.md#선택적-근거-원장-2026-10-17)에 있습니다.
+인물 참조가 모호하면 추출은 invalid가 되고 `diagnostics.code:ambiguous_character_reference`, `references:[{ref,candidateIds}]`를 반환합니다. 관계의 어느 한쪽이 모호해도 해당 변경 전체를 제외하며 출발점 없는 과거 관계 변경으로 바꾸지 않습니다. 정확한 인물 ID로 다시 추출합니다.
 
 ### `lore_bind`
 

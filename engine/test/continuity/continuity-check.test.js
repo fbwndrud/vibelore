@@ -620,7 +620,7 @@ describe('extractDelta ledger ops', () => {
         expect(prompt).not.toContain('trackedEntityOps');
         expect(delta.ledgerOps).toEqual([{ op: 'register', feature: 'objects', label: '물건', name: '서명 쪽지' }, { op: 'hook', id: 'h1', event: 'paid', evidence: '…' }]);
     });
-    it('drops keys the extractor is not offered and leaves hooks out when hooks are off', async () => {
+    it('keeps a new register ID, drops unsupported keys and leaves hooks out when hooks are off', async () => {
         const answer = { ledgerOps: [
             { op: 'register', feature: 'knowledge', label: '비밀', name: '출생', id: 'r9', extra: 1 },
             { op: 'plant', text: '누가 쪽지를 썼나', horizon: 'soon', id: 'h9', plantedAtChapter: 1 },
@@ -630,7 +630,7 @@ describe('extractDelta ledger ops', () => {
         expect(prompt).toContain('objects|knowledge|scheduled');
         expect(prompt).not.toContain('"plant"');
         expect(delta.ledgerOps).toEqual([
-            { op: 'register', feature: 'knowledge', label: '비밀', name: '출생' },
+            { op: 'register', id: 'r9', feature: 'knowledge', label: '비밀', name: '출생' },
             { op: 'plant', text: '누가 쪽지를 썼나', horizon: 'soon' },
         ]);
     });
@@ -642,7 +642,7 @@ describe('extractDelta ledger ops', () => {
     });
     it('binds the extraction hash to the tracking switches', async () => {
         const base = { prose: '본문', chapterNumber: 1, foundation: makeFoundation({ characters: [] }), prevState: emptyStoryState('w'), castManifestRaw: '' };
-        expect(EXTRACTION_CONTEXT_HASH_VERSION).toBe(2);
+        expect(EXTRACTION_CONTEXT_HASH_VERSION).toBe(3);
         expect(computeExtractionContextHash(base)).not.toBe(computeExtractionContextHash({ ...base, tracking: { hooks: false } }));
     });
 });

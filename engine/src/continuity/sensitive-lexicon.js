@@ -16,6 +16,7 @@ export class DefaultSensitiveLexicon {
         this.byCategoryMap = new Map();
         const source = seed ?? KO_SENSITIVE_SEED;
         for (const entry of source) {
+            if (this.entries.has(entry.term)) throw Object.assign(new Error(`Duplicate lexicon key: ${entry.term}`), { code: 'DUPLICATE_LEXICON_KEY', key: entry.term });
             this.entries.set(entry.term, entry);
             const arr = this.byCategoryMap.get(entry.category) ?? [];
             arr.push(entry);

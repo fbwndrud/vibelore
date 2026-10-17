@@ -1,3 +1,4 @@
+import { createIdentityResolver } from '../core/identity-reference.js';
 /**
  * Layer-2 continuity gate — LLM semantic layer.
  *
@@ -193,7 +194,7 @@ function systemContent(ctx, staticText) {
 export const CONTINUITY_CONTEXT_HASH_VERSION = 2;
 /** extractDelta 원천 바인딩 hash 의 버전. continuity hash 와 섞이지 않는다. */
 /** v2: the requested schema follows `tracking` (ledgerOps per enabled feature), so it is bound too. */
-export const EXTRACTION_CONTEXT_HASH_VERSION = 2;
+export const EXTRACTION_CONTEXT_HASH_VERSION = 3;
 /**
  * 키 정렬만 하는 정본 직렬화. **Unicode 정규화를 하지 않는다** — 정규화하면 서로
  * 다른 원고가 같은 hash 를 갖게 되고, 그 순간 "이전 응답이 바뀐 원고를 승인"한다.
@@ -365,7 +366,7 @@ export const EXTRACT_DELTA_SYSTEM = [
     '제공된 회차 본문·이전 상태 요약·등장 캐스트 명단을 읽고, 구조화된 ChapterDelta JSON 한 개만 출력한다.',
     '본문 외 추론은 금지. 본문에서 직접 관찰되는 변화만 기록한다.',
     'characterId, speakerId, targetId에는 이번 회차 등장 캐스트에 제공된 정확한 ID만 사용한다. 이름·직책·역할명은 ID가 아니며 임의로 만들지 않는다.',
-    '기록 목록에는 이번 화와 관련된 기록만 보인다. 이미 목록에 있는 기록과 떡밥은 그 id로 event/hook 을 쓴다. register 전에 목록의 이름과 별칭을 확인하고, 비슷하지만 같은지 확실하지 않으면 본문의 이름으로 register 한다(비슷한 기록은 검사기가 중복 후보로 표시한다).',
+    '기록 목록에는 이번 화와 관련된 기록만 보인다. 이미 목록에 있는 기록과 떡밥은 그 id로 event/hook 을 쓴다. register는 같은 이름이어도 새 대상이다(선택 id는 새 ID여야 함). 기존 대상 변경에는 반드시 event와 기존 id를 쓴다. register 전에 목록의 이름과 별칭을 확인하고, 비슷하지만 같은지 확실하지 않으면 본문의 이름으로 register 한다(비슷한 기록은 검사기가 중복 후보로 표시한다).',
     '잠복(dormant)하거나 회수(paid)된 떡밥이 다시 나오면 plant 하지 않고 그 id로 hook reopened 또는 mentioned 를 쓴다.',
     '출력은 코드 블록 없이 순수 JSON. 한국어 키/값을 사용해도 무방하나 스키마 키는 영문 그대로 유지한다.',
     '들여쓰기와 줄바꿈 없는 한 줄 compact JSON으로 출력한다.',
@@ -379,7 +380,7 @@ export const EXTRACT_DELTA_SYSTEM_MULTILINGUAL = [
     'Read the chapter text, the previous state summary and the cast list, and output exactly one structured ChapterDelta JSON object.',
     'Do not infer beyond the text. Record only changes that are directly observable in the chapter.',
     'For characterId, speakerId and targetId use only the exact IDs given in this chapter\'s cast. Names, titles and role words are not IDs and must never be invented.',
-    'The record list shows only the records relevant to this chapter. Use event/hook with the listed id for anything already listed. Before a register, check the names and aliases listed; if something looks similar but you are not sure it is the same, register it under the name the chapter uses (the checker flags similar records as possible duplicates).',
+    'The record list shows only the records relevant to this chapter. Use event/hook with the listed id for anything already listed. A register creates a distinct target even with the same name (an optional id must be new). Update an existing target with event and its stable id. Before a register, check the names and aliases listed; if something looks similar but you are not sure it is the same, register it under the name the chapter uses (the checker flags similar records as possible duplicates).',
     'When a dormant or paid hook comes back, do not plant it again: write hook reopened or mentioned with its id.',
     'Output pure JSON with no code fence. Write natural-language values (descriptions, anchors, interpretations, reasons) in the target work language, and keep schema keys, enum values and IDs exactly as written here.',
     'Output the JSON as a single compact line with no indentation or line breaks.',
@@ -665,7 +666,7 @@ function isCompleteLedgerOp(raw) {
     if (!isRecord(raw) || !isNonEmptyString(raw.op))
         return false;
     if (raw.op === 'register')
-        return isNonEmptyString(raw.feature) && isNonEmptyString(raw.name) && (!('fields' in raw) || isRecord(raw.fields));
+        return isNonEmptyString(raw.feature) && isNonEmptyString(raw.name) && (!('fields' in raw) || isRecord(raw.fields)) && (!('id' in raw) || isNonEmptyString(raw.id));
     if (raw.op === 'event')
         return isNonEmptyString(raw.id) && isNonEmptyString(raw.event) && (!('set' in raw) || isRecord(raw.set));
     if (raw.op === 'alias')
@@ -768,14 +769,14 @@ function validateExtractionPayload(parsed, { explicit, contextHash, resolveId })
         return { ok: false, code: 'malformed' };
     return { ok: true };
 }
-function extractionValidationResult(status, contextHash, code) {
+function extractionValidationResult(status, contextHash, code, references = null) {
     const result = { status, contextHash };
     if (status !== 'completed' && code)
-        result.diagnostics = Object.freeze({ code });
+        result.diagnostics = Object.freeze({ code, ...(references ? { references } : {}) });
     return Object.freeze(result);
 }
 const LEDGER_OP_KEYS = Object.freeze({
-    register: ['op', 'feature', 'label', 'name', 'aliases', 'status', 'fields', 'note'],
+    register: ['op', 'id', 'feature', 'label', 'name', 'aliases', 'status', 'fields', 'note'],
     event: ['op', 'id', 'event', 'set', 'status', 'note'],
     alias: ['op', 'id', 'alias', 'by'],
     plant: ['op', 'text', 'horizon', 'note'],
@@ -912,6 +913,7 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
     }
     return {
         chapterNumber,
+        ledgerIdentityVersion: 2,
         appearedCharacterIds,
         newAddressEntries,
         relationshipOps,
@@ -925,19 +927,22 @@ function parseChapterDeltaPayload(parsed, chapterNumber, appearedCharacterIds) {
     };
 }
 function characterIdResolver(foundation) {
-    const idByReference = new Map();
-    for (const character of foundation.characters) {
-        idByReference.set(character.id, character.id);
-        idByReference.set(character.canonicalName, character.id);
-        for (const alias of character.aliases ?? [])
-            idByReference.set(alias, character.id);
-    }
-    return (value) => idByReference.get(value) ?? null;
+    const resolve = createIdentityResolver(foundation.characters);
+    const ambiguousReferences = new Map();
+    const resolveId = value => {
+        const result = resolve(value);
+        if (result.status === 'ambiguous') ambiguousReferences.set(value, result.candidateIds);
+        return result.status === 'resolved' ? result.id : null;
+    };
+    return { resolveId, ambiguousReferences };
 }
-function resolveCharacterIds(delta, resolveId) {
-    delta.relationshipOps = delta.relationshipOps.map(({ from: rawFrom, ...rest }) => {
+function resolveCharacterIds(delta, resolveId, ambiguousReferences) {
+    delta.relationshipOps = delta.relationshipOps.flatMap(({ from: rawFrom, ...rest }) => {
         const from = rawFrom ? resolveId(rawFrom) : null;
-        return { ...(from ? { from } : {}), ...rest, to: resolveId(rest.to) ?? rest.to };
+        const to = resolveId(rest.to);
+        // An ambiguous endpoint must never become an unscoped legacy update.
+        if (ambiguousReferences.has(rawFrom) || ambiguousReferences.has(rest.to)) return [];
+        return [{ ...(from ? { from } : {}), ...rest, to: to ?? rest.to }];
     });
     delta.mutableChanges = delta.mutableChanges.flatMap((change) => {
         const characterId = resolveId(change.characterId);
@@ -998,7 +1003,7 @@ export async function extractDelta(input) {
         sawThrow = true;
     }
     const appearedCharacterIds = manifest.map((c) => c.characterId);
-    const resolveId = characterIdResolver(input.foundation);
+    const { resolveId, ambiguousReferences } = characterIdResolver(input.foundation);
     let parsed = llmText ? tryParseJson(llmText) : null;
     let delta = parseChapterDeltaPayload(parsed, input.chapterNumber, appearedCharacterIds);
     // Explicit contracts share the caller's persisted attempt budget: each
@@ -1038,14 +1043,15 @@ export async function extractDelta(input) {
     const validated = validateExtractionPayload(parsed, {
         explicit: requireHash, contextHash, resolveId,
     });
-    resolveCharacterIds(delta, resolveId);
+    resolveCharacterIds(delta, resolveId, ambiguousReferences);
     const rejectedAddressEntries = filterAddressEntries(delta, input.foundation, input.prose);
     const rejectedRevivals = filterRevivals(delta, input.prevState, input.prose);
     let extraction;
-    if (validated.ok)
+    const references = ambiguousReferences.size ? [...ambiguousReferences].map(([ref, candidateIds]) => ({ ref, candidateIds })) : null;
+    if (validated.ok && !references)
         extraction = extractionValidationResult('completed', contextHash);
     else if (sawResponse)
-        extraction = extractionValidationResult('invalid', contextHash, validated.code);
+        extraction = extractionValidationResult('invalid', contextHash, references ? 'ambiguous_character_reference' : validated.code, references);
     else
         extraction = extractionValidationResult('error', contextHash, sawThrow ? 'provider_error' : 'malformed');
     return { delta, manifest, unregisteredNamed, unregisteredNamedScan, rejectedAddressEntries, rejectedRevivals, extractionValidation: extraction };

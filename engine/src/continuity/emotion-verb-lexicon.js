@@ -14,6 +14,7 @@ export class DefaultEmotionVerbLexicon {
         this.byEmotionMap = new Map();
         const source = seed ?? KO_EMOTION_VERB_SEED;
         for (const entry of source) {
+            if (this.entries.has(entry.verb)) throw Object.assign(new Error(`Duplicate lexicon key: ${entry.verb}`), { code: 'DUPLICATE_LEXICON_KEY', key: entry.verb });
             this.entries.set(entry.verb, entry);
             const arr = this.byEmotionMap.get(entry.emotion) ?? [];
             arr.push(entry);

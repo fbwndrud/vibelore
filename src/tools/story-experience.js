@@ -1,3 +1,4 @@
+import { createIdentityResolver } from '../../engine/src/core/identity-reference.js';
 import { renderPlanReviewExtras } from '../core/prompt-sections.js';
 import { renderEpisodePlan } from './episode-plan.js';
 import { gateApprovalActivation, requireApprovalResult } from '../core/approval-language-gate.js';
@@ -130,8 +131,12 @@ function patternNotes({ foundation, cast, previousEntries, kit }) {
 
 function agencyById(agency, foundation) {
   if (!agency || typeof agency !== 'object') return {};
-  const byName = new Map((foundation?.characters ?? []).flatMap((c) => [[c.canonicalName, c.id], ...(c.aliases ?? []).map((alias) => [alias, c.id])]));
-  return Object.fromEntries(Object.entries(agency).map(([key, value]) => [byName.get(key) ?? key, value]));
+  const resolve = createIdentityResolver(foundation?.characters ?? []);
+  return Object.fromEntries(Object.entries(agency).map(([key, value]) => {
+    const result = resolve(key);
+    if (result.status === 'ambiguous') throw Object.assign(new Error('Ambiguous character reference: use a stable ID'), { code: 'AMBIGUOUS_CHARACTER_REFERENCE', ref: key, candidateIds: result.candidateIds });
+    return [result.id ?? key, value];
+  }));
 }
 
 export async function runPatternAnalysis({ chapter, prose, foundation = null, cast = [], previousEntries = [], providers, kit: kitSource }) {

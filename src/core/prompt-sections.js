@@ -236,8 +236,8 @@ function selectRecords(records, text, ids, limit, { isPinned = () => false, now 
  * record aliases with a speaker and author speakerOnly rules, for speakers in
  * `speakers`.
  */
-function speakerAliases(records, config, speakers) {
-  const nameOf = (item) => records.find((record) => customItemFor({ customTracking: [item] }, record))?.name ?? item.name;
+function speakerAliases(records, config, speakers, ledger = { records }) {
+  const nameOf = (item) => records.find((record) => customItemFor(config, record, { identityVersion: 2, ledger })?.id === item.id)?.name ?? item.name;
   const found = [
     ...records.flatMap((record) => asArray(record.aliases).filter((alias) => clean(alias?.by) && clean(alias?.text))
       .map((alias) => ({ by: alias.by, alias: alias.text, name: record.name }))),
@@ -355,12 +355,13 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
     // A writer sees only scheduled events still to come; a planner gets those under their own heading.
     const records = allRecords.filter((record) => record.feature !== 'scheduled' || mode === 'extract' || (mode === 'writer' && record.status === 'pending'));
     // Author items apply to the record they name (by id, name or alias), whatever id it was registered under.
-    const isPinned = (record) => Boolean(customItemFor(config, record)?.pinned);
+    const customFor = record => customItemFor(config, record, { identityVersion: 2, ledger: { records: allRecords } });
+    const isPinned = (record) => Boolean(customFor(record)?.pinned);
     const recordIds = mode === 'extract' ? named : castIds;
     const { shown, omitted, capped } = selectRecords(records, focus, recordIds, mode === 'extract' ? EXTRACT_TRACKED_LIMIT : WRITER_TRACKED_LIMIT, { isPinned, now });
     // Items the author asked to track that no record holds yet: shown so the extractor uses their id and the writer knows them.
     const waiting = asArray(config.customTracking).filter((item) => trackingEnabled(config, item.feature)
-      && !allRecords.some((record) => customItemFor({ customTracking: [item] }, record)));
+      && !allRecords.some((record) => customFor(record)?.id === item.id));
     const label = (record) => record.label || record.feature;
     if ((shown.length || waiting.length) && mode === 'extract') {
       lines.push(t.recordsHeadingKeyed, ...shown.flatMap((record) => {
@@ -375,7 +376,7 @@ export function renderCurrentState(state, foundation, { cast = [], kit, mode = '
       lines.push(t.recordsHeading, ...shown.flatMap((record) => {
         const past = Number(record.lastEventAt) <= now - HISTORY_GAP ? ledgerHistory(asArray(history), record.id, HISTORY_ITEMS) : [];
         // A word only one character uses for the thing, so the writer puts it in the right mouth.
-        const own = speakerAliases([record], { ...config, customTracking: asArray(config.customTracking).filter((item) => customItemFor({ customTracking: [item] }, record)) }, null);
+        const own = speakerAliases([record], { ...config, customTracking: asArray(config.customTracking).filter((item) => customFor(record)?.id === item.id) }, null, { records: allRecords });
         return [t.record(label(record), record.name, word('statusWords', record.status), recordText(record, name)),
           ...(own.length ? [t.recordSpeakerAliases(own.map((item) => t.speakerAliasItem(item.alias, name(item.by))).join(', '))] : []),
           ...(past.length ? [t.recordHistory(past.map((event) => t.historyItem(event.chapter, word('eventWords', event.event), event.note ?? '')).join(', '))] : [])];

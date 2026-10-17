@@ -90,20 +90,20 @@ const webtoonImageChoiceArgs = {
 const TOOLS = [
   {
     name: 'lore_universe', annotations: writes(),
-    description: '소설 없이 공유 세계의 설정 원문·인물·상태·typed values를 채택한다. status→propose에서 전체 후보·원문 변경·영향을 보여 주고 사용자 승인 후 decide(decision=approve)한다. 값·근거·소유·기간 충돌을 검사하며 독립 lore HEAD를 발행한다. resolve는 고정 판본 값 조회, documents는 고정 문서 목록·선택 원문 조회, recover는 발행 후 원문 반영 중단 복구다. .vibelore를 직접 편집하지 않는다.',
+    description: '소설 없이 공유 세계의 설정 원문·인물·상태·typed values를 채택한다. status→propose에서 전체 후보·원문 변경·영향을 보여 주고 사용자 승인 후 decide(decision=approve)한다. 값·근거·소유·기간 충돌을 검사하며 독립 lore HEAD를 발행한다. evidence는 고정 판본의 근거·주장·미해결 질문 조회(자동 승격 없음), resolve는 고정 판본 값 조회, documents는 고정 문서 목록·선택 원문 조회, recover는 발행 후 원문 반영 중단 복구다. .vibelore를 직접 편집하지 않는다.',
     inputSchema: { type: 'object', additionalProperties: false, properties: {
-      action: { type: 'string', enum: ['status', 'propose', 'decide', 'resolve', 'documents', 'recover'], description: '세계 조회·후보 검증·작가의 채택 결정·고정 값/문서 조회·원문 반영 복구.' },
+      action: { type: 'string', enum: ['status', 'propose', 'decide', 'resolve', 'documents', 'evidence', 'recover'], description: '세계 조회·후보 검증·작가의 채택 결정·고정 값/문서 조회·원문 반영 복구.' },
       worldRoot: { type: 'string', description: '공유 세계의 절대 경로. registryRoot와 같은 세계 디렉터리.' },
       universeId: { type: 'string', description: '공유 세계의 안정적인 ID.' },
       expectedHead: { anyOf: [{ type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, { enum: [null] }], description: 'propose/decide에 필요. status의 lore HEAD. 최초 null.' },
       registryRevisionId: { type: 'string', description: 'propose가 사용할 정확한 정의 등록부 판본.' },
       documentIds: { type: 'array', maxItems: 100, uniqueItems: true, items: { type: 'string' }, description: 'documents에서 원문을 읽을 ID. 생략하면 해당 판본의 문서 목록·소유·시점만 반환한다. 호스트 AI가 계획과 장면에 필요한 문서를 선택한다.' },
-      content: { type: 'object', description: 'propose의 전체 entities[{id,typeDefinitionRevisionId,documentIds,valueIds}],states[{id,entityId,documentIds,valueIds,storyScope}],timelines,values,documents[{id,path,text,visibility:author|context}],worldDocumentIds. 값은 승인할 documents ID를 근거로 참조한다.' },
+      content: { type: 'object', description: 'propose의 전체 entities[{id,typeDefinitionRevisionId,documentIds,valueIds}],states[{id,entityId,documentIds,valueIds,storyScope}],timelines,values,documents[{id,path,text,visibility:author|context}],worldDocumentIds. 값은 승인할 documents ID를 근거로 참조한다. 선택 evidenceLedger:{schemaVersion:1,evidence,claims,questions}는 판본·인용·근거 방식·채택/관점·미해결 질문을 별도로 검증하며 값의 evidenceIds 문서 ID 의미는 유지한다.' },
       reason: { type: 'string', description: 'propose의 세계 변경 근거. 실제 후보 판본에 보존.' },
       proposalId: { type: 'string', description: 'decide에서 검토한 불변 후보 ID.' },
       decision: { type: 'string', enum: ['approve', 'reject'], description: 'decide의 사용자 결정. approve는 검토한 실제 후보를 승인받은 뒤 호출.' },
-      loreRevisionId: { type: 'string', description: 'resolve/documents의 불변 lore HEAD. 최신 판본을 암묵적으로 사용하지 않는다.' },
-      query: { type: 'object', description: 'resolve의 subjectId,fieldId,scope,maxCandidates?. 등록부 해석 계약과 동일.' },
+      loreRevisionId: { type: 'string', description: 'resolve/documents/evidence의 불변 lore HEAD. 최신 판본을 암묵적으로 사용하지 않는다.' },
+      query: { type: 'object', description: 'resolve의 subjectId,fieldId,scope,maxCandidates?. evidence에서는 {valueId} 또는 {claimId} 또는 {questionId}, 생략하면 원장 요약. 등록부 해석 계약과 구분한다.' },
     }, required: ['action', 'worldRoot', 'universeId'] },
   },
   {
@@ -122,7 +122,7 @@ const TOOLS = [
     description: '소설 없이 독립 세계의 SharedLore 정의 등록부를 관리한다. AI가 새 항목 필요를 발견하면 ensure(needs, operationId)로 검색→기존 정의 재사용→없으면 검증 후 비파괴적 추가를 한 번에 수행한다(키마다 사용자 인터뷰 없음). 같은 operationId의 재시도·재개는 첫 결과를 재생하며 중복 등록하지 않는다. 기존 정의의 의미·타입·소유 변경은 migration 후보로 기록만 하고 적용하지 않으며, 미지원 capability는 unsupported로 등록하지 않는다. status→search→register는 수동 경로다. resolve는 정확한 registry 판본과 입력으로 값을 조회한다. 정의 등록은 세계 사실 채택이 아니며 집필/웹툰 입력에 자동 반영하지 않는다.',
     inputSchema: { type: 'object', additionalProperties: false, properties: {
       action: { type: 'string', enum: ['status', 'search', 'register', 'ensure', 'resolve'], description: '등록부 조회·검색·수동 정의 추가·AI 확장(검색→재사용→추가)·고정 입력 해석.' },
-      needs: { type: 'array', minItems: 1, maxItems: 1000, items: { type: 'object', additionalProperties: false, properties: { definition: LORE_DEFINITION_SCHEMA, why: { type: 'string', description: '이 정의가 필요한 장면·설정 근거.' } }, required: ['definition'] }, description: 'ensure 전용. 필요한 정의 후보. 같은 namespace의 같은 key/별칭이 이미 있으면 그 정의를 재사용한다(제안 ID는 버린다). 결과 outcomes는 reused/registered/migration_required/unsupported/invalid.' },
+      needs: { type: 'array', minItems: 1, maxItems: 1000, items: { type: 'object', additionalProperties: false, properties: { definition: LORE_DEFINITION_SCHEMA, why: { type: 'string', description: '이 정의가 필요한 장면·설정 근거.' } }, required: ['definition'] }, description: 'ensure 전용. 필요한 정의 후보. 이름 후보가 하나이고 정규화 의미문·구조가 같을 때만 재사용한다. 다른 의미·복수 후보는 needs_disambiguation과 후보를 반환한다. 미등록 이름은 unregisteredNames. 결과 outcomes는 reused/registered/needs_disambiguation/migration_required/unsupported/invalid.' },
       operationId: { type: 'string', pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{7,119}$', description: 'ensure의 멱등 키. 모델 handoff·resume·재시도에서 같은 값을 다시 보내면 첫 결과를 그대로 반환한다. 다른 요청에 재사용하면 OPERATION_CONFLICT.' },
       registryRoot: { type: 'string', minLength: 1, description: '공유 세계 디렉터리의 절대 경로. 작품 디렉터리와 독립이며 명시해야 한다.' },
       universeId: { type: 'string', pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$', description: '공유 세계 식별자. 같은 저장소에서는 유지한다.' },
