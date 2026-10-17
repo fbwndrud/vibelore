@@ -8,6 +8,7 @@
  * keeps current values and the last RECENT_EVENTS events, and the full
  * history is rebuilt from the deltas.
  */
+import { createIdentityResolver } from '../core/identity-reference.js';
 import { termOccursInText } from '../core/mention-scan.js';
 
 export const LEDGER_FEATURES = Object.freeze(['objects', 'knowledge', 'scheduled']);
@@ -78,6 +79,17 @@ export function findRecord(ledger, ref, feature = null) {
         return null;
     return records.find((record) => recordNames(record).some((name) => ledgerNameKey(name) === key)) ?? null;
 }
+/** v2 lookup preserves exact and merged IDs, but never picks one homonym. */
+export function resolveLedgerReference(ledger, ref) {
+    const records = ledger?.records ?? [];
+    const direct = records.find(record => record.id === ref);
+    if (direct) return { status: 'resolved', id: direct.id };
+    const merged = records.filter(record => (record.mergedIds ?? []).includes(ref));
+    if (merged.length === 1) return { status: 'resolved', id: merged[0].id };
+    if (merged.length > 1) return { status: 'ambiguous', candidateIds: merged.map(record => record.id) };
+    return createIdentityResolver(records, { namesOf: recordNames, normalize: ledgerNameKey })(ref);
+}
+
 function words(key) {
     return key.split(' ').filter((word) => [...word].length >= 2);
 }
@@ -275,7 +287,8 @@ function ruleFindings(record, before, event, config) {
  * lines for the history log and the findings. Ops of a feature the user turned
  * off are ignored without a finding.
  */
-export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
+export function applyLedgerOps(state, ops, { chapter, config = {}, identityVersion = 1 } = {}) {
+    if (![1, 2].includes(identityVersion)) throw Object.assign(new Error(`Unsupported ledger identity version: ${identityVersion}`), { code: 'UNSUPPORTED_LEDGER_IDENTITY_VERSION' });
     const next = clone(state);
     const events = [];
     const violations = [];
@@ -289,7 +302,11 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
         if (op?.op === 'register') {
             if (!LEDGER_FEATURES.includes(op.feature) || !trackingEnabled(config, op.feature) || typeof op.name !== 'string' || !op.name.trim())
                 continue;
-            const existing = findRecord(next.ledger, op.name, op.feature);
+            if (identityVersion === 2 && op.id && next.ledger.records.some(record => record.id === op.id || (record.mergedIds ?? []).includes(op.id))) {
+                violations.push({ severity: 'hard', code: 'LEDGER_ID_CONFLICT', ledgerId: op.id, message: 'register requires a new stable ID; update an existing record with event' });
+                continue;
+            }
+            const existing = identityVersion === 1 ? findRecord(next.ledger, op.name, op.feature) : null;
             if (existing) {
                 // A known name is an event on that record, checked like any other.
                 const set = op.fields && Object.keys(op.fields).length ? { ...op.fields } : null;
@@ -321,13 +338,23 @@ export function applyLedgerOps(state, ops, { chapter, config = {} } = {}) {
             }
         }
         if (op?.op === 'event' || op?.op === 'alias') {
-            let record = findRecord(next.ledger, op.id);
+            const resolution = identityVersion === 2 ? resolveLedgerReference(next.ledger, op.id) : null;
+            if (resolution?.status === 'ambiguous') {
+                violations.push({ severity: 'hard', code: 'LEDGER_AMBIGUOUS_REFERENCE', ledgerId: op.id, candidateIds: resolution.candidateIds, message: 'ambiguous name: use a stable ledger ID' });
+                continue;
+            }
+            let record = findRecord(next.ledger, resolution?.id ?? op.id);
             const custom = !record ? customItem(config, op.id) : null;
             if (!record && custom) {
                 if (!trackingEnabled(config, custom.feature))
                     continue;
                 // An author item named like an existing record is that record.
-                record = findRecord(next.ledger, custom.name, custom.feature);
+                const customRef = identityVersion === 2 ? resolveLedgerReference(next.ledger, custom.name) : null;
+                if (customRef?.status === 'ambiguous') {
+                    violations.push({ severity: 'hard', code: 'LEDGER_AMBIGUOUS_REFERENCE', ledgerId: op.id, candidateIds: customRef.candidateIds, message: 'custom tracking name is ambiguous; use a stable ledger ID' });
+                    continue;
+                }
+                record = findRecord(next.ledger, customRef?.id ?? custom.name, custom.feature);
                 if (!record) {
                     record = { id: custom.id, feature: custom.feature, label: '', name: custom.name, aliases: [], status: INITIAL_STATUS[custom.feature], fields: {}, registeredAt: chapter, recent: [] };
                     next.ledger.records.push(record);
@@ -518,7 +545,7 @@ const squash = (text) => String(text ?? '').normalize('NFC').replace(/\s+/g, ' '
  * record should be named, a speaker-only alias needs its speaker on the page,
  * and a destroyed record named again is reported (it may be a memory).
  */
-export function reviewLedgerOps({ state, ops = [], prose = '', cast = [], config = {} } = {}) {
+export function reviewLedgerOps({ state, ops = [], prose = '', cast = [], config = {}, identityVersion = 1 } = {}) {
     const violations = [];
     const text = squash(prose);
     const reviewed = (ops ?? []).map((op) => {
@@ -530,7 +557,8 @@ export function reviewLedgerOps({ state, ops = [], prose = '', cast = [], config
             }
         }
         if (op?.op === 'event' && (op.event === 'changed' || op.event === 'mentioned')) {
-            const record = findRecord(state?.ledger, op.id);
+            const resolved = identityVersion === 2 ? resolveLedgerReference(state?.ledger, op.id) : null;
+            const record = resolved?.status === 'ambiguous' ? null : findRecord(state?.ledger, resolved?.id ?? op.id);
             if (record && trackingEnabled(config, record.feature) && !recordNames(record).some((name) => termOccursInText(prose, name)))
                 violations.push({ severity: 'soft', code: 'LEDGER_NAME_NOT_IN_PROSE', ledgerId: record.id, message: `"${record.name}" is ${op.event} but not named in the chapter` });
         }
