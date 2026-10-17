@@ -39,3 +39,9 @@ TDD every behavior change. Test v1 replay/v2 homonyms, explicit IDs, multiple al
 - Contradicting evidence references block adoption/verification while present; a later immutable revision may remove a resolved reference, and prior revisions preserve its history.
 - Rule-derived evidence qualifies only when its nonempty dependency set all recursively qualifies; reject cycles first.
 - Existing value.evidenceIds remain document IDs. Claim support/contradiction IDs refer to ledger evidence records. These namespaces are never reinterpreted.
+
+## Implementation clarifications
+
+- Adopted claims cannot depend on proposed claims or incompatible world/character perspectives. Verified questions require resolved dependencies. These guards prevent qualification through unrelated strong evidence.
+- Document catalogs return sourceHash for constructing exact evidence without a separate hash-computation tool.
+- Chapter source anchors must occur uniquely; repeated/missing anchors remain inferred and report a limitation. Quote presence alone does not prove an interpretation.

@@ -53,20 +53,27 @@ It only adds supported definitions; changing an existing ID's meaning, type or o
 `resolve` requires an exact `revisionId`, `input` and `query`, returning distinct `resolved`, `unknown`,
 `conflict` and `incomplete` statuses. Registering definitions does not adopt settings into current writing or webtoon workflows.
 `ensure(needs,reason,operationId,expectedHead?)` handles a field the AI discovers mid-writing as search → reuse → validate →
-non-destructive add in one call. `outcomes` are `reused|registered|migration_required|unsupported|invalid`; retrying or
+non-destructive add in one call. `outcomes` are `reused|registered|needs_disambiguation|migration_required|unsupported|invalid`; retrying or
 resuming with the same `operationId` replays the first result (`OPERATION_CONFLICT` for a different request). Meaning/type/owner
 changes are only recorded as migration candidates, and unsupported capabilities (`status.unsupportedCapabilities`) are never registered.
+Reuse requires one name candidate with matching normalized meaning and structure. Different meanings or multiple candidates return `needs_disambiguation`; `unregisteredNames` reports proposed names that were not added.
 See the [SharedLore registry contract (Korean)](reference/SHARED_LORE_REGISTRY.md) for shapes, host procedure and limits.
 
 ### `lore_universe`
 
 `documents(loreRevisionId,documentIds?)` returns a pinned document catalog with ownership and story scope.
-Passing IDs also returns their exact text for the host to select stage-specific evidence.
+Each document includes `sourceHash` (the existing `hashLore(text)` of its exact source string). Passing IDs also returns their exact text for the host to select stage-specific evidence.
 
 Required: `action,worldRoot,universeId`. `propose(expectedHead,registryRevisionId,content,reason)` validates a complete
 world candidate with documents, entities, states and typed values. Review the candidate, then use
 `decide(proposalId,expectedHead,decision=approve|reject)` for the user's decision. `resolve(loreRevisionId,query)` reads
 an exact sealed revision; `status` reports HEAD/source drift and `recover` resumes approved document materialization.
+
+Optional `content.evidenceLedger` preserves evidence basis, exact source hash/quote spans, perspective-specific claims and residual questions.
+`evidence(loreRevisionId,query?)` selects one `{valueId}`, `{claimId}` or `{questionId}`; omitting query returns counts.
+Legacy worlds return `legacy_unclassified`. Inference, character reports and proposed claims never automatically become world facts.
+See the [evidence ledger contract (Korean)](reference/SHARED_LORE_RUNTIME.md#선택적-근거-원장-2026-10-17) for the exact schema and qualification rules.
+New chapter deltas use `ledgerIdentityVersion:2`: register creates a distinct target, and ambiguous updates are blocked. Historical unmarked deltas retain v1 replay.
 
 ### `lore_bind`
 
