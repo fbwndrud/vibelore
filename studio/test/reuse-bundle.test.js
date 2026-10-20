@@ -2,6 +2,8 @@ import test from 'node:test';
 import sharp from 'sharp';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { mkdtemp, readFile, writeFile, rm, mkdir, symlink, readdir, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -216,3 +218,29 @@ test('writes explicitly reject an existing symlink destination and preserve its 
 test('shared PNG fixture is decodable with exact RGBA pixels for consuming import tests', async () => {
   assert.deepEqual([...await sharp(Buffer.from(pngBytes)).ensureAlpha().raw().toBuffer()], [40, 60, 80, 255]);
 });
+
+// A blocking FIFO open never reaches fstat. Isolate each probe so a regression
+// cannot hang the test runner or leave its libuv worker waiting for a writer.
+for (const leaf of ['manifest.json', `files/${pngSha256}`]) {
+  test(`FIFO at ${leaf === 'manifest.json' ? 'manifest' : 'content'} leaf is rejected without waiting for a writer`, async t => {
+    const directory = join(await temp(t), 'bundle');
+    await writeBundleDirectory(directory, bundleFixture());
+    await rm(join(directory, leaf));
+    const execute = promisify(execFile);
+    await execute('mkfifo', [join(directory, leaf)], { timeout: 1500, killSignal: 'SIGKILL' });
+    const script = `
+      import { readBundleDirectory } from ${JSON.stringify(new URL('../src/reuse/bundle.js', import.meta.url).href)};
+      try {
+        await readBundleDirectory(process.argv[1]);
+        process.stdout.write('ACCEPTED');
+      } catch (error) {
+        process.stdout.write(error.code ?? error.name);
+      }
+    `;
+    const result = await execute(process.execPath, ['--input-type=module', '--eval', script, directory], {
+      timeout: 1500, killSignal: 'SIGKILL'
+    });
+    assert.equal(result.stdout, 'INVALID_INPUT');
+    assert.equal(result.stderr, '');
+  });
+}

@@ -184,7 +184,8 @@ async function safeAncestors(path) {
 }
 async function boundedRead(path, max) {
   await safeAncestors(path);
-  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  // A FIFO must not wait for a writer before fstat can reject nonregular files.
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const stat = await handle.stat();
     if (!stat.isFile()) invalid();
