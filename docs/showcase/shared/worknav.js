@@ -8,7 +8,8 @@ window.WorkNav = function (cfg) {
   const nav = document.createElement('nav');
   nav.className = 'snav'; nav.setAttribute('aria-label', T('사이트'));
   const home = document.createElement('a');
-  home.href = './'; home.className = 'snav-home'; home.textContent = cfg.title; home.lang = 'ko';
+  home.href = cur === 'read' ? '../' : './'; home.className = 'snav-home'; home.textContent = cur === 'read' ? T('← 서가') : cfg.title;
+  if (cur === 'read') home.dataset.library = 'true'; else home.lang = 'ko';
   if (cur === 'home') home.setAttribute('aria-current', 'page');
   nav.append(home);
   const ul = document.createElement('div'); ul.className = 'snav-links';

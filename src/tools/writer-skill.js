@@ -1,4 +1,5 @@
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
+import { planningFoundation } from '../core/lore-runtime.js';
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 
@@ -40,12 +41,12 @@ export function writerSkillViolations(skill) {
 }
 
 export async function runWriterSkill({ store, workId, mode = 'review', feedback = '', providers, retryValidation = false }) {
-  const foundation = await store.loadFoundation(workId); const spine = await store.loadStorySpine(workId); const profile = await store.loadStoryProfile(workId);
+  const { foundation } = await planningFoundation({ store, workId }); const spine = await store.loadStorySpine(workId); const profile = await store.loadStoryProfile(workId);
   if (!foundation || !spine || spine.status !== 'active') throw new Error('승인된 세계·인물·StorySpine이 필요합니다.');
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'writer-skill', messages: kit.messages('writer-skill', {
-    workJson: JSON.stringify({ title: foundation.title, brief: foundation.brief, genre: profile?.genreLabel, worldFacts: foundation.worldFacts.map((f) => f.statement), characters: foundation.characters.map((c) => ({ id:c.id,name:c.canonicalName,contradiction:c.contradiction })), spine }),
+    workJson: JSON.stringify({ title: foundation.title, brief: foundation.brief, genre: profile?.genreLabel, worldFacts: foundation.worldFacts.map((f) => f.statement), sharedLore: foundation.sharedLore, characters: foundation.characters.map((c) => ({ id:c.id,name:c.canonicalName,contradiction:c.contradiction })), spine }),
     feedback: feedback || kit.phrases.common.noneParen,
   }) });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'writer-skill' };

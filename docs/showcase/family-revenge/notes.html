@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<script src="../i18n.js?v=15"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>아까는 식구 아니라면서요 · 제작 노트</title>
+<meta name="description" content="생활 풍자풍 웹툰의 참조 이미지, 금액 중복·대사 오타·밥그릇 오류의 수정 전후, 일곱 시도의 프롬프트와 검토 기록.">
+<link rel="stylesheet" href="../shared/site.css?v=2">
+<link rel="stylesheet" href="../shared/workpage.css?v=1">
+<link rel="stylesheet" href="notes.css?v=1">
+</head>
+<body data-page="works" data-root="../" data-work="family-revenge" data-tab="notes">
+<div class="shell">
+<header id="top"></header>
+<section id="work-band"></section>
+<main class="wrap production-notes">
+  <section>
+    <h2>한 끼의 식탁에서 시작한 복수극</h2>
+    <p>소설 10화는 한 아크로 완결했습니다. 웹툰은 1화 「이혼서류는 저녁 먹고요」 전체를 76단락의 원문과 연결하고, 장면별로 인물·공간·대사·행동을 검토했습니다. 원작과 웹툰 결과는 분리하며, 그림을 고치기 위해 소설 정본을 바꾸지 않았습니다.</p>
+    <p>화풍은 유럽 그래픽노블 기반의 성인 생활 풍자입니다. 실감 나는 중년·노년 인물, 굵은 윤곽선과 절제된 색, 위선이 드러나는 과장된 표정을 사용합니다. 장면의 칸 수는 자동으로 정해 7·8·10·9칸이 되었습니다.</p>
+    <div class="summary" id="summary"></div>
+  </section>
+  <section>
+    <h2>같은 인물, 같은 식탁</h2>
+    <p>다섯 인물의 얼굴·옷과 식당·부엌 참조를 먼저 만들었습니다. 두 번째 장면부터는 바로 앞 장면도 참조해 인물과 소품을 이어갔습니다.</p>
+    <div class="references" id="references"></div>
+  </section>
+  <section>
+    <h2>세 번의 수정, 이전 그림까지</h2>
+    <p>문구가 모두 읽히더라도 중복 표기나 원문과 어긋난 소품은 수정 사유가 됩니다. 아래는 실제로 기각된 세 시도와 통과한 최종본입니다. 전체 그림을 열어 비교할 수 있습니다.</p>
+    <div id="revisions"></div>
+    <p class="limit">장면 3의 정희가 손을 식탁 아래가 아닌 위에서 모은 부분은 advisory로 남았습니다. 모든 판정은 같은 Codex 호스트의 자기검토이며, 독립 독자 평가나 객관적 품질 점수가 아닙니다.</p>
+  </section>
+  <section id="cost">
+    <h2>확인된 호출과 기록의 한계</h2>
+    <table><tbody>
+      <tr><th>이미지 API</th><td>9건 = 참조 2건 + 장면 7건. 장면 7건 중 3건은 재생성입니다.</td></tr>
+      <tr><th>이미지 요청 모델</th><td>gpt-image-2.5-sunburst · OpenAI API. 응답이 보고한 실제 모델 식별자는 미기록입니다.</td></tr>
+      <tr><th>집필·각색·검토</th><td>Codex 세션. 세부 모델명은 실행 기록에 없으며, 검토의 컨텍스트 격리도 확인되지 않았습니다.</td></tr>
+      <tr><th>금액·토큰</th><td>기록 없음. 호출 수를 금액으로 환산하지 않았습니다.</td></tr>
+      <tr><th>시간</th><td>장면별 relayTimings에는 호스트의 중계·오케스트레이션 시간이 포함됩니다. 순수 모델 실행 시간과 작품 총 작업 시간은 미기록입니다.</td></tr>
+      <tr><th>vibelore</th><td>0.4.8 · 7ed081d. 각 시도의 실행 버전과 소스 트리 해시를 보존했습니다.</td></tr>
+    </tbody></table>
+  </section>
+  <section>
+    <h2>일곱 시도의 실제 자료</h2>
+    <p>각 기록에는 원문 단락 번호, 각색 계획, 렌더 지시, 사전 검사, 이미지 검사와 원본 PNG 해시가 있습니다. 기기 경로는 공개 자료에서 제외했습니다. 공개 이미지는 원본 픽셀을 보존한 lossless WebP입니다.</p>
+    <ul id="records"></ul>
+    <p><a href="data.json">리더 데이터</a> · <a href="lore.json">인물·설정 사전</a> · <a href="read.html?format=webtoon#ep1/s1">웹툰 읽기</a> · <a href="read.html?format=novel#ep1">소설 읽기</a></p>
+  </section>
+</main>
+<footer class="foot"><span>제작 도구 <a href="https://github.com/fbwndrud/vibelore">vibelore</a></span></footer>
+</div>
+<script src="../shared/chrome.js?v=2"></script>
+<script src="../shared/workpage.js?v=1"></script>
+<script src="notes.js?v=1"></script>
+</body>
+</html>

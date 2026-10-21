@@ -1,6 +1,6 @@
 # SharedLore 정의 등록부 — 구현 계약
 
-2026-10-07. 현재 구현의 지원 범위를 설명한다. 소설·세계 설정 원문·이미지 저장소를 합치는 전체 이행의 완료를 뜻하지 않는다.
+2026-10-17 갱신. 현재 구현의 지원 범위를 설명한다. 소설·세계 설정 원문·이미지 저장소를 합치는 전체 이행의 완료를 뜻하지 않는다.
 
 ## 현재 제공하는 것
 
@@ -27,7 +27,7 @@
 4. `register(expectedHead,reason,definitions)`로 지원되는 새 정의를 추가한다. 신규 대상 타입·단위·필드를 한 묶음에 넣어 함께 검증할 수 있다. 같은 ID의 동일 정의 재등록은 no-op이다.
 5. `resolve`에는 반환된 정확한 RegistryRevision과 입력을 고정한다. 원고·공유 사실 채택은 기존 승인 절차의 별도 작업이다.
 
-AI가 집필·대본 중 새 항목이 필요하면 `ensure(needs, reason, operationId)`로 위 1~4를 한 번에 수행한다. 같은 namespace의 key·별칭이 있으면 제안 ID를 버리고 기존 정의를 `reused`로 돌려준다. 새 정의는 검증 뒤 `registered`, 기존 ID의 의미·타입·owner 변경은 `.vibelore/shared-lore/registry/migrations/`에 후보로만 기록하는 `migration_required`, 미지원 capability는 `unsupported`다. 결과의 `registryRevisionId`를 세계 값 채택(`lore_universe propose`)에 고정한다. 정의 등록은 세계 사실 채택이 아니다. `operationId`는 발행 전 intent와 발행 후 결과를 `registry/operations/`에 남겨 handoff·resume·재시도(HEAD 이동 직후 중단 포함)가 첫 결과를 재생하게 하며, 같은 ID의 의미문 변경도 `migration_required`이고, 다른 요청에 재사용하면 `OPERATION_CONFLICT`다. 이미 발급된 lock·영수증은 바뀌지 않으므로 새 값을 쓰려면 세계 채택 → binding 재연결 → 같은 workflow 재검사 순서를 따른다.
+AI가 집필·대본 중 새 항목이 필요하면 `ensure(needs, reason, operationId)`로 위 1~4를 한 번에 수행한다. 같은 namespace에서 key·별칭으로 찾은 후보가 하나이고 의미문(NFC·공백 정리)과 구조가 같을 때만 기존 정의를 `reused`로 돌려준다. 다른 의미나 복수 후보는 `needs_disambiguation`과 후보 ID·판본·기존 의미를 반환하고 등록하지 않는다. 새 ID로 재사용할 때 실제 등록되지 않은 key·별칭은 `unregisteredNames`로 알린다. 같은 ID의 정의 변경은 별칭·표시문 변경을 포함해 `migration_required`다. 새 정의는 검증 뒤 `registered`, 기존 ID의 의미·타입·owner 변경은 `.vibelore/shared-lore/registry/migrations/`에 후보로만 기록하는 `migration_required`, 미지원 capability는 `unsupported`다. 결과의 `registryRevisionId`를 세계 값 채택(`lore_universe propose`)에 고정한다. 정의 등록은 세계 사실 채택이 아니다. `operationId`는 발행 전 intent와 발행 후 결과를 `registry/operations/`에 남겨 handoff·resume·재시도(HEAD 이동 직후 중단 포함)가 첫 결과를 재생하게 하며, 같은 ID의 의미문 변경도 `migration_required`이고, 다른 요청에 재사용하면 `OPERATION_CONFLICT`다. 이미 발급된 lock·영수증은 바뀌지 않으므로 새 값을 쓰려면 세계 채택 → binding 재연결 → 같은 workflow 재검사 순서를 따른다.
 
 `STALE_LORE_HEAD`이면 현재 HEAD를 다시 조회하고 정의 중복을 다시 검색한 후 재시도한다. 같은 key나 별칭을 다른 stable ID로 등록하면 `DEFINITION_CONFLICT`다. 기존 ID의 의미·타입·owner·별칭 변경은 `DEFINITION_MIGRATION_REQUIRED`이며 현재 도구가 이행을 실행하지 않는다. AI가 오류를 우회하려고 새 ID를 만들어 같은 의미의 기존 정의를 대체하지 않는다.
 
@@ -135,3 +135,13 @@ one 필드에서 같은 범위의 다른 값이 겹치면 conflict다. 같은 �
 관계 값은 `{entityId}` 참조이며 대상 타입과 존재를 검사한다. A→B→A 같은 데이터 관계는 저장할 수 있고 단일 조회가 자동으로 관계를 재귀 탐색하지 않는다. graph follow, projection, cross-field 계산, 역관계 추론, 단위 변환, 개인 경험 시간축, 분기 상속은 아직 지원하지 않는다.
 
 현재 add-only registry는 기존 정의 개정을 제공하지 않는다. [공유 원문·상태 채택과 작품 연결](SHARED_LORE_RUNTIME.md)을 별도 구현했다. LoreRevision, 명시적 binding, 장면 단위 검사, 집필 입력 lock/receipt 연결, 이미지 카탈로그와 원고 없는 대본 웹툰 경로를 제공한다. 기존 소설 엔진의 hard/soft 검사와 집필 승인 순서는 유지한다.
+
+## 동명과 의미 구분
+
+표시 label이 같아도 정의 ID와 key는 별개일 수 있다. `combat.rank`와 `nobility.rank`의 label을 모두 ‘등급’으로 둘 수 있으나 같은 namespace의 key/alias 유일성은 유지된다. `ensure`의 재사용은 문장 의미를 LLM으로 증명하는 기능이 아니다. 정규화한 의미문이 다르면 호스트가 기존 정의를 정확한 ID로 선택하거나 충돌 없는 새 key/alias를 제안한다. 기존 ID 선택도 의미 변경을 우회하지 않는다. namespace가 같은 추가 후보와 기존 후보를 함께 검사하며 검색 페이지의 첫 결과로 동일성을 판단하지 않는다.
+
+인물·사물 문맥의 이름/별칭 조회는 후보가 하나일 때만 해석하며 정확한 ID가 표기보다 우선한다. 모호한 문맥은 `AMBIGUOUS_ENTITY_REFERENCE`로 막고 후보 ID를 반환한다. 이름과 같은 다른 대상이 있어도 명시 ID는 그 ID의 대상을 가리킨다. 언급 스캔의 복수 활성 후보는 식별 확정이 아니다.
+
+새 원고 추출은 `ledgerIdentityVersion:2`를 delta에 기록한다(추출 문맥 hash v3). v2 `register`는 같은 이름이어도 별개 대상이며, 새 ID를 선택적으로 지정할 수 있다. 이미 있는 ID의 register는 `LEDGER_ID_CONFLICT`, 모호한 이름으로 event/alias를 적용하면 `LEDGER_AMBIGUOUS_REFERENCE` hard다. 기존 항목 변경에는 `event`와 안정적인 ID를 사용한다. 이 표지가 없는 과거 delta는 v1 이름 재사용 의미로 재생한다. 기존 항목을 자동 분리하거나 과거 delta·lock을 다시 쓰지 않는다. Map 기반 민감어·감정동사·의성의태어 seed의 중복 키는 `DUPLICATE_LEXICON_KEY`로 거부한다.
+
+사용자 지정 추적도 v2에서 명시 ID가 이름보다 우선한다. 새 등록은 이미 사용한 custom ID를 다시 배정하지 않는다. 규칙은 정확한 ID에 우선 연결하고, 늦게 추가한 이름 기반 규칙은 같은 feature에서 장부 대상과 사용자 항목이 각각 하나일 때만 연결한다. 다른 대상의 ID로 이미 소유된 규칙을 동명 대상에 적용하지 않는다. 아직 장부에 없는 custom ID를 지정한 이벤트는 그 ID의 대상을 생성하며 다른 동명 대상을 변경하지 않는다. 현재 문맥의 고정(pinned)·별칭 안내도 같은 유일성 판단을 쓴다. 과거 v1 규칙 재생은 기존 해석을 유지한다.

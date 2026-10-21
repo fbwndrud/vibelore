@@ -10,7 +10,7 @@ import { sceneSetup, scenePlan, scenePreflight } from './fixtures/webtoon-scene.
  */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, unlink, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, unlink, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -69,6 +69,27 @@ function session(messages, { timeoutMs = 20000, surface = 'advanced' } = {}) {
 const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0' } } };
 const call = (id, name, args) => ({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } });
 const payload = (msg) => JSON.parse(msg.result.content[0].text);
+
+it('public MCP persists review choices and dispatches range reading and stored status', async t => {
+  const store = await qualityStore();
+  t.after(() => rm(store.rootDir, { recursive: true, force: true }));
+  await store.saveArtifact({ workId: qualityWorkId, chapterNumber: 1, prose: '문을 열고 함께 놀았다.' });
+  const configured = await session([init, call(2, 'lore_configure', { project: store.rootDir, workId: qualityWorkId,
+    planningReviews: { episode: false }, arcReview: { everyEpisodes: 0, atEnd: true }, disabledReviews: ['arc-review'] })], { surface: 'default' });
+  assert.equal(configured.get(2).result.isError, undefined);
+  assert.equal(payload(configured.get(2)).reviewPolicy.planning.episode, false);
+  assert.equal(payload(configured.get(2)).reviewPolicy.arcReview.everyEpisodes, 0);
+  const missing = await session([init, call(2, 'lore_arc_review', { project: store.rootDir, workId: qualityWorkId, scope: 'range', action: 'status' })], { surface: 'default' });
+  assert.equal(payload(missing.get(2)).status, 'missing');
+  const requested = await session([init, call(2, 'lore_arc_review', { project: store.rootDir, workId: qualityWorkId,
+    scope: 'range', fromChapter: 1, throughChapter: 1, focus: '관계 변화' })], { surface: 'default' });
+  const result = payload(requested.get(2));
+  assert.equal(result.status, 'needs_model');
+  assert.equal(result.requests[0].step, 'range-review-read');
+  const input = JSON.parse(result.requests[0].user);
+  assert.equal(input.prose, '문을 열고 함께 놀았다.');
+  assert.equal(input.context.focus, '관계 변화');
+});
 const schemas = (await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }])).get(2).result.tools;
 const outputSchemas = new Map(schemas.filter(tool => tool.outputSchema).map(tool => [tool.name, tool.outputSchema]));
 const proofAnswer = request => {
@@ -216,7 +237,7 @@ describe('MCP surface', () => {
     const tools = out.get(2).result.tools;
     assert.deepEqual(
       tools.map((t) => t.name).sort(),
-      ['lore_arc_decide', 'lore_arc_plan', 'lore_arc_review', 'lore_arc_status', 'lore_assets', 'lore_bind', 'lore_configure', 'lore_create', 'lore_decide', 'lore_init', 'lore_profile', 'lore_profile_decide', 'lore_profile_status', 'lore_registry', 'lore_resume', 'lore_rollback', 'lore_scene_script', 'lore_snapshot_status', 'lore_status', 'lore_story_decide', 'lore_story_plan', 'lore_story_status', 'lore_style_anchor', 'lore_sync', 'lore_universe', 'lore_webtoon_scene', 'lore_workflow_history', 'lore_workflow_status', 'lore_write', 'lore_writer_decide', 'lore_writer_skill', 'lore_writer_status'],
+      ['lore_arc_decide', 'lore_arc_plan', 'lore_arc_review', 'lore_arc_status', 'lore_assets', 'lore_bind', 'lore_configure', 'lore_create', 'lore_decide', 'lore_init', 'lore_profile', 'lore_profile_decide', 'lore_profile_status', 'lore_registry', 'lore_resume', 'lore_rollback', 'lore_scene_script', 'lore_snapshot_status', 'lore_status', 'lore_story_decide', 'lore_story_plan', 'lore_story_status', 'lore_style_anchor', 'lore_sync', 'lore_universe', 'lore_webtoon_scene', 'lore_webtoon_style', 'lore_workflow_history', 'lore_workflow_status', 'lore_write', 'lore_writer_decide', 'lore_writer_skill', 'lore_writer_status'],
     );
     for (const t of tools) {
       assert.ok(t.description.length > 20, `${t.name} needs a real description`);
@@ -237,7 +258,7 @@ describe('MCP surface', () => {
   it('exposes only legacy panel tools additionally on the compatibility surface', async () => {
     const listed = await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }], { surface: 'compat' });
     const tools = listed.get(2).result.tools;
-    assert.equal(tools.length, 35);
+    assert.equal(tools.length, 36);
     for (const name of ['lore_webtoon_plan', 'lore_webtoon_render', 'lore_webtoon_decide']) {
       assert.ok(tools.some(tool => tool.name === name));
       const hidden = await session([init, call(2, name, { workId: 'hidden' })], { surface: 'public' });
@@ -323,7 +344,7 @@ describe('MCP surface', () => {
       [init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }],
       { surface: 'advanced' },
     );
-    assert.equal(listed.get(2).result.tools.length, 48);
+    assert.equal(listed.get(2).result.tools.length, 49);
     assert.ok(listed.get(2).result.tools.some((tool) => tool.name === 'lore_commit'));
 
     const hidden = await session(
@@ -343,7 +364,7 @@ describe('MCP surface', () => {
     assert.equal(payload(out.get(2)).status, 'missing');
   });
 
-  it('runs the scene-direct interview, auto panel count and exact model resume through public stdio', async () => {
+  it('adopts a style sample and runs the scene interview, auto panel count and exact resume through public stdio', async () => {
     const { store, args: sceneArgs } = await sceneSetup();
     const invoke = async (name, more = {}) => {
       const replies = await session([init, call(2, name, { project: store.rootDir, ...more })], { surface: 'public' });
@@ -352,6 +373,13 @@ describe('MCP surface', () => {
       if (outputSchemas.has(name)) validateToolInput(outputSchemas.get(name), result, 'result');
       return result;
     };
+    const sample = await invoke('lore_webtoon_style', { workId: webtoonWorkId, action: 'propose',
+      brief: '포근한 이야기처럼', direction: 'Warm illustrated comic.', imagePath: sceneArgs.references[0].path });
+    assert.equal(sample.status, 'awaiting_style_approval');
+    const adopted = await invoke('lore_webtoon_style', { workId: webtoonWorkId, action: 'approve',
+      proposalId: sample.proposalId, feedback: '이 그림체로 가자' });
+    const styleStatus = await invoke('lore_webtoon_style', { workId: webtoonWorkId, action: 'status' });
+    assert.equal(styleStatus.style.revisionId, adopted.style.revisionId);
     const asked = await invoke('lore_webtoon_scene', { ...sceneArgs, panelCount: undefined });
     assert.equal(asked.status, 'needs_interview'); assert.ok(asked.questions[0].options.includes('auto'));
     let result = await invoke('lore_webtoon_scene', { ...sceneArgs, panelCount: 'auto' });
@@ -360,14 +388,47 @@ describe('MCP surface', () => {
       const answers = {};
       for (const request of result.requests) {
         const data = JSON.parse(request.user);
-        answers[request.id] = JSON.stringify(request.step === 'webtoon-scene-plan' ? scenePlan(data.source, 5) : scenePreflight(data));
+        assert.ok(request.images.some(i => i.path === adopted.style.image.path));
+        const answer = request.step === 'webtoon-scene-plan' ? scenePlan(data.source, 5) : scenePreflight(data);
+        if (answer.renderBrief) answer.renderBrief.style = data.styleBasis.profile.style;
+        answers[request.id] = JSON.stringify(answer);
       }
       result = await invoke('lore_resume', { runId: result.runId, answers });
     }
     assert.equal(result.status, 'needs_scene_image'); assert.equal(result.panelCount, 5);
     assert.match(result.jobs[0].prompt, /EXACTLY 5 panels/);
+    assert.equal(result.style.revisionId, adopted.style.revisionId);
+    assert.ok(result.jobs[0].referenceImages.some(i => i.id === 'adopted-style'));
     const status = await invoke('lore_workflow_status', { workId: webtoonWorkId, lane: 'webtoon', workflowId: result.workflowId });
     assert.equal(status.productionMode, 'scene-direct-v1'); assert.equal(status.panelCountMode, 'auto'); assert.equal(status.panelCount, 5);
+  });
+
+  it('records delegated style choice and auto panels through public MCP without a user approval gate', async () => {
+    const { store, args } = await sceneSetup();
+    const invoke = async (name, more) => {
+      const replies = await session([init, call(2, name, { project: store.rootDir, workId: webtoonWorkId, ...more })], { surface: 'public' });
+      assert.equal(replies.get(2).result.isError, undefined, JSON.stringify(replies.get(2)));
+      return payload(replies.get(2));
+    };
+    const delegation = { scope: 'production', userAnswer: '알아서 해줘. 다시 그리지는 마.', maxAutoRevisions: 0 };
+    const sample = await invoke('lore_webtoon_style', { action: 'propose', brief: '원작에 어울리게', direction: 'Warm comic.', imagePath: args.references[0].path, delegation });
+    assert.equal(sample.status, 'needs_style_decision');
+    const style = await invoke('lore_webtoon_style', { action: 'approve', proposalId: sample.proposalId,
+      choice: { inspectedImage: true, imageHash: sample.image.hash, rationale: 'Fits the source mood.' } });
+    assert.equal(style.style.adoption.authority, 'delegated');
+    let result = await invoke('lore_webtoon_scene', { ...args, panelCount: undefined, delegation });
+    for (let pass = 0; result.status === 'needs_model' && pass < 3; pass++) {
+      const answers = Object.fromEntries(result.requests.map(q => {
+        const d = JSON.parse(q.user), answer = q.step === 'webtoon-scene-plan' ? scenePlan(d.source, 4) : scenePreflight(d);
+        if (answer.renderBrief) answer.renderBrief.style = d.styleBasis.profile.style;
+        return [q.id, JSON.stringify(answer)];
+      }));
+      result = await invoke('lore_resume', { runId: result.runId, answers });
+    }
+    assert.equal(result.status, 'needs_scene_image'); assert.equal(result.panelCountMode, 'auto');
+    assert.equal(result.autoRevision.limit, 0); assert.equal(result.delegation.userAnswer, delegation.userAnswer);
+    const stopped = await invoke('lore_webtoon_scene', { action: 'reject', workflowId: result.workflowId, feedback: '여기서 멈춰.' });
+    assert.equal(stopped.status, 'rejected');
   });
 
   it('runs the webtoon interview, exact model resume and approval through compatibility stdio', async () => {

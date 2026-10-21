@@ -185,3 +185,62 @@ ProductionSource는 두 종류다. `novel-chapters`는 기존 웹툰 원천(sour
 | 정의 개정 적용 | migration 후보 기록만. 적용 도구 없음 |
 
 검증한 경로는 독립 세계 채택, 두 작품의 같은 인물·서로 다른 상태(MCP lore_write 포함), 한 화의 TS 전후 장면별 상태 기록과 AI 검토 입력, 회상 분리, 원고 변경 뒤 대응표·영수증 재사용 차단, 미래 상태·author 원문 배제, 새 정의 등록과 재개 시 중복 없음, 자산 교체 뒤 이전 lock 바이트 유지, 대본 기반 웹툰 preflight·완료·검증, 세계 삭제 뒤 보존 입력 검증, CAS 충돌·drift·발행 중단 복구·rollback이다. 모두 임시 fixture와 테스트 모델 응답으로 확인했고 실제 모델 품질이나 처리량을 측정한 것은 아니다.
+
+
+## 상세 준비와 필요한 원문 선택
+
+[세계관 준비 흐름](WORLD_BUILDING_WORKFLOW.md)에 따라 준비 범위를 먼저 정한다. v2 장면의 선택 인자
+`worldDocumentIds`는 해당 장면의 공통 문서만 좁힌다. 생략하면 기존 전체 공통 문서 동작이다.
+명시한 선택에는 요청 값의 context-visible 원문 근거도 포함하며, 다른 시점의 state 근거는
+`SHARED_LORE_EVIDENCE_SCOPE`로 거부한다. 선택되지 않은 설정도 봉인된 전체 세계 판본에 보존된다.
+이 선택은 v1에 추가되지 않으며, 선택 없는 기존 v2 lock의 계산 결과는 그대로 유지한다.
+
+계획 입력도 해석된 전체 요청 값과 선택된 원문을 받는다. 전체 이야기와 문체 설계도 같은
+planningFoundation을 사용한다. 계획에서 필수 값이 미정·충돌·불완전하면 멈추고, 아직 시점이
+없는 미래 화만 명시적 missingChapters로 남긴다. 전체 이야기·아크·에피소드의 worldContext는
+판본·입력 lock·문서 ID를 기록한다. 단계 전체의 문맥 예산을 넘으면 원문을 자르지 않고 멈춘다.
+
+## 선택적 근거 원장 (2026-10-17)
+
+세계 `content`는 기존 여섯 배열 외에 선택적 `evidenceLedger` 하나를 받을 수 있다. 이 필드가 없는 과거 판본은 동일한 bytes/hash로 유지된다. 원장은 기존 세계 제안·승인·expectedHead·불변 판본에 포함된다. 별도 정본이나 승인 우회 경로를 만들지 않는다. 필수 값의 unknown/conflict/incomplete 검사도 그대로다.
+
+```json
+{
+  "schemaVersion": 1,
+  "evidence": [{
+    "id": "name-source", "basis": "text-explicit",
+    "documentId": "profile-a", "sourceHash": "<documents가 반환한 sourceHash>",
+    "span": {"from": 2, "to": 4}, "quote": "리아", "dependsOn": []
+  }],
+  "claims": [{
+    "id": "name-claim", "statement": "이름은 리아다.", "subjectId": "character-a",
+    "perspective": {"kind": "world"}, "canonStatus": "adopted", "valueId": "name-a",
+    "evidenceIds": ["name-source"], "contradictingEvidenceIds": [], "dependsOn": []
+  }],
+  "questions": [{
+    "id": "name-origin", "question": "누가 이름을 지었는가?", "status": "open",
+    "disposition": null, "evidenceIds": [], "contradictingEvidenceIds": [],
+    "resolutionEvidenceIds": [], "dependsOn": []
+  }]
+}
+```
+
+예시는 문서 원문이 `# 리아\n...`일 때다. sourceHash는 원문 문자열에 대한 기존 `hashLore(text)` 값이며 `lore_universe documents`에서 얻는다. span은 UTF-16 `[from,to)`이고 실제 quote와 정확히 일치해야 한다. sourceHash 불일치는 `LORE_EVIDENCE_SOURCE_MISMATCH`, 잘못된 span은 `LORE_EVIDENCE_SPAN_MISMATCH`다. 원문 수정 후 현재 근거를 새 hash/위치로 갱신해 제안하며 과거 근거·원문은 기존 판본에 보존된다.
+
+- basis: `author-decision|text-explicit|rule-derived|model-inferred|character-report`. `text-explicit`과 `character-report`는 정확한 span이 필요하다. 작가 결정·추론·도출은 `span:null,quote:null`로 문서 전체를 참조할 수 있다. rule-derived는 의존 근거가 하나 이상 필요하다.
+- 원장의 evidenceIds는 근거 레코드 ID다. 기존 **value.evidenceIds는 계속 documents ID**이며 바뀌지 않는다. value에 연결된 claim의 지지 근거 및 의존 근거 문서는 value의 문서 근거에도 포함되어야 한다.
+- claim의 canonStatus: `proposed|adopted|rejected|superseded`. `valueId:null`인 주장은 원고/값으로 자동 반영되지 않는다. non-null valueId는 같은 subject의 실제 값이어야 하며 adopted claim만 이를 뒷받침할 수 있다. 주장의 시점·필드 범위는 연결한 value에서 정한다. value 없는 제안은 세계 범위의 메모이며 장면에 주입하지 않는다.
+- perspective는 `{kind:"world"}` 또는 `{kind:"character",characterId}`다. 후자는 해당 인물로 범위를 고정한 owner=observer 값만 뒷받침할 수 있다. 세계 진실과 인물의 인식은 별개다.
+- adopted world claim은 작가 결정·직접 원문·자격 있는 도출 중 하나가 필요하다. 도출은 모든 의존 근거가 재귀적으로 자격을 충족해야 한다. 추론이나 인물의 발언만으로 세계 사실을 만들지 않는다. adopted claim은 미해결 반박을 갖거나 proposed claim/다른 관점에 의존할 수 없다. character 의존은 같은 characterId끼리만 허용하며 다른 인물의 사적 믿음 전파는 별도 근거로 표현한다.
+- 질문 status: `open|investigating|blocked|resolved`. resolved에만 disposition `verified|withdrawn|out-of-scope`를 쓴다. verified는 해결 근거가 지지에도 포함되고 자격 있는 근거를 가지며, 반박이 없고 의존 질문이 모두 resolved여야 한다. 철회·범위 밖 처리는 검증 완료와 다르다.
+- 근거/주장/질문의 ID 중복·없는 참조·순환 의존을 거부한다. 참조 오류는 `LORE_EVIDENCE_REFERENCE`, 순환은 `LORE_EVIDENCE_CYCLE`이다. 반박이 있는 adopted claim은 `LORE_CLAIM_CONTRADICTED`, 지지 자격 부족은 `LORE_CLAIM_UNSUPPORTED`/`LORE_QUESTION_UNSUPPORTED`다. 반박 해결은 새 불변 판본에서 현재 참조를 바꾸며 이전 이력은 남는다.
+
+`lore_universe(action="evidence",loreRevisionId,query?)`는 저자용 고정 조회다. query는 `{valueId}`, `{claimId}`, `{questionId}` 중 하나이며 생략하면 건수 요약이다. 선택한 주장·질문의 의존 관계와 지지/반박/해결 근거를 반환한다. 값에 원장 연결이 없으면 `unclassified`, 원장 없는 과거 세계는 `legacy_unclassified`와 기존 sourceDocumentIds를 반환한다. 없는 레코드는 `LORE_EVIDENCE_NOT_FOUND`다. 최신 HEAD나 미채택 후보를 섞지 않는다. 실제 원고 프롬프트에는 기존 장면 선택 규칙의 원문·값만 전달하며 원장의 proposed 주장·author 문서가 자동으로 추가되지 않는다.
+
+이 원장은 원문 인용의 존재·판본·참조·승격 자격을 검사한다. 인용이 주장 내용을 의미적으로 입증하는지는 자동 증명하지 않으며, basis 분류도 작가의 후보 검토 대상이다. 작가 결정은 아직 본문에 나오지 않아도 정본 근거일 수 있다. 독자 공개 여부는 이 원장에서 추론하지 않는다. 질문의 open/blocked 자체는 집필 차단 사유가 아니고 기존 필수 요구값 gate만 차단한다.
+
+### 화 커밋의 관측과 해석
+
+새 커밋은 기존 accepted 관측과 influenceEvents를 보존하고 `evidenceLedger:{schemaVersion:1,evidence,claims}`를 추가한다. chapter 원문 hash와 유일하게 일치하는 anchor만 정확한 span/quote로 기록한다. 반복·미발견 anchor는 span 없이 `model-inferred`와 `ambiguous_anchor`/`anchor_not_found` 한계를 기록한다. UTF-16 surrogate pair를 자르는 anchor는 `invalid_anchor_boundary`로 기록한다. 인물 해석·성격 가설·관계 인식은 proposed/model-inferred claim이며, world 근거 원장과 source 형식이 다르다. 이벤트의 editorial acceptance가 개별 해석의 정본 채택을 뜻하지 않는다.
+
+전체 관측을 established·revealed로 포장하거나 관계 인식에 confidence=1을 부여하지 않는다. 기존 CharacterDynamics는 동일한 influenceEvents를 그대로 fold한다. 과거 관측·projection·lock은 자동 이행하지 않는다. soft와 critic advisory의 권한, 실패한 critic의 guided 강등과 사용자 disabled 검토 처리는 그대로다.

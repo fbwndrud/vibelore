@@ -1,0 +1,695 @@
+{
+  "scene": 3,
+  "revision": 1,
+  "workflowId": "wt-55298cea-4220-4537-93ea-13e824ce3bfc",
+  "runtime": {
+    "packageVersion": "0.4.8",
+    "gitCommit": "7ed081dc096e2df19f4fa84167512a2ca6184877",
+    "sourceTreeHash": "sha256:1aa532772bb9696d26722f9a8af229ea94cbfec3c0391040e0a53372f13d313a",
+    "scope": "package.json+src+engine/src",
+    "capturedAt": "2026-10-03T21:18:14.740Z"
+  },
+  "sourceHash": "sha256:8ef6a7767cb8f5e2cb88b55789308f0717c3e2c7970ea08f8775f90b8450c3e8",
+  "sourceUnitIds": [
+    "ch-1-p-33",
+    "ch-1-p-34",
+    "ch-1-p-35",
+    "ch-1-p-36",
+    "ch-1-p-37",
+    "ch-1-p-38",
+    "ch-1-p-39",
+    "ch-1-p-40",
+    "ch-1-p-41",
+    "ch-1-p-42",
+    "ch-1-p-43",
+    "ch-1-p-44",
+    "ch-1-p-45",
+    "ch-1-p-46",
+    "ch-1-p-47",
+    "ch-1-p-48",
+    "ch-1-p-49",
+    "ch-1-p-50",
+    "ch-1-p-51",
+    "ch-1-p-52",
+    "ch-1-p-53",
+    "ch-1-p-54"
+  ],
+  "image": {
+    "sourcePngHash": "sha256:7dcdbca4b0423957fdc48ab83aa56f0a5b55b29a1e004c7c0826c914768ef931",
+    "publicImage": "https://fbwndrud.github.io/vibelore-showcase-media/family-revenge/img/ep01-s3-try1.webp"
+  },
+  "plan": {
+    "title": "귀걸이의 주인은 누구인가",
+    "panelCount": 10,
+    "intent": "A modest purchase record punctures the theft accusation. Bokja changes the excuse, Yura notices the company account, and Taeseop moves blame from receiving money to processing it.",
+    "facts": [
+      {
+        "id": "fact-1",
+        "sourceIds": [
+          "ch-1-p-33",
+          "ch-1-p-35"
+        ],
+        "statement": "The purchase record pictures the same small gold hoops Bokja is wearing and shows a price of one million two hundred thousand won, included in the alleged debt."
+      },
+      {
+        "id": "fact-2",
+        "sourceIds": [
+          "ch-1-p-36",
+          "ch-1-p-37",
+          "ch-1-p-39",
+          "ch-1-p-40",
+          "ch-1-p-42",
+          "ch-1-p-43"
+        ],
+        "statement": "Bokja requested this product and told Jeonghui to advance company funds after using her living allowance for a gathering. Jeonghui has preserved the message; Bokja now shifts the responsibility to the household manager."
+      },
+      {
+        "id": "fact-3",
+        "sourceIds": [
+          "ch-1-p-45",
+          "ch-1-p-47",
+          "ch-1-p-48"
+        ],
+        "statement": "Yura asks whether company funds paid for it. Taeseop softens his explanation for Yura, contradicting his accusation that Jeonghui took the money."
+      },
+      {
+        "id": "fact-4",
+        "sourceIds": [
+          "ch-1-p-50",
+          "ch-1-p-51",
+          "ch-1-p-52",
+          "ch-1-p-53",
+          "ch-1-p-54"
+        ],
+        "statement": "Jeonghui hopes the item can be removed and other requesters checked, but Taeseop folds the record and blames her for processing the payment. She unfolds the unchanged record."
+      }
+    ],
+    "beats": [
+      {
+        "id": "beat-1",
+        "sourceIds": [
+          "ch-1-p-33",
+          "ch-1-p-35"
+        ],
+        "action": "Jeonghui turns the purchase record so the earring photo and price match Bokja's visible gold hoop.",
+        "textIds": [
+          "text-1",
+          "text-2"
+        ]
+      },
+      {
+        "id": "beat-2",
+        "sourceIds": [
+          "ch-1-p-36",
+          "ch-1-p-37",
+          "ch-1-p-38",
+          "ch-1-p-39"
+        ],
+        "action": "Bokja first says Jeonghui bought the earrings, then denies requesting company payment as Jeonghui identifies the requester.",
+        "textIds": [
+          "text-3",
+          "text-4",
+          "text-5"
+        ]
+      },
+      {
+        "id": "beat-3",
+        "sourceIds": [
+          "ch-1-p-40",
+          "ch-1-p-41",
+          "ch-1-p-42",
+          "ch-1-p-43"
+        ],
+        "action": "The preserved phone message shows who requested the advance, and Bokja shifts responsibility to Jeonghui's household duties.",
+        "textIds": [
+          "text-6",
+          "text-7",
+          "text-8"
+        ]
+      },
+      {
+        "id": "beat-4",
+        "sourceIds": [
+          "ch-1-p-44",
+          "ch-1-p-45",
+          "ch-1-p-46",
+          "ch-1-p-47",
+          "ch-1-p-48"
+        ],
+        "action": "Yura raises the company-account question and Taeseop changes his explanation, while Jeonghui recalls his theft accusation.",
+        "textIds": [
+          "text-9",
+          "text-10",
+          "text-11"
+        ]
+      },
+      {
+        "id": "beat-5",
+        "sourceIds": [
+          "ch-1-p-49",
+          "ch-1-p-50",
+          "ch-1-p-51"
+        ],
+        "action": "Jeonghui hopes the record will clear the item and asks to check the other requesters.",
+        "textIds": [
+          "text-12"
+        ]
+      },
+      {
+        "id": "beat-6",
+        "sourceIds": [
+          "ch-1-p-52",
+          "ch-1-p-53",
+          "ch-1-p-54"
+        ],
+        "action": "Taeseop folds the receipt and blames payment processing; Jeonghui unfolds the same unchanged evidence.",
+        "textIds": [
+          "text-13",
+          "text-14"
+        ]
+      }
+    ],
+    "texts": [
+      {
+        "id": "text-1",
+        "sourceId": "ch-1-p-33",
+        "kind": "physical",
+        "speaker": "c1",
+        "text": "백이십만 원"
+      },
+      {
+        "id": "text-2",
+        "sourceId": "ch-1-p-35",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "이 팔천만 원에 들어가 있어요."
+      },
+      {
+        "id": "text-3",
+        "sourceId": "ch-1-p-36",
+        "kind": "dialogue",
+        "speaker": "c3",
+        "text": "네가 사다 줬잖아."
+      },
+      {
+        "id": "text-4",
+        "sourceId": "ch-1-p-37",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "어머니가 골라서 보내주신 제품이에요."
+      },
+      {
+        "id": "text-5",
+        "sourceId": "ch-1-p-39",
+        "kind": "dialogue",
+        "speaker": "c3",
+        "text": "내가 사달라고 했지, 회사 돈으로 하라고 했니?"
+      },
+      {
+        "id": "text-6",
+        "sourceId": "ch-1-p-40",
+        "kind": "caption",
+        "speaker": "narrator",
+        "text": "이번 달 생활비는 모임 때문에 썼으니 회사에서 먼저 내고 알아서 맞춰두라는 말이었다."
+      },
+      {
+        "id": "text-7",
+        "sourceId": "ch-1-p-42",
+        "kind": "dialogue",
+        "speaker": "c3",
+        "text": "그런 건 네가 알아서 했어야지. 살림하는 사람이."
+      },
+      {
+        "id": "text-8",
+        "sourceId": "ch-1-p-43",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "그래서 기록에 남겼어요. 어머니가 요청하셨다고."
+      },
+      {
+        "id": "text-9",
+        "sourceId": "ch-1-p-45",
+        "kind": "dialogue",
+        "speaker": "c5",
+        "text": "회사 계좌에서 나간 건가요?"
+      },
+      {
+        "id": "text-10",
+        "sourceId": "ch-1-p-47",
+        "kind": "dialogue",
+        "speaker": "c2",
+        "text": "작은 가족 회사라 구분이 좀 늦어진 거예요. 정리하면 돼요."
+      },
+      {
+        "id": "text-11",
+        "sourceId": "ch-1-p-48",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "제가 가져간 돈이라면서요."
+      },
+      {
+        "id": "text-12",
+        "sourceId": "ch-1-p-51",
+        "kind": "dialogue",
+        "speaker": "c1",
+        "text": "그 항목은 빼고 다시 보죠. 다른 것도 요청한 분을 확인하면 돼요."
+      },
+      {
+        "id": "text-13",
+        "sourceId": "ch-1-p-53",
+        "kind": "dialogue",
+        "speaker": "c2",
+        "text": "그게 문제가 아니잖아. 회사 돈으로 나가게 처리한 사람이 누구냐고."
+      },
+      {
+        "id": "text-14",
+        "sourceId": "ch-1-p-54",
+        "kind": "caption",
+        "speaker": "narrator",
+        "text": "그런데 태섭의 말만 바뀌어 있었다."
+      }
+    ],
+    "staging": "Continue the same dinner and reference identities. Bokja's small gold hoop is worn on her ear and matched to the product photograph on the purchase record. The only readable physical price is the selected original phrase, shown once in its close view; later documents use abstract lines. Phone message content is narrated verbatim, with a product thumbnail and abstract chat shapes on the screen. The two original documents and pen remain on the table. Jeonghui stays standing in her sage blouse and cream apron, Yura in cream beside suited Taeseop, Bokja in burgundy and silent Mansik in beige. Show the changing excuses through credible widened eyes and tightening smiles; Jeonghui remains serious. The final receipt remains intact and merely unfolded.",
+    "uncertainties": [
+      "The source summarizes the message rather than quoting a full chat transcript; its wording belongs in a narration box, not an invented chat quote.",
+      "The exact receipt layout and date are unspecified; use an earring thumbnail and abstract lines."
+    ]
+  },
+  "brief": {
+    "style": "European graphic-novel adult satire, bold ink contours, flat muted cream, charcoal and brick-red colors, believable middle-aged faces, expressive reactions, printed-paper texture.",
+    "moments": [
+      {
+        "sourceIds": [
+          "ch-1-p-33",
+          "ch-1-p-35"
+        ],
+        "action": "Jeonghui presents the receipt close to Bokja's ear: matching small gold hoops in its product photograph and the single readable price on the paper.",
+        "textIds": [
+          "text-1",
+          "text-2"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-36",
+          "ch-1-p-37"
+        ],
+        "action": "Bokja confronts Jeonghui across the dinner table while Jeonghui holds the purchase record calmly.",
+        "textIds": [
+          "text-3",
+          "text-4"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-38",
+          "ch-1-p-39"
+        ],
+        "action": "Bokja's startled face fills the view, chopsticks set down and gold hoop visible beside her tightening jaw.",
+        "textIds": [
+          "text-5"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-40",
+          "ch-1-p-41"
+        ],
+        "action": "Jeonghui holds her phone toward Bokja, its screen showing the hoop product thumbnail and abstract chat shapes; Bokja's hand hovers nearby.",
+        "textIds": [
+          "text-6"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-42",
+          "ch-1-p-43"
+        ],
+        "action": "Bokja frowns at Jeonghui's phone while Jeonghui meets her gaze, the request preserved on the screen.",
+        "textIds": [
+          "text-7",
+          "text-8"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-44",
+          "ch-1-p-45"
+        ],
+        "action": "Yura raises her eyes from her soup bowl toward Taeseop, troubled by the company-account question.",
+        "textIds": [
+          "text-9"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-46",
+          "ch-1-p-47"
+        ],
+        "action": "Taeseop directs an ingratiating smile toward Yura in her cream suit beside him.",
+        "textIds": [
+          "text-10"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-48",
+          "ch-1-p-49",
+          "ch-1-p-50",
+          "ch-1-p-51"
+        ],
+        "action": "Jeonghui faces Taeseop, hands clasped beneath the table edge and a fragile expectation of fairness on her face.",
+        "textIds": [
+          "text-11",
+          "text-12"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-52",
+          "ch-1-p-53"
+        ],
+        "action": "Taeseop holds the folded receipt above the table, his expression hardening toward Jeonghui.",
+        "textIds": [
+          "text-13"
+        ]
+      },
+      {
+        "sourceIds": [
+          "ch-1-p-54"
+        ],
+        "action": "Jeonghui studies the receipt she has unfolded again, the earring photograph and abstract lines still intact.",
+        "textIds": [
+          "text-14"
+        ]
+      }
+    ]
+  },
+  "preflight": {
+    "subjectHash": "sha256:2c32497bb13ccb0d36e7df485e1ee9d4c9c6ccdfccd2beddf2e9574053e1ac64",
+    "coveredBeatIds": [
+      "beat-1",
+      "beat-2",
+      "beat-3",
+      "beat-4",
+      "beat-5",
+      "beat-6"
+    ],
+    "checks": [
+      {
+        "name": "sourceFidelity",
+        "passed": true,
+        "evidence": "All six beats follow p33-54: earring and price, competing purchase excuses, preserved company-advance request, Yura's question, Jeonghui's hope of clearing an item, and Taeseop shifting blame to processing. Physical price and all thirteen other texts are source-exact; no invented full chat transcript."
+      },
+      {
+        "name": "spatialFeasibility",
+        "passed": true,
+        "evidence": "One dining room and existing five adults suffice. The receipt close view brings the printed hoops beside Bokja's ear; the phone and receipt are held successively. Yura remains seated beside Taeseop. Two initial papers and pen remain on the table."
+      },
+      {
+        "name": "temporalCausality",
+        "passed": true,
+        "evidence": "The receipt unfolded at the preceding ending is first turned to show the purchase. Denial precedes phone evidence; account question precedes softened explanation and renewed blame. Folding precedes the final unfolding, without destroying the evidence."
+      },
+      {
+        "name": "visualLoad",
+        "passed": true,
+        "evidence": "Ten panels carry fourteen texts. The long phone-summary caption has its own phone-focused panel. Two short exchange panels have two speakers; the penultimate single reply gets a larger face-and-hand framing. No more than two text elements share a moment."
+      }
+    ],
+    "findings": [],
+    "renderBrief": {
+      "style": "European graphic-novel adult satire, bold ink contours, flat muted cream, charcoal and brick-red colors, believable middle-aged faces, expressive reactions, printed-paper texture.",
+      "moments": [
+        {
+          "sourceIds": [
+            "ch-1-p-33",
+            "ch-1-p-35"
+          ],
+          "action": "Jeonghui presents the receipt close to Bokja's ear: matching small gold hoops in its product photograph and the single readable price on the paper.",
+          "textIds": [
+            "text-1",
+            "text-2"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-36",
+            "ch-1-p-37"
+          ],
+          "action": "Bokja confronts Jeonghui across the dinner table while Jeonghui holds the purchase record calmly.",
+          "textIds": [
+            "text-3",
+            "text-4"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-38",
+            "ch-1-p-39"
+          ],
+          "action": "Bokja's startled face fills the view, chopsticks set down and gold hoop visible beside her tightening jaw.",
+          "textIds": [
+            "text-5"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-40",
+            "ch-1-p-41"
+          ],
+          "action": "Jeonghui holds her phone toward Bokja, its screen showing the hoop product thumbnail and abstract chat shapes; Bokja's hand hovers nearby.",
+          "textIds": [
+            "text-6"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-42",
+            "ch-1-p-43"
+          ],
+          "action": "Bokja frowns at Jeonghui's phone while Jeonghui meets her gaze, the request preserved on the screen.",
+          "textIds": [
+            "text-7",
+            "text-8"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-44",
+            "ch-1-p-45"
+          ],
+          "action": "Yura raises her eyes from her soup bowl toward Taeseop, troubled by the company-account question.",
+          "textIds": [
+            "text-9"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-46",
+            "ch-1-p-47"
+          ],
+          "action": "Taeseop directs an ingratiating smile toward Yura in her cream suit beside him.",
+          "textIds": [
+            "text-10"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-48",
+            "ch-1-p-49",
+            "ch-1-p-50",
+            "ch-1-p-51"
+          ],
+          "action": "Jeonghui faces Taeseop, hands clasped beneath the table edge and a fragile expectation of fairness on her face.",
+          "textIds": [
+            "text-11",
+            "text-12"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-52",
+            "ch-1-p-53"
+          ],
+          "action": "Taeseop holds the folded receipt above the table, his expression hardening toward Jeonghui.",
+          "textIds": [
+            "text-13"
+          ]
+        },
+        {
+          "sourceIds": [
+            "ch-1-p-54"
+          ],
+          "action": "Jeonghui studies the receipt she has unfolded again, the earring photograph and abstract lines still intact.",
+          "textIds": [
+            "text-14"
+          ]
+        }
+      ]
+    },
+    "drawability": {
+      "passed": true,
+      "evidence": "Ten separate instants avoid simultaneous folding and unfolding. Product thumbnail, ear hoop and phone are feasible close views. Each excuse has a distinct speaker and the phone narration has dedicated room."
+    },
+    "passed": true,
+    "reviewedAt": "2026-10-03T21:19:08.985Z",
+    "renderBriefHash": "sha256:a8554b9306edf573102522a95f8ffb63c7c8c0a806136f9a9e44723946d51e34"
+  },
+  "visualReview": {
+    "subjectHash": "sha256:17776919584fd37d38ada4ad5031dae72753d7d98a650da606a642c9a3db4179",
+    "inspectedImages": true,
+    "observedPanelCount": 10,
+    "continuity": {
+      "inspectedPreviousImage": true,
+      "identity": {
+        "passed": true,
+        "evidence": "Compared actual preceding page: sage blouse and apron, black low bun and mole on Jeonghui; Bokja short waved hair, burgundy and gold hoops; Yura loose brown hair and cream jacket; Taeseop charcoal suit and angular brows remain recognizable."
+      },
+      "setting": {
+        "passed": true,
+        "evidence": "Both actual pages retain beige kitchen cabinets, wooden dinner table, soup pot and side dishes. New phone and close receipt are story-supported props; the other documents stay on the table."
+      },
+      "actionTransition": {
+        "passed": true,
+        "evidence": "The unfolded record held up at the previous end is turned toward Bokja to reveal the earring picture here. The first clear product close-up resolves the faint marks of the preceding view; no new event replaces the purchase record."
+      }
+    },
+    "coveredBeatIds": [
+      "beat-1",
+      "beat-2",
+      "beat-3",
+      "beat-4",
+      "beat-5",
+      "beat-6"
+    ],
+    "textObservations": [
+      {
+        "id": "text-1",
+        "observedText": "백이십만 원",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Readable on receipt in both panel 1 and panel 10; duplicate occurrence."
+      },
+      {
+        "id": "text-2",
+        "observedText": "이 팔천만 원에 들어가 있어요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 1 tail points to Jeonghui holding receipt beside Bokja."
+      },
+      {
+        "id": "text-3",
+        "observedText": "네가 사다 줬잖아.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 2 left balloon tail points to Bokja."
+      },
+      {
+        "id": "text-4",
+        "observedText": "어머니가 골라서 보내주신 제품이에요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 2 right balloon tail points to Jeonghui."
+      },
+      {
+        "id": "text-5",
+        "observedText": "내가 사달라고 했지, 회사 돈으로 하라고 했니?",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 3 tail points to Bokja."
+      },
+      {
+        "id": "text-6",
+        "observedText": "이번 달 생활비는 모임 때문에 썼으니 회사에서 먼저 내고 알아서 맞춰두라는 말이었다.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 4 cream narration above phone with abstract chat blocks."
+      },
+      {
+        "id": "text-7",
+        "observedText": "그런 건 네가 알아서 했어야지. 살림하는 사람이.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 5 left tail points to Bokja."
+      },
+      {
+        "id": "text-8",
+        "observedText": "그래서 기록에 남겼어요. 어머니가 요청하셨다고.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 5 right tail points to Jeonghui."
+      },
+      {
+        "id": "text-9",
+        "observedText": "회사 계좌에서 나간 건가요?",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 6 tail points to Yura in cream jacket."
+      },
+      {
+        "id": "text-10",
+        "observedText": "작은 가족 회사라 구분이 좀 늦어진 거예요. 정리하면 돼요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 7 tail points to Taeseop."
+      },
+      {
+        "id": "text-11",
+        "observedText": "제가 가져간 돈이라면서요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 8 first balloon points to Jeonghui."
+      },
+      {
+        "id": "text-12",
+        "observedText": "그 항목은 빼고 다시 보죠. 다른 것도 요청한 분을 확인하면 돼요.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 8 second balloon points to Jeonghui."
+      },
+      {
+        "id": "text-13",
+        "observedText": "그게 문제가 아니잖아. 회사 돈으로 나가게 처리한 사람이 누구냐고.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 9 tail points to Taeseop holding receipt."
+      },
+      {
+        "id": "text-14",
+        "observedText": "그런데 태섭의 말만 바뀌어 있었다.",
+        "readable": true,
+        "speakerCorrect": true,
+        "evidence": "Panel 10 cream rectangular narration."
+      }
+    ],
+    "spatialCoherence": true,
+    "readingOrder": true,
+    "evidence": "Viewed actual ten-panel raster. Hoops on Bokja and the receipt match, phone has an earring thumbnail and abstract chat blocks, the account question and changing excuses follow correctly, and receipt remains intact. All fourteen selected texts are legible and speaker tails are correct. However the price is legibly repeated in the final panel, contrary to the single-occurrence lettering brief. Jeonghui clasps her hands above rather than beneath the table in panel 8, and Taeseop looks stern rather than clearly ingratiating in panel 7.",
+    "findings": [
+      {
+        "severity": "blocking",
+        "evidence": "Physical text-1, 백이십만 원, appears on the receipt in both panel 1 and panel 10. The brief requires each selected text once; reserve its readable price for the opening close-up and show the blank reverse at the ending."
+      },
+      {
+        "severity": "advisory",
+        "evidence": "Panel 7 Taeseop is stern rather than clearly smiling toward Yura; his softened excuse reads in the dialogue, but a courteous smile would sharpen the contrast."
+      },
+      {
+        "severity": "advisory",
+        "evidence": "Panel 8 Jeonghui clasps her hands above the table rather than below it; the hurt and expectation remain visible."
+      }
+    ],
+    "passed": false
+  },
+  "reviewMethod": "Same-host review; context isolation unverified",
+  "artifactHashes": {
+    "scene-plan.json": "sha256:24365c6043da7600f8a7141069a7a76c8cbc0d87f26be7c2b0d5ccb9c678e604",
+    "preflight.json": "sha256:277c992b221a58dc55911a369863f2f107b45d8e24702e1723de6e0b7b20182d",
+    "render-brief.json": "sha256:528bb9355c65044adfe832a602514e6cc5f22ba49cc70e82f8bc7d72c07a4af2",
+    "scene-image.prompt.txt": "sha256:9c58abeff5f4fb996dbc438a2ba62445730f9cd31bb6605939ae54f8ec1aa725",
+    "scene.png": "sha256:7dcdbca4b0423957fdc48ab83aa56f0a5b55b29a1e004c7c0826c914768ef931",
+    "image-review.json": "sha256:4b470636376ec73ba7828bacbf7cb37b62de0faf351167aaa7ca348219363222",
+    "scene.html": "sha256:6d3e1741f65f7304f30ee7ee7470d3929e49ad2263a87ac3be04b7fd43f8c912"
+  }
+}

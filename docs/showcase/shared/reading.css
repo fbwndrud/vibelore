@@ -1,0 +1,64 @@
+/* A quiet reading surface; the existing comparison and production modes stay available. */
+body.reader-page[data-reader-mode=novel]{--paper:#f6f4ee;--card:#f6f4ee;--ink:#28342d;--line:#dddcd3;--line2:#e6e4dc;--muted:#788075;--sub:#69716b;--gold:#52715a;--moss:#52715a;--chip:#dddcd3;background:var(--paper);color:var(--ink)}
+body.reader-page[data-reader-mode=novel] .snav{background:var(--paper);border-color:var(--line);color:var(--ink)}
+body.reader-page[data-reader-mode=novel] .snav a{color:var(--ink)}
+body.reader-page[data-reader-mode=novel] .snav a.on{background:#e5e9df;color:var(--ink)}
+body.reader-page[data-reader-mode=novel] .topbar{background:var(--paper);border-color:var(--line);color:var(--ink);height:auto;min-height:64px;padding:12px 32px}
+body.reader-page[data-reader-mode=novel] .topbar .brand,body.reader-page[data-reader-mode=novel] .eptab{color:var(--ink)}
+body.reader-page[data-reader-mode=novel] .eptab.active{background:#e5e9df;color:var(--ink);border-color:#d3dacd}
+body.reader-page[data-reader-mode=novel] .eptabs:has(select)>.eptab{display:none}
+body.reader-page[data-reader-mode=novel] .eptabs:not(:has(select))>.eptab{display:flex}
+body.reader-page[data-reader-mode=novel] select{color:var(--ink);background:var(--paper);border-color:var(--line);max-width:100%}
+body.reader-page[data-reader-mode=novel] .seg{background:transparent;border-color:var(--line)}
+body.reader-page[data-reader-mode=novel] .seg button{color:var(--sub)}
+body.reader-page[data-reader-mode=novel] .seg button.active{background:var(--ink);color:var(--paper)}
+body.reader-page[data-reader-mode=novel] .metatog{border-color:var(--line);color:var(--sub)}
+body.reader-page[data-reader-mode=novel] .ephead{max-width:720px;margin:0 auto;padding:48px 24px 25px;border:0;display:block;text-align:center}
+body.reader-page[data-reader-mode=novel] .ephead .lead{gap:16px}
+body.reader-page[data-reader-mode=novel] .ephead h1{font-size:32px;line-height:1.5;color:var(--ink);letter-spacing:-.045em;font-weight:500}
+body.reader-page[data-reader-mode=novel] .ephead p{color:var(--sub);font-size:12px}
+body.reader-page[data-reader-mode=novel] .ephead .kicker{color:var(--muted);font-size:10px;letter-spacing:.2em}
+body.reader-page[data-reader-mode=novel] .reader.mode-novel{display:block;max-width:720px;margin:0 auto;padding:16px 24px 64px}
+body.reader-page[data-reader-mode=novel] .reader .rail{display:none}
+body.reader-page[data-reader-mode=novel] .prose-col{padding:0;gap:24px}
+body.reader-page[data-reader-mode=novel] .prose-tools{color:var(--muted);font-size:10px;letter-spacing:0;padding:0 0 14px;border-bottom:1px solid var(--line)}
+body.reader-page[data-reader-mode=novel] .prose{padding:0;background:transparent;border:0;border-radius:0;overflow:visible}
+body.reader-page[data-reader-mode=novel] .pgroup{border:0;padding:0;margin:0}
+body.reader-page[data-reader-mode=novel] .pgroup p{color:var(--ink);line-height:2.05;margin-bottom:1.5em}
+body.reader-page[data-reader-mode=novel]:not(.meta-on) .pdiv{display:none}
+body.reader-page[data-reader-mode=novel] .chnav{margin-top:48px;padding-top:24px;border-top:1px solid var(--line)}
+body.reader-page[data-reader-mode=novel] .chnav a{color:var(--ink)}
+body.reader-page[data-reader-mode=novel] footer.site{color:var(--sub);background:var(--paper);border-color:var(--line);padding-bottom:40px}
+body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .reader.mode-webtoon{display:block;max-width:680px;margin:0 auto;padding:28px 40px 60px}
+body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .reader .rail,body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .scene-head{display:none}
+body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .toon-col{gap:0}
+body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .scene{gap:0}
+body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .scene img{border-radius:0;border:0;box-shadow:none}
+body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .ephead{max-width:680px;margin:auto;padding:40px;text-align:center;display:block;border:0}
+body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .ephead h1{font-size:30px;line-height:1.5}
+body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .ephead .lead{gap:14px}
+@media(max-width:960px){
+ body.reader-page[data-reader-mode=novel] .topbar{padding:12px 16px}
+ body.reader-page[data-reader-mode=novel] .topbar .brand{font-size:14px}
+ body.reader-page[data-reader-mode=novel] .ephead{padding:32px 24px 18px}
+ body.reader-page[data-reader-mode=novel] .ephead h1{font-size:24px}
+ body.reader-page[data-reader-mode=novel] .reader.mode-novel{padding:16px 24px 50px}
+ body.reader-page[data-reader-mode=novel] .pgroup p{font-size:var(--prose-size);line-height:2.1}
+ body.reader-page[data-reader-mode=novel] .sheet{display:none}
+ body.reader-page[data-reader-mode=novel] .topbar .seg{display:flex;gap:0;padding:0;border:0}
+ body.reader-page[data-reader-mode=novel] .topbar .seg button{padding:0 8px;height:30px;font-size:11px}
+ body.reader-page[data-reader-mode=novel] .topbar .seg button[data-mode=both]{display:none}
+ body.reader-page[data-reader-mode=novel] .eptabs{max-width:100%;overflow:hidden}
+ body.reader-page[data-reader-mode=novel] .eptabs select{min-width:0;width:100%;font-size:11px;padding:6px}
+ body.reader-page[data-reader-mode=novel] .snav-links a:not(.on){display:none}
+ body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .reader.mode-webtoon{padding:0 0 140px}
+ body.reader-page[data-reader-mode=webtoon]:not(.meta-on) .ephead{padding:28px 20px}
+}
+body.reader-page:not(.meta-on) .snav-links a:not(.on){display:none}
+body.reader-page[data-reader-mode=novel] .snav-home{color:var(--ink)!important}
+@media(max-width:960px){
+ body.reader-page .snav-home{display:block;font-family:var(--sans);font-size:12px}
+ body.reader-page[data-reader-mode=novel] .topbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px}
+ body.reader-page[data-reader-mode=novel] .topbar .seg{flex-shrink:0}
+ body.reader-page[data-reader-mode=novel] .topbar .seg button{white-space:nowrap;padding:0 6px}
+}

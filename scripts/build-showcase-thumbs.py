@@ -16,6 +16,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent / 'docs' / 'showcase'
+LOCAL_MEDIA = ROOT.parents[2] / 'vibelore-showcase-media'
 MEDIA = 'https://fbwndrud.github.io/vibelore-showcase-media/'  # scripts/split-showcase-media.py와 같음
 WIDE = 600
 SQ = 128
@@ -40,6 +41,8 @@ def main():
             print(w['id'], '· thumb/thumbSq 경로 없음, 건너뜀')
             continue
         local = ROOT / w['cover']
+        if not local.exists() and (LOCAL_MEDIA / w['cover']).is_file():
+            local = LOCAL_MEDIA / w['cover']
         src = Image.open(local if local.exists() else io.BytesIO(urllib.request.urlopen(MEDIA + w['cover']).read())).convert('RGB')
         wide = src.resize((WIDE, round(src.height * WIDE / src.width)), Image.LANCZOS)
         side = min(src.width, src.height)

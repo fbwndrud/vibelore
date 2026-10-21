@@ -1,6 +1,9 @@
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
+import { planningFoundation } from '../core/lore-runtime.js';
+import { reviewPlanningStage } from '../core/planning-stage-review.js';
+import { planningReviewSelection } from '../core/review-policy.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const DIMS = ['causalNecessity', 'protagonistError', 'expectationReframe', 'characterAgency', 'finalChoiceCost', 'endingTransformation'];
@@ -45,7 +48,7 @@ async function judge({ foundation, spine, providers, kit }) {
 }
 
 export async function runStorySpine({ store, workId, mode = 'review', direction = '', feedback = '', providers, retryValidation = false }) {
-  const foundation = await store.loadFoundation(workId);
+  const { foundation, planning } = await planningFoundation({ store, workId });
   const profile = await store.loadStoryProfile(workId);
   if (!foundation) throw new Error('세계와 인물을 먼저 생성하세요.');
   if (!profile || profile.status !== 'active') throw new Error('승인된 StoryProfile이 필요합니다.');
@@ -59,12 +62,28 @@ export async function runStorySpine({ store, workId, mode = 'review', direction 
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'story-spine' };
   const obj = parse(response.text);
   if (!obj) throw new Error('StorySpine 응답을 해석할 수 없습니다.');
-  const spine = normalize(obj, workId, mode);
+  const build = value => {
+    const spine = normalize(value, workId, mode);
+    const violations = deterministicStorySpineViolations(spine);
+    if (violations.length) throw new Error(`StorySpine 구조 검증 실패: ${violations.map(v => v.message).join(' ')}`);
+    return spine;
+  };
+  const selection = await planningReviewSelection(store, workId, 'story', profile);
+  const reviewed = await reviewPlanningStage({ stage: 'story', profile, candidate: build(obj), selection,
+    context: { foundation, profile, direction, feedback }, providers, kit, rebuild: build });
+  if (reviewed.preview || !reviewed.ok) return reviewed;
+  const spine = reviewed.candidate;
+  if (reviewed.stageReview) spine.stageReview = reviewed.stageReview;
+  if (planning) spine.worldContext = planning;
   const structural = deterministicStorySpineViolations(spine);
   if (structural.length) throw new Error(`StorySpine 구조 검증 실패: ${structural.map((v) => v.message).join(' ')}`);
-  const quality = await judge({ foundation, spine, providers, kit });
+  const quality = selection.enabled ? await judge({ foundation, spine, providers, kit }) : { verdict: 'disabled_by_user' };
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'story-spine-quality' };
-  if (quality.verdict !== 'passed') throw new Error(`StorySpine 품질 검증 실패: ${quality.findings.map((f) => f.message).join(' ') || quality.weakDimensions.join(', ')}`);
+  if (selection.enabled && quality.verdict !== 'passed') {
+    if (reviewed.stageReview) return { status: 'needs_revision', code: 'STORY_QUALITY_REVISION_REQUIRED', needsRevision: true,
+      candidate: { ...spine, status: 'pending', quality }, details: quality, instruction: '후보와 품질 검토 근거를 보여 주고 lore_story_plan feedback으로 같은 단계의 수정·재검토를 이어가세요.' };
+    throw new Error(`StorySpine 품질 검증 실패: ${quality.findings.map((f) => f.message).join(' ') || quality.weakDimensions.join(', ')}`);
+  }
   spine.quality = quality;
   spine.createdAt = new Date().toISOString();
   const approval = await gateApprovalActivation({ store, workId, kind: 'story', stateKey: 'spine', value: spine, providers, resolution: workLanguage, structuralErrors: deterministicStorySpineViolations(spine), retryValidation });
@@ -95,5 +114,5 @@ export async function runStorySpineStatus({ store, workId }) {
 export function renderStorySpine(spine, kitSource) {
   if (!spine || spine.status !== 'active') return '';
   const t = asKit(kitSource).phrases.spine;
-  return [t.heading, t.dramaticQuestion(spine.dramaticQuestion), t.wantNeed(spine.protagonistWant, spine.protagonistNeed), t.falseBelief(spine.falseBelief), t.initialStrategy(spine.initialStrategy), t.causalChain(spine.causalChain.join(' → ')), t.midpointReframe(spine.midpointReframe), t.finalChoice(spine.finalChoice, spine.endingCost), t.endingChange(spine.endingChange)].join('\n');
+  return [t.heading, t.dramaticQuestion(spine.dramaticQuestion), t.wantNeed(spine.protagonistWant, spine.protagonistNeed), t.falseBelief(spine.falseBelief), t.initialStrategy(spine.initialStrategy), t.causalChain((spine.causalChain ?? []).join(' → ')), t.midpointReframe(spine.midpointReframe), t.finalChoice(spine.finalChoice, spine.endingCost), t.endingChange(spine.endingChange)].join('\n');
 }

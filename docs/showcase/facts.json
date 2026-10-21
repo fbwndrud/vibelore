@@ -1,4 +1,147 @@
 {
+ "family-revenge": {
+  "vibelore": {
+   "v": {
+    "ko": "0.4.8",
+    "en": "0.4.8"
+   },
+   "note": {
+    "ko": "소설·웹툰 실행 기록 0.4.8 (7ed081d), sourceTreeHash 보존",
+    "en": "소설·웹툰 실행 기록 0.4.8 (7ed081d), sourceTreeHash 보존"
+   }
+  },
+  "novel": {
+   "v": {
+    "ko": "Codex 세션 · 세부 모델 미기록",
+    "en": "Codex 세션 · 세부 모델 미기록"
+   },
+   "note": null
+  },
+  "adapt": {
+   "v": {
+    "ko": "Codex 세션 · 세부 모델 미기록",
+    "en": "Codex 세션 · 세부 모델 미기록"
+   },
+   "note": null
+  },
+  "image": {
+   "v": {
+    "ko": "OpenAI API · gpt-image-2.5-sunburst (요청 모델)",
+    "en": "OpenAI API · gpt-image-2.5-sunburst (요청 모델)"
+   },
+   "note": null
+  },
+  "review": {
+   "v": {
+    "ko": "Codex 세션 · 세부 모델 미기록",
+    "en": "Codex 세션 · 세부 모델 미기록"
+   },
+   "note": {
+    "ko": "검토 방식은 제작 기록 참고",
+    "en": "See production records for the review method"
+   }
+  },
+  "size": {
+   "v": {
+    "ko": "소설 10화 · 웹툰 1화 · 4장면 · 34칸",
+    "en": "Novel 10 episodes · webtoon 1 episodes · 4 scenes · 34 panels"
+   },
+   "note": null
+  },
+  "cost": {
+   "v": {
+    "ko": "기록 없음",
+    "en": "Not recorded"
+   },
+   "note": null
+  },
+  "time": {
+   "v": {
+    "ko": "기록 없음",
+    "en": "Not recorded"
+   },
+   "note": null
+  }
+ },
+ "plant-runaway": {
+  "vibelore": {
+   "v": {
+    "ko": "0.4.8",
+    "en": "0.4.8"
+   },
+   "note": {
+    "ko": "vibelore 0.4.8 · 실행 코드 7ed081d · 2026-10-02 공개",
+    "en": "vibelore 0.4.8 · 실행 코드 7ed081d · 2026-10-02 공개"
+   }
+  },
+  "novel": {
+   "v": {
+    "ko": "Antigravity CLI · gemini-3.8-flash-medium",
+    "en": "Antigravity CLI · gemini-3.8-flash-medium"
+   },
+   "note": null
+  },
+  "adapt": {
+   "v": {
+    "ko": "Codex",
+    "en": "Codex"
+   },
+   "note": {
+    "ko": "호스트 모델명·추론 강도 미기록",
+    "en": "Host model and reasoning effort not recorded"
+   }
+  },
+  "image": {
+   "v": {
+    "ko": "OpenAI 이미지 API · gpt-image-2.5-sunburst",
+    "en": "OpenAI image API · gpt-image-2.5-sunburst"
+   },
+   "note": {
+    "ko": "API 요청 모델 · 응답 모델명 미기록 · 기준 이미지는 내장 도구와 API",
+    "en": "Requested API model · response model not recorded · references use the built-in tool and API"
+   }
+  },
+  "review": {
+   "v": {
+    "ko": "Codex (호스트 모델명 미기록)",
+    "en": "Codex (호스트 모델명 미기록)"
+   },
+   "note": {
+    "ko": "제작을 조율한 호스트의 자기검토 · 독립 평가 아님",
+    "en": "Self-review by the orchestrating host · not independent"
+   }
+  },
+  "size": {
+   "v": {
+    "ko": "소설 3화 · 20,005자",
+    "en": "Novel 3 episodes · 20,005 chars"
+   },
+   "note": {
+    "ko": "웹툰 3화 · 10장면 · 80칸",
+    "en": "Webtoon 3 episodes · 10 scenes · 80 panels"
+   }
+  },
+  "cost": {
+   "v": {
+    "ko": "기록 없음",
+    "en": "Not recorded"
+   },
+   "note": {
+    "ko": "장면 이미지 14회 · 기준 이미지 3회 · 실제 결제 금액 미기록",
+    "en": "14 scene image calls · 3 reference calls · actual billed cost not recorded"
+   }
+  },
+  "time": {
+   "v": {
+    "ko": "장면 이미지 API 547.7초",
+    "en": "Scene image API 547.7 s"
+   },
+   "note": {
+    "ko": "재생성 포함 14회 합계 · 기준 이미지와 전체 집필·각색 시간 제외",
+    "en": "14 calls including regeneration · excludes reference generation and total writing/adaptation time"
+   }
+  }
+ },
  "vesper": {
   "vibelore": {
    "v": {

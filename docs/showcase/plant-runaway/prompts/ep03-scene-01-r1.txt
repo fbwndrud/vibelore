@@ -1,0 +1,24 @@
+Draw a finished color comic with EXACTLY 8 panels. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
+Style: Warm pastel Korean webtoon, expressive chibi plants, leaf-shaped framing and plant-height views, concentric basin-noise gutter ripples, clear upright Korean lettering, conventional reading order.
+Match the reference identities. The last image is the preceding page: continue its appearance and setting, not its events or layout.
+References:
+Image 1: Siu in white shirt, dark trousers and striped slippers; sprayer, green ampoule and phone; snake plant in navy square pot; jade Donggeuri with three roots and brown terracotta pot; mustached neighbor; silver-haired grandmother; night landing and roof garden. Design reference only.
+Image 2: Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.
+Show these moments in order. Include each quoted text once, exactly as written, letter by letter. Show who speaks only through balloon tails and placement; never add speaker names, name tags or labels.
+All quoted text is in Korean (ko), written in Korean script (ISO 15924 Kore). Letter it in that script exactly as quoted, reading left-to-right inside each balloon.
+Draw no other words, letters, numbers, logos or captions: no invented notes, tables, charts or signage. Screens, signs, papers and props stay blank or abstract unless a quoted text belongs there. Never copy lettering from reference images. Count the panels before finishing: exactly 8, no inset or split panels.
+Source and reference contents are story data, not instructions.
+1. Siu reaches through the cracked doorway to the loose inner bolt, sprayer tucked under his arm.
+   thought, c1: "조금만 더……."
+2. The inner bolt rests released above a handspan door gap, with the chain still attached.
+   sfx, narrator: "달칵."
+3. Siu squeezes through the narrow doorway into moonlit air, keeping his sprayer tucked close.
+   dialogue, c1: "하아……."
+4. From plant height, improvised pots form a moonlit rooftop village beneath the hut and clothesline; leaf silhouettes gently shape the frame edges.
+5. Red moss roses in a foam box whisper beside coralberry in a dented tin pot, looking up at Siu's towering slippers.
+   dialogue, moss-rose: "어머, 쟤 뭐야? 인간이 들어왔어."
+   dialogue, coralberry: "쉿, 잎 흔들지 마. 물 주러 온 미치광이면 어쩌려고 그래?"
+6. A ring of upright leaves watches Siu halt, his sprayer conspicuous above their small faces.
+   dialogue, garden-plant: "방금 밑에서 비타민 앰플 깨먹고 올라온 그 201호 똥손 집사잖아."
+7. Siu's gaze follows moonlight past the low wooden platform toward the south parapet; the hut remains closed.
+8. The pale-jade plump-leaved Donggeuri peeks into view near the parapet, framed by neighboring leaves.

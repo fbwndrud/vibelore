@@ -5,7 +5,7 @@
 A call reference for users who integrate directly with a host AI. Regular users don't need to write arguments
 themselves; follow [Getting started](GETTING_STARTED.en.md) and [Making a webtoon](WEBTOON.en.md) and just ask.
 
-This is the usage contract for the 32 user tools the default server exposes and the 13 low-level tools on the advanced surface.
+This is the usage contract for the 33 user tools the default server exposes and the 13 low-level tools on the advanced surface.
 A new work prepares an approved profile, whole story, writer skill and arc. After that, writing
 checks the active arc with `lore_arc_status` and starts with `lore_write`, using `lore_decide` when approval is pending.
 The low-level tools are kept for compatibility and engine debugging but don't appear in the default `tools/list`.
@@ -17,7 +17,7 @@ The tools that exist only on the advanced surface are `lore_context`, `lore_chec
 writing does not combine these tools directly.
 
 For existing panel-based webtoon workflows, `VIBELORE_MCP_SURFACE=compat` adds the three deprecated
-tools (35 total). New webtoons use the default `lore_webtoon_scene` tool.
+tools (36 total). New webtoons use the default `lore_webtoon_scene` tool.
 
 ## How to read this
 
@@ -53,17 +53,28 @@ It only adds supported definitions; changing an existing ID's meaning, type or o
 `resolve` requires an exact `revisionId`, `input` and `query`, returning distinct `resolved`, `unknown`,
 `conflict` and `incomplete` statuses. Registering definitions does not adopt settings into current writing or webtoon workflows.
 `ensure(needs,reason,operationId,expectedHead?)` handles a field the AI discovers mid-writing as search → reuse → validate →
-non-destructive add in one call. `outcomes` are `reused|registered|migration_required|unsupported|invalid`; retrying or
+non-destructive add in one call. `outcomes` are `reused|registered|needs_disambiguation|migration_required|unsupported|invalid`; retrying or
 resuming with the same `operationId` replays the first result (`OPERATION_CONFLICT` for a different request). Meaning/type/owner
 changes are only recorded as migration candidates, and unsupported capabilities (`status.unsupportedCapabilities`) are never registered.
+Reuse requires one name candidate with matching normalized meaning and structure. Different meanings or multiple candidates return `needs_disambiguation`; `unregisteredNames` reports proposed names that were not added.
 See the [SharedLore registry contract (Korean)](reference/SHARED_LORE_REGISTRY.md) for shapes, host procedure and limits.
 
 ### `lore_universe`
+
+`documents(loreRevisionId,documentIds?)` returns a pinned document catalog with ownership and story scope.
+Each document includes `sourceHash` (the existing `hashLore(text)` of its exact source string). Passing IDs also returns their exact text for the host to select stage-specific evidence.
 
 Required: `action,worldRoot,universeId`. `propose(expectedHead,registryRevisionId,content,reason)` validates a complete
 world candidate with documents, entities, states and typed values. Review the candidate, then use
 `decide(proposalId,expectedHead,decision=approve|reject)` for the user's decision. `resolve(loreRevisionId,query)` reads
 an exact sealed revision; `status` reports HEAD/source drift and `recover` resumes approved document materialization.
+
+Optional `content.evidenceLedger` preserves evidence basis, exact source hash/quote spans, perspective-specific claims and residual questions.
+`evidence(loreRevisionId,query?)` selects one `{valueId}`, `{claimId}` or `{questionId}`; omitting query returns counts.
+Legacy worlds return `legacy_unclassified`. Inference, character reports and proposed claims never automatically become world facts.
+See the [evidence ledger contract (Korean)](reference/SHARED_LORE_RUNTIME.md#선택적-근거-원장-2026-10-17) for the exact schema and qualification rules.
+New chapter deltas use `ledgerIdentityVersion:2`: register creates a distinct target, and ambiguous updates are blocked. Historical unmarked deltas retain v1 replay.
+Ambiguous character references invalidate extraction with `diagnostics.code:ambiguous_character_reference` and `references:[{ref,candidateIds}]`. A relationship with an ambiguous endpoint is discarded rather than converted into an unscoped legacy update; use exact character IDs when retrying.
 
 ### `lore_bind`
 
@@ -173,8 +184,13 @@ shows the StorySpine, ArcIntent, the next EpisodeIntent and the current quality 
 It does not change old stored data. With the optional arguments it stores the writer-support settings only.
 
 - `disabledReviews`: the full list of per-chapter reviews to turn off (`story-profile-check`, `coherence-judge`,
-  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`). A review that is off is not
+  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`). A review that is off is not
   requested, is recorded as `disabled_by_user` and does not block auto commits.
+- `planningReviews`: `{story?, arc?, episode?}`. false skips both semantic and quality model reviews for
+  that stage; true enables them. Only supplied fields are patched. Structure, references, canon and language
+  checks remain. Explicit true also opts a legacy work into semantic stage review.
+- `arcReview`: `{everyEpisodes?, atEnd?}`. Defaults to every five episodes and at arc end. everyEpisodes
+  is an integer from 0 to 20; 0 skips intermediate review. atEnd controls the closing review. Supplied fields are patched.
 - `disabledDraftSections`: the full list of optional draft sections to leave out (`older-memory`,
   `previous-tail`, `author-craft`, `style-anchor`).
 - `tracking`: turns tracking features on/off (`objects`, `knowledge`, `scheduled`, `hooks`). All on
@@ -194,7 +210,7 @@ Unknown names are rejected.
 
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `disabledReviews`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
+| `workId` | `project`, `disabledReviews`, `planningReviews`, `arcReview`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
 
 ### `lore_style_anchor`
 
@@ -214,6 +230,11 @@ and is not treated as a new obligation for the whole work. The existing style re
 Detects `world/`, `characters/` and `chapters/` Markdown edited by people after the Published HEAD.
 `inspect` classifies the changes; the last chapter is republished only when `apply` is called with the `approvalId`
 that `validate` issued after checking it. Changes to earlier chapters and design are not applied automatically without an impact analysis.
+File byte changes, including whitespace, word boundaries and paragraph breaks, count as drift. Older fingerprints use their stored raw byte hashes.
+Edits to `world/story-spine.md` or `world/writer-skill.md` are classified as `plan_review_required`;
+`validate`/`apply` block with `PLAN_DOCUMENT_SYNC_UNSUPPORTED`. Preserve the edited text separately, restore the document
+to its last approved version, then pass the changes as `feedback` to `lore_story_plan` or `lore_writer_skill` for review and approval.
+Before creating a legacy work's first fingerprint, plan documents must exactly match their runtime plan copies; unparsed documents are not accepted automatically.
 
 | Required | Optional |
 |---|---|
@@ -229,6 +250,21 @@ the `lore_profile → lore_create` path comes first.
 | `workId`, `genre` | `project`, `povMode`, `targetChapters`, `worldFacts[]`, `language` |
 
 ### `lore_profile`
+
+First record how much to ask and prepare together across the whole work as
+`discovery={depth:quick|standard|deep,focus?,userAnswer}` with the actual answer in brief/feedback.
+An unset review exposes only discovery-depth and cannot be approved yet. action=preferences updates only an active
+profile's collaboration preference, preserving its content and active status.
+See [Story preparation and stage review](reference/STORY_PREPARATION_WORKFLOW.md).
+
+World extent is separate from collaboration depth and reading difficulty. Record it as
+`worldbuilding={scope:starter|story|universe,focus?,userAnswer}`, with the actual answer in brief/feedback.
+Ask about world extent only when it changes design; settled choices survive later rounds.
+See [World preparation and stage context](reference/WORLD_BUILDING_WORKFLOW.md).
+
+Pass `worldbuildingSource={worldRoot,universeId,loreRevisionId,documentIds}` to read adopted public world
+documents during the first interview. Later rounds and lore_create inherit that selection. Source drift,
+visibility and context budget checks apply. action=preferences cannot change the source selection.
 
 Compiles the natural-language brief gathered in the story discovery interview into a StoryProfile. For a new work request,
 the repo skill `story-discovery-interview` runs the conversation, and this tool normalizes the answers into the per-work
@@ -253,7 +289,7 @@ at least once. When the user approves the profile, the current values are fixed 
 
 | Required | Optional |
 |---|---|
-| `workId`, `brief` | `project`, `mode: review\|auto`, `feedback`, `language`, `length` |
+| `workId`, `brief` | `project`, `action: design\|preferences`, `mode: review\|auto`, `feedback`, `discovery`, `worldbuilding`, `worldbuildingSource`, `language`, `length` |
 
 ```json
 {
@@ -282,12 +318,19 @@ Reads the active and pending StoryProfile.
 
 ### `lore_create`
 
+`worldbuildingSource={worldRoot,universeId,loreRevisionId,documentIds}` pins an adopted detailed world and
+its opening documents. A story/universe scope requires this preparation before creation. Then connect it
+with lore_bind before whole-story planning; opening facts never replace the complete adopted world.
+Omit the source during creation to inherit the profile's selection. Generated prose with a language failure
+can receive one bounded translation, semantic comparison and new-hash validation. Successful recovery returns
+the actual before/after patches and evidence in languageRepair.
+
 Builds the world, cast and tracked entities from the approved profile and brief. It doesn't write canon before the model pre-flight
 finishes.
 
 | Required | Optional |
 |---|---|
-| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `language`, `length` |
+| `workId`, `title`, `brief` | `project`, `genre`, `povMode`, `targetChapters`, `chapterWordCount`, `worldbuildingSource`, `language`, `length` |
 
 ### `lore_story_plan`
 
@@ -400,17 +443,31 @@ Reads the current arc, its approval state and the next chapter beat. It is the c
 
 ### `lore_arc_review`
 
-Re-reads an already written arc at 5-chapter checkpoints or up to its closing chapter. It updates the semantic
-PatternLedger of all chapters and evaluates reward spacing, repetition of choices, evidence, emotion and endings, and commercial drive at the
+`scope="arc"` (default) checks the current arc at five-episode checkpoints or its end, using summaries and
+recent prose rather than reading the entire manuscript. When enabled by the user it updates the semantic
+PatternLedger of the chapters and evaluates reward spacing, repetition of choices, evidence, emotion and endings, and commercial drive at the
 arc level. The review of a finished last arc is passed to the next `lore_arc_plan` as advisory evidence,
 but is not promoted into a rule that forces particular scenes or expressions.
 Relationship causality is checked separately only when the sample has an explicit relationship change or an event that badly damaged safety, status or trust.
 This result is not mixed into the average score; it is shown as advisory with evidence and confidence,
 and is never a reason for automatic rewriting or blocking a commit.
 
+`scope="range"` reads **all canon prose** from fromChapter (default 1) through throughChapter (default last
+canon chapter) in parts, validates actual quotations, and compares reading notes with the current approved
+whole-story design and relevant arcs. Long ranges use hierarchical synthesis of reading notes. `focus` selects
+particular concerns. Sealed chapter world inputs are used when available; the design basis is explicitly current
+approved plans. Canon HEAD, chapter prose hashes, exact coverage, notes, quotes and synthesis are stored in
+`.vibelore/range-reviews/`. Use `action="status"` to retrieve a review (latest when reviewId is omitted).
+Reviews whose canon or approved design changed are marked freshness=stale. Responses contain conclusions,
+citations, coverage and the full report path rather than all intermediate notes.
+Findings are advisory and manuscripts are unchanged. Explicit manual reviews work even when automatic
+arc-review is disabled. Range review never regenerates PatternLedger. Select a contiguous 1–1000 chapters,
+at most 2000 prose parts. Excessive context returns an error requesting a narrower range/design instead of
+silent truncation. Each reading part and synthesis group needs a model response.
+
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `throughChapter` |
+| `workId` | `project`, `scope: arc\|range`, `action: review\|status`, `reviewId`, `fromChapter`, `throughChapter`, `focus` |
 
 When model work is needed it returns `status=needs_model`, and you continue with `lore_resume`.
 
@@ -545,12 +602,29 @@ answers are not exposed. For webtoons, choose the detail with `lane="webtoon"` a
 A separate workflow that uses an existing source. Continue based on the actual question, image job and approval IDs in the responses;
 for the detailed flow see [WEBTOON_WORKFLOW.en.md](reference/WEBTOON_WORKFLOW.en.md).
 
+### `lore_webtoon_style`
+
+Preserves the flow from user words to one sample, user adoption and reuse in future scenes, separately from novel canon and the scene current pointer.
+Accepts `action=status|propose|import|approve|reject|set_mode`. `propose` takes the original `brief` and the host's short English `direction`.
+It preserves a supplied `imagePath` or issues `needs_style_image.jobs` for the host's user-selected built-in/API path.
+`import` takes `proposalId` and `asset:{path,inputHash,provenance}` and waits at `awaiting_style_approval` for the user to view the actual sample.
+`approve` takes `proposalId` and the user's answer in `feedback`, adopting an immutable image-and-summary revision which new scenes pin automatically.
+`applyToWorkflows` records revision intent; redraw explicitly with `lore_webtoon_scene revise(styleRevisionId,feedback)`.
+Use `status` with optional `styleRevisionId` for adopted history or `proposalId` for candidates and pending jobs. Concurrent adoptions, changed files and stale receipts are checked.
+Style differences are advisory and do not regenerate automatically. See [Style contract](reference/WEBTOON_WORKFLOW.en.md#style-samples-and-adoption).
+
+`delegation` records the current user's words, `scope=preview|style|production`, and cost, retry and existing-scene limits.
+At `needs_style_decision` the host adopts the actual sample with `choice:{inspectedImage,imageHash,rationale}`.
+`set_mode` changes the grant or revokes it with `delegation=null` and the latest answer, preserving the candidate.
+Production delegation defaults omitted panels to `auto` and respects the latest constraints. Scene `reject` records cancellation,
+closes pending work and keeps files. See [Delegation edge cases](reference/WEBTOON_WORKFLOW.en.md#delegation-and-edge-cases).
+
 ### `lore_webtoon_scene`
 
 The default path for new webtoon work. It generates a whole scene together with its dialogue, without roughs. For a new scene the user must choose `panelCount` as an integer (1-12) or `"auto"`; if it is missing, `needs_interview` suggests `[4, 6, 8, 9, "auto"]`. With `auto` the AI picks a suitable number of 3-12 panels anew for each adaptation, and the check, image and review after that are fixed to that number. Integers under 3 are allowed, but a continuity-loss warning is put in the response `warnings`. For a work with no image choice, start first returns `needs_image_runtime`. Once the host reports the image paths it really has (built-in tools, APIs) as `imageRuntime`, `needs_image_choice` returns every option and a proposal (the built-in path first); put the user's own answer in `feedback` and confirm with `confirmImageChoice`. The choice is kept per work and changes only through `changeImageChoice`. With `previousWorkflowId` it inherits the previous scene's actual image and review results and checks the continuity of characters, background and action. If the actual panel count differs from the choice, it doesn't complete. A new scene sends an image request only after the pre-generation check has settled a short `renderBrief` and a `drawability` judgment. The drawing model is not sent review reports or duplicate direction text. If the pre-generation check or the image review fails, it redesigns automatically `autoRevisions` times (start only, 0-3, default 2), using the observed defects as feedback, and issues a new image request. Failed attempts remain in the response `attempts`; with 0 it stops at `scene_needs_revision` as before.
 This separate path goes: pin the source range → unified English direction → pre-generation check → scene image → visual review of the actual image.
-It takes `action=start|revise|retry|verify`, `workflowId`, `revision`, `sourceChapters` or `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
-`previousWorkflowId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback` and `asset`.
+It takes `action=start|revise|retry|verify|reject`, `workflowId`, `revision`, `sourceChapters` or `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
+`previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback` and `asset`.
 Without an image choice, start returns `needs_image_runtime`, then `needs_image_choice`; `needs_model` uses `lore_resume` and lookups use `lane=webtoon`.
 `needs_scene_image` appears only after the pre-generation check passes, and only then is the image drawn on the chosen path (`hostRequest` or `apiRequest`).
 Imports whose source, reference or plan hash changed, and visual reviews that didn't open the image, are refused.
@@ -558,6 +632,9 @@ Starting with `scriptId` uses only the script adopted through `lore_scene_script
 images as `{id,assetId,description}`. A newly started scene writes a record of the source revision, lock, references and image hash to
 `.vibelore/productions/` on completion, and `action=verify` re-checks that record and the sealed bytes without the world directory.
 References given only as paths are reported as `unpreserved`; no reproducibility is claimed for them.
+A catalog reference that applies to none of the selected source scenes is rejected with `SCENE_ASSET_STATE_MISMATCH`.
+References retain their `entityId`, `stateIds` and applicable `sceneIds`; image requests name the applicable moments when multiple states are depicted.
+Resume uses the verified source. Completed-production verification checks the recorded excerpt and catalog reference identities/scopes against the preserved lock, even when the original world directory is gone.
 For the detailed contract, see [Default path](reference/WEBTOON_WORKFLOW.en.md#default-path-whole-scene-production).
 
 ### `lore_webtoon_plan` (deprecated)
@@ -742,7 +819,7 @@ is kept in `.vibelore/rollback-archives/`.
 | New free-genre work | `profile → create → story_plan → writer_skill → arc_plan` |
 | Write the next chapter | `lore_write` |
 | Approve a finished manuscript | `lore_decide` |
-| Adapt an existing novel into a webtoon | `lore_webtoon_scene` (the per-panel path `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide` is deprecated) |
+| Adapt an existing novel into a webtoon | `lore_webtoon_style → lore_webtoon_scene` (the per-panel path `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide` is deprecated) |
 | Webtoon progress and review history | `lore_workflow_status/history(lane="webtoon")` |
 | A stopped model task | `lore_resume` |
 | Check current progress | `lore_workflow_status` |

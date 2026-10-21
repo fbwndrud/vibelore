@@ -150,15 +150,66 @@ IMAGE_HOST = {'verdict-live': 'Codex · OpenAI API', 'thundertrail': 'OpenAI API
 ORDER = ['vibelore', 'novel', 'adapt', 'image', 'review', 'size', 'cost', 'time']
 
 
+def generic(w, d):
+    """New works do not need a bespoke cost parser to appear in the showcase."""
+    f = {key: row(NONE) for key in ORDER}
+    f['vibelore'] = row(t(w['version']['label']), t(w['version']['detail']))
+    eps = d.get('episodes', [])
+    chapters = d.get('chapters', [])
+    for key, field in [('novel', 'novelModel'), ('adapt', 'model')]:
+        models = uniq(e[field] for e in eps if e.get(field))
+        if key == 'novel' and not models and d.get('novelModel'):
+            models = [d['novelModel']]
+        if models:
+            f[key] = row(t(' / '.join(models)))
+    if d.get('imageModel'):
+        f['image'] = row(t(' · '.join(filter(None, [d.get('imageHost'), d['imageModel']]))))
+    if d.get('reviewer', {}).get('model'):
+        f['review'] = row(t(d['reviewer']['model']), t('검토 방식은 제작 기록 참고', 'See production records for the review method'))
+    novel = len(chapters) if chapters else len(eps)
+    scenes = sum(len(e.get('scenes', [])) for e in eps)
+    panels = sum(e.get('panelTotal', 0) for e in eps)
+    f['size'] = row(t(f'소설 {novel}화 · 웹툰 {len(eps)}화 · {scenes}장면' + (f' · {panels}칸' if panels else ''),
+                      f'Novel {novel} episodes · webtoon {len(eps)} episodes · {scenes} scenes' + (f' · {panels} panels' if panels else '')))
+    # Different recording formats must not be silently treated as measured totals.
+    return f
+
+
+def plant_runaway(w, d):
+    f = common(w, d)
+    f['adapt'] = row(t('Codex'), t('호스트 모델명·추론 강도 미기록', 'Host model and reasoning effort not recorded'))
+    f['size'] = row(t(f"소설 {len(d['chapters'])}화 · {num(sum(c['chars'] for c in d['chapters']))}자",
+                      f"Novel {len(d['chapters'])} episodes · {num(sum(c['chars'] for c in d['chapters']))} chars"),
+                    f.pop('_webtoon'))
+    episodes = len(d['episodes'])
+    scenes = sum(e['sceneCount'] for e in d['episodes'])
+    panels = sum(e['panelTotal'] for e in d['episodes'])
+    calls = d['provenance']['imageCalls']
+    references = 1 + d['provenance'].get('additionalReference', {}).get('apiCalls', 0)
+    f['size']['note'] = t(f'웹툰 {episodes}화 · {scenes}장면 · {panels}칸',
+                          f'Webtoon {episodes} episodes · {scenes} scenes · {panels} panels')
+    f['image']['note'] = t('API 요청 모델 · 응답 모델명 미기록 · 기준 이미지는 내장 도구와 API',
+                           'Requested API model · response model not recorded · references use the built-in tool and API')
+    f['cost'] = row(NONE, t(f'장면 이미지 {calls}회 · 기준 이미지 {references}회 · 실제 결제 금액 미기록',
+                            f'{calls} scene image calls · {references} reference calls · actual billed cost not recorded'))
+    f['time'] = row(t(f"장면 이미지 API {d['provenance']['imageSeconds']}초",
+                      f"Scene image API {d['provenance']['imageSeconds']} s"),
+                    t(f'재생성 포함 {calls}회 합계 · 기준 이미지와 전체 집필·각색 시간 제외',
+                      f'{calls} calls including regeneration · excludes reference generation and total writing/adaptation time'))
+    return f
+
+
+BUILD['plant-runaway'] = plant_runaway
+
 def main():
     cat = json.loads((ROOT / 'works.json').read_text())
     out = {}
     for w in cat['works']:
-        if w['id'] not in BUILD:
+        if 'multi' in w['formats']:
             continue
         d = json.loads((ROOT / w['id'] / 'data.json').read_text())
         w['_imageHost'] = IMAGE_HOST.get(w['id'])
-        f = BUILD[w['id']](w, d)
+        f = BUILD.get(w['id'], generic)(w, d)
         w.pop('_imageHost')
         out[w['id']] = {k: f[k] for k in ORDER}
         print(w['id'], '·', ' | '.join(f"{k}: {f[k]['v']['ko']}" for k in ORDER))

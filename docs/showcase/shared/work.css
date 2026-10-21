@@ -257,3 +257,5 @@ body.reader-page:not(.meta-on) .ephead .chips,
 body.reader-page:not(.meta-on) .eptab small{display:none}
 body.reader-page:not(.meta-on) .rail a.pass,body.reader-page:not(.meta-on) .rail a.revise{border-color:var(--chip)}
 @media (max-width:960px){.topbar .metatog{display:none}.sheet .mtools .metatog{flex:1;height:30px;font-size:12px;color:var(--ink)}}
+
+.archive-notice{padding:14px 24px;margin:0;background:#fff2c6;color:#312706;border-bottom:1px solid #d5be77;font-size:14px}.archive-notice a{text-decoration:underline;margin-left:12px}

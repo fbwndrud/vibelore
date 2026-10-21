@@ -9,7 +9,7 @@
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20%7C%2026-brightgreen)](../GETTING_STARTED.en.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](../../LICENSE)
 [![Hosts](https://img.shields.io/badge/hosts-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Grok-black)](../../HOSTS.en.md)
-[![Showcase](https://img.shields.io/badge/showcase-4%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
+[![Showcase](https://img.shields.io/badge/showcase-6%20works-orange)](https://fbwndrud.github.io/vibelore/showcase/)
 
 You attach it as an MCP server to an AI coding tool such as Claude Code, Codex or Grok CLI. That AI writes the prose and draws the pictures;
 vibelore remembers the world, characters, foreshadowing and timeline, checks every chapter, and finalizes nothing before you approve it.
@@ -25,7 +25,8 @@ vibelore remembers the world, characters, foreshadowing and timeline, checks eve
 
 These are all real results of adapting novels written with vibelore into webtoons. A different AI made each work, and each is labeled with the vibelore version it was made with.
 
-- **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2, latest): An unofficial fan work borrowing Lotte World’s night-parade characters. Claude Opus 5.5 handled everything, from the complete 50-chapter novel to the chapter 1–3 webtoons. The chapter 2 webtoon is a presentation experiment where Vesper’s light sets the panel-border color and brightness; the chapter 3 webtoon letters earpiece radio in mint bands between panels instead of speech balloons.
+- **[You Said I Wasn't Family](https://fbwndrud.github.io/vibelore/showcase/family-revenge/)** (vibelore 0.4.8): A complete 10-episode novel and a 34-panel domestic-satire webtoon of episode 1. Includes the actual references, prompts, reviews and three before-and-after corrections.
+- **[Vesper](https://fbwndrud.github.io/vibelore/showcase/vesper/)** (vibelore 0.4.2): An unofficial fan work borrowing Lotte World’s night-parade characters. Claude Opus 5.5 handled everything, from the complete 50-chapter novel to the chapter 1–3 webtoons. The chapter 2 webtoon is a presentation experiment where Vesper’s light sets the panel-border color and brightness; the chapter 3 webtoon letters earpiece radio in mint bands between panels instead of speech balloons.
 - **[The Princess One Minute Before Her Execution](https://fbwndrud.github.io/vibelore/showcase/executionprincess/)** (vibelore 0.3.8): GPT-6 Sol handled everything from the design to the novel and the webtoon adaptation.
 - **[Verdict LIVE](https://fbwndrud.github.io/vibelore/showcase/verdict-live/)** (vibelore 0.3.7–0.3.8): Claude Opus 5.5 wrote the novel and the webtoon adaptation, and Codex (OpenAI API `gpt-image-2.5-sunburst`) drew the pictures.
 - **[Lightning on the Road](https://fbwndrud.github.io/vibelore/showcase/thundertrail/)** (vibelore 0.3.0–0.3.8): Codex, Claude and Grok each adapted the same novel. There is also a [model comparison](https://fbwndrud.github.io/vibelore/showcase/thundertrail/compare.html).

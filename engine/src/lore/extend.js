@@ -18,6 +18,7 @@ export const LORE_UNSUPPORTED_CAPABILITIES = Object.freeze({
 const structure = d => ({ kind: d.kind, valueType: d.valueType ?? null, owner: d.owner ?? null, cardinality: d.cardinality ?? null, direction: d.direction ?? null,
   symbol: d.symbol ?? null, requiredScopes: [...(d.requiredScopes ?? [])].sort(), subjectTypeIds: [...(d.subjectTypeIds ?? [])].sort(),
   constraints: [...(d.constraints ?? [])].sort((a, b) => a.op.localeCompare(b.op)), missingPolicy: d.missingPolicy ?? null });
+const meaningKey = value => value.normalize('NFC').trim().replace(/\s+/gu, ' ');
 const diff = (before, after) => [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(key => hashLore(before[key] ?? null) !== hashLore(after[key] ?? null))
   .map(key => ({ field: key, before: before[key] ?? null, after: after[key] ?? null }));
 
@@ -43,19 +44,26 @@ export function planLoreDefinitionNeeds(registry, needs) {
     catch (error) { if (error instanceof LoreError) { outcomes.push({ index, outcome: 'invalid', key: d.key, code: error.code, message: error.message }); continue; } throw error; }
     const names = [d.key, ...d.aliases].map(loreNameKey);
     const byId = compiled.definition(d.id) ?? additions.get(d.id);
-    const byName = byId ? null : [...compiled.search({ query: d.key, namespace: d.namespace, limit: 100 }).results, ...d.aliases.flatMap(a => compiled.search({ query: a, namespace: d.namespace, limit: 100 }).results), ...additions.values()]
-      .find(doc => doc.definition.namespace === d.namespace && [doc.definition.key, ...doc.definition.aliases].map(loreNameKey).some(n => names.includes(n)));
+    const candidates = [...registry.definitions, ...additions.values()].filter(doc => doc.definition.namespace === d.namespace
+      && [doc.definition.key, ...doc.definition.aliases].map(loreNameKey).some(n => names.includes(n)));
+    if (!byId && (candidates.length > 1 || candidates.length === 1 && meaningKey(candidates[0].definition.definition) !== meaningKey(d.definition))) {
+      outcomes.push({ index, outcome: 'needs_disambiguation', key: d.key,
+        candidates: candidates.map(doc => ({ definitionId: doc.definition.id, revisionId: doc.revisionId, definition: doc.definition.definition })),
+        message: 'name matches do not establish meaning; select an existing stable ID or use distinct keys and aliases' });
+      continue;
+    }
+    const byName = candidates[0] ?? null;
     const existing = byId ?? byName;
     if (!existing) { const revisionId = hashLore(d); additions.set(d.id, { revisionId, definition: d }); outcomes.push({ index, outcome: 'registered', key: d.key, definitionId: d.id, revisionId }); continue; }
-    // Same ID with different meaning text would re-interpret stored values; a name match keeps the existing meaning and discards the proposal's wording.
-    const meaningChanged = byId && existing.definition.definition !== d.definition;
-    if (existing.revisionId === hashLore(d) || (!meaningChanged && hashLore(structure(existing.definition)) === hashLore(structure(d)))) {
+    // Meaning changes on an existing ID require migration; names alone never authorize reuse.
+    if (existing.revisionId === hashLore(d) || (!byId && hashLore(structure(existing.definition)) === hashLore(structure(d)))) {
       outcomes.push({ index, outcome: 'reused', key: d.key, definitionId: existing.definition.id, revisionId: existing.revisionId, matchedBy: byId ? 'id' : 'name',
-        ...(existing.definition.id !== d.id ? { proposedId: d.id } : {}), existingDefinition: existing.definition.definition });
+        ...(existing.definition.id !== d.id ? { proposedId: d.id } : {}), existingDefinition: existing.definition.definition,
+        unregisteredNames: [d.key, ...d.aliases].filter(name => ![existing.definition.key, ...existing.definition.aliases].map(loreNameKey).includes(loreNameKey(name))) });
       continue;
     }
     outcomes.push({ index, outcome: 'migration_required', key: d.key, definitionId: existing.definition.id, revisionId: existing.revisionId, matchedBy: byId ? 'id' : 'name',
-      changes: [...(meaningChanged ? [{ field: 'definition', before: existing.definition.definition, after: d.definition }] : []), ...diff(structure(existing.definition), structure(d))], proposed: d,
+      changes: byId ? diff(existing.definition, d) : diff(structure(existing.definition), structure(d)), proposed: d,
       message: 'an existing definition would change meaning, type, owner or scope; review a migration instead of adding a second definition' });
   }
   return { registryRevisionId: compiled.revisionId, outcomes, additions: [...additions.values()].map(a => a.definition) };

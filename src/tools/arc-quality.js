@@ -117,7 +117,7 @@ function parse(raw) {
 export async function runArcQuality({ foundation, plan, providers, kit: kitSource }) {
   const kit = asKit(kitSource ?? { foundation });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'arc-quality', messages: kit.messages('arc-quality', {
-    foundationJson: JSON.stringify({ title: foundation.title, genre: foundation.genre, worldFacts: foundation.worldFacts, characters: foundation.characters.map((c) => ({ id: c.id, name: c.canonicalName, contradiction: c.contradiction, description: c.description })) }),
+    foundationJson: JSON.stringify({ title: foundation.title, genre: foundation.genre, worldFacts: foundation.worldFacts, sharedLore: foundation.sharedLore, characters: foundation.characters.map((c) => ({ id: c.id, name: c.canonicalName, contradiction: c.contradiction, description: c.description })) }),
     planJson: JSON.stringify(plan),
   }) });
   if ((providers.pending?.length ?? 0) > 0) return null;

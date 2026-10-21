@@ -708,7 +708,7 @@ describe('Phase 2 generation pipeline', () => {
     // serialization 문자열 때문에 strict 로 되돌리지 않는다(다국어 기획의 "승인된
     // 작품 포맷을 따른다"). ko 기본값은 명시가 없을 때만 strict 다.
     assert.equal(proposed.profile.format.dialogueBreakMode, 'relaxed');
-    assert.deepEqual(proposed.profile.designReview.openQuestions.map((item) => item.id), ['first-payoff', 'reading-experience-contract']);
+    assert.deepEqual(proposed.profile.designReview.openQuestions.map((item) => item.id), ['discovery-depth']);
     assert.deepEqual(proposed.profile.readabilityContract, {
       schemaVersion: 1, surfaceEase: 'easy', conceptPacing: 'slow', inferenceLoad: 'explicit', complexityRamp: 'onboarding-first', confirmedByUser: false,
     });
@@ -721,12 +721,12 @@ describe('Phase 2 generation pipeline', () => {
     const revisedProvider = provider({ 'story-profile': revisedJson });
     const revisedComplete = revisedProvider.complete.bind(revisedProvider);
     revisedProvider.complete = async (request) => { if (request.step === 'story-profile') profileRequest = request; return revisedComplete(request); };
-    const revised = await runStoryProfile({ store, workId: 'space-court', brief: '우주 오페라 정치 성장극', mode: 'review', feedback: '첫 승리는 배급권 확보. 읽기는 쉽게, 새 개념은 천천히, 표면 뜻은 명확하게, 초반 적응 뒤 복잡하게.', providers: revisedProvider });
+    const revised = await runStoryProfile({ store, workId: 'space-court', brief: '우주 오페라 정치 성장극', mode: 'review', discovery: { depth: 'standard', userAnswer: '중요한 선택은 함께 정할게요.' }, feedback: '중요한 선택은 함께 정할게요. 첫 승리는 배급권 확보. 읽기는 쉽게, 새 개념은 천천히, 표면 뜻은 명확하게, 초반 적응 뒤 복잡하게. 세계관은 핵심만 잡고 빠르게 시작.', worldbuilding: { scope: 'starter', userAnswer: '세계관은 핵심만 잡고 빠르게 시작.' }, providers: revisedProvider });
     assert.deepEqual(revised.profile.designReview.openQuestions, []);
     assert.deepEqual(revised.profile.designReview.settledDecisions, ['정치 성장극', '첫 보상은 배급권 확보']);
-    assert.deepEqual(revised.profile.designReview.askedQuestionIds, ['first-payoff', 'reading-experience-contract']);
+    assert.deepEqual(revised.profile.designReview.askedQuestionIds, ['discovery-depth']);
     assert.equal(revised.profile.revision, 2);
-    assert.match(profileRequest.messages[1].content, /first-payoff/);
+    assert.match(profileRequest.messages[1].content, /discovery-depth/);
     assert.match(profileRequest.messages[1].content, /첫 승리는 배급권 확보/);
     await runStoryProfileDecide({ store, workId: 'space-court', action: 'approve' });
     await runCreate({ store, workId: 'space-court', title: '별의 의회', brief: '몰락한 서기관이 제국 의회에 들어간다.', providers: provider({ worldbuild: WORLD, 'cast-design': CAST }) });
@@ -764,7 +764,7 @@ describe('Phase 2 generation pipeline', () => {
     });
 
     assert.equal(proposed.profile.readabilityContract.confirmedByUser, true);
-    assert.deepEqual(proposed.profile.designReview.openQuestions, []);
+    assert.deepEqual(proposed.profile.designReview.openQuestions.map(q => q.id), ['discovery-depth']);
   });
 
   it('keeps character agendas optional but validates a collision when one is requested', () => {
@@ -1277,5 +1277,39 @@ describe('approved multilingual profile length reaches foundation creation uncha
     const worldRequest = requests.find(request => request.step === 'worldbuild');
     assert.ok(worldRequest); assert.match(JSON.stringify(worldRequest), new RegExp(length.unit));
     assert.equal(requests.filter(request => request.step === 'approval-language-contract').length, 2);
+  });
+});
+
+
+describe('Detailed world creation', () => {
+  it('uses the adopted opening documents, preserves their source identity, and requires binding before story planning', async t => {
+    const { sharedSaga, sagaBinding, sagaScene } = await import('./fixtures/shared-lore.js');
+    const { inspectWorkBinding, applyWorkBinding } = await import('../src/core/work-binding.js');
+    const { runStorySpine } = await import('../src/tools/story-spine.js');
+    const { rm } = await import('node:fs/promises');
+    const w = await sharedSaga(), store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'detailed-world-create-')));
+    t.after(() => Promise.all([w.root, store.rootDir].map(p => rm(p, { recursive: true, force: true }))));
+    await store.saveStoryProfile('tax-tower', { workId: 'tax-tower', status: 'active', engineGenre: 'litrpg', genreLabel: '마법 모험', subgenres: [], tones: [], themes: [], storyEngines: [], format: {}, promptGuidance: { worldbuild: [], cast: [], avoid: [] }, worldbuilding: { scope: 'story', authority: 'user', focus: ['탑의 규칙'], userAnswer: '세계관을 자세히 준비할게요.' } });
+    const source = { worldRoot: w.root, universeId: 'u1', loreRevisionId: w.head, documentIds: ['world-doc', 'profile-doc', 'adult-doc'] };
+    const requests = [], base = provider({ worldbuild: WORLD, 'cast-design': CAST, 'entity-seed': ENTITIES });
+    const created = await runCreate({ store, workId: 'tax-tower', title: '세금탑', brief: '승인한 세계의 탑', worldbuildingSource: source,
+      providers: { pending: [], async complete(r) { requests.push(r); return base.complete(r); } } });
+    assert.equal(created.created, true, JSON.stringify(created).slice(0, 1200));
+    assert.equal(created.needsWorldBinding, true);
+    for (const step of ['worldbuild', 'cast-design']) {
+      const input = requests.find(r => r.step === step).messages.map(m => m.content).join(' ');
+      assert.match(input, /두 개의 달|ADULT_ONLY/);
+      assert.doesNotMatch(input, /TS_ONLY|FUTURE_SECRET_TOKEN/);
+    }
+    const foundation = await store.loadFoundation('tax-tower');
+    assert.equal(foundation.worldbuilding.source.loreRevisionId, w.head);
+    assert.equal(foundation.worldbuilding.source.documents.length, 3);
+    await assert.rejects(runStorySpine({ store, workId: 'tax-tower', providers: base }), { code: 'WORLD_BUILDING_BINDING_REQUIRED' });
+    const inspected = await inspectWorkBinding({ store, workId: 'tax-tower', worldRoot: w.root, binding: sagaBinding(w, 'tax-tower', { 1: [sagaScene('intro', 'adulthood')] }) });
+    await applyWorkBinding({ store, workId: 'tax-tower', proposalId: inspected.proposalId, expectedHead: inspected.expectedHead });
+    let request;
+    await assert.rejects(runStorySpine({ store, workId: 'tax-tower', providers: { async complete(r) { request = r; throw new Error('captured'); } } }), /captured/);
+    assert.equal(request.step, 'story-spine');
+    assert.match(JSON.stringify(request.messages), /ADULT_ONLY/);
   });
 });

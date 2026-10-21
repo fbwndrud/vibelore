@@ -10,6 +10,8 @@
 works.json의 cover는 이미지 저장소 기준 경로이고, 목록 썸네일은 scripts/build-showcase-thumbs.py가 만든다.
 """
 import argparse
+import hashlib
+import json
 import re
 import shutil
 from pathlib import Path
@@ -25,6 +27,7 @@ def main():
     if not (media / '.git').exists():
         raise SystemExit(f'{media}: git 체크아웃이 아닙니다')
 
+    replacements = {}
     for img in sorted(ROOT.glob('*/img')):
         work = img.parent.name
         dst = media / work / 'img'
@@ -35,17 +38,27 @@ def main():
             if t.exists() and t.read_bytes() == f.read_bytes():
                 same += 1
             else:
+                # Never change bytes at an already published image URL.
+                if t.exists():
+                    t = dst / f'{f.stem}-{hashlib.sha256(f.read_bytes()).hexdigest()[:16]}{f.suffix}'
+                    if t.exists() and t.read_bytes() != f.read_bytes():
+                        raise SystemExit(f'이미지 해시 충돌: {t}')
                 shutil.copy2(f, t)
                 copied += 1
+            replacements[f'{work}/img/{f.name}'] = f'{work}/img/{t.name}'
         for f in list(img.iterdir()):
-            assert (dst / f.name).read_bytes() == f.read_bytes(), f
+            assert (media / replacements[f'{work}/img/{f.name}']).read_bytes() == f.read_bytes(), f
             f.unlink()
         img.rmdir()
         print(f'{work}/img · 복사 {copied} · 이미 있음 {same}')
 
     for data in sorted(ROOT.glob('*/data.json')):
         s = data.read_text()
-        out, n = re.subn(r'"img/', f'"{MEDIA}{data.parent.name}/img/', s)
+        work = data.parent.name
+        def rewrite(match):
+            key = f'{work}/img/{match.group(1)}'
+            return '"' + MEDIA + replacements.get(key, key) + '"'
+        out, n = re.subn(r'"(?:img/|' + re.escape(MEDIA + work + '/img/') + r')([^"\n]+)"', rewrite, s)
         if n:
             data.write_text(out)
             print(f'{data.parent.name}/data.json · 경로 {n}개')
@@ -55,6 +68,21 @@ def main():
         if n:
             page.write_text(out)
             print(f'how/{page.name} · 경로 {n}개')
+        s = page.read_text()
+        for old, new in replacements.items():
+            s = s.replace(MEDIA + old, MEDIA + new)
+        if s != page.read_text():
+            page.write_text(s)
+    catalog = ROOT / 'works.json'
+    data = json.loads(catalog.read_text())
+    changed = False
+    for w in data['works']:
+        old = w.get('cover')
+        if old in replacements and old != replacements[old]:
+            w['cover'] = replacements[old]
+            changed = True
+    if changed:
+        catalog.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
 
 
 if __name__ == '__main__':

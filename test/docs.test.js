@@ -77,7 +77,7 @@ test('distributed Markdown links stay inside the packaged files', async () => {
 test('tool reference names every public and advanced MCP tool', async () => {
   const server = await readFile('src/server.js', 'utf8');
   const names = [...server.matchAll(/name: '(lore_[a-z_]+)'/g)].map((match) => match[1]);
-  assert.equal(names.length, 48);
+  assert.equal(names.length, 49);
   assert.equal(new Set(names).size, names.length);
   for (const file of ['docs/TOOLS.md', 'docs/TOOLS.en.md']) {
     const reference = await readFile(file, 'utf8');

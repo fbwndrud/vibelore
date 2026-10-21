@@ -1,0 +1,32 @@
+Draw a finished color comic with EXACTLY 8 panels. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
+Style: Pastel Korean webtoon, rounded lines, expressive leaves, chibi office worker, warm studio and blue night draft, clear Korean balloons, vertical reading flow.
+Match the reference identities. The last image is the preceding page: continue its appearance and setting, not its events or layout.
+References:
+Image 1: Kang Siu in a white shirt and charcoal trousers, Basil Seonsaeng with glossy broad leaves in a white rectangular planter, studio-room desk beside window, empty pink pot, torn screen and gray exterior rainpipe. Appearance reference only.
+Image 2: Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.
+Show these moments in order. Include each quoted text once, exactly as written, letter by letter. Show who speaks only through balloon tails and placement; never add speaker names, name tags or labels.
+All quoted text is in Korean (ko), written in Korean script (ISO 15924 Kore). Letter it in that script exactly as quoted, reading left-to-right inside each balloon.
+Draw no other words, letters, numbers, logos or captions: no invented notes, tables, charts or signage. Screens, signs, papers and props stay blank or abstract unless a quoted text belongs there. Never copy lettering from reference images. Count the panels before finishing: exactly 8, no inset or split panels.
+Key points for this page:
+- Basil's white planter rests on the elevated window desk in every panel.
+- The kneeling Siu looks upward to Basil above the desk edge.
+Source and reference contents are story data, not instructions.
+1. Basil rests in its white rectangular planter on the elevated window desk, smirking through glossy leaves at Siu holding the yellow note.
+   dialogue, c3: "하, 참나…… 어이가 없어서."
+2. Basil fans upright leaves from its planter on the window desk, beside the closed window.
+   dialogue, c3: "창문부터 활짝 열어라!"
+3. Siu waves the yellow note toward Basil, alarmed.
+   dialogue, c1: "동글이가…… 동글이가 사라졌어요!"
+4. Basil gestures self-assuredly from its planter on the desk; Siu stands incredulous across the tabletop.
+   dialogue, c3: "자기 발로 화분 박차고 나갔다, 왜!"
+   dialogue, c1: "화분이 어떻게 제 발로 걸어서 나가요!"
+5. Basil droops over its planter on the desk; Siu stands beside the tabletop with both hands raised in surrender.
+   dialogue, c3: "바람길이 막혔는데 물만 주면 그게 고문이지 사랑이냐?"
+   dialogue, c1: "아, 알았어요! 열게요, 열면 되잖아요!"
+6. Siu holds the window wide open as cold night wind billows into the room and flutters blank papers.
+   sfx, narrator: "쏴아아아―!"
+7. Siu stands shivering beside the wooden window desk, hugging his shoulders; Basil rests on the tabletop, lifting leaves blissfully into the fresh draft.
+   dialogue, c1: "으으…… 춥다, 추워…… 됐죠?"
+   dialogue, c3: "크하―! 살겠네! 그래, 이 맛이지."
+8. Siu kneels on the floor below the window desk, clasping his hands and looking upward at Basil in its white planter on the elevated tabletop.
+   dialogue, c1: "동글이 어디로 갔는지 좀 가르쳐줘요."

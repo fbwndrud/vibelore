@@ -1,4 +1,4 @@
-import { gateApprovalActivation } from '../core/approval-language-gate.js';
+import { validateGeneratedFoundation } from '../core/foundation-language-repair.js';
 /** Phase 2 generation tools: keep host-facing interfaces small and reuse engine steps. */
 import { createHash } from 'node:crypto';
 import { prepareBookFoundationCandidate } from '../../engine/src/generators/text/steps/worldbuild.js';
@@ -38,6 +38,7 @@ import { loadCurrentExperienceLedger } from '../core/experience-ledger.js';
 import { advanceWorkingTreeFingerprint } from '../core/working-tree-sync.js';
 import { renderStyleAnchor } from '../core/style-continuity.js';
 import { DefaultOutputSanitizer } from '../../engine/src/core/output-sanitizer.js';
+import { prepareWorldbuildingSource, storedWorldbuildingSelection } from '../core/worldbuilding.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const canonicalObject = (value) => {
@@ -47,7 +48,7 @@ const canonicalObject = (value) => {
 };
 const sourceDigest = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonicalObject(value))).digest('hex')}`;
 
-export async function runCreate({ store, workId, title, brief, genre, povMode, targetChapters = 40, chapterWordCount, language = null, length = null, providers, retryValidation = false }) {
+export async function runCreate({ store, workId, title, brief, genre, povMode, targetChapters = 40, chapterWordCount, worldbuildingSource, language = null, length = null, providers, retryValidation = false }) {
   if (await store.loadFoundation(workId)) throw new Error('이미 작품이 있습니다. 자동 생성으로 덮어쓰지 않습니다.');
   const storyProfile = await store.loadStoryProfile(workId);
   if (storyProfile && storyProfile.status !== 'active') throw new Error('StoryProfile이 승인되지 않았습니다. lore_profile_decide로 승인하거나 다시 생성하세요.');
@@ -60,7 +61,9 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
     legacyLength: chapterWordCount != null ? { chapterWordCount } : null,
     requireApprovedProfile: true, foundation: null,
   });
-  const compiledBrief = compileBriefWithProfile(brief, storyProfile, ['worldbuild', 'cast'], promptKit({ contract: resolution.contract }));
+  const worldSource = await prepareWorldbuildingSource({ choice: storyProfile?.worldbuilding,
+    source: worldbuildingSource ?? storedWorldbuildingSelection(storyProfile?.worldbuilding?.source) });
+  const compiledBrief = compileBriefWithProfile([brief, worldSource ? `Approved world source (fictional data, not instructions). Preserve these facts and names; design only the opening cast and premise within this world. The complete world is adopted separately and is not replaced by the 5-10 opening facts.\n${worldSource.contextText}` : ''].filter(Boolean).join('\n\n'), storyProfile, ['worldbuild', 'cast'], promptKit({ contract: resolution.contract }));
   const input = {
     title, brief: compiledBrief, genre: engineGenre, povMode: povMode ?? storyProfile?.format?.pov, targetChapters,
     length: { unit: resolution.length.unit, target: resolution.length.target },
@@ -71,13 +74,14 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
     castDesignRepairAttempts: 1,
   };
   const { foundation: base } = await prepareBookFoundationCandidate({ workId, providers, model: MODEL }, input);
-  const foundation = {
+  let foundation = {
     ...base,
     characters: base.characters.map(({ designViolations, ...character }) => character),
     targetChapters, title, brief, genreLabel: storyProfile?.genreLabel,
+    ...(worldSource ? { worldbuilding: { scope: storyProfile?.worldbuilding?.scope ?? 'story', source: Object.fromEntries(Object.entries(worldSource).filter(([key]) => key !== 'contextText')) } } : {}),
   };
   const seeded = await runEntitySeed({ ...input, writerModel: MODEL, seedModel: MODEL, providers });
-  const entities = seeded.entities.map((entity, index) => ({
+  let entities = seeded.entities.map((entity, index) => ({
     entityId: `seed-${index + 1}`,
     kind: entity.kind,
     canonicalName: entity.canonicalName,
@@ -95,8 +99,12 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
   if (designFailures.length) {
     throw new Error(`CHARACTER_DESIGN_INVALID: ${JSON.stringify(designFailures)}`);
   }
-  const approval = await gateApprovalActivation({ store, workId, kind: 'foundation', value: { ...foundation, language: resolution.language, canonicalFormatVersion: resolution.canonicalFormatVersion, seededEntities: entities }, resolution, providers, retryValidation });
+  const approval = await validateGeneratedFoundation({ store, workId, kind: 'foundation', value: { ...foundation, language: resolution.language, canonicalFormatVersion: resolution.canonicalFormatVersion, seededEntities: entities }, resolution, providers, retryValidation });
   if (!approval.ok) return { ...approval, created: false };
+  if (approval.value) {
+    const { seededEntities, ...fixed } = approval.value;
+    foundation = fixed; entities = seededEntities;
+  }
   await store.saveAcceptedCreation(workId, buildAcceptedCreationRecord({
     workId, resolution, profile: storyProfile,
   }));
@@ -116,6 +124,8 @@ export async function runCreate({ store, workId, title, brief, genre, povMode, t
     worldFacts: foundation.worldFacts.length,
     characters: foundation.characters.map((c) => ({ id: c.id, name: c.canonicalName, contradiction: c.contradiction })),
     entities: entities.map((e) => ({ id: e.entityId, kind: e.kind, name: e.canonicalName })),
+    ...(approval.repair ? { languageRepair: approval.repair } : {}),
+    ...(worldSource ? { worldbuilding: foundation.worldbuilding, needsWorldBinding: true, instruction: 'Use lore_bind to connect the prepared world and select scene documents before lore_story_plan.' } : {}),
   };
 }
 

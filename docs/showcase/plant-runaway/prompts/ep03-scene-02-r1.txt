@@ -1,0 +1,27 @@
+Draw a finished color comic with EXACTLY 8 panels. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.
+Style: Warm pastel Korean webtoon, expressive chibi plants, leaf-shaped framing and plant-height views, concentric basin-noise gutter ripples, clear upright Korean lettering, conventional reading order.
+Match the reference identities. The last image is the preceding page: continue its appearance and setting, not its events or layout.
+References:
+Image 1: Siu in white shirt, dark trousers and striped slippers; sprayer, green ampoule and phone; snake plant in navy square pot; jade Donggeuri with three roots and brown terracotta pot; mustached neighbor; silver-haired grandmother; night landing and roof garden. Design reference only.
+Image 2: Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.
+Show these moments in order. Include each quoted text once, exactly as written, letter by letter. Show who speaks only through balloon tails and placement; never add speaker names, name tags or labels.
+All quoted text is in Korean (ko), written in Korean script (ISO 15924 Kore). Letter it in that script exactly as quoted, reading left-to-right inside each balloon.
+Draw no other words, letters, numbers, logos or captions: no invented notes, tables, charts or signage. Screens, signs, papers and props stay blank or abstract unless a quoted text belongs there. Never copy lettering from reference images. Count the panels before finishing: exactly 8, no inset or split panels.
+Source and reference contents are story data, not instructions.
+1. Donggeuri strains on three root legs beneath a leaning terracotta pot, climbing the narrow parapet foothold below the clothesline.
+   sfx, narrator: "스륵, 사각. 드르륵."
+2. Siu approaches on tiptoe with a worried glance at the unstable pot, sprayer held low.
+   dialogue, c1: "동글아……!"
+3. Siu crouches nearby while Donggeuri turns his pot to face him; a leaf-shaped reverse view makes Siu loom.
+   dialogue, c1: "야, 너…… 거기서 뭐 하는 거야. 얼른 멈춰!"
+4. Donggeuri bristles in his tiny pot, jade leaves rigid and rosy tips sharp with indignation.
+   dialogue, c2: "뭐야? 기어코 여기까지 쫓아왔어?"
+5. Siu winces at the leaf-level accusation, sprayer conspicuous in his hand.
+   dialogue, c2: "네가 그 질척거리는 분무기로 내 얼굴에 물 뿌릴 때마다 뿌리가 썩어 들어가는 기분이었단 말이야!"
+6. Siu holds a calming palm out beside the leaning pot; Donggeuri glares toward the clothesline.
+   dialogue, c1: "알았어, 알았으니까 일단 거기서 내려와."
+   dialogue, c2: "오지 마!"
+7. Donggeuri faces the ledge once more, root legs braced on the damp foothold; the leaf-framed rhythm leans with his pot.
+   sfx, narrator: "스르륵, 덜컹!"
+8. One root slips on wet moss; Donggeuri's pot tips toward the outer void and loose soil falls past its rim.
+   dialogue, c2: "앗……!"

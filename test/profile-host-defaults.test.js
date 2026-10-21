@@ -15,12 +15,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
-import { runStoryProfile, runStoryProfileDecide, compileBriefWithProfile } from '../src/tools/story-profile.js';
+import { runStoryProfile as runStoryProfileTool, runStoryProfileDecide, compileBriefWithProfile } from '../src/tools/story-profile.js';
 import { compileDraftContract, compileNarrativeContract } from '../src/core/narrative-contract.js';
 import { phrases as koPhrases } from '../src/prompts/ko.js';
 import { phrases as multilingualPhrases } from '../src/prompts/multilingual.js';
 import { promptKit } from '../src/prompts/index.js';
 import { buildLanguageContract } from '../engine/src/core/language-policy.js';
+
+// Host-default checks start after collaboration depth has been selected.
+const runStoryProfile = args => {
+  const answer = 'Decide the important choices together before writing.';
+  return runStoryProfileTool({ ...args, feedback: [args.feedback, answer].filter(Boolean).join('\n'),
+    discovery: { depth: 'standard', userAnswer: answer } });
+};
 
 const newStore = async () => new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'profile-defaults-')));
 const WORKS = {
