@@ -16,7 +16,7 @@ export function projects(value) {
   value.forEach(text); return value;
 }
 export function safeError(code) { return new StudioError(code, 'The Library operation could not be completed.'); }
-const ADAPTER_CODES = new Set(['OWNER_OFFLINE', 'OWNER_REPLACED', 'SOURCE_SCHEMA_UNSUPPORTED', 'SOURCE_DRIFT', 'SOURCE_CORRUPT', 'SOURCE_MISSING', 'PROJECT_NOT_ALLOWED', 'BUNDLE_INCOMPLETE', 'BUNDLE_HASH_MISMATCH', 'BUNDLE_SCHEMA_UNSUPPORTED', 'BUNDLE_LIMIT_EXCEEDED']);
+const ADAPTER_CODES = new Set(['OWNER_OFFLINE', 'OWNER_REPLACED', 'SOURCE_BUSY', 'SOURCE_LIMIT_EXCEEDED', 'SOURCE_SCHEMA_UNSUPPORTED', 'SOURCE_DRIFT', 'SOURCE_CORRUPT', 'SOURCE_MISSING', 'PROJECT_NOT_ALLOWED', 'BUNDLE_INCOMPLETE', 'BUNDLE_HASH_MISMATCH', 'BUNDLE_SCHEMA_UNSUPPORTED', 'BUNDLE_LIMIT_EXCEEDED']);
 export function adapterError(error) { return safeError(ADAPTER_CODES.has(error?.code) ? error.code : 'OWNER_OFFLINE'); }
 
 // Both databases use rollback journals. Attached transactions make the registry
