@@ -79,7 +79,7 @@ export function validateProjection(value, registration) {
     for (const key of ['role', 'purpose']) if (use[key] !== undefined) text(use[key]);
   }
   for (const item of value.cases) {
-    fields(item, ['id', 'ownerId', 'projectId', 'question', 'contextRefs', 'literalInputRefs', 'trials', 'observations', 'unknowns'], ['decision', 'ref', 'classification']);
+    fields(item, ['id', 'ownerId', 'projectId', 'question', 'contextRefs', 'literalInputRefs', 'trials', 'observations', 'unknowns'], ['decision', 'ref', 'classification', 'literalInputs', 'omissions', 'planning', 'externalObservations']);
     text(item.id); text(item.question);
     if (item.ref !== undefined) { scopedRef(item.ref, registration); if (item.ref.projectId !== item.projectId) invalid(); }
     if (item.classification !== undefined && !['accepted-example', 'matched-comparison', 'failed-trial', 'unobserved'].includes(item.classification)) invalid();

@@ -1,4 +1,9 @@
 import {
+  cycleNativeRecords,
+  portableCycleRecord,
+  cycleReferences,
+} from "../engine/asset-cycles.js";
+import {
   ownerLocation,
   physicalOwnerIdentity,
   readOwnerBytes,
@@ -135,6 +140,16 @@ export function createStudioOwnerAdapter({
           });
         }
       }
+      for (const projectId of projects)
+        for (const item of cycleNativeRecords(db, projectId)) {
+          if (
+            !["job", "attempt", "adoption", "cycle", "productionCase"].includes(
+              item.ref.recordKind
+            )
+          )
+            continue;
+          values.push({ ...item, ref: { ownerId, ...item.ref } });
+        }
       const records = [
         ...new Map(values.map((v) => [originKey(v.ref), v])).values(),
       ];
@@ -170,6 +185,18 @@ export function createStudioOwnerAdapter({
         requirement: "historical-reference",
       });
     return links;
+  }
+  const visible = (record) =>
+    portableCycleRecord(record.value, ownerId, record.ref.recordKind);
+  function recordLinks(record) {
+    return cycleReferences(record.ref.recordKind, visible(record)).map(
+      (item) => ({
+        from: item.relation === "derived-from" ? record.ref : item.ref,
+        relation: item.relation,
+        to: item.relation === "derived-from" ? item.ref : record.ref,
+        requirement: "historical-reference",
+      })
+    );
   }
   function description(record, db) {
     const { ref, value } = record;
@@ -339,7 +366,7 @@ export function createStudioOwnerAdapter({
           let availability = "observed-available",
             capabilities = ["discover", "preserve", "inspect"];
           try {
-            for (const hash of blobReferences(record.value))
+            for (const hash of blobReferences(visible(record)))
               await blob(db, record.ref.projectId, hash);
           } catch (error) {
             if (
@@ -368,9 +395,10 @@ export function createStudioOwnerAdapter({
             capabilities,
           });
         }
-        const links = records.flatMap((record) =>
-          candidateLinks(record, records)
-        );
+        const links = records.flatMap((record) => [
+          ...candidateLinks(record, records),
+          ...recordLinks(record),
+        ]);
         const uses = records
           .filter((r) => r.ref.recordKind === "reuseImport")
           .flatMap((r) =>
@@ -392,12 +420,50 @@ export function createStudioOwnerAdapter({
                 : [];
             })
           );
+        for (const record of records)
+          for (const item of cycleReferences(
+            record.ref.recordKind,
+            visible(record)
+          )) {
+            if (item.relation === "used-in")
+              uses.push({ ref: item.ref, usedIn: record.ref });
+          }
+        const cases = records
+          .filter((r) => r.ref.recordKind === "productionCase")
+          .map((record) => {
+            const value = visible(record),
+              keys = [
+                "id",
+                "question",
+                "contextRefs",
+                "literalInputRefs",
+                "trials",
+                "observations",
+                "unknowns",
+                "decision",
+                "classification",
+                "literalInputs",
+                "omissions",
+                "planning",
+                "externalObservations",
+              ];
+            return {
+              ...Object.fromEntries(
+                keys
+                  .filter((k) => value[k] !== undefined)
+                  .map((k) => [k, value[k]])
+              ),
+              ownerId,
+              projectId: record.ref.projectId,
+              ref: record.ref,
+            };
+          });
         return {
           token: canonicalDigest(records.map((r) => r.ref)),
           entries,
           links,
           uses,
-          cases: [],
+          cases,
         };
       });
     },
@@ -426,7 +492,8 @@ export function createStudioOwnerAdapter({
             if (parent) chosen.set(originKey(parent.ref), parent);
           }
         for (const record of chosen.values()) {
-          const { ref, value } = record,
+          const ref = record.ref,
+            value = visible(record),
             meta = description(record, db);
           const selectedHash =
             ref.recordKind === "candidate"
@@ -466,9 +533,15 @@ export function createStudioOwnerAdapter({
             },
             requiredFileSha256s: hashes,
             sourcePins: portable(value),
-            evidenceRefs: value.lineage?.originRefs ?? value.originRefs ?? [],
+            evidenceRefs: [
+              ...(value.lineage?.originRefs ?? value.originRefs ?? []),
+              ...cycleReferences(ref.recordKind, value).map((item) => item.ref),
+            ],
           });
-          links.push(...candidateLinks(record, records));
+          links.push(
+            ...candidateLinks(record, records),
+            ...recordLinks(record)
+          );
           if (value.reuseProvenance?.localManifestBlobId) {
             const retained = validateBundle(
               JSON.parse(
@@ -503,6 +576,30 @@ export function createStudioOwnerAdapter({
             );
           }
         }
+        // Bundle links require a source record even for historical citations.
+        // A citation is explicit reference metadata, never a fabricated native
+        // execution or a request to fetch/access the external owner.
+        for (const link of links)
+          if (
+            !exported.some(
+              (record) => originKey(record.ref) === originKey(link.from)
+            )
+          ) {
+            exported.push({
+              ref: link.from,
+              metadata: {
+                mediaKind: "structured",
+                roles: [],
+                subjects: [],
+                title: link.from.recordId,
+                observationScope:
+                  "Reference citation only; source bytes, native request and execution were not verified by this export",
+              },
+              requiredFileSha256s: [],
+              sourcePins: { scope: "citation-only" },
+              evidenceRefs: [],
+            });
+          }
         return {
           bundle: sealBundle({
             schemaVersion: 1,
@@ -520,7 +617,7 @@ export function createStudioOwnerAdapter({
                 "Exact registered Studio records and available required bytes",
               omittedEvidence: [
                 ...(disclosure?.omittedEvidence ?? []),
-                "Foreign approval is historical evidence only; destination adoption is not inherited. Ancestor runtime bytes and source code path labels are omitted; ancestors are historical references.",
+                "Job/attempt provider request bodies, prompts, connection details and unselected logs are omitted; snapshots record observed native status, not proof of payment or independent completion. Case/cycle references are historical evidence only. Foreign approval is historical evidence only; destination adoption is not inherited. Ancestor runtime bytes and source code path labels are omitted; ancestors are historical references.",
               ],
             },
             capturedAt: new Date().toISOString(),

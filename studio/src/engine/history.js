@@ -1,5 +1,6 @@
 import { assertInteger, fail } from './contracts.js';
 const labels = {
+  'cycle.record': '제작 사이클 기록', 'case.record': '제작 사례 기록',
   'project.create': '작업실 생성', 'production.create': '제작판 생성', 'story.save': '각색 노트 저장',
   'source.capture': '원작 연결', 'source.manuscript': '원고 가져오기', 'cast.put': '배역 저장',
   'casting.set': '목소리 배정', 'scene.put': '장면 편집 저장', 'utterance.update': '발화 연기 저장',

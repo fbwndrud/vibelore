@@ -1,3 +1,4 @@
+import { registerCycleCommands } from './asset-cycles.js';
 import { inspectReuse } from '../reuse/inspect.js';
 import { registerReuseCommands } from '../reuse/import.js';
 import { readHistory } from './history.js';
@@ -118,6 +119,8 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
         snapshot.reuseImports = store
           .all('SELECT data_json FROM reuse_imports WHERE project_id=? ORDER BY id', projectId)
           .map(row => JSON.parse(row.data_json));
+        snapshot.cycles = domainValues(snapshot, 'cycle').map(a => a.value);
+        snapshot.productionCases = domainValues(snapshot, 'productionCase').map(a => a.value);
         snapshot.sourcePackages = domainValues(snapshot, 'sourcePackage').map(a => a.value);
         snapshot.story = domainValues(snapshot, 'story')[0]?.value ?? null;
         snapshot.cast = domainValues(snapshot, 'cast').map(a => a.value);
@@ -184,6 +187,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   registerBudgetCommands(service);
   registerAssetCommands(service);
   registerReuseCommands(service);
+  registerCycleCommands(service);
   registerAdoptionCommands(service);
   registerRecoveryCommands(service);
   registerTimelineCommands(service);
