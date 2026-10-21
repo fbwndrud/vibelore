@@ -150,6 +150,8 @@ inspectionDigest는 승인 비밀값이 아니다. 최종 반입은 서버가 bu
 
 선택 root의 실제 실행 자료는 manifest가 지정한 `selected-content` 파일 hash다. 원천이 raw와 canonical을 모두 제공하면 둘을 별도 역할로 보존한다. 목적지 `rawBlobId`는 selected-content bytes를 그대로 보존한 hash이며 원천 파일과 byte-identical해야 한다. 이전 원본 raw는 별도 보존 파일로 남는다.
 
+여러 root가 같은 파일을 실행 자료와 원본 증거로 함께 참조할 수 있으므로, record별 선택은 선택적 `metadata.selectedContentSha256`로 고정한다. 값이 있으면 소문자 64자리 SHA-256이어야 하고, 해당 record의 **직접** `requiredFileSha256s`에 포함되며 실제 `selected-content` 역할 descriptor가 존재해야 한다. runtime 의존 record에만 있는 파일은 선택할 수 없다. 값이 없으면 기존 규칙대로 직접 필수 파일 중 `selected-content`가 정확히 하나여야 하며, 순서·최신값으로 모호성을 해소하지 않는다. 원본 증거와 고유 hash descriptor는 그대로 보존하며, metadata는 기존 record/manifest hash에 결합된다. 역사 참조로 바꾸며 runtime 파일 목록을 비울 때 이 선택 필드도 제거한다. 기존 schema 1의 열린 metadata 규약에 대한 호환 가능한 확장이므로 schema 번호는 유지한다.
+
 소비 후보는 **목적지의 버전 고정 decoder가 만든 canonical bytes**를 사용한다. inspect가 read-only decode로 예측한 canonical hash·메타데이터·normalizerVersion을 inspectionDigest에 포함하고 최종 import도 이를 재검증한다. selected-content와 canonical hash가 같으면 직접 반입, 다르면 무손실이라고 추정하지 않고 `normalized-from` 기술 파생을 기록한다. 원천 revision을 바꾸지 않으며 normalizationChanged를 사용자/후속 소비자에게 보여준다. 이는 새 모델 생성으로 기록하지 않는다.
 
 음원 길이·표본·이미지의 실제 소비 특성이 달라지면 새 canonical 메타데이터로 타이밍/적합성을 검사한다. 원천 take의 이전 시간·동작 증거가 새 canonical까지 검증했다고 승계하지 않는다. 목적지의 고정 Edition은 이 canonical과 decoder/renderer 판본을 소비하고, 재수출은 새 로컬 Ref와 원천/정규화 계보를 포함한다. decoder를 바꿔 새 자료를 만들 때도 기존 Edition과 보존된 raw/canonical은 유지한다.

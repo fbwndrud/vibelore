@@ -1419,3 +1419,72 @@ test('stateful characterless narration uses only its explicit native role state 
     'needs_decision'
   );
 });
+
+test('per-record selected content pins disambiguate shared files and reject invalid or indirect selectors', async () => {
+  const { selectedClosure } = await import('../src/reuse/inspect.js');
+  const data = fixture();
+  const first = data.bundle.files[0].sha256;
+  const second = 'b'.repeat(64);
+  const root = data.bundle.roots[0];
+  assert.equal(selectedClosure(data.bundle, root).selectedFile.sha256, first);
+  data.bundle.records[0].metadata.selectedContentSha256 = second;
+  data.bundle = sealBundle(data.bundle);
+  assert.throws(() => selectedClosure(data.bundle, root), {
+    code: 'BUNDLE_INCOMPLETE',
+  });
+  delete data.bundle.records[0].metadata.selectedContentSha256;
+  data.bundle.files.push({
+    sha256: second,
+    byteLength: 1,
+    mime: 'image/png',
+    role: 'selected-content',
+  });
+  data.bundle.records[0].requiredFileSha256s.push(second);
+  data.bundle = sealBundle(data.bundle);
+  assert.throws(() => selectedClosure(data.bundle, root), {
+    code: 'BUNDLE_INCOMPLETE',
+  });
+  data.bundle.records[0].metadata.selectedContentSha256 = second;
+  data.bundle = sealBundle(data.bundle);
+  assert.equal(selectedClosure(data.bundle, root).selectedFile.sha256, second);
+  for (const invalid of [
+    null,
+    1,
+    '',
+    'not-a-hash',
+    'B'.repeat(64),
+    'c'.repeat(64),
+  ]) {
+    data.bundle.records[0].metadata.selectedContentSha256 = invalid;
+    data.bundle = sealBundle(data.bundle);
+    assert.throws(() => selectedClosure(data.bundle, root), {
+      code: 'BUNDLE_INCOMPLETE',
+    });
+  }
+  data.bundle.records[0].metadata.selectedContentSha256 = second;
+  data.bundle.files[1].role = 'preserved-evidence';
+  data.bundle = sealBundle(data.bundle);
+  assert.throws(() => selectedClosure(data.bundle, root), {
+    code: 'BUNDLE_INCOMPLETE',
+  });
+  data.bundle.files[1].role = 'selected-content';
+  data.bundle.records[0].requiredFileSha256s = [first];
+  const dependency = ref({ recordId: 'runtime-dependency' });
+  data.bundle.records.push({
+    ref: dependency,
+    metadata: {},
+    requiredFileSha256s: [second],
+    sourcePins: {},
+    evidenceRefs: [],
+  });
+  data.bundle.links.push({
+    from: root,
+    to: dependency,
+    relation: 'derived-from',
+    requirement: 'runtime',
+  });
+  data.bundle = sealBundle(data.bundle);
+  assert.throws(() => selectedClosure(data.bundle, root), {
+    code: 'BUNDLE_INCOMPLETE',
+  });
+});

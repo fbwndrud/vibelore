@@ -13,9 +13,10 @@ import { originKey, validateBundle, validateOriginRef } from './bundle.js';
 export const NORMALIZER_VERSION = 'studio-media-v1';
 // Portable record convention shared with owner exporters:
 // metadata = {mediaKind, roles:string[], subjects:SubjectRef[], audioBinding?,
-// speechPerformance?, speakerStateRefs?:OriginRef[]}. Original sourcePins stay
-// inert portable evidence.
-// Selected bytes are the sole `selected-content` file in the root's required files.
+// speechPerformance?, speakerStateRefs?:OriginRef[], selectedContentSha256?}.
+// Original sourcePins stay inert portable evidence. An explicit per-record hash
+// selects one directly required `selected-content` file. Without that pin, legacy
+// bundles must have exactly one such file; shared evidence is never auto-selected.
 // Roles are explicit advertised capabilities: no implicit role-family conversion.
 // Purpose is free text. An exact speech take additionally needs portable performance,
 // native text/language/voice evidence, and explicit identity/state mapping.
@@ -126,10 +127,21 @@ export function selectedClosure(bundle, source) {
     root = records.find((r) => originKey(r.ref) === selected);
   const hashes = new Set(records.flatMap((r) => r.requiredFileSha256s));
   const files = bundle.files.filter((f) => hashes.has(f.sha256));
+  const hasSelector = Object.hasOwn(root.metadata, 'selectedContentSha256');
+  const selectedHash = root.metadata.selectedContentSha256;
+  if (
+    hasSelector &&
+    (typeof selectedHash !== 'string' || !/^[a-f0-9]{64}$/.test(selectedHash))
+  )
+    fail(
+      'BUNDLE_INCOMPLETE',
+      'Selected content requires an exact SHA-256 hash.'
+    );
   const selectedFiles = files.filter(
     (f) =>
       root.requiredFileSha256s.includes(f.sha256) &&
-      f.role === 'selected-content'
+      f.role === 'selected-content' &&
+      (!hasSelector || f.sha256 === selectedHash)
   );
   if (selectedFiles.length !== 1)
     fail(

@@ -762,6 +762,13 @@ test("directory preservation, normalization, derive and reexport keep local refs
     derived = snapshot.entries.find((e) => e.ref.recordId === "crop");
   const result = await b.exportExact({ roots: [derived.ref] });
   validateBundle(result.bundle, result.bytes);
+  for (const record of result.bundle.records)
+    if (record.requiredFileSha256s.length === 0)
+      assert.equal(
+        Object.hasOwn(record.metadata, "selectedContentSha256"),
+        false,
+        "historical records cannot retain an actionable selection after runtime files are stripped"
+      );
   assert.equal(result.bundle.roots[0].ownerId, "destination-owner");
   assert.ok(
     result.bundle.links.some(
@@ -1127,4 +1134,103 @@ test("nested state refs distinguish identical state IDs in separate native sourc
   assert.notEqual(one.revision, two.revision);
   assert.equal(JSON.parse(one.revision).id, "one");
   assert.equal(JSON.parse(two.revision).id, "two");
+});
+
+test("multi-root base and crop preserve raw evidence while each root independently imports its selected content", async (t) => {
+  const { selectedClosure } = await import("../src/reuse/inspect.js");
+  const { writeBundleDirectory, readBundleDirectory } = await import(
+    "../src/reuse/bundle.js"
+  );
+  const source = await withStudio(t);
+  const destination = await withStudio(t);
+  const slot = environmentSlot();
+  const base = (
+    await assetImport(source, "multi-base", await png(basePixels), slot)
+  ).value.candidate;
+  await source.command(
+    "candidate.adopt",
+    {
+      slotId: slot.id,
+      candidateId: base.id,
+      actor: "artist",
+      reason: "select crop base",
+    },
+    { aggregate: { kind: "assetSlot", id: slot.id } }
+  );
+  const crop = (
+    await source.command(
+      "asset.derive",
+      {
+        id: "multi-crop",
+        slotId: slot.id,
+        baseCandidateId: base.id,
+        operation: "crop",
+        rect: { left: 0, top: 0, width: 2, height: 1 },
+        actor: "artist",
+      },
+      { aggregate: { kind: "assetSlot", id: slot.id } }
+    )
+  ).value.candidate;
+  const owner = adapter(source.directory);
+  const roots = (await owner.capture()).entries
+    .filter((entry) => [base.id, crop.id].includes(entry.ref.recordId))
+    .map((entry) => entry.ref);
+  const exported = await owner.exportExact({ roots });
+  validateBundle(exported.bundle, exported.bytes);
+  assert.equal(
+    new Set(exported.bundle.files.map((file) => file.sha256)).size,
+    exported.bundle.files.length
+  );
+  const directory = join(
+    await realpath(destination.directory),
+    "multi-root-bundle"
+  );
+  await writeBundleDirectory(directory, exported);
+  const preserved = await readBundleDirectory(directory);
+  for (const native of [base, crop]) {
+    const root = roots.find((ref) => ref.recordId === native.id);
+    const closure = selectedClosure(preserved.bundle, root);
+    assert.equal(closure.selectedFile.sha256, native.canonicalBlobId);
+    assert.ok(closure.root.requiredFileSha256s.includes(native.rawBlobId));
+    assert.deepEqual(
+      Buffer.from(preserved.bytes[native.rawBlobId]),
+      await readFile(source.service.blobs.path("p1", native.rawBlobId))
+    );
+    const localSlot = environmentSlot(`import-${native.id}`);
+    const intent = {
+      target: { kind: "assetSlot", id: localSlot.id },
+      mode: "reuse-preserved",
+      purpose: "choose one preserved root",
+      identityMap: [],
+      stateMap: [],
+      selections: [
+        { source: root, slot: localSlot, role: "environment-reference" },
+      ],
+    };
+    const inspection = await destination.service.inspectReuse({
+      projectId: "p1",
+      ...preserved,
+      intent,
+    });
+    assert.equal(inspection.disposition, "compatible");
+    const imported = (
+      await destination.command(
+        "asset.importBundle",
+        {
+          ...preserved,
+          intent,
+          inspectionDigest: inspection.inspectionDigest,
+          actor: "artist",
+          reason: "preserve selected native candidate",
+        },
+        { aggregate: intent.target }
+      )
+    ).value;
+    assert.equal(imported.candidate.rawBlobId, native.canonicalBlobId);
+    assert.equal(imported.candidate.canonicalBlobId, native.canonicalBlobId);
+    assert.deepEqual(
+      Buffer.from(preserved.bytes[native.rawBlobId]),
+      await readFile(destination.service.blobs.path("p1", native.rawBlobId))
+    );
+  }
 });

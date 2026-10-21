@@ -114,3 +114,31 @@ Meaningful verification includes full original source tree hashes before/after, 
 Self-review corrected native Edition output digest, partial WAL handling, exact state container identity, source mirror allocation boundary, and shared native asset observations/uses. Formatting expanded dense safety/disclosure/ref/reexport logic. The main remaining limits are explicit above: bounded source sizes, optimistic drift detection, unavailable historical approving proof, unsupported deprecated panel route, and no Task 5 cases/jobs/adoption projection yet. No known blocker within the agreed Task 4 scope.
 
 Task files: three new `studio/src/source/{owner-io,export-studio-assets,export-vibelore-assets}.js`, new `studio/test/library-owners.test.js`, the two-code whitelist addition in `studio/src/library/registry.js`, and this report. Parent plan edits are excluded from the task commit. Existing source connector/native core/reuse importer were not modified.
+
+## Review fix round 1 — I1 per-record selection in a multi-root bundle
+
+Review `task-4-review.md` identified a valid base-plus-crop export failure: the base image is the crop's preserved raw evidence, but its global file descriptor is also selected-content for the base root. Counting selected-content descriptors in the crop's required files therefore found two. This is an expressiveness problem in the former selection convention, not a reason to discard original evidence.
+
+The controller approved the smallest backward-compatible schema-1 metadata amendment before implementation. **Native content records now emit optional `metadata.selectedContentSha256`.** `selectedClosure` requires an explicit selector to be a lowercase 64-character SHA-256, directly required by that exact root, and backed by an existing selected-content descriptor. A file required only by a runtime dependency does not qualify. An invalid explicit selector fails `BUNDLE_INCOMPLETE` without fallback. Absent selectors keep the former strict exactly-one rule; ambiguous legacy bundles are not auto-resolved by order. Existing record/manifest hashes already bind this metadata, so no schema-number or hash-algorithm change was necessary.
+
+Both native exporters emit the new selector when selected bytes exist. All original required raw/provenance file hashes, bytes, global unique descriptors, and size limits remain intact. Historical-only reexport records have the selector removed together with their stripped runtime file list. The approved contracts document contains the new rule; the local source-owner-contracts handoff has also been updated for Task 5/clients. Consumers should use `selectedClosure`, never infer selection by descriptor order or count when an explicit selector exists.
+
+The new real native regression imports a PNG base, explicitly adopts it, derives a crop, exports both roots into one bundle, roundtrips the directory format, and independently inspects/imports each root into separate destination slots. Each selects its exact native canonical hash; its original raw bytes remain byte-identical in the bundle and destination. The manifest keeps one descriptor per unique hash. Existing JPEG normalization/derive/reexport coverage additionally asserts that historical records do not retain actionable selectors after runtime files are stripped.
+
+Selection boundary tests cover unchanged unambiguous legacy behavior, rejected ambiguous legacy behavior, valid explicit disambiguation, malformed/null/numeric/uppercase/missing selectors, no fallback even with an otherwise unambiguous legacy file, wrong descriptor role, and an indirect-only runtime file. No raw evidence was dropped and no file descriptor was duplicated to satisfy selection.
+
+RED: `/tmp/task4-i1-red.log`, **0/2 pass, 2 fail**, 715.964167 ms. Both the native base+crop regression and explicit selector acceptance failed with `BUNDLE_INCOMPLETE: Selected root requires exactly one selected-content file.` Command:
+
+```sh
+NODE_NO_WARNINGS=1 /Users/lyoojk/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test --test-name-pattern='multi-root base|per-record selected content' studio/test/library-owners.test.js studio/test/reuse-import.test.js
+```
+
+Focused GREEN: `/tmp/task4-i1-focused.log`, **52/52**, 16477.483292 ms. Final focused after explicit no-fallback/historical-selector assertions: `/tmp/task4-i1-final-focused.log`, **52/52**, 0 fail/skip, 16474.413208 ms. Command:
+
+```sh
+NODE_NO_WARNINGS=1 /Users/lyoojk/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test studio/test/library-owners.test.js studio/test/reuse-import.test.js
+```
+
+Self-review: exact direct membership and descriptor role both remain enforced; invalid explicit selection cannot use the legacy fallback. Hash sealing includes selector changes. Historical stripping reseals records normally. Existing normalization, import authority, roles, state maps, source read-only boundaries, file count/hash/byte caps, and one-root-per-import command remain unchanged. No new provider calls or source writes. The final full-suite result follows below.
+
+Final full GREEN: `/tmp/task4-i1-full-studio.log`, **457/457 passed**, 0 failed/cancelled/skipped/todo, **90014.092625 ms**, exit 0. This full run includes the final I1 code and assertions. Command: `NODE_NO_WARNINGS=1 /Users/lyoojk/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test studio/test/*.test.js`. `git diff --check` passed. I1 is resolved; no remaining known blocker from this review round. Commit scope is the two exporters, shared inspector, two test files, approved contracts paragraph, and this report; the ignored coordination-only source-owner-contracts update stays local.

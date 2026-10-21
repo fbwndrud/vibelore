@@ -679,7 +679,12 @@ function boundedVibeloreOwnerAdapter({ locator, ownerId, allowedProjects }) {
           }
           return {
             ref: r.ref,
-            metadata: { title: r.title, mediaKind: r.mediaKind, ...r.metadata },
+            metadata: {
+              title: r.title,
+              mediaKind: r.mediaKind,
+              ...r.metadata,
+              ...(hashes.length ? { selectedContentSha256: hashes[0] } : {}),
+            },
             requiredFileSha256s: hashes,
             sourcePins: r.sourcePins,
             evidenceRefs: [],

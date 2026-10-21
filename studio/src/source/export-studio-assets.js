@@ -457,7 +457,13 @@ export function createStudioOwnerAdapter({
           }
           exported.push({
             ref,
-            metadata: { ...meta, nativeRecord: portable(value) },
+            metadata: {
+              ...meta,
+              nativeRecord: portable(value),
+              ...(isRoot && hashes.includes(selectedHash)
+                ? { selectedContentSha256: selectedHash }
+                : {}),
+            },
             requiredFileSha256s: hashes,
             sourcePins: portable(value),
             evidenceRefs: value.lineage?.originRefs ?? value.originRefs ?? [],
@@ -480,8 +486,15 @@ export function createStudioOwnerAdapter({
                 !exported.some(
                   (r) => originKey(r.ref) === originKey(original.ref)
                 )
-              )
-                exported.push({ ...original, requiredFileSha256s: [] });
+              ) {
+                const { selectedContentSha256, ...metadata } =
+                  original.metadata;
+                exported.push({
+                  ...original,
+                  metadata,
+                  requiredFileSha256s: [],
+                });
+              }
             links.push(
               ...retained.links.map((link) => ({
                 ...link,
