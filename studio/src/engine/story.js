@@ -269,6 +269,7 @@ export function validateSceneSave({ store, envelope, aggregate }) {
   }
   for (const u of s.utterances) validateUtterance(u, occurrences, utterances);
   for (const shot of s.shots) {
+    validateShotLayers(store, envelope.projectId, s, shot);
     if (shot.referenceSlotId != null) {
       const slot = requireValue(store, envelope.projectId, 'assetSlot', shot.referenceSlotId);
       if (
@@ -370,4 +371,134 @@ function validateShotTransform(t) {
       bad();
     previous = k.timeMs;
   }
+}
+
+// Validate declared layer geometry and subjects at save; acceptance and shot
+// duration are checked again against the frozen timeline at Edition creation.
+export function validateShotLayers(store, projectId, scene, shot, duration) {
+  if (shot.layers === undefined) return;
+  if (!Array.isArray(shot.layers) || !shot.layers.length)
+    fail('INVALID_INPUT', 'Expected a nonempty explicit layer stack.');
+  if (
+    shot.layers.some(
+      (layer) => !layer || typeof layer !== 'object' || Array.isArray(layer),
+    )
+  )
+    fail('INVALID_INPUT', 'Expected layer objects.');
+  const ids = unique(shot.layers);
+  const point = (p) => {
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y))
+      fail('INVALID_INPUT', 'Expected finite normalized coordinates.');
+  };
+  const fields = ['x', 'y', 'scale', 'rotation', 'opacity'];
+  const transform = (t) => {
+    if (!t || typeof t !== 'object' || Array.isArray(t))
+      fail('INVALID_INPUT', 'Expected transform.');
+    for (const key of fields)
+      if (
+        t[key] !== undefined &&
+        (!Number.isFinite(t[key]) ||
+          (key === 'scale' && t[key] <= 0) ||
+          (key === 'opacity' && (t[key] < 0 || t[key] > 1)))
+      )
+        fail('INVALID_INPUT', 'Invalid layer transform.');
+  };
+  const times = (items) => {
+    if (!Array.isArray(items))
+      fail('INVALID_INPUT', 'Expected performance cue array.');
+    let last = -1;
+    for (const cue of items) {
+      if (
+        !cue ||
+        typeof cue !== 'object' ||
+        Array.isArray(cue) ||
+        !Number.isSafeInteger(cue.frame) ||
+        cue.frame < 0 ||
+        cue.frame <= last
+      )
+        fail(
+          'INVALID_INPUT',
+          'Performance frames must increase from frame zero.',
+        );
+      if (duration !== undefined && cue.frame >= duration)
+        fail('TIMING_CONFLICT', 'Performance cue lies outside shot.');
+      last = cue.frame;
+    }
+  };
+  for (const layer of shot.layers) {
+    if (!Number.isFinite(layer.z))
+      fail('INVALID_INPUT', 'Expected finite explicit layer order.');
+    point(layer.anchor);
+    transform(layer.transform ?? {});
+    times(layer.keyframes ?? []);
+    for (const key of layer.keyframes ?? []) transform(key);
+    times(layer.poseCues ?? []);
+    for (const cue of layer.poseCues ?? [])
+      for (const field of ['expression', 'gaze'])
+        if (cue[field] !== undefined && typeof cue[field] !== 'string')
+          fail(
+            'INVALID_INPUT',
+            'Expression and gaze cues are descriptive text.',
+          );
+    const occurrence = scene.occurrences.find(
+      (o) => o.id === layer.occurrenceId,
+    );
+    if (layer.occurrenceId !== undefined && !occurrence)
+      fail('INVALID_REFERENCE', 'Layer occurrence does not belong to scene.');
+    for (const id of [
+      layer.slotId,
+      ...(layer.poseCues ?? []).map((c) => c.slotId),
+    ]) {
+      const slot = requireValue(store, projectId, 'assetSlot', id);
+      if (
+        slot.mediaKind !== 'image' ||
+        (slot.scope.kind === 'project' && slot.scope.id !== projectId) ||
+        (slot.scope.kind === 'production' &&
+          slot.scope.id !== scene.productionId) ||
+        (slot.scope.kind === 'scene' && slot.scope.id !== scene.id) ||
+        (slot.scope.kind === 'shot' && slot.scope.id !== shot.id)
+      )
+        fail('INVALID_REFERENCE', 'Layer image lies outside shot scope.');
+      if (slot.subject.kind === 'environment') {
+        if (occurrence)
+          fail(
+            'INVALID_REFERENCE',
+            'An environment image cannot impersonate an occurrence.',
+          );
+      } else {
+        const presentation = scene.presentations.find(
+          (p) => p.occurrenceId === occurrence?.id,
+        );
+        if (
+          !occurrence ||
+          occurrence.presence !== 'onscreen' ||
+          (slot.subject.kind === 'identity'
+            ? occurrence.characterId
+            : occurrence.roleBindingId) !== slot.subject.id ||
+          (presentation?.appearanceStateRef ?? null) !== slot.appearanceStateRef
+        )
+          fail(
+            'INVALID_REFERENCE',
+            'Layer image must match its onscreen occurrence identity and appearance state.',
+          );
+      }
+    }
+    if (layer.contact !== undefined) {
+      point(layer.contact?.anchor);
+      if (!ids.has(layer.contact.targetLayerId))
+        fail('INVALID_REFERENCE', 'Contact target is absent.');
+    }
+  }
+  const visiting = new Set(),
+    done = new Set();
+  const visit = (l) => {
+    if (visiting.has(l.id)) fail('INVALID_REFERENCE', 'Layer contact cycle.');
+    if (done.has(l.id)) return;
+    visiting.add(l.id);
+    if (l.contact)
+      visit(shot.layers.find((x) => x.id === l.contact.targetLayerId));
+    visiting.delete(l.id);
+    done.add(l.id);
+  };
+  for (const layer of shot.layers) visit(layer);
 }

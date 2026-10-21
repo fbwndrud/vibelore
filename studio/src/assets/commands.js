@@ -166,9 +166,11 @@ export function registerAssetCommands(service) {
 
       const baseBytes = await service.blobs.read(projectId, base.canonicalBlobId ?? base.blobId);
       let bytes, validation, lineage;
+      const parents = [base];
 
       if (p.operation === 'protected_edit') {
         const raw = candidateValue(store, projectId, p.candidateId);
+        parents.push(raw);
         checkPins(store, projectId, raw);
 
         if (raw.mediaKind !== 'image')
@@ -230,7 +232,7 @@ export function registerAssetCommands(service) {
             scope: slot.scope,
             subject: slot.subject,
             appearanceStateRef: slot.appearanceStateRef,
-            mediaKind: slot.mediaKind
+            mediaKind: slot.mediaKind,
           },
 
           blobId: blob.blobId,
@@ -241,8 +243,30 @@ export function registerAssetCommands(service) {
           metadata: decoded.metadata,
           validation,
           lineage,
-          baseAdoptionId: slot.adoptionId
-        }
+          ...(parents.some((parent) => parent.reuseRole)
+            ? {
+                reuseRole:
+                  parents.find((parent) =>
+                    ['style-reference', 'edit-target'].includes(
+                      parent.reuseRole,
+                    ),
+                  )?.reuseRole ??
+                  base.reuseRole ??
+                  parents.find((parent) => parent.reuseRole).reuseRole,
+                inheritedReuse: parents
+                  .filter((parent) => parent.reuseRole)
+                  .map((parent) => ({
+                    candidateId: parent.id,
+                    reuseRole: parent.reuseRole,
+                    reuseProvenance: parent.reuseProvenance ?? null,
+                  })),
+                ...(base.reuseProvenance
+                  ? { reuseProvenance: base.reuseProvenance }
+                  : {}),
+              }
+            : {}),
+          baseAdoptionId: slot.adoptionId,
+        },
       };
     },
 

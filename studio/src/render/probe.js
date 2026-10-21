@@ -17,7 +17,11 @@ export const renderCodePaths = (kind) => [
   "../assets/audio-import.js",
   "../engine/contracts.js",
   ...(kind === "video"
-    ? ["../../render/frame.js", "../../render/composition.jsx"]
+    ? [
+        "./performance.js",
+        "../../render/frame.js",
+        "../../render/composition.jsx",
+      ]
     : []),
 ];
 export async function verifyRenderEnvironment(environment, kind) {

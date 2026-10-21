@@ -1,3 +1,4 @@
+import { evaluatePerformance } from "../src/render/performance.js";
 // Browser + export entry: pure timing/interpolation, no provider or mutable state.
 export function frameAt({ edition, frame, fps = edition.closure.profile.fps }) {
   const c = edition.closure,
@@ -45,7 +46,9 @@ export function frameAt({ edition, frame, fps = edition.closure.profile.fps }) {
     frame,
     time,
     shotId: shot?.id ?? null,
-    layers: shot ? [{ blobId: shot.blobId }] : [],
+    layers: shot
+      ? evaluatePerformance({ shot, frame: frame - shot.startFrame })
+      : [],
     camera,
     safeArea: tr.safeArea ?? {
       left: 0.06,
@@ -84,9 +87,33 @@ export function drawFrame(ctx, { edition, frame, assets }) {
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "#15252c";
   ctx.fillRect(0, 0, w, h);
+  const layered = view.layers.some((layer) => layer.transform);
+  if (layered) {
+    ctx.save();
+    const pivotY =
+      view.camera.anchor === "top"
+        ? 0
+        : view.camera.anchor === "bottom"
+        ? h
+        : h / 2;
+    ctx.translate(w / 2 + view.camera.x * w, pivotY + view.camera.y * h);
+    ctx.scale(view.camera.scale, view.camera.scale);
+    ctx.translate(-w / 2, -pivotY);
+  }
   for (const layer of view.layers) {
     const img = assets.get(layer.blobId);
     if (!img) throw Error("Missing closed image");
+    if (layer.transform) {
+      ctx.save();
+      ctx.globalAlpha = layer.transform.opacity;
+      ctx.translate(layer.transform.x * w, layer.transform.y * h);
+      ctx.rotate(layer.transform.rotation);
+      const iw = layer.size.width * w,
+        ih = layer.size.height * h;
+      ctx.drawImage(img, -layer.anchor.x * iw, -layer.anchor.y * ih, iw, ih);
+      ctx.restore();
+      continue;
+    }
     const base = Math.max(w / img.width, h / img.height) * view.camera.scale,
       iw = img.width * base,
       ih = img.height * base;
@@ -94,8 +121,8 @@ export function drawFrame(ctx, { edition, frame, assets }) {
       view.camera.anchor === "top"
         ? 0
         : view.camera.anchor === "bottom"
-          ? h - ih
-          : (h - ih) / 2;
+        ? h - ih
+        : (h - ih) / 2;
     ctx.drawImage(
       img,
       (w - iw) / 2 + view.camera.x * w,
@@ -104,6 +131,7 @@ export function drawFrame(ctx, { edition, frame, assets }) {
       ih,
     );
   }
+  if (layered) ctx.restore();
   const gradient = ctx.createLinearGradient(0, h * 0.42, 0, h);
   gradient.addColorStop(0, "rgba(8,17,22,0)");
   gradient.addColorStop(1, "rgba(8,17,22,0.90)");

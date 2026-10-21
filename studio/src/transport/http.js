@@ -33,6 +33,7 @@ const staticFiles = new Map([
     'workflow.js',
     'management.js',
   ].map((file) => [`/${file}`, [file, 'text/javascript; charset=utf-8']]),
+  ['/src/render/performance.js', ['../src/render/performance.js', 'text/javascript; charset=utf-8']],
   ['/render/frame.js', ['../render/frame.js', 'text/javascript; charset=utf-8']],
   ['/studio.css', ['studio.css', 'text/css; charset=utf-8']],
 ]);

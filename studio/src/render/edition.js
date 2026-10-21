@@ -62,7 +62,14 @@ export function registerEditionCommands(service) {
           .revision !== prepared.defaultPolicyRevision
       )
         fail("POLICY_CONFLICT", "Default policy changed during preparation.");
-      for (const shot of c.shots) {
+      for (const shot of c.shots.flatMap((s) =>
+        s.layers === undefined
+          ? [s]
+          : s.layers.flatMap((l) => [
+              l.selection,
+              ...l.poseCues.map((c) => c.selection),
+            ]),
+      )) {
         const slot = requireValue(store, e.projectId, "assetSlot", shot.slotId);
         if (
           slot.adoptionId !== shot.adoptionId ||
@@ -283,13 +290,22 @@ export function decorateEditionSnapshot(store, snapshot) {
           kind: "timeline",
           id: e.productionId,
         }).revision !== e.closure.timelineRevision ||
-        e.closure.shots.some((sh) => {
-          const slot = store.aggregate(snapshot.project.id, {
-            kind: "assetSlot",
-            id: sh.slotId,
-          }).value;
-          return slot?.adoptionId !== sh.adoptionId;
-        });
+        e.closure.shots
+          .flatMap((s) =>
+            s.layers === undefined
+              ? [s]
+              : s.layers.flatMap((l) => [
+                  l.selection,
+                  ...l.poseCues.map((c) => c.selection),
+                ]),
+          )
+          .some((sh) => {
+            const slot = store.aggregate(snapshot.project.id, {
+              kind: "assetSlot",
+              id: sh.slotId,
+            }).value;
+            return slot?.adoptionId !== sh.adoptionId;
+          });
     } catch {}
     return { id: e.id, workingChanged };
   });

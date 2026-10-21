@@ -886,3 +886,17 @@ test('management handles scenes without shots without a negative connection coun
   assert.equal(root.textContent.includes('-1/0'),false);
   assert.match(root.textContent,/샷이 없습니다/);
 });
+
+
+test("working shot resolves saved multilayer pose assets before evaluating its live camera preview", async (t) => {
+  const { layeredFixture } = await import("./helpers/character-layers.js");
+  const { renderWorkingShot } = await import("../ui/player.js");
+  const f = await layeredFixture(t),
+    c = await context(t, f);
+  const { root, update } = renderWorkingShot(c, f.scene, f.scene.shots[0]);
+  const canvas = tree(root).find((x) => x.tag === "canvas");
+  assert.equal(JSON.parse(canvas.dataset.camera).x, 0);
+  assert.match(root.textContent, /현재 입력 구도/);
+  update({ x: 0.2 });
+  assert.equal(JSON.parse(canvas.dataset.camera).x, 0.2);
+});

@@ -1,3 +1,4 @@
+import { performanceImageIds } from "./performance.js";
 import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -38,7 +39,7 @@ export async function renderEdition({ edition, readBlob }) {
   let server;
   try {
     const data = new Map();
-    for (const id of new Set([...c.shots.map((s) => s.blobId), c.font.blobId]))
+    for (const id of new Set([...performanceImageIds(c.shots), c.font.blobId]))
       data.set(id, await readBlob(id));
     const token = randomBytes(24).toString("hex");
     server = createServer((req, res) => {

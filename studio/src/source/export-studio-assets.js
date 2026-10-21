@@ -219,7 +219,7 @@ export function createStudioOwnerAdapter({
     ) {
       for (const row of db
         .prepare(
-          "SELECT aggregate_kind,value_json FROM events WHERE project_id=? AND aggregate_kind IN ('timeline','edition')"
+          "SELECT aggregate_kind,value_json FROM events WHERE project_id=? AND aggregate_kind IN ('timeline','edition')",
         )
         .all(ref.projectId)) {
         const native = JSON.parse(row.value_json);
@@ -235,21 +235,79 @@ export function createStudioOwnerAdapter({
             track.adoptionId &&
             db
               .prepare(
-                "SELECT 1 FROM asset_adoptions WHERE project_id=? AND id=? AND json_extract(data_json,'$.candidateId')=? AND json_extract(data_json,'$.slotId')=?"
+                "SELECT 1 FROM asset_adoptions WHERE project_id=? AND id=? AND json_extract(data_json,'$.candidateId')=? AND json_extract(data_json,'$.slotId')=?",
               )
               .get(ref.projectId, track.adoptionId, value.id, track.slotId)
           )
             nativeTrackRoles.add(track.kind);
       }
     }
-    const roles = value.reuseRole
+    // A portable pose role requires accepted character use in an actual frozen
+    // layer stack. A reference's pixels, title or foreign approval are no proof.
+    const slot = value.slotIntent ?? value.recipe?.assetIntent;
+    const imageIdentity =
+      slot?.subject?.kind === "identity"
+        ? slot.subject.id
+        : slot?.subject?.kind === "role"
+        ? pinned("cast", slot.subject.id)?.characterId ?? null
+        : null;
+    const poseUses = [];
+    if (
+      ref.recordKind === "candidate" &&
+      mediaKind === "image" &&
+      imageIdentity &&
+      (!value.reuseRole || value.reuseRole === "identity-reference")
+    ) {
+      for (const row of db
+        .prepare(
+          "SELECT value_json FROM events WHERE project_id=? AND aggregate_kind='edition'",
+        )
+        .all(ref.projectId)) {
+        const edition = JSON.parse(row.value_json);
+        for (const shot of edition.closure?.shots ?? []) {
+          for (const layer of shot.layers ?? []) {
+            if (!layer.occurrenceId) continue;
+            for (const selection of [
+              layer.selection,
+              ...(layer.poseCues ?? []).map((cue) => cue.selection),
+            ]) {
+              if (
+                selection?.candidateId === value.id &&
+                selection.blobId === (value.canonicalBlobId ?? value.blobId) &&
+                db
+                  .prepare(
+                    "SELECT 1 FROM asset_adoptions WHERE project_id=? AND id=? AND json_extract(data_json,'$.candidateId')=? AND json_extract(data_json,'$.slotId')=?",
+                  )
+                  .get(
+                    ref.projectId,
+                    selection.adoptionId,
+                    value.id,
+                    selection.slotId,
+                  )
+              )
+                poseUses.push({
+                  editionId: edition.id,
+                  closureDigest: edition.closureDigest,
+                  shotId: shot.id,
+                  layerId: layer.id,
+                  occurrenceId: layer.occurrenceId,
+                  slotId: selection.slotId,
+                  adoptionId: selection.adoptionId,
+                });
+            }
+          }
+        }
+      }
+    }
+    const previousImageRole =
+      value.reuseRole ??
+      (imageIdentity ? "identity-reference" : "environment-reference");
+    const roles = poseUses.length
+      ? ["pose"]
+      : value.reuseRole
       ? [value.reuseRole]
       : mediaKind === "image"
-      ? [
-          value.slotIntent?.subject?.kind === "identity"
-            ? "identity-reference"
-            : "environment-reference",
-        ]
+      ? [previousImageRole]
       : mediaKind === "audio"
       ? nativeTrackRoles.size
         ? [...nativeTrackRoles].sort()
@@ -262,22 +320,25 @@ export function createStudioOwnerAdapter({
     const metadata = {
       mediaKind,
       roles,
+      ...(poseUses.length
+        ? { poseUses, previousRoles: [previousImageRole] }
+        : {}),
       subjects: [],
       title: value.title ?? value.id ?? ref.recordId,
     };
     if (ref.recordKind !== "candidate") return metadata;
-    const pinned = (kind, id) => {
+    function pinned(kind, id) {
       const pin = value.pins?.find((p) => p.kind === kind && p.id === id);
       if (!pin || pin.revision === 0) return null;
       const row = db
         .prepare(
-          "SELECT value_json FROM events WHERE project_id=? AND aggregate_kind=? AND aggregate_id=? AND aggregate_revision=?"
+          "SELECT value_json FROM events WHERE project_id=? AND aggregate_kind=? AND aggregate_id=? AND aggregate_revision=?",
         )
         .get(ref.projectId, kind, id, pin.revision);
       if (!row)
         fail("SOURCE_MISSING", "Pinned native source event is unavailable.");
       return JSON.parse(row.value_json);
-    };
+    }
     const stateRef = (id) => {
       for (const pin of value.pins ?? []) {
         if (!["story", "sourcePackage"].includes(pin.kind)) continue;
@@ -286,7 +347,7 @@ export function createStudioOwnerAdapter({
           pin.kind === "story"
             ? parent?.states?.map((s) => s.id)
             : parent?.sceneScopes?.flatMap((scope) =>
-                Object.values(scope.stateIds ?? {}).flat()
+                Object.values(scope.stateIds ?? {}).flat(),
               );
         if (ids?.includes(id))
           return nativeRef(
@@ -298,16 +359,15 @@ export function createStudioOwnerAdapter({
               kind: pin.kind,
               id: pin.id,
               revision: parent.sourceDigest ?? String(pin.revision),
-            })
+            }),
           );
       }
       fail(
         "SOURCE_MISSING",
-        "Native state revision is not retained in candidate pins."
+        "Native state revision is not retained in candidate pins.",
       );
     };
     const scene = value.sceneId ? pinned("scene", value.sceneId) : null;
-    const slot = value.slotIntent ?? value.recipe?.assetIntent;
     const binding = value.audioBinding ?? value.utteranceBinding;
     const addSubject = (identityId, stateIds) => {
       if (
@@ -321,7 +381,15 @@ export function createStudioOwnerAdapter({
           stateRefs: [...new Set(stateIds.filter(Boolean))].map(stateRef),
         });
     };
-    if (scene && mediaKind === "image") {
+    if (poseUses.length && slot?.subject?.kind !== "environment") {
+      const role =
+        slot.subject.kind === "role" ? pinned("cast", slot.subject.id) : null;
+      addSubject(
+        role?.characterId ??
+          (slot.subject.kind === "identity" ? slot.subject.id : null),
+        [slot.appearanceStateRef],
+      );
+    } else if (scene && mediaKind === "image") {
       const shot = scene.shots.find(
         (s) =>
           s.id ===
@@ -329,16 +397,16 @@ export function createStudioOwnerAdapter({
             ? slot.scope.id
             : value.target?.kind === "shot"
             ? value.target.id
-            : null)
+            : null),
       );
       const selectedOccurrences =
         shot?.occurrenceIds ??
         (shot?.targetOccurrenceId ? [shot.targetOccurrenceId] : null);
       for (const occurrence of scene.occurrences.filter(
-        (o) => !selectedOccurrences || selectedOccurrences.includes(o.id)
+        (o) => !selectedOccurrences || selectedOccurrences.includes(o.id),
       )) {
         const presentation = scene.presentations.find(
-          (p) => p.occurrenceId === occurrence.id
+          (p) => p.occurrenceId === occurrence.id,
         );
         addSubject(occurrence.characterId, [presentation?.appearanceStateRef]);
       }
@@ -348,7 +416,7 @@ export function createStudioOwnerAdapter({
       addSubject(
         cast?.characterId ??
           (slot?.subject?.kind === "identity" ? slot.subject.id : null),
-        [slot?.appearanceStateRef]
+        [slot?.appearanceStateRef],
       );
     }
     if (binding) {
@@ -361,7 +429,7 @@ export function createStudioOwnerAdapter({
       if (canonicalDigest(effective.text) !== binding.textDigest)
         fail(
           "SOURCE_CORRUPT",
-          "Pinned utterance differs from native audio binding."
+          "Pinned utterance differs from native audio binding.",
         );
       metadata.speechPerformance = portableSpeechPerformance(effective);
       if (binding.characterId !== null)

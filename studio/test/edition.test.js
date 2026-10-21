@@ -414,3 +414,34 @@ test("default video shots cover the latest actual overlapping take, including a 
   const { frameAt } = await import("../render/frame.js");
   assert.ok(frameAt({ edition: e, frame: 59 }).shotId);
 });
+
+test("layer edits freeze every accepted pose, adoption, evaluator and frame in the previous Edition", async (t) => {
+  const { layeredFixture, createLayerEdition } = await import(
+    "./helpers/character-layers.js"
+  );
+  const { frameAt } = await import("../render/frame.js");
+  const f = await layeredFixture(t),
+    old = (await createLayerEdition(f)).value;
+  const before = frameAt({ edition: old, frame: 10 });
+  assert.ok(
+    old.closure.environment.code.some((e) => e.path === "./performance.js"),
+  );
+  const layer = old.closure.shots[0].layers[1];
+  assert.equal(layer.selection.adoption.candidateId, "red");
+  assert.equal(layer.poseCues[0].selection.adoption.candidateId, "blue");
+  f.scene.shots[0].layers[1].keyframes[0].x = 0.4;
+  f.scene.shots[0].layers[1].poseCues = [];
+  await f.command("scene.put", f.scene, {
+    aggregate: { kind: "scene", id: f.scene.id },
+  });
+  const current = (await createLayerEdition(f, "changed")).value;
+  assert.notEqual(old.closureDigest, current.closureDigest);
+  const saved = (await f.service.snapshot("p1")).editions.find(
+    (e) => e.id === old.id,
+  );
+  assert.deepEqual(saved, old);
+  assert.deepEqual(frameAt({ edition: saved, frame: 10 }), before);
+  await f.service.collectGarbage("p1", { graceMs: 0 });
+  for (const id of old.closure.blobIds)
+    assert.ok((await f.service.readBlob("p1", id)).length);
+});

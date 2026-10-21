@@ -5,7 +5,8 @@ import {
   BLOB_ID,
   fail,
 } from "../engine/contracts.js";
-import { requireValue } from "../engine/story.js";
+import { PERFORMANCE_VERSION, evaluatePerformance } from "./performance.js";
+import { requireValue, validateShotLayers } from "../engine/story.js";
 import {
   resolveAcceptedSelection,
   adoptionDecision,
@@ -77,22 +78,29 @@ function resolveShots(store, projectId, inputs, timeline, intents, profile) {
         Math.max(start, ...takes.map((take) => take.endFrame));
     if (!scene.shots.length) fail("MISSING_IMAGE", "Video scene has no shots.");
     for (const [i, shot] of scene.shots.entries()) {
-      const slot = shot.referenceSlotId
-        ? requireValue(store, projectId, "assetSlot", shot.referenceSlotId)
-        : null;
-      if (!slot?.candidateId || slot.mediaKind !== "image")
+      const slot =
+        shot.layers === undefined && shot.referenceSlotId
+          ? requireValue(store, projectId, "assetSlot", shot.referenceSlotId)
+          : null;
+      if (
+        shot.layers === undefined &&
+        (!slot?.candidateId || slot.mediaKind !== "image")
+      )
         fail(
           "MISSING_IMAGE",
           "Every video shot needs an accepted reference image.",
         );
-      const scope = slot.scope;
+      const scope = slot?.scope ?? {};
       if (
         (scope.kind === "production" && scope.id !== scene.productionId) ||
         (scope.kind === "scene" && scope.id !== scene.id) ||
         (scope.kind === "shot" && scope.id !== shot.id)
       )
         fail("INVALID_REFERENCE", "Image is outside shot scope.");
-      const candidate = resolveAcceptedSelection(store, projectId, slot);
+      const candidate = slot
+        ? resolveAcceptedSelection(store, projectId, slot)
+        : null;
+      if (candidate) assertImageUse(candidate, slot, "shot");
       const intent = intents.find((x) => x.shotId === shot.id);
       let startFrame = Math.round(
           start + ((end - start) * i) / scene.shots.length,
@@ -125,17 +133,62 @@ function resolveShots(store, projectId, inputs, timeline, intents, profile) {
       }
       if (endFrame <= startFrame || endFrame > timeline.durationFrames)
         fail("TIMING_CONFLICT", "Shot has an invalid boundary.");
-      shots.push({
+      validateShotLayers(store, projectId, scene, shot, endFrame - startFrame);
+      const selection = (slotId, use) => {
+        const selectedSlot = requireValue(
+          store,
+          projectId,
+          "assetSlot",
+          slotId,
+        );
+        const selected = resolveAcceptedSelection(
+          store,
+          projectId,
+          selectedSlot,
+        );
+        assertImageUse(selected, selectedSlot, use);
+        assets.push(selected);
+        return {
+          blobId: selected.canonicalBlobId ?? selected.blobId,
+          candidateId: selected.id,
+          slotId,
+          adoptionId: selectedSlot.adoptionId,
+          metadata: selected.metadata,
+          candidate: selected,
+          slot: selectedSlot,
+          adoption: adoptionDecision(store, projectId, selectedSlot.adoptionId),
+        };
+      };
+      const layers = shot.layers?.map((layer) => ({
+        ...layer,
+        selection: selection(layer.slotId, "layer"),
+        poseCues: (layer.poseCues ?? []).map((cue) => ({
+          ...cue,
+          selection: selection(cue.slotId, "poseCue"),
+        })),
+      }));
+      const frozen = {
         ...shot,
+        ...(layers
+          ? { layers, layout: { width: profile.width, height: profile.height } }
+          : {}),
         sceneId: scene.id,
         startFrame,
         endFrame,
-        blobId: candidate.canonicalBlobId ?? candidate.blobId,
-        slotId: slot.id,
-        adoptionId: slot.adoptionId,
-        candidateId: candidate.id,
-      });
-      assets.push(candidate);
+        ...(candidate
+          ? {
+              blobId: candidate.canonicalBlobId ?? candidate.blobId,
+              slotId: slot.id,
+              adoptionId: slot.adoptionId,
+              candidateId: candidate.id,
+            }
+          : {}),
+      };
+      if (layers)
+        for (let frame = 0; frame < endFrame - startFrame; frame++)
+          evaluatePerformance({ shot: frozen, frame });
+      shots.push(frozen);
+      if (candidate) assets.push(candidate);
     }
   }
   if (
@@ -263,6 +316,9 @@ export async function prepareEdition(service, context) {
     inputDigest: timeline.inputDigest,
     profile,
     shots: visual.shots,
+    ...(visual.shots.some((s) => s.layers !== undefined)
+      ? { performanceVersion: PERFORMANCE_VERSION }
+      : {}),
     assets,
     font,
     mix,
@@ -303,4 +359,21 @@ export async function prepareEdition(service, context) {
     },
     defaultPolicyRevision: defaultPolicy.revision,
   };
+}
+
+function assertImageUse(candidate, slot, use) {
+  const role = candidate.reuseRole;
+  const allowed =
+    use === "poseCue"
+      ? ["pose"]
+      : slot.subject.kind === "environment"
+      ? ["environment-reference", "final-scene"]
+      : use === "layer"
+      ? ["identity-reference", "pose"]
+      : ["identity-reference", "pose", "final-scene"];
+  if (role && !allowed.includes(role))
+    fail(
+      "INVALID_REFERENCE",
+      "Preserved image role does not authorize this rendered selection.",
+    );
 }

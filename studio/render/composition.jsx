@@ -7,6 +7,7 @@ import {
   continueRender,
   cancelRender,
 } from "remotion";
+import { performanceImageIds } from "../src/render/performance.js";
 import { drawFrame } from "./frame.js";
 function Film({ edition, urls }) {
   const frame = useCurrentFrame(),
@@ -23,12 +24,11 @@ function Film({ edition, urls }) {
       await font.load();
       document.fonts.add(font);
       const map = new Map();
-      for (const shot of edition.closure.shots) {
-        if (map.has(shot.blobId)) continue;
+      for (const blobId of performanceImageIds(edition.closure.shots)) {
         const image = new Image();
-        image.src = urls[shot.blobId];
+        image.src = urls[blobId];
         await image.decode();
-        map.set(shot.blobId, image);
+        map.set(blobId, image);
       }
       if (active) {
         setAssets(map);
