@@ -65,7 +65,9 @@
     "NOTICE",
     "SECURITY.md",
     "docs/release-review.json",
-    "docs/LORE_STUDIO.md"
+    "docs/LORE_STUDIO.md",
+    "docs/reference/CREATIVE_ASSET_CYCLES.md",
+    "docs/reference/CREATIVE_ASSET_CYCLES_VERIFICATION.md"
   ],
   "bin": {
     "vibelore-mcp": "src/server.js"

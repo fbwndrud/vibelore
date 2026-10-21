@@ -61,7 +61,7 @@ engine의 `collectGarbage(projectId, {graceMs:60000})`는 보존 이력의 모�
 
 ## 검증 범위
 
-[구현 증거](research/studio-implementation-evidence-2026-10-09.json)에 TDD·독립 검토·수정·새 전체 회귀와 실제 로컬 산출물을 기록합니다. 8개 task의 독립 검토와 수정이 완료되었습니다. 전체 branch 검토에서 확인한 3개 Important 지적은 한 번의 수정 묶음(`ca451d6`)과 한 번의 제한 재검토로 모두 해소했으며 열린 지적은 없습니다. 전체 branch 검토를 다시 수행했다는 뜻은 아닙니다.
+[구현 증거](https://github.com/fbwndrud/vibelore/blob/26b0bca3ad0e0658d7a97a64eeda0d9c90ebfc49/docs/research/studio-implementation-evidence-2026-10-09.json)에 TDD·독립 검토·수정·새 전체 회귀와 실제 로컬 산출물을 기록합니다. 8개 task의 독립 검토와 수정이 완료되었습니다. 전체 branch 검토에서 확인한 3개 Important 지적은 한 번의 수정 묶음(`ca451d6`)과 한 번의 제한 재검토로 모두 해소했으며 열린 지적은 없습니다. 전체 branch 검토를 다시 수행했다는 뜻은 아닙니다.
 
 마지막 영향 범위 10개 파일의 143/143 테스트와 source check 774개 경로 검사가 통과했습니다. 앞선 전체 실행의 실패와 후속 검사 결과는 증거에 그대로 남습니다. 원작 폴더·공급자 없이 복원한 57.833초 MP4/WAV는 실제 재출력했으며, 최종 수정에서 렌더 fingerprint 파일과 lockfile은 바뀌지 않았습니다. 브라우저 파일 다운로드 완료와 인간의 청취·감상 승인은 별도로 확인되지 않았습니다.
 

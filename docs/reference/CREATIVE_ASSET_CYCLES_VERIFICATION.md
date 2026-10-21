@@ -274,7 +274,7 @@ All eight planned implementation tasks completed and passed their independent
 spec/quality gates. The whole-branch review raised exactly two Important findings
 (text second-hop selection and non-30-fps working preview); both were fixed in
 `8eff2946` and accepted by the single scoped final re-review. No open, parked or
-declined-to-judge findings remain. The [retained review](../superpowers/reviews/2026-10-21-creative-asset-cycles.md)
+declined-to-judge findings remain. The [retained review](https://github.com/fbwndrud/vibelore/blob/b02ef3512d090e390384f4d6a8f65980573ce5fe/docs/superpowers/reviews/2026-10-21-creative-asset-cycles.md)
 preserves the original findings, coverage, verification limits and final verdict.
 
 Final product code: `8eff2946`. Final complete Studio run on this exact code:
@@ -292,3 +292,34 @@ worktree is preserved on detached HEAD for user review and integration choice.
 The plan-specific scratch directory is removed only after all 38 decisions above
 and the final independent reports have durable tracked copies. Sibling scratch
 workspaces and the source checkouts remain untouched.
+
+## PR preparation after user authorization — 2026-10-21
+
+The user subsequently requested a pull request. The feature branch
+`codex/creative-asset-cycles` incorporates current `origin/main` (`9ed6d3d3`)
+in merge `6ae754ec`; no conflict resolution or Studio implementation change was
+needed. Main does not yet contain the earlier Studio foundation, so the PR
+includes that foundation and this asset-cycle extension together.
+
+Current main's packaging guard rejects development review JSON in the npm
+runtime package. The research record remains in Git and was removed from the
+package allowlist. Public asset-cycle guides are explicitly included, while
+links to internal review/evidence records use stable GitHub commit permalinks
+so packaged documentation stays complete. The package dry-run validates 290
+files; source metadata and recorded version checks pass. No npm publication.
+
+The first complete MCP run passed 1023/1024 with one package documentation-link
+failure caused by excluding the research record. After the link/guide corrections,
+the docs suite passed 5/5 and the complete MCP suite was rerun successfully.
+Final main-integrated validation, using the same Node 24 binary above:
+
+- engine: **1239/1239 passed**, zero failures/skips, 14464.252333 ms; `/tmp/creative-asset-cycles-pr-engine.log`.
+- MCP: **1024/1024 passed**, zero failures/skips, 79136.216 ms; `/tmp/creative-asset-cycles-pr-root-final.log`.
+- Studio: **516/516 passed**, zero failures/skips, 332981.399583 ms; `/tmp/creative-asset-cycles-pr-studio.log`.
+
+Commands: engine `--test 'test/**/*.test.js' 'test/**/*.test.mjs'`
+from `engine/`; MCP `--test 'test/**/*.test.js'` from the repository root;
+Studio `--test --test-concurrency=1 studio/test/*.test.js`. Studio ran without
+another test/render suite. All code changes were present for these final runs;
+only this verification record is updated afterward. The earlier unexplained
+default-concurrency renderer failure remains historical and is not claimed fixed.
