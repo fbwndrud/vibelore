@@ -13,6 +13,7 @@ import {
   queryCursor,
   readJSON,
   capabilities,
+  requireLibrary,
 } from './common.js';
 
 const staticFiles = new Map([
@@ -32,9 +33,17 @@ const staticFiles = new Map([
     'camera.js',
     'workflow.js',
     'management.js',
+    'library.js',
+    'performance.js',
   ].map((file) => [`/${file}`, [file, 'text/javascript; charset=utf-8']]),
-  ['/src/render/performance.js', ['../src/render/performance.js', 'text/javascript; charset=utf-8']],
-  ['/render/frame.js', ['../render/frame.js', 'text/javascript; charset=utf-8']],
+  [
+    '/src/render/performance.js',
+    ['../src/render/performance.js', 'text/javascript; charset=utf-8'],
+  ],
+  [
+    '/render/frame.js',
+    ['../render/frame.js', 'text/javascript; charset=utf-8'],
+  ],
   ['/studio.css', ['studio.css', 'text/css; charset=utf-8']],
 ]);
 const uiRoot = new URL('../../ui/', import.meta.url);
@@ -54,10 +63,12 @@ function json(response, status, body) {
 }
 export async function startStudioHttp({
   service,
+  library,
   port = 0,
   sourceCapture = false,
   providerCapabilities = [],
   projectId = 'p1',
+  destinationKey = randomBytes(32).toString('hex'),
 } = {}) {
   if (!service || !Number.isInteger(port) || port < 0 || port > 65535)
     throw new TransportError('INVALID_CONFIGURATION');
@@ -108,7 +119,9 @@ export async function startStudioHttp({
           if (stop.signal.aborted) break;
           if (
             !response.write(
-              `id: ${event.cursor}\nevent: studio\ndata: ${JSON.stringify(event)}\n\n`
+              `id: ${event.cursor}\nevent: studio\ndata: ${JSON.stringify(
+                event,
+              )}\n\n`,
             )
           ) {
             await new Promise((resolve) => {
@@ -160,15 +173,41 @@ export async function startStudioHttp({
           return json(response, 200, {
             token,
             projectId,
-            ...capabilities(sourceCapture),
+            destinationKey,
+            ...capabilities(sourceCapture, library),
             providers: providerCapabilities,
             rendering,
           });
+        if (
+          request.method === 'POST' &&
+          [
+            '/api/library/commands',
+            '/api/library/query',
+            '/api/library/export',
+            '/api/reuse/inspect',
+          ].includes(target.pathname)
+        ) {
+          const body = await readJSON(
+            request,
+            target.pathname === '/api/reuse/inspect'
+              ? IMPORT_LIMIT
+              : JSON_LIMIT,
+          );
+          const value =
+            target.pathname === '/api/reuse/inspect'
+              ? await service.inspectReuse(body)
+              : target.pathname === '/api/library/commands'
+              ? await requireLibrary(library).command(body)
+              : target.pathname === '/api/library/query'
+              ? await requireLibrary(library).query(body)
+              : await requireLibrary(library).exportExact(body);
+          return json(response, 200, value);
+        }
         if (request.method === 'GET' && target.pathname === '/api/snapshot')
           return json(
             response,
             200,
-            await service.snapshot(queryProject(target))
+            await service.snapshot(queryProject(target)),
           );
         if (
           request.method === 'POST' &&
@@ -177,23 +216,29 @@ export async function startStudioHttp({
           const upload = target.pathname === '/api/import';
           const envelope = await readJSON(
             request,
-            upload ? IMPORT_LIMIT : JSON_LIMIT
+            upload ? IMPORT_LIMIT : JSON_LIMIT,
           );
           if (upload && !importTypes.has(envelope?.type))
             throw new TransportError('INVALID_IMPORT');
           return json(response, 200, await service.command(envelope));
         }
         if (request.method === 'GET' && target.pathname === '/api/history')
-          return json(response, 200, await service.history(queryProject(target), {
-            limit: queryCursor(target.searchParams.get('limit') ?? '50'),
-            ...(target.searchParams.has('before') ? { before: queryCursor(target.searchParams.get('before')) } : {}),
-          }));
+          return json(
+            response,
+            200,
+            await service.history(queryProject(target), {
+              limit: queryCursor(target.searchParams.get('limit') ?? '50'),
+              ...(target.searchParams.has('before')
+                ? { before: queryCursor(target.searchParams.get('before')) }
+                : {}),
+            }),
+          );
         if (request.method === 'GET' && target.pathname === '/api/events')
           return await streamEvents(
             request,
             response,
             queryProject(target),
-            queryCursor(target.searchParams.get('after') ?? '0')
+            queryCursor(target.searchParams.get('after') ?? '0'),
           );
         if (
           request.method === 'GET' &&
@@ -258,7 +303,7 @@ export async function startStudioHttp({
           if (!request.complete) request.destroy();
         closePromise = (async () => {
           const stopped = new Promise((resolve, reject) =>
-            server.close((error) => (error ? reject(error) : resolve()))
+            server.close((error) => (error ? reject(error) : resolve())),
           );
           server.closeIdleConnections();
           await Promise.allSettled([...pending]);

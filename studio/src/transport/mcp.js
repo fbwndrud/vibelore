@@ -6,6 +6,7 @@ import {
   parseJSON,
   publicFailure,
   capabilities,
+  requireLibrary,
 } from './common.js';
 const tools = [
   {
@@ -43,12 +44,41 @@ const tools = [
     },
   },
 ];
+const libraryTools = ['command', 'query', 'export'].map((action) => ({
+  name: `studio_library_${action}`,
+  description: `Library ${action} through the shared exact-ref facade. Owner connections are explicit and local.`,
+  inputSchema: {
+    type: 'object',
+    properties: { request: { type: 'object' } },
+    required: ['request'],
+    additionalProperties: false,
+  },
+}));
+const reuseTools = [
+  {
+    name: 'studio_reuse_inspect',
+    description:
+      'Inspect exact bundle bytes and destination intent without importing or adopting.',
+    inputSchema: {
+      type: 'object',
+      properties: { request: { type: 'object' } },
+      required: ['request'],
+      additionalProperties: false,
+    },
+  },
+];
 export async function serveStudioMcp({
   service,
+  library,
   input = process.stdin,
   output = process.stdout,
   sourceCapture = false,
 }) {
+  const availableTools = [
+    ...tools,
+    ...reuseTools,
+    ...(library ? libraryTools : []),
+  ];
   let initialized = false;
   async function send(message) {
     if (!output.write(`${JSON.stringify(message)}\n`))
@@ -87,8 +117,9 @@ export async function serveStudioMcp({
       return error(-32600, 'Invalid request.');
     const upload =
       method === 'tools/call' &&
-      params.name === 'studio_command' &&
-      importTypes.has(params.arguments?.envelope?.type);
+      (params.name === 'studio_reuse_inspect' ||
+        (params.name === 'studio_command' &&
+          importTypes.has(params.arguments?.envelope?.type)));
     if (size > (upload ? IMPORT_LIMIT : JSON_LIMIT))
       return error(-32600, 'Request too large.');
     if (method === 'initialize') {
@@ -96,20 +127,23 @@ export async function serveStudioMcp({
       initialized = true;
       return answer({
         protocolVersion: ['2024-11-05', '2025-03-26', '2025-06-18'].includes(
-          params.protocolVersion
+          params.protocolVersion,
         )
           ? params.protocolVersion
           : '2024-11-05',
         capabilities: { tools: { listChanged: false } },
+        instructions: library
+          ? 'Library owners and projects must be explicitly registered.'
+          : 'Library is unavailable. Start with --library <directory>, then explicitly register owners and allowed projects. Reuse inspection and imported bundles remain available.',
         serverInfo: { name: 'lore-studio', version: '0.1.0' },
       });
     }
     if (method === 'notifications/initialized') return;
     if (!initialized) return error(-32002, 'Server is not initialized.');
     if (method === 'ping') return answer({});
-    if (method === 'tools/list') return answer({ tools });
+    if (method === 'tools/list') return answer({ tools: availableTools });
     if (method !== 'tools/call') return error(-32601, 'Method not found.');
-    if (!tools.some((tool) => tool.name === params.name))
+    if (!availableTools.some((tool) => tool.name === params.name))
       return error(-32602, 'Unknown tool.');
     try {
       const args = params.arguments ?? {};
@@ -117,10 +151,18 @@ export async function serveStudioMcp({
       if (params.name === 'studio_status')
         value = {
           snapshot: await service.snapshot(args.projectId),
-          ...capabilities(sourceCapture),
+          ...capabilities(sourceCapture, library),
         };
       else if (params.name === 'studio_events')
         value = await service.events(args.projectId, args.after ?? 0);
+      else if (params.name === 'studio_library_command')
+        value = await requireLibrary(library).command(args.request);
+      else if (params.name === 'studio_library_query')
+        value = await requireLibrary(library).query(args.request);
+      else if (params.name === 'studio_library_export')
+        value = await requireLibrary(library).exportExact(args.request);
+      else if (params.name === 'studio_reuse_inspect')
+        value = await service.inspectReuse(args.request);
       else value = await service.command(args.envelope);
       return answer({
         content: [{ type: 'text', text: JSON.stringify(value) }],

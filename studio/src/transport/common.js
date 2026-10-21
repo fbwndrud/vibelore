@@ -6,6 +6,8 @@ export const importTypes = new Set([
   'source.manuscript',
   'asset.import',
   'asset.derive',
+  'source.importBundle',
+  'asset.importBundle',
 ]);
 export class TransportError extends Error {
   constructor(code, status = 400) {
@@ -22,12 +24,12 @@ export function publicFailure(error) {
     error instanceof TransportError
       ? error.status
       : /CONFLICT|EXISTS|IMMUTABLE/.test(code)
-        ? 409
-        : /NOT_FOUND|MISSING|PROJECT_NOT_FOUND/.test(code)
-          ? 404
-          : trusted
-            ? 400
-            : 500;
+      ? 409
+      : /NOT_FOUND|MISSING|PROJECT_NOT_FOUND/.test(code)
+      ? 404
+      : trusted
+      ? 400
+      : 500;
   return { status, error: { code, message: 'Studio request failed.' } };
 }
 export function queryProject(url) {
@@ -50,7 +52,7 @@ export function parseJSON(bytes) {
 export async function readJSON(request, limit) {
   if (
     !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(
-      request.headers['content-type'] ?? ''
+      request.headers['content-type'] ?? '',
     )
   )
     throw new TransportError('UNSUPPORTED_MEDIA_TYPE', 415);
@@ -93,6 +95,20 @@ export async function readJSON(request, limit) {
   });
   return parseJSON(bytes);
 }
-export const capabilities = (sourceCapture) => ({
+export const capabilities = (sourceCapture, library) => ({
   sourceCapture: { available: Boolean(sourceCapture) },
+  library: {
+    available: Boolean(library),
+    ...(!library
+      ? {
+          setup:
+            'Start Studio with --library <directory>, then explicitly connect owners and projects.',
+        }
+      : {}),
+  },
 });
+
+export function requireLibrary(library) {
+  if (!library) throw new TransportError('LIBRARY_UNAVAILABLE', 503);
+  return library;
+}

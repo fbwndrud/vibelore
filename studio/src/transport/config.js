@@ -1,15 +1,20 @@
+import { physicalOwnerIdentity } from "../source/owner-io.js";
+import { openLibrary } from "../library/index.js";
+import { createStudioOwnerAdapter } from "../source/export-studio-assets.js";
+import { createVibeloreOwnerAdapter } from "../source/export-vibelore-assets.js";
 import { resolveGoogleCredential } from "../providers/credentials.js";
 import { googleProvider } from "../providers/google.js";
 import { resolve } from "node:path";
 import { stat } from "node:fs/promises";
 import { openStudio } from "../engine/index.js";
-import { assertId } from "../engine/contracts.js";
+import { assertId, canonicalDigest } from "../engine/contracts.js";
 import { TransportError } from "./common.js";
 export function parseOptions(args) {
   const options = { port: 0, projectId: "p1" };
   const seen = new Set();
   const allowed = new Set([
     "--project",
+    "--library",
     "--port",
     "--vibelore-root",
     "--project-id",
@@ -71,17 +76,36 @@ export async function configuredStudio(options) {
     directory: options.project,
     providers: { google },
   });
-  if (capture) {
-    const { registerSourceCaptureCommands } = await import(
-      "../source/source-package.js"
-    );
-    registerSourceCaptureCommands(service, { capture });
+  let library;
+  try {
+    if (options.library)
+      library = await openLibrary({
+        directory: options.library,
+        adapters: {
+          studio: createStudioOwnerAdapter,
+          vibelore: createVibeloreOwnerAdapter,
+        },
+      });
+    if (capture) {
+      const { registerSourceCaptureCommands } = await import(
+        "../source/source-package.js"
+      );
+      registerSourceCaptureCommands(service, { capture });
+    }
+    return {
+      service,
+      library,
+      destinationKey: canonicalDigest({
+        purpose: "studio-preservation-v1",
+        physical: await physicalOwnerIdentity(options.project, "studio.sqlite"),
+      }),
+      generationConfigured: Boolean(key),
+      providerCapabilities: [await google.capabilities()],
+      sourceCapture: Boolean(capture),
+      projectId: options.projectId ?? "p1",
+    };
+  } catch (error) {
+    await Promise.allSettled([library?.close(), service.close()]);
+    throw error;
   }
-  return {
-    service,
-    generationConfigured: Boolean(key),
-    providerCapabilities: [await google.capabilities()],
-    sourceCapture: Boolean(capture),
-    projectId: options.projectId ?? "p1",
-  };
 }

@@ -102,6 +102,8 @@ export class StudioAPI {
       "source.manuscript",
       "asset.import",
       "asset.derive",
+      "source.importBundle",
+      "asset.importBundle",
     ].includes(envelope.type);
     if (
       new TextEncoder().encode(body).length >
@@ -119,6 +121,13 @@ export class StudioAPI {
       })
     ).json();
   }
+  async post(path, value) {
+    return (await this.request(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)})).json();
+  }
+  libraryCommand(envelope) { return this.post('/api/library/commands',envelope); }
+  libraryQuery(request) { return this.post('/api/library/query',request); }
+  libraryExport(request) { return this.post('/api/library/export',request); }
+  inspectReuse(request) { return this.post('/api/reuse/inspect',{...request,projectId:this.projectId}); }
   async blob(candidate) {
     const response = await this.request(
       `/api/blobs/${candidate.blobId}?projectId=${encodeURIComponent(this.projectId)}`,

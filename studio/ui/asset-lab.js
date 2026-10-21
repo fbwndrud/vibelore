@@ -79,6 +79,7 @@ export function adoptCommand(
                 "appearanceStateRef",
                 "castingStateRef",
                 "utteranceId",
+                "audioRole",
               ]
                 .filter((key) => slot[key] !== undefined)
                 .map((key) => [key, slot[key]]),
@@ -375,6 +376,7 @@ export function renderAssetLab(c) {
           },
           ...(!slot
             ? [
+                {name:"audioRole",label:"WAV 음원 용도",value:"speech-take",options:[{value:"speech-take",label:"선택 발화의 음성"},{value:"music",label:"독립 음악"},{value:"sfx",label:"독립 효과음"}]},
                 {
                   name: "scope",
                   label: "적용 범위",
@@ -413,6 +415,7 @@ export function renderAssetLab(c) {
                   "appearanceStateRef",
                   "castingStateRef",
                   "utteranceId",
+                  "audioRole",
                 ]
                   .filter((k) => slot[k] !== undefined)
                   .map((k) => [k, slot[k]]),
@@ -420,7 +423,9 @@ export function renderAssetLab(c) {
             : null;
           if (!declaration) {
             const id = uid("slot");
-            if (kind === "audio") {
+            if (kind === "audio" && ['music','sfx'].includes(p.audioRole)) {
+              declaration={id,scope:{kind:p.scope,id:p.scope==='project'?s.project.id:p.scope==='production'?c.selection.production:p.scope==='scene'?scene?.id:c.selection.shot},subject:{kind:'environment',id:'sound'},appearanceStateRef:null,audioRole:p.audioRole};
+            } else if (kind === "audio") {
               if (!u) throw new Error("Edit에서 발화를 먼저 선택하세요.");
               declaration = {
                 id,
@@ -465,9 +470,7 @@ export function renderAssetLab(c) {
         {
           submit: "파일 가져오기",
           revision: slot ? revision(s, "assetSlot", slot.id) : 0,
-          description: u
-            ? `음원은 선택 발화 “${u.text.slice(0, 30)}”에 연결됩니다. 목소리를 먼저 배정하세요.`
-            : "음원은 Edit에서 선택한 발화에 연결됩니다.",
+          description: "WAV 용도를 고르세요. 독립 음악·효과음에는 발화나 목소리 배정이 필요 없습니다. 가져온 후보는 별도로 채택합니다.",
         },
       ),
     ),

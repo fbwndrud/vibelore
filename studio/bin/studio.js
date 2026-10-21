@@ -2,13 +2,14 @@
 import { runWorker } from "../src/engine/worker.js";
 import { parseOptions, configuredStudio } from "../src/transport/config.js";
 import { startStudioHttp } from "../src/transport/http.js";
-let service, app;
+let service, library, app;
 let shutdown;
 async function close() {
   if (!shutdown)
     shutdown = (async () => {
-      await app?.close();
-      await service?.close();
+      try { await app?.close(); } finally {
+        try { await library?.close(); } finally { await service?.close(); }
+      }
     })();
   return shutdown;
 }
@@ -16,6 +17,7 @@ try {
   const options = parseOptions(process.argv.slice(2));
   const configured = await configuredStudio(options);
   service = configured.service;
+  library = configured.library;
   if (configured.generationConfigured)
     runWorker({ service }).catch(() => {
       process.stderr.write(

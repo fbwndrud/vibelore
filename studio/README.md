@@ -48,6 +48,27 @@ The old attempt and hold remain. `complete` renders fresh audio and landscape
 Editions only when every selected Google take is ready. Existing local-voice
 productions are retained as historical artifacts; they are never a fallback.
 
+## Reusable Library and creative cycles
+
+Start with `--library /your/library` in either HTTP or MCP mode, then explicitly
+connect existing owner directories and allowed project IDs in Library. No folders
+are scanned or registered automatically. Without this option the interface explains
+how to enable Library. Search exact old refs, inspect purpose/identity/state mappings,
+preserve raw bytes, then separately review/adopt candidates or bind source packages.
+The browser queue retains each import command and receipt and retries unfinished
+items only. It never rolls back a successful text import because an image fails.
+
+Asset Lab can import independent music/SFX WAVs without speech/casting. The Edit
+layer/music panel provides native controls for silent spans, audio timing and
+complete multi-character layers, poses, motion and contacts. Existing working and
+frozen previews use the same evaluator as actual local MP4/WAV exports.
+
+See [Creative asset cycles](../docs/reference/CREATIVE_ASSET_CYCLES.md) for exact
+HTTP/MCP DTOs, migration, validated directory bundle roundtrip, normalization,
+role boundaries, and the actual three-cycle fixture. Video/structured discovery and
+portable preservation do not imply supported video-clip/structured consumption.
+No new provider, automatic generation, publishing or canon write is involved.
+
 ## Engine and extensions
 
 `openStudio({directory,providers={},renderer=null})` in `src/engine/index.js`
@@ -98,7 +119,7 @@ node studio/scripts/backup.js support /your/project p1 > support.json
 
 Project backup is private production content. Default support diagnostics are an
 allowlist excluding original text/media, credentials, and absolute source paths.
-Backup format and DB schema are v1; future versions are rejected, not downgraded.
+Backup metadata supports schema 1 and 2; Studio writes DB schema 2 and Library schema 1. Future versions are rejected, not downgraded. Explicitly opening a schema 1 destination with the new engine upgrades it atomically; back up with the old version first. Read-only Library registration never upgrades sources.
 
 Tests use temporary real SQLite/files, local dummy endpoints, concurrent services,
 child-process crash recovery, actual codecs and short installed-runtime renders.

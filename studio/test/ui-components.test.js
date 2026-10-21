@@ -900,3 +900,83 @@ test("working shot resolves saved multilayer pose assets before evaluating its l
   update({ x: 0.2 });
   assert.equal(JSON.parse(canvas.dataset.camera).x, 0.2);
 });
+
+test('native silent duration and independent music controls save through timeline commands',async t=>{
+  const { renderTimingEditor }=await import('../ui/performance.js');
+  const { layeredFixture }=await import('./helpers/character-layers.js');
+  const { assetImport }=await import('./helpers/images.js');
+  const f=await layeredFixture(t);
+  const slot={id:'music',scope:{kind:'scene',id:f.scene.id},subject:{kind:'environment',id:'room'},appearanceStateRef:null,audioRole:'music'};
+  await assetImport(f,'music',wav(),slot,'audio');
+  await f.command('candidate.adopt',{slotId:'music',candidateId:'music',actor:'artist',reason:'explicit music'},{aggregate:{kind:'assetSlot',id:'music'}});
+  const c=await context(t,f);c.selection.scene=f.scene.id;c.selection.production='main';
+  const root=renderTimingEditor(c);
+  named(root,'durationMs').value='700';
+  await submitForm(root,'장면 길이 저장').fire('submit');
+  const root2=renderTimingEditor(c);
+  named(root2,'slotId').value='music';named(root2,'kind').value='music';named(root2,'startMs').value='50';
+  await submitForm(root2,'독립 음원 추가').fire('submit');
+  const intent=(await f.service.snapshot('p1')).timelines.find(x=>x.productionId==='main').intent;
+  assert.equal(intent.sceneDurations[0].durationMs,700);
+  assert.equal(intent.tracks[0].startMs,50);
+  assert.equal(intent.tracks[0].slotId,'music');
+});
+test('native two-character layer and pose editor saves complete stack with radians and offsets',async t=>{
+  const { renderLayerEditor }=await import('../ui/performance.js');
+  const { layeredFixture }=await import('./helpers/character-layers.js');
+  const f=await layeredFixture(t),c=await context(t,f);c.selection.scene=f.scene.id;
+  const root=renderLayerEditor(c,f.scene,f.scene.shots[0]);
+  named(root,'layer-1-x').value='-0.15';named(root,'layer-1-rotation').value='0.25';
+  named(root,'layer-2-x').value='0.3';named(root,'layer-1-cue-0-frame').value='8';
+  await submitForm(root,'레이어·포즈 저장').fire('submit');
+  const shot=(await f.service.snapshot('p1')).scenes.find(x=>x.id===f.scene.id).shots[0];
+  assert.equal(shot.layers.length,3);assert.equal(shot.layers[1].transform.x,-0.15);assert.equal(shot.layers[1].transform.rotation,0.25);
+  assert.equal(shot.layers[2].transform.x,0.3);assert.equal(shot.layers[1].poseCues[0].frame,8);
+  assert.equal(shot.layers[1].keyframes[0].frame,10);
+});
+
+test('native WAV import chooses music without a selected utterance or casting, then explicitly adopts',async t=>{
+  const {withGeneration}=await import('./helpers/project.js');const f=await withGeneration(t),c=await context(t,f);
+  c.selection={scene:'scene',production:'main',shot:'shot',assetKind:'audio'};
+  const root=renderAssetLab(c),file=named(root,'file');
+  const data=wav();file.files=[{name:'music.wav',arrayBuffer:async()=>data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength)}];
+  assert.ok(named(root,'audioRole'),'A native sound role control is required');
+  named(root,'audioRole').value='music';
+  await submitForm(root,'파일 가져오기').fire('submit');
+  let s=await f.service.snapshot('p1');assert.equal(s.slots[0].audioRole,'music');assert.equal(s.slots[0].utteranceId,null);assert.equal(s.adoptions.length,0);assert.equal(s.jobs.length,0);
+  const adopted=renderAssetLab(c);await submitForm(adopted,'후보 채택').fire('submit');
+  s=await f.service.snapshot('p1');assert.equal(s.adoptions.length,1);assert.equal(s.slots[0].candidateId,s.candidates[0].id);
+});
+
+test('Library DOM inspects actual normalized bytes, queues preserve, and leaves adoption explicit',async t=>{
+  const {renderReuseSelection,PreservationQueue}=await import('../ui/library.js');
+  const {bundleFixture,ref}=await import('./helpers/bundles.js');const {hashBytes}=await import('../src/source/source-package.js');
+  const sharp=(await import('sharp')).default;
+  const f=await withAudioScene(t),c=await context(t,f),bytes=await sharp({create:{width:2,height:2,channels:3,background:'red'}}).jpeg().toBuffer(),hash=hashBytes(bytes);
+  const exported=bundleFixture({records:[{ref:ref(),metadata:{mediaKind:'image',roles:['environment-reference'],subjects:[]},requiredFileSha256s:[hash],sourcePins:{},evidenceRefs:[]}],files:[{sha256:hash,byteLength:bytes.length,mime:'image/jpeg',role:'selected-content'}]});exported.bytes={[hash]:[...bytes]};
+  const queue=await new PreservationQueue('test',{load:async()=>[],save:async()=>{}}).load();
+  const state={entry:{ref:ref(),title:'Actual JPEG fixture'},exported,queue};
+  c.api.inspectReuse=request=>f.service.inspectReuse({projectId:'p1',...request});
+  let root=renderReuseSelection(c,state);named(root,'purpose').value='Different scene setting';named(root,'slotId').value='library-scene';
+  await submitForm(root,'목적·연결 검사').fire('submit');
+  assert.equal(state.inspection.disposition,'compatible');assert.notEqual(state.inspection.materializations[0].sourceSha256,state.inspection.materializations[0].canonicalSha256);
+  root=renderReuseSelection(c,state);await tree(root).find(x=>x.tag==='button'&&x.textContent==='검사한 자료 보존 대기열에 추가').fire('click');
+  assert.equal(queue.items.length,1);await queue.resume(envelope=>f.service.command(envelope));
+  const s=await f.service.snapshot('p1');assert.ok(queue.items[0].receipt.value.importReceipt);assert.equal(s.adoptions.length,0);assert.equal(s.jobs.length,0);
+  const unsupported={...state,exported:structuredClone(exported)};unsupported.exported.bundle.records[0].metadata.mediaKind='video';
+  assert.match(renderReuseSelection(c,unsupported).textContent,/지원하지 않습니다/);
+});
+
+test('Library panel displays exact offline observation time and missing distinction without source access',async t=>{
+  const {renderLibrary,PreservationQueue}=await import('../ui/library.js');const {ref}=await import('./helpers/bundles.js');const f=await withAudioScene(t),c=await context(t,f);
+  c.api.bootstrap.library={available:true};c.libraryState={loaded:true,result:{registryRevision:1,owners:[],entries:[{ref:ref(),title:'Old exact pose',mediaKind:'image',availability:'offline',capabilities:['discover','preserve'],roles:['pose'],observed:{at:'2026-10-21T01:02:03.000Z'}}]},queue:await new PreservationQueue('display',{load:async()=>[],save:async()=>{}}).load()};
+  const root=renderLibrary(c);assert.match(root.textContent,/Old exact pose.*offline.*2026-10-21T01:02:03.000Z/);assert.match(root.textContent,/missing/);assert.match(root.textContent,/실시간 보장이 아닙니다/);
+});
+
+test('silent scene without any shot exposes native duration controls in Edit',async t=>{
+  const {withGeneration}=await import('./helpers/project.js');const f=await withGeneration(t);
+  const scene=(await f.service.snapshot('p1')).scenes[0];scene.shots=[];await f.command('scene.put',scene,{aggregate:{kind:'scene',id:'scene'}});
+  const c=await context(t,f);c.selection={production:'main',scene:'scene',inspector:'layers'};
+  const root=renderEdit(c);assert.ok(named(root,'durationMs'),'A silent shotless scene still needs authorable duration');
+  named(root,'durationMs').value='500';await submitForm(root,'장면 길이 저장').fire('submit');assert.equal((await f.service.snapshot('p1')).timelines[0].intent.sceneDurations[0].durationMs,500);
+});

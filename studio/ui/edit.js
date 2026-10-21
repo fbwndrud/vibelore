@@ -1,3 +1,4 @@
+import { renderLayerEditor, renderTimingEditor } from './performance.js';
 import { renderAssetLab } from './asset-lab.js';
 import { renderHistory, goToWork } from './workflow.js';
 import { keyframeEditor, cameraSuggestions, actingText, actingSuggestions, legacyActing } from './camera.js';
@@ -427,7 +428,8 @@ export function renderEdit(c) {
   const host = el('div',{class:'inspector-content'});
   const panels = new Map([['camera',el('section',{class:'inspector-panel'},camera)],['voice',voice]]);
   host.append(...panels.values());
-  const modes=[['camera','연출'],['voice','대사·음성'],['image','그림'],['history','이력']];
+  { const panel=el('section',{class:'inspector-panel'},shot ? renderLayerEditor(c,scene,shot) : null,renderTimingEditor(c)); panels.set('layers',panel);host.append(panel); }
+  const modes=[['layers','레이어·음악'],['camera','연출'],['voice','대사·음성'],['image','그림'],['history','이력']];
   function display(mode) {
     c.selection.inspector=mode;c.persist();
     for (const b of tabs.children) b.setAttribute('aria-pressed',String(b.dataset.mode===mode));

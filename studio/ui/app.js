@@ -1,3 +1,4 @@
+import { renderLibrary } from './library.js';
 import { productionProgress } from './workflow.js';
 import { StudioAPI, Drafts, command } from "./api.js";
 import { el, button, form, note, select } from "./dom.js";
@@ -10,6 +11,7 @@ const api = new StudioAPI(),
   drafts = new Drafts(),
   root = document.querySelector("#app");
 const workspaces = {
+  library: ['Library', '보존 자료와 재사용', renderLibrary],
   script: ['대본', '대본과 연기', renderScript],
   edit: ['연출', '장면 연출', renderEdit],
   production: ['제작 관리', '검수와 출력', renderProduction],

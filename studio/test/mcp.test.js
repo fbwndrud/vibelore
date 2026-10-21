@@ -64,7 +64,7 @@ it('uses real child stdio initialize/list/call and shares replay, CAS and events
   const listed = await c.request('tools/list');
   assert.deepEqual(
     listed.result.tools.map((x) => x.name),
-    ['studio_status', 'studio_command', 'studio_events']
+    ['studio_status', 'studio_command', 'studio_events', 'studio_reuse_inspect']
   );
   const envelope = {
     projectId: 'p1',

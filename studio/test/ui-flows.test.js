@@ -486,3 +486,22 @@ test('production progress does not report a WAV export as a completed landscape 
   assert.equal(productionProgress(s,'main','landscape').currentOutputs.length,0);
   assert.equal(productionProgress(s,'main','audio').currentOutputs.length,1);
 });
+
+test('resumable mixed preservation keeps each command ID and receipt and retries only unfinished items', async () => {
+  const { PreservationQueue } = await import('../ui/library.js');
+  let saved;
+  const storage = {load:async()=>saved,save:async(_key,value)=>{saved=structuredClone(value);}};
+  const queue = new PreservationQueue('destination:p1',storage);
+  await queue.load();
+  await queue.add({type:'source.importBundle',commandId:'source-fixed',payload:{}},'text');
+  await queue.add({type:'asset.importBundle',commandId:'asset-fixed',payload:{}},'image');
+  const sent=[];
+  await queue.resume(async envelope=>{sent.push(envelope.commandId);if(envelope.type==='asset.importBundle')throw Object.assign(new Error(),{code:'INPUT_STALE'});return {value:{id:'preserved-source'},replayed:false};});
+  assert.deepEqual(sent,['source-fixed','asset-fixed']);
+  const restored=new PreservationQueue('destination:p1',storage);await restored.load();
+  assert.equal(restored.items[0].receipt.value.id,'preserved-source');
+  await restored.resume(async envelope=>{sent.push(envelope.commandId);return {value:{candidate:{id:'preserved-image'}}};});
+  assert.deepEqual(sent,['source-fixed','asset-fixed','asset-fixed']);
+  assert.equal(restored.items[0].receipt.value.id,'preserved-source');
+  assert.equal(restored.items[1].receipt.value.candidate.id,'preserved-image');
+});
