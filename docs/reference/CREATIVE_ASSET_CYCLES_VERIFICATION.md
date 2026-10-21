@@ -14,7 +14,7 @@ processes/logs and finalized documentation/verification without redesigning code
 Fresh task and whole-branch reviews remain controller owned; implementer
 self-review is not independent artistic evaluation.
 
-Final full-suite status: complete serial follow-up passed 508/508 (exit 0),
+Initial implementation (`6c3a55c3`) full-suite status: complete serial follow-up passed 508/508 (exit 0),
 301435.307667 ms. The original default-concurrency run passed 507/508; its
 unexplained renderer failure and successful isolated follow-up remain below.
 
@@ -67,9 +67,55 @@ checks and actual installed Chrome/FFmpeg rendering. No lease checks were weaken
   this is not claimed as an observed exact command.
 - Final `git diff --check`: clean, exit 0.
 
+## Review fix round 1 — layer roles and durable structural drafts
+
+The independent Task 8 review found two editor issues at `6c3a55c3`: retained
+reference-only/identity-only images appeared in unsupported baseline/pose choices,
+and structural add/remove actions bypassed the form's durable draft hook. The fix
+changes only `studio/ui/performance.js`, its actual-DOM component regressions and
+this note. No engine, renderer, provider, source adapter or transport changed.
+
+The baseline selector now follows the existing consumer: marked character images
+allow identity-reference/pose; marked environments allow environment-reference/
+final-scene. Explicit pose switches allow marked pose only. Derived candidates use
+their retained `candidate.reuseRole`; no-marker native images retain existing
+identity/state/adoption checks. Existing invalid choices remain visibly disabled
+with an explanation, unavailable add-layer/add-pose actions are disabled with
+reasons, and a new cue chooses a supported image instead of copying an identity-
+only baseline. Every add/remove layer, movement or pose action dispatches a
+bubbling input event after redraw so the existing form saves its draft and CAS.
+
+All commands below use the Node 24 executable and `NODE_NO_WARNINGS=1` specified
+above. These are final scoped checks for this editor-only fix; the earlier 508/508
+full-suite and media evidence predate it. The controller explicitly scoped this
+round to UI and relevant layer tests, so full rendering/full-suite runs were not
+repeated.
+
+- Regression command: `--test --test-name-pattern='layer editor separates|layer editor disables|structural layer' studio/test/ui-components.test.js`.
+  Correct RED `/tmp/task8-fix1-red2.log`: 0/3, 1922.224125 ms; failures showed
+  style-reference remained selectable, no-pose add action stayed enabled, and
+  structural persistence count stayed 0. The first RED attempt
+  `/tmp/task8-fix1-red.log` had two native fixture STALE_BASE errors (derivation
+  requires an already adopted base); that setup was corrected before production
+  edits, and is not claimed as editor-failure evidence. First GREEN attempt
+  `/tmp/task8-fix1-green.log` exposed conditional null native-DOM appends; the
+  implementation was corrected without relaxing assertions. Final GREEN
+  `/tmp/task8-fix1-green2.log`: 3/3, 1775.004209 ms, exit 0.
+- Complete UI suites: `--test studio/test/ui-components.test.js studio/test/ui-flows.test.js`,
+  `/tmp/task8-fix1-ui.log`: 57/57, 11876.836083 ms, exit 0. Regressions use
+  actual import/derive/adopt commands and DOM form submissions, check supported
+  baseline/pose roles and disabled invalid selections, and recover all six
+  structural edits after rerender while preserving the original scene CAS.
+- Relevant layer contracts: `--test --test-name-pattern='scene validates explicit layer|owner exports actually accepted pose|retained image roles|missing acceptance|preview readiness|native role-bound image' studio/test/character-layers.test.js`,
+  `/tmp/task8-fix1-layers.log`: 6/6, 9198.333708 ms, exit 0. Exact role retention,
+  identity/state/occurrence and acceptance guards remain unchanged.
+- Final `git diff --check`: clean, exit 0. No new contract concern was found.
+  The initial default-concurrency render failure remains the separately disclosed
+  limitation above; no new causal claim or renderer change was made.
+
 ## Final local media evidence
 
-The last complete serial-suite three-cycle run wrote `/tmp/task8-three-cycle-evidence.json` (local workflow time 56673.079084 ms, including four actual MP4 renders plus WAV). These scratch artifacts are not committed; the observed hashes/timings are preserved here. All MP4s are 0.5 seconds, 15 H.264 frames at 30 fps, 1280×720, with AAC stereo 48 kHz; video/audio decoding and profile checks passed.
+The last complete serial-suite three-cycle run (before the editor-only review fixes below) wrote `/tmp/task8-three-cycle-evidence.json` (local workflow time 56673.079084 ms, including four actual MP4 renders plus WAV). These scratch artifacts are not committed; the observed hashes/timings are preserved here. All MP4s are 0.5 seconds, 15 H.264 frames at 30 fps, 1280×720, with AAC stereo 48 kHz; video/audio decoding and profile checks passed.
 
 | Artifact under `/tmp/` | Bytes | SHA-256 | Local render ms |
 | --- | ---: | --- | ---: |

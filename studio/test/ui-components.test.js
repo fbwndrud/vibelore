@@ -64,6 +64,12 @@ class Element {
     this._text = String(value);
     this.children = [];
   }
+  dispatchEvent(event) {
+    const delivered = { preventDefault() {}, target: this };
+    for (let node = this; node; node = event.bubbles ? node.parent : null)
+      for (const fn of node.listeners[event.type] ?? []) fn(delivered);
+    return true;
+  }
   async fire(type) {
     for (const fn of this.listeners[type] ?? [])
       await fn({ preventDefault() {}, target: this });
@@ -979,4 +985,115 @@ test('silent scene without any shot exposes native duration controls in Edit',as
   const c=await context(t,f);c.selection={production:'main',scene:'scene',inspector:'layers'};
   const root=renderEdit(c);assert.ok(named(root,'durationMs'),'A silent shotless scene still needs authorable duration');
   named(root,'durationMs').value='500';await submitForm(root,'장면 길이 저장').fire('submit');assert.equal((await f.service.snapshot('p1')).timelines[0].intent.sceneDurations[0].durationMs,500);
+});
+
+
+async function retainedLayerImages(t) {
+  const { layeredFixture } = await import('./helpers/character-layers.js');
+  const { bundleFixture, ref, pngSha256 } = await import('./helpers/bundles.js');
+  const f = await layeredFixture(t), slots = {};
+  for (const role of ['style-reference', 'edit-target', 'identity-reference', 'pose', 'environment-reference', 'final-scene']) {
+    const source = ref(), state = ref({ recordKind: 'state', recordId: 'appearance' });
+    const subject = { ownerId: source.ownerId, projectId: source.projectId, identityId: 'hero', stateRefs: [state] };
+    const environment = ['environment-reference', 'final-scene'].includes(role);
+    const slot = { id: `retained-${role}`, scope: { kind: 'project', id: 'p1' },
+      subject: environment ? { kind: 'environment', id: 'stage' } : { kind: 'identity', id: 'char' },
+      appearanceStateRef: environment ? null : 'adult' };
+    const data = bundleFixture({ records: [{ ref: source, metadata: { mediaKind: 'image', roles: [role], subjects: environment ? [] : [subject], selectedContentSha256: pngSha256 }, requiredFileSha256s: [pngSha256], sourcePins: {}, evidenceRefs: [] }] });
+    const intent = { target: { kind: 'assetSlot', id: slot.id }, purpose: 'Review exact retained image role',
+      identityMap: environment ? [] : [{ source: subject, destinationIdentityId: 'char' }],
+      stateMap: environment ? [] : [{ source: state, destinationStateId: 'adult' }],
+      selections: [{ source, slot, role }] };
+    const inspected = await f.service.inspectReuse({ projectId: 'p1', ...data, intent });
+    assert.equal(inspected.disposition, 'compatible');
+    let candidate = (await f.command('asset.importBundle', { ...data, intent, inspectionDigest: inspected.inspectionDigest, actor: 'artist', reason: 'Preserve actual role' }, { aggregate: intent.target })).value.candidate;
+    await f.command('candidate.adopt', { slotId: slot.id, candidateId: candidate.id, actor: 'artist', reason: 'Explicit role selection' }, { aggregate: intent.target });
+    if (role === 'style-reference') {
+      candidate = (await f.command('asset.derive', { id: 'derived-style', slotId: slot.id, baseCandidateId: candidate.id, operation: 'crop', rect: { left: 0, top: 0, width: 1, height: 1 }, actor: 'artist' }, { aggregate: intent.target })).value.candidate;
+      assert.equal(candidate.reuseRole, role, 'A derived reference retains its consumer role');
+      await f.command('candidate.adopt', { slotId: slot.id, candidateId: candidate.id, actor: 'artist', reason: 'Select derived reference' }, { aggregate: intent.target });
+    }
+    slots[role] = slot;
+  }
+  return { ...f, retainedSlots: slots };
+}
+
+test('layer editor separates retained baseline and pose roles, explains exclusions and keeps legacy choices', async t => {
+  const { renderLayerEditor } = await import('../ui/performance.js');
+  const f = await retainedLayerImages(t), c = await context(t, f), scene = structuredClone(f.scene);
+  scene.shots[0].layers = [scene.shots[0].layers[1]];
+  scene.shots[0].layers[0].slotId = f.retainedSlots['identity-reference'].id;
+  scene.shots[0].layers[0].poseCues[0].slotId = f.retainedSlots.pose.id;
+  const root = renderLayerEditor(c, scene, scene.shots[0]);
+  const enabled = select => select.children.filter(option => !option.disabled).map(option => option.value);
+  const baseline = enabled(named(root, 'layer-0-slotId'));
+  const cues = enabled(named(root, 'layer-0-cue-0-slot'));
+  for (const role of ['style-reference', 'edit-target']) {
+    assert.equal(baseline.includes(f.retainedSlots[role].id), false, `${role} must stay reference-only`);
+    assert.equal(cues.includes(f.retainedSlots[role].id), false);
+  }
+  for (const role of ['identity-reference', 'pose', 'environment-reference', 'final-scene'])
+    assert.ok(baseline.includes(f.retainedSlots[role].id), `Supported ${role} baseline is available`);
+  assert.ok(cues.includes(f.retainedSlots.pose.id));
+  for (const role of ['identity-reference', 'environment-reference', 'final-scene'])
+    assert.equal(cues.includes(f.retainedSlots[role].id), false, `${role} is not an explicit pose`);
+  assert.ok(baseline.includes('red') && cues.includes('blue'), 'Native no-marker images retain legacy selection rules');
+  assert.match(root.textContent, /style-reference.*edit-target.*참조/);
+  assert.match(root.textContent, /identity-reference.*pose/);
+  const invalidScene = structuredClone(scene);
+  invalidScene.shots[0].layers[0].slotId = f.retainedSlots['style-reference'].id;
+  invalidScene.shots[0].layers[0].poseCues[0].slotId = f.retainedSlots['identity-reference'].id;
+  const invalid = renderLayerEditor(c, invalidScene, invalidScene.shots[0]);
+  assert.equal(named(invalid, 'layer-0-slotId').children.find(x => x.value === f.retainedSlots['style-reference'].id).disabled, true);
+  assert.equal(named(invalid, 'layer-0-cue-0-slot').children.find(x => x.value === f.retainedSlots['identity-reference'].id).disabled, true);
+  assert.match(invalid.textContent, /지원하지 않는 선택.*역할·범위 확인/);
+  await tree(root).find(x => x.tag === 'button' && x.textContent === '포즈 전환 추가').fire('click');
+  assert.ok(enabled(named(root, 'layer-0-cue-1-slot')).includes(named(root, 'layer-0-cue-1-slot').value));
+  assert.notEqual(named(root, 'layer-0-cue-1-slot').value, f.retainedSlots['identity-reference'].id, 'Adding a cue cannot copy an identity-only baseline');
+  await submitForm(root, '레이어·포즈 저장').fire('submit');
+  const saved = (await f.service.snapshot('p1')).scenes.find(x => x.id === scene.id).shots[0].layers[0];
+  assert.equal(saved.slotId, f.retainedSlots['identity-reference'].id);
+  assert.equal(saved.poseCues[0].slotId, f.retainedSlots.pose.id);
+});
+
+test('layer editor disables unavailable pose and baseline additions with visible reasons', async t => {
+  const { renderLayerEditor } = await import('../ui/performance.js');
+  const f = await retainedLayerImages(t), c = await context(t, f), scene = structuredClone(f.scene);
+  scene.shots[0].layers = [{ ...scene.shots[0].layers[1], slotId: f.retainedSlots['identity-reference'].id, poseCues: [] }];
+  c.snapshot.slots = c.snapshot.slots.filter(x => x.id === f.retainedSlots['identity-reference'].id);
+  let root = renderLayerEditor(c, scene, scene.shots[0]);
+  assert.equal(tree(root).find(x => x.tag === 'button' && x.textContent === '포즈 전환 추가').disabled, true);
+  assert.match(root.textContent, /포즈 전환.*pose.*없/);
+  c.snapshot.slots = (await f.service.snapshot('p1')).slots.filter(x => x.id === f.retainedSlots['style-reference'].id);
+  scene.shots[0].layers = [];
+  root = renderLayerEditor(c, scene, scene.shots[0]);
+  assert.equal(tree(root).find(x => x.tag === 'button' && x.textContent === '레이어 추가').disabled, true);
+  assert.match(root.textContent, /기본 레이어.*없/);
+});
+
+test('structural layer, movement and pose edits persist drafts across every rerender', async t => {
+  const { renderLayerEditor } = await import('../ui/performance.js');
+  const { layeredFixture } = await import('./helpers/character-layers.js');
+  const f = await layeredFixture(t), c = await context(t, f), scene = structuredClone(f.scene);
+  scene.shots[0].layers = [scene.shots[0].layers[1]];
+  let persisted = 0, root = renderLayerEditor(c, scene, scene.shots[0]);
+  c.persist = () => { persisted++; };
+  const layers = () => JSON.parse(named(root, 'layers').value);
+  const edit = async (label, verify) => {
+    const before = persisted;
+    await tree(root).filter(x => x.tag === 'button' && x.textContent === label).at(-1).fire('click');
+    assert.equal(persisted, before + 1, `${label} must trigger the form's durable draft hook`);
+    verify(layers());
+    root = renderLayerEditor(c, scene, scene.shots[0]);
+    verify(layers());
+  };
+  await edit('움직임 시점 추가', value => assert.equal(value[0].keyframes.length, 2));
+  await edit('포즈 전환 추가', value => assert.equal(value[0].poseCues.length, 2));
+  await edit('마지막 움직임 제거', value => assert.equal(value[0].keyframes.length, 1));
+  await edit('마지막 포즈 제거', value => assert.equal(value[0].poseCues.length, 1));
+  await edit('레이어 추가', value => assert.equal(value.length, 2));
+  await edit('레이어 제거', value => assert.equal(value.length, 1));
+  assert.equal(c.drafts.get(`layers:${scene.id}:${scene.shots[0].id}`).revision, c.snapshot.aggregates.find(x => x.kind === 'scene' && x.id === scene.id).revision);
+  await submitForm(root, '레이어·포즈 저장').fire('submit');
+  assert.equal((await f.service.snapshot('p1')).scenes.find(x => x.id === scene.id).shots[0].layers.length, 1);
 });

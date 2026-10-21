@@ -29,28 +29,52 @@ function layerControls(value, c, scene, shot) {
   let layers = JSON.parse(value || '[]');
   const root = el('div', { class: 'layer-editor' });
   let readers = [];
-  const imageOptions = acceptedImages(c, scene, shot).map((slot) => ({
-    value: slot.id,
-    label: assetSlotLabel(c.snapshot, slot),
-  }));
+  const imageChoices = (use) => acceptedImages(c, scene, shot).flatMap((slot) => {
+    const role = c.snapshot.candidates.find((candidate) => candidate.id === slot.candidateId)?.reuseRole;
+    // Match the retained-role guard in render/closure.js; unmarked native images
+    // keep their legacy identity/state/adoption checks in the engine.
+    const allowed = use === 'poseCue'
+      ? ['pose']
+      : slot.subject.kind === 'environment'
+        ? ['environment-reference', 'final-scene']
+        : ['identity-reference', 'pose'];
+    return role && !allowed.includes(role) ? [] : [{
+      value: slot.id,
+      label: assetSlotLabel(c.snapshot, slot),
+    }];
+  });
+  const imageOptions = imageChoices('layer'), poseOptions = imageChoices('poseCue');
   function read() {
     return readers.map((fn) => fn());
+  }
+  function changed() {
+    redraw();
+    root.dispatchEvent(new Event('input', { bubbles: true }));
   }
   function redraw() {
     readers = [];
     root.replaceChildren();
+    root.append(
+      note('기본 인물 레이어는 identity-reference·pose, 배경은 environment-reference·final-scene, 포즈 전환은 pose 역할을 사용합니다.'),
+      note('style-reference·edit-target은 참조 전용입니다. 역할 표기가 없는 기존 이미지는 기존 인물·상태 검사를 따릅니다.'),
+    );
+    if (!imageOptions.length)
+      root.append(note('기본 레이어에 사용할 채택 이미지가 없습니다. 지원 역할의 이미지를 먼저 채택하세요.'));
     layers.forEach((layer, index) => {
       const box = card(`레이어 ${index + 1}`),
         controls = new Map();
       const field = (key, label, value, options) => {
-        const input = options
+        const choices = options && value && !options.some((option) => option.value === value)
+          ? [{ value, label: `지원하지 않는 선택 · ${value} (역할·범위 확인)`, disabled: true }, ...options]
+          : options;
+        const input = choices
           ? el(
               'select',
               { name: `layer-${index}-${key}` },
-              options.map((o) =>
+              choices.map((o) =>
                 el(
                   'option',
-                  { value: o.value, selected: o.value === value },
+                  { value: o.value, selected: o.value === value, disabled: Boolean(o.disabled) },
                   o.label,
                 ),
               ),
@@ -114,7 +138,7 @@ function layerControls(value, c, scene, shot) {
             `cue-${i}-slot`,
             '전환할 채택 포즈',
             cue.slotId,
-            imageOptions,
+            poseOptions,
           ),
           expression = field(
             `cue-${i}-expression`,
@@ -170,6 +194,8 @@ function layerControls(value, c, scene, shot) {
             }
           : undefined,
       }));
+      if (!poseOptions.length)
+        box.append(note('포즈 전환에 사용할 채택 pose 이미지가 없습니다. identity-reference는 기본 인물 레이어에만 사용할 수 있습니다.'));
       box.append(
         button('움직임 시점 추가', () => {
           layers = read();
@@ -177,36 +203,39 @@ function layerControls(value, c, scene, shot) {
             frame: (layers[index].keyframes.at(-1)?.frame ?? 0) + 1,
             x: 0,
           });
-          redraw();
+          changed();
         }),
         button('포즈 전환 추가', () => {
+          if (!poseOptions.length) return;
           layers = read();
           layers[index].poseCues.push({
             frame: (layers[index].poseCues.at(-1)?.frame ?? 0) + 1,
-            slotId: layers[index].slotId,
+            slotId: poseOptions.some((option) => option.value === layers[index].slotId)
+              ? layers[index].slotId : poseOptions[0].value,
           });
-          redraw();
-        }),
+          changed();
+        }, { disabled: !poseOptions.length }),
         button('마지막 움직임 제거', () => {
           layers = read();
           layers[index].keyframes.pop();
-          redraw();
+          changed();
         }),
         button('마지막 포즈 제거', () => {
           layers = read();
           layers[index].poseCues.pop();
-          redraw();
+          changed();
         }),
         button('레이어 제거', () => {
           layers = read();
           layers.splice(index, 1);
-          redraw();
+          changed();
         }),
       );
       root.append(box);
     });
     root.append(
       button('레이어 추가', () => {
+        if (!imageOptions.length) return;
         layers = read();
         layers.push({
           id: uid('layer'),
@@ -214,8 +243,8 @@ function layerControls(value, c, scene, shot) {
           z: layers.length,
           anchor: { x: 0.5, y: 0.5 },
         });
-        redraw();
-      }),
+        changed();
+      }, { disabled: !imageOptions.length }),
     );
   }
   Object.defineProperty(root, 'value', {
