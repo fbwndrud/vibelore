@@ -63,6 +63,7 @@ export function manuscriptPackage(p, bytes, provenance = {}) {
     title: p.title,
     language: p.language,
     textUnits: [{ id: 'manuscript', text, blobId }],
+    selectedTextBlobId: blobId,
     sceneScopes: [],
     sourceIdentityMap: [],
     blobManifest: [

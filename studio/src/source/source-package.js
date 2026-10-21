@@ -54,6 +54,21 @@ function referenceIds(items, allowed = null) {
     if (allowed && !allowed.has(id)) fail('INVALID_REFERENCE', 'Source reference closure is incomplete.');
   return ids;
 }
+// New packages pin the selected text bytes explicitly. Legacy packages can be
+// consumed only when their text units identify one distinct preserved blob.
+export function selectedSourceTextBlobId(pkg) {
+  const hashes = new Set(
+    pkg.textUnits.map((unit) => unit.blobId).filter(
+      (hash) => BLOB_ID.test(hash) && pkg.blobManifest.some((file) => file.blobId === hash)
+    )
+  );
+  if (Object.hasOwn(pkg, 'selectedTextBlobId')) {
+    if (!BLOB_ID.test(pkg.selectedTextBlobId) || !hashes.has(pkg.selectedTextBlobId))
+      fail('INVALID_REFERENCE', 'Selected text must name preserved text-unit bytes.');
+    return pkg.selectedTextBlobId;
+  }
+  return hashes.size === 1 ? [...hashes][0] : undefined;
+}
 export function validateSourcePackage(pkg) {
   canonicalJSON(pkg);
   assertPortable(pkg);
@@ -88,6 +103,7 @@ export function validateSourcePackage(pkg) {
     if (unit.blobId !== undefined && (!BLOB_ID.test(unit.blobId) || !blobs.has(unit.blobId)))
       fail('INVALID_REFERENCE', 'Text unit blob is absent.');
   }
+  selectedSourceTextBlobId(pkg);
   const stateDefinitions =
     pkg.states?.sourceStateMap === undefined ? null : collectionIds(pkg.states.sourceStateMap);
   if (stateDefinitions) for (const state of pkg.states.sourceStateMap) assertText(state.sourceStateId);

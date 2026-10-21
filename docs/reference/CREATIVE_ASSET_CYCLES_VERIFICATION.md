@@ -113,9 +113,66 @@ repeated.
   The initial default-concurrency render failure remains the separately disclosed
   limitation above; no new causal claim or renderer change was made.
 
+## Whole-branch final fixes — repeated text reuse and working preview timing
+
+The final independent review at `aa8249bd` found two Important integration defects:
+imported text lost its selected-content designation on reexport, and working layer
+preview converted frame-based performance at 30 fps even for other timeline rates.
+This combined fix retains the existing source/import/evaluator paths.
+
+New manuscript packages pin `selectedTextBlobId` to exact preserved text-unit
+bytes; export emits the existing portable `metadata.selectedContentSha256`.
+Existing native and imported packages without that pin remain usable when their
+text units identify exactly one distinct preserved blob. Multiple texts never
+select the first manifest entry: they need an explicit pin. Invalid pins fail
+validation. Reexport also includes the imported text's original bundle records
+and links as historical evidence while preserving its original manifest/raw bytes
+and source pins. No existing package, native revision or schema is rewritten.
+
+Working preview resolves fps from the owning scene's current production timeline,
+uses it for all frame/millisecond conversions and its preview closure, and keeps
+30 fps for untimed legacy shots. An unrelated selected production cannot change
+that clock. DOM regressions compare actual component draw selection/movement at
+500 ms with a real frozen Edition: 60 fps selects the frame-30 pose and x=0.8;
+30 fps and untimed legacy controls retain their earlier pose and x=0.525.
+This checks the actual evaluator/drawing boundary, not browser pixels or artistic
+quality. The covering existing layer tests also render and decode local MP4s.
+
+All commands use the exact Node 24 executable and `NODE_NO_WARNINGS=1` above, with
+host permission for unchanged process-incarnation/lease and local renderer guards.
+
+- Regression RED: `--test --test-concurrency=1 --test-name-pattern='native manuscript text survives|native text packages never|working layer preview' studio/test/library-owners.test.js studio/test/ui-components.test.js`,
+  `/tmp/creative-asset-cycles-final-fix-red.log`: 2/5 pass, three expected failures,
+  4743.566292 ms. Text reexport failed `BUNDLE_INCOMPLETE`, multiple native texts
+  chose the first, and the 60-fps DOM preview selected the old pose at 500 ms.
+- Regression GREEN: same arguments,
+  `/tmp/creative-asset-cycles-final-fix-green2.log`: 5/5, 4235.654625 ms, exit 0.
+  The first attempt passed all behavior checks but included an actively used
+  nested restore destination's WAL in the source inventory; the restore fixture
+  was moved outside the source root. Explicit second-text selection, invalid-pin
+  rejection and pre-pin native compatibility are covered in the focused run.
+- Focused source-owner/import/GC-backup/UI/layer command:
+  `--test --test-concurrency=1 studio/test/source-package.test.js studio/test/library-owners.test.js studio/test/reuse-import.test.js studio/test/ui-components.test.js studio/test/ui-flows.test.js studio/test/character-layers.test.js`,
+  `/tmp/creative-asset-cycles-final-fix-focused.log`: 152/152, 65341.208083 ms,
+  exit 0. Exact BOM/CRLF bytes, native revision/source pins, two-hop text import,
+  legacy package compatibility, preserved raw/manifests after GC/backup restore,
+  and actual landscape/portrait layer render/decode passed.
+- Final complete Studio command:
+  `--test --test-concurrency=1 studio/test/*.test.js`,
+  `/tmp/creative-asset-cycles-final-fix-full-studio.log`: 516/516,
+  274163.859458 ms, exit 0; no failures/cancellations/skips/todo. It ran alone,
+  with no concurrent root suite or other media probes, after all product/test edits.
+  Root code was unchanged, so the historical 34/34 root evidence was not rerun.
+
+The earlier unexplained default-concurrency renderer failure remains disclosed;
+serial green does not establish its cause or resolution. No paid/live provider,
+install, upload, publishing, merge/push, auth change, real canon write or real
+`.vibelore/` initialization/migration/recovery was performed. Existing 38 recorded
+controller rulings below remain unchanged. Self-review is not independent review.
+
 ## Final local media evidence
 
-The last complete serial-suite three-cycle run (before the editor-only review fixes below) wrote `/tmp/task8-three-cycle-evidence.json` (local workflow time 56673.079084 ms, including four actual MP4 renders plus WAV). These scratch artifacts are not committed; the observed hashes/timings are preserved here. All MP4s are 0.5 seconds, 15 H.264 frames at 30 fps, 1280×720, with AAC stereo 48 kHz; video/audio decoding and profile checks passed.
+The earlier Task 8 serial-suite three-cycle run (before the review fixes recorded in this note) wrote `/tmp/task8-three-cycle-evidence.json` (local workflow time 56673.079084 ms, including four actual MP4 renders plus WAV). These scratch artifacts are not committed; the observed hashes/timings are preserved here. All MP4s are 0.5 seconds, 15 H.264 frames at 30 fps, 1280×720, with AAC stereo 48 kHz; video/audio decoding and profile checks passed.
 
 | Artifact under `/tmp/` | Bytes | SHA-256 | Local render ms |
 | --- | ---: | --- | ---: |

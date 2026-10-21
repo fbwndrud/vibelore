@@ -16,6 +16,7 @@ import {
   assertId,
 } from "../engine/contracts.js";
 import { blobReferences } from "../render/closure.js";
+import { selectedSourceTextBlobId } from "./source-package.js";
 import { portableSpeechPerformance } from "../reuse/inspect.js";
 import { sealBundle, originKey, validateBundle } from "../reuse/bundle.js";
 
@@ -606,8 +607,7 @@ export function createStudioOwnerAdapter({
             ref.recordKind === "candidate"
               ? value.canonicalBlobId ?? value.blobId
               : ref.recordKind === "sourcePackage"
-              ? value.blobManifest.find((b) => b.kind === "original-manuscript")
-                  ?.blobId
+              ? selectedSourceTextBlobId(value)
               : value.manifest?.output?.blobId;
           const isRoot = roots.some(
             (root) => originKey(root) === originKey(ref)
@@ -649,15 +649,16 @@ export function createStudioOwnerAdapter({
             ...candidateLinks(record, records),
             ...recordLinks(record)
           );
-          if (value.reuseProvenance?.localManifestBlobId) {
+          const manifestBlobId =
+            value.reuseProvenance?.localManifestBlobId ??
+            (ref.recordKind === "sourcePackage"
+              ? value.localManifestBlobId
+              : undefined);
+          if (manifestBlobId) {
             const retained = validateBundle(
               JSON.parse(
                 (
-                  await blob(
-                    db,
-                    ref.projectId,
-                    value.reuseProvenance.localManifestBlobId
-                  )
+                  await blob(db, ref.projectId, manifestBlobId)
                 ).toString("utf8")
               )
             );

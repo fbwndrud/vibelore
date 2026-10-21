@@ -21,7 +21,9 @@ import {
   basePixels,
 } from "./helpers/images.js";
 import { canonicalDigest } from "../src/engine/contracts.js";
-import { hashBytes } from "../src/source/source-package.js";
+import { hashBytes, makeSourcePackage } from "../src/source/source-package.js";
+import { manuscriptPackage } from "../src/source/manuscript.js";
+import { selectedClosure } from "../src/reuse/inspect.js";
 import { validateBundle } from "../src/reuse/bundle.js";
 
 const modules = await Promise.all([
@@ -224,6 +226,100 @@ test("a source manuscript exposes one consumable exact selected-content file", a
     data.bundle.files.filter((f) => f.role === "selected-content").length,
     1
   );
+  const original = (await f.service.snapshot("p1")).sourcePackages[0];
+  const { selectedTextBlobId, ...body } = original;
+  const legacy = makeSourcePackage({ ...body, id: "legacy-native" });
+  await f.command("source.import", { package: legacy }, { aggregate: { kind: "sourcePackage", id: legacy.id } });
+  const legacyRef = (await a.capture()).entries.find(e => e.ref.recordId === legacy.id).ref;
+  const old = await a.exportExact({ roots: [legacyRef] });
+  assert.equal(selectedClosure(old.bundle, legacyRef).selectedFile.sha256, hashBytes(Buffer.from("exact text")));
+});
+
+test("native manuscript text survives export import reexport and second import with exact bytes and provenance", async (t) => {
+  const source = await withStudio(t), destination = await withStudio(t);
+  const original = Buffer.from("\ufeff원문 그대로\r\n다음 줄\r\n"),
+    raw = Buffer.from("historical source bytes\r\n"), rawHash = hashBytes(raw);
+  const pkg = makeSourcePackage({
+    ...manuscriptPackage({ id: "source", title: "Original", language: "ko" }, original),
+    blobManifest: [
+      { id: "manuscript", blobId: hashBytes(original), byteLength: original.length, kind: "original-manuscript" },
+      { id: "raw", blobId: rawHash, byteLength: raw.length, kind: "source-raw" },
+    ],
+  });
+  await source.command("source.import", { package: pkg, blobs: [
+    { blobId: hashBytes(original), bytes: [...original] },
+    { blobId: rawHash, bytes: [...raw] },
+  ] }, { aggregate: { kind: "sourcePackage", id: pkg.id } });
+  const native = adapter(source.directory),
+    nativeRef = (await native.capture()).entries.find(e => e.ref.recordId === pkg.id).ref,
+    first = await native.exportExact({ roots: [nativeRef] });
+  assert.equal(nativeRef.revision, pkg.sourceDigest);
+  assert.deepEqual(first.bundle.records[0].sourcePins, pkg);
+  const firstImported = (await destination.command("source.importBundle", {
+    ...first, sourcePackageId: "imported", title: "Imported", language: "ko", actor: "author", reason: "repeat exact text",
+  }, { aggregate: { kind: "sourcePackage", id: "imported" } })).value;
+  assert.deepEqual(Buffer.from(await destination.service.readBlob("p1", firstImported.textUnits[0].blobId)), original);
+  // Keep current pre-fix imported packages readable without rewriting their digest.
+  const { selectedTextBlobId, ...oldShape } = firstImported;
+  const legacy = makeSourcePackage({ ...oldShape, id: "legacy-imported" });
+  await destination.command("source.import", { package: legacy }, { aggregate: { kind: "sourcePackage", id: legacy.id } });
+  await destination.service.collectGarbage("p1", { graceMs: 0 });
+  const backup = (await destination.command("project.backup", {})).value;
+  const { restoreStudioBackup } = await import("../src/engine/backup.js");
+  const restoreRoot = await mkdtemp(join(tmpdir(), "text-reuse-restore-"));
+  const restored = await restoreStudioBackup({ archive: join(destination.directory, backup.archive), directory: join(restoreRoot, "restored") });
+  t.after(async () => { await restored.close(); await rm(restoreRoot, { recursive: true, force: true }); });
+  const restoredPackages = (await restored.snapshot("p1")).sourcePackages;
+  assert.deepEqual(restoredPackages, (await destination.service.snapshot("p1")).sourcePackages);
+  const before = await inventory(destination.directory), nextOwner = adapter(destination.directory),
+    entries = (await nextOwner.capture()).entries;
+  for (const imported of [firstImported, legacy]) {
+    const ref = entries.find(e => e.ref.recordId === imported.id).ref;
+    assert.equal(ref.revision, imported.sourceDigest);
+    const second = await nextOwner.exportExact({ roots: [ref] }), closure = selectedClosure(second.bundle, ref);
+    assert.equal(closure.selectedFile.sha256, hashBytes(original));
+    assert.deepEqual(Buffer.from(second.bytes[closure.selectedFile.sha256]), original);
+    assert.deepEqual(closure.root.sourcePins, imported);
+    assert.deepEqual(second.bundle.records.find(r => canonicalDigest(r.ref) === canonicalDigest(nativeRef)).sourcePins, pkg);
+    for (const [hash, content] of Object.entries(first.bytes)) {
+      assert.deepEqual(Buffer.from(second.bytes[hash]), Buffer.from(content));
+      assert.deepEqual(Buffer.from(await restored.readBlob("p1", hash)), Buffer.from(content));
+    }
+    assert.deepEqual(Buffer.from(second.bytes[rawHash]), raw);
+    const manifest = Buffer.from(await restored.readBlob("p1", imported.localManifestBlobId));
+    assert.deepEqual(Buffer.from(second.bytes[imported.localManifestBlobId]), manifest);
+    const last = await withStudio(t);
+    const result = (await last.command("source.importBundle", {
+      ...second, sourcePackageId: "second-import", title: "Reused", language: "ko", actor: "author", reason: "next production",
+    }, { aggregate: { kind: "sourcePackage", id: "second-import" } })).value;
+    assert.deepEqual(Buffer.from(await last.service.readBlob("p1", result.textUnits[0].blobId)), original);
+    assert.equal(result.originRefs[0].revision, imported.sourceDigest);
+    assert.deepEqual(Buffer.from(await last.service.readBlob("p1", rawHash)), raw);
+  }
+  assert.deepEqual(await inventory(destination.directory), before);
+});
+
+test("native text packages never select the first of several text units", async (t) => {
+  const f = await withStudio(t), a = Buffer.from("first text"), b = Buffer.from("second text");
+  const pkg = makeSourcePackage({
+    ...manuscriptPackage({ id: "several", title: "Several", language: "ko" }, a),
+    textUnits: [{ id: "a", text: "first text", blobId: hashBytes(a) }, { id: "b", text: "second text", blobId: hashBytes(b) }],
+    blobManifest: [a, b].map((bytes, i) => ({ id: `text-${i}`, blobId: hashBytes(bytes), byteLength: bytes.length, kind: "original-manuscript" })),
+  });
+  // Legacy native packages have no explicit text choice.
+  const { selectedTextBlobId, ...body } = pkg, legacy = makeSourcePackage(body);
+  await f.command("source.import", { package: legacy, blobs: [a, b].map(bytes => ({ blobId: hashBytes(bytes), bytes: [...bytes] })) }, { aggregate: { kind: "sourcePackage", id: legacy.id } });
+  const owner = adapter(f.directory), ref = (await owner.capture()).entries.find(e => e.ref.recordId === legacy.id).ref;
+  const exported = await owner.exportExact({ roots: [ref] });
+  assert.throws(() => selectedClosure(exported.bundle, ref), { code: "BUNDLE_INCOMPLETE" });
+  const chosen = makeSourcePackage({ ...pkg, id: "selected-second", selectedTextBlobId: hashBytes(b) });
+  await f.command("source.import", { package: chosen }, { aggregate: { kind: "sourcePackage", id: chosen.id } });
+  const chosenRef = (await owner.capture()).entries.find(e => e.ref.recordId === chosen.id).ref;
+  const selected = await owner.exportExact({ roots: [chosenRef] });
+  assert.equal(chosenRef.revision, chosen.sourceDigest);
+  assert.equal(selectedClosure(selected.bundle, chosenRef).selectedFile.sha256, hashBytes(b));
+  assert.deepEqual(Buffer.from(selected.bytes[hashBytes(b)]), b);
+  assert.throws(() => makeSourcePackage({ ...pkg, selectedTextBlobId: "0".repeat(64) }), { code: "INVALID_REFERENCE" });
 });
 
 const vibelore = await import("../src/source/export-vibelore-assets.js").catch(

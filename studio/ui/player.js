@@ -215,12 +215,16 @@ export function renderWorkingShot(c, scene, shot) {
       epoch++;
       loadingKey = null;
     }
+    const timeline = c.snapshot.timelines?.find(
+      (item) => item.productionId === scene.productionId,
+    );
+    const fps = timeline?.intent?.fps ?? timeline?.resolved?.fps ?? 30;
     const duration = Math.max(
       5000,
       ...transform.keyframes.map((k) => k.timeMs),
       ...(layers ?? []).flatMap((layer) =>
         [...(layer.keyframes ?? []), ...layer.poseCues].map(
-          (cue) => (cue.frame * 1000) / 30,
+          (cue) => (cue.frame * 1000) / fps,
         ),
       ),
     );
@@ -240,7 +244,7 @@ export function renderWorkingShot(c, scene, shot) {
     }
     const edition = {
       closure: {
-        profile: { fps: 30, width: 1280, height: 720 },
+        profile: { fps, width: 1280, height: 720 },
         shots: [
           {
             ...shot,
@@ -249,13 +253,13 @@ export function renderWorkingShot(c, scene, shot) {
               ? { layers, layout: { width: 1280, height: 720 } }
               : { blobId: base.blobId }),
             startFrame: 0,
-            endFrame: Math.ceil((duration * 30) / 1000) + 1,
+            endFrame: Math.ceil((duration * fps) / 1000) + 1,
           },
         ],
         timeline: { sampleRate: 48000, takes: [] },
       },
     };
-    const frame = Math.round((timeMs * 30) / 1000);
+    const frame = Math.round((timeMs * fps) / 1000);
     canvas.dataset.camera = JSON.stringify(frameAt({ edition, frame }).camera);
     const source = c.snapshot.sourcePackages
       ?.flatMap((x) => x.assets ?? [])

@@ -907,6 +907,52 @@ test("working shot resolves saved multilayer pose assets before evaluating its l
   assert.equal(JSON.parse(canvas.dataset.camera).x, 0.2);
 });
 
+for (const timing of [60, 30, "untimed-legacy"])
+  test(`working layer preview matches frozen pose and movement at the same elapsed time (${timing})`, async (t) => {
+    const { layeredFixture, createLayerEdition } = await import("./helpers/character-layers.js");
+    const { renderWorkingShot } = await import("../ui/player.js");
+    const { frameAt } = await import("../render/frame.js");
+    const f = await layeredFixture(t), fps = timing === "untimed-legacy" ? 30 : timing;
+    const actor = f.scene.shots[0].layers[1];
+    actor.poseCues[0].frame = 30;
+    actor.keyframes = [{ frame: 30, x: 0.3 }, { frame: 360, x: 0.4 }];
+    await f.command("scene.put", f.scene, { aggregate: { kind: "scene", id: f.scene.id } });
+    await f.command("timeline.update", { productionId: "main", fps, sceneIds: [f.scene.id], utterances: [], sceneDurations: [{ sceneId: f.scene.id, durationMs: 13000 }] }, { aggregate: { kind: "timeline", id: "main" } });
+    const edition = (await createLayerEdition(f)).value, c = await context(t, f);
+    if (timing === "untimed-legacy") c.snapshot.timelines = [];
+    // An unrelated selected production must not supply this shot's clock.
+    c.snapshot.timelines.unshift({ productionId: "other", intent: { fps: 24 }, resolved: { fps: 24 } });
+    c.selection.production = "other";
+    const previousImage = globalThis.Image;
+    globalThis.Image = class {
+      set src(value) { this.url = value; queueMicrotask(() => this.onload()); }
+    };
+    t.after(() => { globalThis.Image = previousImage; });
+    c.api.blob = async candidate => `blob:${candidate.canonicalBlobId ?? candidate.blobId}`;
+    let draws = [], translated;
+    const ctx = {
+      clearRect() { draws = []; }, fillRect() {}, save() {}, restore() {}, scale() {}, rotate() {},
+      translate(x, y) { translated = { x, y }; },
+      drawImage(image) { draws.push({ blobId: image.url.slice(5), ...translated }); },
+      createLinearGradient() { return { addColorStop() {} }; },
+    };
+    const { root, update } = renderWorkingShot(c, f.scene, f.scene.shots[0]);
+    const canvas = tree(root).find(x => x.tag === "canvas"), scrub = tree(root).find(x => x.attributes["aria-label"] === "샷 구도 시간");
+    canvas.getContext = () => ctx;
+    for (const element of tree(root)) element.isConnected = true;
+    await new Promise(resolve => setImmediate(resolve));
+    update({});
+    scrub.value = 500;
+    await scrub.fire("input");
+    const frozen = frameAt({ edition, frame: fps / 2 }).layers.find(layer => layer.id === "actor");
+    assert.equal(frozen.slotId, fps === 60 ? "blue" : "red");
+    assert.ok(Math.abs(frozen.transform.x - (fps === 60 ? 0.8 : 0.525)) < 1e-12);
+    assert.equal(draws[1].blobId, frozen.blobId, "working pose uses the owning timeline's frame at 500 ms");
+    assert.ok(Math.abs(draws[1].x / 1280 - frozen.transform.x) < 1e-12, "working movement matches the frozen frame at 500 ms");
+    assert.equal(Number(scrub.max), 360 * 1000 / fps);
+    for (const cleanup of c.cleanups) cleanup();
+  });
+
 test('native silent duration and independent music controls save through timeline commands',async t=>{
   const { renderTimingEditor }=await import('../ui/performance.js');
   const { layeredFixture }=await import('./helpers/character-layers.js');
