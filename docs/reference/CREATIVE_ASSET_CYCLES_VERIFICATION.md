@@ -267,3 +267,28 @@ service capabilities.
 37. Ruling: Durable UI queue key binds opaque SHA256 domain-separated destination physical owner identity plus projectId, not origin/project alone; configured CLI supplies bootstrap.destinationKey. Programmatic HTTP injection without supplied key gets ephemeral random isolation — same localhost port/project name can point to a replacement store and must not replay prior unfinished commands — opaque identity must reveal no locator; ephemeral programmatic default loses restart resumability, explicitly documented/tested.
 
 38. Ruling: Explicit destination opening with new Studio CLI performs existing schema1→2 migration; no extra upgrade opt-in flag. Stop old executor and backup first, document old executor refusal of2 and irreversible version transition, never migrate read-only source registration — binding contracts §192 defines explicit opening as upgrade boundary, and Task2 tested this behavior — costs user-visible upgrade on deliberate destination open, mitigated by accurate usage/backup instructions rather than new unplanned authority.
+
+## Completion and independent review
+
+All eight planned implementation tasks completed and passed their independent
+spec/quality gates. The whole-branch review raised exactly two Important findings
+(text second-hop selection and non-30-fps working preview); both were fixed in
+`8eff2946` and accepted by the single scoped final re-review. No open, parked or
+declined-to-judge findings remain. The [retained review](../superpowers/reviews/2026-10-21-creative-asset-cycles.md)
+preserves the original findings, coverage, verification limits and final verdict.
+
+Final product code: `8eff2946`. Final complete Studio run on this exact code:
+`NODE_NO_WARNINGS=1 /Users/lyoojk/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test --test-concurrency=1 studio/test/*.test.js`,
+**516/516 passed**, no failures/skips, 274163.859458 ms,
+`/tmp/creative-asset-cycles-final-fix-full-studio.log`. Focused amended-code
+checks: **152/152 passed**, 65341.208083 ms,
+`/tmp/creative-asset-cycles-final-fix-focused.log`. Root source/connector evidence
+remains **34/34**; root code did not change in the final fixes. The earlier
+unexplained default-concurrency renderer failure remains a documented limitation.
+
+Only documentation and temporary-plan-record cleanup follow the verified product
+commit; no product/test code changes after the final run. The isolated managed
+worktree is preserved on detached HEAD for user review and integration choice.
+The plan-specific scratch directory is removed only after all 38 decisions above
+and the final independent reports have durable tracked copies. Sibling scratch
+workspaces and the source checkouts remain untouched.
