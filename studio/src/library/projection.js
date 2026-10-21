@@ -11,17 +11,19 @@ const PRIVATE_KEYS = new Set(['locator', 'sourceFingerprint', 'path', 'filePath'
 
 // Projection payloads may include literal prompts and observations. They remain
 // plain data, with private connection fields and accessor/proxy execution denied.
+// Every locator string is a private binding, not a public semantic option. Keep
+// project/work selections in allowedProjects instead of exempting locator data.
 export function portable(value, registration) {
   const secrets = [];
   function collect(value) {
-    if (typeof value === 'string' && value.startsWith('/')) secrets.push(value);
+    if (typeof value === 'string' && value.length > 0) secrets.push(value);
     else if (value && typeof value === 'object') Object.values(value).forEach(collect);
   }
   if (registration) { collect(registration.locator); secrets.push(registration.sourceFingerprint); }
   const seen = new Set();
   function visit(value, depth) {
     if (typeof value === 'string') {
-      if (secrets.some(secret => secret && (value === secret || (secret.startsWith('/') && value.includes(secret))))) invalid();
+      if (secrets.some(secret => secret && value.includes(secret))) invalid();
       return;
     }
     if (value === null || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) return;
@@ -32,6 +34,7 @@ export function portable(value, registration) {
     for (const key of Reflect.ownKeys(value)) {
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (typeof key !== 'string' || PRIVATE_KEYS.has(key) || !('value' in descriptor)) invalid();
+      if (!array) visit(key, depth + 1);
       if (!(array && key === 'length')) visit(descriptor.value, depth + 1);
     }
     seen.delete(value);

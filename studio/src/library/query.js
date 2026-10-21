@@ -29,7 +29,8 @@ export function queryLibrary(db, input) {
         if (registration && !registration.allowedProjects.includes(request.ref.projectId)) return { ...base, status: 'unverified', entry: null };
         const stored = projection?.entries.find(entry => originKey(entry.ref) === key);
         const entry = stored ? entryView(stored, registration) : null;
-        const status = entry?.availability ?? (!registration ? 'unregistered' : registration.status === 'offline' ? 'offline' : registration.status === 'replaced' || !projection ? 'unverified' : 'missing');
+        const currentObservation = projection && projection.observed.registrationGeneration === registration?.generation;
+        const status = entry?.availability ?? (!registration ? 'unregistered' : registration.status === 'offline' ? 'offline' : registration.status === 'replaced' || !currentObservation ? 'unverified' : 'missing');
         return { ...base, status, entry };
       }
       const observations = []; const owners = [];

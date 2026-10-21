@@ -296,3 +296,54 @@ test('scope shrink hides old local anchors, retains private history and keeps an
   await command('owner.rebind', { ownerId: a.ownerId, locator: '/private/owner-a', allowedProjects: ['project', 'second-project'], confirmRefs: [kept] });
   const restored = await library.query({ type: 'inspect', ref: removed }); assert.equal(restored.status, 'unverified'); assert.deepEqual(restored.entry.observed, old);
 });
+
+test('projection rejects embedded relative, nested connection and fingerprint secrets in every portable string', async t => {
+  const state = source(); state.fingerprint = 'physical-secret-123';
+  const { library, command } = await setup(t, { '[object Object]': state });
+  const locator = { directory: 'private-source.sqlite', connection: { endpoint: 'socket:private-connection', fragments: ['nested-store.sqlite', ''] } };
+  const registered = await command('owner.register', { adapterKind: 'fake', locator, allowedProjects: ['project'] });
+  await command('owner.refresh', { ownerId: registered.ownerId });
+  const observed = (await library.query({ type: 'inspect', ref: ref(registered.ownerId) })).entry.observed;
+  for (const secret of ['private-source.sqlite', 'socket:private-connection', 'nested-store.sqlite', 'physical-secret-123']) {
+    for (const placement of ['value', 'key']) {
+      const exposed = `prefix ${secret} suffix`;
+      state.capture = async () => ({ token: 'safe-observation-token', entries: [entry(registered.ownerId, { title: placement === 'value' ? exposed : 'Safe title' })], links: [], uses: [], cases: placement === 'key' ? [{ id: 'case', ownerId: registered.ownerId, projectId: 'project', question: 'Literal data', contextRefs: [], literalInputRefs: [], trials: [], observations: [{ [exposed]: 'literal observation' }], unknowns: [] }] : [] });
+      const refreshed = await command('owner.refresh', { ownerId: registered.ownerId });
+      assert.equal(refreshed.status, 'offline', `${placement} containing private binding must be rejected`);
+      const view = await library.query({ type: 'find' }); assert.equal(JSON.stringify([refreshed, view]).includes(secret), false); assert.deepEqual(view.entries[0].observed, observed);
+    }
+  }
+});
+
+test('export rejects embedded relative, nested connection and fingerprint secrets in metadata values and keys', async t => {
+  const state = source(); state.fingerprint = 'physical-secret-123';
+  const { library, command } = await setup(t, { '[object Object]': state });
+  const locator = { directory: 'private-source.sqlite', connection: { endpoint: 'socket:private-connection', fragments: ['nested-store.sqlite', ''] } };
+  const registered = await command('owner.register', { adapterKind: 'fake', locator, allowedProjects: ['project'] });
+  for (const secret of ['private-source.sqlite', 'socket:private-connection', 'nested-store.sqlite', 'physical-secret-123']) {
+    for (const placement of ['value', 'key']) {
+      const exposed = `prefix ${secret} suffix`;
+      state.exports = async ({ roots, disclosure }) => ({ bundle: sealBundle({ schemaVersion: 1, roots, records: roots.map(value => ({ ref: value, metadata: placement === 'value' ? { title: exposed } : { [exposed]: 'literal data' }, requiredFileSha256s: [], sourcePins: {}, evidenceRefs: [] })), files: [], links: [], disclosure, capturedAt: 'now' }), bytes: {} });
+      await assert.rejects(library.exportExact({ ownerId: registered.ownerId, roots: [ref(registered.ownerId)], disclosure: { includedScope: 'Selected', omittedEvidence: [] } }), error => error.code === 'INVALID_INPUT' && !JSON.stringify(error).includes(secret));
+    }
+  }
+});
+
+test('old generation snapshot cannot confirm unknown records missing after expanded-scope rebind', async t => {
+  const { library, register, command, sources, open } = await setup(t); const a = await register();
+  await command('owner.refresh', { ownerId: a.ownerId });
+  const observed = (await library.query({ type: 'inspect', ref: ref(a.ownerId) })).entry.observed;
+  await command('owner.rebind', { ownerId: a.ownerId, locator: '/private/owner-a', allowedProjects: ['project', 'new-project'], confirmRefs: [ref(a.ownerId)] });
+  const unknownRefs = [ref(a.ownerId, { recordId: 'not-observed' }), ref(a.ownerId, { projectId: 'new-project', recordId: 'not-observed' })];
+  for (const unknown of unknownRefs) {
+    const view = await library.query({ type: 'inspect', ref: unknown }); assert.equal(view.status, 'unverified'); assert.equal(view.entry, null); assert.deepEqual(view.owners[0].observed, observed); assert.equal(view.owners[0].generation, 2);
+  }
+  const retained = await library.query({ type: 'inspect', ref: ref(a.ownerId) }); assert.equal(retained.status, 'unverified'); assert.deepEqual(retained.entry.observed, observed);
+  const reopened = await open();
+  for (const unknown of unknownRefs) assert.equal((await reopened.query({ type: 'inspect', ref: unknown })).status, 'unverified');
+  sources['/private/owner-a'].entries = [];
+  await command('owner.refresh', { ownerId: a.ownerId });
+  for (const unknown of unknownRefs) {
+    const view = await reopened.query({ type: 'inspect', ref: unknown }); assert.equal(view.status, 'missing'); assert.equal(view.owners[0].observed.registrationGeneration, 2);
+  }
+});
