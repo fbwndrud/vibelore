@@ -762,3 +762,178 @@ test("a native failed render receipt is context evidence, never an actual produc
     { code: "INVALID_REFERENCE" }
   );
 });
+
+async function reviewedNativeOutputs(t) {
+  const { audioFixture } = await import("./helpers/render-fixture.js");
+  const f = await audioFixture(t);
+  await f.command(
+    "policy.create",
+    { id: "diagnostic", name: "Synthetic fixture checks only", required: [] },
+    { aggregate: { kind: "reviewPolicy", id: "diagnostic" } }
+  );
+  const edition = (
+    await f.command(
+      "edition.create",
+      {
+        id: "reviewed-edition",
+        productionId: "main",
+        profile: "audio",
+        policyId: "diagnostic",
+      },
+      { aggregate: { kind: "edition", id: "reviewed-edition" } }
+    )
+  ).value;
+  const outputs = [],
+    reviews = [];
+  for (const id of ["first", "second"]) {
+    const output = (
+      await f.command(
+        "edition.render",
+        { editionId: edition.id, renderId: id },
+        { aggregate: { kind: "editionOutput", id } }
+      )
+    ).value;
+    assert.equal(output.status, "completed");
+    outputs.push(output);
+    reviews.push(
+      (
+        await f.command(
+          "edition.review",
+          {
+            id: `review-${id}`,
+            editionId: edition.id,
+            renderId: id,
+            actor: "fixture-policy",
+            closureDigest: edition.closureDigest,
+            outputManifestDigest: output.manifestDigest,
+            policyBindingRevision: 0,
+            checks: {},
+          },
+          { aggregate: { kind: "editionReview", id: `review-${id}` } }
+        )
+      ).value
+    );
+  }
+  const publication = (
+    await f.command(
+      "edition.publish",
+      {
+        editionId: edition.id,
+        reviewId: reviews[0].id,
+        closureDigest: edition.closureDigest,
+        outputManifestDigest: outputs[0].manifestDigest,
+        policyBindingRevision: 0,
+      },
+      { aggregate: { kind: "editionPublication", id: edition.id } }
+    )
+  ).value;
+  return {
+    f,
+    edition,
+    outputs,
+    reviews,
+    publicationRef: {
+      projectId: "p1",
+      recordKind: "editionPublication",
+      recordId: edition.id,
+      revision: canonicalDigest(publication),
+    },
+  };
+}
+
+test("completed editionOutput-only trials bind their exact native review and publication without an extra Edition ref", async (t) => {
+  const { f, edition, outputs, reviews, publicationRef } =
+    await reviewedNativeOutputs(t);
+  const selected = local(
+    "editionOutput",
+    outputs[0],
+    outputs[0].manifestDigest
+  );
+  for (const [id, decisionRef] of [
+    ["review", local("editionReview", reviews[0])],
+    ["publication", publicationRef],
+  ]) {
+    const value = productionCase(`accepted-${id}`, {
+      trials: [trial("actual-output", [], { outputRefs: [selected] })],
+      decision: { ref: decisionRef },
+      classification: "accepted-example",
+    });
+    await record(f, "productionCase", value);
+  }
+  await record(
+    f,
+    "productionCase",
+    productionCase("accepted-edition", {
+      trials: [
+        trial("actual-edition", [
+          local("edition", edition, edition.closureDigest),
+        ]),
+      ],
+      decision: { ref: publicationRef },
+      classification: "accepted-example",
+    })
+  );
+  assert.equal((await f.service.snapshot("p1")).productionCases.length, 3);
+});
+
+test("accepted output binding rejects another render/review or digest under the same Edition, even with a matching Edition ref", async (t) => {
+  const { f, edition, outputs, reviews, publicationRef } =
+    await reviewedNativeOutputs(t);
+  assert.equal(
+    outputs[0].manifestDigest,
+    outputs[1].manifestDigest,
+    "same bytes/profile manifest still has distinct native render IDs"
+  );
+  const first = local("editionOutput", outputs[0], outputs[0].manifestDigest),
+    second = local("editionOutput", outputs[1], outputs[1].manifestDigest);
+  const value = (id, outputRef, decisionRef, producedRefs = []) =>
+    productionCase(id, {
+      trials: [
+        trial("actual-output", producedRefs, { outputRefs: [outputRef] }),
+      ],
+      decision: { ref: decisionRef },
+      classification: "accepted-example",
+    });
+  await assert.rejects(
+    record(
+      f,
+      "productionCase",
+      value("wrong-render", second, publicationRef, [
+        local("edition", edition, edition.closureDigest),
+      ])
+    ),
+    { code: "INVALID_INPUT" }
+  );
+  await assert.rejects(
+    record(
+      f,
+      "productionCase",
+      value("wrong-review", first, local("editionReview", reviews[1]))
+    ),
+    { code: "INVALID_INPUT" }
+  );
+  await assert.rejects(
+    record(
+      f,
+      "productionCase",
+      value(
+        "wrong-output-digest",
+        { ...first, revision: "missing-manifest-digest" },
+        publicationRef
+      )
+    ),
+    { code: "INVALID_REFERENCE" }
+  );
+  await assert.rejects(
+    record(
+      f,
+      "productionCase",
+      value("wrong-review-digest", first, {
+        ...local("editionReview", reviews[0]),
+        revision: "missing-review-digest",
+      })
+    ),
+    { code: "INVALID_REFERENCE" }
+  );
+  assert.equal((await f.service.snapshot("p1")).productionCases.length, 0);
+});

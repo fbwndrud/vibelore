@@ -89,3 +89,29 @@ Later formatting applied only to the new module/test after the final local regre
 Self-review checked native identity/revision meaning, cross-project/external rejection, exact historical retention without HEAD fallback, actor/reason/event preservation, plans/fixtures versus actual execution, matching conditions, null/unknown values, no taste gate/ranking, no automatic adoption, and the read-only source boundary. It found and fixed unrelated adoption binding, same-job/attempt comparison aliases, and failed-output receipts being treated as produced assets, with RED/GREEN evidence above.
 
 The initial existing Remotion no-response failure remains a recorded transient verification concern; isolation and the subsequent full suite passed, and its underlying cause was not established. Full native historical job/attempt versions that were never retained remain deliberately unavailable. External source/evaluator assertions and matched task/condition descriptions are authored observations, not independent verification or proof of complete provider/billing evidence. Library is still metadata-only and acquires no blob, job or canon authority.
+
+## Review fix round 1 — Important I1, exact accepted Edition outputs
+
+Read `task-5-review.md` Important I1. The previous accepted selector only recognized candidate/Edition refs. It rejected a valid actual trial whose sole output was the completed native `editionOutput`; adding a matching Edition ref could also hide a mismatched render. Both behaviors were reproduced before implementation.
+
+The localized fix changes only the case binding module and its behavioral tests:
+
+- A completed `editionOutput` can supply the actual accepted result through its exact native `editionReview` or `editionPublication` decision, without an extra Edition ref.
+- Direct native review binding compares render ID, Edition identity, closure digest and output manifest digest. For a publication, the validator follows that publication's native `reviewId` to its uniquely retained immutable review, requiring matching Edition, closure, output manifest and policy binding revision. It does not read a current review aggregate or select an arbitrary newest review. Missing/ambiguous exact retained review evidence fails.
+- If actual output refs are supplied, an unrelated output cannot pass by adding a matching containing Edition ref. The precise render identity remains necessary even when two native renders have byte-identical output manifests. Edition-only cases still bind their exact Edition closure; candidate/adoption cases retain the existing behavior.
+- The completed-output guard remains in force: failed/pending receipts are context/observation evidence, never produced output or successful trial media. A native review's existing `creator_attested`/`not_performed` semantics are unchanged; accepting the scoped case creates no independent perception claim or new review gate.
+
+Real local audio regressions create one diagnostic-policy Edition, two completed native renders, two distinct native reviews, and a publication explicitly pointing to the first retained review. The positive regression accepts exact output-only trials through the first review and publication even with another review present, and retains valid Edition-only binding. Negative regressions reject another render under the same Edition and identical manifest digest (including an attempted Edition-ref bypass), the wrong native review, an unavailable output digest, and an unavailable review digest. Exact closure identity also pins the native immutable Edition/profile; no cross-profile fallback was added.
+
+Exact command, worktree and host permissions are unchanged:
+
+```sh
+NODE_NO_WARNINGS=1 /Users/lyoojk/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test studio/test/asset-cycles.test.js
+```
+
+- `/tmp/task5-fix1-red.log`: **11/13**, two meaningful failures: exact output-only acceptance rejected, and wrong render with a matching Edition ref wrongly accepted. 5391.093667 ms.
+- `/tmp/task5-fix1-green.log`: **13/13**, 0 fail/skip, 5827.896875 ms. Includes all prior eleven Task 5 tests and both new regressions.
+- Installed optional formatter ran only on `studio/src/engine/asset-cycles.js` and `studio/test/asset-cycles.test.js`; `git diff --check` passed.
+- No renderer, execution writer, schema, adapter, lease/process check, provider, or shared native review/publication code changed. Per parent instruction this localized Task 5 fix required the focused suite, not another full Studio run. Prior full-suite evidence and its exact ordering remain documented above; no newer full result is claimed.
+
+Self-review checked that publication lookup uses the publication's retained native review ID and matching immutable fields, successful output selection requires both exact render and manifest identity, wrong-render/digest refs fail even for the same Edition, and candidate/Edition-only/failed-output behavior stays covered. No new concerns remain for I1; the earlier transient Remotion diagnostic remains preserved in the original verification record.

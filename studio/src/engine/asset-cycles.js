@@ -163,7 +163,25 @@ function referenceValidator(store, projectId) {
       });
     return found.value;
   }
-  return { resolve, nativeEvidence };
+  function publicationReview(publication) {
+    const matches = records.filter(
+      (record) =>
+        record.ref.recordKind === "editionReview" &&
+        record.ref.recordId === publication.reviewId &&
+        record.value.editionId === publication.editionId &&
+        record.value.closureDigest === publication.closureDigest &&
+        record.value.outputManifestDigest ===
+          publication.outputManifestDigest &&
+        record.value.policyBindingRevision === publication.policyBindingRevision
+    );
+    if (matches.length !== 1)
+      fail(
+        "INVALID_REFERENCE",
+        "The publication's exact retained native review is unavailable."
+      );
+    return matches[0].value;
+  }
+  return { resolve, nativeEvidence, publicationReview };
 }
 const producedKinds = [
   "candidate",
@@ -316,7 +334,7 @@ export function registerCycleCommands(service) {
       assertText(record.question);
       assertText(actor);
       assertText(reason);
-      const { resolve, nativeEvidence } = referenceValidator(
+      const { resolve, nativeEvidence, publicationReview } = referenceValidator(
         store,
         envelope.projectId
       );
@@ -476,22 +494,59 @@ export function registerCycleCommands(service) {
         ? resolve(record.decision.ref, decisionKinds)
         : null;
       if (record.classification === "accepted-example") {
+        const decisionKind = record.decision?.ref.recordKind;
         const accepted =
           decision &&
           (["adopt", "undo", "approve"].includes(
             decision.action ?? decision.decision
           ) ||
-            decision.status === "published");
-        const selectedKind = decision?.candidateId ? "candidate" : "edition",
-          selectedId = decision?.candidateId ?? decision?.editionId;
-        const selected = record.trials
+            decision.status === "published" ||
+            decisionKind === "editionReview");
+        const results = record.trials
           .filter((t) => t.kind === "actual")
-          .flatMap((t) => [...t.producedRefs, ...t.outputRefs])
-          .some(
+          .flatMap((t) => [...t.producedRefs, ...t.outputRefs]);
+        let selected = false;
+        if (decision?.candidateId) {
+          selected = results.some(
             (ref) =>
-              ref.recordKind === selectedKind && ref.recordId === selectedId
+              ref.recordKind === "candidate" &&
+              ref.recordId === decision.candidateId
           );
-        if (!accepted || !selectedId || !selected)
+        } else if (decision?.editionId) {
+          const outputs = results.filter(
+            (ref) => ref.recordKind === "editionOutput"
+          );
+          if (outputs.length) {
+            const review =
+              decisionKind === "editionPublication"
+                ? publicationReview(decision)
+                : decisionKind === "editionReview"
+                ? decision
+                : null;
+            selected =
+              !!review &&
+              outputs.some((ref) => {
+                const output = resolve(ref, ["editionOutput"]);
+                return (
+                  ref.recordId === review.renderId &&
+                  output.editionId === decision.editionId &&
+                  output.editionId === review.editionId &&
+                  output.closureDigest === decision.closureDigest &&
+                  output.closureDigest === review.closureDigest &&
+                  output.manifestDigest === decision.outputManifestDigest &&
+                  output.manifestDigest === review.outputManifestDigest
+                );
+              });
+          } else {
+            selected = results.some(
+              (ref) =>
+                ref.recordKind === "edition" &&
+                ref.recordId === decision.editionId &&
+                ref.revision === decision.closureDigest
+            );
+          }
+        }
+        if (!accepted || !selected)
           invalid("Accepted example must select the actual trial result.");
       }
       if (
