@@ -85,10 +85,10 @@
 
 ### Task 4: Read-only Studio and vibelore owner exporters
 
-**Files:** Create `studio/src/source/{export-studio-assets,export-vibelore-assets}.js`, `studio/test/library-owners.test.js`. Modify `studio/src/source/vibelore-connector.js` only to share existing safe disclosure/resolver helpers; modify reuse import exports only if required to preserve reexport lineage.
+**Files:** Create `studio/src/source/{export-studio-assets,export-vibelore-assets,owner-io}.js`, `studio/test/library-owners.test.js`. Modify `studio/src/source/vibelore-connector.js` only to share existing safe disclosure/resolver helpers; modify reuse import exports only if required to preserve reexport lineage.
 
 **Interfaces:**
-- Consumes Tasks 1/2/3. Produces `createStudioOwnerAdapter({locator,ownerId,allowedProjects})` and `createVibeloreOwnerAdapter({locator,ownerId,allowedProjects})`, conforming Task3 OwnerAdapter; `locator` is owner-specific private config with directory and explicitly selected source roots/project mapping.
+- Consumes Tasks 1/2/3. Produces `createStudioOwnerAdapter({locator,ownerId,allowedProjects})` and `createVibeloreOwnerAdapter({locator,ownerId,allowedProjects})`, conforming Task3 OwnerAdapter; `locator` contains private directory/connection bindings only; every nonempty locator string component is private. Public native work/project selection comes from allowedProjects, never duplicated as private locator values. Shared internal `readOwnerBytes({directory,relativePath,expectedSha256?,maxBytes?}):Promise<Uint8Array>` in owner-io.js provides bounded regular-file/no-symlink/root-escape/hash checks (default20MiB); preserve native source resolver disclosure rather than scan unrelated files.
 - Studio exact candidate ref recordKind candidate, recordId local candidate ID, revision native immutable metadata digest. SourcePackage/Edition refs retain exact native IDs/digests. Use immutable events/preserved records to export old refs where available; unavailable old ref fails, no HEAD fallback. Capture can include source, candidates, Edition, receipts, cycle/case (Task5 will extend).
 - Vibelore resolves existing canonical source and asset catalog/webtoon references read-only, native revision preserved. Only explicitly allowed committed/public context; author-only, future or unsynced drift is not silently exported. Missing root/store fails without creating files.
 
