@@ -227,6 +227,8 @@ export async function prepareEdition(service, context) {
     returnedModel: c.returnedModel ?? "unknown",
     speechVerification: c.speechVerification ?? "not_applicable",
     lineage: c.lineage ?? null,
+    reuseProvenance: c.reuseProvenance ?? null,
+    reuseRole: c.reuseRole ?? null,
   }));
   const closure = {
     schemaVersion: 1,

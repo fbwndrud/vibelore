@@ -10,7 +10,7 @@ export class ProjectStore {
     try {
       this.db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;');
       const version = this.get('PRAGMA user_version').user_version;
-      if (version > 1) fail('SCHEMA_UNSUPPORTED', 'Database schema is newer than this engine.');
+      if (version > 2) fail('SCHEMA_UNSUPPORTED', 'Database schema is newer than this engine.');
       this.write(() => {
         this.db.exec(`
           CREATE TABLE IF NOT EXISTS projects (
@@ -39,7 +39,12 @@ export class ProjectStore {
             project_id TEXT NOT NULL REFERENCES projects(id), id TEXT NOT NULL, byte_length INTEGER NOT NULL,
             status TEXT NOT NULL CHECK(status IN ('available','missing','corrupt')), PRIMARY KEY(project_id, id)
           );
-          PRAGMA user_version = 1;
+          CREATE TABLE IF NOT EXISTS reuse_imports (
+            project_id TEXT NOT NULL REFERENCES projects(id), id TEXT NOT NULL, reuse_key TEXT NOT NULL, data_json TEXT NOT NULL,
+            PRIMARY KEY(project_id,id)
+          );
+          CREATE INDEX IF NOT EXISTS reuse_imports_key ON reuse_imports(project_id,reuse_key);
+          PRAGMA user_version = 2;
         `);
       });
     } catch (error) { this.close(); throw error; }

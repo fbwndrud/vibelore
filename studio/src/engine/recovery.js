@@ -18,6 +18,7 @@ export const retainedTables = [
   "generation_candidates",
   "asset_quarantines",
   "asset_adoptions",
+  "reuse_imports",
 ];
 export function retainedReferences(store, projectId) {
   const ids = new Set();
@@ -153,7 +154,7 @@ export function supportBundle(service, projectId) {
   return {
     format: "lore-studio-support",
     version: 1,
-    schemaVersion: 1,
+    schemaVersion: 2,
     integrity: integrityReport(service.blobs, projectId),
     attempts: store
       .all(

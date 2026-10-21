@@ -24,6 +24,45 @@ function bytesFromJSON(bytes) {
   return Uint8Array.from(bytes);
 }
 
+// Both legacy import and bundle import share decoder/materialization and candidate shape.
+export async function prepareAssetMaterialization(
+  service,
+  { projectId, id, slot, pinned, bytes, actor, decoded, materialized }
+) {
+  decoded ??= await decodeMedia(bytes, slot.mediaKind);
+  const raw = materialized?.raw ?? (await service.blobs.put(projectId, bytes));
+  const canonical =
+    materialized?.canonical ??
+    (await service.blobs.put(projectId, decoded.bytes));
+  return {
+    id,
+    attemptId: null,
+    jobId: null,
+    ...pinned,
+    slotId: slot.id,
+    slotIntent: slot,
+    blobId: canonical.blobId,
+    canonicalBlobId: canonical.blobId,
+    rawBlobId: raw.blobId,
+    byteLength: canonical.byteLength,
+    mediaKind: slot.mediaKind,
+
+    ...(slot.mediaKind === 'audio'
+      ? {
+          speechVerification: 'unverified_import',
+          transcriptionVerification: 'not_performed',
+          ...(pinned.audioBinding ? { audioBinding: pinned.audioBinding } : {}),
+        }
+      : {}),
+
+    mime: decoded.mime,
+    metadata: decoded.metadata,
+
+    validation: { status: 'passed', decoder: 'studio-media-v1' },
+
+    lineage: { kind: 'import', actor, parentCandidateIds: [] },
+  };
+}
 async function prepareImport(service, context) {
   const { store, envelope, aggregate } = context,
         p = envelope.payload,
@@ -49,28 +88,16 @@ async function prepareImport(service, context) {
       slot,
       pinned,
 
-      candidate: {
+      candidate: await prepareAssetMaterialization(service, {
+        projectId,
         id: p.id,
-        attemptId: null,
-        jobId: null,
-        ...pinned,
-        slotId: slot.id,
-        slotIntent: slot,
-        blobId: canonical.blobId,
-        canonicalBlobId: canonical.blobId,
-        rawBlobId: raw.blobId,
-        byteLength: canonical.byteLength,
-        mediaKind: p.mediaKind,
-
-        ...(p.mediaKind === 'audio' ? { speechVerification: 'unverified_import', transcriptionVerification: 'not_performed' } : {}),
-
-        mime: decoded.mime,
-        metadata: decoded.metadata,
-
-        validation: { status: 'passed', decoder: 'studio-media-v1' },
-
-        lineage: { kind: 'import', actor: p.actor, parentCandidateIds: [] }
-      }
+        slot,
+        pinned,
+        bytes,
+        actor: p.actor,
+        decoded,
+        materialized: { raw, canonical }
+      })
     };
   } catch (error) {
     if (!['INVALID_IMAGE', 'UNSUPPORTED_IMAGE', 'INVALID_WAV', 'UNSUPPORTED_WAV'].includes(error.code))

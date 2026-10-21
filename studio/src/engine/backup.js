@@ -1,3 +1,4 @@
+import { validateOriginRef } from '../reuse/bundle.js';
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, open, lstat, readdir, rm } from "node:fs/promises";
 import { constants, existsSync } from "node:fs";
@@ -33,6 +34,7 @@ const columns = {
   generation_candidates: "project_id id attempt_id data_json",
   asset_quarantines: "project_id id data_json",
   asset_adoptions: "project_id id data_json",
+  reuse_imports: "project_id id reuse_key data_json",
 };
 const hash = (b) => createHash("sha256").update(b).digest("hex");
 const numeric = new Set([
@@ -93,6 +95,7 @@ async function durableFile(path, bytes) {
   }
 }
 function validateManifest(m) {
+  const original = m;
   exactKeys(m, [
     "format",
     "formatVersion",
@@ -105,13 +108,19 @@ function validateManifest(m) {
   if (
     m.format !== "lore-studio-backup" ||
     m.formatVersion !== 1 ||
-    m.schemaVersion !== 1
+    ![1, 2].includes(m.schemaVersion)
   )
     fail("SCHEMA_UNSUPPORTED", "Unsupported portable backup version.");
   assertId(m.projectId);
   const { digest, ...body } = m;
   if (!BLOB_ID.test(digest) || canonicalDigest(body) !== digest)
     fail("BACKUP_CHECKSUM", "Backup manifest checksum differs.");
+  // A schema-1 archive has no receipts; verify its original digest before adding
+  // the empty migrated inventory consumed by schema-2 restore.
+  if (m.schemaVersion === 1) {
+    exactKeys(m.tables, retainedTables.filter(table => table !== "reuse_imports"));
+    m = { ...m, tables: { ...m.tables, reuse_imports: [] } };
+  }
   exactKeys(m.tables, retainedTables);
   const keys = new Map();
   for (const table of retainedTables) {
@@ -219,6 +228,108 @@ function validateManifest(m) {
     )
       fail("BACKUP_CLOSURE", "Edition output manifest differs.");
   }
+  for (const row of m.tables.reuse_imports) {
+    const receipt = JSON.parse(row.data_json);
+    exactKeys(receipt, [
+      'id',
+      'commandId',
+      'bundleSha256',
+      'originRefs',
+      'localCandidates',
+      'localManifestBlobId',
+      'fileMap',
+      'intentDigest',
+      'actor',
+      'reason',
+    ]);
+    if (
+      receipt.id !== row.id ||
+      !BLOB_ID.test(row.reuse_key) ||
+      !BLOB_ID.test(receipt.bundleSha256) ||
+      !BLOB_ID.test(receipt.intentDigest) ||
+      !BLOB_ID.test(receipt.localManifestBlobId) ||
+      !Array.isArray(receipt.originRefs) ||
+      !receipt.originRefs.length ||
+      !Array.isArray(receipt.localCandidates) ||
+      receipt.localCandidates.length !== 1 ||
+      !Array.isArray(receipt.fileMap) ||
+      !receipt.fileMap.length ||
+      typeof receipt.actor !== 'string' ||
+      !receipt.actor.trim() ||
+      typeof receipt.reason !== 'string' ||
+      !receipt.reason.trim()
+    )
+      fail('BACKUP_INVALID', 'Invalid preserved import receipt.');
+    try {
+      for (const ref of receipt.originRefs) validateOriginRef(ref);
+    } catch {
+      fail('BACKUP_INVALID', 'Invalid preserved origin reference.');
+    }
+    for (const file of receipt.fileMap) {
+      exactKeys(file, [
+        'sourceSha256',
+        'rawBlobId',
+        'canonicalBlobId',
+        'normalizerVersion',
+        'normalizationChanged',
+      ]);
+      if (
+        ![file.sourceSha256, file.rawBlobId, file.canonicalBlobId].every((id) =>
+          BLOB_ID.test(id)
+        ) ||
+        file.sourceSha256 !== file.rawBlobId ||
+        typeof file.normalizerVersion !== 'string' ||
+        !file.normalizerVersion.trim() ||
+        file.normalizationChanged !== (file.rawBlobId !== file.canonicalBlobId)
+      )
+        fail('BACKUP_INVALID', 'Invalid preserved file materialization.');
+    }
+    for (const local of receipt.localCandidates) {
+      exactKeys(local, ['candidateId', 'slotId', 'source']);
+      const candidate = m.tables.generation_candidates.find(
+        (c) => c.id === local.candidateId
+      );
+      if (
+        !candidate ||
+        !keys.get('aggregates').has(`assetSlot/${local.slotId}`) ||
+        !receipt.originRefs.some(
+          (ref) => canonicalJSON(ref) === canonicalJSON(local.source)
+        )
+      )
+        fail(
+          'BACKUP_INVALID',
+          'Import receipt references a missing local candidate, slot or origin.'
+        );
+      const value = JSON.parse(candidate.data_json);
+      if (
+        !receipt.fileMap.some(
+          (file) =>
+            file.rawBlobId === value.rawBlobId &&
+            file.canonicalBlobId === value.canonicalBlobId
+        )
+      )
+        fail(
+          'BACKUP_INVALID',
+          'Candidate does not match receipt materialization.'
+        );
+    }
+    const command = m.tables.commands.find((c) => c.id === receipt.commandId);
+    const event = m.tables.events.find(
+      (e) => e.command_id === receipt.commandId && e.type === 'asset.importBundle'
+    );
+    if (
+      !command ||
+      !event ||
+      canonicalJSON(JSON.parse(command.result_json).value.importReceipt) !==
+        canonicalJSON(receipt) ||
+      canonicalJSON(JSON.parse(event.value_json).importReceipt) !==
+        canonicalJSON(receipt)
+    )
+      fail(
+        'BACKUP_INVALID',
+        'Import receipt is not retained by its command and event.'
+      );
+  }
   if (m.tables.projects.length !== 1)
     fail("BACKUP_INVALID", "Expected one project.");
   if (
@@ -268,7 +379,7 @@ function validateManifest(m) {
           for (const id of blobReferences(JSON.parse(v)))
             if (!inventory.has(id))
               fail("BACKUP_CLOSURE", "Referenced blob is missing from backup.");
-  return m;
+  return original;
 }
 export async function verifyInventory(archive) {
   try {
@@ -363,7 +474,7 @@ export async function createStudioBackup(
     const body = {
       format: "lore-studio-backup",
       formatVersion: 1,
-      schemaVersion: 1,
+      schemaVersion: 2,
       projectId,
       tables,
       inventory,
@@ -432,7 +543,7 @@ export async function restoreIntoNewDirectory(
     service.store.write(() => {
       for (const table of retainedTables) {
         const cols = columns[table].split(" ");
-        for (const row of manifest.tables[table])
+        for (const row of manifest.tables[table] ?? [])
           service.store.run(
             `INSERT INTO ${table}(${cols.join(",")}) VALUES(${cols.map(() => "?").join(",")})`,
             ...cols.map((k) => row[k]),

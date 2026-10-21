@@ -1,3 +1,5 @@
+import { inspectReuse } from '../reuse/inspect.js';
+import { registerReuseCommands } from '../reuse/import.js';
 import { readHistory } from './history.js';
 import { collectGarbage, integrityReport, supportBundle } from './recovery.js';
 import { registerBudgetCommands } from './budget.js';
@@ -105,11 +107,17 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
       pendingCommands.add(accepted);
       try { return await accepted; } finally { pendingCommands.delete(accepted); }
     },
+    async inspectReuse({ projectId, bundle, bytes, intent }) {
+      return boundary(() => inspectReuse({ bundle, bytes, intent, destination: { service, projectId } }), 'REUSE_INSPECTION_FAILED');
+    },
     async snapshot(projectId) { return boundary(() => {
       return store.snapshot(projectId, snapshot => {
         snapshot.integrity = integrityReport(blobs,projectId);
         snapshot.backups = localBackupReceipts(store,directory,projectId,'project.backup');
         snapshot.restores = localBackupReceipts(store,directory,projectId,'project.restore');
+        snapshot.reuseImports = store
+          .all('SELECT data_json FROM reuse_imports WHERE project_id=? ORDER BY id', projectId)
+          .map(row => JSON.parse(row.data_json));
         snapshot.sourcePackages = domainValues(snapshot, 'sourcePackage').map(a => a.value);
         snapshot.story = domainValues(snapshot, 'story')[0]?.value ?? null;
         snapshot.cast = domainValues(snapshot, 'cast').map(a => a.value);
@@ -175,6 +183,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
   registerJobCommands(service);
   registerBudgetCommands(service);
   registerAssetCommands(service);
+  registerReuseCommands(service);
   registerAdoptionCommands(service);
   registerRecoveryCommands(service);
   registerTimelineCommands(service);

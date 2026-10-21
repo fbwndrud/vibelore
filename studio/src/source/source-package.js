@@ -1,3 +1,5 @@
+import { validateOriginRef } from '../reuse/bundle.js';
+import { requireValue } from '../engine/story.js';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   assertId,
@@ -110,6 +112,34 @@ export function validateSourcePackage(pkg) {
     referenceIds(asset.sceneIds, collections.sceneScopes);
     referenceIds(asset.stateIds, stateDefinitions ?? scopedStates);
   }
+  if (pkg.importProvenance) {
+    if (
+      !Array.isArray(pkg.originRefs) ||
+      !pkg.originRefs.length ||
+      !Array.isArray(pkg.fileMap) ||
+      !pkg.fileMap.length ||
+      !BLOB_ID.test(pkg.localManifestBlobId) ||
+      !blobs.has(pkg.localManifestBlobId)
+    )
+      fail(
+        'INVALID_REFERENCE',
+        'Preserved source provenance requires its local manifest and file closure.'
+      );
+    for (const ref of pkg.originRefs) validateOriginRef(ref);
+    for (const file of pkg.fileMap)
+      if (
+        !BLOB_ID.test(file.sourceSha256) ||
+        !blobs.has(file.rawBlobId) ||
+        !blobs.has(file.canonicalBlobId) ||
+        typeof file.normalizationChanged !== 'boolean' ||
+        typeof file.normalizerVersion !== 'string'
+      )
+        fail('INVALID_REFERENCE', 'Preserved source file map is incomplete.');
+    for (const key of ['commandId', 'actor', 'reason'])
+      assertText(pkg.importProvenance[key]);
+    if (!BLOB_ID.test(pkg.importProvenance.bundleSha256))
+      fail('INVALID_INPUT', 'Expected preserved bundle digest.');
+  }
   return pkg;
 }
 // Both raw import and configured capture stage bytes here, then validate/apply in
@@ -154,6 +184,8 @@ export async function prepareSourceImport(service, envelope, payload) {
 }
 export function validateSourceImport({ store, envelope, aggregate, prepared }) {
   const pkg = validateSourcePackage(prepared);
+  if (pkg.importProvenance && pkg.productionId != null)
+    requireValue(store, envelope.projectId, 'production', pkg.productionId);
   if (aggregate.revision)
     fail('SOURCE_IMMUTABLE', 'Imported source packages are immutable.');
   for (const blob of pkg.blobManifest) {
