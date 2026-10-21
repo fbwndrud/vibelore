@@ -1213,3 +1213,209 @@ test('characterless narration preserves exact foreign role evidence without manu
     'needs_decision'
   );
 });
+
+test('another depicted subject cannot supply the actual speech speaker casting state evidence', async (t) => {
+  const f = await withAudioScene(t);
+  await f.command(
+    'cast.put',
+    {
+      id: 'state-holder',
+      name: 'State holder',
+      language: 'ko',
+      characterId: 'state-holder-character',
+      identity: {
+        id: 'state-holder-character',
+        origin: { kind: 'studioLocal' },
+      },
+    },
+    { aggregate: { kind: 'cast', id: 'state-holder' } }
+  );
+  const scene = (await f.service.snapshot(f.projectId)).scenes[0];
+  scene.occurrences.push({
+    id: 'state-holder-occurrence',
+    roleBindingId: 'state-holder',
+    characterId: 'state-holder-character',
+    presence: 'offscreen',
+  });
+  scene.presentations.push({
+    occurrenceId: 'state-holder-occurrence',
+    appearanceStateRef: null,
+    castingStateRef: 'childvoice',
+    knowledgeStateRef: null,
+  });
+  await f.command('scene.put', scene, {
+    aggregate: { kind: 'scene', id: 'scene' },
+  });
+  const slot = audioTakeSlot('state-evidence-take', 'u1');
+  const pins = slotPins(
+    f.service.store,
+    f.projectId,
+    slotDeclaration(slot, 'audio')
+  );
+  const state = ref({ recordKind: 'state', recordId: 'source-voice-state' });
+  const speaker = {
+    ownerId: ref().ownerId,
+    projectId: ref().projectId,
+    identityId: 'source-speaker',
+    stateRefs: [state],
+  };
+  const other = {
+    ...speaker,
+    identityId: 'source-state-holder',
+  };
+  const data = fixture(
+    {
+      mediaKind: 'audio',
+      roles: ['speech-take'],
+      subjects: [speaker, other],
+      audioBinding: {
+        ...pins.audioBinding,
+        characterId: 'source-speaker',
+        castingStateRef: 'source-voice-state',
+      },
+      speechPerformance: { text: '같은 대사', acting: { tone: 'quiet' } },
+    },
+    wav(),
+    'audio/wav'
+  );
+  const use = intent(slot, {
+    identityMap: [
+      { source: speaker, destinationIdentityId: 'char' },
+      { source: other, destinationIdentityId: 'state-holder-character' },
+    ],
+    stateMap: [{ source: state, destinationStateId: 'childvoice' }],
+  });
+  use.selections[0].role = 'speech-take';
+  assert.equal((await inspect(f, data, use)).disposition, 'compatible');
+
+  // Both real presentations and mappings remain valid. Only the actual source
+  // speaker's state evidence disappears; the other depicted subject keeps it.
+  const missingSpeakerState = structuredClone(data);
+  const missingSpeaker =
+    missingSpeakerState.bundle.records[0].metadata.subjects[0];
+  missingSpeaker.stateRefs = [];
+  missingSpeakerState.bundle.records[0].metadata.speakerStateRefs = [state];
+  missingSpeakerState.bundle = sealBundle(missingSpeakerState.bundle);
+  const missingUse = structuredClone(use);
+  missingUse.identityMap[0].source = missingSpeaker;
+  const inspection = await inspect(f, missingSpeakerState, missingUse);
+  assert.equal(inspection.disposition, 'needs_decision');
+  assert.ok(
+    inspection.findings.some(
+      (finding) => finding.code === 'REUSE_MAPPING_REQUIRED'
+    )
+  );
+  await assert.rejects(imported(f, missingSpeakerState, missingUse), {
+    code: 'REUSE_MAPPING_REQUIRED',
+  });
+  const snapshot = await f.service.snapshot(f.projectId);
+  assert.equal(snapshot.reuseImports.length, 0);
+  assert.equal(snapshot.candidates.length, 0);
+});
+
+test('stateful characterless narration uses only its explicit native role state evidence', async (t) => {
+  const f = await withAudioScene(t);
+  const scene = (await f.service.snapshot(f.projectId)).scenes[0];
+  scene.presentations.find(
+    (p) => p.occurrenceId === 'narration'
+  ).castingStateRef = 'childvoice';
+  await f.command('scene.put', scene, {
+    aggregate: { kind: 'scene', id: 'scene' },
+  });
+  await f.command(
+    'casting.set',
+    {
+      id: 'narrator-childvoice',
+      scope: 'project',
+      roleId: 'narrator',
+      state: 'childvoice',
+      voice: 'shared-voice',
+    },
+    { aggregate: { kind: 'casting', id: 'narrator-childvoice' } }
+  );
+  const slot = audioTakeSlot(
+    'stateful-narration',
+    'uN',
+    'narrator',
+    'childvoice'
+  );
+  const pins = slotPins(
+    f.service.store,
+    f.projectId,
+    slotDeclaration(slot, 'audio')
+  );
+  const state = ref({ recordKind: 'state', recordId: 'source-narrator-voice' });
+  const data = fixture(
+    {
+      mediaKind: 'audio',
+      roles: ['speech-take'],
+      subjects: [],
+      audioBinding: {
+        ...pins.audioBinding,
+        roleBindingId: 'source-narrator',
+        speakerOccurrenceId: 'source-narration',
+        castingStateRef: state.recordId,
+      },
+      speakerStateRefs: [state],
+      speechPerformance: { text: '해설' },
+    },
+    wav(),
+    'audio/wav'
+  );
+  const use = intent(slot, {
+    stateMap: [{ source: state, destinationStateId: 'childvoice' }],
+  });
+  use.selections[0].role = 'speech-take';
+  assert.equal((await inspect(f, data, use)).disposition, 'compatible');
+  const result = await imported(f, data, use);
+  assert.equal(result.value.candidate.audioBinding.characterId, null);
+  assert.equal(
+    result.value.candidate.audioBinding.castingStateRef,
+    'childvoice'
+  );
+  assert.equal(result.value.candidate.audioBinding.roleBindingId, 'narrator');
+
+  // A depicted character can have the same mapped voice state; it still cannot
+  // provide the characterless narrator's missing role-specific state evidence.
+  const depicted = {
+    ownerId: ref().ownerId,
+    projectId: ref().projectId,
+    identityId: 'source-depicted',
+    stateRefs: [state],
+  };
+  const missingRoleState = structuredClone(data);
+  delete missingRoleState.bundle.records[0].metadata.speakerStateRefs;
+  missingRoleState.bundle.records[0].metadata.subjects = [depicted];
+  missingRoleState.bundle = sealBundle(missingRoleState.bundle);
+  const depictedUse = structuredClone(use);
+  depictedUse.identityMap = [
+    { source: depicted, destinationIdentityId: 'char' },
+  ];
+  assert.equal(
+    (await inspect(f, missingRoleState, depictedUse)).disposition,
+    'needs_decision'
+  );
+  await assert.rejects(imported(f, missingRoleState, depictedUse), {
+    code: 'REUSE_MAPPING_REQUIRED',
+  });
+
+  const missingRole = structuredClone(data);
+  delete missingRole.bundle.records[0].metadata.audioBinding.roleBindingId;
+  missingRole.bundle = sealBundle(missingRole.bundle);
+  assert.equal(
+    (await inspect(f, missingRole, use)).disposition,
+    'needs_decision'
+  );
+  const unrelatedRoleState = structuredClone(data);
+  unrelatedRoleState.bundle.records[0].metadata.speakerStateRefs = [
+    ref({ recordKind: 'state', recordId: 'unrelated-role-state' }),
+  ];
+  unrelatedRoleState.bundle = sealBundle(unrelatedRoleState.bundle);
+  const unrelatedUse = structuredClone(use);
+  unrelatedUse.stateMap[0].source =
+    unrelatedRoleState.bundle.records[0].metadata.speakerStateRefs[0];
+  assert.equal(
+    (await inspect(f, unrelatedRoleState, unrelatedUse)).disposition,
+    'needs_decision'
+  );
+});

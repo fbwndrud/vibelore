@@ -13,13 +13,16 @@ import { originKey, validateBundle, validateOriginRef } from './bundle.js';
 export const NORMALIZER_VERSION = 'studio-media-v1';
 // Portable record convention shared with owner exporters:
 // metadata = {mediaKind, roles:string[], subjects:SubjectRef[], audioBinding?,
-// speechPerformance?}. sourcePins retains native pins as inert evidence.
+// speechPerformance?, speakerStateRefs?:OriginRef[]}. Original sourcePins stay
+// inert portable evidence.
 // Selected bytes are the sole `selected-content` file in the root's required files.
 // Roles are explicit advertised capabilities: no implicit role-family conversion.
 // Purpose is free text. An exact speech take additionally needs portable performance,
 // native text/language/voice evidence, and explicit identity/state mapping.
 // Native audioBinding.characterId matches the speaking SubjectRef.identityId;
-// native castingStateRef matches a source state OriginRef.recordId.
+// native castingStateRef matches a source state OriginRef.recordId. Characterless
+// narration instead uses speakerStateRefs belonging to its explicit native
+// audioBinding.roleBindingId; character speakers never consume that field.
 export const CONSUMPTION_ROLES = Object.freeze({
   image: [
     'identity-reference',
@@ -148,6 +151,17 @@ function mappings(store, projectId, slot, pinned, metadata, intent, findings) {
     fail('INVALID_INPUT', 'Preserved record requires explicit subjects.');
   const targetIdentity = subjectIdentity(store, projectId, slot),
     role = intent.selections[0].role;
+  const characterlessSpeech =
+    role === 'speech-take' && metadata.audioBinding?.characterId === null;
+  const speakerStateRefs = characterlessSpeech
+    ? metadata.speakerStateRefs ?? []
+    : [];
+  if (!Array.isArray(speakerStateRefs))
+    fail(
+      'INVALID_INPUT',
+      'Expected exact characterless speaker state references.'
+    );
+  for (const state of speakerStateRefs) validateOriginRef(state);
   const referenceOnly =
     slot.subject.kind === 'environment' &&
     slot.utteranceId == null &&
@@ -268,15 +282,29 @@ function mappings(store, projectId, slot, pinned, metadata, intent, findings) {
     ) ||
     intent.stateMap.some(
       (m) =>
-        !subjects.some((s) =>
-          s.stateRefs.some((r) => originKey(r) === originKey(m.source))
-        )
+        ![
+          ...subjects.flatMap((subject) => subject.stateRefs),
+          ...speakerStateRefs,
+        ].some((ref) => originKey(ref) === originKey(m.source))
     )
   )
     fail(
       'INVALID_INPUT',
-      'Mappings must refer to subjects and states of the selected record.'
+      'Mappings must refer to subjects or actual speaker states of the selected record.'
     );
+  for (const map of intent.stateMap) {
+    if (
+      !speakerStateRefs.some(
+        (state) => originKey(state) === originKey(map.source)
+      )
+    )
+      continue;
+    if (map.destinationStateId !== slot.castingStateRef)
+      mappingRequired(
+        'Map characterless speaker state evidence to the actual destination casting state.'
+      );
+    else requireValue(store, projectId, 'state', map.destinationStateId);
+  }
   if (!referenceOnly)
     for (const state of new Set(
       [slot.appearanceStateRef, slot.castingStateRef].filter(Boolean)
@@ -289,6 +317,14 @@ function mappings(store, projectId, slot, pinned, metadata, intent, findings) {
     if (!Object.hasOwn(metadata.audioBinding, 'characterId'))
       mappingRequired(
         'The source speech binding must explicitly identify its speaker or characterless narration.'
+      );
+    if (
+      characterlessSpeech &&
+      (typeof metadata.audioBinding.roleBindingId !== 'string' ||
+        !metadata.audioBinding.roleBindingId.trim())
+    )
+      mappingRequired(
+        'Characterless narration requires an explicit native source role binding.'
       );
     const sourceSpeaker = metadata.audioBinding.characterId ?? null;
     const destinationSpeaker = pinned.audioBinding.characterId ?? null;
@@ -314,9 +350,30 @@ function mappings(store, projectId, slot, pinned, metadata, intent, findings) {
     metadata.audioBinding?.castingStateRef != null
   ) {
     const original = metadata.audioBinding;
-    const sourceState = subjects
-      .flatMap((subject) => subject.stateRefs)
-      .find((state) => state.recordId === original.castingStateRef);
+    const speakingSubjects = subjects.filter(
+      (subject) =>
+        subject.identityId === original.characterId &&
+        intent.identityMap.some(
+          (map) =>
+            canonicalDigest(map.source) === canonicalDigest(subject) &&
+            map.destinationIdentityId === pinned.audioBinding?.characterId
+        )
+    );
+    // Native state evidence belongs to the actual mapped source speaker. Another
+    // depicted subject cannot lend its state, even when both local voices agree.
+    let sourceSpeakerStates = [];
+    if (characterlessSpeech) {
+      if (
+        typeof original.roleBindingId === 'string' &&
+        original.roleBindingId.trim()
+      )
+        sourceSpeakerStates = speakerStateRefs;
+    } else if (speakingSubjects.length === 1) {
+      sourceSpeakerStates = speakingSubjects[0].stateRefs;
+    }
+    const sourceState = sourceSpeakerStates.find(
+      (state) => state.recordId === original.castingStateRef
+    );
     if (
       !sourceState ||
       !intent.stateMap.some(
