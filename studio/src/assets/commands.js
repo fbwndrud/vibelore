@@ -49,7 +49,7 @@ export async function prepareAssetMaterialization(
 
     ...(slot.mediaKind === 'audio'
       ? {
-          speechVerification: 'unverified_import',
+          speechVerification: pinned.audioBinding ? 'unverified_import' : 'not_applicable',
           transcriptionVerification: 'not_performed',
           ...(pinned.audioBinding ? { audioBinding: pinned.audioBinding } : {}),
         }

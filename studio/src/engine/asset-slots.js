@@ -215,6 +215,12 @@ export function slotPins(store, projectId, slot) {
 export function candidateMatchesSlot(store, projectId, candidate, slot, current, restore = false) {
   let intent = candidate.slotIntent ?? candidate.recipe?.assetIntent;
 
+  if (candidate.mediaKind === 'audio' && candidate.reuseRole) {
+    const role = slot.utteranceId ? 'speech-take' : slot.audioRole ?? candidate.reuseRole;
+    if (candidate.reuseRole !== role || (!slot.utteranceId && role === 'speech-take'))
+      fail('SLOT_CONFLICT', 'Preserved audio role does not authorize this consumption.');
+  }
+
   // Inserted narrower casting decisions can change effective voice semantics without
   // changing any retained dependency revision. Every bound take must match its
   // retained engine binding, regardless of generation/import target kind.
@@ -301,6 +307,7 @@ export function sameSlot(a, b) {
     appearanceStateRef: a.appearanceStateRef,
     castingStateRef: a.castingStateRef ?? null,
     utteranceId: a.utteranceId ?? null,
+    ...(a.audioRole ? { audioRole: a.audioRole } : {}),
     mediaKind: a.mediaKind
   }) === canonicalDigest({
     scope: b.scope,
@@ -308,6 +315,7 @@ export function sameSlot(a, b) {
     appearanceStateRef: b.appearanceStateRef,
     castingStateRef: b.castingStateRef ?? null,
     utteranceId: b.utteranceId ?? null,
+    ...(b.audioRole ? { audioRole: b.audioRole } : {}),
     mediaKind: b.mediaKind
   });
 }
@@ -335,9 +343,15 @@ export function ensureCandidateNew(store, projectId, id) {
 
 export function slotDeclaration(input, mediaKind) {
   if (!input || Object.keys(input).some(
-    key => !['id', 'scope', 'subject', 'appearanceStateRef', 'castingStateRef', 'utteranceId'].includes(key)
+    key => !['id', 'scope', 'subject', 'appearanceStateRef', 'castingStateRef', 'utteranceId', 'audioRole'].includes(key)
   ))
     fail('INVALID_INPUT', 'Slot declaration contains unsupported fields.');
+
+  if (input.audioRole != null && (mediaKind !== 'audio' || !['music', 'sfx'].includes(input.audioRole) || input.utteranceId != null))
+    fail('INVALID_INPUT', 'Independent sound roles require an unbound audio slot.');
+
+  if (input.audioRole && !['role', 'environment'].includes(input.subject?.kind))
+    fail('INVALID_INPUT', 'Independent sound slots require a role or environment subject.');
 
   if (mediaKind !== 'audio' && (input.castingStateRef != null || input.utteranceId != null))
     fail('INVALID_INPUT', 'Voice state and utterance bindings require audio media.');
@@ -348,6 +362,7 @@ export function slotDeclaration(input, mediaKind) {
     subject: input.subject,
     appearanceStateRef: input.appearanceStateRef,
     mediaKind,
+    ...(input.audioRole ? { audioRole: input.audioRole } : {}),
 
     ...(mediaKind === 'audio' ? { castingStateRef: input.castingStateRef ?? null, utteranceId: input.utteranceId ?? null } : {}),
 

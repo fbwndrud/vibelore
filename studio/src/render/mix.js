@@ -6,7 +6,7 @@ export async function mixTimeline(timeline, readBlob) {
   if (frames > rate * 3600) fail("RENDER_LIMIT", "Timeline exceeds one hour.");
   const mix = new Float64Array(frames * 2);
   let clippedSamples = 0;
-  for (const take of timeline.takes) {
+  for (const take of [...timeline.takes, ...(timeline.tracks ?? [])]) {
     if (take.mute) continue;
     const { samples, metadata: m } = decodeWav(await readBlob(take.blobId));
     const length = take.endSample - take.startSample;

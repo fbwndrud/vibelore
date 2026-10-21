@@ -179,7 +179,7 @@ function validateCandidateUse(store, projectId, slot, p, prepared, restore = fal
     fail('STALE_REVIEW', 'Candidate review must match the current accepted review revision.');
 }
 
-function adoptionDecision(store, projectId, id) {
+export function adoptionDecision(store, projectId, id) {
   const row = store.get('SELECT data_json FROM asset_adoptions WHERE project_id=? AND id=?', projectId, id);
 
   if (!row)

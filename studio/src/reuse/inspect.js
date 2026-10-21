@@ -522,6 +522,7 @@ export function evaluateInspection({
       (['identity-reference', 'pose'].includes(selection.role) &&
         slot.subject.kind === 'environment') ||
       (selection.role === 'speech-take' && !slot.utteranceId) ||
+      (slot.audioRole != null && selection.role !== slot.audioRole) ||
       (['audio-reference', 'music', 'sfx'].includes(selection.role) &&
         slot.utteranceId)
     )

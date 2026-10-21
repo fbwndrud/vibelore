@@ -209,6 +209,39 @@ export function createStudioOwnerAdapter({
         : ref.recordKind === "editionOutput"
         ? "video"
         : "structured");
+    // Semantic roles require actual selected native track evidence. An arbitrary
+    // WAV, slot label, title or audio-shaped blob is never music/SFX evidence.
+    const nativeTrackRoles = new Set();
+    if (
+      ref.recordKind === "candidate" &&
+      mediaKind === "audio" &&
+      !value.reuseRole
+    ) {
+      for (const row of db
+        .prepare(
+          "SELECT aggregate_kind,value_json FROM events WHERE project_id=? AND aggregate_kind IN ('timeline','edition')"
+        )
+        .all(ref.projectId)) {
+        const native = JSON.parse(row.value_json);
+        const timeline =
+          row.aggregate_kind === "timeline"
+            ? native.resolved
+            : native.closure?.timeline;
+        for (const track of timeline?.tracks ?? [])
+          if (
+            ["music", "sfx"].includes(track.kind) &&
+            track.candidateId === value.id &&
+            track.blobId === (value.canonicalBlobId ?? value.blobId) &&
+            track.adoptionId &&
+            db
+              .prepare(
+                "SELECT 1 FROM asset_adoptions WHERE project_id=? AND id=? AND json_extract(data_json,'$.candidateId')=? AND json_extract(data_json,'$.slotId')=?"
+              )
+              .get(ref.projectId, track.adoptionId, value.id, track.slotId)
+          )
+            nativeTrackRoles.add(track.kind);
+      }
+    }
     const roles = value.reuseRole
       ? [value.reuseRole]
       : mediaKind === "image"
@@ -218,7 +251,13 @@ export function createStudioOwnerAdapter({
             : "environment-reference",
         ]
       : mediaKind === "audio"
-      ? [value.audioBinding ? "speech-take" : "audio-reference"]
+      ? nativeTrackRoles.size
+        ? [...nativeTrackRoles].sort()
+        : [
+            value.audioBinding || value.utteranceBinding
+              ? "speech-take"
+              : "audio-reference",
+          ]
       : [];
     const metadata = {
       mediaKind,

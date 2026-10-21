@@ -6,7 +6,10 @@ import {
   fail,
 } from "../engine/contracts.js";
 import { requireValue } from "../engine/story.js";
-import { resolveAcceptedSelection } from "../engine/adoptions.js";
+import {
+  resolveAcceptedSelection,
+  adoptionDecision,
+} from "../engine/adoptions.js";
 import {
   prepareTimeline,
   timelineInputs,
@@ -67,8 +70,11 @@ function resolveShots(store, projectId, inputs, timeline, intents, profile) {
     assets = [];
   for (const scene of inputs.scenes) {
     const takes = timeline.takes.filter((t) => t.sceneId === scene.id);
-    const start = shots.at(-1)?.endFrame ?? 0,
-      end = Math.max(start, ...takes.map((take) => take.endFrame));
+    const span = timeline.scenes?.find((s) => s.sceneId === scene.id);
+    const start = span?.startFrame ?? shots.at(-1)?.endFrame ?? 0,
+      end =
+        span?.endFrame ??
+        Math.max(start, ...takes.map((take) => take.endFrame));
     if (!scene.shots.length) fail("MISSING_IMAGE", "Video scene has no shots.");
     for (const [i, shot] of scene.shots.entries()) {
       const slot = shot.referenceSlotId
@@ -97,11 +103,25 @@ function resolveShots(store, projectId, inputs, timeline, intents, profile) {
       if (intent) {
         const cue = resolveTimeline({
           fps: profile.fps,
-          takes: timeline.takes,
+          takes: timeline.takes.map((t) => {
+            const { anchor, ...take } = t;
+            return {
+              ...take,
+              fixedStartMs: (t.startSample * 1000) / timeline.sampleRate,
+            };
+          }),
           cues: [{ ...intent, id: shot.id }],
         }).cues[0];
         startFrame = cue.startFrame;
         endFrame = cue.endFrame;
+      } else if (
+        span &&
+        scene === inputs.scenes.at(-1) &&
+        i === scene.shots.length - 1
+      ) {
+        // Preserve scene-local cuts; a selected global audio tail holds only
+        // the final default shot. Explicit shot timing is never stretched.
+        endFrame = timeline.durationFrames;
       }
       if (endFrame <= startFrame || endFrame > timeline.durationFrames)
         fail("TIMING_CONFLICT", "Shot has an invalid boundary.");
@@ -164,7 +184,11 @@ export async function prepareEdition(service, context) {
       timeline.intent.shots,
       profile,
     );
-  const allAssets = [...inputs.takes.map((t) => t.candidate), ...visual.assets];
+  const allAssets = [
+    ...inputs.takes.map((t) => t.candidate),
+    ...(inputs.tracks ?? []).map((t) => t.candidate),
+    ...visual.assets,
+  ];
   for (const candidate of visual.assets) {
     const decoded = await decodeMedia(
       await service.blobs.read(
@@ -245,6 +269,16 @@ export async function prepareEdition(service, context) {
     environment,
     sourcePackage: inputs.sourcePackage,
     scenes: inputs.scenes,
+    ...(inputs.tracks
+      ? {
+          soundSelections: inputs.tracks.map((t) => ({
+            trackId: t.id,
+            candidate: t.candidate,
+            slot: requireValue(store, e.projectId, "assetSlot", t.slotId),
+            adoption: adoptionDecision(store, e.projectId, t.adoptionId),
+          })),
+        }
+      : {}),
   };
   closure.blobIds = [...blobReferences(closure)].sort();
   await verifyBlobs(service, e.projectId, closure.blobIds);
