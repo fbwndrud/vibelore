@@ -1,3 +1,4 @@
+import { isPrivatePortableKey } from "../engine/portable.js";
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { isProxy } from 'node:util/types';
@@ -9,10 +10,6 @@ const MANIFEST_LIMIT = 512 * 1024;
 const FILE_LIMIT = 20 * 1024 * 1024;
 const TOTAL_LIMIT = 24 * 1024 * 1024;
 const SHA256 = /^[a-f0-9]{64}$/;
-const PRIVATE_OR_ACTIVE_KEYS = new Set([
-  'path', 'filePath', 'rootDir', 'sourcePath', 'worldRoot', 'directory',
-  'absolutePath', 'locator', 'executableInstruction', 'fetchInstruction'
-]);
 const REF_KEYS = ['ownerId', 'projectId', 'recordKind', 'recordId', 'revision'];
 const RECORD_KEYS = ['ref', 'recordSha256', 'metadata', 'requiredFileSha256s', 'sourcePins', 'evidenceRefs'];
 const MANIFEST_KEYS = ['schemaVersion', 'manifestSha256', 'roots', 'records', 'files', 'links', 'disclosure', 'capturedAt'];
@@ -48,7 +45,7 @@ function portable(value) {
     for (const key of keys) {
       const descriptor = descriptors[key];
       if (typeof key !== 'string' || ['__proto__', 'prototype', 'constructor'].includes(key)
-        || PRIVATE_OR_ACTIVE_KEYS.has(key) || !('value' in descriptor)
+        || isPrivatePortableKey(key) || !('value' in descriptor)
         || (!descriptor.enumerable && !(isArray && key === 'length'))) invalid();
     }
     if (isArray) {

@@ -131,7 +131,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
       });
     }, 'STORAGE_FAILED'); },
     async history(projectId, options) { return boundary(() => readHistory(store, projectId, options), 'STORAGE_FAILED'); },
-    async events(projectId, afterCursor = 0) { return boundary(() => store.events(projectId, afterCursor), 'STORAGE_FAILED'); },
+    async events(projectId, afterCursor = 0, limit = null) { return boundary(() => store.events(projectId, afterCursor, limit), 'STORAGE_FAILED'); },
     async readBlob(projectId, blobId) { return boundary(() => blobs.read(projectId, blobId), 'BLOB_READ_FAILED'); },
     async collectGarbage(projectId, options) {return boundary(()=>collectGarbage(blobs,projectId,options),'GC_FAILED');},
     async integrity(projectId) {return boundary(()=>integrityReport(blobs,projectId),'STORAGE_FAILED');},

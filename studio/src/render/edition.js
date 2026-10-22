@@ -2,6 +2,7 @@ import { assertText, canonicalDigest, fail } from "../engine/contracts.js";
 import { readValues, requireValue } from "../engine/story.js";
 import { timelineWorkingDigest } from "../engine/timeline.js";
 import { checkRenderedBytes } from "./probe.js";
+import { renderFailure } from "./errors.js";
 import { registerPolicyCommands, boundPolicy, checkBinding } from "./policy.js";
 import {
   blobReferences,
@@ -87,6 +88,7 @@ export function registerEditionCommands(service) {
       checkNew(aggregate, "IMMUTABLE_OUTPUT");
       const edition = editionValue(store, e.projectId, e.payload.editionId);
       await verifyBlobs(service, e.projectId, edition.closure.blobIds);
+      let stage = "renderer";
       try {
         const renderer =
           service.renderer ?? (await import("./renderer.js")).renderEdition;
@@ -94,11 +96,13 @@ export function registerEditionCommands(service) {
           edition,
           readBlob: (id) => service.blobs.read(e.projectId, id),
         });
+        stage = "output-check";
         const checked = await checkRenderedBytes(
           result.bytes,
           edition.closure.profile,
           edition.closure.timeline.durationFrames / edition.closure.profile.fps,
         );
+        stage = "output-storage";
         const output = await service.blobs.put(e.projectId, result.bytes);
         const frames = [];
         for (const frame of result.frames ?? [])
@@ -133,7 +137,7 @@ export function registerEditionCommands(service) {
           editionId: edition.id,
           closureDigest: edition.closureDigest,
           status: "failed",
-          errorCode: error.code ?? "RENDER_FAILED",
+          ...renderFailure(error, stage),
         };
       }
     },

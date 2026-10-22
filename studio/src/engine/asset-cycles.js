@@ -602,7 +602,7 @@ export function registerCycleCommands(service) {
             "Repeated attachment to one execution or result is not a comparison trial."
           );
       }
-      return { ...record, actor, reason, nativeEvidence };
+      return { ...record, actor, reason, nativeEvidence, evaluationVerification: "not_performed" };
     },
   });
 }

@@ -630,7 +630,7 @@ export function renderPreview(c) {
     if (output.status !== "completed") {
       root.append(
         note(
-          `출력 실패 · ${output.errorCode} · 다시 내보내기로 재시도할 수 있습니다.`,
+          `출력 실패 · ${output.errorCode}${output.failure ? ` (${output.failure.stage}: ${output.failure.reason})` : ""} · 다시 내보내기로 재시도할 수 있습니다.`,
         ),
       );
       continue;

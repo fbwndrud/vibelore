@@ -106,7 +106,7 @@ export async function startStudioHttp({
   async function streamEvents(request, response, projectId, after) {
     let cursor = after;
     // Validate project/cursor before switching to a successful streaming response.
-    let events = await service.events(projectId, cursor);
+    let events = await service.events(projectId, cursor, 200);
     response.writeHead(200, { 'content-type': 'text/event-stream' });
     response.flushHeaders();
     const stop = new AbortController();
@@ -147,7 +147,7 @@ export async function startStudioHttp({
           if (stop.signal.aborted) done();
         });
         if (!stop.signal.aborted && !closing)
-          events = await service.events(projectId, cursor);
+          events = await service.events(projectId, cursor, 200);
       }
     } finally {
       streams.delete(stop);

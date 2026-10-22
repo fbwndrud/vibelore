@@ -937,3 +937,18 @@ test("accepted output binding rejects another render/review or digest under the 
   );
   assert.equal((await f.service.snapshot("p1")).productionCases.length, 0);
 });
+
+
+test("declared independent evaluator remains explicitly unverified and unobserved cases may retain actual work", async t => {
+  const f = await withStudio(t);
+  const c = (await assetImport(f, "observed", await png(basePixels))).value.candidate;
+  const value = productionCase("declared", {
+    trials: [trial("actual", [local("candidate", c)])],
+    observations: [{id: "view", targetRef: local("candidate", c), scope: "one still", perspective: "review", evaluator: {id: "another-id", relationship: "independent", basis: "creator declaration"}, score: null}],
+  });
+  const saved = await record(f, "productionCase", value);
+  assert.equal(saved.value.evaluationVerification, "not_performed");
+  assert.equal(saved.value.classification, "unobserved");
+  assert.equal(saved.value.observations[0].evaluator.relationship, "independent");
+  await assert.rejects(record(f, "productionCase", {...value, id: "forged", evaluationVerification: "verified"}), {code: "INVALID_INPUT"});
+});

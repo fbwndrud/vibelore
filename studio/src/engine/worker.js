@@ -4,7 +4,7 @@ import { mediaValidator } from '../assets/decode.js';
 import { insertQuarantine, pinTarget } from './asset-slots.js';
 import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
-import { execFileSync } from 'node:child_process';
+import { incarnation } from './process-identity.js';
 import { setTimeout as delay } from 'node:timers/promises';
 import { StudioError, assertId, assertText, canonicalDigest, canonicalJSON, fail } from './contracts.js';
 import { getJob, getAttempt, saveJob, saveAttempt, checkPinnedRequest, progress } from './jobs.js';
@@ -13,18 +13,7 @@ import { holdUnknown, release, reconcileBudget } from './budget.js';
 const liveWorkers = new Set();
 const host = hostname();
 // A PID alone can be recycled. Start incarnation plus random worker identity is retained.
-function incarnation(pid) {
-  try {
-    return (
-      execFileSync('ps', ['-o', 'lstart=', '-p', String(pid)], {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore']
-      }).trim() || null
-    );
-  } catch {
-    return null;
-  }
-}
+
 function workerAlive(worker) {
   if (!worker || worker.status !== 'active') return false;
   if (worker.hostname !== host) return true; // Local storage is not a distributed lease authority.

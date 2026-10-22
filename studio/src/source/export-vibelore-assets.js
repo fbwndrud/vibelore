@@ -1,3 +1,4 @@
+import { stripPrivateFields as portable } from "../engine/portable.js";
 import { readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import {
@@ -28,27 +29,6 @@ const omissions = [
   "Work sources omit unselected future/state context; world archives have no selected current timeline point.",
   "Deprecated cut-based webtoonPlan/webtoonReferences/webtoonRender manifests are unsupported; scene exports require retained native approving workflow evidence.",
 ];
-const portable = (value) =>
-  Array.isArray(value)
-    ? value.map(portable)
-    : value && typeof value === "object"
-    ? Object.fromEntries(
-        Object.entries(value)
-          .filter(
-            ([key]) =>
-              ![
-                "path",
-                "rootDir",
-                "sourcePath",
-                "worldRoot",
-                "directory",
-                "absolutePath",
-                "sourceFingerprint",
-              ].includes(key)
-          )
-          .map(([k, v]) => [k, portable(v)])
-      )
-    : value;
 /** Exactly one existing work OR world root. allowedProjects contains native
  * workId/universeId. A world is a published context archive, NOT a current state.
  * Work context comes solely from adopted sealed scene scopes. */
@@ -618,6 +598,10 @@ function boundedVibeloreOwnerAdapter({ locator, ownerId, allowedProjects }) {
           token,
           entries: records.map((r) => ({
             ref: r.ref,
+            status: "completed",
+            reviewStatus: "accepted",
+            adoptionStatus: "adopted",
+            sourceType: r.ref.recordKind === "webtoon-scene" ? "derived" : "source",
             title: r.title,
             mediaKind: r.mediaKind,
             roles: r.metadata.roles,
@@ -625,7 +609,7 @@ function boundedVibeloreOwnerAdapter({ locator, ownerId, allowedProjects }) {
             expressionRefs: [],
             availability: "observed-available",
             capabilities: r.content
-              ? ["discover", "preserve", "inspect", "derive"]
+              ? ["discover", "preserve", "inspect", "derive", ...(["image", "audio"].includes(r.mediaKind) ? ["render"] : [])]
               : ["discover", "inspect"],
           })),
           links: [],

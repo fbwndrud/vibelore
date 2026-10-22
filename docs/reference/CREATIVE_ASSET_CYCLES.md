@@ -9,14 +9,17 @@ unless an actual scoped observation is supplied.
 
 ## Start and upgrade deliberately
 
-Use Node 24 and the existing Studio dependencies. Import-only startup:
+Use Node 24 from a Git repository checkout and install locked dependencies with
+`npm ci --prefix studio`. The vibelore npm runtime does not contain Studio.
+Import-only startup:
 
 ```sh
-node studio/bin/studio.js --project /your/studio-a --project-id p1 --library /your/library --port 4310 --google-key-env STUDIO_NO_KEY
-node studio/bin/studio-mcp.js --project /your/studio-a --project-id p1 --library /your/library --google-key-env STUDIO_NO_KEY
+node studio/bin/studio.js --project /your/studio-a --project-id p1 --library /your/library --port 4310
+node studio/bin/studio-mcp.js --project /your/studio-a --project-id p1 --library /your/library
 ```
 
-Leave `STUDIO_NO_KEY` unset. Neither command scans or registers neighboring
+Credentials are opt-in through `--google-key-env` or `--google-keychain-service`;
+ambient provider keys are ignored. Neither command scans or registers neighboring
 folders. In Library, choose `studio` or `vibelore`, an existing owner directory,
 and exact allowed project IDs. Separate vibelore work/world roots need separate
 registrations. Click refresh to capture observations. Without `--library`, the UI,
@@ -35,7 +38,8 @@ adapters never initialize, migrate, recover or modify their sources.
 ## Library workflow
 
 1. Connect only the intended owner and project scope, then refresh. Search by
-   title, media kind, owner, project or role. Details show the complete exact
+   title, media kind, owner, project, role, native status, review, adoption,
+   source/derived kind or availability. Details show the complete exact
    `OriginRef`, capabilities, availability and observation time, plus lineage,
    uses and scoped cases. `offline` means connection failure; `missing` requires a
    successful current observation without that exact ref. Replacement/rebinding
@@ -122,14 +126,43 @@ Library command envelope:
 (`{ownerId,locator,confirmRefs,allowedProjects?}`). Rebind requires explicitly
 confirmed exact refs, adapter verification and a fresh generation; copies get new
 owner UUIDs. Private locators appear only in these explicit local connection
-commands, never find/inspect/export results. Public scope belongs in
+commands through the local HTTP UI or trusted in-process host, never
+find/inspect/export results. MCP refuses register/rebind with
+`OWNER_CONNECTION_REQUIRED`; connect the owner in the UI first. Public scope belongs in
 `allowedProjects`, not the private locator.
 
-Queries: `find` with optional `text,mediaKind,ownerId,projectId,role,subject,limit`;
+Queries: `find` with optional `text,mediaKind,ownerId,projectId,role,subject,limit,availability,status,reviewStatus,adoptionStatus,sourceType`;
 `inspect`, `lineage` or `uses` with `ref`; `cases` with optional owner/project.
 Every result carries `registryRevision` and public `owners`. Results use
 `entries`, `status/entry`, `links`, `uses`, or `cases` respectively. There is no raw
 SQL/store/registerCommand transport.
+
+`status` preserves the native status (or `unknown`). `reviewStatus` is
+`candidate|accepted|rejected|unknown`; `adoptionStatus` is
+`adopted|not-adopted|unknown`; `sourceType` is `source|derived|unknown`.
+Studio candidate adoption reports current selected slots at that owner; it never
+approves destination use. Review reports the current native decision. Source/derived
+describes local transformation, not ownership or rights. Legacy or unclassified
+records stay `unknown`. Vibelore entries represent published/adopted source records.
+`render` advertises supported image/audio consumption after destination inspection
+and adoption; text, video clips and structured archives do not gain it by filename.
+
+Connection/credential field names use one recursive private-field policy across
+source export, projections and bundles. Bundles reject credential/session/fetch
+fields; exporters remove them from metadata. Literal prompts, manuscript bytes and
+citation URLs remain data; this policy cannot recognize secrets embedded in prose.
+Do not select secret-bearing source material for export.
+
+New case `evaluationVerification` is always `not_performed`. Evaluator relationships
+and basis are creator declarations, including `independent`; another ID is not
+proof of independence. `unobserved` is a conservative case without an accepted,
+matched or failed classification. It may retain actual outputs and scoped
+observations without claiming artistic quality or a completed comparison.
+
+MCP `studio_events` defaults to 200 records after `after`; `limit` accepts 1–1000.
+Continue from the final cursor until an empty page. HTTP event streaming reads
+bounded 200-record pages automatically; the internal events API retains its
+unbounded default for compatibility.
 
 Studio commands retain `{projectId,commandId,aggregate:{kind,id},expectedRevision,
 type,payload}` and their existing durable CAS/replay receipts. `source.importBundle`

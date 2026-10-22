@@ -1,6 +1,6 @@
 # Lore Studio
 
-A local production workspace for retained manuscripts, multi-character scenes,
+A local production component of the repository checkout for retained manuscripts, multi-character scenes,
 imported or generated PNG/WAV candidates, scoped adoption/undo, immutable
 Editions, actual MP4/WAV exports and portable project backup/restore.
 
@@ -12,14 +12,20 @@ optional Remotion `4.0.534` and React `19.3.0` are lockfile-pinned. Video render
 uses an existing Chrome and FFmpeg/ffprobe. No automatic browser download.
 
 ```sh
-npm start --prefix studio -- --project /your/project --project-id p1 --google-key-env STUDIO_NO_KEY
-npm run mcp --prefix studio -- --project /your/project --project-id p1 --google-key-env STUDIO_NO_KEY
+npm ci --prefix studio
+npm start --prefix studio -- --project /your/project --project-id p1
+npm run mcp --prefix studio -- --project /your/project --project-id p1
 npm test --prefix studio
 ```
 
-Leave `STUDIO_NO_KEY` unset for a local import-only workspace. The default CLI
-credential name otherwise is `GEMINI_API_KEY`; actual generation requires an
-explicitly intended configured credential and application budget.
+Credentials are read only when `--google-key-env NAME` or
+`--google-keychain-service SERVICE` is explicitly supplied. Ambient `GEMINI_API_KEY`
+is ignored by default; no generation worker starts without an opted-in key.
+The vibelore npm package contains documentation, not the Studio runtime. Run these
+commands from the Git checkout. Root imports are intentional read-only connector
+integration seams; Studio is not an independently installable npm package.
+Outside macOS, set `STUDIO_CHROME_PATH` to an installed Chrome executable; it also
+overrides the macOS default. FFmpeg and ffprobe must be on PATH.
 
 Production includes an application budget editor. `project.budget.set` uses the
 project aggregate revision and command ID, updates the stored project atomically,
@@ -53,7 +59,8 @@ productions are retained as historical artifacts; they are never a fallback.
 Start with `--library /your/library` in either HTTP or MCP mode, then explicitly
 connect existing owner directories and allowed project IDs in Library. No folders
 are scanned or registered automatically. Without this option the interface explains
-how to enable Library. Search exact old refs, inspect purpose/identity/state mappings,
+how to enable Library. MCP can refresh/unregister existing owners; connection and
+rebinding require the explicit local UI or trusted in-process host configuration. Search exact old refs, inspect purpose/identity/state mappings,
 preserve raw bytes, then separately review/adopt candidates or bind source packages.
 The browser queue retains each import command and receipt and retries unfinished
 items only. It never rolls back a successful text import because an image fails.
@@ -177,20 +184,11 @@ its creation event matches this capture's digest. Changed source is rejected wit
 `SOURCE_CONNECTION_CHANGED`; connect it to a fresh project/storage directory.
 The output `connection-receipt.json` records source/raw/canonical hashes and counts.
 
-## Completed validation scope
+## Validation
 
-All eight task review gates are complete. The whole-branch review of
-`b3200d3..04ab70f` found three Important integration issues; one fix wave
-(`ca451d6`) and one scoped rereview closed all three with no new breakage.
-Accepted subscriber reuse now reaches timeline/Edition, the first generated image
-has an explicit adoption/shot-use path, and Cast edits keep independent state bindings.
-This records the original review and scoped follow-up, not a fresh whole-branch rerun.
-
-The final ten-file covering run passed 143/143; source metadata checked 774 paths.
-Earlier Studio 279/279, later authority/recovery scopes, root 872/874 followed by
-docs 5/5, and engine 1239/1239 remain separate phases with their original failures
-preserved in the [implementation evidence](../docs/research/studio-implementation-evidence-2026-10-09.json).
-Actual provider-free restored 57.833-second MP4/WAV outputs are retained; final
-changes left renderer fingerprint files and the lockfile unchanged. Live Google
-quota/billing, artistic/identity/mask quality, screen-reader use, human listening/
-viewing approval and browser-download completion are not established by these checks.
+Run `npm run test:all` from the repository root for engine, MCP and Studio, or
+`npm run test:studio` for Studio only. Tests use a concurrency of one to bound local
+Chrome/FFmpeg resource use. Real short landscape/portrait renders and decoded WAVs
+exercise the frozen output path. These checks do not establish artistic quality,
+provider billing or independent-reader evaluation. Historical implementation
+records remain under `docs/research`; they do not certify later revisions.

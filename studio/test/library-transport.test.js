@@ -298,3 +298,43 @@ test('queue destination identity survives configured restarts and isolates anoth
     ),
   );
 });
+
+
+test('MCP cannot register or rebind filesystem owners; user-connected owners remain queryable', async t => {
+  const f = await libraryFixture(t);
+  for (const type of ['owner.register', 'owner.rebind']) {
+    const result = await mcp(f.service, f.library, 'studio_library_command', {request: {
+      commandId: type, expectedRegistryRevision: 0, type,
+      payload: {adapterKind: 'studio', locator: {directory: f.directory}, allowedProjects: ['p1']},
+    }});
+    assert.equal(result.isError, true);
+    assert.equal(JSON.parse(result.content[0].text).error.code, 'OWNER_CONNECTION_REQUIRED');
+  }
+  assert.deepEqual((await f.library.query({type: 'find'})).owners, []);
+});
+
+
+test('native Library filters distinguish current review, adoption, derivation and availability without inheriting approval', async t => {
+  const f = await libraryFixture(t);
+  const slot = environmentSlot();
+  const candidate = (await f.command('asset.import', {id: 'filter-image', mediaKind: 'image', slot, bytes: pngBytes, mime: 'image/png', actor: 'creator', reason: 'fixture'}, {aggregate: {kind: 'assetSlot', id: slot.id}})).value.candidate;
+  const registered = await f.library.command({commandId: 'filter-register', expectedRegistryRevision: 0, type: 'owner.register', payload: {adapterKind: 'studio', locator: {directory: f.directory}, allowedProjects: ['p1']}});
+  let n = 0;
+  const refresh = () => f.library.command({commandId: `filter-refresh-${++n}`, expectedRegistryRevision: registered.registryRevision, type: 'owner.refresh', payload: {ownerId: registered.ownerId}});
+  const find = async filter => (await f.library.query({type: 'find', ...filter})).entries;
+  await refresh();
+  assert.equal((await find({reviewStatus: 'candidate', adoptionStatus: 'not-adopted', sourceType: 'source', availability: 'observed-available', status: 'candidate'})).length, 1);
+  assert.ok((await find({status: 'candidate'}))[0].capabilities.includes('render'));
+  await f.command('candidate.review', {candidateId: candidate.id, decision: 'reject', actor: 'creator', reason: 'fixture'}, {aggregate: {kind: 'assetReview', id: candidate.id}});
+  await refresh();
+  assert.equal((await find({reviewStatus: 'rejected'})).length, 1);
+  assert.equal((await find({reviewStatus: 'accepted'})).length, 0);
+  await f.command('candidate.review', {candidateId: candidate.id, decision: 'approve', actor: 'creator', reason: 'fixture'}, {aggregate: {kind: 'assetReview', id: candidate.id}});
+  await f.command('candidate.adopt', {slotId: slot.id, candidateId: candidate.id, reviewRevision: 2, actor: 'creator', reason: 'fixture'}, {aggregate: {kind: 'assetSlot', id: slot.id}});
+  await f.command('asset.derive', {id: 'filter-crop', slotId: slot.id, baseCandidateId: candidate.id, operation: 'crop', rect: {left: 0, top: 0, width: 1, height: 1}, actor: 'creator'}, {aggregate: {kind: 'assetSlot', id: slot.id}});
+  await refresh();
+  assert.equal((await find({reviewStatus: 'accepted', adoptionStatus: 'adopted'})).length, 1);
+  assert.equal((await find({sourceType: 'derived', adoptionStatus: 'not-adopted'})).length, 1);
+  for (const filter of [{reviewStatus: 'invented'}, {adoptionStatus: 'invented'}, {sourceType: 'invented'}, {availability: 'invented'}]) await assert.rejects(find(filter), {code: 'INVALID_INPUT'});
+  assert.equal((await f.service.snapshot('p1')).adoptions.length, 1);
+});

@@ -4,13 +4,16 @@ Studio는 원고를 읽어 그림·음성·장면을 편집하는 별도 로컬 
 
 ## 실행과 저장
 
-Node `^22.13.0 || ^24.0.0 || ^26.0.0`이 필요합니다. 이 worktree에는 잠금 파일에 맞는 의존성이 설치되어 있습니다. 저장 폴더는 소설 원작 폴더와 다른 새 위치로 지정합니다.
+Studio는 **Git 저장소 체크아웃에서 실행**합니다. `vibelore` npm 패키지에는 Studio 실행 파일·의존성이 포함되지 않습니다. npm 설치 폴더에서 아래 명령을 실행하지 마세요. 저장소 루트에서 Node `^22.13.0 || ^24.0.0 || ^26.0.0`으로 의존성을 설치합니다. 저장 폴더는 소설 원작 폴더와 다른 새 위치로 지정합니다.
 
 ```sh
-npm start --prefix studio -- --project /your/studio-project --project-id p1 --google-key-env STUDIO_NO_KEY
+git clone https://github.com/fbwndrud/vibelore.git
+cd vibelore
+npm ci --prefix studio
+npm start --prefix studio -- --project /your/studio-project --project-id p1
 ```
 
-`STUDIO_NO_KEY`를 설정하지 않으면 과금 공급자를 연결하지 않습니다. 기본 자격 증명 환경 변수는 `GEMINI_API_KEY`이므로 공급자를 쓰지 않는 실행은 위처럼 비어 있는 명시적 변수 이름을 사용하세요. 키를 UI·원고·command payload에 붙여 넣지 않습니다. Google을 의도적으로 사용할 때만 전용 환경 변수 또는 `--google-keychain-service`로 기존 자격 증명을 선택합니다. 계정/모델의 실제 제공 여부와 가격은 별도 확인 대상입니다.
+`--google-key-env` 또는 `--google-keychain-service`를 직접 지정했을 때만 자격 증명을 읽습니다. 옵션이 없으면 `GEMINI_API_KEY`가 환경에 있어도 공급자와 생성 worker를 연결하지 않습니다. 키를 UI·원고·command payload에 붙여 넣지 않습니다. Google을 의도적으로 사용할 때만 전용 환경 변수 또는 `--google-keychain-service`로 기존 자격 증명을 선택합니다. 계정/모델의 실제 제공 여부와 가격은 별도 확인 대상입니다.
 
 터미널의 loopback URL을 엽니다. 작업실 제목·언어·USD 발급 예산을 지정하고 만들기를 누르면 SQLite와 immutable blobs가 저장됩니다. 같은 폴더와 `--project-id`로 재실행하면 이어서 작업합니다. 서버 종료는 Ctrl-C입니다. 저장 버튼이 command를 확정하며, 새 변경 알림은 작성 중인 입력 초안을 덮어쓰지 않습니다.
 
@@ -22,7 +25,7 @@ npm start --prefix studio -- --project /your/studio-project --project-id p1 --go
 4. **Edit**에서 대사·연기 지시·카메라·발화 전 hold·타이밍을 편집합니다. 대사나 음성 입력이 바뀌면 과거 take를 자동 재사용하지 않습니다. 호환되는 hold-only 편집은 선택 take를 유지합니다.
 5. **Production**에서 고정 Edition을 만들고 실제 mixed WAV를 기준으로 미리 듣기/재생합니다. 가로·세로 MP4와 오디오 WAV 출력은 저장한 선택 자료를 사용합니다. 원고·선택을 바꿔도 고정판은 소급 변경되지 않습니다.
 
-실제 video 렌더에는 설치된 Chrome과 FFmpeg/ffprobe, 잠금된 선택 Remotion/React 런타임이 필요합니다. 앱은 브라우저를 다운로드하지 않습니다. 오디오 전용 출력은 PNG·Chrome·video 런타임을 요구하지 않습니다. 고정판에 저장된 Node/platform/architecture·코드·잠금 파일과 관련 video 환경이 현재 환경과 다르면 재렌더를 명시적으로 거부합니다. 과거 출력 재생은 가능하며 새 환경에서는 새 Edition을 만듭니다. 서로 다른 시스템에서 bit-identical 파일을 보장하지 않습니다.
+실제 video 렌더에는 설치된 Chrome과 FFmpeg/ffprobe, 잠금된 선택 Remotion/React 런타임이 필요합니다. 앱은 브라우저를 다운로드하지 않습니다. macOS의 기본 Chrome 경로 외의 실행 파일은 `STUDIO_CHROME_PATH=/absolute/path/to/chrome`으로 지정합니다. macOS 이외에서는 이 설정이 필수입니다. 오디오 전용 출력은 PNG·Chrome·video 런타임을 요구하지 않습니다. 고정판에 저장된 Node/platform/architecture·코드·잠금 파일과 관련 video 환경이 현재 환경과 다르면 재렌더를 명시적으로 거부합니다. 과거 출력 재생은 가능하며 새 환경에서는 새 Edition을 만듭니다. 서로 다른 시스템에서 bit-identical 파일을 보장하지 않습니다.
 
 검토는 정확한 Edition·출력 manifest·현재 정책에 묶입니다. 실제 보거나 듣지 않았다면 human review를 체크하지 않습니다. 합성 진단음 fixture, macOS local TTS 반입 예시, 실제 Google 생성 품질은 서로 다른 증거입니다.
 
@@ -45,7 +48,7 @@ node studio/scripts/backup.js support /your/studio-project p1 > support.json
 npm start --prefix studio -- --project /your/new-restored-project --project-id p1 --google-key-env STUDIO_NO_KEY
 ```
 
-복원은 schema/format version, manifest digest, 정확한 inventory, 모든 blob의 SHA-256/길이, 참조 closure와 row 소유권을 먼저 검사합니다. `..`/절대 entry/중복/심볼릭 링크/불완전한 inventory는 거부하며 임의 archive를 shell로 풀지 않습니다. 대상은 **아직 존재하지 않는 폴더**여야 합니다. 현재 v1만 지원하며 알 수 없는 미래 버전을 자동 변환하거나 덮어쓰지 않습니다.
+복원은 schema/format version, manifest digest, 정확한 inventory, 모든 blob의 SHA-256/길이, 참조 closure와 row 소유권을 먼저 검사합니다. `..`/절대 entry/중복/심볼릭 링크/불완전한 inventory는 거부하며 임의 archive를 shell로 풀지 않습니다. 대상은 **아직 존재하지 않는 폴더**여야 합니다. 백업 schema 1·2를 지원하며 알 수 없는 미래 버전을 자동 변환하거나 덮어쓰지 않습니다.
 
 복원본은 **새 실행 문맥**입니다. 백업 당시 prepared/queued/dispatching/unknown 요청은 원본에서 나중에 전송됐을 수도 있으므로 모두 `restore_boundary` 결과 불명으로 보류하고 예산을 유지합니다. 복사한 요청을 자동 전송하지 않으며, 미전송/무료라는 증거를 만들어내지 않습니다. 과거 provider operation ID는 명시적인 조회에만 사용합니다. 복원 당시 original PID가 살아 있어도 다른 DB의 worker를 복원본 소유자로 믿지 않습니다.
 
@@ -59,10 +62,10 @@ engine의 `collectGarbage(projectId, {graceMs:60000})`는 보존 이력의 모�
 
 백업/복원/렌더는 command preparation에서 실제 IO를 수행합니다. 연결이 끊겨도 수락한 backend 작업은 계속될 수 있지만 서버 crash에 대한 resumable render queue를 제공하지 않습니다. CAS 충돌이나 crash로 command receipt가 남지 않은 준비 폴더/bytes는 완료로 표시하지 않습니다. 결과와 무결성을 확인한 후 새 command로 재시도합니다.
 
-## 검증 범위
+## 검증과 한계
 
-[구현 증거](https://github.com/fbwndrud/vibelore/blob/26b0bca3ad0e0658d7a97a64eeda0d9c90ebfc49/docs/research/studio-implementation-evidence-2026-10-09.json)에 TDD·독립 검토·수정·새 전체 회귀와 실제 로컬 산출물을 기록합니다. 8개 task의 독립 검토와 수정이 완료되었습니다. 전체 branch 검토에서 확인한 3개 Important 지적은 한 번의 수정 묶음(`ca451d6`)과 한 번의 제한 재검토로 모두 해소했으며 열린 지적은 없습니다. 전체 branch 검토를 다시 수행했다는 뜻은 아닙니다.
+저장소 루트의 `npm run test:all`은 engine·MCP·Studio를 함께 검사합니다. Studio만 검사하려면 `npm run test:studio`를 사용합니다. 테스트는 합성 원고·로컬 endpoint·실제 SQLite·파일·codec·짧은 렌더를 사용하며 유료 공급자를 호출하지 않습니다. 과거 검증 기록은 [구현 증거](https://github.com/fbwndrud/vibelore/blob/26b0bca3ad0e0658d7a97a64eeda0d9c90ebfc49/docs/research/studio-implementation-evidence-2026-10-09.json)에 별도로 보존합니다.
 
-마지막 영향 범위 10개 파일의 143/143 테스트와 source check 774개 경로 검사가 통과했습니다. 앞선 전체 실행의 실패와 후속 검사 결과는 증거에 그대로 남습니다. 원작 폴더·공급자 없이 복원한 57.833초 MP4/WAV는 실제 재출력했으며, 최종 수정에서 렌더 fingerprint 파일과 lockfile은 바뀌지 않았습니다. 브라우저 파일 다운로드 완료와 인간의 청취·감상 승인은 별도로 확인되지 않았습니다.
+출력 실패에는 원문 예외·경로·키 대신 안전한 `failure.stage`와 `failure.reason` 분류를 남깁니다. 타임아웃 분류는 근본 원인을 확정한 진단이 아닙니다. **이 판 내보내기**를 다시 누르면 같은 고정판에 새 출력 ID로 재시도하며, 과거 실패 기록과 같은 command ID의 재생 결과는 유지합니다. 자동 재시도는 하지 않습니다.
 
-한국어 음성의 연기 품질, 실제 provider quota/요금, 인물 identity 연속성, mask 경계의 지각적 자연스러움, screen reader 실사용은 측정되지 않은 출시 gate입니다. fixture의 성공을 이 gate의 통과로 해석하지 않습니다.
+합성 테스트는 한국어 음성 연기, 공급자의 실제 요금·quota, 인물 identity·mask의 지각 품질, screen reader 실사용, 인간의 청취·감상 승인이나 브라우저 다운로드 완료를 입증하지 않습니다. 사례의 평가자 관계는 작성자의 선언이며 독립 독자를 인증하지 않습니다.

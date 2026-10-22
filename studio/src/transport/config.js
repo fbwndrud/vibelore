@@ -67,10 +67,12 @@ export async function configuredStudio(options) {
     capture = ({ workId, request }) =>
       exportVibeloreSource({ store, workId, request });
   }
-  const key = await resolveGoogleCredential({
-    envName: options.google_key_env ?? "GEMINI_API_KEY",
-    keychainService: options.google_keychain_service,
-  });
+  const key = options.google_key_env || options.google_keychain_service
+    ? await resolveGoogleCredential({
+        envName: options.google_key_env,
+        keychainService: options.google_keychain_service,
+      })
+    : null;
   const google = googleProvider({ key });
   const service = await openStudio({
     directory: options.project,

@@ -1,3 +1,4 @@
+import { stripPrivateFields as portable } from "../engine/portable.js";
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { resolveProductionSource, verifyProductionSource } from '../../../src/core/production-source.js';
@@ -9,19 +10,6 @@ import { fail, STABLE_ID } from '../engine/contracts.js';
 // External Lore IDs may contain dots/colons; Studio IDs never relax their contract.
 const studioId = (sourceId) =>
   STABLE_ID.test(sourceId) ? sourceId : `src_${hashBytes(Buffer.from(sourceId, 'utf8'))}`;
-const portable = (value) =>
-  Array.isArray(value)
-    ? value.map(portable)
-    : value && typeof value === 'object'
-    ? Object.fromEntries(
-        Object.entries(value)
-          .filter(
-            ([key]) =>
-              !['path', 'rootDir', 'sourcePath', 'worldRoot', 'directory', 'absolutePath'].includes(key)
-          )
-          .map(([key, item]) => [key, portable(item)])
-      )
-    : value;
 /** Read-only capture. Locations remain solely in the caller's connector configuration. */
 export async function exportVibeloreSource({ store, workId, request }) {
   try {

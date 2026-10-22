@@ -514,7 +514,6 @@ test("actual short multilayer MP4 decodes exact pose frame, movement and transpa
     const path = join(f.directory, `layers-${profile}.mp4`);
     const bytes = await f.service.readBlob("p1", out.manifest.output.blobId);
     await writeFile(path, bytes);
-    await writeFile(`/tmp/task7-layers-${profile}.mp4`, bytes);
     const { stdout } = await run(
       "ffmpeg",
       [
@@ -597,7 +596,7 @@ test("actual short multilayer MP4 decodes exact pose frame, movement and transpa
       "select=eq(n\\,10)",
       "-frames:v",
       "1",
-      `/tmp/task7-layers-${profile}-frame10.png`,
+      join(f.directory, `layers-${profile}-frame10.png`),
     ]);
   }
 });

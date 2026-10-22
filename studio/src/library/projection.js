@@ -1,3 +1,5 @@
+import { isPrivatePortableKey } from "../engine/portable.js";
+import { validateEntryFilters } from "./entry-fields.js";
 import { isProxy } from 'node:util/types';
 import { canonicalJSON } from '../engine/contracts.js';
 import { validateOriginRef, originKey } from '../reuse/bundle.js';
@@ -7,7 +9,6 @@ const MEDIA = ['text', 'image', 'audio', 'video', 'structured'];
 const AVAILABILITY = ['unverified', 'observed-available', 'offline', 'missing', 'corrupt'];
 const CAPABILITIES = ['discover', 'preserve', 'inspect', 'derive', 'render'];
 const RELATIONS = ['derived-from', 'normalized-from', 'adapted-from', 'used-in', 'observed-in'];
-const PRIVATE_KEYS = new Set(['locator', 'sourceFingerprint', 'path', 'filePath', 'rootDir', 'sourcePath', 'worldRoot', 'directory', 'absolutePath', 'executableInstruction', 'fetchInstruction']);
 
 // Projection payloads may include literal prompts and observations. They remain
 // plain data, with private connection fields and accessor/proxy execution denied.
@@ -33,7 +34,7 @@ export function portable(value, registration) {
     seen.add(value);
     for (const key of Reflect.ownKeys(value)) {
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
-      if (typeof key !== 'string' || PRIVATE_KEYS.has(key) || !('value' in descriptor)) invalid();
+      if (typeof key !== 'string' || (isPrivatePortableKey(key) && !(depth === 1 && key === 'token')) || !('value' in descriptor)) invalid();
       if (!array) visit(key, depth + 1);
       if (!(array && key === 'length')) visit(descriptor.value, depth + 1);
     }
@@ -60,9 +61,10 @@ export function validateProjection(value, registration) {
   for (const key of ['entries', 'links', 'uses', 'cases']) array(value[key]);
   const keys = new Set();
   for (const entry of value.entries) {
-    fields(entry, ['ref', 'title', 'mediaKind', 'roles', 'subjects', 'expressionRefs', 'availability', 'capabilities']);
+    fields(entry, ['ref', 'title', 'mediaKind', 'roles', 'subjects', 'expressionRefs', 'availability', 'capabilities'], ['status', 'reviewStatus', 'adoptionStatus', 'sourceType']);
     scopedRef(entry.ref, registration); text(entry.title);
     if (!MEDIA.includes(entry.mediaKind) || !AVAILABILITY.includes(entry.availability)) invalid();
+    validateEntryFilters(entry);
     strings(entry.roles); strings(entry.capabilities, CAPABILITIES);
     array(entry.subjects); entry.subjects.forEach(subject);
     array(entry.expressionRefs); entry.expressionRefs.forEach(validateOriginRef);
@@ -79,8 +81,9 @@ export function validateProjection(value, registration) {
     for (const key of ['role', 'purpose']) if (use[key] !== undefined) text(use[key]);
   }
   for (const item of value.cases) {
-    fields(item, ['id', 'ownerId', 'projectId', 'question', 'contextRefs', 'literalInputRefs', 'trials', 'observations', 'unknowns'], ['decision', 'ref', 'classification', 'literalInputs', 'omissions', 'planning', 'externalObservations']);
+    fields(item, ['id', 'ownerId', 'projectId', 'question', 'contextRefs', 'literalInputRefs', 'trials', 'observations', 'unknowns'], ['decision', 'ref', 'classification', 'literalInputs', 'omissions', 'planning', 'externalObservations', 'evaluationVerification']);
     text(item.id); text(item.question);
+    if (item.evaluationVerification !== undefined && item.evaluationVerification !== "not_performed") invalid();
     if (item.ref !== undefined) { scopedRef(item.ref, registration); if (item.ref.projectId !== item.projectId) invalid(); }
     if (item.classification !== undefined && !['accepted-example', 'matched-comparison', 'failed-trial', 'unobserved'].includes(item.classification)) invalid();
     if (item.ownerId !== registration.ownerId || !registration.allowedProjects.includes(item.projectId)) invalid();
@@ -116,7 +119,7 @@ export function replaceProjection(db, registration, projection, at) {
 export function entryView(entry, registration) {
   const availability = registration.status === 'replaced' || entry.observed.registrationGeneration !== registration.generation
     ? 'unverified' : registration.status === 'offline' ? 'offline' : entry.availability;
-  return { ...entry, availability };
+  return { status: 'unknown', reviewStatus: 'unknown', adoptionStatus: 'unknown', sourceType: 'unknown', ...entry, availability };
 }
 export function ownerView(registration, projection) {
   return { ownerId: registration.ownerId, adapterKind: registration.adapterKind, allowedProjects: registration.allowedProjects, generation: registration.generation, status: registration.status,

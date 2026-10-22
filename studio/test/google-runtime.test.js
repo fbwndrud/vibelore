@@ -34,7 +34,7 @@ test("unconfigured daemon leaves queue intact; configured daemon owns generation
   // Every possible provider request is redirected to this test's local HTTP server.
   // The child never inherits a real Google credential or a provider endpoint.
   const preload = `const originalFetch=globalThis.fetch;globalThis.fetch=(url,init)=>{const u=new URL(url);if(u.origin!=='https://generativelanguage.googleapis.com')throw new Error('Unexpected test endpoint');return originalFetch(${JSON.stringify(new URL(http.baseURL).origin)}+u.pathname,init);};`;
-  const start = async (key) => {
+  const start = async (key, explicit = false) => {
     const child = spawn(
       process.execPath,
       [
@@ -45,6 +45,7 @@ test("unconfigured daemon leaves queue intact; configured daemon owns generation
         f.directory,
         "--port",
         "0",
+        ...(explicit ? ["--google-key-env", "GEMINI_API_KEY"] : []),
       ],
       {
         env: { ...process.env, GEMINI_API_KEY: key },
@@ -84,13 +85,13 @@ test("unconfigured daemon leaves queue intact; configured daemon owns generation
       },
     };
   };
-  const manual = await start("");
+  const manual = await start("local-dummy-credential");
   assert.equal(manual.bootstrap.providers[0].available, false);
   await delay(150);
   assert.equal((await f.service.snapshot("p1")).attempts[0].status, "prepared");
   assert.equal(http.calls.length, 0);
   await manual.stop();
-  const configured = await start("local-dummy-credential");
+  const configured = await start("local-dummy-credential", true);
   assert.equal(configured.bootstrap.providers[0].available, true);
   for (const deadline = Date.now() + 10000; Date.now() < deadline; ) {
     if ((await f.service.snapshot("p1")).candidates.length) break;

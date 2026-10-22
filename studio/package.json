@@ -7,7 +7,7 @@
     "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
   },
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
     "start": "node bin/studio.js",
     "mcp": "node bin/studio-mcp.js"
   },

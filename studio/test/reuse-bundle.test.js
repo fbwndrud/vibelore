@@ -244,3 +244,11 @@ for (const leaf of ['manifest.json', `files/${pngSha256}`]) {
     assert.equal(result.stderr, '');
   });
 }
+
+
+test('portable bundles reject credential and active fetch fields at any depth while retaining literal prose', () => {
+  const base = unseal(bundleFixture().bundle);
+  for (const key of ['apiKey', 'api_key', 'key', 'cookie', 'cookies', 'token', 'access_token', 'refreshToken', 'authorization', 'password', 'credentials', 'sessionId', 'fetchUri', 'fetchURL', 'sourceFingerprint']) {
+    invalid(() => sealBundle({...base, records: [{...base.records[0], metadata: {nested: {[key]: 'private-value'}}}]}));
+  }
+});

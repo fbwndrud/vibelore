@@ -7,6 +7,7 @@ import {
   publicFailure,
   capabilities,
   requireLibrary,
+  TransportError,
 } from './common.js';
 const tools = [
   {
@@ -38,6 +39,7 @@ const tools = [
       properties: {
         projectId: { type: 'string' },
         after: { type: 'integer', minimum: 0 },
+        limit: { type: 'integer', minimum: 1, maximum: 1000 },
       },
       required: ['projectId'],
       additionalProperties: false,
@@ -46,10 +48,20 @@ const tools = [
 ];
 const libraryTools = ['command', 'query', 'export'].map((action) => ({
   name: `studio_library_${action}`,
-  description: `Library ${action} through the shared exact-ref facade. Owner connections are explicit and local.`,
+  description: `Library ${action} through the shared exact-ref facade. Connect or rebind owners in the local Library UI first. MCP commands only refresh or unregister existing owners.`,
   inputSchema: {
     type: 'object',
-    properties: { request: { type: 'object' } },
+    properties: { request: action === 'command' ? {
+      type: 'object',
+      required: ['commandId', 'expectedRegistryRevision', 'type', 'payload'],
+      properties: {
+        commandId: { type: 'string' },
+        expectedRegistryRevision: { type: 'integer', minimum: 0 },
+        type: { enum: ['owner.refresh', 'owner.unregister'] },
+        payload: { type: 'object', properties: { ownerId: { type: 'string' } }, required: ['ownerId'], additionalProperties: false },
+      },
+      additionalProperties: false,
+    } : { type: 'object' } },
     required: ['request'],
     additionalProperties: false,
   },
@@ -154,9 +166,12 @@ export async function serveStudioMcp({
           ...capabilities(sourceCapture, library),
         };
       else if (params.name === 'studio_events')
-        value = await service.events(args.projectId, args.after ?? 0);
-      else if (params.name === 'studio_library_command')
+        value = await service.events(args.projectId, args.after ?? 0, args.limit ?? 200);
+      else if (params.name === 'studio_library_command') {
+        if (['owner.register', 'owner.rebind'].includes(args.request?.type))
+          throw new TransportError('OWNER_CONNECTION_REQUIRED');
         value = await requireLibrary(library).command(args.request);
+      }
       else if (params.name === 'studio_library_query')
         value = await requireLibrary(library).query(args.request);
       else if (params.name === 'studio_library_export')

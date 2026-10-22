@@ -369,3 +369,28 @@ it('blocks registration when publication parent-directory sync fails', async t =
   const { blobId } = await f.service.blobs.put('p1', new Uint8Array([1, 2, 3]));
   assert.deepEqual(await f.service.readBlob('p1', blobId), new Uint8Array([1, 2, 3]));
 });
+
+
+it('bounded event pages retain cursor order without skipping later events or other projects', async t => {
+  const f = await withStudio(t);
+  for (let n = 0; n < 5; n++) await f.command('production.create', {id: `page-${n}`, title: 'page', sourcePackageId: null});
+  const all = await f.service.events('p1');
+  const actual = []; let cursor = 0;
+  for (;;) {
+    const page = await f.service.events('p1', cursor, 2);
+    if (!page.length) break;
+    assert.ok(page.length <= 2);
+    actual.push(...page); cursor = page.at(-1).cursor;
+  }
+  assert.deepEqual(actual, all);
+  for (const limit of [0, -1, 1001, 1.5]) await assert.rejects(f.service.events('p1', 0, limit), {code: 'INVALID_INPUT'});
+});
+
+
+it('SQLite rollback-on-conflict preserves the original constraint failure', async t => {
+  const f = await withStudio(t);
+  assert.throws(() => f.service.store.write(() => {
+    f.service.store.run("INSERT OR ROLLBACK INTO projects(id,title,language,budget_micros) VALUES ('p1','duplicate','ko',0)");
+  }), /UNIQUE constraint failed/);
+  assert.equal((await f.service.snapshot('p1')).project.title, '작품');
+});

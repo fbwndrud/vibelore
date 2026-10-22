@@ -67,10 +67,10 @@ export async function verifyRenderEnvironment(environment, kind) {
       mismatch();
   }
 }
-export const chromePath =
+export const chromePath = process.env.STUDIO_CHROME_PATH || (
   process.platform === "darwin"
     ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-    : process.env.STUDIO_CHROME_PATH;
+    : undefined);
 export async function renderCapabilities() {
   const result = {
     audio: { available: true, format: "wav" },

@@ -75,12 +75,14 @@
   "scripts": {
     "test": "node --test \"test/**/*.test.js\"",
     "test:engine": "cd engine && node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\"",
-    "test:all": "npm run test:engine && npm test",
+    "test:all": "npm run test:core && npm run test:studio",
     "check:source": "node scripts/check-source.js",
     "check:release": "node scripts/check-release.js",
     "check:publish": "node scripts/local-release.js",
     "release:npm": "node scripts/local-release.js --publish",
-    "prepublishOnly": "npm run check:publish"
+    "prepublishOnly": "npm run check:publish",
+    "test:core": "npm run test:engine && npm test",
+    "test:studio": "npm test --prefix studio"
   },
   "engines": {
     "node": "^22.13.0 || ^24.0.0 || ^26.0.0"

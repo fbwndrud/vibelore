@@ -106,7 +106,7 @@ test("exports real selected PNG and WAV into decoded landscape and portrait MP4 
     assert.equal(video.frames, 150);
     assert.equal(out.manifest.frames.length, 3);
     await writeFile(
-      `/tmp/task7-first-${profile}.mp4`,
+      `${f.directory}/first-${profile}.mp4`,
       await f.service.readBlob(f.projectId, out.manifest.output.blobId),
     );
   }

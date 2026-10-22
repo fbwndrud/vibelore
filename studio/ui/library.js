@@ -529,6 +529,13 @@ export function renderLibrary(c) {
         },
         { name: 'projectId', label: '원천 작품 ID' },
         { name: 'role', label: '역할 필터' },
+        { name: 'status', label: '원천 상태 (candidate/completed/failed 등)' },
+        ...[
+          ['availability', '가용성', ['observed-available', 'unverified', 'offline', 'missing', 'corrupt']],
+          ['reviewStatus', '원천 검토', ['candidate', 'accepted', 'rejected', 'unknown']],
+          ['adoptionStatus', '원천 채택', ['adopted', 'not-adopted', 'unknown']],
+          ['sourceType', '원천·파생', ['source', 'derived', 'unknown']],
+        ].map(([name, label, values]) => ({name, label, options: [{value: '', label: '전체'}, ...values.map(value => ({value, label: value}))]})),
       ],
       async (p) => {
         state.filter = {
@@ -581,7 +588,7 @@ export function renderLibrary(c) {
       ),
       ...(state.result?.entries ?? []).map((entry) =>
         button(
-          `${entry.title} · ${entry.mediaKind} · ${entry.availability} · ${
+          `${entry.title} · ${entry.mediaKind} · ${entry.reviewStatus} · ${entry.adoptionStatus} · ${entry.sourceType} · ${entry.availability} · ${
             entry.observed?.at ?? '미관찰'
           }`,
           () =>

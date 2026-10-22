@@ -445,3 +445,30 @@ test("layer edits freeze every accepted pose, adoption, evaluator and frame in t
   for (const id of old.closure.blobIds)
     assert.ok((await f.service.readBlob("p1", id)).length);
 });
+
+
+test("render failure retains safe diagnosis, replays once and retries the same edition with a new output ID", async (t) => {
+  const f = await audioFixture(t);
+  const edition = (await create(f)).value;
+  let calls = 0;
+  f.service.renderer = async () => {
+    calls++;
+    throw new Error("delayRender timed out at /private/source?token=secret");
+  };
+  const render = (id, commandId) => f.command("edition.render", {editionId: "v1", renderId: id}, {
+    aggregate: {kind: "editionOutput", id}, commandId, expectedRevision: 0,
+  });
+  const failed = await render("failed", "first-render");
+  assert.equal(failed.value.status, "failed");
+  assert.equal(failed.value.failure.reason, "timeout");
+  assert.equal(failed.value.failure.stage, "renderer");
+  assert.equal(JSON.stringify(failed.value).includes("secret"), false);
+  assert.equal(JSON.stringify(failed.value).includes("/private"), false);
+  assert.equal((await render("failed", "first-render")).replayed, true);
+  assert.equal(calls, 1);
+  f.service.renderer = null;
+  const retried = await render("retry", "retry-render");
+  assert.equal(retried.value.status, "completed");
+  assert.equal(retried.value.closureDigest, edition.closureDigest);
+  assert.equal((await f.service.snapshot("p1")).editionOutputs.find(o => o.id === "failed").status, "failed");
+});

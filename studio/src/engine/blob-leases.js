@@ -1,23 +1,12 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
-import { execFileSync } from "node:child_process";
+import { incarnation } from "./process-identity.js";
 import { fail } from "./contracts.js";
 
 const localOwners = new Set(),
   host = hostname();
-function incarnation(pid) {
-  try {
-    return (
-      execFileSync("ps", ["-o", "lstart=", "-p", String(pid)], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).trim() || null
-    );
-  } catch {
-    return null;
-  }
-}
+
 const start = incarnation(process.pid);
 export class BlobLeases {
   constructor(store) {

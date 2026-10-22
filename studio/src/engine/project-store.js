@@ -60,7 +60,10 @@ export class ProjectStore {
       const result = assertSynchronous(callback());
       this.db.exec('COMMIT');
       return result;
-    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+    } catch (error) {
+      try { this.db.exec('ROLLBACK'); } catch {}
+      throw error;
+    }
   }
   requireProject(projectId) {
     assertId(projectId);
@@ -99,10 +102,11 @@ export class ProjectStore {
       eventCursor: this.get('SELECT coalesce(max(cursor),0) AS cursor FROM events WHERE project_id = ?', projectId).cursor,
     })));
   }
-  events(projectId, afterCursor) {
+  events(projectId, afterCursor, limit = null) {
     this.requireProject(projectId); assertInteger(afterCursor);
+    if (limit !== null) { assertInteger(limit); if (limit < 1 || limit > 1000) fail("INVALID_INPUT", "Expected an event page of 1 to 1000 entries."); }
     return this.all(`SELECT cursor,command_id AS commandId,aggregate_kind AS kind,aggregate_id AS id,
-      aggregate_revision AS aggregateRevision,type,value_json FROM events WHERE project_id = ? AND cursor > ? ORDER BY cursor`, projectId, afterCursor)
+      aggregate_revision AS aggregateRevision,type,value_json FROM events WHERE project_id = ? AND cursor > ? ORDER BY cursor LIMIT ?`, projectId, afterCursor, limit ?? -1)
       .map(row => ({ cursor: row.cursor, projectId, commandId: row.commandId, aggregate: { kind: row.kind, id: row.id },
         aggregateRevision: row.aggregateRevision, type: row.type, value: JSON.parse(row.value_json) }));
   }

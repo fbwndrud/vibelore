@@ -1,3 +1,4 @@
+import { validateEntryFilters } from "./entry-fields.js";
 import { originKey, validateOriginRef } from '../reuse/bundle.js';
 import { allOwners, owner, revision, fields, invalid, text, transaction } from './registry.js';
 import { portable, snapshot, ownerView, entryView, localAnchorAllowed, linkAnchor } from './projection.js';
@@ -6,9 +7,10 @@ export function queryLibrary(db, input) {
   const request = portable(input);
   text(request?.type);
   if (request.type === 'find') {
-    fields(request, ['type'], ['text', 'mediaKind', 'ownerId', 'projectId', 'role', 'subject', 'limit']);
+    fields(request, ['type'], ['text', 'mediaKind', 'ownerId', 'projectId', 'role', 'subject', 'limit', 'availability', 'status', 'reviewStatus', 'adoptionStatus', 'sourceType']);
     for (const key of ['text', 'ownerId', 'projectId', 'role']) if (request[key] !== undefined) text(request[key]);
     if (request.mediaKind !== undefined && !['text', 'image', 'audio', 'video', 'structured'].includes(request.mediaKind)) invalid();
+    validateEntryFilters(request);
     if (request.limit !== undefined && (!Number.isSafeInteger(request.limit) || request.limit < 1)) invalid();
     if (request.subject !== undefined) {
       fields(request.subject, ['ownerId', 'projectId', 'identityId'], ['continuityId']); Object.values(request.subject).forEach(text);
@@ -56,6 +58,7 @@ export function queryLibrary(db, input) {
         if (request.projectId && entry.ref.projectId !== request.projectId) continue;
         if (request.role && !entry.roles.includes(request.role)) continue;
         if (request.subject && !entry.subjects.some(subject => Object.entries(request.subject).every(([key, value]) => subject[key] === value))) continue;
+        if (['availability', 'status', 'reviewStatus', 'adoptionStatus', 'sourceType'].some(key => request[key] && entry[key] !== request[key])) continue;
         values.push(entry);
       }
     }

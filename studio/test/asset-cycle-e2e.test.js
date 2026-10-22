@@ -205,7 +205,7 @@ async function rendered(api, service, edition, id) {
   assert.equal(output.status, 'completed', JSON.stringify(output));
   assert.equal(output.manifest.checks.decodedVideo, true);
   assert.equal(output.manifest.durationSeconds, 0.5);
-  const path = `/tmp/task8-${id}.mp4`;
+  const path = join(service.blobs.storageDirectory, `fixture-${id}.mp4`);
   await writeFile(
     path,
     await service.readBlob('p1', output.manifest.output.blobId),
@@ -701,14 +701,14 @@ test(
     ).value;
     assert.equal(wavOut.status, 'completed');
     await writeFile(
-      '/tmp/task8-cycle3.wav',
+      join(b.directory, 'cycle3.wav'),
       await b.service.readBlob('p1', wavOut.manifest.output.blobId),
     );
     assert.equal(
       (
         await run(
           'ffmpeg',
-          ['-v', 'error', '-i', '/tmp/task8-cycle3.wav', '-f', 'null', '-'],
+          ['-v', 'error', '-i', join(b.directory, 'cycle3.wav'), '-f', 'null', '-'],
           { timeoutMs: 30000 },
         )
       ).stderr,
@@ -799,7 +799,7 @@ test(
       sourceCanonDigest: canonicalDigest(canonBefore),
     };
     await writeFile(
-      '/tmp/task8-three-cycle-evidence.json',
+      join(b.directory, 'three-cycle-evidence.json'),
       JSON.stringify(evidence, null, 2),
     );
   },

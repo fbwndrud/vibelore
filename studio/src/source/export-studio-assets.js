@@ -1,3 +1,4 @@
+import { stripPrivateFields as portable } from "../engine/portable.js";
 import {
   cycleNativeRecords,
   portableCycleRecord,
@@ -20,27 +21,6 @@ import { selectedSourceTextBlobId } from "./source-package.js";
 import { portableSpeechPerformance } from "../reuse/inspect.js";
 import { sealBundle, originKey, validateBundle } from "../reuse/bundle.js";
 
-const portable = (value) =>
-  Array.isArray(value)
-    ? value.map(portable)
-    : value && typeof value === "object"
-    ? Object.fromEntries(
-        Object.entries(value)
-          .filter(
-            ([key]) =>
-              ![
-                "path",
-                "filePath",
-                "rootDir",
-                "sourcePath",
-                "worldRoot",
-                "directory",
-                "absolutePath",
-              ].includes(key)
-          )
-          .map(([key, item]) => [key, portable(item)])
-      )
-    : value;
 const nativeRef = (ownerId, projectId, kind, id, revision) => ({
   ownerId,
   projectId,
@@ -464,6 +444,33 @@ export function createStudioOwnerAdapter({
       fail("BUNDLE_INCOMPLETE", "Exact source blob length differs.");
     return bytes;
   }
+  function entryState(record, db) {
+    const { ref, value } = record;
+    if (ref.recordKind !== "candidate") return {
+      status: value.status ?? "unknown",
+      reviewStatus: "unknown",
+      adoptionStatus: "unknown",
+      sourceType: "unknown",
+    };
+    const reviewRow = db.prepare(
+      "SELECT data_json FROM aggregates WHERE project_id=? AND kind='assetReview' AND id=?"
+    ).get(ref.projectId, ref.recordId);
+    const review = reviewRow ? JSON.parse(reviewRow.data_json) : null;
+    // Current scoped selection does not inherit approval into another owner.
+    // Historical decisions remain accessible through uses and lineage.
+    const adopted = !!db.prepare(
+      "SELECT 1 FROM aggregates WHERE project_id=? AND kind='assetSlot' AND json_extract(data_json,'$.candidateId')=? LIMIT 1"
+    ).get(ref.projectId, ref.recordId);
+    const derived = value.lineage?.parentCandidateIds?.length ||
+      value.lineage?.normalization?.relation === "normalized-from";
+    return {
+      status: "candidate",
+      reviewStatus: review?.decision === "reject" ? "rejected" :
+        review?.decision === "approve" || adopted ? "accepted" : "candidate",
+      adoptionStatus: adopted ? "adopted" : "not-adopted",
+      sourceType: derived ? "derived" : "source",
+    };
+  }
   const adapter = {
     identify: () => physicalOwnerIdentity(directory, "studio.sqlite"),
     async capture() {
@@ -492,8 +499,14 @@ export function createStudioOwnerAdapter({
             ["text", "image", "audio"].includes(meta.mediaKind)
           )
             capabilities.push("derive");
+          if (
+            availability === "observed-available" &&
+            ["image", "audio"].includes(meta.mediaKind) &&
+            record.value.validation?.status === "passed"
+          ) capabilities.push("render");
           entries.push({
             ref: record.ref,
+            ...entryState(record, db),
             title,
             mediaKind: meta.mediaKind,
             roles: meta.roles,
@@ -554,6 +567,7 @@ export function createStudioOwnerAdapter({
                 "omissions",
                 "planning",
                 "externalObservations",
+                "evaluationVerification",
               ];
             return {
               ...Object.fromEntries(
@@ -561,6 +575,7 @@ export function createStudioOwnerAdapter({
                   .filter((k) => value[k] !== undefined)
                   .map((k) => [k, value[k]])
               ),
+              evaluationVerification: "not_performed",
               ownerId,
               projectId: record.ref.projectId,
               ref: record.ref,

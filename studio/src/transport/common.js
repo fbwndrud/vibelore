@@ -112,3 +112,10 @@ export function requireLibrary(library) {
   if (!library) throw new TransportError('LIBRARY_UNAVAILABLE', 503);
   return library;
 }
+
+
+export function startupFailure(error) {
+  const codes = new Set(['EACCES', 'EPERM', 'EROFS', 'ENOSPC', 'EADDRINUSE',
+    'ENOENT', 'ENOTDIR', 'ERR_SQLITE_ERROR', 'ERR_MODULE_NOT_FOUND', 'MODULE_NOT_FOUND']);
+  return codes.has(error?.code) ? error.code : publicFailure(error).error.code;
+}

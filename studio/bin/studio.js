@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { startupFailure } from "../src/transport/common.js";
 import { runWorker } from "../src/engine/worker.js";
 import { parseOptions, configuredStudio } from "../src/transport/config.js";
 import { startStudioHttp } from "../src/transport/http.js";
@@ -38,8 +39,8 @@ try {
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
   process.stdout.write(`Studio listening at ${app.url}\n`);
-} catch {
-  process.stderr.write("Studio could not start. Check local configuration.\n");
+} catch (error) {
+  process.stderr.write(`Studio could not start (${startupFailure(error)}). Check local configuration.\n`);
   await close();
   process.exitCode = 1;
 }
