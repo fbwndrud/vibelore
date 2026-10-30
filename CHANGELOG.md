@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `lore_decide(action="request_revision")`로 수정된 원고는 다시 `lore_decide` 승인을 기다립니다. 이어지는 `lore_write`가 `autonomy="auto"`여도, 검사 도중 계획·계약·선호가 바뀌어 다른 workflow가 이어받아도 사용자가 보지 않은 수정 원고를 자동 커밋하지 않습니다.
+- `lore_write`에 `form="scene"`을 추가해, 아크 없이 사용자의 요청 하나로 짧은 장면 하나를 다음 정본 회차로 씁니다. 승인된 프로필과 기반만 있으면 되고 StorySpine·WriterSkill·아크·회차 계획은 만들지 않으며, 검사·영수증·승인·커밋은 그대로 거치고 장면에 해당하지 않는 reader hook·pattern ledger·아크 검토는 `not_applicable`로 기록합니다. 활성·대기 아크가 있으면 `SCENE_FORM_ARC_PLANNED`로 멈추고, 실패(`clean_fail`)하지 않은 장면이 열려 있는 동안 `lore_arc_plan`·`lore_arc_decide(approve)`는 `SCENE_IN_PROGRESS`로 거절합니다. 실패한 장면은 아크 계획을 막지 않으며 아크 승인 뒤 `lore_write(form="chapter")`가 대체합니다. 장면의 검사·커밋은 남아 있는 EpisodePlan과 아크 회차를 근거로 쓰지 않습니다. `form` 없는 연재 회차 집필은 그대로이고 공개 도구 수도 같습니다.
+- 창작 선호(`lore_preferences`)가 한 화 workflow 전체에 닿습니다. 활성 선호의 문장은 초고뿐 아니라 모든 수정(사용자 수정 요청·필수 수정·품질 수정)에도
+  부드러운 지침으로 들어가고, workflow마다 선호 집합을 고정해 같은 workflow의 초고 호출이 그대로 씁니다. 진행 중 선호가 바뀌면
+  `STALE_WORK_CONTRACT`로 멈추고 다음 `lore_write`가 남은 원고를 바뀐 선호로 다시 검사합니다(다시 쓰지 않음). 논리 검토(`coherence-judge`)가
+  선호마다 준수 여부를 판정해 `CREATIVE_PREFERENCE` advisory로만 알립니다. 차단하거나 자동 수정하지 않고, 검토를 끄면 생략하며, 판정 응답이 없으면
+  검토 미완료로 기록돼 `auto`는 승인 대기로 내려갑니다. `subject` 선호의 `subjectId`는 작품 인물 id여야 하고 없는 id는 `INVALID_CREATIVE_DECISION`으로
+  거부합니다. 고급 `lore_revise`는 목록을 주지 않으면 현재 장부를 읽습니다. 선호가 없는 작품의 초고·수정·검토 요청과 영수증은 그대로입니다.
+- 사용자가 밝힌 인물·작품 범위의 창작 선호를 `lore_preferences`로 기록·철회·조회합니다. 활성 선호의 문장만 초고에
+  부드러운 지침 섹션으로 들어가고(수정·검토에 닿는 범위는 위 항목) 사용자 원답은 모델에 보내지 않습니다. 사용자의 새 답 없이 범위를 넓히지 않으며, 채택·철회는
+  통과한 검사 영수증을 무효화해 같은 원고를 다시 검사합니다. 선호가 없는 작품의 초고 요청과 영수증은 그대로입니다. 공개 도구는 34개(compat 37개, advanced 50개)가 됩니다.
+- `lore_profile_status`와 `lore_webtoon_style status`가 `decisions`를 반환합니다. 준비 깊이·세계관 범위·프로필 승인·채택 화풍을
+  적용 범위·대상 판본·권한·근거로 보여 주는 읽기 전용 목록이며, 저장된 근거가 없으면 사용자 결정 대신 `legacy`로 표시합니다.
 - 동명 대상의 ID와 표기를 구분하고, 이름·별칭이 모호하면 후보를 반환하며 임의로 선택하지 않습니다.
   설정 ensure는 다른 의미를 구조가 같다는 이유로 재사용하지 않습니다. 새 장부 delta v2는 동명 대상을
   별개 등록하고 과거 delta는 기존 의미로 재생합니다. Map 사전의 중복 표기는 명시적으로 거부합니다.

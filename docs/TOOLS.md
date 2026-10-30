@@ -5,7 +5,7 @@
 호스트 AI와 직접 연동하는 사용자를 위한 호출 참조입니다. 일반 사용자는 인자를 직접 작성할
 필요 없이 [시작 안내](GETTING_STARTED.md)와 [웹툰 만들기](WEBTOON.md)를 따라 요청하세요.
 
-기본 서버가 노출하는 33개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
+기본 서버가 노출하는 34개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
 새 작품은 승인된 프로필·전체 스토리·작가 스킬·아크를 준비합니다. 이후 집필은
 `lore_arc_status`로 활성 아크를 확인하고 `lore_write`로 시작하며, 승인 대기일 때 `lore_decide`를 사용합니다.
 저수준 도구는 호환과 엔진 디버깅을 위해 유지하지만 기본 `tools/list`에는 나타나지 않습니다.
@@ -17,7 +17,7 @@
 집필에서는 이 도구들을 직접 조합하지 않습니다.
 
 기존 컷별 웹툰 마무리에는 `VIBELORE_MCP_SURFACE=compat`로 deprecated 3개 도구를
-추가 노출합니다(총 36개). 새 웹툰은 기본 표면의 `lore_webtoon_scene`을 사용합니다.
+추가 노출합니다(총 37개). 새 웹툰은 기본 표면의 `lore_webtoon_scene`을 사용합니다.
 
 ## 읽는 법
 
@@ -303,7 +303,9 @@ pending StoryProfile을 승인하거나 거절합니다.
 
 ### `lore_profile_status`
 
-활성·pending StoryProfile을 읽습니다.
+활성·pending StoryProfile을 읽습니다. `decisions`는 준비 깊이·세계관 범위·프로필 승인을 같은 형식(적용 범위·대상 판본·권한·근거)으로
+보여 주는 읽기 전용 목록입니다. 저장된 근거보다 강한 권한으로 표시하지 않으며 승인 근거나 영수증으로 쓰지 않습니다. 승인 시각이 없거나
+승인 뒤 선호만 바꾼 프로필은 승인 항목의 `target.revision`을 `null`로 둡니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -402,6 +404,8 @@ EpisodePlan은 `readerBridge` 한 문장으로 해당 화의 즉시 상황과 �
 활성 아크는 기본적으로 `ARC_IN_PROGRESS`로 교체를 막습니다. 사용자가 명시적으로 교체를
 요청한 경우만 `replaceActive:true`를 넘기며, 새 계획이 검증·저장될 때 다음 아크 번호로 교체됩니다.
 pending 계획은 같은 번호로 다시 만들 수 있고 완료된 아크 뒤에는 새 아크를 계획합니다.
+열린 장면 workflow(`lore_write`의 `form=scene`)가 `clean_fail`이 아니면 그 장면이 다음 회차를 차지하므로 `SCENE_IN_PROGRESS`로 거절합니다.
+실패(`clean_fail`)한 장면은 막지 않으며, 아크를 승인한 뒤 `lore_write(form="chapter")`가 그 장면을 대체합니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -424,6 +428,8 @@ pending ArcPlan을 승인하거나 거절합니다.
 | 필수 | 선택 |
 |---|---|
 | `workId`, `action: approve\|reject` | `project` |
+
+승인(`approve`)도 `lore_arc_plan`과 마찬가지로 `clean_fail`이 아닌 열린 장면 workflow가 있으면 `SCENE_IN_PROGRESS`로 거절합니다.
 
 ### `lore_arc_status`
 
@@ -494,7 +500,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `instruction`, `autonomy: guided\|auto`, `modelProfile`, `language`, `retryValidation` |
+| `workId` | `project`, `instruction`, `form: chapter\|scene`, `autonomy: guided\|auto`, `modelProfile`, `language`, `retryValidation` |
 
 ```json
 {
@@ -519,7 +525,7 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 `model`, `reasoningEffort` 힌트로 나타나고, 프로필은 workflow에 저장되어 `lore_resume`과
 `lore_decide`까지 유지됩니다. 비우면 이전과 동일하게 호스트 모델 하나로 진행합니다.
 
-선행조건은 승인된 StoryProfile, StorySpine, WriterSkill과 활성 ArcPlan입니다. `guided`는
+연재 회차(`form` 생략)의 선행조건은 승인된 StoryProfile, StorySpine, WriterSkill과 활성 ArcPlan입니다. `guided`는
 승인 대기, `auto`는 불변식 통과와 critic 정상 완료 뒤 자동 커밋입니다. semantic advisory만으로
 자동 재작성하지 않습니다.
 
@@ -538,6 +544,36 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 `quality.review`에서 검토 완료·실패와 출처를 확인하고, `quality.advisories`에서 근거가 있는
 검토 의견을 읽을 수 있습니다. 높은 총점이 개별 지적을 삭제하지 않습니다.
 
+#### 장면 하나 쓰기
+
+`form="scene"`은 연재가 아닌 짧은 장면 하나를 다음 정본 회차로 씁니다. `instruction`이 장면 요청이며 필수입니다
+(앞뒤 공백을 제외하고 800자 이내). 요청이 없거나 800자를 넘으면 `SCENE_BRIEF_REQUIRED`, 제어 문자·예약 구문·지시처럼 읽히는
+문구가 있으면 `SCENE_BRIEF_UNSAFE`로 멈춥니다. workflow에는 검사를 통과한, 앞뒤 공백을 뗀 요청이 그대로 저장됩니다.
+선행조건은 기반과 승인된 StoryProfile뿐입니다. StorySpine·WriterSkill·아크·EpisodePlan은 필요 없고 만들지도 않습니다.
+활성 또는 대기 아크가 있으면 `SCENE_FORM_ARC_PLANNED`, 다음 화의 활성 EpisodePlan이 남아 있으면
+`SCENE_FORM_CHAPTER_PLANNED`로 멈추며, 완료되거나 거절된 아크는 막지 않습니다. 장면의 검사와 커밋은 남아 있는
+EpisodePlan(대기·거절 포함)과 아크 회차를 근거로 쓰지 않고, 그 계획과 아크를 완료 처리하지도 않습니다.
+
+작품 정체성·pilot contract·회차 계획·경계 판정 단계는 건너뜁니다. 필수 검사, 영수증, 수정 루프, coherence,
+editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실행하고, 장면에 해당하지 않는 reader hook·pattern ledger·아크 검토는
+요청하지 않고 `not_applicable`로 기록합니다. 분량은 요청이 아니라 작품의 화당 분량 설정을 따르며, 결과는 다음 회차로 정본에 들어가고
+이어 쓰는 연재 회차는 그 뒤부터 시작합니다. `clean_fail`이 아닌 장면 workflow가 열려 있는 동안 `lore_arc_plan`과
+`lore_arc_decide(approve)`는 `SCENE_IN_PROGRESS`로 거절합니다. 실패한 장면은 아크 계획을 막지 않으며, 아크를 승인한 뒤
+`lore_write(form="chapter")`가 그 장면을 대체합니다.
+
+이어 가거나 수정할 때는 `form` 없이 `lore_write`를 부릅니다. 진행 중인 workflow는 자기 형태를 유지하고, 다른 `form`을 명시하면
+`clean_fail`인 workflow만 새 초고로 교체되며 그 밖에는 `WORKFLOW_FORM_MISMATCH`로 멈춥니다.
+
+```json
+{
+  "project": "/novels/night-bus",
+  "workId": "my-novel",
+  "form": "scene",
+  "instruction": "우주 편의점에서 두 사람이 큰 사건 없이 대화한다.",
+  "autonomy": "guided"
+}
+```
+
 ### `lore_decide`
 
 `guided` 원고를 승인하거나, 같은 workflow에서 수정 요청하거나, 보류 또는 거절합니다.
@@ -547,8 +583,44 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 | `workId`, `approvalId`, `action: approve\|request_revision\|hold\|reject` | `project`, `feedback` |
 
 `request_revision`에는 `feedback`이 필수입니다. 승인 ID는 `lore_write` 결과에서 받습니다.
+`request_revision` 결과의 `nextAction`은 피드백이 이번 화를 넘어 인물이나 작품 전체에 계속 적용돼야 하면
+사용자에게 범위를 확인한 뒤 `lore_preferences`로 기록하라고 안내합니다. 수정 요청만으로는 선호가 기록되지 않습니다.
+수정된 원고는 이어지는 `lore_write`가 `autonomy="auto"`여도 자동 커밋하지 않고 다시 `lore_decide` 승인을 기다립니다.
 검토 실패로 승인 대기에 들어온 `auto` 원고에도 같은 도구를 사용합니다. 명시적으로 승인해도
 기존 검토 실패 기록이 정상 완료로 바뀌지는 않습니다.
+
+### `lore_preferences`
+
+사용자가 직접 밝힌 오래 갈 창작 선호를 범위와 함께 기록·철회·조회합니다. 범위는 한 인물(`subject`)
+또는 작품 전체(`work`)이며, 호스트는 사용자에게 범위를 확인한 뒤에만 호출합니다. 도구는 선호를
+추론하지 않습니다.
+
+| 필수 | 선택 |
+|---|---|
+| `workId`, `action: adopt\|retire\|status` | `project`, `statement`, `userAnswer`, `level: subject\|work`, `subjectId`, `kind: preference\|goal`, `topic`, `supersedes`, `id` |
+
+- `adopt`에는 `statement`, `userAnswer`, `level`이 필요하고 `subject`에는 `subjectId`도 필요합니다.
+  `statement`는 작품 언어로 쓴 300자 이하 지침이며 제어 문자·코드 펜스·메타 지시는 거부됩니다.
+  `userAnswer`는 사용자의 원말 그대로 근거로만 저장하고 모델에 보내지 않습니다.
+- 활성 선호의 `statement`만 한 화 workflow의 초고와 모든 수정(사용자 수정 요청·필수 수정·품질 수정)에
+  부드러운 지침으로 들어갑니다. workflow는 처음 필요할 때 선호 집합을 고정해 같은 workflow의 모든 초고 호출이
+  그것을 그대로 씁니다. 논리 검토(`coherence-judge`)가 선호마다 지켜졌는지 판정해 `warn`/`fail`을
+  `CREATIVE_PREFERENCE` advisory(soft, `advisoryOnly`)로만 알립니다. 차단하거나 수정을 일으키지 않으며,
+  `disabledReviews`로 `coherence-judge`를 끄면 이 판정도 생략됩니다. 판정 응답이 아예 없으면 그 검토는 미완료로
+  기록돼 `auto`는 승인 대기로 내려갑니다(작가 규칙과 같음). 정본 사실과 이번 화 계획이 우선하며 선호만으로는
+  수정하지 않습니다. 활성 선호가 없으면 초고·수정·검토 요청과 영수증은 이전과 같습니다.
+- 진행 중인 workflow에서 선호가 바뀌면 그 workflow는 `STALE_WORK_CONTRACT`로 멈추고, 다음 `lore_write`가
+  남은 원고를 바뀐 선호로 다시 검사합니다(다시 쓰지 않음). 선호가 바뀔 때 아직 적용되지 않은 사용자 수정 요청은
+  바뀐 선호로 다시 요청하며 한 번만 적용됩니다.
+- `level=subject`의 `subjectId`는 작품 인물 id여야 합니다(이름이 아님). 없는 id는 `INVALID_CREATIVE_DECISION`으로
+  거부하고 가능한 id(최대 20개)를 알려 줍니다. `retire`·`status`는 확인하지 않으므로 나중에 지운 인물의 선호도 철회할 수 있습니다.
+- `supersedes`는 기존 선호를 철회하고 새 선호를 한 번에 채택합니다. 같은 사용자 답으로 인물 범위를
+  작품 전체로 넓히면 좁은 선호를 이미 철회했더라도 `CREATIVE_DECISION_SCOPE_WIDENED`로 거부하며, 넓히려면 새 답이 필요합니다. `selection`·`artifact`·`personal`
+  범위와 `fact`·`policy` 종류는 `INVALID_CREATIVE_DECISION`입니다. 도구는 `authority` 인자를 받지 않습니다(MCP에서 모르는 인자는 `INVALID_ARGUMENT`). 활성 선호는 작품당 12개까지입니다.
+- `status`는 `{revision, active, retired}`와 각 선호의 문장·범위·사용자 원답·날짜를 돌려줍니다.
+- 채택·철회는 이미 통과한 검사 영수증을 무효화하므로 다음 `lore_write`가 같은 원고를 다시 검사합니다.
+  기록은 `.vibelore/creative-decisions.json`에 있고 회차 롤백에도 유지됩니다. 사실은 정본(`characters/`,
+  `world/`)에, 운영 설정은 `lore_configure`에 둡니다.
 
 ### `lore_workflow_status`
 
@@ -610,6 +682,10 @@ PatternLedger를 갱신하고 보상 간격, 선택·증거·정서·결말의 �
 `set_mode`는 새 위임 또는 `delegation=null`과 원답으로 같은 후보의 선택 방식을 바꿉니다. 제작 위임은 미지정 칸 수를 `auto`로 선택하고
 최신 비용·재시도 제한을 지킵니다. 장면 `reject`는 사용자 중단을 기록하고 대기 요청을 해제하며 파일은 보존합니다.
 [위임 경계 상황](reference/WEBTOON_WORKFLOW.md#선택-위임과-경계-상황).
+
+`status`의 `decisions`는 채택된 화풍을 작품 단위 결정으로 보여 줍니다. `appliesTo=future-scenes`이며 기존 장면은
+사용자가 지정한 `explicitTargets`만 포함합니다. 위임 채택은 위임 범위와 호스트 선택 근거를 사용자 원답과 구분해 표시합니다.
+`styleRevisionId`로 과거 판본을 볼 때도 `decisions`는 현재 채택된 기준을 보여 줍니다.
 
 ### `lore_webtoon_scene`
 
@@ -717,6 +793,8 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 |---|---|
 | `workId`, `chapter`, `prose`, `violations[]` | `project` |
 
+활성 창작 선호(`lore_preferences`)는 현재 장부에서 읽어 부드러운 지침으로 함께 보냅니다. 통합 `lore_write`는 workflow가 고정한 선호를 씁니다.
+
 ### `lore_commit`
 
 검사된 본문, 요약과 상태를 정본에 반영합니다.
@@ -811,6 +889,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 | 새 자유 장르 작품 | `profile → create → story_plan → writer_skill → arc_plan` |
 | 다음 화 작성 | `lore_write` |
 | 완성 원고 승인 | `lore_decide` |
+| 인물·작품에 계속 적용할 창작 선호 기록 | `lore_preferences` |
 | 기존 소설 웹툰화 | `lore_webtoon_style → lore_webtoon_scene` (컷별 경로 `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide`는 deprecated) |
 | 웹툰 진행·검토 이력 | `lore_workflow_status/history(lane="webtoon")` |
 | 멈춘 모델 작업 | `lore_resume` |

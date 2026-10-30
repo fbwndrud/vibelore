@@ -141,7 +141,7 @@ workflow 식별 정보(`preview`, `workflowId`, `chapter`)뿐이며 워크플로
    - 이전 영수증과 승인은 무효입니다. 새 영수증과 새 3회 예산으로 검사하며(예산을 소진한
      `clean_fail`도 새 예산을 받습니다), hard 위반은 예산 안에서 최소 수정합니다.
    - 통과하면 `guided`는 다시 승인을 묻고 `auto`는 커밋합니다. 단, 사용자 승인을 기다리던
-     원고는 호출이 `auto`여도 `guided`로 유지되어 `lore_decide`를 거칩니다.
+     원고와 사용자 수정 요청이 반영된 원고는 호출이 `auto`여도 `guided`로 유지되어 `lore_decide`를 거칩니다.
    - `lore_decide(action="request_revision")`로 요청한 수정이 남아 있었다면 그 피드백을
      새 workflow가 이어받아 보존 원고에 적용한 뒤 검사합니다.
 5. 사용자 의도가 바뀌었다면 좁힌 새 `instruction`으로 `lore_write`를 부릅니다. 새
@@ -189,6 +189,7 @@ sequenceDiagram
 추적 설정·작가 정의 항목·승인한 병합(`review-policy.json`)과 아크 요약도 그 회차 시점으로
 복원하며, 이야기 등록부의 이력 로그는 복원된 화들로부터 다시 만듭니다. 병합 후보 목록은 보관 영역으로 옮겨지고,
 `guided`에서 필요하면 다시 묻습니다.
+`lore_preferences`로 기록한 창작 선호(`.vibelore/creative-decisions.json`)는 되돌리지 않고 그대로 유지합니다.
 
 복구 도중 프로세스가 중단되면 `.vibelore/rollback-pending.json`과 검증된 복구 자료가
 남습니다. 같은 프로젝트로 다음 MCP 도구를 호출하면 복구를 먼저 마무리합니다.
@@ -396,6 +397,7 @@ Git을 사용한다면 ignore 규칙으로 후보·이미지·실행 기록이 �
 | `.vibelore/workflows/` | 진행 중이면 필수 | 재시작 후 워크플로 재개 |
 | `.vibelore/check-receipts/` | 권장 | 커밋 감사 |
 | `.vibelore/snapshots/` | 권장 | rollback |
+| `.vibelore/creative-decisions.json` | 권장 | 사용자가 채택한 창작 선호와 원답. 스냅숏 사본이 없음 |
 | `.vibelore/review-policy.json` | 권장 | 검토·추적 설정, 작가 정의 항목, 승인한 병합 |
 | `.vibelore/ledger/seed.json` | 권장 | 재생의 출발점인 1화 전 기록(없으면 `entities.json`에서 근사) |
 | `.vibelore/ledger/` 나머지 | 낮음 | 이력 로그는 화별 추출 결과에서 재구축 가능, 병합 후보는 다시 물으면 됨 |
@@ -487,7 +489,7 @@ Opus 4.6·Haiku 4.5는 4096토큰입니다. API 기본 TTL은 5분이고 읽기�
 2. 원문에서 관찰한 경험과 승인된 약속의 구현을 구분합니다. 현재 계획을 주지 않은 편집 요청에 별도로 계획을 덧붙이지 않습니다. 미래에 지급할 약속이나 의도적인 지연을 현재 누락으로 단정하지 않습니다.
 3. 높은 점수에도 약점이 있으면 findings에 근거를 남깁니다. 취향 의견은 자동 수정 지시로 바꾸지 않습니다. 응답할 수 없거나 검토가 실패했을 때 임의의 통과 점수를 만들지 않습니다.
 4. 주어진 요청 ID로 `lore_resume`합니다. 서버는 실제 요청·응답과 원고·계약 해시를 연결합니다. 이 연결은 같은 평가를 재개하는 장치이며 평가자가 성실히 읽었거나 독립적이라는 증명은 아닙니다.
-5. 매 화 검토(`story-profile-check`, `coherence-judge`, `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`)는 작가를 돕는 선택 기능입니다. 사용자가 원하면 `lore_configure`에 `disabledReviews`로 끌 목록 전체를 넘깁니다. 꺼진 검토는 요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다. `editorial-quality`를 끄면 분량·밀도 조언도 나오지 않습니다. 연속성 추출·검사는 끌 수 없습니다. 초고 요청의 선택 섹션(`older-memory`, `previous-tail`, `author-craft`, `style-anchor`)도 `disabledDraftSections`로 뺄 수 있고, 적용 결과는 `draft_context_supplied.disabledDraftSections`에 남습니다.
+5. 매 화 검토(`story-profile-check`, `coherence-judge`, `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`)는 작가를 돕는 선택 기능입니다. 사용자가 원하면 `lore_configure`에 `disabledReviews`로 끌 목록 전체를 넘깁니다. 꺼진 검토는 요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다. `editorial-quality`를 끄면 분량·밀도 조언도 나오지 않습니다. `coherence-judge`를 끄면 작가 규칙과 창작 선호(`lore_preferences`) 판정도 생략됩니다. 연속성 추출·검사는 끌 수 없습니다. 초고 요청의 선택 섹션(`older-memory`, `previous-tail`, `author-craft`, `style-anchor`)도 `disabledDraftSections`로 뺄 수 있고, 적용 결과는 `draft_context_supplied.disabledDraftSections`에 남습니다.
 6. `lore_workflow_history`와 `quality.review`에서 전체 발견 및 출처를 확인합니다. 같은 호스트 문맥으로 작성·검토했다면 자기검토로 보고합니다. 근거와 실행 경로를 조사할 때만 `includeModelExchanges=true`로 전문을 조회합니다.
 
 전체 이야기·아크·에피소드의 단계 검토는 필수 수정에 실제 권한 원문의 연속 인용을 요구합니다.
@@ -520,6 +522,7 @@ host relay의 모델 입출력을 보존하며 통과로 계산하지 않습니�
 | 확인할 내용 | 기록 위치 |
 |---|---|
 | 어떤 취향과 예시가 초고에 들어갔는가 | `draft_context_supplied.draftContract` |
+| 어떤 창작 선호가 workflow에 고정됐고 어디서 어긋났는가 | 이벤트 `creative_preferences_pinned`, 선호가 중간에 바뀌어 멈춘 경우 `creative_preferences_changed`, `warn`/`fail` 판정은 `CREATIVE_PREFERENCE` advisory(soft, 차단 안 함)로 알리고 `pass` 판정은 목록에 넣지 않음 |
 | 높은 점수에도 어떤 약점이 발견됐는가 | `reviews_completed.review.records[].findings` |
 | 어떤 원고·계약을 누가 검토했는가 | 검토 record의 `proseHash`, `contractDigest`, `requestId`, `evaluator` |
 | 검토가 정상 완료됐는가 | `quality.review.status`, 각 record의 `status`와 `failure` |

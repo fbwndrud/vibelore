@@ -8,6 +8,7 @@ import { sceneImageRequest, validateSceneImageProvenance } from '../core/webtoon
 import { isEnglish, SCENE_LIMITS } from '../core/webtoon-scene.js';
 import { webtoonMessage, languageTag } from '../core/webtoon-language.js';
 import { webtoonDelegation, delegatesStyleChoice, styleDecisionStage } from '../core/webtoon-delegation.js';
+import { webtoonStyleDecision } from '../core/decision-projections.js';
 
 const MODE = 'style-preview-v1';
 const previewBinding = c => digest({ workId: c.workId, proposalId: c.proposalId, parentRevisionId: c.parentRevisionId,
@@ -53,6 +54,7 @@ export async function runWebtoonStyleTool({ store, args }) {
       if (candidate && current?.proposalId === candidate.proposalId) { candidate.status = 'adopted'; candidate.revisionId = current.revisionId; }
       return { status: 'ok', lane: 'webtoon', workId: args.workId, style: args.styleRevisionId ? await styles.adopted(args.styleRevisionId) : current,
         candidate: candidate ? publicCandidate(candidate) : null, scenes: await styles.scenes(),
+        decisions: current ? [webtoonStyleDecision(current)].filter(Boolean) : [],
         jobs: candidate?.status === 'needs_style_image' && !previewBlocked(candidate) ? [await previewJob(repo, candidate)] : [],
         ...(candidate && previewBlocked(candidate) ? { blockedBy: 'api-forbidden', nextAction: blockedNotice(source) } : {}),
         ...(candidate && ['needs_style_decision', 'awaiting_style_approval'].includes(candidate.status) ? { nextAction: decisionNotice(source, candidate) } : {}) };

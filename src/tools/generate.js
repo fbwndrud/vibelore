@@ -27,7 +27,8 @@ import { MCP_CONTRACT_VERSION } from '../core/runtime-version.js';
 import { buildAcceptedCreationRecord, resolveWorkLanguage } from '../core/work-language.js';
 import { promptKit } from '../prompts/index.js';
 import { executePinnedDraft } from '../core/draft-execution.js';
-import { renderContinuity } from '../core/draft-input-compiler.js';
+import { renderContinuity, revisePreferenceContext } from '../core/draft-input-compiler.js';
+import { compileScenePacket } from '../core/scene-brief.js';
 import { namedCharacters, planningCast, renderCurrentState, renderWriterFoundation } from '../core/prompt-sections.js';
 import { loadDisabledDraftSections } from '../core/review-policy.js';
 import { renderLongMemory } from './arc-summary.js';
@@ -39,6 +40,7 @@ import { advanceWorkingTreeFingerprint } from '../core/working-tree-sync.js';
 import { renderStyleAnchor } from '../core/style-continuity.js';
 import { DefaultOutputSanitizer } from '../../engine/src/core/output-sanitizer.js';
 import { prepareWorldbuildingSource, storedWorldbuildingSelection } from '../core/worldbuilding.js';
+import { creativePreferencesForDraft } from '../core/creative-decision-ledger.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const canonicalObject = (value) => {
@@ -47,6 +49,12 @@ const canonicalObject = (value) => {
   return typeof value === 'string' ? value.normalize('NFC') : value;
 };
 const sourceDigest = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonicalObject(value))).digest('hex')}`;
+// The creative decision ledger joins the draft source only once the work has one,
+// so works without decisions keep their exact plan source digest.
+async function creativeDecisionSource(store, workId) {
+  const ledger = (await store.loadCreativeDecisions?.(workId)) ?? null;
+  return ledger ? { creativeDecisions: ledger } : {};
+}
 
 export async function runCreate({ store, workId, title, brief, genre, povMode, targetChapters = 40, chapterWordCount, worldbuildingSource, language = null, length = null, providers, retryValidation = false }) {
   if (await store.loadFoundation(workId)) throw new Error('이미 작품이 있습니다. 자동 생성으로 덮어쓰지 않습니다.');
@@ -157,7 +165,36 @@ function engineLanguageArgs(workLanguage, { legacyTarget = false } = {}) {
   };
 }
 
-export async function runDraftTool({ store, workId, chapter, plan = '', tension, targetChars, language = null, length = null, providers, workflowId = null }) {
+/** Throws when the published canon head moved away from the one this draft pinned. */
+async function assertPinnedCanonHead(publicationUnit, pinnedCanonHead) {
+  const publication = await publicationUnit.readPublished();
+  if (!publication.ok) throw new Error(`CORRUPT_PUBLICATION: ${publication.error.code}`);
+  const observedCanonHead = publication.value?.head ?? 'legacy-working-tree';
+  if (observedCanonHead !== pinnedCanonHead) throw new Error(`STALE_DRAFT_IDENTITY: canonHead ${pinnedCanonHead} -> ${observedCanonHead}`);
+}
+
+function draftExecutionError({ code, reason, ...detail }) {
+  // Name the section so a refused stored preference points to lore_preferences.
+  const where = reason && detail.section ? `${detail.section} ` : '';
+  return new Error(`${code}: ${where}${reason ?? (Object.keys(detail).length ? JSON.stringify(detail) : 'draft-execution')}`);
+}
+
+/** The trailing contextAudit keys every draft form reports, in their persisted order. */
+function draftAuditTail({ result, exchangeId, workLanguage }) {
+  return {
+    draftInputTrace: result.compiled.trace,
+    draftInputUsage: result.compiled.usage,
+    providerRequestHash: result.providerRequestHash,
+    exchangeId,
+    language: workLanguage.language,
+    lengthUnit: workLanguage.length.unit,
+    lengthTarget: workLanguage.length.target,
+    languageContractHash: workLanguage.contractHash,
+    mcpContractVersion: MCP_CONTRACT_VERSION,
+  };
+}
+
+export async function runDraftTool({ store, workId, chapter, plan = '', tension, targetChars, language = null, length = null, providers, workflowId = null, form = 'chapter', creativePreferences: pin = null }) {
   const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
   const draftStore = await openCanonRepository({ store, publicationUnit });
   const pinnedCanonHead = draftStore.publishedRevision?.head ?? 'legacy-working-tree';
@@ -173,6 +210,10 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   });
   // 이 초고를 만드는 모든 엔진 단계가 같은 계약 하나를 본다.
   const executionSnapshot = executionFoundation(foundation, workLanguage);
+  if (form === 'scene') {
+    return runSceneDraft({ store, workId, chapter, plan, tension, providers, workflowId, pin,
+      publicationUnit, draftStore, pinnedCanonHead, runtime, foundation, workLanguage, executionSnapshot });
+  }
   const arcPlan = await store.loadArcPlan(workId);
   const arcEpisode = episodeForChapter(arcPlan, chapter);
   if (!arcEpisode) throw new Error('승인된 아크의 해당 회차 비트가 없습니다. lore_arc_plan으로 계획하고 승인하세요.');
@@ -185,12 +226,18 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const patternLedger = (await loadCurrentExperienceLedger({ store, workId })).entries;
   const writerSkill = await store.loadWriterSkill(workId);
   const styleAnchor = await store.loadStyleAnchor?.(workId);
+  // A pinned set is drafted as given and checked as given, so a ledger change
+  // during the call cannot stale it; without a pin the live ledger is the source.
+  const pinnedSource = pin ? (pin.revision === null ? {} : { creativePreferences: pin }) : null;
+  const decisionSource = pinnedSource ?? await creativeDecisionSource(store, workId);
+  const creativePreferences = pin ? pin.items : creativePreferencesForDraft(decisionSource.creativeDecisions ?? null, workId);
+  const decisionsRevision = pin ? pin.revision : decisionSource.creativeDecisions?.revision ?? null;
   // 초고 요청에 들어가는 모든 플러그인 렌더링은 이 계약 하나로 계열을 정한다.
   const kit = promptKit({ contract: workLanguage.contract });
   const narrativeContract = compileNarrativeContract({ profile: storyProfile, identity: storyIdentity, writerSkill, kit });
   const arcIntent = compileArcIntent(arcPlan);
   const episodeIntent = compileEpisodeIntent({ episodePlan: detailedPlan, arcEpisode, chapter });
-  const pinnedPlanSourceHash = sourceDigest({ arcPlan, detailedPlan, storyProfile, storyIdentity, pilotContract, patternLedger, writerSkill, styleAnchor, narrativeContract, arcIntent, episodeIntent });
+  const pinnedPlanSourceHash = sourceDigest({ arcPlan, detailedPlan, storyProfile, storyIdentity, pilotContract, patternLedger, writerSkill, styleAnchor, narrativeContract, arcIntent, episodeIntent, ...decisionSource });
   const continuitySelection = chapter > 1 ? await selectWriterContinuity({ store: draftStore, workId, chapter }) : null;
   const planningArc = {
     arcNumber: arcPlan.arcNumber, title: arcPlan.title, promise: arcPlan.promise, type: arcPlan.type,
@@ -240,6 +287,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     },
     episode: episodePacket,
     authorCraft: { writerText: writerPacket },
+    creativePreferences,
     kit,
     continuity: {
       genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
@@ -259,13 +307,10 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     pilotContract: chapter === 1 ? await store.loadPilotContract(workId) : null,
     patternLedger: (await loadCurrentExperienceLedger({ store, workId })).entries,
     writerSkill: await store.loadWriterSkill(workId), styleAnchor: await store.loadStyleAnchor?.(workId),
-    narrativeContract, arcIntent, episodeIntent,
+    narrativeContract, arcIntent, episodeIntent, ...(pinnedSource ?? await creativeDecisionSource(store, workId)),
   });
   if (planSourceBeforeDraft !== pinnedPlanSourceHash) throw new Error(`STALE_DRAFT_IDENTITY: planSource ${pinnedPlanSourceHash} -> ${planSourceBeforeDraft}`);
-  const currentPublication = await publicationUnit.readPublished();
-  if (!currentPublication.ok) throw new Error(`CORRUPT_PUBLICATION: ${currentPublication.error.code}`);
-  const observedCanonHead = currentPublication.value?.head ?? 'legacy-working-tree';
-  if (observedCanonHead !== pinnedCanonHead) throw new Error(`STALE_DRAFT_IDENTITY: canonHead ${pinnedCanonHead} -> ${observedCanonHead}`);
+  await assertPinnedCanonHead(publicationUnit, pinnedCanonHead);
   const foundationRender = renderWriterFoundation(executionSnapshot, detailedPlan.cast, chapter, kit);
   const currentStateRender = chapter > 1
     ? renderCurrentState(prevState, executionSnapshot, { cast: detailedPlan.cast, kit, mode: 'writer',
@@ -289,22 +334,16 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     },
     memoryClaims: [],
   }, { provider: providers });
-  if (!execution.ok) {
-    const { code, reason, ...detail } = execution.error;
-    throw new Error(`${code}: ${reason ?? (Object.keys(detail).length ? JSON.stringify(detail) : 'draft-execution')}`);
-  }
+  if (!execution.ok) throw draftExecutionError(execution.error);
   const result = execution.value;
-  const publicationAfterDraft = await publicationUnit.readPublished();
-  if (!publicationAfterDraft.ok) throw new Error(`CORRUPT_PUBLICATION: ${publicationAfterDraft.error.code}`);
-  const canonHeadAfterDraft = publicationAfterDraft.value?.head ?? 'legacy-working-tree';
-  if (canonHeadAfterDraft !== pinnedCanonHead) throw new Error(`STALE_DRAFT_IDENTITY: canonHead ${pinnedCanonHead} -> ${canonHeadAfterDraft}`);
+  await assertPinnedCanonHead(publicationUnit, pinnedCanonHead);
   const planSourceAfterDraft = sourceDigest({
     arcPlan: await store.loadArcPlan(workId), detailedPlan: await store.loadEpisodePlan(workId, chapter),
     storyProfile: await store.loadStoryProfile(workId), storyIdentity: await store.loadStoryIdentity(workId),
     pilotContract: chapter === 1 ? await store.loadPilotContract(workId) : null,
     patternLedger: (await loadCurrentExperienceLedger({ store, workId })).entries,
     writerSkill: await store.loadWriterSkill(workId), styleAnchor: await store.loadStyleAnchor?.(workId),
-    narrativeContract, arcIntent, episodeIntent,
+    narrativeContract, arcIntent, episodeIntent, ...(pinnedSource ?? await creativeDecisionSource(store, workId)),
   });
   if (planSourceAfterDraft !== pinnedPlanSourceHash) throw new Error(`STALE_DRAFT_IDENTITY: planSource ${pinnedPlanSourceHash} -> ${planSourceAfterDraft}`);
   const exchangeId = await store.saveModelExchange(workId, {
@@ -336,18 +375,152 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
       draftContract: draftContract.trace,
       styleAnchorRevision: styleAnchor?.revision ?? null,
       styleAnchorSourceChapters: styleAnchor?.sourceChapters ?? [],
+      decisionsRevision,
+      creativePreferenceIds: result.compiled.trace.sections.creativePreferences?.includedIds ?? [],
       narrativeContractDigest: narrativeContract.digest,
       arcIntentDigest: arcIntent?.digest ?? null,
       episodeIntentDigest: episodeIntent?.digest ?? null,
-      draftInputTrace: result.compiled.trace,
-      draftInputUsage: result.compiled.usage,
-      providerRequestHash: result.providerRequestHash,
-      exchangeId,
-      language: workLanguage.language,
-      lengthUnit: workLanguage.length.unit,
-      lengthTarget: workLanguage.length.target,
-      languageContractHash: workLanguage.contractHash,
-      mcpContractVersion: MCP_CONTRACT_VERSION,
+      ...draftAuditTail({ result, exchangeId, workLanguage }),
+    },
+  };
+}
+
+/**
+ * One short scene written from the user's own request as the next chapter.
+ * There is no arc or EpisodePlan: the request is the whole episode packet, the
+ * cast is picked from the request, and the plan source digest pins the request
+ * instead of the plans. Continuity reaches the writer as it does for a chapter.
+ */
+async function runSceneDraft({ store, workId, chapter, plan, tension, providers, workflowId, pin = null,
+  publicationUnit, draftStore, pinnedCanonHead, runtime, foundation, workLanguage, executionSnapshot }) {
+  const kit = promptKit({ contract: workLanguage.contract });
+  const scenePacketResult = compileScenePacket({ brief: plan, kit });
+  if (!scenePacketResult.ok) throw new Error(`${scenePacketResult.error.code}: scene ${scenePacketResult.error.reason}`);
+  const scenePacket = scenePacketResult.value;
+  // Only for long memory: the stored arc is absent or finished, since lore_write
+  // refuses a scene while an arc is active or pending.
+  const arcPlan = await store.loadArcPlan(workId);
+  const prevState = chapter > 1 ? await ledgerBaseState({ store: draftStore, workId, chapter: chapter - 1 }) : emptyStoryState(workId);
+  const storyProfile = await store.loadStoryProfile(workId);
+  const storyIdentity = await store.loadStoryIdentity(workId);
+  const patternLedger = (await loadCurrentExperienceLedger({ store, workId })).entries;
+  const writerSkill = await store.loadWriterSkill(workId);
+  const styleAnchor = await store.loadStyleAnchor?.(workId);
+  // Same pin rule as the chapter path: a workflow's pinned set is drafted and checked as given.
+  const pinnedSource = pin ? (pin.revision === null ? {} : { creativePreferences: pin }) : null;
+  const decisionSource = pinnedSource ?? await creativeDecisionSource(store, workId);
+  const creativePreferences = pin ? pin.items : creativePreferencesForDraft(decisionSource.creativeDecisions ?? null, workId);
+  const decisionsRevision = pin ? pin.revision : decisionSource.creativeDecisions?.revision ?? null;
+  const narrativeContract = compileNarrativeContract({ profile: storyProfile, identity: storyIdentity, writerSkill, kit });
+  const sceneSource = async () => sourceDigest({
+    scene: { brief: plan },
+    storyProfile: await store.loadStoryProfile(workId), storyIdentity: await store.loadStoryIdentity(workId),
+    patternLedger: (await loadCurrentExperienceLedger({ store, workId })).entries,
+    writerSkill: await store.loadWriterSkill(workId), styleAnchor: await store.loadStyleAnchor?.(workId),
+    narrativeContract, ...(pinnedSource ?? await creativeDecisionSource(store, workId)),
+  });
+  const pinnedPlanSourceHash = sourceDigest({ scene: { brief: plan }, storyProfile, storyIdentity, patternLedger, writerSkill, styleAnchor, narrativeContract, ...decisionSource });
+  const continuitySelection = chapter > 1 ? await selectWriterContinuity({ store: draftStore, workId, chapter }) : null;
+  const previousArtifact = chapter > 1 ? await draftStore.loadArtifact(workId, chapter - 1) : null;
+  const draftSectionsOff = await loadDisabledDraftSections(store, workId);
+  const previousSceneTail = previousArtifact?.prose && !draftSectionsOff.includes('previous-tail')
+    ? previousArtifact.prose.slice(-2400).trim()
+    : '';
+  const castIds = planningCast(foundation, { focusText: plan, chapter });
+  const draftContract = compileDraftContract({ profile: storyProfile, identity: storyIdentity, writerSkill, episodePlan: null, chapter, kit,
+    characterNames: Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName])) });
+  const writerPacket = [draftContract.writerText,
+    draftSectionsOff.includes('style-anchor') ? '' : renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
+  const compilerInputs = {
+    identity: {
+      workId, chapter, workflowId, invocation: workflowId ? 'workflow' : 'direct',
+      storyProfileRevision: storyProfile?.revision ?? null,
+      arcRevision: null,
+      episodePlanRevision: null,
+      canonicalStateRevision: prevState.chapterNumber ?? chapter - 1,
+      canonHead: pinnedCanonHead,
+      planSourceHash: pinnedPlanSourceHash,
+      ...(runtime.productionLock ? { productionLockId: runtime.productionLock.revisionId } : {}),
+    },
+    episode: scenePacket,
+    authorCraft: { writerText: writerPacket },
+    creativePreferences,
+    kit,
+    continuity: {
+      genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
+      recentSummaries: continuitySelection?.recentSummaryTexts ?? [],
+      olderMemory: continuitySelection && !draftSectionsOff.includes('older-memory')
+        ? writerOlderMemory(continuitySelection.olderMemory, (item) => castIds.includes(item.ref)) : [],
+      castIds,
+      locations: [],
+      previousSceneTail,
+    },
+    budget: { maxPlanTokens: 4000, maxContextTokens: 2000, maxMemoryTokens: 300 },
+  };
+  const planSourceBeforeDraft = await sceneSource();
+  if (planSourceBeforeDraft !== pinnedPlanSourceHash) throw new Error(`STALE_DRAFT_IDENTITY: planSource ${pinnedPlanSourceHash} -> ${planSourceBeforeDraft}`);
+  await assertPinnedCanonHead(publicationUnit, pinnedCanonHead);
+  const foundationRender = renderWriterFoundation(executionSnapshot, castIds, chapter, kit);
+  const currentStateRender = chapter > 1
+    ? renderCurrentState(prevState, executionSnapshot, { cast: castIds, kit, mode: 'writer', focusText: plan,
+      hookIds: [], history: await store.loadLedgerEvents?.(workId) ?? [], config: await loadLedgerConfig(store, workId) })
+    : '';
+  const longMemory = await renderLongMemory({ store: draftStore, workId, arcPlan, chapter, kit });
+  const stateRender = [longMemory, currentStateRender].filter(Boolean).join('\n\n');
+  const execution = await executePinnedDraft({
+    resolvedInputs: {
+      compiler: compilerInputs,
+      engine: {
+        foundation: executionSnapshot, prevState, chapterNumber: chapter, foundationRender, stateRender,
+        activeCastIds: castIds,
+        tension: tension ?? null, arc: undefined, form: 'scene',
+        ...engineLanguageArgs(workLanguage, { legacyTarget: true }),
+        model: MODEL,
+      },
+    },
+    memoryClaims: [],
+  }, { provider: providers });
+  if (!execution.ok) throw draftExecutionError(execution.error);
+  const result = execution.value;
+  await assertPinnedCanonHead(publicationUnit, pinnedCanonHead);
+  const planSourceAfterDraft = await sceneSource();
+  if (planSourceAfterDraft !== pinnedPlanSourceHash) throw new Error(`STALE_DRAFT_IDENTITY: planSource ${pinnedPlanSourceHash} -> ${planSourceAfterDraft}`);
+  const exchangeId = await store.saveModelExchange(workId, {
+    request: result.providerRequest, response: result.raw,
+    binding: { chapter, planSourceHash: pinnedPlanSourceHash, contractDigest: draftContract.trace.digest },
+  });
+  return {
+    chapter, prose: result.raw, next: 'lore_check로 검사한 뒤 lore_commit 하세요.',
+    contextAudit: {
+      form: 'scene',
+      ...(runtime.productionLock ? { productionLockId: runtime.productionLock.revisionId, loreRevisionId: runtime.productionLock.loreRevisionId } : {}),
+      recentSummaries: continuitySelection?.recentSummaryTexts.length ?? 0,
+      disabledDraftSections: draftSectionsOff,
+      memory: {
+        trimmedSummaries: continuitySelection?.trimmedSummaries ?? 0,
+        droppedForBudget: continuitySelection?.droppedForBudget ?? 0,
+        retrieval: continuitySelection?.retrieval ?? null,
+      },
+      recentSummaryChapters: result.compiled.trace.continuity.recentSummaryChapters,
+      olderMemoryRefs: result.compiled.trace.continuity.olderMemoryRefs,
+      previousSceneChars: previousSceneTail.length,
+      arcEpisodes: 0,
+      characterArcBeats: 0,
+      episodePacketChars: scenePacket.writerText.length,
+      episodePacketTokens: scenePacket.usage.usedTokens,
+      episodeObligationHash: null,
+      episodePacketTrace: scenePacket.trace,
+      sceneBriefHash: scenePacket.trace.briefHash,
+      writerPacketChars: writerPacket.length,
+      draftContract: draftContract.trace,
+      styleAnchorRevision: styleAnchor?.revision ?? null,
+      styleAnchorSourceChapters: styleAnchor?.sourceChapters ?? [],
+      decisionsRevision,
+      creativePreferenceIds: result.compiled.trace.sections.creativePreferences?.includedIds ?? [],
+      narrativeContractDigest: narrativeContract.digest,
+      arcIntentDigest: null,
+      episodeIntentDigest: null,
+      ...draftAuditTail({ result, exchangeId, workLanguage }),
     },
   };
 }
@@ -359,7 +532,7 @@ async function sharedFoundation(store, workId, chapter, foundation) {
   return (await loadLoreRuntime({ canonicalStore, foundation: await canonicalStore.loadFoundation(workId), chapter })).foundation;
 }
 
-export async function runReviseTool({ store, workId, chapter, prose, castManifestRaw, violations, language = null, providers }) {
+export async function runReviseTool({ store, workId, chapter, prose, castManifestRaw, violations, language = null, providers, creativePreferences }) {
   const foundation = await sharedFoundation(store, workId, chapter, await store.loadFoundation(workId));
   if (!foundation) throw new Error('작품이 없습니다.');
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });
@@ -374,6 +547,9 @@ export async function runReviseTool({ store, workId, chapter, prose, castManifes
     store.loadStyleAnchor?.(workId),
     chapter > 1 ? store.loadArtifact(workId, chapter - 1) : null,
   ]);
+  // An explicit list wins; otherwise the live ledger's active items.
+  const items = creativePreferences ?? creativePreferencesForDraft((await store.loadCreativeDecisions?.(workId)) ?? null, workId);
+  const preferenceContext = revisePreferenceContext(items, reviseKit);
   const result = await runRevise({
     foundation: executionFoundation(foundation, workLanguage), chapterNumber: chapter, prose: sourceProse,
     castManifestRaw: sourceCastManifest,
@@ -384,6 +560,7 @@ export async function runReviseTool({ store, workId, chapter, prose, castManifes
       voiceContract: profile?.voiceContract ?? null,
       writerSkill: writerSkill ? renderNarrativeContract(compileNarrativeContract({ profile, writerSkill, kit: reviseKit }), reviseKit) : '',
       previousSceneTail: previousArtifact?.prose?.slice(-1200).trim() ?? '',
+      ...(preferenceContext ? { creativePreferences: preferenceContext } : {}),
     },
     ...engineLanguageArgs(workLanguage), model: MODEL, providers,
   });

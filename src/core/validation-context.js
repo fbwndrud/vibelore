@@ -36,6 +36,8 @@ export async function currentValidationContext({ store, workId, chapter, allowWo
     spine: await store.loadStorySpine(workId), writer: await store.loadWriterSkill(workId),
     identity: await store.loadStoryIdentity(workId), pilot: await store.loadPilotContract(workId),
     style: await store.loadStyleAnchor?.(workId) ?? null,
+    // Only a work that has adopted a creative decision binds it; undefined keeps existing hashes unchanged.
+    decisions: (await store.loadCreativeDecisions?.(workId)) ?? undefined,
   };
   const fingerprint = await fingerprintWorkingTree(store.rootDir);
   const runtime = await loadLoreRuntime({ canonicalStore, foundation: executionFoundationSnapshot(canonicalFoundation, resolution.contract), chapter });

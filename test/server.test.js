@@ -1,4 +1,4 @@
-import { toolFailure } from '../src/core/tool-output.js';
+import { toolFailure, WRITE_OUTPUT_SCHEMA } from '../src/core/tool-output.js';
 import { validateToolInput } from '../src/core/tool-input.js';
 import { digest } from '../src/core/webtoon-contract.js';
 import { webtoonStore, workId as webtoonWorkId, answers as webtoonAnswers, plan as webtoonPlan, editorial as webtoonEditorial, pixel } from './fixtures/webtoon.js';
@@ -21,11 +21,12 @@ import { runWebtoonTool } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { rollbackToSnapshot } from '../src/tools/snapshots.js';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
-import { qualityStore, outputs as qualityOutputs, workId as qualityWorkId } from './fixtures/quality-workflow.js';
+import { qualityStore, sceneStore, heroCharacter, outputs as qualityOutputs, workId as qualityWorkId } from './fixtures/quality-workflow.js';
 import { approvalResponse } from './fixtures/approval-response.js';
 import { contractResponse } from './fixtures/contract-response.js';
 import { SYNTHETIC_LONG_PROSE } from './fixtures/synthetic-prose.js';
 import { runCheck } from '../src/tools/check.js';
+import { legacyWorkFixture } from './fixtures/legacy-work.js';
 
 const SERVER = fileURLToPath(new URL('../src/server.js', import.meta.url));
 
@@ -169,6 +170,59 @@ describe('MCP surface', () => {
     });
   }
 
+  it('advertises form=scene in the lore_write schema and the initialize instructions', async () => {
+    const out = await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }], { surface: 'public' });
+    const write = out.get(2).result.tools.find((tool) => tool.name === 'lore_write');
+    assert.deepEqual(write.inputSchema.properties.form.enum, ['chapter', 'scene']);
+    assert.ok(write.inputSchema.properties.form.description.length > 0);
+    assert.ok(write.description.includes('SCENE_FORM_ARC_PLANNED'));
+    assert.ok(write.description.includes('WORKFLOW_FORM_MISMATCH'));
+    assert.ok(out.get(1).result.instructions.includes('form=scene'));
+  });
+
+  it('writes one scene with a revision over real MCP stdio without an arc', async () => {
+    const store = await sceneStore();
+    const args = { project: store.rootDir, workId: qualityWorkId };
+    const invoke = async (name, more = {}) => {
+      const replies = await session([init, call(2, name, { ...args, ...more })], { surface: 'public' });
+      assert.equal(replies.get(2).result.isError, undefined, JSON.stringify(replies.get(2)));
+      const result = payload(replies.get(2));
+      if (result.status !== 'needs_model' && ['lore_write', 'lore_resume'].includes(name)) validateToolInput(WRITE_OUTPUT_SCHEMA, result, 'result');
+      return result;
+    };
+    const steps = [];
+    let draftUser = '';
+    const drive = async (first) => {
+      let result = first;
+      for (let pass = 0; result.status === 'needs_model' && pass < 30; pass++) {
+        const answers = {};
+        for (const request of result.requests) {
+          steps.push(request.step);
+          if (request.step === 'draft') draftUser = request.user;
+          answers[request.id] = request.step === 'revise'
+            ? JSON.stringify({ replacements: [{ paragraph: 1, text: '편의점 문이 열리자 윤재가 조용히 고개를 끄덕였다.' }] })
+            : proofAnswer(request) ?? qualityOutputs[request.step] ?? '{}';
+        }
+        result = await invoke('lore_resume', { runId: result.runId, answers });
+      }
+      return result;
+    };
+    let result = await drive(await invoke('lore_write', { autonomy: 'guided', form: 'scene', instruction: '우주 편의점에서 두 사람이 큰 사건 없이 대화한다.' }));
+    assert.equal(result.status, 'awaiting_approval', JSON.stringify(result));
+    assert.ok(!steps.includes('episode-plan'), steps.join(','));
+    assert.ok(draftUser.includes('우주 편의점'));
+    const revision = await invoke('lore_decide', { approvalId: result.approvalId, action: 'request_revision', feedback: '대사를 줄이고 첫 문장을 부드럽게 바꿔 주세요.' });
+    assert.notEqual(revision.status, 'completed', JSON.stringify(revision));
+    // Only the second drive's steps prove that the revision path ran.
+    steps.length = 0;
+    result = await drive(await invoke('lore_write', {}));
+    assert.equal(result.status, 'awaiting_approval', JSON.stringify(result));
+    assert.ok(steps.includes('revise'), steps.join(','));
+    assert.ok(!steps.includes('episode-plan'));
+    result = await drive(await invoke('lore_decide', { approvalId: result.approvalId, action: 'approve' }));
+    assert.equal(result.status, 'completed', JSON.stringify(result));
+  });
+
   it('routes lore_write model hints per stage and keeps the profile through resume and decide', async () => {
     const store = await qualityStore();
     const args = { project: store.rootDir, workId: qualityWorkId };
@@ -237,7 +291,7 @@ describe('MCP surface', () => {
     const tools = out.get(2).result.tools;
     assert.deepEqual(
       tools.map((t) => t.name).sort(),
-      ['lore_arc_decide', 'lore_arc_plan', 'lore_arc_review', 'lore_arc_status', 'lore_assets', 'lore_bind', 'lore_configure', 'lore_create', 'lore_decide', 'lore_init', 'lore_profile', 'lore_profile_decide', 'lore_profile_status', 'lore_registry', 'lore_resume', 'lore_rollback', 'lore_scene_script', 'lore_snapshot_status', 'lore_status', 'lore_story_decide', 'lore_story_plan', 'lore_story_status', 'lore_style_anchor', 'lore_sync', 'lore_universe', 'lore_webtoon_scene', 'lore_webtoon_style', 'lore_workflow_history', 'lore_workflow_status', 'lore_write', 'lore_writer_decide', 'lore_writer_skill', 'lore_writer_status'],
+      ['lore_arc_decide', 'lore_arc_plan', 'lore_arc_review', 'lore_arc_status', 'lore_assets', 'lore_bind', 'lore_configure', 'lore_create', 'lore_decide', 'lore_init', 'lore_preferences', 'lore_profile', 'lore_profile_decide', 'lore_profile_status', 'lore_registry', 'lore_resume', 'lore_rollback', 'lore_scene_script', 'lore_snapshot_status', 'lore_status', 'lore_story_decide', 'lore_story_plan', 'lore_story_status', 'lore_style_anchor', 'lore_sync', 'lore_universe', 'lore_webtoon_scene', 'lore_webtoon_style', 'lore_workflow_history', 'lore_workflow_status', 'lore_write', 'lore_writer_decide', 'lore_writer_skill', 'lore_writer_status'],
     );
     for (const t of tools) {
       assert.ok(t.description.length > 20, `${t.name} needs a real description`);
@@ -258,7 +312,7 @@ describe('MCP surface', () => {
   it('exposes only legacy panel tools additionally on the compatibility surface', async () => {
     const listed = await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }], { surface: 'compat' });
     const tools = listed.get(2).result.tools;
-    assert.equal(tools.length, 36);
+    assert.equal(tools.length, 37);
     for (const name of ['lore_webtoon_plan', 'lore_webtoon_render', 'lore_webtoon_decide']) {
       assert.ok(tools.some(tool => tool.name === name));
       const hidden = await session([init, call(2, name, { workId: 'hidden' })], { surface: 'public' });
@@ -344,7 +398,7 @@ describe('MCP surface', () => {
       [init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }],
       { surface: 'advanced' },
     );
-    assert.equal(listed.get(2).result.tools.length, 49);
+    assert.equal(listed.get(2).result.tools.length, 50);
     assert.ok(listed.get(2).result.tools.some((tool) => tool.name === 'lore_commit'));
 
     const hidden = await session(
@@ -362,6 +416,46 @@ describe('MCP surface', () => {
       call(2, 'lore_style_anchor', { project: dir, workId: 'style-work', action: 'status' }),
     ], { surface: 'public' });
     assert.equal(payload(out.get(2)).status, 'missing');
+  });
+
+  it('records a scoped creative decision through the public MCP route and returns recovery for refusals', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vibelore-mcp-decision-'));
+    await legacyWorkFixture({ store: new MarkdownStateStore(dir), workId: 'decision-work', characters: [heroCharacter] });
+    const invoke = async (args) => (await session([init,
+      call(2, 'lore_preferences', { project: dir, workId: 'decision-work', ...args })], { surface: 'public' })).get(2);
+    const adopted = payload(await invoke({ action: 'adopt', level: 'subject', subjectId: 'hero',
+      statement: '윤재는 반말을 쓴다.', userAnswer: '윤재는 항상 반말로 말해' }));
+    assert.equal(adopted.status, 'ok');
+    assert.equal(adopted.adopted.id, 'dec-1');
+    const status = payload(await invoke({ action: 'status' }));
+    assert.deepEqual(status.active.map((item) => item.statement), ['윤재는 반말을 쓴다.']);
+    const widened = (await invoke({ action: 'adopt', level: 'work', statement: '모두 반말을 쓴다.', userAnswer: '윤재는 항상 반말로 말해' })).result;
+    assert.equal(widened.isError, true);
+    assert.equal(widened.structuredContent.code, 'CREATIVE_DECISION_SCOPE_WIDENED');
+    assert.match(widened.structuredContent.nextAction, /새 답/);
+    const personal = (await invoke({ action: 'adopt', level: 'personal', statement: '반말', userAnswer: '내 모든 작품에서 반말' })).result;
+    assert.equal(personal.structuredContent.code, 'INVALID_CREATIVE_DECISION');
+    assert.match(personal.structuredContent.nextAction, /lore_preferences/);
+    const delegated = (await invoke({ action: 'status', authority: 'delegated' })).result;
+    assert.equal(delegated.structuredContent.code, 'INVALID_ARGUMENT');
+  });
+
+  it('a wrong workId neither creates nor poisons the preference ledger, and the right one keeps working', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vibelore-mcp-decision-id-'));
+    await legacyWorkFixture({ store: new MarkdownStateStore(dir), workId: 'decision-work' });
+    const invoke = async (workId, args) => (await session([init,
+      call(2, 'lore_preferences', { project: dir, workId, ...args })], { surface: 'public' })).get(2);
+    const adopt = { action: 'adopt', level: 'work', statement: '서술은 건조하게 쓴다.', userAnswer: '건조하게' };
+    const wrong = (await invoke('decision-wrnog', adopt)).result;
+    assert.equal(wrong.isError, true);
+    assert.match(wrong.content[0].text, /작품이 없습니다/);
+    await assert.rejects(readFile(join(dir, '.vibelore', 'creative-decisions.json'), 'utf8'), { code: 'ENOENT' });
+    assert.equal(payload(await invoke('decision-work', adopt)).adopted.id, 'dec-1');
+    assert.equal(payload(await invoke('decision-work', { action: 'status' })).active.length, 1);
+    const mismatch = (await invoke('decision-wrnog', { action: 'status' })).result;
+    assert.equal(mismatch.structuredContent.code, 'INVALID_CREATIVE_DECISION');
+    assert.match(mismatch.structuredContent.message, /decision-work.*workId/);
+    assert.match(mismatch.structuredContent.nextAction, /workId/);
   });
 
   it('adopts a style sample and runs the scene interview, auto panel count and exact resume through public stdio', async () => {

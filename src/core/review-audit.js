@@ -28,11 +28,14 @@ export function reviewTimeoutMs(env = process.env) {
  * One review attempt: retain evidence independently of publication policy.
  * `disabled` lists the reviews the user turned off for the work; they are not
  * requested and are recorded as `disabled_by_user`, which does not count as a
- * failed review.
+ * failed review. `notApplicable` lists the reviews that do not apply to this
+ * form of work (e.g. serial-only reviews on a scene); they are not requested
+ * and are recorded as `not_applicable`, which counts as done.
  */
-export function createReviewAudit({ providers, prose, chapter, contractDigest, saveExchange, timeoutMs = DEFAULT_REVIEW_TIMEOUT_MS, disabled = [] }) {
+export function createReviewAudit({ providers, prose, chapter, contractDigest, saveExchange, timeoutMs = DEFAULT_REVIEW_TIMEOUT_MS, disabled = [], notApplicable = [] }) {
   const records = [];
   const off = new Set(disabled);
+  const skipped = new Set(notApplicable);
   const binding = { chapter, proseHash: hash(prose), contractDigest };
   const auditedProvider = {
     get pending() { return providers.pending ?? []; },
@@ -80,6 +83,10 @@ export function createReviewAudit({ providers, prose, chapter, contractDigest, s
   return {
     providers: auditedProvider,
     async run(step, action, fallback) {
+      if (skipped.has(step)) {
+        if (!records.some((item) => item.step === step)) records.push({ step, ...binding, status: 'not_applicable', findings: [] });
+        return structuredClone(fallback);
+      }
       if (off.has(step)) {
         if (!records.some((item) => item.step === step)) records.push({ step, ...binding, status: 'disabled_by_user', findings: [] });
         return structuredClone(fallback);
@@ -87,8 +94,9 @@ export function createReviewAudit({ providers, prose, chapter, contractDigest, s
       try {
         const result = await action(auditedProvider);
         if ((providers.pending?.length ?? 0) === 0 && result !== null) {
-          // Author rules asked about and left unanswered leave the coherence review incomplete.
-          const valid = step === 'pattern-ledger' ? Boolean(result?.solutionPattern) : score(result?.score) && !result?.authorRulesMissing;
+          // Author rules or preferences asked about and left unanswered leave the coherence review incomplete.
+          const valid = step === 'pattern-ledger' ? Boolean(result?.solutionPattern)
+            : score(result?.score) && !result?.authorRulesMissing && !result?.creativePreferencesMissing;
           const record = records.findLast((item) => item.step === step);
           if (!valid && record?.status === 'completed') Object.assign(record, { status: 'failed', failure: 'INCOMPLETE_REVIEW_RESULT' });
         }
@@ -105,9 +113,11 @@ export function createReviewAudit({ providers, prose, chapter, contractDigest, s
       }
     },
     result() {
-      const done = (item) => item.status === 'completed' || item.status === 'disabled_by_user';
+      const done = (item) => item.status === 'completed' || item.status === 'disabled_by_user' || item.status === 'not_applicable';
+      const notApplicableSteps = records.filter((item) => item.status === 'not_applicable').map((item) => item.step);
       return { schemaVersion: 1, ...binding, status: records.length && records.every(done) ? 'completed' : 'failed',
-        disabled: records.filter((item) => item.status === 'disabled_by_user').map((item) => item.step), records };
+        disabled: records.filter((item) => item.status === 'disabled_by_user').map((item) => item.step),
+        ...(notApplicableSteps.length ? { notApplicable: notApplicableSteps } : {}), records };
     },
   };
 }

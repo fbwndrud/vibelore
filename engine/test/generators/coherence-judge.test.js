@@ -168,4 +168,55 @@ describe('runCoherenceJudge', () => {
         expect(missing.authorRules).toEqual([]);
         expect(missing.authorRulesMissing).toBe(true);
     });
+    const prefs = [{ id: 'dec-1', level: 'work', ref: 'w', statement: '서술은 건조하게 쓴다.' },
+        { id: 'dec-2', level: 'subject', ref: 'hero', statement: '윤재는 반말을 쓴다.' }];
+    // With the canonical name the judge can find the character in the prose.
+    const named = [prefs[0], { ...prefs[1], name: '윤재' }];
+    const capture = (body) => { const box = { seen: '' }; box.providers = { register: vi.fn(), has: vi.fn(),
+        complete: async (req) => { box.seen = req.messages.at(-1).content; return { text: JSON.stringify(body) }; } }; return box; };
+    it('asks about each adopted preference and returns its verdict', async () => {
+        const box = capture({ score: 80, reason: 'ok', creativePreferences: [
+            { id: 'dec-2', verdict: 'warn', evidence: '"그러십시오"' }, { id: 'dec-9', verdict: 'fail' }, { id: 'dec-1', verdict: 'maybe' }] });
+        const out = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, providers: box.providers, creativePreferences: prefs });
+        expect(box.seen).toContain('## 사용자가 채택한 창작 선호');
+        expect(box.seen).toContain('- dec-1 (작품 전체): 서술은 건조하게 쓴다.\n- dec-2 (인물 hero): 윤재는 반말을 쓴다.');
+        expect(box.seen).toContain('"creativePreferences": [{ "id": "선호 id"');
+        expect(box.seen).not.toContain('"authorRules"');
+        expect(out.creativePreferences).toEqual([{ id: 'dec-2', statement: '윤재는 반말을 쓴다.', verdict: 'warn', evidence: '"그러십시오"' }]);
+        expect(out.creativePreferencesMissing).toBeUndefined();
+        expect(out.authorRules).toBeUndefined();
+        expect(box.seen).toContain('점수는 논리 연결만 평가하며 선호 판정은 점수에 반영하지 않는다.');
+    });
+    it('names the character next to a subject id when the caller gives it', async () => {
+        const box = capture({ score: 80, reason: 'ok', creativePreferences: [] });
+        await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, providers: box.providers, creativePreferences: named });
+        expect(box.seen).toContain('- dec-2 (인물 hero(윤재)): 윤재는 반말을 쓴다.');
+    });
+    it('asks for rules and preferences together, and flags an answer without preference verdicts', async () => {
+        const box = capture({ score: 80, reason: 'ok', authorRules: [] });
+        const out = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, providers: box.providers,
+            authorRules: [{ id: 'u1', text: '금화는 줄기만 한다' }], creativePreferences: prefs });
+        expect(box.seen.indexOf('## 작가 점검 규칙')).toBeLessThan(box.seen.indexOf('## 사용자가 채택한 창작 선호'));
+        expect(box.seen).toContain('"authorRules": [{ "id": "규칙 id"');
+        expect(box.seen).toContain('"creativePreferences": [{ "id": "선호 id"');
+        expect(out.creativePreferences).toEqual([]);
+        expect(out.creativePreferencesMissing).toBe(true);
+    });
+    it('without preferences the prompt is the one used before them, with or without author rules', async () => {
+        for (const authorRules of [undefined, [{ id: 'u1', text: '금화는 줄기만 한다' }]]) {
+            const plain = capture({ score: 80, reason: 'ok' });
+            const empty = capture({ score: 80, reason: 'ok' });
+            await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, providers: plain.providers, authorRules });
+            const out = await runCoherenceJudge({ prose: SAMPLE, chapterNumber: 3, writerModel, providers: empty.providers, authorRules, creativePreferences: [] });
+            expect(empty.seen).toBe(plain.seen);
+            expect(out.creativePreferences).toBeUndefined();
+        }
+    });
+    it('uses the multilingual labels for a non-Korean work', async () => {
+        const box = capture({ score: 80, reason: 'ok', creativePreferences: [] });
+        await runCoherenceJudge({ prose: 'He stopped.', chapterNumber: 3, writerModel, providers: box.providers, language: 'en', creativePreferences: prefs });
+        expect(box.seen).toContain('## Creative preferences the user adopted');
+        expect(box.seen).toContain('- dec-2 (character hero): 윤재는 반말을 쓴다.');
+        expect(box.seen).toContain('The score judges coherence only; preference verdicts do not change it.');
+    });
 });
