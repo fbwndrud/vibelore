@@ -160,10 +160,14 @@ export async function runCommit({
     validatedContext ? validatedContext.plans.arc : canonicalStore.loadArcPlan(workId),
     validatedContext ? validatedContext.plans.episode : canonicalStore.loadEpisodePlan(workId, chapter),
   ]);
-  const episodePlan = upgradeEpisodePlanningContract(loadedEpisodePlan, baseFoundation);
+  // A scene is not an arc episode: a stored EpisodePlan (rejected, pending or
+  // left over) and the arc have no authority over it. Both are published as
+  // stored, and the scene completes neither.
+  const scene = checkReceipt?.form === 'scene';
+  const episodePlan = scene ? null : upgradeEpisodePlanningContract(loadedEpisodePlan, baseFoundation);
   const publishedEpisodes = (arcPlan?.episodes ?? []).map((item) => item.chapter === chapter ? { ...item, status: 'completed' } : item);
   const publishedArcCompleted = publishedEpisodes.length > 0 && publishedEpisodes.every((item) => item.status === 'completed');
-  const publishedArcPlan = arcPlan ? {
+  const publishedArcPlan = scene ? arcPlan : arcPlan ? {
     ...arcPlan,
     episodes: publishedEpisodes,
     ...(publishedArcCompleted ? {
@@ -171,7 +175,7 @@ export async function runCommit({
       completedAt: arcPlan.completedAt ?? new Date().toISOString(),
     } : {}),
   } : null;
-  const publishedEpisodePlan = episodePlan?.status === 'active'
+  const publishedEpisodePlan = scene ? loadedEpisodePlan : episodePlan?.status === 'active'
     ? { ...episodePlan, status: 'completed' }
     : episodePlan;
 
@@ -274,8 +278,8 @@ export async function runCommit({
       } : {}),
     });
   }
-  const arc = await advanceArcAfterCommit({ store, workId, chapter });
-  const episode = await completeEpisodePlan({ store, workId, chapter });
+  const arc = scene ? null : await advanceArcAfterCommit({ store, workId, chapter });
+  const episode = scene ? null : await completeEpisodePlan({ store, workId, chapter });
   const workingTreeFingerprint = await captureWorkingTreeFingerprint({ store, sourceHead: publication.value.head });
   let snapshot;
   try { snapshot = await createChapterSnapshot({ store, workId, chapter }); }

@@ -222,14 +222,17 @@ const DIALOGUE_FORMAT_RULE_MULTILINGUAL = {
     natural: '- Follow the dialogue and paragraph conventions of the target language: inline speech attribution and dialogue inside a narrative paragraph are both fine. Do not impose paragraph-density caps or one-line-per-utterance layout from another market.',
 };
 const DRAFT_SHOWING_RULES = [...DRAFT_SHOWING_RULES_HEAD_KO, DIALOGUE_FORMAT_RULE_KO.strict].join('\n');
-const DRAFT_VOICE_RULES = [
+const DRAFT_VOICE_RULE_LINES = [
     '인물 음성 규칙:',
     '- speechProfile 과 이번 화 말투 목표의 sampleLine 은 복사할 문장이 아니라 말투·압력·숨은 목적의 기준 예시다.',
     '- 대사는 독자가 숨은 맥락을 몰라도 표면의 질문·반응·결과를 따라갈 수 있게 쓴다. 모든 발화에 복선이나 권력 싸움을 싣지 말고 반응, 오해, 일상적 말, 침묵도 섞는다.',
     '- 이름을 가려도 누가 말했는지 구분되도록 문장 길이, 존대/반말 조건, 논리 습관, 감정 누출 방식을 다르게 쓴다.',
     '- 같은 인물도 관계와 아크 압력에 따라 말투가 변한다. 변화는 갑작스러운 문체 변경이 아니라 선택 비용의 결과여야 한다.',
     '- 분 단위 시각, 정밀 수치, 코드, 전문어는 문서·화면·작전처럼 그 정밀성이 실제 결정을 바꿀 때 자연스럽다. 일상 대화와 서술에서는 인물과 상황에 맞는 생활 표현을 우선한다.',
-].join('\n');
+];
+const DRAFT_VOICE_RULES = DRAFT_VOICE_RULE_LINES.join('\n');
+/** Index of the arc-pressure line in both voice rule arrays; the scene form drops it. */
+const VOICE_ARC_PRESSURE_LINE = 4;
 /**
  * 다국어 계열의 서술·음성 규칙. ko 규칙과 같은 작법 의도를 영어 지시로 쓴 별도
  * 계열이며, 한국어 존대/반말 같은 ko 전용 장치는 목표 언어의 등가 장치로 바꿔
@@ -247,13 +250,33 @@ function draftShowingRules(context, dialogueBreakMode) {
         multilingual: [...DRAFT_SHOWING_RULES_HEAD_MULTILINGUAL, DIALOGUE_FORMAT_RULE_MULTILINGUAL[dialogueBreakMode]].join('\n'),
     });
 }
-const DRAFT_VOICE_RULES_MULTILINGUAL = [
+const DRAFT_VOICE_RULE_LINES_MULTILINGUAL = [
     'Character voice rules:',
     '- The speechProfile and this chapter\'s sampleLine are reference examples of register, pressure and hidden intent — not sentences to copy.',
     '- Write dialogue so a reader who does not yet know the hidden context can still follow the surface question, reaction and result. Do not load every line with foreshadowing or a power struggle; mix in reaction, misunderstanding, ordinary talk and silence.',
     '- Make speakers distinguishable with names hidden: vary sentence length, the politeness or register conventions of the target language, habits of reasoning, and how feeling leaks out.',
     '- The same character speaks differently under different relationships and arc pressure. That change must read as the cost of a choice, not as an abrupt shift of style.',
     '- Minute-level times, precise figures, code and jargon are natural where that precision actually changes a decision (documents, screens, operations). In ordinary conversation and narration, prefer everyday expression that fits the character and the situation.',
+];
+const DRAFT_VOICE_RULES_MULTILINGUAL = DRAFT_VOICE_RULE_LINES_MULTILINGUAL.join('\n');
+/** Scene form: one short scene has no arc, so the arc-pressure voice line is left out. */
+function draftVoiceRules(context, form) {
+    if (form !== 'scene') {
+        return pickByFamily(context, { ko: DRAFT_VOICE_RULES, multilingual: DRAFT_VOICE_RULES_MULTILINGUAL });
+    }
+    const without = (lines) => lines.filter((_, i) => i !== VOICE_ARC_PRESSURE_LINE).join('\n');
+    return pickByFamily(context, {
+        ko: without(DRAFT_VOICE_RULE_LINES),
+        multilingual: without(DRAFT_VOICE_RULE_LINES_MULTILINGUAL),
+    });
+}
+const SCENE_RULES_KO = [
+    '- 요청한 장면 하나만 쓴다. 요청에 없는 사건·갈등·반전·대가·다음 화 훅을 덧붙이지 않는다.',
+    '- 관계와 감정은 행동과 대사로 드러내고, 장면이 요청한 분위기로 끝나게 둔다.',
+].join('\n');
+const SCENE_RULES_MULTILINGUAL = [
+    '- Write only the requested scene. Do not add events, conflict, reversals, costs or a next-chapter hook the request did not ask for.',
+    '- Let relationships and feelings show through action and speech, and let the scene end in the mood it asked for.',
 ].join('\n');
 const DRAFT_MANIFEST_RULES = [
     '회차 종료 시 반드시 다음 sentinel 블록을 본문 마지막 줄에 추가한다 — 단 한 줄, 본문 뒤에 빈 줄 한 개:',
@@ -283,11 +306,20 @@ function buildDraftSystem(arc, customPromptOverride, context, options = {}) {
     // 계약에 고정된 포맷 정책이 있으면 그것이, 없으면 호스트가 승인해 넘긴 모드가,
     // 둘 다 없으면 계열 기본값(ko=strict / 비ko=natural)이 적용된다.
     const dialogueBreakMode = resolveDialogueBreakMode(ctx, options.dialogueBreakMode ?? null);
-    const header = pickByFamily(ctx, {
+    const isScene = options.form === 'scene';
+    const chapterHeader = pickByFamily(ctx, {
         ko: '당신은 한국어 웹소설 작가이다. 제공된 Foundation, 이전 상태 요약, 회차 기획을 읽고 다음 회차를 작성한다.',
         multilingual: 'You are a serial-fiction novelist writing in the target work language. Read the Foundation, the previous state summary and the chapter plan below, and write the next chapter.',
     });
-    const arcLines = arc ? arcPositionInstruction(arc.currentPosition, ctx) : draftRulesLegacyFallback(ctx);
+    const sceneHeader = pickByFamily(ctx, {
+        ko: '당신은 한국어 소설 작가이다. 제공된 Foundation, 이전 상태 요약, 장면 요청을 읽고 짧은 장면 하나를 작성한다.',
+        multilingual: 'You are a fiction writer working in the target work language. Read the Foundation, the previous state summary and the scene request below, and write one short scene.',
+    });
+    const header = isScene ? sceneHeader : chapterHeader;
+    // Scene form has no arc: its own rules replace the arc beat / legacy fallback line.
+    const arcLines = isScene
+        ? pickByFamily(ctx, { ko: SCENE_RULES_KO, multilingual: SCENE_RULES_MULTILINGUAL })
+        : arc ? arcPositionInstruction(arc.currentPosition, ctx) : draftRulesLegacyFallback(ctx);
     // Engine Version Management Phase J (§11.2) — author override block appended
     // AFTER the base rules + manifest rules so structural/sentinel rules can't be
     // displaced. Empty string when no usable override → byte-identical to legacy.
@@ -301,7 +333,7 @@ function buildDraftSystem(arc, customPromptOverride, context, options = {}) {
     if (ctx.systemLines.length > 0) {
         parts.push('', ...ctx.systemLines);
     }
-    parts.push('', draftRulesBase(ctx), arcLines, '', draftShowingRules(ctx, dialogueBreakMode), '', pickByFamily(ctx, { ko: DRAFT_VOICE_RULES, multilingual: DRAFT_VOICE_RULES_MULTILINGUAL }), '', pickByFamily(ctx, { ko: DRAFT_FEWSHOT, multilingual: DRAFT_FEWSHOT_MULTILINGUAL }), '', pickByFamily(ctx, { ko: DRAFT_MANIFEST_RULES, multilingual: DRAFT_MANIFEST_RULES_MULTILINGUAL }));
+    parts.push('', draftRulesBase(ctx), arcLines, '', draftShowingRules(ctx, dialogueBreakMode), '', draftVoiceRules(ctx, options.form), '', pickByFamily(ctx, { ko: DRAFT_FEWSHOT, multilingual: DRAFT_FEWSHOT_MULTILINGUAL }), '', pickByFamily(ctx, { ko: DRAFT_MANIFEST_RULES, multilingual: DRAFT_MANIFEST_RULES_MULTILINGUAL }));
     if (overrideBlock.length > 0) {
         parts.push('', overrideBlock);
     }
@@ -604,6 +636,7 @@ export async function runDraft(input) {
     const userPrompt = buildUserPrompt({ ...input, promptLanguage });
     const systemPrompt = buildDraftSystem(input.arc, input.customPromptOverride, promptLanguage, {
         dialogueBreakMode: input.dialogueBreakMode ?? null,
+        form: input.form ?? null,
     });
     const response = await input.providers.complete({
         model: input.model,

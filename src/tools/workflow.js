@@ -22,7 +22,7 @@ import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '..
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { loadLoreRuntime } from '../core/lore-runtime.js';
-import { renderSummaries } from '../core/prompt-sections.js';
+import { planningCast, renderSummaries } from '../core/prompt-sections.js';
 import { ensureArcSummaries } from './arc-summary.js';
 import { ensureLedgerLog, openMergeCandidates, proposeLedgerMerges } from './ledger-migration.js';
 import { loadDisabledReviews, loadLedgerConfig } from '../core/review-policy.js';
@@ -40,6 +40,8 @@ import { resolveWorkLanguage, executionFoundationSnapshot } from '../core/work-l
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { normalizeModelProfile, withModelProfile } from '../core/model-profile.js';
 import { ledgerBaseState } from './ledger-log.js';
+import { creativePreferencePin, samePreferencePin } from '../core/creative-decision-ledger.js';
+import { sceneBriefCode, sceneBriefReason } from '../core/scene-brief.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const MAX_ATTEMPTS = 3;
@@ -169,6 +171,36 @@ export function authorRuleAdvisories(coherence, chapter) {
       code: 'AUTHOR_RULE', message: `${entry.rule}: ${entry.evidence}` }));
 }
 
+/**
+ * The user's adopted creative preferences (the workflow pin) judged by the
+ * coherence review. `pass` verdicts stay in the saved review exchange only;
+ * `warn`/`fail` surface as soft advisories — shown with the draft, never a
+ * fix ground.
+ */
+export function creativePreferenceAdvisories(coherence, chapter) {
+  return (coherence?.creativePreferences ?? [])
+    .filter((entry) => entry.verdict === 'warn' || entry.verdict === 'fail')
+    .map((entry) => ({ severity: 'soft', advisoryOnly: true, chapterNumber: chapter,
+      code: 'CREATIVE_PREFERENCE', decisionId: entry.id, message: `${entry.statement}: ${entry.evidence}` }));
+}
+
+const livePreferencePin = async (store, workId) => creativePreferencePin((await store.loadCreativeDecisions?.(workId)) ?? null, workId);
+
+// One workflow drafts, revises and is judged under one preference set: the
+// live set when it first needs one (before its first draft, or before its
+// first revision or check for kept prose). Works without a ledger get the
+// key but no event.
+async function ensurePreferencePin(store, workflow, livePin) {
+  if (workflow.creativePreferences) return workflow.creativePreferences;
+  workflow.creativePreferences = livePin;
+  await store.saveWorkflow(workflow.workId, workflow);
+  if (livePin.revision !== null) {
+    await store.appendWorkflowEvent(workflow.workId, workflow.workflowId, { at: now(), event: 'creative_preferences_pinned',
+      chapter: workflow.chapter, revision: livePin.revision, ids: livePin.items.map((item) => item.id) });
+  }
+  return livePin;
+}
+
 export function dramaticQualityViolations(editorial, chapter) {
   return Object.entries(DRAMATIC_DIMENSIONS).flatMap(([dimension, fallback]) => {
     const score = Number(editorial?.dimensions?.[dimension]);
@@ -239,7 +271,7 @@ async function supersede(store, workId, current, supersession, successorId) {
   });
 }
 
-async function ensureWorkflow(store, workId, chapter, autonomy, instruction, modelProfile = null, supersession = null) {
+async function ensureWorkflow(store, workId, chapter, autonomy, instruction, modelProfile = null, supersession = null, form = 'chapter') {
   const current = await store.loadWorkflow(workId);
   if (current && current.chapter === chapter && !['completed', 'rejected'].includes(current.stage) && !supersession) {
     if (modelProfile && JSON.stringify(current.modelProfile ?? null) !== JSON.stringify(modelProfile)) {
@@ -259,12 +291,17 @@ async function ensureWorkflow(store, workId, chapter, autonomy, instruction, mod
   // edit mid-check, a later clean_fail, a revise successor after its revision
   // was applied) still owes the user a decision. It is released only by
   // lore_decide, a redraft on a new instruction, or a later chapter.
-  const lockGuided = revalidate && (current.autonomyLock === 'guided' || awaitingUserDecision(current));
+  // Prose from a user revision (the feedback marks it, even once the relay is
+  // past the revision itself) also still owes the user that decision.
+  const fromUserRevision = Boolean(String(current?.revisionFeedback ?? '').trim());
+  const lockGuided = revalidate && (current.autonomyLock === 'guided' || awaitingUserDecision(current) || fromUserRevision);
   const effectiveAutonomy = lockGuided ? 'guided' : autonomy;
   const workflow = {
     workflowId: id('wf'), workId, chapter, stage: revise ? 'revision_requested' : 'started', operation: revise ? 'user_revision' : null,
     autonomy: effectiveAutonomy, instruction: revalidate ? String(current.instruction ?? '') : String(instruction ?? ''), attempt: 0,
     auditLevel: 'standard', createdAt: now(), updatedAt: now(),
+    // Only scenes carry a form, so chapter records keep their shape.
+    ...(form === 'scene' ? { form: 'scene' } : {}),
     ...(profile ? { modelProfile: profile } : {}),
     ...(supersession ? { supersedes: current.workflowId } : {}),
     ...(revalidate ? { inheritedDraft, draftProse: current.draftProse, castManifestRaw: current.castManifestRaw } : {}),
@@ -275,7 +312,8 @@ async function ensureWorkflow(store, workId, chapter, autonomy, instruction, mod
   if (supersession) await supersede(store, workId, current, supersession, workflow.workflowId);
   await store.saveWorkflow(workId, workflow);
   await store.appendWorkflowEvent(workId, workflow.workflowId, {
-    at: workflow.createdAt, event: 'workflow_started', chapter, autonomy: effectiveAutonomy, ...(profile ? { modelProfile: profile } : {}),
+    at: workflow.createdAt, event: 'workflow_started', chapter, autonomy: effectiveAutonomy,
+    ...(form === 'scene' ? { form: 'scene' } : {}), ...(profile ? { modelProfile: profile } : {}),
     ...(supersession ? { supersedes: current.workflowId, reason: supersession.reason, mode: supersession.mode } : {}),
     ...(inheritedDraft ? { inheritedDraft } : {}),
     ...(revise ? { revisionFeedback: workflow.revisionFeedback } : {}),
@@ -284,9 +322,25 @@ async function ensureWorkflow(store, workId, chapter, autonomy, instruction, mod
   return workflow;
 }
 
-function prerequisites({ foundation, profile, storySpine, writerSkill, arcPlan, arcEpisode }) {
+function prerequisites({ form = 'chapter', brief = '', foundation, profile, storySpine, writerSkill, arcPlan, arcEpisode, nextEpisodePlan, open = null }) {
   if (!foundation) return { code: 'FOUNDATION_MISSING', nextAction: 'lore_create 또는 lore_init으로 작품을 먼저 만드세요.' };
   if (!profile || profile.status !== 'active') return { code: 'PROFILE_NOT_ACTIVE', nextAction: 'lore_profile로 StoryProfile을 만들고 승인하세요.' };
+  if (form === 'scene') {
+    // A scene needs no StorySpine, WriterSkill or arc, but must not run over a
+    // planned arc or the EpisodePlan the check and commit would read.
+    if (['active', 'pending'].includes(arcPlan?.status)) {
+      const failedScene = open?.form === 'scene' && open.stage === 'clean_fail';
+      return { code: 'SCENE_FORM_ARC_PLANNED', nextAction: '아크 화는 lore_write로 이어 쓰고, 대기 중인 아크는 lore_arc_decide로 결정한 뒤 장면을 쓰세요.'
+        + (failedScene ? ' 실패한 장면 초안을 아크 화로 바꾸려면 form="chapter"로 호출하세요.' : '') };
+    }
+    if (nextEpisodePlan?.status === 'active') return { code: 'SCENE_FORM_CHAPTER_PLANNED', nextAction: '이 화에 거절된 아크의 화별 계획이 남아 있습니다. lore_episode_decide(action="reject")로 정리한 뒤 장면을 쓰세요.' };
+    const reason = sceneBriefReason(brief);
+    if (!reason) return null;
+    const code = sceneBriefCode(reason);
+    return { code, nextAction: code === 'SCENE_BRIEF_REQUIRED'
+      ? 'instruction에 800자 이내의 장면 요청을 넣으세요.'
+      : '장면 요청에서 제어 문자, 예약 구문, 지시 무시 문장을 빼고 다시 호출하세요.' };
+  }
   if (!storySpine || storySpine.status !== 'active') return { code: 'STORY_SPINE_NOT_ACTIVE', nextAction: 'lore_story_plan으로 StorySpine을 만들고 승인하세요.' };
   if (!writerSkill || writerSkill.status !== 'active') return { code: 'WRITER_SKILL_NOT_ACTIVE', nextAction: 'lore_writer_skill로 작품별 WriterSkill을 만들고 승인하세요.' };
   if (!arcPlan || arcPlan.status !== 'active' || !arcEpisode) return { code: 'ARC_NOT_ACTIVE', nextAction: 'lore_arc_plan으로 현재 아크를 만들고 승인하세요.' };
@@ -297,7 +351,8 @@ function prerequisites({ foundation, profile, storySpine, writerSkill, arcPlan, 
  * Deep chapter-writing module. Callers supply intent and autonomy; ordering,
  * retries, receipts and commit safety stay inside this implementation.
  */
-export async function runWriteWorkflow({ store, workId, instruction = '', autonomy = 'guided', providers: baseProviders, modelProfile: requestedProfile = null, language, retryValidation: requestedRetry = false }) {
+export async function runWriteWorkflow({ store, workId, instruction = '', autonomy = 'guided', providers: baseProviders, modelProfile: requestedProfile = null, language, retryValidation: requestedRetry = false, form }) {
+  if (form != null && !['chapter', 'scene'].includes(form)) throw new Error('INVALID_ARGUMENT: form은 chapter 또는 scene이어야 합니다.');
   let retryValidation = requestedRetry;
   const requestedModelProfile = normalizeModelProfile(requestedProfile);
   let providers = baseProviders;
@@ -334,11 +389,30 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   const arcPlan = await store.loadArcPlan(workId);
   const arcEpisode = episodeForChapter(arcPlan, chapter);
   let episodePlan = await store.loadEpisodePlan(workId, chapter);
-  const blocked = prerequisites({ foundation, profile, storySpine, writerSkill, arcPlan, arcEpisode });
+  // The open workflow keeps its own form. An explicit different form only
+  // replaces a workflow that already failed; anything live is finished first.
+  const open = unfinished?.chapter === chapter && !['completed', 'rejected'].includes(unfinished.stage) ? unfinished : null;
+  const openForm = open ? (open.form === 'scene' ? 'scene' : 'chapter') : null;
+  const formChanged = Boolean(open && form && form !== openForm);
+  if (formChanged && open.stage !== 'clean_fail') {
+    return { status: 'needs_setup', chapter, code: 'WORKFLOW_FORM_MISMATCH', workflowId: open.workflowId, form: openForm,
+      nextAction: `진행 중인 workflow는 form="${openForm}"입니다. form 없이 lore_write로 이어 가 lore_decide로 승인·거절하세요.` };
+  }
+  const effectiveForm = formChanged ? form : openForm ?? form ?? 'chapter';
+  // The scene request checked is the one the workflow will store: a new
+  // instruction, otherwise the open workflow's own (never a superseded one's).
+  const callInstruction = String(instruction ?? '').trim();
+  const brief = callInstruction || (formChanged ? '' : String(open?.instruction ?? '').trim());
+  const blocked = prerequisites({ form: effectiveForm, brief, foundation, profile, storySpine, writerSkill, arcPlan, arcEpisode, nextEpisodePlan: episodePlan, open });
   if (blocked) return { status: 'needs_setup', chapter, ...blocked };
 
-  const supersession = await keptDraftSupersession({ store, workId, workflow: await store.loadWorkflow(workId), chapter, instruction, retryValidation });
-  const workflow = await ensureWorkflow(store, workId, chapter, autonomy, instruction, requestedModelProfile, supersession);
+  const supersession = formChanged
+    ? { mode: 'redraft', reason: 'FORM_CHANGED' }
+    : await keptDraftSupersession({ store, workId, workflow: await store.loadWorkflow(workId), chapter, instruction, retryValidation });
+  // A scene stores exactly the request screened above, trimmed, and a redraft
+  // without a new instruction (after drift or a stale contract) keeps it.
+  const storedInstruction = effectiveForm === 'scene' ? brief : instruction;
+  const workflow = await ensureWorkflow(store, workId, chapter, autonomy, storedInstruction, requestedModelProfile, supersession, effectiveForm);
   // A superseding workflow already starts a fresh validation scope and epoch.
   if (supersession) retryValidation = false;
   providers = withModelProfile(baseProviders, workflow.modelProfile ?? null);
@@ -402,12 +476,17 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     return commitPassedWorkflow({ store, workflow, providers });
   }
 
-  const identity = await ensureStoryIdentity({ store, workId, profile, foundation, providers });
+  // A scene is not a serial episode: it builds no story identity or pilot
+  // contract, but an identity the work already has still shapes its contract.
+  const scene = workflow.form === 'scene';
+  const identity = scene
+    ? await store.loadStoryIdentity(workId)
+    : await ensureStoryIdentity({ store, workId, profile, foundation, providers });
   if (pending(providers)) {
     await transition(store, workflow, 'awaiting_model', { operation: 'story_identity' });
     return { preview: true, workflowId: workflow.workflowId, chapter, operation: 'story_identity' };
   }
-  const pilotContract = chapter === 1
+  const pilotContract = chapter === 1 && !scene
     ? await ensurePilotContract({ store, workId, identity, foundation, arcPlan, providers })
     : null;
   if (pending(providers)) {
@@ -451,7 +530,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   }
 
   // Per-chapter planning is an internal stage, not a caller checklist item.
-  if (!episodePlan || episodePlan.status !== 'active') {
+  // A scene drafts from the user's request and has no EpisodePlan.
+  if (scene) episodePlan = null;
+  else if (!episodePlan || episodePlan.status !== 'active') {
     const planned = await runEpisodePlan({ store, workId, chapter, mode: 'auto', direction: instruction, providers });
     if (pending(providers)) {
       await transition(store, workflow, 'awaiting_model', { operation: 'chapter_plan' });
@@ -467,6 +548,9 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     episodePlan = planned.plan;
   }
 
+  // Read once per pass, before any draft or revise answer is applied: a
+  // damaged ledger stops here, so a user revision is never applied twice.
+  const livePin = await livePreferencePin(store, workId);
   const userRevision = ['revision_requested', 'awaiting_model'].includes(workflow.stage)
     && workflow.operation === 'user_revision' && workflow.draftProse;
   let raw;
@@ -476,7 +560,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const revised = await runReviseTool({
       store, workId, chapter, prose: workflow.draftProse, castManifestRaw: workflow.castManifestRaw,
       violations: [{ severity: 'advisory', code: 'USER_REVISION_REQUEST', chapterNumber: chapter, message: workflow.revisionFeedback }],
-      providers,
+      providers, creativePreferences: (await ensurePreferencePin(store, workflow, livePin)).items,
     });
     raw = revised.prose;
     if (pending(providers)) {
@@ -489,6 +573,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const drafted = await runDraftTool({
       store, workId, chapter, plan: workflow.instruction,
       targetChars: profile.format?.chapterChars, providers, workflowId: workflow.workflowId,
+      creativePreferences: await ensurePreferencePin(store, workflow, livePin),
+      ...(scene ? { form: 'scene' } : {}),
     });
     raw = drafted.prose;
     if (pending(providers)) {
@@ -509,6 +595,24 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   if (workflow.draftProse === raw) current.castManifestRaw = workflow.castManifestRaw ?? current.castManifestRaw;
   workflow.draftProse = current.prose; workflow.castManifestRaw = current.castManifestRaw;
   await store.saveWorkflow(workId, workflow);
+  // One workflow works under one preference set. A change after the prose exists
+  // is a stale contract: the next lore_write re-checks this prose under a new pin.
+  // The operation changes so a successor never applies a user revision twice;
+  // prose from a user revision keeps the user's decision pending (guided lock).
+  // The feedback marks that provenance: a relay may be past the revision itself.
+  async function stalePreferences(pinnedRevision, liveRevision) {
+    if (String(workflow.revisionFeedback ?? '').trim()) workflow.autonomyLock = 'guided';
+    const scope = `workflow-${workflow.workflowId}`;
+    const session = await loadValidationSession(store, workId, scope);
+    if (session && !session.stale) await invalidateValidationSession(store, workId, scope, session);
+    await store.appendWorkflowEvent(workId, workflow.workflowId, { at: now(), event: 'creative_preferences_changed', chapter, pinnedRevision, liveRevision });
+    await transition(store, workflow, 'clean_fail', { operation: 'creative_preferences', failure: { code: 'STALE_WORK_CONTRACT', fromStage: workflow.stage } });
+    return { status: 'clean_fail', code: 'STALE_WORK_CONTRACT', workflowId: workflow.workflowId, chapter, prose: current.prose,
+      nextAction: 'The adopted preferences changed while this chapter was in progress. Call lore_write again to re-validate the kept prose under the current preferences; it is not redrafted. A user revision that is still pending is asked again under the current preferences.' };
+  }
+  const preferencePin = await ensurePreferencePin(store, workflow, livePin);
+  if (!samePreferencePin(preferencePin, livePin)) return stalePreferences(preferencePin.revision, livePin.revision);
+  const preferenceItems = preferencePin.items;
   let check;
   let coherence;
   let editorial;
@@ -534,7 +638,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   // away and the unrevised draft was committed).
   async function applyMandatoryRepair() {
     const { violations } = workflow.pendingRepair;
-    const revised = await runReviseTool({ store, workId, chapter, prose: current.prose, castManifestRaw: current.castManifestRaw, violations, providers });
+    const revised = await runReviseTool({ store, workId, chapter, prose: current.prose, castManifestRaw: current.castManifestRaw, violations, providers, creativePreferences: preferenceItems });
     if (pending(providers)) {
       await transition(store, workflow, 'awaiting_model', { operation: 'mandatory_repair' });
       return false;
@@ -586,7 +690,10 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       requireInfluenceObservation, forceContract: true, issueReceipt: true, workflowId: workflow.workflowId, retryValidation: retryValidation && attempt === 1,
       // The boundary judge reads the same checked prose as the title and
       // summary, so it rides in their round trip instead of a pass of its own.
-      metadataCompanion: (relay) => judgeBoundary(checkedProse, relay),
+      // A scene has no arc boundary to judge.
+      ...(scene
+        ? { form: 'scene', metadataCompanion: null }
+        : { metadataCompanion: (relay) => judgeBoundary(checkedProse, relay) }),
     });
 
     // While the mandatory check is still collecting host answers, the reviews
@@ -628,7 +735,10 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const patternLedger = experienceLedger.entries;
     const contract = compileDraftContract({ profile, identity, writerSkill, episodePlan, chapter, kit,
       characterNames: Object.fromEntries((foundation?.characters ?? []).map((character) => [character.id, character.canonicalName])) });
+    // Reader hook, pattern ledger and arc review judge a serial episode; a
+    // scene records them as not applicable.
     const reviews = createReviewAudit({ providers, prose: current.prose, chapter, contractDigest: contract.trace.digest, timeoutMs: reviewTimeoutMs(), disabled: disabledReviews,
+      ...(scene ? { notApplicable: ['reader-hook', 'pattern-ledger', 'arc-review'] } : {}),
       saveExchange: (exchange) => store.saveModelExchange(workId, exchange) });
     // The profile check runs inside the mandatory check; record it here when it is off.
     if (disabledReviews.includes('story-profile-check')) await reviews.run('story-profile-check', async () => null, null);
@@ -637,9 +747,14 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const authorRules = ledgerConfig.customTracking.filter((item) => item.note).map((item) => ({ id: item.id, text: item.note }));
     coherence = await reviews.run('coherence-judge', (reviewProvider) => runCoherenceJudge({
       prose: current.prose, chapterNumber: chapter,
-      plan: renderEpisodePlan(episodePlan, kit), prevSummary: priorSummaries[0]?.summary ?? '',
+      plan: scene ? workflow.instruction : renderEpisodePlan(episodePlan, kit), prevSummary: priorSummaries[0]?.summary ?? '',
       writerModel: MODEL, providers: reviewProvider, kit, workContract, language: workContract.language, foundation,
       authorRules,
+      creativePreferences: preferenceItems.map((item) => {
+        // The judge finds a subject in the prose by its canonical name.
+        const name = item.level === 'subject' ? foundation.characters?.find((character) => character.id === item.ref)?.canonicalName : undefined;
+        return name === undefined ? item : { ...item, name };
+      }),
     }), { score: null, reason: null });
 
     const canon = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
@@ -647,14 +762,16 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     const fidelityDynamics = await canon.loadCharacterDynamics?.(workId) ?? null;
     const fidelityHistory = await store.loadLedgerEvents?.(workId) ?? [];
     const editorialContext = renderSummaries(priorSummaries, kit);
-    editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
+    editorial = await reviews.run('editorial-quality', (reviewProvider) => runEditorialQuality({ prose: current.prose, context: editorialContext, providers: reviewProvider, kit, workContract, language: workContract.language, ...(scene ? { form: 'scene' } : {}) }), { score: null, dimensions: {}, findings: [] });
 
-    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, episodePlan, prevState: fidelityPrevState, dynamics: fidelityDynamics, previousSummary: priorSummaries[0] ?? null, config: ledgerConfig, history: fidelityHistory, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
+    // A scene's cast is the one its draft was given, and its request is the focus.
+    const sceneFocus = scene ? { cast: planningCast(foundation, { focusText: workflow.instruction, chapter }), focusText: workflow.instruction } : {};
+    characterFidelity = await reviews.run('character-fidelity', (reviewProvider) => runCharacterFidelity({ prose: current.prose, chapter, foundation, episodePlan, ...sceneFocus, prevState: fidelityPrevState, dynamics: fidelityDynamics, previousSummary: priorSummaries[0] ?? null, config: ledgerConfig, history: fidelityHistory, providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [], flexibilityScore: null });
 
     readerHook = await reviews.run('reader-hook', (reviewProvider) => runReaderHook({ chapter, prose: current.prose, identity, pilotContract, episodePlan, foundation, contract: contract.writerText, recentHookTypes: patternLedger.slice(-2).map((entry) => entry.hookType).filter(Boolean), providers: reviewProvider, kit, workContract, language: workContract.language }), { score: null, dimensions: {}, findings: [] });
     patternEntry = await reviews.run('pattern-ledger', (reviewProvider) => runPatternAnalysis({ chapter, prose: current.prose, foundation, cast: episodePlan?.cast ?? [], previousEntries: patternLedger.slice(-2), providers: reviewProvider, kit, workContract, language: workContract.language }), { chapter, solutionPattern: '', supportingAgency: {} });
-    // A review the user turned off leaves no entry: its fallback is not an analysis.
-    if (disabledReviews.includes('pattern-ledger')) patternEntry = null;
+    // A review the user turned off (or a scene) leaves no entry: its fallback is not an analysis.
+    if (scene || disabledReviews.includes('pattern-ledger')) patternEntry = null;
     // Independent reviews above are collected into one host round trip. The
     // semantic continuity check (needs the extracted delta) and the arc review
     // (needs the pattern entry) wait for the answers they depend on.
@@ -688,8 +805,8 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       const findings = editorial.findings.length ? editorial.findings : [{ code: 'QUALITY_GATE_EDITORIAL', message: `편집 품질 점수 ${editorial.score}` }];
       violations.push(...findings.map((finding) => ({ ...finding, severity: 'soft', advisoryOnly: true, chapterNumber: chapter })));
     }
-    const dramaticViolations = dramaticQualityViolations(editorial, chapter);
-    violations.push(...dramaticViolations);
+    // The scene editorial prompt does not ask for the dramatic dimensions.
+    if (!scene) violations.push(...dramaticQualityViolations(editorial, chapter));
     const fidelityViolations = characterFidelityViolations(characterFidelity, chapter);
     violations.push(...fidelityViolations);
     const independentAdvisories = [
@@ -698,6 +815,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       ...arcReviewAdvisories(arcReview, chapter),
       ...readerHookAdvisories(readerHook, chapter, kit),
       ...authorRuleAdvisories(coherence, chapter),
+      ...creativePreferenceAdvisories(coherence, chapter),
     ];
     violations.push(...independentAdvisories);
     if (readerHook.score !== null && readerHook.score < MIN_READER_HOOK) {
@@ -764,7 +882,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       store, workId, chapter, prose: revisionBase.prose,
       castManifestRaw: revisionBase.castManifestRaw,
       violations: revisionViolations,
-      providers,
+      providers, creativePreferences: preferenceItems,
     });
     if (pending(providers)) {
       await transition(store, workflow, 'awaiting_model', { operation: 'revise', attempt });
@@ -787,16 +905,22 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   // same final prose, so on the normal path it is answered here without a
   // round trip of its own.
   providers.shareContext?.({ id: 'chapter-prose', label: kit.phrases.common.chapterProseLabel(chapter), text: current.prose });
-  const boundary = await judgeBoundary(current.prose);
+  const boundary = scene ? { decision: 'not_applicable', reason: '' } : await judgeBoundary(current.prose);
   if (pending(providers)) {
     await transition(store, workflow, 'awaiting_model', { operation: 'narrative_boundary', attempt });
     return { preview: true, workflowId: workflow.workflowId, chapter };
   }
 
+  // The receipt binds the ledger the check captured; it must be the set the
+  // reviewers judged (a change between the pin comparison and the check).
+  const checkedSession = await loadValidationSession(store, workId, `workflow-${workflow.workflowId}`);
+  const boundPin = creativePreferencePin(checkedSession?.plans?.decisions ?? null, workId);
+  if (!samePreferencePin(preferencePin, boundPin)) return stalePreferences(preferencePin.revision, boundPin.revision);
   const checkedReceipt = await store.loadCheckReceipt(workId, check.checkId);
   await assertCurrentChapterReceipt({ store, workId, chapter, receipt: checkedReceipt, artifact: checkedReceipt.artifact });
   const receipt = {
     ...checkedReceipt,
+    ...(scene ? { form: 'scene' } : {}),
     hardViolations: check.counts.hard, prosody: check.prosody.score,
     coherence: coherence.score, editorial: editorial.score, readerHook: readerHook.score, chars: current.prose.length,
     characterFidelity: characterFidelity.score, characterFlexibility: characterFidelity.flexibilityScore,
@@ -1021,8 +1145,10 @@ export async function runWorkflowDecide({ store, workId, approvalId, action, fee
     // The user's feedback opens a new revision round with the full quality
     // revise budget (lore_decide is a separate call, never a relay resume).
     delete workflow.qualityRevisions;
+    // The revised prose is the user's to approve: a later lore_write that asks
+    // for auto does not commit it (successors inherit the lock).
     await transition(store, workflow, 'revision_requested', {
-      operation: 'user_revision', revisionFeedback: String(feedback).trim(),
+      operation: 'user_revision', revisionFeedback: String(feedback).trim(), autonomyLock: 'guided',
     });
     await store.appendWorkflowEvent(workId, workflow.workflowId, {
       at: now(), event: 'user_revision_requested', chapter: workflow.chapter, approvalId,
@@ -1030,7 +1156,8 @@ export async function runWorkflowDecide({ store, workId, approvalId, action, fee
     });
     return {
       status: 'revision_requested', workflowId: workflow.workflowId, chapter: workflow.chapter,
-      nextAction: 'lore_write를 다시 호출하면 같은 원고와 workflow에서 수정·재검사를 이어갑니다.',
+      nextAction: 'lore_write를 다시 호출하면 같은 원고와 workflow에서 수정·재검사를 이어갑니다. '
+        + '이 피드백이 이번 화를 넘어 인물이나 작품 전체에 계속 적용돼야 한다면 사용자에게 범위를 확인한 뒤 lore_preferences(action="adopt")로 기록하세요.',
     };
   }
   if (action === 'hold') {
@@ -1042,7 +1169,9 @@ export async function runWorkflowDecide({ store, workId, approvalId, action, fee
   if (action === 'reject') {
     await transition(store, workflow, 'rejected', { operation: null, feedback: String(feedback) });
     await store.appendWorkflowEvent(workId, workflow.workflowId, { at: now(), event: 'user_rejected', chapter: workflow.chapter, approvalId, feedback: String(feedback) });
-    return { status: 'rejected', workflowId: workflow.workflowId, chapter: workflow.chapter, nextAction: '피드백을 instruction으로 넘겨 lore_write를 다시 호출하세요.' };
+    return { status: 'rejected', workflowId: workflow.workflowId, chapter: workflow.chapter, nextAction: workflow.form === 'scene'
+      ? '피드백을 instruction으로 넘겨 lore_write(form="scene")를 다시 호출하세요.'
+      : '피드백을 instruction으로 넘겨 lore_write를 다시 호출하세요.' };
   }
   throw new Error('action은 approve, request_revision, hold 또는 reject여야 합니다.');
 }

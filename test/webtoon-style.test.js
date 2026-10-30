@@ -289,3 +289,32 @@ test('user cancellation keeps artifacts, closes pending model work and cannot be
   const next = await runWebtoonSceneTool({ store, args: { ...args, delegation: delegate() }, providers: provider() });
   assert.notEqual(next.workflowId, pending.workflowId);
 });
+
+test('status reports the adopted style as a work decision with no existing scenes by default', async () => {
+  const { store } = await sceneSetup();
+  assert.deepEqual((await call(store, { action: 'status' })).decisions, []);
+  const style = await adopt(store);
+  const status = await call(store, { action: 'status' });
+  assert.equal(status.decisions.length, 1);
+  const [decision] = status.decisions;
+  assert.equal(decision.topic, 'webtoon-style');
+  assert.equal(decision.authority, 'user');
+  assert.deepEqual(decision.evidence, { userAnswer: '이 그림으로 해 줘.' });
+  assert.deepEqual(decision.target, { kind: 'webtoon-style', id: workId, revision: style.revisionId });
+  assert.deepEqual(decision.scope, {
+    level: 'work', ref: { kind: 'work', id: workId }, appliesTo: 'future-scenes', explicitTargets: [],
+  });
+});
+
+test('status decisions name only the scenes the user chose and always describe the adopted head', async () => {
+  const { store, args } = await sceneSetup(); const style1 = await adopt(store);
+  const r = await runWebtoonSceneTool({ store, args, providers: provider() });
+  const c = await candidate(store, 'Soft watercolor with natural adult faces.');
+  const style2 = (await call(store, { action: 'approve', proposalId: c.proposalId, feedback: '이제 이 느낌으로', applyToWorkflows: [r.workflowId] })).style;
+  const status = await call(store, { action: 'status', styleRevisionId: style1.revisionId });
+  assert.equal(status.style.revisionId, style1.revisionId);
+  assert.equal(status.decisions.length, 1);
+  assert.equal(status.decisions[0].target.revision, style2.revisionId);
+  assert.deepEqual(status.decisions[0].scope.explicitTargets, [r.workflowId]);
+  assert.deepEqual(status.decisions[0].evidence, { userAnswer: '이제 이 느낌으로' });
+});

@@ -169,6 +169,16 @@ export function episodeForChapter(plan, chapter) {
   return plan.episodes.find((episode) => episode.chapter === chapter) ?? null;
 }
 
+const SCENE_IN_PROGRESS = 'SCENE_IN_PROGRESS: 진행 중인 장면 workflow가 다음 화를 쓰고 있습니다. lore_write로 장면을 마치고 lore_decide로 승인·거절한 뒤 아크를 계획하세요.';
+
+// An open scene owns the chapter an arc would start at. A failed scene does not
+// block: lore_write(form="chapter") supersedes it once the arc is approved.
+// Read here rather than through workflow.js, which imports this module.
+async function openSceneWorkflow(store, workId) {
+  const workflow = await store.loadWorkflow(workId);
+  return workflow?.form === 'scene' && !['completed', 'rejected', 'clean_fail'].includes(workflow.stage) ? workflow : null;
+}
+
 export async function runArcPlan({ store, workId, mode = 'review', episodes = 8, direction = '', feedback = '', providers, retryValidation = false, replaceActive = false }) {
   if (!Number.isSafeInteger(episodes) || episodes < 3 || episodes > 20) throw new Error('INVALID_ARGUMENT: episodes must be an integer between 3 and 20');
   const chapters = await store.listChapters();
@@ -178,6 +188,7 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   if (!foundation) throw new Error('작품이 없습니다.');
   const previous = await store.loadArcPlan(workId);
   if (previous?.status === 'active' && replaceActive !== true) throw new Error('ARC_IN_PROGRESS: 활성 아크가 있습니다. 계속 집필하거나 사용자가 명시적으로 교체를 요청한 경우만 replaceActive=true를 사용하세요.');
+  if (await openSceneWorkflow(store, workId)) throw new Error(SCENE_IN_PROGRESS);
   const arcNumber = Number(previous?.arcNumber ?? 0) + (previous?.status === 'pending' ? 0 : 1);
   const previousFinalChapter = previous?.episodes?.at(-1)?.chapter;
   const previousArcReview = previous?.status === 'completed' && previousFinalChapter
@@ -279,6 +290,7 @@ export async function runArcDecide({ store, workId, action, providers, retryVali
   const plan = await store.loadArcPlan(workId);
   if (!plan) throw new Error('검토할 아크 계획이 없습니다.');
   if (action === 'approve') {
+    if (await openSceneWorkflow(store, workId)) throw new Error(SCENE_IN_PROGRESS);
     const active = { ...plan, status: 'active', approvedAt: new Date().toISOString() };
     const approval = await gateApprovalActivation({ store, workId, kind: 'arc', value: active, providers, consumeOnly: true, structuralErrors: deterministicArcViolations(active), retryValidation });
     if (!approval.ok) return { ...approval, approved: false };

@@ -17,12 +17,15 @@ export const outputs = {
   'narrative-boundary': '{"decision":"advance_episode","reason":"첫 사건이 끝났다."}',
 };
 
-export async function qualityStore() {
+export const heroCharacter = { id: 'hero', canonicalName: '윤재', aliases: [], registeredAtChapter: 1,
+  intrinsic: { gender: 'male', ageBand: '20대', role: '주인공', coreAppearance: [] }, mutable: { status: 'alive', knownFacts: ['지도 확대는 이미 배웠다.'] } };
+
+// A work with an approved profile and foundation but no StorySpine, WriterSkill, arc or EpisodePlan.
+export async function sceneStore() {
   const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-quality-')));
   await runInit({ providers: approvalFixtureProvider(), store, workId, genre: 'litrpg', povMode: '3인칭제한', worldFacts: ['탑은 세금을 걷는다.'] });
   const foundation = await store.loadFoundation(workId);
-  await store.saveFoundation({ ...foundation, characters: [{ id: 'hero', canonicalName: '윤재', aliases: [], registeredAtChapter: 1,
-    intrinsic: { gender: 'male', ageBand: '20대', role: '주인공', coreAppearance: [] }, mutable: { status: 'alive', knownFacts: ['지도 확대는 이미 배웠다.'] } }] });
+  await store.saveFoundation({ ...foundation, characters: [heroCharacter] });
   await store.saveStoryProfile(workId, { workId, status: 'active', revision: 1, engineGenre: 'litrpg', genreLabel: '유쾌한 모험', subgenres: [], themes: [], tracking: { semantic: [], engineBacked: [] }, tones: ['유쾌'], storyEngines: ['능력으로 얻은 시간에 놀이를 즐긴다'],
     format: { pov: '3인칭제한', chapterChars: 3300, dialogueBreakMode: 'relaxed' },
     narrativeContract: { readerPromise: '놀이를 실제로 즐기는 약속' },
@@ -31,6 +34,11 @@ export async function qualityStore() {
       dialogueExamples: [{ situation: '식사', example: '“세상은 구했으니 밥부터 먹자.”' }] },
     promptGuidance: { avoid: [], worldbuild: [], cast: [], arc: [], draft: ['배운 지도 사용법을 다음 행동에서 활용한다.'] },
   });
+  return store;
+}
+
+export async function qualityStore() {
+  const store = await sceneStore();
   await store.saveStorySpine(workId, { status: 'active', causalChain: ['문을 연다', '함께 논다', '새 길을 찾는다'] });
   await store.saveWriterSkill(workId, { status: 'active', revision: 1, authorCraft: { judgments: ['행동으로 즐거움을 보인다'] } });
   await store.saveStoryIdentity(workId, { readerPromise: '놀이', protagonistAppeal: '편하게 묻는 사람', emotionalDefect: '', competenceSignature: ['힘을 조절한다'], comedyEngines: ['익숙한 일과 새 문화의 만남'], solutionPatternsToRotate: ['전투'] });

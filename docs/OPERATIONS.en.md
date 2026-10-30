@@ -131,7 +131,7 @@ without calling a model.
    - The old receipt and approval are void. It checks with a new receipt and a new budget of 3 (a `clean_fail` that
      had spent its budget also gets a new one), and hard violations get minimal revisions within that budget.
    - When it passes, `guided` asks for approval again and `auto` commits. But a manuscript that was waiting for user approval
-     stays `guided` even if the call is `auto`, and goes through `lore_decide`.
+     and a manuscript revised on the user's request stay `guided` even if the call is `auto`, and go through `lore_decide`.
    - If a revision requested with `lore_decide(action="request_revision")` was pending, the new workflow
      takes over that feedback, applies it to the kept manuscript and then checks it.
 5. If the user's intent changed, call `lore_write` with a new, narrowed `instruction`. The same chapter is rewritten from scratch in a new workflow
@@ -178,6 +178,7 @@ kept in `.vibelore/rollback-archives/<archiveId>/before/`.
 Tracking settings, author items and approved merges (`review-policy.json`) and arc summaries are restored to
 that chapter too, and the story ledger's history log is rebuilt from the restored chapters. The merge candidate list moves to the archive and,
 in `guided`, is asked again when needed.
+Creative preferences recorded with `lore_preferences` (`.vibelore/creative-decisions.json`) are kept, not rolled back.
 
 If the process is interrupted during restoration, `.vibelore/rollback-pending.json` and the verified recovery data
 remain. The next MCP tool call on the same project finishes the restoration first.
@@ -387,6 +388,7 @@ If you use Git, check that ignore rules don't leave out candidates, images or ru
 | `.vibelore/workflows/` | Required while work is in progress | Resuming workflows after a restart |
 | `.vibelore/check-receipts/` | Recommended | Commit audits |
 | `.vibelore/snapshots/` | Recommended | rollback |
+| `.vibelore/creative-decisions.json` | Recommended | The user's adopted creative preferences and their own words; no snapshot copy |
 | `.vibelore/review-policy.json` | Recommended | Review and tracking settings, author items, approved merges |
 | `.vibelore/ledger/seed.json` | Recommended | The records before chapter 1 the replay starts from (approximated from `entities.json` when missing) |
 | rest of `.vibelore/ledger/` | Low | The history log can be rebuilt from the chapter extractions; merge candidates can be asked again |
@@ -500,6 +502,7 @@ increase `limit`. Requests and answers not stored by earlier versions are not re
 | What to check | Where it is recorded |
 |---|---|
 | Which preferences and examples went into the draft | `draft_context_supplied.draftContract` |
+| Which creative preferences the workflow pinned and where the chapter strayed from them | events `creative_preferences_pinned`, and `creative_preferences_changed` when a change stopped the workflow; `warn`/`fail` verdicts are reported as `CREATIVE_PREFERENCE` advisories (soft, never blocking); `pass` verdicts are not listed |
 | What weaknesses were found despite a high score | `reviews_completed.review.records[].findings` |
 | Which manuscript and contract were reviewed, and by whom | The review record's `proseHash`, `contractDigest`, `requestId`, `evaluator` |
 | Whether the review completed normally | `quality.review.status`, each record's `status` and `failure` |
