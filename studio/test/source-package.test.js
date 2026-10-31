@@ -713,3 +713,22 @@ it('raw source import cannot claim bundle preservation provenance it did not ver
       { code: 'SOURCE_PROVENANCE_UNVERIFIED' }
     );
 });
+it('direct capture refuses symlinked chapter files and chapter folders', async (t) => {
+  const { mkdtemp, rename, rm, symlink } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { dirname } = await import('node:path');
+  for (const target of ['file', 'folder']) {
+    const store = await webtoonStore();
+    const outside = await mkdtemp(join(tmpdir(), 'studio-outside-'));
+    t.after(() => rm(outside, { recursive: true, force: true }));
+    const chapter = store.chapterPath(1);
+    const moved = target === 'file' ? chapter : dirname(chapter);
+    const away = join(outside, 'moved');
+    await rename(moved, away);
+    await symlink(away, moved);
+    await assert.rejects(
+      exportVibeloreSource({ store, workId, request: { kind: 'novel-chapters', chapters: [1] } }),
+      { code: 'SOURCE_CORRUPT' }
+    );
+  }
+});
