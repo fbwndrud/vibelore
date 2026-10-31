@@ -1488,3 +1488,31 @@ test('per-record selected content pins disambiguate shared files and reject inva
     code: 'BUNDLE_INCOMPLETE',
   });
 });
+test('a slot does not carry an old import receipt into later adoption and undo', async (t) => {
+  const f = await withStudio(t),
+    data = fixture(),
+    first = await imported(f, data),
+    receipt = first.value.importReceipt,
+    c = first.value.candidate;
+  const { rm } = await import('node:fs/promises');
+  await rm(f.service.blobs.path(f.projectId, receipt.localManifestBlobId));
+  await assert.rejects(
+    f.service.readBlob(f.projectId, receipt.localManifestBlobId),
+    { code: 'BLOB_MISSING' }
+  );
+  const adopted = await f.command(
+    'candidate.adopt',
+    { slotId: 'background', candidateId: c.id, actor: 'a', reason: 'choose import' },
+    { aggregate: { kind: 'assetSlot', id: 'background' } }
+  );
+  assert.equal(adopted.value.candidateId, c.id);
+  assert.equal(adopted.value.importReceipt, undefined);
+  const undone = await f.command(
+    'adoption.undo',
+    { slotId: 'background', adoptionId: adopted.value.adoptionId, actor: 'a', reason: 'revert' },
+    { aggregate: { kind: 'assetSlot', id: 'background' } }
+  );
+  assert.equal(undone.value.candidateId, null);
+  const s = await f.service.snapshot(f.projectId);
+  assert.equal(s.reuseImports[0].id, receipt.id);
+});
