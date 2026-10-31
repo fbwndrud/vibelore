@@ -158,11 +158,29 @@ export function validateSourcePackage(pkg) {
   }
   return pkg;
 }
+const PRESERVATION_KEYS = ['importProvenance', 'originRefs', 'fileMap', 'localManifestBlobId'];
 // Both raw import and configured capture stage bytes here, then validate/apply in
 // the original command transaction. No nested dispatch or replacement envelope.
-export async function prepareSourceImport(service, envelope, payload) {
+// Only source.importBundle derives preservation provenance from a verified bundle;
+// other imports may repeat it only as recorded by that bundle import in this project.
+function assertRecordedProvenance(store, projectId, pkg) {
+  if (!PRESERVATION_KEYS.some((key) => Object.hasOwn(pkg, key))) return;
+  const claimed = (value) =>
+    canonicalJSON(Object.fromEntries(PRESERVATION_KEYS.map((key) => [key, value[key] ?? null])));
+  const event =
+    typeof pkg.importProvenance?.commandId === 'string' &&
+    store.get(
+      "SELECT value_json FROM events WHERE project_id=? AND command_id=? AND type='source.importBundle'",
+      projectId,
+      pkg.importProvenance.commandId
+    );
+  if (!event || claimed(JSON.parse(event.value_json)) !== claimed(pkg))
+    fail('SOURCE_PROVENANCE_UNVERIFIED', 'Preservation provenance does not match a recorded bundle import.');
+}
+export async function prepareSourceImport(service, envelope, payload, { preserved = false } = {}) {
   const { package: pkg, blobs = [] } = payload;
   validateSourcePackage(pkg);
+  if (!preserved) assertRecordedProvenance(service.store, envelope.projectId, pkg);
   if (!Array.isArray(blobs)) fail('INVALID_INPUT', 'Expected source bytes.');
   const supplied = new Map();
   for (const blob of blobs) {

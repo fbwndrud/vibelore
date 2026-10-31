@@ -1,7 +1,15 @@
 import { validateOriginRef } from '../reuse/bundle.js';
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, open, lstat, readdir, rename, rm } from "node:fs/promises";
-import { constants, existsSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fsyncSync,
+  lstatSync,
+  openSync,
+  renameSync,
+} from "node:fs";
 import { basename, join, dirname, resolve } from "node:path";
 import { retainedTables } from "./recovery.js";
 import { blobReferences } from "../render/closure.js";
@@ -68,7 +76,11 @@ async function noSymlinkPath(path) {
 }
 async function safeRead(path) {
   await noSymlinkPath(path);
-  const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  // O_NONBLOCK keeps a FIFO from blocking open until a writer appears.
+  const file = await open(
+    path,
+    constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+  );
   try {
     if (!(await file.stat()).isFile())
       fail("BACKUP_INVALID", "Expected a regular backup file.");
@@ -386,7 +398,9 @@ export async function verifyInventory(archive) {
     await noSymlinkPath(archive);
     const entries = await readdir(archive, { withFileTypes: true });
     if (
-      entries.some((e) => e.isSymbolicLink()) ||
+      entries.some((e) =>
+        e.name === "blobs" ? !e.isDirectory() : !e.isFile(),
+      ) ||
       entries
         .map((e) => e.name)
         .sort()
@@ -426,6 +440,7 @@ export async function createStudioBackup(
   service,
   projectId,
   backupId = randomUUID(),
+  { directoryName = backupId } = {},
 ) {
   assertId(backupId);
   const { store, blobs } = service;
@@ -483,7 +498,7 @@ export async function createStudioBackup(
     validateManifest(manifest);
     const parent = join(blobs.storageDirectory, "backups");
     await mkdir(parent, { recursive: true });
-    const archive = join(parent, backupId);
+    const archive = join(parent, directoryName);
     await mkdir(archive);
     await mkdir(join(archive, "blobs"));
     try {
@@ -617,15 +632,57 @@ export async function restoreStudioBackup({
     renderer,
   });
 }
+const pendingName = (id) => `.${id}.pending-${randomUUID()}`;
+// Runs inside the command transaction, after its final revision check.
+function publishPending(prepared) {
+  try {
+    lstatSync(prepared.final);
+    fail("DESTINATION_EXISTS", "Backup or restore destination already exists.");
+  } catch (e) {
+    if (e.code !== "ENOENT") throw e;
+  }
+  renameSync(prepared.pending, prepared.final);
+  prepared.published = true;
+  const parent = openSync(dirname(prepared.final), "r");
+  try {
+    fsyncSync(parent);
+  } finally {
+    closeSync(parent);
+  }
+  return prepared.receipt;
+}
+// The command was not recorded: remove staged files, and a rename its rollback undid.
+async function discardPending({ prepared }) {
+  if (!prepared) return;
+  await rm(prepared.pending, { recursive: true, force: true });
+  if (prepared.published)
+    await rm(prepared.final, { recursive: true, force: true });
+}
 export function registerBackupCommands(service) {
   service.registerCommand("project.backup", {
     target: ({ envelope }) => ({ kind: "project", id: envelope.projectId }),
-    prepare: ({ envelope }) =>
-      createStudioBackup(service, envelope.projectId, envelope.commandId),
-    apply: ({ prepared }) => prepared,
+    keepAggregateValue: true,
+    async prepare({ envelope }) {
+      const directoryName = pendingName(envelope.commandId);
+      const parent = join(service.blobs.storageDirectory, "backups");
+      const receipt = await createStudioBackup(
+        service,
+        envelope.projectId,
+        envelope.commandId,
+        { directoryName },
+      );
+      return {
+        receipt,
+        pending: join(parent, directoryName),
+        final: join(parent, envelope.commandId),
+      };
+    },
+    apply: ({ prepared }) => publishPending(prepared),
+    discard: discardPending,
   });
   service.registerCommand("project.restore", {
     target: ({ envelope }) => ({ kind: "project", id: envelope.projectId }),
+    keepAggregateValue: true,
     async prepare({ envelope }) {
       const { backupId, restoreId } = envelope.payload;
       assertId(backupId);
@@ -637,18 +694,21 @@ export function registerBackupCommands(service) {
       if (bundle.manifest.projectId !== envelope.projectId)
         fail("BACKUP_INVALID", "Backup belongs to another project.");
       await mkdir(parent, { recursive: true });
-      const restored = await restoreIntoNewDirectory(
-        bundle,
-        join(parent, restoreId),
-      );
+      const pending = join(parent, pendingName(restoreId));
+      const restored = await restoreIntoNewDirectory(bundle, pending);
       await restored.close();
       return {
-        directory: `restores/${restoreId}`,
-        projectId: envelope.projectId,
-        execution: "held_at_restore_boundary",
+        receipt: {
+          directory: `restores/${restoreId}`,
+          projectId: envelope.projectId,
+          execution: "held_at_restore_boundary",
+        },
+        pending,
+        final: join(parent, restoreId),
       };
     },
-    apply: ({ prepared }) => prepared,
+    apply: ({ prepared }) => publishPending(prepared),
+    discard: discardPending,
   });
 }
 

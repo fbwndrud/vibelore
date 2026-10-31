@@ -67,6 +67,7 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
         if (['AsyncFunction', 'AsyncGeneratorFunction', 'GeneratorFunction'].includes(callback.constructor.name)) fail('ASYNC_HANDLER', 'Command callbacks must be synchronous.');
       }
       if (handler.prepare && typeof handler.prepare !== 'function') fail('INVALID_INPUT', 'Expected a preparation callback.');
+      if (handler.discard && typeof handler.discard !== 'function') fail('INVALID_INPUT', 'Expected a discard callback.');
       handlers.set(type, { ...handler });
     },
     async command(input) {
@@ -96,14 +97,24 @@ export async function openStudio({ directory, providers = {}, renderer = null } 
         // Preparation may publish immutable bytes but owns no aggregate/adoption authority.
         // The original JSON envelope and digest are unchanged; final replay/CAS is authoritative.
         const prepared = handler.prepare ? await handler.prepare(validateContext()) : undefined;
-        return store.write(() => {
-          blobs.leases.assertFence();
-          const previous = replay(); if (previous) return previous;
-          const context = { ...validateContext(), prepared };
-          if (handler.validate) assertSynchronous(handler.validate(context));
-          const value = assertSynchronous(handler.apply(context));
-          return store.recordCommandAndEvent(envelope, digest, value);
-        });
+        let result;
+        try {
+          result = store.write(() => {
+            blobs.leases.assertFence();
+            const previous = replay(); if (previous) return previous;
+            const context = { ...validateContext(), prepared };
+            if (handler.validate) assertSynchronous(handler.validate(context));
+            const value = assertSynchronous(handler.apply(context));
+            // Administrative receipts are events; they do not replace the aggregate's own value.
+            return store.recordCommandAndEvent(envelope, digest, value, handler.keepAggregateValue ? context.aggregate.value : value);
+          });
+        } catch (error) {
+          if (handler.discard) await handler.discard({ envelope, prepared }).catch(() => {});
+          throw error;
+        }
+        // Preparation outside the store (such as files) is released when it was not committed.
+        if (result.replayed && handler.discard) await handler.discard({ envelope, prepared }).catch(() => {});
+        return result;
       }), 'COMMAND_FAILED');
       pendingCommands.add(accepted);
       try { return await accepted; } finally { pendingCommands.delete(accepted); }

@@ -4,8 +4,8 @@ import { createStudioOwnerAdapter } from "../source/export-studio-assets.js";
 import { createVibeloreOwnerAdapter } from "../source/export-vibelore-assets.js";
 import { resolveGoogleCredential } from "../providers/credentials.js";
 import { googleProvider } from "../providers/google.js";
-import { resolve } from "node:path";
-import { stat } from "node:fs/promises";
+import { basename, dirname, join, resolve, sep } from "node:path";
+import { realpath, stat } from "node:fs/promises";
 import { openStudio } from "../engine/index.js";
 import { assertId, canonicalDigest } from "../engine/contracts.js";
 import { TransportError } from "./common.js";
@@ -52,11 +52,28 @@ export function parseOptions(args) {
   if (!options.project) throw new TransportError("INVALID_CONFIGURATION");
   return options;
 }
+const inside = (parent, child) =>
+  child === parent || child.startsWith(`${parent}${sep}`);
+async function canonicalLocation(path) {
+  try {
+    return await realpath(path);
+  } catch (e) {
+    if (e.code !== "ENOENT") throw e;
+    return join(await canonicalLocation(dirname(path)), basename(path));
+  }
+}
 export async function configuredStudio(options) {
   let capture = null;
   if (options.vibelore_root) {
     if (!(await stat(options.vibelore_root)).isDirectory())
       throw new TransportError("INVALID_CONFIGURATION");
+    // Studio writes its store and Library; neither may live in or contain the read-only source.
+    const root = await realpath(options.vibelore_root);
+    for (const destination of [options.project, options.library].filter(Boolean)) {
+      const actual = await canonicalLocation(resolve(destination));
+      if (inside(root, actual) || inside(actual, root))
+        throw new TransportError("SOURCE_DESTINATION_OVERLAP");
+    }
     const [{ MarkdownStateStore }, { exportVibeloreSource }] =
       await Promise.all([
         import("../../../src/store/markdown-store.js"),

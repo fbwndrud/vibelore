@@ -1488,3 +1488,56 @@ test('per-record selected content pins disambiguate shared files and reject inva
     code: 'BUNDLE_INCOMPLETE',
   });
 });
+test('a slot does not carry an old import receipt into later adoption and undo', async (t) => {
+  const f = await withStudio(t),
+    data = fixture(),
+    first = await imported(f, data),
+    receipt = first.value.importReceipt,
+    c = first.value.candidate;
+  const { rm } = await import('node:fs/promises');
+  await rm(f.service.blobs.path(f.projectId, receipt.localManifestBlobId));
+  await assert.rejects(
+    f.service.readBlob(f.projectId, receipt.localManifestBlobId),
+    { code: 'BLOB_MISSING' }
+  );
+  const adopted = await f.command(
+    'candidate.adopt',
+    { slotId: 'background', candidateId: c.id, actor: 'a', reason: 'choose import' },
+    { aggregate: { kind: 'assetSlot', id: 'background' } }
+  );
+  assert.equal(adopted.value.candidateId, c.id);
+  assert.equal(adopted.value.importReceipt, undefined);
+  const undone = await f.command(
+    'adoption.undo',
+    { slotId: 'background', adoptionId: adopted.value.adoptionId, actor: 'a', reason: 'revert' },
+    { aggregate: { kind: 'assetSlot', id: 'background' } }
+  );
+  assert.equal(undone.value.candidateId, null);
+  const s = await f.service.snapshot(f.projectId);
+  assert.equal(s.reuseImports[0].id, receipt.id);
+});
+test('raw source import repeats preservation provenance only as its bundle import recorded it', async (t) => {
+  const { makeSourcePackage } = await import('../src/source/source-package.js');
+  const f = await withStudio(t),
+    text = Buffer.from('원문 그대로\r\n'),
+    data = fixture({ mediaKind: 'text' }, text, 'text/plain');
+  const source = await f.command(
+    'source.importBundle',
+    { ...data, sourcePackageId: 'source', productionId: null, title: '원문', language: 'ko', actor: 'a', reason: 'retain' },
+    { aggregate: { kind: 'sourcePackage', id: 'source' } }
+  );
+  const { id, sourceDigest, ...body } = source.value;
+  const repeat = (changes) => {
+    const pkg = makeSourcePackage({ ...body, ...changes });
+    return f.command('source.import', { package: pkg }, { aggregate: { kind: 'sourcePackage', id: pkg.id } });
+  };
+  await repeat({ id: 'same-provenance' });
+  await assert.rejects(
+    repeat({ id: 'other-reason', importProvenance: { ...body.importProvenance, reason: 'claimed' } }),
+    { code: 'SOURCE_PROVENANCE_UNVERIFIED' }
+  );
+  await assert.rejects(
+    repeat({ id: 'other-origin', originRefs: [ref({ recordId: 'elsewhere' })] }),
+    { code: 'SOURCE_PROVENANCE_UNVERIFIED' }
+  );
+});

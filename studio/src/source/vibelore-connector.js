@@ -1,10 +1,11 @@
 import { stripPrivateFields as portable } from "../engine/portable.js";
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { resolveProductionSource, verifyProductionSource } from '../../../src/core/production-source.js';
 import { readAdoptedScript, renderSceneScript, sceneScriptFile } from '../../../src/core/scene-script.js';
 import { readSealedProductionInput } from '../../../src/core/input-objects.js';
 import { makeSourcePackage, hashBytes } from './source-package.js';
+import { readOwnerBytes } from './owner-io.js';
 import { fail, STABLE_ID } from '../engine/contracts.js';
 
 // External Lore IDs may contain dots/colons; Studio IDs never relax their contract.
@@ -18,7 +19,12 @@ export async function exportVibeloreSource({ store, workId, request }) {
       blobManifest = [],
       captures = [];
     async function capture(id, kind, path, expectedText = null, expectedBlob = null) {
-      const bytes = await readFile(path);
+      // Copy only regular files reached without symlinks inside the source root.
+      const bytes = await readOwnerBytes({
+        directory: store.rootDir,
+        relativePath: relative(store.rootDir, path),
+        maxBytes: Number.MAX_SAFE_INTEGER,
+      });
       const blobId = hashBytes(bytes);
       if (expectedText !== null && bytes.toString('utf8') !== expectedText)
         fail('SOURCE_CAPTURE_CHANGED', 'Original source changed during capture.');
@@ -192,7 +198,7 @@ export async function exportVibeloreSource({ store, workId, request }) {
       blobs,
     };
   } catch (error) {
-    if (error?.code === 'SOURCE_CAPTURE_CHANGED') throw error;
+    if (['SOURCE_CAPTURE_CHANGED', 'SOURCE_CORRUPT'].includes(error?.code)) throw error;
     fail('SOURCE_CAPTURE_CHANGED', 'Source could not be captured and verified.');
   }
 }

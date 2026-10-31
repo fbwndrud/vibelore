@@ -669,3 +669,66 @@ it('captures the readable text of a requested historical scene-script revision, 
     exported.blobs.map((b) => Buffer.from(b.bytes).toString('utf8')).join('');
   assert.doesNotMatch(allText, /LATER_REVISION_TEXT/);
 });
+it('raw source import cannot claim bundle preservation provenance it did not verify', async (t) => {
+  const { ref } = await import('./helpers/bundles.js');
+  const { command } = await withStudio(t);
+  const bytes = Buffer.from('claimed manuscript'),
+    blobId = hash(bytes);
+  const forged = makeSourcePackage({
+    id: 'forged',
+    sourceKind: 'studio-script',
+    sourceRevision: blobId,
+    textUnits: [{ id: 'manuscript', text: 'claimed manuscript', blobId }],
+    sceneScopes: [],
+    sourceIdentityMap: [],
+    revealPolicy: {},
+    blobManifest: [{ id: 'm', blobId, byteLength: bytes.length, kind: 'text' }],
+    preservationStatus: { actualSourceBytes: 'complete' },
+    originRefs: [ref()],
+    fileMap: [
+      {
+        sourceSha256: blobId,
+        rawBlobId: blobId,
+        canonicalBlobId: blobId,
+        normalizerVersion: 'v1',
+        normalizationChanged: false,
+      },
+    ],
+    localManifestBlobId: blobId,
+    importProvenance: {
+      commandId: 'never-ran',
+      bundleSha256: hash(Buffer.from('no bundle')),
+      actor: 'someone',
+      reason: 'claimed',
+    },
+  });
+  const { importProvenance, ...refsOnly } = forged;
+  for (const pkg of [forged, makeSourcePackage({ ...refsOnly, id: 'forged-refs' })])
+    await assert.rejects(
+      command(
+        'source.import',
+        { package: pkg, blobs: [{ blobId, bytes: [...bytes] }] },
+        { aggregate: { kind: 'sourcePackage', id: pkg.id } }
+      ),
+      { code: 'SOURCE_PROVENANCE_UNVERIFIED' }
+    );
+});
+it('direct capture refuses symlinked chapter files and chapter folders', async (t) => {
+  const { mkdtemp, rename, rm, symlink } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { dirname } = await import('node:path');
+  for (const target of ['file', 'folder']) {
+    const store = await webtoonStore();
+    const outside = await mkdtemp(join(tmpdir(), 'studio-outside-'));
+    t.after(() => rm(outside, { recursive: true, force: true }));
+    const chapter = store.chapterPath(1);
+    const moved = target === 'file' ? chapter : dirname(chapter);
+    const away = join(outside, 'moved');
+    await rename(moved, away);
+    await symlink(away, moved);
+    await assert.rejects(
+      exportVibeloreSource({ store, workId, request: { kind: 'novel-chapters', chapters: [1] } }),
+      { code: 'SOURCE_CORRUPT' }
+    );
+  }
+});

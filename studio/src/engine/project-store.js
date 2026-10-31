@@ -76,7 +76,7 @@ export class ProjectStore {
     return row ? { kind, id, revision: row.revision, value: JSON.parse(row.data_json) } : { kind, id, revision: 0, value: null };
   }
   command(projectId, commandId) { return this.get('SELECT digest, result_json FROM commands WHERE project_id = ? AND id = ?', projectId, commandId); }
-  recordCommandAndEvent(envelope, digest, value) {
+  recordCommandAndEvent(envelope, digest, value, aggregateValue = value) {
     const aggregateRevision = envelope.expectedRevision + 1;
     assertInteger(aggregateRevision);
     const valueJSON = canonicalJSON(value);
@@ -86,7 +86,7 @@ export class ProjectStore {
     }
     this.run(`INSERT INTO aggregates(project_id,kind,id,revision,data_json) VALUES(?,?,?,?,?)
       ON CONFLICT(project_id,kind,id) DO UPDATE SET revision=excluded.revision,data_json=excluded.data_json`,
-    envelope.projectId, envelope.aggregate.kind, envelope.aggregate.id, aggregateRevision, valueJSON);
+    envelope.projectId, envelope.aggregate.kind, envelope.aggregate.id, aggregateRevision, canonicalJSON(aggregateValue));
     const event = this.run(`INSERT INTO events(project_id,command_id,aggregate_kind,aggregate_id,aggregate_revision,type,value_json)
       VALUES(?,?,?,?,?,?,?)`, envelope.projectId, envelope.commandId, envelope.aggregate.kind, envelope.aggregate.id, aggregateRevision, envelope.type, valueJSON);
     const result = { commandId: envelope.commandId, aggregateRevision, eventCursor: Number(event.lastInsertRowid), value: JSON.parse(valueJSON), replayed: false };

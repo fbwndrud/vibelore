@@ -372,7 +372,8 @@ export function slotDeclaration(input, mediaKind) {
 }
 
 export function slotResult(slot, additions = {}) {
-  const { candidate, quarantine, ...value } = slot;
+  // Command-only results stay with their own event; the import receipt is kept in reuse_imports.
+  const { candidate, quarantine, importReceipt, ...value } = slot;
 
   return { ...value, candidateId: slot.candidateId ?? null, adoptionId: slot.adoptionId ?? null, ...additions };
 }

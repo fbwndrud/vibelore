@@ -671,3 +671,24 @@ it('returns bounded authenticated human history pages with saved scene changes a
   assert.equal((await fetch(`${f.url}/api/history?projectId=p1`)).status,403);
   assert.equal((await fetch(`${f.url}/api/history?projectId=p1&limit=101`,{headers:f.headers})).status,400);
 });
+it('rejects Studio storage or Library that overlaps the configured source workspace before creating it', async (t) => {
+  const { configuredStudio } = await import('../src/transport/config.js');
+  const { access, mkdir, symlink } = await import('node:fs/promises');
+  const root = await mkdtemp(join(tmpdir(), 'studio-overlap-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const source = join(root, 'novel');
+  await mkdir(source);
+  await symlink(source, join(root, 'alias'));
+  const outside = join(root, 'outside');
+  for (const options of [
+    { project: join(source, '.vibelore', 'studio'), vibelore_root: source },
+    { project: join(root, 'alias', 'studio'), vibelore_root: source },
+    { project: root, vibelore_root: source },
+    { project: outside, library: join(source, 'library'), vibelore_root: source },
+  ]) {
+    await assert.rejects(configuredStudio(options), { code: 'SOURCE_DESTINATION_OVERLAP' });
+    await assert.rejects(access(join(source, '.vibelore')), { code: 'ENOENT' });
+    await assert.rejects(access(join(source, 'library')), { code: 'ENOENT' });
+    await assert.rejects(access(join(outside, 'studio.sqlite')), { code: 'ENOENT' });
+  }
+});

@@ -877,3 +877,82 @@ test("a restore killed mid-way leaves no project at the destination and the same
     "restore payload",
   );
 });
+
+test("backup and restore keep the project value, so a later budget edit stores only project fields", async (t) => {
+  const f = await withStudio(t);
+  await f.service.blobs.put("p1", Buffer.from("kept bytes"));
+  const saved = await f.command("project.backup", {});
+  await f.command("project.restore", { backupId: saved.value.backupId, restoreId: "copy" });
+  const project = { id: "p1", title: "작품", language: "ko", budgetMicros: 1000000 };
+  const aggregate = async () =>
+    (await f.service.snapshot("p1")).aggregates.find((a) => a.kind === "project");
+  assert.deepEqual((await aggregate()).value, project);
+  assert.equal((await aggregate()).revision, 3);
+  const edited = await f.command("project.budget.set", { budgetMicros: 2000000 });
+  assert.deepEqual(edited.value, { ...project, budgetMicros: 2000000 });
+  assert.deepEqual((await aggregate()).value, { ...project, budgetMicros: 2000000 });
+  const receipts = (await f.service.snapshot("p1")).backups;
+  assert.equal(receipts[0].backupId, saved.value.backupId);
+});
+
+for (const type of ["project.backup", "project.restore"])
+  test(`${type} leaves no files after a revision conflict and the same command ID can be retried`, async (t) => {
+    const { readdir } = await import("node:fs/promises");
+    const f = await withStudio(t);
+    await f.service.blobs.put("p1", Buffer.from("conflict bytes"));
+    let revision = 1;
+    let payload = {};
+    let folder = "backups";
+    if (type === "project.restore") {
+      const saved = await f.command("project.backup", {});
+      revision = saved.aggregateRevision;
+      payload = { backupId: saved.value.backupId, restoreId: "retry" };
+      folder = "restores";
+    }
+    const envelope = {
+      projectId: "p1",
+      commandId: "admin-retry",
+      aggregate: { kind: "project", id: "p1" },
+      expectedRevision: revision,
+      type,
+      payload,
+    };
+    // The budget edit commits while the slower file preparation is in flight.
+    const pending = f.service.command(envelope);
+    await f.service.command({
+      ...envelope,
+      commandId: "concurrent-budget",
+      type: "project.budget.set",
+      payload: { budgetMicros: 900000 },
+    });
+    await assert.rejects(pending, { code: "REVISION_CONFLICT" });
+    const entries = async () => {
+      try {
+        return await readdir(join(f.directory, folder));
+      } catch (e) {
+        if (e.code === "ENOENT") return [];
+        throw e;
+      }
+    };
+    assert.deepEqual(await entries(), []);
+    const retried = await f.service.command({ ...envelope, expectedRevision: revision + 1 });
+    assert.equal(retried.replayed, false);
+    const name = type === "project.backup" ? "admin-retry" : "retry";
+    assert.deepEqual(await entries(), [name]);
+    assert.equal(
+      (await f.service.command({ ...envelope, expectedRevision: revision + 1 })).replayed,
+      true,
+    );
+  });
+
+test("a FIFO named manifest.json is rejected without blocking backup verification", { timeout: 10000 }, async (t) => {
+  const { execFileSync } = await import("node:child_process");
+  const { mkdtemp, mkdir } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { verifyInventory } = await import("../src/engine/backup.js");
+  const root = await mkdtemp(join(tmpdir(), "studio-fifo-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, "blobs"));
+  execFileSync("mkfifo", [join(root, "manifest.json")]);
+  await assert.rejects(verifyInventory(root), { code: "BACKUP_INVALID" });
+});

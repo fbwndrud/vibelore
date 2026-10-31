@@ -24,6 +24,14 @@ is ignored by default; no generation worker starts without an opted-in key.
 The vibelore npm package contains documentation, not the Studio runtime. Run these
 commands from the Git checkout. Root imports are intentional read-only connector
 integration seams; Studio is not an independently installable npm package.
+
+The HTTP server listens on loopback only. Its Host, Origin and `Sec-Fetch-Site`
+checks plus the per-run bootstrap token stop cross-site browser requests (CSRF and
+DNS rebinding); they do not stop another local process, which can send those headers
+and read the token from bootstrap. With `--vibelore-root`, a `--project` or
+`--library` location inside or containing the source fails with
+`SOURCE_DESTINATION_OVERLAP` before anything is created.
+
 Outside macOS, set `STUDIO_CHROME_PATH` to an installed Chrome executable; it also
 overrides the macOS default. FFmpeg and ffprobe must be on PATH.
 
