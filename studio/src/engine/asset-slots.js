@@ -378,7 +378,9 @@ export function slotResult(slot, additions = {}) {
 }
 
 function pinCommonTarget(store, projectId, target) {
-  const pins = [{ kind: target.kind, id: target.id }];
+  // The project aggregate only records administrative commands (budget, backup, restore);
+  // its identity is checked below and its revision is not a creative input.
+  const pins = target.kind === 'project' ? [] : [{ kind: target.kind, id: target.id }];
 
   let productionId = null, sourcePackageId = target.sourcePackageId ?? null;
 

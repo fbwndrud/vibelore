@@ -209,7 +209,8 @@ it('common background generation targets project or production before any scene 
   const s = await f.service.snapshot('p1');
   assert.equal(s.jobs.length, 2);
   assert.equal(s.scenes.length, 0);
-  assert.equal(s.jobs[0].request.pins[0].kind, 'project');
+  assert.equal(s.jobs[0].request.target.kind, 'project');
+  assert.ok(!s.jobs[0].request.pins.some((pin) => pin.kind === 'project'));
   assert.equal(s.jobs[1].request.sourcePackageId, null);
   await assert.rejects(
     generationCommand(f, validImageRequest({ target: { kind: 'project', id: 'other' } })),
@@ -307,4 +308,15 @@ it('cast states keep separate semantic intents even when provider bytes and conf
   const s = await f.service.snapshot('p1');
   assert.equal(s.jobs.length, 2);
   assert.equal(s.jobs[0].generationInputDigest, s.jobs[1].generationInputDigest);
+});
+
+it('administrative project commands do not stale a queued project-scope generation', async (t) => {
+  const { withStudio } = await import('./helpers/project.js');
+  const { checkPinnedRequest } = await import('../src/engine/asset-slots.js');
+  const f = await withStudio(t);
+  await generationCommand(f, validImageRequest({ target: { kind: 'project', id: 'p1' } }));
+  await f.command('project.budget.set', { budgetMicros: 2000000 });
+  await f.command('project.backup', {});
+  const job = (await f.service.snapshot('p1')).jobs[0];
+  f.service.store.write(() => checkPinnedRequest(f.service.store, 'p1', job.request));
 });

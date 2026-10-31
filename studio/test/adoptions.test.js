@@ -1749,3 +1749,13 @@ test(
     assert.equal(s.attempts.length, 1);
   }
 );
+
+test('backup, restore and budget changes do not make pending project-scope candidates stale', async t => {
+  const f = await withGeneration(t);
+  await assetImport(f, 'pending', await png(basePixels));
+  const backup = await f.command('project.backup', {});
+  await f.command('project.restore', { backupId: backup.value.backupId, restoreId: 'restored' });
+  await f.command('project.budget.set', { budgetMicros: 2000000 });
+  const adopted = await adopt(f, 'background', 'pending');
+  assert.equal(adopted.value.candidateId, 'pending');
+});
