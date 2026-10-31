@@ -18,50 +18,50 @@ Initial implementation (`6c3a55c3`) full-suite status: complete serial follow-up
 301435.307667 ms. The original default-concurrency run passed 507/508; its
 unexplained renderer failure and successful isolated follow-up remain below.
 
-All commands use Node 24:
-`/Users/lyoojk/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node`,
+All commands use a local Node 24 binary, shown as `<node>`; logs and artifacts
+under the local temporary directory are shown as `<tmp>/`. Commands ran
 with `NODE_NO_WARNINGS=1`, host permission for existing process-incarnation lease
 checks and actual installed Chrome/FFmpeg rendering. No lease checks were weakened.
 
 - Transport RED: `--test studio/test/library-transport.test.js`,
-  `/tmp/task8-transport-red.log`, 0/3 (missing public configuration/routes).
-- Transport first GREEN: same arguments, `/tmp/task8-transport-green4.log`,
+  `<tmp>/task8-transport-red.log`, 0/3 (missing public configuration/routes).
+- Transport first GREEN: same arguments, `<tmp>/task8-transport-green4.log`,
   3/3, 2610.920791 ms.
 - Native timing/layer and mixed queue RED: `--test --test-name-pattern='resumable mixed|native silent|native two-character' studio/test/ui-flows.test.js studio/test/ui-components.test.js`,
-  `/tmp/task8-ui-red.log`, 0/3; GREEN `/tmp/task8-ui-green2.log`, 3/3,
+  `<tmp>/task8-ui-red.log`, 0/3; GREEN `<tmp>/task8-ui-green2.log`, 3/3,
   783.9975 ms.
 - Native sound-file/Library DOM: `--test --test-name-pattern='native WAV import|Library DOM' studio/test/ui-components.test.js`,
-  RED `/tmp/task8-ui-library-red.log` 0/2 (missing native sound-role control;
+  RED `<tmp>/task8-ui-library-red.log` 0/2 (missing native sound-role control;
   normalization test corrected to actual hash DTO); GREEN
-  `/tmp/task8-ui-library-green.log`, 2/2, 629.006709 ms.
+  `<tmp>/task8-ui-library-green.log`, 2/2, 629.006709 ms.
 - Actual three-cycle acceptance: `--test studio/test/asset-cycle-e2e.test.js`,
-  initial `/tmp/task8-cycle-red.log` 0/1 (decoder helper success DTO correction),
-  `/tmp/task8-cycle-green1.log` 0/1 (foreign exact refs require explicit observed
-  scope), `/tmp/task8-cycle-green2.log` 1/1, 36025.405709 ms. These initial E2E
+  initial `<tmp>/task8-cycle-red.log` 0/1 (decoder helper success DTO correction),
+  `<tmp>/task8-cycle-green1.log` 0/1 (foreign exact refs require explicit observed
+  scope), `<tmp>/task8-cycle-green2.log` 1/1, 36025.405709 ms. These initial E2E
   failures were fixture/contract corrections, not new renderer defects.
-- Expanded focused `/tmp/task8-focused1.log`: 78/78, 40250.086917 ms. Later
-  public UI/transport `/tmp/task8-focused-final.log`: 76/76, 12585.501208 ms.
+- Expanded focused `<tmp>/task8-focused1.log`: 78/78, 40250.086917 ms. Later
+  public UI/transport `<tmp>/task8-focused-final.log`: 76/76, 12585.501208 ms.
 - Destination isolation regression: `--test --test-name-pattern='queue destination identity' studio/test/library-transport.test.js`,
-  RED `/tmp/task8-destination-red.log` 0/1 → GREEN
-  `/tmp/task8-destination-green.log` 1/1, 1897.616417 ms.
+  RED `<tmp>/task8-destination-red.log` 0/1 → GREEN
+  `<tmp>/task8-destination-green.log` 1/1, 1897.616417 ms.
 - Silent shotless Edit regression: `--test --test-name-pattern='silent scene without any shot' studio/test/ui-components.test.js`,
-  RED `/tmp/task8-silent-editor-red.log` 0/1 → GREEN
-  `/tmp/task8-silent-editor-green.log` 1/1, 352.676333 ms.
+  RED `<tmp>/task8-silent-editor-red.log` 0/1 → GREEN
+  `<tmp>/task8-silent-editor-green.log` 1/1, 352.676333 ms.
 - Original default-concurrency full command: `--test studio/test/*.test.js`,
-  `/tmp/task8-full-studio.log`, 507/508, 147546.227666 ms. One failure:
+  `<tmp>/task8-full-studio.log`, 507/508, 147546.227666 ms. One failure:
   `actual short multilayer MP4 decodes exact pose frame, movement and transparent alpha composition`
   at `studio/test/character-layers.test.js:473`; portrait `edition.render`
   returned `status:failed,errorCode:RENDER_FAILED`. Existing error sanitization
   retained no specific underlying cause, so no causal attribution is claimed.
   Three-cycle acceptance passed in the same run (127833.412417 ms).
 - Exact failed-render follow-up: `--test --test-name-pattern='actual short multilayer MP4' studio/test/character-layers.test.js`,
-  `/tmp/task8-layer-render-isolated.log`, 1/1, 23710.223792 ms. Both landscape
+  `<tmp>/task8-layer-render-isolated.log`, 1/1, 23710.223792 ms. Both landscape
   and portrait actual decode/pose/alpha assertions passed without code changes.
 - Final complete serial follow-up: `--test --test-concurrency=1 studio/test/*.test.js`,
-  `/tmp/task8-full-studio-serial.log`: 508/508, 301435.307667 ms, exit 0. No separate
+  `<tmp>/task8-full-studio-serial.log`: 508/508, 301435.307667 ms, exit 0. No separate
   root test or renderer ran concurrently. This rerun follows an actual unresolved
   render failure; the earlier failure is retained rather than hidden by retry.
-- Root source/connector log `/tmp/task8-root-source.log`: 34/34, 49889.898208 ms.
+- Root source/connector log `<tmp>/task8-root-source.log`: 34/34, 49889.898208 ms.
   Its original launch text was lost at capacity interruption. The invocation is
   reconstructed from retained suite names as `--test test/publication-unit.test.js test/shared-lore-extension.test.js test/shared-lore-mcp.test.js test/shared-lore.test.js test/working-tree-sync.test.js`;
   this is not claimed as an observed exact command.
@@ -92,22 +92,22 @@ round to UI and relevant layer tests, so full rendering/full-suite runs were not
 repeated.
 
 - Regression command: `--test --test-name-pattern='layer editor separates|layer editor disables|structural layer' studio/test/ui-components.test.js`.
-  Correct RED `/tmp/task8-fix1-red2.log`: 0/3, 1922.224125 ms; failures showed
+  Correct RED `<tmp>/task8-fix1-red2.log`: 0/3, 1922.224125 ms; failures showed
   style-reference remained selectable, no-pose add action stayed enabled, and
   structural persistence count stayed 0. The first RED attempt
-  `/tmp/task8-fix1-red.log` had two native fixture STALE_BASE errors (derivation
+  `<tmp>/task8-fix1-red.log` had two native fixture STALE_BASE errors (derivation
   requires an already adopted base); that setup was corrected before production
   edits, and is not claimed as editor-failure evidence. First GREEN attempt
-  `/tmp/task8-fix1-green.log` exposed conditional null native-DOM appends; the
+  `<tmp>/task8-fix1-green.log` exposed conditional null native-DOM appends; the
   implementation was corrected without relaxing assertions. Final GREEN
-  `/tmp/task8-fix1-green2.log`: 3/3, 1775.004209 ms, exit 0.
+  `<tmp>/task8-fix1-green2.log`: 3/3, 1775.004209 ms, exit 0.
 - Complete UI suites: `--test studio/test/ui-components.test.js studio/test/ui-flows.test.js`,
-  `/tmp/task8-fix1-ui.log`: 57/57, 11876.836083 ms, exit 0. Regressions use
+  `<tmp>/task8-fix1-ui.log`: 57/57, 11876.836083 ms, exit 0. Regressions use
   actual import/derive/adopt commands and DOM form submissions, check supported
   baseline/pose roles and disabled invalid selections, and recover all six
   structural edits after rerender while preserving the original scene CAS.
 - Relevant layer contracts: `--test --test-name-pattern='scene validates explicit layer|owner exports actually accepted pose|retained image roles|missing acceptance|preview readiness|native role-bound image' studio/test/character-layers.test.js`,
-  `/tmp/task8-fix1-layers.log`: 6/6, 9198.333708 ms, exit 0. Exact role retention,
+  `<tmp>/task8-fix1-layers.log`: 6/6, 9198.333708 ms, exit 0. Exact role retention,
   identity/state/occurrence and acceptance guards remain unchanged.
 - Final `git diff --check`: clean, exit 0. No new contract concern was found.
   The initial default-concurrency render failure remains the separately disclosed
@@ -142,24 +142,24 @@ All commands use the exact Node 24 executable and `NODE_NO_WARNINGS=1` above, wi
 host permission for unchanged process-incarnation/lease and local renderer guards.
 
 - Regression RED: `--test --test-concurrency=1 --test-name-pattern='native manuscript text survives|native text packages never|working layer preview' studio/test/library-owners.test.js studio/test/ui-components.test.js`,
-  `/tmp/creative-asset-cycles-final-fix-red.log`: 2/5 pass, three expected failures,
+  `<tmp>/creative-asset-cycles-final-fix-red.log`: 2/5 pass, three expected failures,
   4743.566292 ms. Text reexport failed `BUNDLE_INCOMPLETE`, multiple native texts
   chose the first, and the 60-fps DOM preview selected the old pose at 500 ms.
 - Regression GREEN: same arguments,
-  `/tmp/creative-asset-cycles-final-fix-green2.log`: 5/5, 4235.654625 ms, exit 0.
+  `<tmp>/creative-asset-cycles-final-fix-green2.log`: 5/5, 4235.654625 ms, exit 0.
   The first attempt passed all behavior checks but included an actively used
   nested restore destination's WAL in the source inventory; the restore fixture
   was moved outside the source root. Explicit second-text selection, invalid-pin
   rejection and pre-pin native compatibility are covered in the focused run.
 - Focused source-owner/import/GC-backup/UI/layer command:
   `--test --test-concurrency=1 studio/test/source-package.test.js studio/test/library-owners.test.js studio/test/reuse-import.test.js studio/test/ui-components.test.js studio/test/ui-flows.test.js studio/test/character-layers.test.js`,
-  `/tmp/creative-asset-cycles-final-fix-focused.log`: 152/152, 65341.208083 ms,
+  `<tmp>/creative-asset-cycles-final-fix-focused.log`: 152/152, 65341.208083 ms,
   exit 0. Exact BOM/CRLF bytes, native revision/source pins, two-hop text import,
   legacy package compatibility, preserved raw/manifests after GC/backup restore,
   and actual landscape/portrait layer render/decode passed.
 - Final complete Studio command:
   `--test --test-concurrency=1 studio/test/*.test.js`,
-  `/tmp/creative-asset-cycles-final-fix-full-studio.log`: 516/516,
+  `<tmp>/creative-asset-cycles-final-fix-full-studio.log`: 516/516,
   274163.859458 ms, exit 0; no failures/cancellations/skips/todo. It ran alone,
   with no concurrent root suite or other media probes, after all product/test edits.
   Root code was unchanged, so the historical 34/34 root evidence was not rerun.
@@ -172,9 +172,9 @@ controller rulings below remain unchanged. Self-review is not independent review
 
 ## Final local media evidence
 
-The earlier Task 8 serial-suite three-cycle run (before the review fixes recorded in this note) wrote `/tmp/task8-three-cycle-evidence.json` (local workflow time 56673.079084 ms, including four actual MP4 renders plus WAV). These scratch artifacts are not committed; the observed hashes/timings are preserved here. All MP4s are 0.5 seconds, 15 H.264 frames at 30 fps, 1280×720, with AAC stereo 48 kHz; video/audio decoding and profile checks passed.
+The earlier Task 8 serial-suite three-cycle run (before the review fixes recorded in this note) wrote `<tmp>/task8-three-cycle-evidence.json` (local workflow time 56673.079084 ms, including four actual MP4 renders plus WAV). These scratch artifacts are not committed; the observed hashes/timings are preserved here. All MP4s are 0.5 seconds, 15 H.264 frames at 30 fps, 1280×720, with AAC stereo 48 kHz; video/audio decoding and profile checks passed.
 
-| Artifact under `/tmp/` | Bytes | SHA-256 | Local render ms |
+| Artifact under `<tmp>/` | Bytes | SHA-256 | Local render ms |
 | --- | ---: | --- | ---: |
 | `task8-cycle1.mp4` | 9573 | `670fd9546abaa6389e95d71f42ecdb74be11d311e48c52870a70113feb6d9ce3` | 13704.743541 |
 | `task8-cycle2.mp4` | 9192 | `74bccfdd84f1a7d83edd93fc6241a3471fa206b9f41e2ea8fb656bbfe7ddd8fe` | 11872.415750 |
@@ -274,15 +274,15 @@ All eight planned implementation tasks completed and passed their independent
 spec/quality gates. The whole-branch review raised exactly two Important findings
 (text second-hop selection and non-30-fps working preview); both were fixed in
 `8eff2946` and accepted by the single scoped final re-review. No open, parked or
-declined-to-judge findings remain. The [retained review](https://github.com/fbwndrud/vibelore/blob/b02ef3512d090e390384f4d6a8f65980573ce5fe/docs/superpowers/reviews/2026-10-21-creative-asset-cycles.md)
+declined-to-judge findings remain. The retained review record (kept outside the public repository)
 preserves the original findings, coverage, verification limits and final verdict.
 
 Final product code: `8eff2946`. Final complete Studio run on this exact code:
-`NODE_NO_WARNINGS=1 /Users/lyoojk/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test --test-concurrency=1 studio/test/*.test.js`,
+`NODE_NO_WARNINGS=1 <node> --test --test-concurrency=1 studio/test/*.test.js`,
 **516/516 passed**, no failures/skips, 274163.859458 ms,
-`/tmp/creative-asset-cycles-final-fix-full-studio.log`. Focused amended-code
+`<tmp>/creative-asset-cycles-final-fix-full-studio.log`. Focused amended-code
 checks: **152/152 passed**, 65341.208083 ms,
-`/tmp/creative-asset-cycles-final-fix-focused.log`. Root source/connector evidence
+`<tmp>/creative-asset-cycles-final-fix-focused.log`. Root source/connector evidence
 remains **34/34**; root code did not change in the final fixes. The earlier
 unexplained default-concurrency renderer failure remains a documented limitation.
 
@@ -305,17 +305,18 @@ Current main's packaging guard rejects development review JSON in the npm
 runtime package. The research record remains in Git and was removed from the
 package allowlist. Public asset-cycle guides are explicitly included, while
 links to internal review/evidence records use stable GitHub commit permalinks
-so packaged documentation stays complete. The package dry-run validates 290
-files; source metadata and recorded version checks pass. No npm publication.
+so packaged documentation stays complete. At that time the package dry-run
+validated 290 files; source metadata and recorded version checks passed. No npm
+publication. The current count is recorded in the public-repository cleanup below.
 
 The first complete MCP run passed 1023/1024 with one package documentation-link
 failure caused by excluding the research record. After the link/guide corrections,
 the docs suite passed 5/5 and the complete MCP suite was rerun successfully.
 Final main-integrated validation, using the same Node 24 binary above:
 
-- engine: **1239/1239 passed**, zero failures/skips, 14464.252333 ms; `/tmp/creative-asset-cycles-pr-engine.log`.
-- MCP: **1024/1024 passed**, zero failures/skips, 79136.216 ms; `/tmp/creative-asset-cycles-pr-root-final.log`.
-- Studio: **516/516 passed**, zero failures/skips, 332981.399583 ms; `/tmp/creative-asset-cycles-pr-studio.log`.
+- engine: **1239/1239 passed**, zero failures/skips, 14464.252333 ms; `<tmp>/creative-asset-cycles-pr-engine.log`.
+- MCP: **1024/1024 passed**, zero failures/skips, 79136.216 ms; `<tmp>/creative-asset-cycles-pr-root-final.log`.
+- Studio: **516/516 passed**, zero failures/skips, 332981.399583 ms; `<tmp>/creative-asset-cycles-pr-studio.log`.
 
 Commands: engine `--test 'test/**/*.test.js' 'test/**/*.test.mjs'`
 from `engine/`; MCP `--test 'test/**/*.test.js'` from the repository root;

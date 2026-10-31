@@ -225,4 +225,4 @@ SQLite/files/codecs/renderers with diagnostic media. They do not measure audienc
 perception, artistic quality, actual model output or paid provider economics.
 Local wall times are measurements, not provider-price claims. Exact verification
 results and all implementation rulings are retained in
-[the implementation verification note](CREATIVE_ASSET_CYCLES_VERIFICATION.md).
+[the implementation verification note](https://github.com/fbwndrud/vibelore/blob/main/docs/research/creative-asset-cycles-verification-2026-10-21.md).
