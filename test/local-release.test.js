@@ -92,6 +92,15 @@ test('package guard rejects missing resources, stale versions, unsafe paths and 
   }
 });
 
+test('package guard denies the local Studio runtime even if the allowlist widens', () => {
+  const widened = { ...pkg, files: [...pkg.files, 'studio/'] };
+  for (const path of ['studio/package.json', 'studio/src/engine/index.js']) {
+    const data = manifest();
+    data[0].files = [...files, { path }];
+    assert.throws(() => validatePack(data, widened), /Private or development artifact packed/);
+  }
+});
+
 test('unsupported Node.js versions stop before running any release commands', () => {
   const fake = runner();
   assert.throws(() => localRelease({ nodeVersion: '23.11.0', ...fake }), /supported Node.js/);

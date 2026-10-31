@@ -26,7 +26,7 @@ export function validatePack(manifest, pkg) {
   for (const path of requiredFiles) assert.ok(paths.has(path), `Package missing ${path}`);
   for (const path of paths) {
     assert.ok(!/(^|\/)\.\.(\/|$)|^\/|\\/.test(path), `Invalid package path: ${path}`);
-    assert.ok(!/(^|\/)(?:\.env(?:\..*)?|manifest-private\.json)$|^(?:output|test|scripts|docs\/(?:showcase|research|superpowers|plans)|\.vibelore)\/|\.(?:pem|key|p12|pfx|log)$/.test(path), `Private or development artifact packed: ${path}`);
+    assert.ok(!/(^|\/)(?:\.env(?:\..*)?|manifest-private\.json)$|^(?:output|test|scripts|studio|docs\/(?:showcase|research|superpowers|plans)|\.vibelore)\/|\.(?:pem|key|p12|pfx|log)$/.test(path), `Private or development artifact packed: ${path}`);
     assert.ok(path === 'package.json' || pkg.files.some(entry => entry.endsWith('/') ? path.startsWith(entry) : path === entry), `Outside package allowlist: ${path}`);
   }
   return pack;
