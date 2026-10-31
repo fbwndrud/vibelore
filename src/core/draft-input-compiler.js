@@ -81,6 +81,15 @@ function renderMemoryClaims(claims, t) {
 
 const unsafeContinuityText = (value) => forbiddenControls.test(value) || reservedSyntax.test(value) || metaInstruction.test(value);
 
+/** Why a short host-written text cannot enter the writer prompt, or null. Screens like memory text. */
+export function unsafePromptTextReason(value) {
+  const text = String(value ?? '');
+  if (forbiddenControls.test(text)) return 'control-character';
+  if (reservedSyntax.test(text)) return 'reserved-syntax';
+  if (metaInstruction.test(text)) return 'instruction-like-content';
+  return null;
+}
+
 // Summaries arrive newest-first (plain strings too); older memory arrives in
 // retrieval rank order. Both are canon material and are rendered as data, so
 // every rendered field is screened like a memory claim.
@@ -160,7 +169,68 @@ export function renderContinuity({ genreLine, recentSummaries, olderMemory, maxC
   };
 }
 
-function renderPlan({ episodeText, authorText, memoryText, supplementalText, castIds, locations, previousSceneTail, t }) {
+const PREFERENCE_KEYS = new Set(['id', 'level', 'ref', 'statement']);
+// One source for the limits; the preference ledger takes its caps from here.
+export const MAX_DRAFT_PREFERENCES = 12;
+export const MAX_PREFERENCE_STATEMENT_CHARS = 300;
+const MAX_PREFERENCE_REF_CHARS = 120;
+
+// Adopted creative preferences arrive already screened by the ledger; a stored
+// file that changed by hand is refused here rather than placed in the prompt.
+function preferenceInputReason(items) {
+  if (!Array.isArray(items) || items.length > MAX_DRAFT_PREFERENCES) return 'bounded-preference-list-required';
+  const ids = new Set();
+  for (const item of items) {
+    if (!plainObject(item) || !hasOnlyKeys(item, PREFERENCE_KEYS) || !['work', 'subject'].includes(item.level)
+      || !['id', 'ref', 'statement'].every((key) => typeof item[key] === 'string' && clean(item[key]))
+      || [...item.statement].length > MAX_PREFERENCE_STATEMENT_CHARS) return 'invalid-preference-shape';
+    // Same id and character-id rules as the ledger: a hand-changed file gets no looser treatment.
+    if (!/^dec-\d+$/.test(item.id) || ids.has(item.id)) return 'invalid-preference-shape';
+    ids.add(item.id);
+    if (item.level === 'subject' && ([...item.ref].length > MAX_PREFERENCE_REF_CHARS || /\s/u.test(item.ref))) return 'invalid-preference-shape';
+    const unsafe = unsafePromptTextReason(item.statement) ?? unsafePromptTextReason(item.ref);
+    if (unsafe) return unsafe;
+  }
+  return null;
+}
+
+// Work-level items first, then subject-level items grouped by character in first-seen order.
+function orderedPreferences(items) {
+  const subjects = [...new Set(items.filter((item) => item.level === 'subject').map((item) => item.ref))];
+  return [...items.filter((item) => item.level === 'work'),
+    ...subjects.flatMap((ref) => items.filter((item) => item.level === 'subject' && item.ref === ref))];
+}
+
+function renderPreferences(items, t) {
+  if (!items.length) return '';
+  const lines = [t.preferencesHeading, t.preferencesRule];
+  let group = null;
+  for (const item of items) {
+    const key = item.level === 'work' ? 'work' : `subject:${item.ref}`;
+    if (key !== group) lines.push(item.level === 'work' ? t.preferencesWork : t.preferencesSubject(clean(item.ref)));
+    group = key;
+    lines.push(`- ${clean(item.statement)}`);
+  }
+  return lines.join('\n');
+}
+
+// A revision sees the same adopted preferences as structured soft style context, grouped by character.
+export function revisePreferenceContext(items, kitSource) {
+  const reason = preferenceInputReason(items);
+  if (reason) throw new Error(`INVALID_DRAFT_INPUT: creativePreferences ${reason}`);
+  if (!items.length) return null;
+  const ordered = orderedPreferences(items);
+  // Character ids such as `constructor` or `__proto__` are plain keys here.
+  const subjects = Object.create(null);
+  for (const item of ordered.filter((entry) => entry.level === 'subject')) (subjects[clean(item.ref)] ??= []).push(clean(item.statement));
+  return {
+    rule: asKit(kitSource).phrases.draftInput.preferencesReviseRule,
+    work: ordered.filter((item) => item.level === 'work').map((item) => clean(item.statement)),
+    subjects,
+  };
+}
+
+function renderPlan({ episodeText, authorText, preferencesText, memoryText, supplementalText, castIds, locations, previousSceneTail, t }) {
   return [
     t.planHeading,
     t.planRule,
@@ -168,7 +238,8 @@ function renderPlan({ episodeText, authorText, memoryText, supplementalText, cas
     ...(memoryText ? ['', memoryText] : []),
     '',
     authorText,
-    ...(supplementalText ? [t.supplemental(supplementalText)] : []),
+    ...(preferencesText ? ['', preferencesText] : []),
+    ...(supplementalText ? [...(preferencesText ? [''] : []), t.supplemental(supplementalText)] : []),
     '',
     t.cast(castIds.join(', ')),
     t.locations(locations.join(', ')),
@@ -185,6 +256,7 @@ export function compileDraftInputs({
   authorCraft,
   memoryClaims = [],
   continuity = {},
+  creativePreferences = [],
   supplementalDirection,
   budget = {},
   kit: kitSource,
@@ -220,6 +292,8 @@ export function compileDraftInputs({
     || forbiddenControls.test(supplementalDirection.text))) {
     return { ok: false, error: { code: 'INVALID_DRAFT_INPUT', section: 'supplementalDirection', reason: 'bounded-user-direction-required' } };
   }
+  const preferenceReason = preferenceInputReason(creativePreferences);
+  if (preferenceReason) return { ok: false, error: { code: 'INVALID_DRAFT_INPUT', section: 'creativePreferences', reason: preferenceReason } };
   for (const claim of memoryClaims) {
     const reason = unsafeMemoryReason(claim);
     if (reason) {
@@ -250,18 +324,27 @@ export function compileDraftInputs({
   };
   const originalTail = continuity.previousSceneTail ?? '';
   let includedTail = originalTail;
+  const preferences = orderedPreferences(creativePreferences);
+  const originalPreferencesText = renderPreferences(preferences, t);
+  let preferencesText = originalPreferencesText;
   let memoryText = renderMemoryClaims(includedMemoryClaims, t);
-  let plan = renderPlan({ ...planInput, memoryText, previousSceneTail: includedTail, t });
+  const render = () => renderPlan({ ...planInput, preferencesText, memoryText, previousSceneTail: includedTail, t });
+  let plan = render();
   const maxPlanTokens = Number.isFinite(budget.maxPlanTokens) ? budget.maxPlanTokens : Number.POSITIVE_INFINITY;
+  // Soft preferences leave as a whole section before any memory claim or the previous-scene tail.
+  if (tokenUnits(plan) > maxPlanTokens && preferencesText) {
+    preferencesText = '';
+    plan = render();
+  }
   while (tokenUnits(plan) > maxPlanTokens && includedMemoryClaims.length) {
     const removed = includedMemoryClaims.pop();
     memoryClaimsExcluded.push({ claimId: removed.claimId, reason: 'plan-token-budget' });
     memoryText = renderMemoryClaims(includedMemoryClaims, t);
-    plan = renderPlan({ ...planInput, memoryText, previousSceneTail: includedTail, t });
+    plan = render();
   }
   if (tokenUnits(plan) > maxPlanTokens && includedTail) {
     includedTail = '';
-    plan = renderPlan({ ...planInput, memoryText, previousSceneTail: includedTail, t });
+    plan = render();
   }
   const continuityResult = renderContinuity({ ...continuity, maxContextTokens: budget.maxContextTokens, kit: kitSource });
   const slidingWindowRender = continuityResult.text;
@@ -290,6 +373,11 @@ export function compileDraftInputs({
           authorCraft: { originalTokens: tokenUnits(authorCraft.writerText), includedTokens: tokenUnits(authorCraft.writerText), truncated: false },
           memory: { originalTokens: memoryClaims.length ? tokenUnits(renderMemoryClaims(memoryClaims, t)) : 0, includedTokens: memoryText ? tokenUnits(memoryText) : 0, truncated: includedMemoryClaims.length !== memoryClaims.length },
           previousTail: { originalTokens: originalTail ? tokenUnits(originalTail) : 0, includedTokens: includedTail ? tokenUnits(includedTail) : 0, truncated: Boolean(originalTail && !includedTail), reason: originalTail && !includedTail ? 'plan-token-budget' : null },
+          ...(preferences.length ? { creativePreferences: {
+            originalTokens: tokenUnits(originalPreferencesText), includedTokens: preferencesText ? tokenUnits(preferencesText) : 0,
+            includedIds: preferencesText ? preferences.map((item) => item.id) : [],
+            truncated: !preferencesText, reason: preferencesText ? null : 'plan-token-budget',
+          } } : {}),
         },
       },
       usage: {

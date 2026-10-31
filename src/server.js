@@ -40,6 +40,7 @@ import { runRangeReview } from './tools/range-review.js';
 import { runConfigureStatus } from './tools/configure.js';
 import { runSyncStatus } from './tools/sync.js';
 import { runStyleAnchor } from './tools/style-anchor.js';
+import { runCreativeDecisionTool } from './tools/creative-decisions.js';
 import { dropRun, loadRun, sweepRuns } from './runs.js';
 import { runRelayedTool } from './relay-runner.js';
 import { runWebtoonTool, readWebtoonWorkflow } from './tools/webtoon.js';
@@ -364,7 +365,7 @@ const TOOLS = [
   {
     name: 'lore_profile_status',
     annotations: READ_ONLY,
-    description: 'StoryProfile만 읽기 전용으로 조회한다. 없으면 {profiled:false}, 있으면 {profiled:true, profile(status: pending|active|rejected, designReview 포함), language, length}. '
+    description: 'StoryProfile만 읽기 전용으로 조회한다. 없으면 {profiled:false}, 있으면 {profiled:true, profile(status: pending|active|rejected, designReview 포함), language, length, decisions}. decisions는 준비 깊이·세계관 범위·프로필 승인의 읽기 전용 목록이며 승인 근거나 영수증이 아니다. '
       + '새 작품을 시작하기 전에 프로필이 필요한지 판단할 때 쓴다. 작품 전체 진행은 lore_status, 설정 누락 점검은 lore_configure를 쓴다.',
     inputSchema: { type: 'object', properties: { ...projectArg }, required: ['workId'] },
   },
@@ -556,7 +557,7 @@ const TOOLS = [
     name: 'lore_rollback',
     annotations: writes({ destructive: true }),
     description: '지정 화의 스냅숏으로 정본과 기계 상태를 되돌린다. 사용자가 이미 커밋된 화들을 취소하겠다고 명시했을 때만 호출하고, 먼저 lore_snapshot_status로 대상 화를 확인한다. 손수정 반영은 lore_sync를 쓴다. '
-      + '파괴적: world/·characters/·chapters/·summaries/를 지우고 스냅숏으로 복원하므로 그 화 이후 원고가 작업 트리에서 사라진다. 진행 중인 워크플로, 대기 중인 lore_resume runId, 검사 영수증도 지워지고 이후의 lore_configure·lore_style_anchor 변경도 되돌아간다. '
+      + '파괴적: world/·characters/·chapters/·summaries/를 지우고 스냅숏으로 복원하므로 그 화 이후 원고가 작업 트리에서 사라진다. 진행 중인 워크플로, 대기 중인 lore_resume runId, 검사 영수증도 지워지고 이후의 lore_configure·lore_style_anchor 변경도 되돌아간다. lore_preferences 기록은 되돌리지 않고 유지한다. '
       + '되돌리기 전 상태는 .vibelore/rollback-archives/<id>/에 보존되지만 복원 도구는 없어 수동으로 되살려야 한다. 모델 호출 없음. 반환은 {rolledBackTo, archiveId, archive, recoverable:true, publication}.',
     inputSchema: { type: 'object', properties: { ...projectArg, chapter: { type: 'integer', minimum: 1, description: '되돌아갈 화 번호. 그 화까지의 원고가 남는다.' } }, required: ['workId', 'chapter'] },
   },
@@ -593,13 +594,15 @@ const TOOLS = [
     annotations: writes(),
     description: '다음 화의 계획 확인부터 원본 초고 프롬프트, 의미·논리 검사(최대 3회, 그 사이 최소 수정 최대 2회), 검사 영수증, 승인·커밋까지 순서대로 실행하는 기본 집필 도구다. 소설을 이어 쓸 때는 이 도구만 호출한다. '
       + '항상 마지막 화의 다음 화를 쓰며 기존 화를 덮어쓰지 않는다. 같은 화의 진행 중 워크플로가 있으면 새로 만들지 않고 이어간다. 모델 작업마다 status=needs_model을 돌려주므로 lore_resume으로 답한다. '
-      + '준비가 덜 됐으면 status=needs_setup(FOUNDATION_MISSING·PROFILE_NOT_ACTIVE·STORY_SPINE_NOT_ACTIVE·WRITER_SKILL_NOT_ACTIVE·ARC_NOT_ACTIVE), 손수정이 있으면 needs_sync(→lore_sync)를 돌려준다. '
+      + '준비가 덜 됐으면 status=needs_setup(FOUNDATION_MISSING·PROFILE_NOT_ACTIVE·STORY_SPINE_NOT_ACTIVE·WRITER_SKILL_NOT_ACTIVE·ARC_NOT_ACTIVE·SCENE_FORM_ARC_PLANNED·SCENE_FORM_CHAPTER_PLANNED·SCENE_BRIEF_REQUIRED·SCENE_BRIEF_UNSAFE·WORKFLOW_FORM_MISMATCH), 손수정이 있으면 needs_sync(→lore_sync)를 돌려준다. '
+      + 'form=scene은 연재가 아닌 짧은 장면 하나를 다음 정본 회차로 쓴다. 승인된 프로필과 기반만 있으면 되고 StorySpine·WriterSkill·아크·회차 계획은 필요 없으며, 활성·대기 아크가 있으면 쓰지 않는다. 장면 요청은 instruction에 800자 이내로 넣는다. '
       + 'guided는 검사를 마친 원고를 status=awaiting_approval과 approvalId로 돌려주며 lore_decide로 결정한다. auto는 검사를 통과하면 chapters/·summaries/·상태·스냅숏을 커밋하고 status=completed를 돌려준다. 실패는 clean_fail·validation_incomplete·provider_error.',
     inputSchema: {
       type: 'object', properties: {
         ...projectArg,
         retryValidation: { type: 'boolean', description: '실패 상태의 보존된 원고를 새 검증 epoch에서 다시 검사한다.' },
-        instruction: { type: 'string', description: '이번 화에 추가할 작가 지시.' },
+        instruction: { type: 'string', description: '이번 화에 추가할 작가 지시. form=scene이면 쓸 장면 요청(필수, 800자 이내)이다.' },
+        form: { type: 'string', enum: ['chapter', 'scene'], description: 'chapter(기본)=아크 계획에 따른 연재 회차, scene=아크 없이 요청한 짧은 장면 하나를 다음 회차로 쓴다. 진행 중인 워크플로는 자기 형태를 유지하므로 이어 가거나 수정할 때는 생략한다. 다른 form을 넘기면 실패한 워크플로만 새 형태로 바뀌고 나머지는 WORKFLOW_FORM_MISMATCH다.' },
         autonomy: { type: 'string', enum: ['guided', 'auto'], description: 'guided(기본)=완성 원고 승인 후 커밋, auto=품질 통과 시 자동 커밋. 커밋 여부는 그 호출의 값으로 정해지므로 auto를 원하면 이어 부르는 lore_write에도 다시 넘긴다.' },
         modelProfile: {
           type: 'object', additionalProperties: false,
@@ -635,6 +638,27 @@ const TOOLS = [
     },
   },
   {
+    name: 'lore_preferences',
+    annotations: writes(),
+    description: '사용자가 직접 밝힌 오래 갈 창작 선호를 범위와 함께 기록(adopt)·철회(retire)·조회(status)한다. 범위는 한 인물(subject) 또는 작품 전체(work)이며, 호스트는 사용자가 범위를 확인한 뒤에만 호출한다. 도구는 선호를 추론하지 않는다. '
+      + '활성 선호의 statement만 workflow의 초고·수정에 부드러운 지침으로 들어가고 논리 검토가 준수 여부를 advisory로 알리며(coherence-judge를 끄면 생략) userAnswer는 근거로만 저장된다. 사실은 정본(characters/, world/)에, 운영 설정은 lore_configure에 둔다. 같은 사용자 답을 처음 채택한 범위보다 넓게 옮기면(좁은 선호를 철회했어도) CREATIVE_DECISION_SCOPE_WIDENED로 거부하며 새 답이 필요하다. '
+      + '채택·철회는 이미 통과한 검사 영수증을 무효화하므로 다음 lore_write가 같은 원고를 다시 검사한다. 원고나 한 번뿐인 회차 피드백에서 선호를 추정해 기록하지 않는다. 이번 화에만 해당하는 피드백은 lore_decide(action="request_revision")로 보낸다. 모델 호출 없음.',
+    inputSchema: {
+      type: 'object', additionalProperties: false, properties: {
+        ...projectArg,
+        action: { type: 'string', enum: ['adopt', 'retire', 'status'], description: 'adopt=선호 채택(supersedes로 기존 선호를 한 번에 교체), retire=선호 철회(기록은 남음), status=활성·철회 목록 조회.' },
+        statement: { type: 'string', description: 'adopt에 필수. 작가 프롬프트에 들어갈 지침을 작품 언어로 쓴 300자 이하 문장. 제어 문자·코드 펜스·⟦vle: 표기·메타 지시는 거부된다.' },
+        userAnswer: { type: 'string', description: 'adopt에 필수. 사용자가 실제로 한 말 그대로. 근거로만 저장하며 모델에 보내지 않는다.' },
+        level: { type: 'string', description: 'adopt에 필수. subject(한 인물) 또는 work(작품 전체). selection·artifact·personal은 INVALID_CREATIVE_DECISION으로 거부한다.' },
+        subjectId: { type: 'string', description: 'level=subject일 때 필수인 인물 id. work에는 넣지 않는다. 작품 인물 id여야 하며(이름이 아님) 없는 id는 INVALID_CREATIVE_DECISION으로 거부하고 가능한 id를 알려 준다.' },
+        kind: { type: 'string', description: 'adopt 선택. preference(기본) 또는 goal. fact와 policy는 거부한다.' },
+        topic: { type: 'string', description: 'adopt 선택. 짧은 주제 라벨(예: 말투, 문체). 생략하면 kind.' },
+        supersedes: { type: 'string', description: 'adopt 선택. 이 채택으로 철회할 활성 선호 id.' },
+        id: { type: 'string', description: 'retire에 필수. 철회할 활성 선호 id(status에서 확인).' },
+      }, required: ['workId', 'action'],
+    },
+  },
+  {
     name: 'lore_workflow_status',
     annotations: READ_ONLY,
     description: '진행 중인 한 화(또는 웹툰 장면) 워크플로의 현재 단계, 시도 횟수, 다음 행동과 품질 결과를 읽기 전용으로 조회한다. 작품 전체 진행은 lore_status, 지난 이벤트는 lore_workflow_history를 쓴다. '
@@ -667,7 +691,7 @@ const TOOLS = [
     name: 'lore_webtoon_style', annotations: writes(),
     description: '웹툰 화풍을 말→예시→사용자 채택으로 정한다. 호스트 LLM이 사용자 원말(brief)을 짧은 영어 direction으로 해석한다. propose는 예시 한 장의 요청(needs_style_image)을 반환하며 이미지를 직접 생성하지 않는다. 사용자 제공 예시는 imagePath로 바로 반입한다. 생성 예시는 선택한 내장/API 경로로 호스트가 그린 뒤 import한다. 실제 그림을 보여 주고 사용자 원답 feedback과 proposalId로 approve하면 기준 이미지·표현 프로필·변경 범위를 고정한다. 다음 장면에 자동 전달하며 기존 장면은 유지한다. 취향 판단은 사용자, 의미·시각 검토는 LLM, 기록·입력 연결 검사는 서버가 맡는다. delegation은 이번 요청의 예시만·화풍 선택·제작 위임을 기록한다. 위임 선택은 needs_style_decision에서 실제 이미지를 본 호스트의 choice로 approve하며 사용자 확인을 반복하지 않는다. set_mode로 선택 방식을 바꿀 수 있다. 후보는 본편·정본·발행 결과가 아니다.',
     inputSchema: { type: 'object', additionalProperties: false, properties: { ...projectArg,
-      action: { type: 'string', enum: ['status', 'propose', 'import', 'approve', 'reject', 'set_mode'], description: 'status=채택 기준·후보·영향 장면 조회, propose=새 예시 후보, import=요청한 생성 예시 반입, approve=직접 또는 위임 선택 채택, reject=후보 거절, set_mode=채택 전 위임 범위 변경·철회(예시 보존). 화풍 수정은 새 propose로 이어간다.' },
+      action: { type: 'string', enum: ['status', 'propose', 'import', 'approve', 'reject', 'set_mode'], description: 'status=채택 기준·후보·영향 장면·decisions(읽기 전용, 승인 근거 아님) 조회, propose=새 예시 후보, import=요청한 생성 예시 반입, approve=직접 또는 위임 선택 채택, reject=후보 거절, set_mode=채택 전 위임 범위 변경·철회(예시 보존). 화풍 수정은 새 propose로 이어간다.' },
       brief: { type: 'string', minLength: 1, maxLength: 8000, description: 'propose의 사용자 원말. 작화 용어 선택을 요구하지 않는다.' },
       direction: { type: 'string', description: 'propose에서 호스트 LLM이 해석한 영어 제작 설명(최대 30단어). 사용자가 직접 작성할 필요가 없다.' },
       label: { type: 'string', minLength: 1, maxLength: 200, description: '선택적 후보 이름.' },
@@ -676,7 +700,7 @@ const TOOLS = [
       provenanceNote: { type: 'string', description: '사용자 제공 이미지의 출처 메모. 독립 검증된 생성 기록으로 취급하지 않는다.' },
       references: { type: 'array', maxItems: 16, description: '예시 생성에 실제 첨부할 선택적 참조. 역할은 호스트가 description에 영어로 설명한다.', items: { type: 'object', additionalProperties: false, properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'path', 'hash', 'description'] } },
       proposalId: { type: 'string', description: 'import/approve/reject의 정확한 후보 ID. status에도 지정 가능.' },
-      styleRevisionId: { type: 'string', description: 'status에서 볼 이미 채택된 과거 기준 판본.' },
+      styleRevisionId: { type: 'string', description: 'status에서 볼 이미 채택된 과거 기준 판본. decisions는 이 값과 관계없이 현재 채택된 기준을 보여 준다.' },
       expectedStyleRevision: { anyOf: [{ type: 'string' }, { enum: [null] }], description: 'propose의 낙관적 동시성 확인. status에서 본 채택 판본(최초 null).' },
       asset: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object' } }, required: ['path', 'inputHash', 'provenance'], description: 'import의 생성 예시. job inputHash와 선택한 이미지 경로의 provenance를 그대로 전달한다.' },
       feedback: { type: 'string', description: '직접 approve에서는 사용자 채택 원답이 필수이고 위임 선택에서는 보존된 원답과 choice를 쓴다. 이미지 경로 확정에서도 사용자 원답을 전달한다.' },
@@ -799,6 +823,7 @@ const PUBLIC_TOOL_NAMES = new Set([
   'lore_resume',
   'lore_write',
   'lore_decide',
+  'lore_preferences',
   'lore_workflow_status',
   'lore_workflow_history',
   'lore_webtoon_scene',
@@ -893,7 +918,7 @@ function execWithProviders(store, toolName, args, providers) {
     case 'lore_episode_plan':
       return runEpisodePlan({ ...common, chapter: args.chapter, mode: args.mode, direction: args.direction, feedback: args.feedback });
     case 'lore_write':
-      return runWriteWorkflow({ ...common, instruction: args.instruction, autonomy: args.autonomy, modelProfile: args.modelProfile, language: args.language });
+      return runWriteWorkflow({ ...common, instruction: args.instruction, form: args.form, autonomy: args.autonomy, modelProfile: args.modelProfile, language: args.language });
     case 'lore_sync':
       return runSyncStatus({ ...common, action: args.action, approvalId: args.approvalId });
     default:
@@ -938,6 +963,10 @@ async function dispatchTool(store, name, args) {
       return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
+    case 'lore_preferences':
+      return { status: 'ok', ...(await runCreativeDecisionTool({ store, workId: args.workId, action: args.action, statement: args.statement,
+        userAnswer: args.userAnswer, level: args.level, subjectId: args.subjectId, kind: args.kind, topic: args.topic,
+        supersedes: args.supersedes, id: args.id })) };
     case 'lore_init':
     case 'lore_arc_decide':
     case 'lore_profile_decide':
@@ -1031,7 +1060,7 @@ async function handle(msg) {
         instructions:
           'vibelore는 소설 정본과 집필 순서를 지키는 도구입니다. 새 작품은 story-discovery-interview → lore_profile → lore_profile_decide → lore_create(직접 쓴 기반은 lore_init) → lore_story_plan → lore_story_decide → lore_writer_skill → lore_writer_decide → lore_arc_plan → lore_arc_decide 순서로 준비합니다. ' +
           '기존 작품은 lore_configure로 누락 단계를 확인합니다. 설계 기본은 mode=review이며 결과를 사용자에게 보여주고 승인받습니다. 알아서·자동으로·묻지 말고가 명시된 경우만 mode=auto를 씁니다. profile의 열린 질문은 모두 보여주고 답을 feedback으로 반영합니다. ' +
-          '집필 요청은 먼저 lore_arc_status로 활성 아크를 확인합니다. 활성 아크를 임의 교체하지 않습니다. lore_status나 lore_write가 working-tree drift를 보고하면 lore_sync의 inspect → validate → apply로 반영한 뒤 진행합니다. ' +
+          '집필 요청은 먼저 lore_arc_status로 활성 아크를 확인합니다. 활성 아크를 임의 교체하지 않습니다. 사용자가 연재가 아닌 짧은 장면 하나를 원하고 활성·대기 아크가 없으면 프로필과 기반을 만든 뒤 lore_write(form=scene, instruction=장면 요청)을 씁니다. 그 장면을 위해 StorySpine·WriterSkill·아크를 만들지 않습니다. lore_status나 lore_write가 working-tree drift를 보고하면 lore_sync의 inspect → validate → apply로 반영한 뒤 진행합니다. ' +
           '기본 집필은 lore_write 하나로 회차 계획, 초고, 검사(최대 3회·수정 최대 2회), critic, 검사 영수증, 승인·커밋을 순서대로 실행합니다. guided는 원고와 advisory를 보여준 뒤 lore_decide로 결정합니다. auto는 불변식 통과와 활성 critic 완료가 필요하며 critic 실패 시 guided로 강등합니다. 꺼 둔 검토는 요청하지 않습니다. soft와 advisory는 임의 수정 이유가 아닙니다. ' +
           'needs_model은 사용자 질문이 아닙니다. requests의 실제 원고와 근거를 읽고 모든 id의 답을 한 번의 lore_resume에 넘깁니다. jsonMode는 코드 펜스 없는 JSON입니다. 새 프로세스·API로 병렬 답변할 때 promptCache.warmFirst=true 요청의 첫 출력 뒤 나머지를 보냅니다. 같은 호스트 검토를 독립 독자 평가로 보고하지 않습니다. ' +
           '웹툰은 webtoon-discovery-interview로 lore_webtoon_style 예시를 사용자와 채택한 뒤 lore_webtoon_scene을 사용하고 소설 정본과 분리합니다. needs_interview는 사용자 질문이며 조회는 lane=webtoon입니다. 기존 컷별 작업 마무리만 VIBELORE_MCP_SURFACE=compat로 deprecated 도구를 노출합니다.',

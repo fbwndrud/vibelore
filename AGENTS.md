@@ -22,8 +22,14 @@
 
 `lore_profile(mode="review")`가 `designReview.openQuestions`를 반환하면 한 라운드의 질문을 모두 사용자에게 보여준다. 답변을 `feedback`으로 다시 넘겨 다음 라운드를 만들고, 열린 질문이 없거나 사용자가 현재 결정을 명시적으로 승인했을 때만 `lore_profile_decide(action="approve")`한다. 이 인터뷰는 작품별 독서 계약을 확정하는 용도이며 화별 세부 규칙을 늘리는 용도로 쓰지 않는다.
 
-집필 요청을 받으면 `lore_arc_status`를 먼저 확인한다. 활성 아크가 없으면 본문부터 쓰지 않는다. 일반 요청은 `lore_arc_plan(mode="review")`로 3~20화의 아크 약속과 얇은 사건·압력·전환·다음 상태를 만든 뒤 사용자에게 보여주고 승인받는다. 사용자가 “알아서”, “자동으로”, “묻지 말고”라고 명시한 경우에만 `mode="auto"`를 쓴다.
+집필 요청을 받으면 `lore_arc_status`를 먼저 확인한다. 활성 아크가 없으면 본문부터 쓰지 않는다. 일반 요청은 `lore_arc_plan(mode="review")`로 3~20화의 아크 약속과 얇은 사건·압력·전환·다음 상태를 만든 뒤 사용자에게 보여주고 승인받는다. 사용자가 “알아서”, “자동으로”, “묻지 말고”라고 명시한 경우에만 `mode="auto"`를 쓴다. 사용자가 연재가 아닌 짧은 장면 하나를 원하고 활성·대기 아크가 없으면 프로필과 기반이 있는 작품에서 `lore_write(form="scene", instruction=장면 요청)`을 쓴다. 그 장면을 위해 StorySpine·WriterSkill·아크를 만들지 않는다.
 
 활성 아크가 있으면 화별 얇은 계획은 `lore_write`가 자동 생성한다. 저수준 도구는 디버깅·수동 집필에만 사용하며, 활성 워크플로가 발급한 검사 영수증 없이 커밋을 우회하지 않는다. 진행 확인은 `lore_workflow_status`, 감사 이력은 `lore_workflow_history`를 쓴다.
 
 hard 위반은 확정 사실과의 충돌이므로 고친다. soft 위반은 작가의 의도일 수 있으므로 임의로 문체를 훼손하지 말고 사용자에게 판단을 구한다. PatternLedger, 캐릭터 유연성, 밀도, ArcReview는 검증 전까지 관찰·advisory이며 정본 불변식으로 승격하지 않는다.
+
+## GitHub Actions 사용 금지
+
+- 사용자 지시(2026-10-25): GitHub Actions를 사용하지 않는다. 새 프로젝트나 기능에서도 기본 CI로 선택하거나 제안·추가·활성화하지 않는다.
+- `.github/workflows/` 워크플로와 `github-actions` Dependabot 설정을 생성하지 않는다. 검사·빌드·릴리스 검증은 로컬 명령으로 수행한다.
+- 사용자가 이후 명시적으로 사용을 요청한 경우에만 이 정책을 변경한다.

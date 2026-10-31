@@ -40,6 +40,11 @@ const JUDGE_LABELS_KO = {
     request: '위 본문을 0-100 점으로 평가. JSON 한 개 출력.',
     authorRules: '## 작가 점검 규칙 (각각 pass|warn|fail과 본문 근거)',
     authorRulesRequest: '위 본문을 0-100 점으로 평가하고, 위 규칙마다 id별로 한 항목씩 판정한다. JSON 한 개 출력: { "score": <0-100>, "reason": "한 줄", "authorRules": [{ "id": "규칙 id", "verdict": "pass|warn|fail", "evidence": "본문 근거" }] }',
+    preferences: '## 사용자가 채택한 창작 선호 (부드러운 지침. 각각 pass|warn|fail과 본문 근거, 이번 화에 해당 장면이 없으면 pass)',
+    preferenceScope: { work: '작품 전체', subject: (id, name) => (name ? `인물 ${id}(${name})` : `인물 ${id}`) },
+    preferencesScoreNote: '점수는 논리 연결만 평가하며 선호 판정은 점수에 반영하지 않는다.',
+    preferencesRequest: '위 본문을 0-100 점으로 평가하고, 위 선호마다 id별로 한 항목씩 판정한다. JSON 한 개 출력: { "score": <0-100>, "reason": "한 줄", "creativePreferences": [{ "id": "선호 id", "verdict": "pass|warn|fail", "evidence": "본문 근거" }] }',
+    authorRulesAndPreferencesRequest: '위 본문을 0-100 점으로 평가하고, 위 규칙과 선호마다 id별로 한 항목씩 판정한다. JSON 한 개 출력: { "score": <0-100>, "reason": "한 줄", "authorRules": [{ "id": "규칙 id", "verdict": "pass|warn|fail", "evidence": "본문 근거" }], "creativePreferences": [{ "id": "선호 id", "verdict": "pass|warn|fail", "evidence": "본문 근거" }] }',
 };
 const JUDGE_LABELS_EN = {
     proseHeading: (n) => `## Chapter ${n} text`,
@@ -48,6 +53,11 @@ const JUDGE_LABELS_EN = {
     request: 'Score the chapter above from 0 to 100. Output one JSON object.',
     authorRules: '## Author rules (pass|warn|fail each, with evidence from the chapter)',
     authorRulesRequest: 'Score the chapter above from 0 to 100 and judge each rule above, one entry per rule id. Output one JSON object: { "score": <0-100>, "reason": "one line", "authorRules": [{ "id": "rule id", "verdict": "pass|warn|fail", "evidence": "evidence from the chapter" }] }',
+    preferences: '## Creative preferences the user adopted (soft guidance; pass|warn|fail each, with evidence from the chapter; pass when no scene of this chapter concerns it)',
+    preferenceScope: { work: 'whole work', subject: (id, name) => (name ? `character ${id} (${name})` : `character ${id}`) },
+    preferencesScoreNote: 'The score judges coherence only; preference verdicts do not change it.',
+    preferencesRequest: 'Score the chapter above from 0 to 100 and judge each preference above, one entry per preference id. Output one JSON object: { "score": <0-100>, "reason": "one line", "creativePreferences": [{ "id": "preference id", "verdict": "pass|warn|fail", "evidence": "evidence from the chapter" }] }',
+    authorRulesAndPreferencesRequest: 'Score the chapter above from 0 to 100 and judge each rule and each preference above, one entry per id. Output one JSON object: { "score": <0-100>, "reason": "one line", "authorRules": [{ "id": "rule id", "verdict": "pass|warn|fail", "evidence": "evidence from the chapter" }], "creativePreferences": [{ "id": "preference id", "verdict": "pass|warn|fail", "evidence": "evidence from the chapter" }] }',
 };
 const AUTHOR_RULE_VERDICTS = new Set(['pass', 'warn', 'fail']);
 function tryParse(raw) {
@@ -67,6 +77,16 @@ export async function runCoherenceJudge(input) {
         .map((rule, index) => (typeof rule === 'string' ? { id: `r${index + 1}`, text: rule } : rule))
         .filter((rule) => typeof rule?.id === 'string' && typeof rule.text === 'string' && rule.text.trim());
     const hasAuthorRules = rules.length > 0;
+    // Adopted creative preferences, soft guidance: only id'd items with a statement are asked about.
+    const preferences = (Array.isArray(input.creativePreferences) ? input.creativePreferences : [])
+        .filter((item) => typeof item?.id === 'string' && typeof item.statement === 'string' && item.statement.trim());
+    const hasPreferences = preferences.length > 0;
+    const scopeOf = (item) => (item.level === 'subject'
+        ? labels.preferenceScope.subject(item.ref, typeof item.name === 'string' && item.name.trim() ? item.name : null)
+        : labels.preferenceScope.work);
+    const request = hasAuthorRules && hasPreferences ? labels.authorRulesAndPreferencesRequest
+        : hasPreferences ? labels.preferencesRequest
+            : hasAuthorRules ? labels.authorRulesRequest : labels.request;
     const userPrompt = [
         labels.proseHeading(input.chapterNumber),
         input.prose,
@@ -75,8 +95,10 @@ export async function runCoherenceJudge(input) {
         input.plan ? (/^#/.test(input.plan.trim()) ? input.plan.trim() : labels.plan(input.plan)) : '',
         input.prevSummary ? labels.prevSummary(input.prevSummary) : '',
         hasAuthorRules ? [labels.authorRules, ...rules.map((rule) => `- ${rule.id}: ${rule.text}`)].join('\n') : '',
+        hasPreferences ? [labels.preferences, ...preferences.map((item) => `- ${item.id} (${scopeOf(item)}): ${item.statement}`)].join('\n') : '',
         ``,
-        hasAuthorRules ? labels.authorRulesRequest : labels.request,
+        request,
+        hasPreferences ? labels.preferencesScoreNote : '',
     ]
         .filter((s) => s.length > 0)
         .join('\n');
@@ -130,6 +152,23 @@ export async function runCoherenceJudge(input) {
         // No verdicts at all is an incomplete review, not a clean one.
         if (!Array.isArray(obj.authorRules))
             result.authorRulesMissing = true;
+    }
+    // Backward compatible: no key when the caller gave no preferences.
+    if (hasPreferences) {
+        const preferenceOf = (entry) => preferences.find((item) => item.id === entry?.id) ?? null;
+        result.creativePreferences = Array.isArray(obj.creativePreferences)
+            ? obj.creativePreferences
+                .filter((entry) => entry && preferenceOf(entry) && AUTHOR_RULE_VERDICTS.has(entry.verdict))
+                .map((entry) => ({
+                    id: entry.id,
+                    statement: preferenceOf(entry).statement,
+                    verdict: entry.verdict,
+                    evidence: typeof entry.evidence === 'string' ? entry.evidence.slice(0, 200) : '',
+                }))
+            : [];
+        // No verdicts at all is an incomplete review, not a clean one.
+        if (!Array.isArray(obj.creativePreferences))
+            result.creativePreferencesMissing = true;
     }
     return result;
 }

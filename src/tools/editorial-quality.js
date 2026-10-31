@@ -13,11 +13,12 @@ function parse(raw) {
  * @param {{ kit?: object|null }} input 워크플로가 작품 계약을 넘기기 전까지는
  *   구작의 암묵적 ko 계열로 해석한다(기존 동작).
  */
-export async function runEditorialQuality({ prose, context, providers, kit: kitSource }) {
+export async function runEditorialQuality({ prose, context, providers, kit: kitSource, form = 'chapter' }) {
   const kit = asKit(kitSource);
   const response = await providers.complete({
     model: MODEL, jsonMode: true, step: 'editorial-quality',
-    messages: kit.messages('editorial-quality', { context, prose }),
+    // A scene is judged by its own prompt; the request step stays the same.
+    messages: kit.messages(form === 'scene' ? 'editorial-quality-scene' : 'editorial-quality', { context, prose }),
   });
   const obj = parse(response.text);
   const score = typeof obj?.score === 'number' && obj.score >= 0 && obj.score <= 100 ? Math.round(obj.score) : null;

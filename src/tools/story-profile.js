@@ -10,6 +10,7 @@ import {
 import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorldbuildingChoice, ensureWorldbuildingQuestion, WORLDBUILDING_QUESTION_ID, prepareWorldbuildingSource, storedWorldbuildingSelection } from '../core/worldbuilding.js';
 import { resolveDiscoveryPreference, applyDiscoveryQuestions, DISCOVERY_QUESTION_ID } from '../core/discovery-preference.js';
+import { profileDecisions } from '../core/decision-projections.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const READABILITY_QUESTION_ID = 'reading-experience-contract';
@@ -501,6 +502,7 @@ export async function runStoryProfileStatus({ store, workId }) {
     language: workLanguage.language,
     implicitLanguage: workLanguage.implicitLegacy,
     length: { unit: workLanguage.length.unit, target: workLanguage.length.target, source: workLanguage.length.source },
+    decisions: profileDecisions(profile, workId),
     runtime: runtimeVersion(),
   };
 }

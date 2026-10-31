@@ -70,3 +70,37 @@ it('a review the user turned off is not requested and is recorded as disabled, n
   assert.deepEqual(summary.disabled, ['editorial-quality']);
   assert.equal(summary.records.find((r) => r.step === 'editorial-quality').status, 'disabled_by_user');
 });
+
+it('a review that does not apply is not requested and counts as done', async () => {
+  const reviews = audit({ async complete() { throw new Error('provider must not be called'); } }, { notApplicable: ['reader-hook'] });
+  const result = await reviews.run('reader-hook', async (provider) => provider.complete({ ...request, step: 'reader-hook' }), { score: null, fallback: true });
+  assert.equal(result.fallback, true);
+  // Asking again for the same step does not add a second record.
+  await reviews.run('reader-hook', async (provider) => provider.complete({ ...request, step: 'reader-hook' }), { score: null });
+  assert.equal(reviews.result().records.length, 1);
+});
+
+it('not-applicable reviews leave the result completed and are listed apart from disabled ones', async () => {
+  const reviews = audit({ complete: async () => ({ text: '{"score":87,"findings":[]}' }) }, { notApplicable: ['reader-hook'] });
+  await reviews.run('reader-hook', async (provider) => provider.complete({ ...request, step: 'reader-hook' }), { score: null });
+  await run(reviews);
+  const summary = reviews.result();
+  assert.equal(summary.status, 'completed', JSON.stringify(summary.records));
+  assert.deepEqual(summary.notApplicable, ['reader-hook']);
+  assert.deepEqual(summary.disabled, []);
+  assert.deepEqual(summary.records.find((r) => r.step === 'reader-hook'),
+    { step: 'reader-hook', chapter: 1, proseHash: summary.proseHash, contractDigest: 'contract1', status: 'not_applicable', findings: [] });
+});
+
+it('a failed applicable review still fails the result next to a not-applicable one', async () => {
+  const reviews = audit({ complete: async () => ({ text: 'not json' }) }, { notApplicable: ['reader-hook'] });
+  await reviews.run('reader-hook', async (provider) => provider.complete({ ...request, step: 'reader-hook' }), { score: null });
+  await run(reviews);
+  assert.equal(reviews.result().status, 'failed');
+});
+
+it('omits notApplicable from the result when no review was marked', async () => {
+  const reviews = audit({ complete: async () => ({ text: '{"score":87,"findings":[]}' }) });
+  await run(reviews);
+  assert.equal(Object.hasOwn(reviews.result(), 'notApplicable'), false);
+});

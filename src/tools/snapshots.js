@@ -13,7 +13,9 @@ const machineEntries = ['foundation.json', 'story-profile.json', 'story-spine.js
 const webtoonEntries = ['webtoon', 'webtoon-publication'];
 const infrastructure = new Set(['publication', 'snapshots', 'rollback-archives', 'rollback-pending.json', 'project.lock', 'project.lock.cleanup', 'shared-lore',
   // Script sources, sealed production inputs and production records are not chapter state; rollback keeps them.
-  'scene-scripts', 'input-objects', 'productions', ...webtoonEntries]);
+  'scene-scripts', 'input-objects', 'productions', ...webtoonEntries,
+  // The user's adopted creative preferences outlive any chapter rollback.
+  'creative-decisions.json']);
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const invalid = (detail) => new Error(`INVALID_SNAPSHOT: ${detail}`);

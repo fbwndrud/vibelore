@@ -28,9 +28,21 @@ export async function shouldUseContractCheck({ store, workId, chapter, forceCont
   return { gated: forceContract || usesChapterValidationGate({ resolution, workflow, chapter }), resolution, workflow };
 }
 
+/**
+ * Where the chapter sits in its arc, for the cliffhanger detector. A scene is
+ * not an arc episode, so it has no position and no cliffhanger requirement.
+ */
+export function checkArcPosition({ form, arcPlan, chapter, estimated }) {
+  if (form === 'scene') return null;
+  const arcEpisode = episodeForChapter(arcPlan, chapter);
+  return arcEpisode
+    ? arcPositionFromRatio(arcEpisode.index, arcPlan.estimatedEpisodes)
+    : (estimated > 0 ? arcPositionFromRatio(chapter, estimated) : 'rising');
+}
+
 export async function runContractCheck({ store, workId, chapter, prose, title, summary, castManifestRaw = '', providers,
   includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = true,
-  workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, targetChapters, metadataCompanion = null }) {
+  workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, targetChapters, metadataCompanion = null, form = 'chapter' }) {
   const scope = validationScope ?? (workflowId ? `workflow-${workflowId}` : `manual-${chapter}`);
   let state = await loadValidationSession(store, workId, scope);
   const invocation = providers?.validationContext?.runId ?? null;
@@ -87,11 +99,12 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
   if (state.status === 'passed' && state.result) return state.result;
   const { workContract, foundation, canonicalStore } = context;
   const plan = liveCheckerPlan({ workContract, foundation, profile: context.plans.profile });
-  const arcEpisode = episodeForChapter(context.plans.arc, chapter);
   const estimated = targetChapters ?? foundation?.targetChapters ?? 0;
-  const arcPosition = arcEpisode
-    ? arcPositionFromRatio(arcEpisode.index, context.plans.arc.estimatedEpisodes)
-    : (estimated > 0 ? arcPositionFromRatio(chapter, estimated) : 'rising');
+  const arcPosition = checkArcPosition({ form, arcPlan: context.plans.arc, chapter, estimated });
+  // A scene is not an arc episode: a stored EpisodePlan (rejected, pending or
+  // left over) and an arc's episode have no authority over its check.
+  const episodePlan = form === 'scene' ? null : context.plans.episode;
+  const arcEpisode = form === 'scene' ? null : episodeForChapter(context.plans.arc, chapter);
   const entities = await canonicalStore.loadEntitySnapshots(workId);
   const scan = runPlannedDetectors({ plan, prose: input.prose, chapter, foundation, workContract, arcPosition, entities });
   const length = lengthCoverage({ workContract, prose: input.prose });
@@ -154,8 +167,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     try {
       const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'story-profile-check',
         messages: promptKit({ contract: workContract }).messages('story-profile-check', profileCheckInputs({
-          profile: context.plans.profile, arcEpisode: episodeForChapter(context.plans.arc, chapter),
-          episodePlan: context.plans.episode, foundation, prose: input.prose, kit: promptKit({ contract: workContract }) })) });
+          profile: context.plans.profile, arcEpisode,
+          episodePlan, foundation, prose: input.prose, kit: promptKit({ contract: workContract }) })) });
       if ((providers.pending?.length ?? 0) === before) state.profileAdvisory = { findings: profileFindings(response.text) };
     } catch (error) {
       if (error?.name !== 'PendingModelWork') state.profileAdvisory = { findings: [], error: String(error?.message ?? error) };
@@ -173,7 +186,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
     castManifestRaw: input.castManifestRaw, requireInfluenceObservation, workContract, language: workContract.language,
     tracking: ledgerConfig.tracking,
     // Only what the prose touches (and the planned cast): the index does not grow with the work.
-    prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', config: ledgerConfig, focusText: input.prose, cast: context.plans.episode?.cast ?? [], hookIds: context.plans.episode?.hooksTouched ?? [] }),
+    prevStateRender: renderCurrentState(prevState, foundation, { kit, mode: 'extract', config: ledgerConfig, focusText: input.prose, cast: episodePlan?.cast ?? [], hookIds: episodePlan?.hooksTouched ?? [] }),
     ...(entities.length ? { entities } : {}) };
   const sceneLock = sceneLockOf(context);
   try {
@@ -192,8 +205,8 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       if (providerFailure) return providerError();
       if (extracted.extractionValidation?.status !== 'completed' || extracted.extractionValidation.contextHash !== computeExtractionContextHash(extractionInput))
         return fail('VALIDATION_INCOMPLETE', { extractionValidation: extracted.extractionValidation });
-      if (context.plans.episode?.characterArcBeats?.length) {
-        extracted.delta = { ...extracted.delta, arcCursorOps: context.plans.episode.characterArcBeats.map(({ characterId, beat, note }) => ({ characterId, nextBeat: beat, ...(note !== undefined ? { note } : {}) })) };
+      if (episodePlan?.characterArcBeats?.length) {
+        extracted.delta = { ...extracted.delta, arcCursorOps: episodePlan.characterArcBeats.map(({ characterId, beat, note }) => ({ characterId, nextBeat: beat, ...(note !== undefined ? { note } : {}) })) };
       }
       // A re-ask about named records applies to the extraction it asked for, not to later ones.
       state.extracted = extracted; delete state.ledgerRecheck; await save();
@@ -241,7 +254,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       // the one-line povMode (2026-09-15 fr sample: povMode said "alternation
       // with Malik to be confirmed" and three reviews answered uncertain).
       ...(context.plans.profile?.povDesign ? { povDesign: context.plans.profile.povDesign } : {}),
-      ...(typeof context.plans.episode?.povCharacter === 'string' && context.plans.episode.povCharacter ? { povCharacterId: context.plans.episode.povCharacter } : {}) };
+      ...(typeof episodePlan?.povCharacter === 'string' && episodePlan.povCharacter ? { povCharacterId: episodePlan.povCharacter } : {}) };
     semanticInput.checkSections = renderCheckSections({ foundation, prevState, delta: semanticInput.delta, povDesign: semanticInput.povDesign ?? null,
       povCharacterId: semanticInput.povCharacterId ?? null, kit, focusText: input.prose, config: ledgerConfig });
     if (!state.semantic) {
@@ -286,7 +299,7 @@ export async function runContractCheck({ store, workId, chapter, prose, title, s
       // host round trip. A relay that throws on a miss must not keep the
       // summary from being queued behind a pending title.
       const queued = async (ask) => { try { return await ask(); } catch (error) { if (error?.name === 'PendingModelWork') return null; throw error; } };
-      let preparedTitle = input.title ?? context.plans.episode?.title;
+      let preparedTitle = input.title ?? episodePlan?.title;
       let titleResponse = null;
       if (!preparedTitle) {
         titleResponse = await queued(() => wrapped.complete({ model: MODEL, step: 'chapter-title', jsonMode: true,

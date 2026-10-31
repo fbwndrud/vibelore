@@ -20,8 +20,8 @@
  * round trip untouched -- see `mergeCharacterDoc`.
  */
 import { normalizeStoryState } from '../../engine/src/continuity/story-state.js';
-import { appendFile, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { appendFile, mkdir, open, readFile, readdir, rename, writeFile } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import {
   bulletSection, formatDocument, parseDocument, readBullets, readSection, section,
@@ -32,6 +32,7 @@ import {
   allOwnedHeadings, assertCanonicalSections, formatKeysToWrite, headingsFor, resolveDocumentFormat,
 } from './canonical-format.js';
 import { CANONICAL_FORMAT_VERSION_LEGACY_KO, CANONICAL_FORMAT_VERSION_MULTILINGUAL, normalizeLanguageTag } from '../../engine/src/core/language-policy.js';
+import { requireLore } from '../../engine/src/lore/schemas.js';
 import { saveManagedPlanDocument } from '../core/working-tree-sync.js';
 import { renderStorySpineDocument, renderWriterSkillDocument } from './plan-documents.js';
 
@@ -71,6 +72,15 @@ async function writeAtomic(path, text) {
   await mkdir(dirname(path), { recursive: true });
   const tmp = `${path}.tmp`;
   await writeFile(tmp, text, 'utf8');
+  await rename(tmp, path);
+}
+
+/** Unique temp name, fsync, then rename: for the one machine file that has no snapshot copy to restore from. */
+async function writeDurable(path, text) {
+  await mkdir(dirname(path), { recursive: true });
+  const tmp = `${path}.tmp-${randomUUID()}`;
+  const file = await open(tmp, 'wx');
+  try { await file.writeFile(text, 'utf8'); await file.sync(); } finally { await file.close(); }
   await rename(tmp, path);
 }
 
@@ -258,6 +268,20 @@ export class MarkdownStateStore {
   async saveStoryProfile(workId, profile) {
     assertSafeId('workId', workId);
     await writeJson(this.sidecar('story-profile.json'), profile);
+  }
+
+  // -- Creative decisions (user preferences; machine state, not a working-tree document) --
+  async loadCreativeDecisions(workId) {
+    assertSafeId('workId', workId);
+    const raw = await readTextOrNull(this.sidecar('creative-decisions.json'));
+    if (raw === null) return null;
+    try { return JSON.parse(raw); }
+    catch { requireLore(false, 'INVALID_CREATIVE_DECISION', 'the stored creative decision ledger is damaged and cannot be read'); }
+  }
+
+  async saveCreativeDecisions(workId, ledger) {
+    assertSafeId('workId', workId);
+    await writeDurable(this.sidecar('creative-decisions.json'), `${JSON.stringify(ledger, null, 2)}\n`);
   }
 
   // -- StorySpine -----------------------------------------------------------

@@ -5,7 +5,7 @@
 A call reference for users who integrate directly with a host AI. Regular users don't need to write arguments
 themselves; follow [Getting started](GETTING_STARTED.en.md) and [Making a webtoon](WEBTOON.en.md) and just ask.
 
-This is the usage contract for the 33 user tools the default server exposes and the 13 low-level tools on the advanced surface.
+This is the usage contract for the 34 user tools the default server exposes and the 13 low-level tools on the advanced surface.
 A new work prepares an approved profile, whole story, writer skill and arc. After that, writing
 checks the active arc with `lore_arc_status` and starts with `lore_write`, using `lore_decide` when approval is pending.
 The low-level tools are kept for compatibility and engine debugging but don't appear in the default `tools/list`.
@@ -17,7 +17,7 @@ The tools that exist only on the advanced surface are `lore_context`, `lore_chec
 writing does not combine these tools directly.
 
 For existing panel-based webtoon workflows, `VIBELORE_MCP_SURFACE=compat` adds the three deprecated
-tools (36 total). New webtoons use the default `lore_webtoon_scene` tool.
+tools (37 total). New webtoons use the default `lore_webtoon_scene` tool.
 
 ## How to read this
 
@@ -310,7 +310,10 @@ Approves or rejects a pending StoryProfile.
 
 ### `lore_profile_status`
 
-Reads the active and pending StoryProfile.
+Reads the active and pending StoryProfile. `decisions` is a read-only list that shows preparation depth, worldbuilding scope
+and profile approval in one shape (scope, target revision, authority, evidence). It never reports more authority than the
+stored evidence and is not approval evidence or a receipt. The approval item's `target.revision` is `null` when no approval
+time is stored or the profile's preferences changed after approval.
 
 | Required | Optional |
 |---|---|
@@ -410,6 +413,8 @@ form.
 An active arc blocks replacement with `ARC_IN_PROGRESS`. Pass `replaceActive:true` only when the user
 explicitly requests replacement; a validated, saved candidate replaces it at the next arc number.
 Pending plans can be regenerated at the same number; completed arcs allow planning the next arc.
+While a scene workflow (`lore_write` with `form=scene`) is open and not in `clean_fail`, it owns the next chapter, so planning is refused with `SCENE_IN_PROGRESS`.
+A failed (`clean_fail`) scene does not block; after the arc is approved, `lore_write(form="chapter")` replaces it.
 
 | Required | Optional |
 |---|---|
@@ -432,6 +437,8 @@ Approves or rejects a pending ArcPlan.
 | Required | Optional |
 |---|---|
 | `workId`, `action: approve\|reject` | `project` |
+
+Like `lore_arc_plan`, approving is refused with `SCENE_IN_PROGRESS` while a scene workflow is open and not in `clean_fail`.
 
 ### `lore_arc_status`
 
@@ -504,7 +511,7 @@ Runs everything from the next chapter's plan through the draft, checks (up to 3,
 
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `instruction`, `autonomy: guided\|auto`, `modelProfile`, `language`, `retryValidation` |
+| `workId` | `project`, `instruction`, `form: chapter\|scene`, `autonomy: guided\|auto`, `modelProfile`, `language`, `retryValidation` |
 
 ```json
 {
@@ -529,7 +536,7 @@ It is resolved in the order explicit stage value > `light` (planning, draft and 
 `model` and `reasoningEffort` hints of the `needs_model` requests, and the profile is stored in the workflow and kept through `lore_resume` and
 `lore_decide`. If left empty, it proceeds with the single host model as before.
 
-The prerequisites are an approved StoryProfile, StorySpine, WriterSkill and an active ArcPlan. `guided`
+For a serial chapter (`form` omitted) the prerequisites are an approved StoryProfile, StorySpine, WriterSkill and an active ArcPlan. `guided`
 waits for approval; `auto` commits automatically after the invariants pass and the critic completes normally. It does not rewrite automatically
 on semantic advisories alone.
 
@@ -547,6 +554,36 @@ same manuscript waiting for approval with `CRITIC_INCOMPLETE`. A manuscript that
 In `quality.review` you can check review completion, failure and provenance, and in `quality.advisories` you can read review opinions
 with evidence. A high total score does not delete individual findings.
 
+#### Writing one scene
+
+`form="scene"` writes one short scene, not a serial chapter, as the next canonical chapter. `instruction` is the scene request and is
+required (at most 800 characters after trimming leading and trailing whitespace). A missing or overlong request gives `SCENE_BRIEF_REQUIRED`;
+control characters, reserved syntax or instruction-like text give `SCENE_BRIEF_UNSAFE`. The workflow stores exactly the trimmed request that passed this screen.
+The only prerequisites are the foundation and an approved StoryProfile. No StorySpine, WriterSkill, arc or EpisodePlan is needed, and none is created.
+An active or pending arc stops it with `SCENE_FORM_ARC_PLANNED`, and an active EpisodePlan left for the next chapter stops it with
+`SCENE_FORM_CHAPTER_PLANNED`; a completed or rejected arc does not block it. The scene's check and commit take no authority from a stored
+EpisodePlan (pending or rejected included) or an arc episode, and complete neither.
+
+The story identity, pilot contract, chapter plan and narrative-boundary steps are skipped. The mandatory check, receipt, revision loop, coherence,
+editorial, character-fidelity and profile reviews and approval and commit run as usual, while the reader hook, pattern ledger and arc review that do not apply
+to a scene are not requested and are recorded as `not_applicable`. Length follows the work's per-chapter length setting rather than the request, and the result
+enters the canon as the next chapter; serial chapters continue after it. While a scene workflow is open and not in `clean_fail`, `lore_arc_plan` and
+`lore_arc_decide(approve)` are refused with `SCENE_IN_PROGRESS`. A failed scene does not block arc planning; after the arc is approved,
+`lore_write(form="chapter")` replaces it.
+
+To continue or revise, call `lore_write` without `form`. An open workflow keeps its own form; an explicit different `form` replaces only a workflow in
+`clean_fail` with a new draft, and otherwise stops with `WORKFLOW_FORM_MISMATCH`.
+
+```json
+{
+  "project": "/novels/night-bus",
+  "workId": "my-novel",
+  "form": "scene",
+  "instruction": "우주 편의점에서 두 사람이 큰 사건 없이 대화한다.",
+  "autonomy": "guided"
+}
+```
+
 ### `lore_decide`
 
 Approves a `guided` manuscript, requests a revision in the same workflow, or holds or rejects it.
@@ -556,8 +593,49 @@ Approves a `guided` manuscript, requests a revision in the same workflow, or hol
 | `workId`, `approvalId`, `action: approve\|request_revision\|hold\|reject` | `project`, `feedback` |
 
 `request_revision` requires `feedback`. The approval ID comes from the `lore_write` result.
+The `request_revision` result's `nextAction` says that feedback meant to last beyond this chapter, for a character
+or the whole work, is recorded with `lore_preferences` after confirming the scope with the user. A revision request alone records no preference.
+The revised manuscript is never auto-committed, even when the following `lore_write` is `autonomy="auto"`: it waits for `lore_decide` approval again.
 The same tool is used for an `auto` manuscript that entered approval waiting because of a review failure. Even with explicit approval,
 the existing review failure record does not turn into a normal completion.
+
+### `lore_preferences`
+
+Records, retires and lists lasting creative preferences the user stated, together with their scope. The scope is one
+character (`subject`) or the whole work (`work`), and the host calls it only after confirming the scope with the user.
+The tool never infers a preference.
+
+| Required | Optional |
+|---|---|
+| `workId`, `action: adopt\|retire\|status` | `project`, `statement`, `userAnswer`, `level: subject\|work`, `subjectId`, `kind: preference\|goal`, `topic`, `supersedes`, `id` |
+
+- `adopt` needs `statement`, `userAnswer` and `level`, and `subject` also needs `subjectId`. `statement` is an
+  instruction of at most 300 characters in the work language; control characters, code fences and meta-instructions
+  are refused. `userAnswer` keeps the user's exact words as evidence only and is never sent to the model.
+- Only the `statement` of active preferences reaches the draft and every revision of a chapter workflow (the user's
+  revision request, the mandatory repair and quality revisions) as soft guidance. The workflow pins the preference set
+  when it first needs it, and every draft call of that workflow uses the pinned set unchanged. The coherence review
+  (`coherence-judge`) judges each preference and reports `warn`/`fail` only as a `CREATIVE_PREFERENCE` advisory
+  (soft, `advisoryOnly`); it never blocks or triggers a revision. Turning `coherence-judge` off through
+  `disabledReviews` skips this judgement too. An answer with no preference verdicts at all records that review as
+  incomplete, so `auto` falls back to approval (the same as author rules). Canon facts and the chapter plan take
+  precedence, and a preference alone is never a ground for revision. Without active preferences the draft, revise
+  and review requests and the receipts are unchanged.
+- If a preference changes while a workflow is running, that workflow stops with `STALE_WORK_CONTRACT` and the next
+  `lore_write` re-checks the kept manuscript under the changed preferences (it is not redrafted). A user revision
+  still pending when the preferences changed is asked again under the current preferences (applied once).
+- For `level=subject`, `subjectId` must be a character id of the work (not a name). An unknown id is refused with
+  `INVALID_CREATIVE_DECISION`, which lists the valid ids (up to 20). `retire` and `status` do not check, so a preference
+  for a character removed later can still be retired.
+- `supersedes` retires an existing preference and adopts the new one in one write. Moving the same user words from a
+  character to the whole work is refused with `CREATIVE_DECISION_SCOPE_WIDENED`, even after the character preference
+  was retired; widening needs a new user answer. `selection`,
+  `artifact` and `personal` scopes and `fact` and `policy` kinds are `INVALID_CREATIVE_DECISION`. The tool takes no
+  `authority` argument (over MCP an unknown argument is `INVALID_ARGUMENT`). A work keeps at most 12 active preferences.
+- `status` returns `{revision, active, retired}` with each preference's statement, scope, user answer and dates.
+- Adopting or retiring invalidates a passed check receipt, so the next `lore_write` re-checks the same manuscript.
+  The record lives in `.vibelore/creative-decisions.json` and survives chapter rollback. Facts belong in canon
+  (`characters/`, `world/`) and operating settings in `lore_configure`.
 
 ### `lore_workflow_status`
 
@@ -618,6 +696,10 @@ At `needs_style_decision` the host adopts the actual sample with `choice:{inspec
 `set_mode` changes the grant or revokes it with `delegation=null` and the latest answer, preserving the candidate.
 Production delegation defaults omitted panels to `auto` and respects the latest constraints. Scene `reject` records cancellation,
 closes pending work and keeps files. See [Delegation edge cases](reference/WEBTOON_WORKFLOW.en.md#delegation-and-edge-cases).
+
+`status` returns `decisions` with the adopted style as a work-level decision. It applies to future scenes, and existing scenes
+appear only in `explicitTargets` the user named. Delegated adoption keeps the delegation scope and the host's choice apart from
+the user's answer. `decisions` always describe the adopted head, even when `styleRevisionId` shows an older revision.
 
 ### `lore_webtoon_scene`
 
@@ -725,6 +807,8 @@ Generates the full prose with minimal fixes for the check violations. The result
 |---|---|
 | `workId`, `chapter`, `prose`, `violations[]` | `project` |
 
+Active creative preferences (`lore_preferences`) are read from the live ledger and sent as soft guidance. The integrated `lore_write` uses the set its workflow pinned.
+
 ### `lore_commit`
 
 Applies the checked prose, summary and state to the canon.
@@ -819,6 +903,7 @@ is kept in `.vibelore/rollback-archives/`.
 | New free-genre work | `profile → create → story_plan → writer_skill → arc_plan` |
 | Write the next chapter | `lore_write` |
 | Approve a finished manuscript | `lore_decide` |
+| Record a lasting preference for a character or the work | `lore_preferences` |
 | Adapt an existing novel into a webtoon | `lore_webtoon_style → lore_webtoon_scene` (the per-panel path `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide` is deprecated) |
 | Webtoon progress and review history | `lore_workflow_status/history(lane="webtoon")` |
 | A stopped model task | `lore_resume` |

@@ -42,7 +42,7 @@ function safely(label, fn) {
 
 const SEVERITY_RANK = { hard: 0, soft: 1, info: 2 };
 
-export async function runCheck({ store, workId, chapter, prose, title, summary, castManifestRaw, providers, targetChapters, dialogueBreakMode = 'strict', includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = false, forceContract = false, workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, metadataCompanion = null }) {
+export async function runCheck({ store, workId, chapter, prose, title, summary, castManifestRaw, providers, targetChapters, dialogueBreakMode = 'strict', includeSemanticContinuity = true, includeProfileCheck = true, requireInfluenceObservation = false, issueReceipt = false, forceContract = false, workflowId = null, retryValidation = false, allowWorkingTreeDrift = false, validationScope, metadataCompanion = null, form = 'chapter' }) {
   const sharedPublication = await createPublicationUnit({ rootDir: store.rootDir }).readPublished();
   if (!sharedPublication.ok) throw new Error(`CORRUPT_PUBLICATION: ${sharedPublication.error.code}`);
   forceContract ||= Boolean(sharedPublication.value?.tree?.sharedLore?.binding);
@@ -51,7 +51,7 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
     return runContractCheck({
       store, workId, chapter, prose, title, summary, castManifestRaw, providers,
       includeSemanticContinuity, includeProfileCheck, requireInfluenceObservation, issueReceipt,
-      workflowId, retryValidation, dialogueBreakMode, allowWorkingTreeDrift, validationScope, targetChapters, metadataCompanion,
+      workflowId, retryValidation, dialogueBreakMode, allowWorkingTreeDrift, validationScope, targetChapters, metadataCompanion, form,
     });
   }
 
