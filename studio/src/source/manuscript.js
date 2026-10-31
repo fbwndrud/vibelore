@@ -180,7 +180,7 @@ function registerBundleSourceCommand(service) {
       );
       // Include manifest and all selected runtime/historical raw files in the same
       // existing source import closure; no image bytes are interpreted as text.
-      return prepareSourceImport(service, envelope, { package: pkg });
+      return prepareSourceImport(service, envelope, { package: pkg }, { preserved: true });
     },
     validate: validateSourceImport,
     apply: applySourceImport,

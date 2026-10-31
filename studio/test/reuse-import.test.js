@@ -1516,3 +1516,28 @@ test('a slot does not carry an old import receipt into later adoption and undo',
   const s = await f.service.snapshot(f.projectId);
   assert.equal(s.reuseImports[0].id, receipt.id);
 });
+test('raw source import repeats preservation provenance only as its bundle import recorded it', async (t) => {
+  const { makeSourcePackage } = await import('../src/source/source-package.js');
+  const f = await withStudio(t),
+    text = Buffer.from('원문 그대로\r\n'),
+    data = fixture({ mediaKind: 'text' }, text, 'text/plain');
+  const source = await f.command(
+    'source.importBundle',
+    { ...data, sourcePackageId: 'source', productionId: null, title: '원문', language: 'ko', actor: 'a', reason: 'retain' },
+    { aggregate: { kind: 'sourcePackage', id: 'source' } }
+  );
+  const { id, sourceDigest, ...body } = source.value;
+  const repeat = (changes) => {
+    const pkg = makeSourcePackage({ ...body, ...changes });
+    return f.command('source.import', { package: pkg }, { aggregate: { kind: 'sourcePackage', id: pkg.id } });
+  };
+  await repeat({ id: 'same-provenance' });
+  await assert.rejects(
+    repeat({ id: 'other-reason', importProvenance: { ...body.importProvenance, reason: 'claimed' } }),
+    { code: 'SOURCE_PROVENANCE_UNVERIFIED' }
+  );
+  await assert.rejects(
+    repeat({ id: 'other-origin', originRefs: [ref({ recordId: 'elsewhere' })] }),
+    { code: 'SOURCE_PROVENANCE_UNVERIFIED' }
+  );
+});
