@@ -324,3 +324,12 @@ Studio `--test --test-concurrency=1 studio/test/*.test.js`. Studio ran without
 another test/render suite. All code changes were present for these final runs;
 only this verification record is updated afterward. The earlier unexplained
 default-concurrency renderer failure remains historical and is not claimed fixed.
+
+## Public-repository cleanup — 2026-10-31
+
+Before merge, internal critique-loop transcripts and development plan, spec and
+review records were removed from the public tree, and this note moved out of the
+npm package into `docs/research`. Local paths above are shown as `<node>` and
+`<tmp>/`. After current `main` was merged and these changes were made, the
+package dry-run lists 294 files, none under `studio/`, `docs/research/` or
+`docs/superpowers/`.
