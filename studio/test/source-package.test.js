@@ -600,3 +600,72 @@ it('rejects malformed nested source identifiers and dangling closure before any 
       assert.equal((await service.snapshot('p1')).sourcePackages.length, 0);
     });
 });
+it('captures the readable text of a requested historical scene-script revision, not the current file', async (t) => {
+  const { sharedSaga, SAGA_PROJECTIONS } = await import('../../test/fixtures/shared-lore.js');
+  const { mkdtemp, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { MarkdownStateStore } = await import('../../src/store/markdown-store.js');
+  const { inspectSceneScript, applySceneScript } = await import('../../src/core/scene-script.js');
+  const w = await sharedSaga(),
+    root = await mkdtemp(join(tmpdir(), 'studio-script-history-'));
+  t.after(() =>
+    Promise.all([rm(root, { recursive: true, force: true }), rm(w.root, { recursive: true, force: true })])
+  );
+  const store = new MarkdownStateStore(root),
+    scriptWork = 'script-history';
+  const script = {
+    schemaVersion: 1,
+    workId: scriptWork,
+    scriptId: 'tower',
+    title: '탑',
+    language: 'ko',
+    universeId: 'u1',
+    loreRevisionId: w.head,
+    registryRevisionId: w.registry.revisionId,
+    continuityId: 'main',
+    assetCatalogRevisionId: null,
+    expressionProfileId: null,
+    cast: [{ localCharacterId: 'hero', entityId: 'character-a', projections: SAGA_PROJECTIONS, assetIds: [] }],
+    scenes: [
+      {
+        id: 's1',
+        frame: 'present',
+        scope: { continuityId: 'main', timelineId: 't1', pointId: 'adulthood' },
+        entityIds: ['character-a'],
+        requirements: [{ entityId: 'character-a', fieldId: 'name', required: true }],
+        text: 'FIRST_REVISION_TEXT 윤재가 탑을 오른다.',
+      },
+    ],
+  };
+  const first = await inspectSceneScript({ store, workId: scriptWork, worldRoot: w.root, script });
+  await applySceneScript({ store, workId: scriptWork, proposalId: first.proposalId, expectedHead: null });
+  const later = { ...script, scenes: [{ ...script.scenes[0], text: 'LATER_REVISION_TEXT 윤재가 탑에서 내려온다.' }] };
+  const second = await inspectSceneScript({ store, workId: scriptWork, worldRoot: w.root, script: later });
+  await applySceneScript({
+    store,
+    workId: scriptWork,
+    proposalId: second.proposalId,
+    expectedHead: first.scriptRevisionId,
+  });
+  const before = await inventory(root);
+  const exported = await exportVibeloreSource({
+    store,
+    workId: scriptWork,
+    request: {
+      kind: 'scene-script',
+      scriptId: 'tower',
+      scriptRevisionId: first.scriptRevisionId,
+      productionLockId: first.productionLockId,
+    },
+  });
+  assert.deepEqual(await inventory(root), before);
+  const readable = exported.package.blobManifest.find((entry) => entry.kind === 'script-readable');
+  const text = Buffer.from(exported.blobs.find((b) => b.blobId === readable.blobId).bytes).toString('utf8');
+  assert.match(text, /FIRST_REVISION_TEXT/);
+  assert.match(text, new RegExp(first.scriptRevisionId.replace(/[^A-Za-z0-9]/g, '.')));
+  assert.doesNotMatch(text, /LATER_REVISION_TEXT/);
+  const allText =
+    JSON.stringify(exported.package) +
+    exported.blobs.map((b) => Buffer.from(b.bytes).toString('utf8')).join('');
+  assert.doesNotMatch(allText, /LATER_REVISION_TEXT/);
+});

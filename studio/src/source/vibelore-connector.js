@@ -2,7 +2,7 @@ import { stripPrivateFields as portable } from "../engine/portable.js";
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { resolveProductionSource, verifyProductionSource } from '../../../src/core/production-source.js';
-import { readAdoptedScript, sceneScriptFile } from '../../../src/core/scene-script.js';
+import { readAdoptedScript, renderSceneScript, sceneScriptFile } from '../../../src/core/scene-script.js';
 import { readSealedProductionInput } from '../../../src/core/input-objects.js';
 import { makeSourcePackage, hashBytes } from './source-package.js';
 import { fail, STABLE_ID } from '../engine/contracts.js';
@@ -65,7 +65,7 @@ export async function exportVibeloreSource({ store, workId, request }) {
         await capture(`document-${i + 1}`, 'document', join(store.rootDir, doc.path), doc.raw);
       states = { foundation: portable(source.foundation), storyProfile: portable(source.storyProfile) };
     } else {
-      const { script } = await readAdoptedScript({
+      const { script, head } = await readAdoptedScript({
         rootDir: store.rootDir,
         scriptId: source.scriptId,
         revisionId: source.scriptRevisionId,
@@ -74,12 +74,24 @@ export async function exportVibeloreSource({ store, workId, request }) {
         rootDir: store.rootDir,
         productionLockId: source.productionLockId,
       });
-      await capture(
-        'script-readable',
-        'script-readable',
-        join(store.rootDir, sceneScriptFile(source.scriptId)),
-        await readFile(join(store.rootDir, sceneScriptFile(source.scriptId)), 'utf8')
-      );
+      const readablePath = join(store.rootDir, sceneScriptFile(source.scriptId));
+      if (head?.revisionId === script.revisionId)
+        await capture('script-readable', 'script-readable', readablePath, await readFile(readablePath, 'utf8'));
+      else {
+        // The readable file shows HEAD only; render the requested immutable revision instead.
+        const bytes = Buffer.from(renderSceneScript(script), 'utf8'),
+          blobId = hashBytes(bytes);
+        blobs.push({ blobId, bytes: [...bytes] });
+        blobManifest.push({
+          id: studioId('script-readable'),
+          sourceObjectId: 'script-readable',
+          kind: 'script-readable',
+          blobId,
+          byteLength: bytes.length,
+          readableHash: blobId,
+          renderedFromRevision: script.revisionId,
+        });
+      }
       // Do not export lock.closure: its publication contains author-only/future documents.
       // Scene-selected text comes from the verified sealed lock, never current world files.
       const selectedDocuments = [
