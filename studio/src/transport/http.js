@@ -81,6 +81,8 @@ export async function startStudioHttp({
   let url,
     closing = false,
     closePromise;
+  // Host/Origin/Sec-Fetch-Site and the bootstrap token stop cross-site browser requests.
+  // A local process can forge these headers and read the token; that is a documented limit.
   function authorize(request, bootstrap) {
     if (request.headers.host !== new URL(url).host)
       throw new TransportError('FORBIDDEN', 403);

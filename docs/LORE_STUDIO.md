@@ -4,7 +4,7 @@ Studio는 원고를 읽어 그림·음성·장면을 편집하는 별도 로컬 
 
 ## 실행과 저장
 
-Studio는 **Git 저장소 체크아웃에서 실행**합니다. `vibelore` npm 패키지에는 Studio 실행 파일·의존성이 포함되지 않습니다. npm 설치 폴더에서 아래 명령을 실행하지 마세요. 저장소 루트에서 Node `^22.13.0 || ^24.0.0 || ^26.0.0`으로 의존성을 설치합니다. 저장 폴더는 소설 원작 폴더와 다른 새 위치로 지정합니다.
+Studio는 **Git 저장소 체크아웃에서 실행**합니다. `vibelore` npm 패키지에는 Studio 실행 파일·의존성이 포함되지 않습니다. npm 설치 폴더에서 아래 명령을 실행하지 마세요. 저장소 루트에서 Node `^22.13.0 || ^24.0.0 || ^26.0.0`으로 의존성을 설치합니다. 저장 폴더는 소설 원작 폴더와 다른 새 위치로 지정합니다. `--vibelore-root`를 함께 지정하면 `--project`나 `--library`가 원작 폴더 안에 있거나 원작 폴더를 포함할 때 아무것도 만들지 않고 `SOURCE_DESTINATION_OVERLAP`으로 시작을 거부합니다.
 
 ```sh
 git clone https://github.com/fbwndrud/vibelore.git
@@ -16,6 +16,8 @@ npm start --prefix studio -- --project /your/studio-project --project-id p1
 `--google-key-env` 또는 `--google-keychain-service`를 직접 지정했을 때만 자격 증명을 읽습니다. 옵션이 없으면 `GEMINI_API_KEY`가 환경에 있어도 공급자와 생성 worker를 연결하지 않습니다. 키를 UI·원고·command payload에 붙여 넣지 않습니다. Google을 의도적으로 사용할 때만 전용 환경 변수 또는 `--google-keychain-service`로 기존 자격 증명을 선택합니다. 계정/모델의 실제 제공 여부와 가격은 별도 확인 대상입니다.
 
 터미널의 loopback URL을 엽니다. 작업실 제목·언어·USD 발급 예산을 지정하고 만들기를 누르면 SQLite와 immutable blobs가 저장됩니다. 같은 폴더와 `--project-id`로 재실행하면 이어서 작업합니다. 서버 종료는 Ctrl-C입니다. 저장 버튼이 command를 확정하며, 새 변경 알림은 작성 중인 입력 초안을 덮어쓰지 않습니다.
+
+HTTP 서버는 loopback 주소에만 열리고, 실행할 때마다 새 bootstrap 토큰을 만듭니다. Host·Origin·`Sec-Fetch-Site` 검사와 토큰은 다른 웹사이트의 브라우저 요청(CSRF·DNS rebinding)을 막기 위한 것입니다. 같은 컴퓨터의 다른 로컬 프로세스는 헤더를 직접 지정해 bootstrap에서 토큰을 받을 수 있으므로 막지 못합니다. 신뢰하지 않는 프로그램이나 다른 사용자가 같은 계정에서 실행되는 환경에서는 Studio를 켜 두지 마세요.
 
 ## 제작 흐름
 
