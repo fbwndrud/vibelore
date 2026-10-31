@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 저장소 전용 Lore Studio에 로컬 제작·고정 Edition·공유 자산 Library·명시적 반입/채택과
+  제작 사이클 기록을 추가합니다. npm runtime에는 Studio를 포함하지 않습니다.
+- Studio 자격 증명을 명시적 옵션으로만 읽고 MCP의 임의 소유자 연결을 거부합니다.
+  내보내기의 비공개 필드 정책, 렌더 실패 분류, Library 상태·채택·파생 필터를 보완하고
+  전체 로컬 검증에 Studio를 포함합니다. 외부 런타임·라이선스와 설치 경로를 문서화합니다.
 - `lore_decide(action="request_revision")`로 수정된 원고는 다시 `lore_decide` 승인을 기다립니다. 이어지는 `lore_write`가 `autonomy="auto"`여도, 검사 도중 계획·계약·선호가 바뀌어 다른 workflow가 이어받아도 사용자가 보지 않은 수정 원고를 자동 커밋하지 않습니다.
 - `lore_write`에 `form="scene"`을 추가해, 아크 없이 사용자의 요청 하나로 짧은 장면 하나를 다음 정본 회차로 씁니다. 승인된 프로필과 기반만 있으면 되고 StorySpine·WriterSkill·아크·회차 계획은 만들지 않으며, 검사·영수증·승인·커밋은 그대로 거치고 장면에 해당하지 않는 reader hook·pattern ledger·아크 검토는 `not_applicable`로 기록합니다. 활성·대기 아크가 있으면 `SCENE_FORM_ARC_PLANNED`로 멈추고, 실패(`clean_fail`)하지 않은 장면이 열려 있는 동안 `lore_arc_plan`·`lore_arc_decide(approve)`는 `SCENE_IN_PROGRESS`로 거절합니다. 실패한 장면은 아크 계획을 막지 않으며 아크 승인 뒤 `lore_write(form="chapter")`가 대체합니다. 장면의 검사·커밋은 남아 있는 EpisodePlan과 아크 회차를 근거로 쓰지 않습니다. `form` 없는 연재 회차 집필은 그대로이고 공개 도구 수도 같습니다.
 - 창작 선호(`lore_preferences`)가 한 화 workflow 전체에 닿습니다. 활성 선호의 문장은 초고뿐 아니라 모든 수정(사용자 수정 요청·필수 수정·품질 수정)에도

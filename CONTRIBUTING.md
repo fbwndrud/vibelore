@@ -1,11 +1,13 @@
 # Contributing
 
-Use Node.js 22.x (22.13.0 or newer), 24.x or 26.x. There is no dependency installation
-or build step.
+Use Node.js 22.x (22.13.0 or newer), 24.x or 26.x. The core engine/MCP has no
+runtime dependencies or build step. Studio is a local component of the repository
+checkout with its own lockfile; install its dependencies before full validation.
 
 ```sh
 git clone https://github.com/fbwndrud/vibelore.git
 cd vibelore
+npm ci --prefix studio
 npm run test:all
 npm run check:source
 ```
@@ -23,7 +25,14 @@ if the manuscript is intentionally version-controlled.
 
 Use [private security reporting](SECURITY.md) for vulnerabilities. Keep code and
 documentation aligned; update the tool reference when an input contract changes.
-The engine and MCP test suites run independently and together locally. GitHub CI
+`npm run test:core` runs engine/MCP; `npm run test:studio` runs Studio;
+`npm run test:all` runs all three, including the release gate. Studio tests need
+FFmpeg/ffprobe and installed Chrome plus the optional locked Remotion/React
+packages for actual video validation. Set `STUDIO_CHROME_PATH` to the Chrome
+executable outside macOS (or to override its macOS default). Video checks report
+unsupported runtimes explicitly. Studio's default test concurrency is one because
+multiple short Chrome/FFmpeg renders compete for local resources. Source metadata
+checks remain separate from tests. GitHub CI
 and CodeQL workflows are disabled; pull requests and releases use local validation.
 This does not provide the former platform matrix, CodeQL analysis or history-wide
 secret scan. GitHub Pages publication is separate and remains enabled.
