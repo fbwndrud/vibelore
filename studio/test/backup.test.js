@@ -852,3 +852,28 @@ test("portable execution graph requires reservations while preserving legitimate
       );
     });
 });
+
+test("a restore killed mid-way leaves no project at the destination and the same path can be retried", async (t) => {
+  const { spawn } = await import("node:child_process");
+  const { once } = await import("node:events");
+  const { fileURLToPath } = await import("node:url");
+  const f = await withStudio(t);
+  const raw = await f.service.blobs.put("p1", Buffer.from("restore payload"));
+  const archive = await backup(f);
+  const directory = join(f.directory, "killed-restore");
+  const child = spawn(
+    process.execPath,
+    [fileURLToPath(new URL("./helpers/child-restore.js", import.meta.url)), archive, directory],
+    { stdio: "ignore" },
+  );
+  const [, signal] = await once(child, "exit");
+  assert.equal(signal, "SIGKILL");
+  await assert.rejects(access(directory), { code: "ENOENT" });
+  const { restoreStudioBackup } = await import("../src/engine/backup.js");
+  const restored = await restoreStudioBackup({ archive, directory });
+  t.after(() => restored.close());
+  assert.equal(
+    Buffer.from(await restored.blobs.read("p1", raw.blobId)).toString(),
+    "restore payload",
+  );
+});

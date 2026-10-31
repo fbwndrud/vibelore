@@ -1,8 +1,8 @@
 import { validateOriginRef } from '../reuse/bundle.js';
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, open, lstat, readdir, rm } from "node:fs/promises";
+import { mkdir, open, lstat, readdir, rename, rm } from "node:fs/promises";
 import { constants, existsSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { basename, join, dirname, resolve } from "node:path";
 import { retainedTables } from "./recovery.js";
 import { blobReferences } from "../render/closure.js";
 import {
@@ -535,11 +535,16 @@ export async function restoreIntoNewDirectory(
   } catch (e) {
     if (e.code !== "ENOENT") throw e;
   }
-  await mkdir(directory);
+  // Build beside the destination so a killed restore never leaves a partial project there.
+  const staging = join(
+    dirname(resolve(directory)),
+    `.${basename(resolve(directory))}.restore-${randomUUID()}`,
+  );
+  await mkdir(staging);
+  const { openStudio } = await import("./index.js");
   let service;
   try {
-    const { openStudio } = await import("./index.js");
-    service = await openStudio({ directory, providers: {}, renderer });
+    service = await openStudio({ directory: staging, providers: {}, renderer });
     service.store.write(() => {
       for (const table of retainedTables) {
         const cols = columns[table].split(" ");
@@ -580,11 +585,23 @@ export async function restoreIntoNewDirectory(
       await service.blobs.put(manifest.projectId, bytes.get(item.blobId));
     await service.close();
     service = null;
-    await syncDirectory(directory);
+    await syncDirectory(staging);
+    try {
+      await lstat(directory);
+      fail("DESTINATION_EXISTS", "Restore requires a new directory.");
+    } catch (e) {
+      if (e.code !== "ENOENT") throw e;
+    }
+    await rename(staging, directory);
     await syncDirectory(dirname(resolve(directory)));
-    return await openStudio({ directory, providers, renderer });
   } catch (e) {
     if (service) await service.close();
+    await rm(staging, { recursive: true, force: true });
+    throw publicError(e, "RESTORE_FAILED");
+  }
+  try {
+    return await openStudio({ directory, providers, renderer });
+  } catch (e) {
     await rm(directory, { recursive: true, force: true });
     throw publicError(e, "RESTORE_FAILED");
   }
