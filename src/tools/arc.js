@@ -273,20 +273,21 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   if (reviewed.stageReview) plan.stageReview = reviewed.stageReview;
   const quality = selection.enabled ? await runArcQuality({ foundation, plan, providers, kit }) : { verdict: 'disabled_by_user' };
   if ((providers.pending?.length ?? 0) > 0) return { preview: true, operation: 'arc-quality' };
+  const rhythmStrip = renderArcRhythmStrip(plan, kit);
+  const stripField = rhythmStrip ? { rhythmStrip } : {};
   if (selection.enabled && quality.verdict !== 'passed') {
-    if (reviewed.stageReview) return { status: 'needs_revision', code: 'ARC_QUALITY_REVISION_REQUIRED', needsRevision: true,
+    if (reviewed.stageReview) return { status: 'needs_revision', code: 'ARC_QUALITY_REVISION_REQUIRED', needsRevision: true, ...stripField,
       candidate: { ...plan, status: 'pending', quality }, details: quality, instruction: '후보와 품질 검토 근거를 보여 주고 lore_arc_plan feedback으로 같은 단계의 수정·재검토를 이어가세요.' };
     throw new Error(`아크 품질 검증 실패: ${quality.findings.map((item) => item.message).join(' ') || `총점 ${quality.score}, 취약 차원 ${quality.weakDimensions.join(', ')}`}`);
   }
   plan.quality = quality;
   plan.createdAt = new Date().toISOString();
   const approval = await gateApprovalActivation({ store, workId, kind: 'arc', value: plan, providers, resolution: workLanguage, structuralErrors: deterministicArcViolations(plan), retryValidation });
-  if (!approval.ok) return { ...approval, candidate: plan };
+  if (!approval.ok) return { ...approval, candidate: plan, ...stripField };
   await store.saveArcPlan(workId, plan);
-  const rhythmStrip = renderArcRhythmStrip(plan, kit);
   return {
     plan,
-    ...(rhythmStrip ? { rhythmStrip } : {}),
+    ...stripField,
     ...(plan.status === 'pending'
       ? { needsApproval: true, instruction: '이 계획을 사용자에게 보여주고 마음에 드는지 물으세요. 승인 전에는 집필하지 마세요.' }
       : { needsApproval: false, instruction: '자동 승인되었습니다. 첫 회차부터 집필할 수 있습니다.' }),

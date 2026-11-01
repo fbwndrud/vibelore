@@ -55,6 +55,22 @@ test('the review result carries a localized rhythm strip and the active map repe
   assert.equal('rhythmStrip' in result.plan, false);
 });
 
+test('a candidate returned without approval still carries the rhythm strip', async (t) => {
+  const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
+  await runConfigureStatus({ store, workId, planningReviews: { arc: false } });
+  const raw = { title: '문 안', promise: '같이 논다', episodes: [1, 2, 3].map((i) => ({ title: `놀이 ${i}`, beat: `다른 사건 ${i}`, pressure: `장애 ${i}`, turn: `선택 ${i}`, carry: `다음 결과 ${i}`, ...(i === 1 ? { role: 'peak' } : {}) })) };
+  const result = await runArcPlan({ store, workId, mode: 'review', episodes: 3, replaceActive: true,
+    providers: { pending: [], async complete(req) {
+      if (req.step !== 'approval-language-contract') return { text: JSON.stringify(raw) };
+      const payload = JSON.parse(req.messages.find((message) => message.role === 'user').content);
+      return { text: JSON.stringify({ language: payload.language, artifactHash: payload.artifactHash, verdict: 'fail', evidence: [], allowedExceptions: [] }) };
+    } } });
+  assert.equal(result.ok, false);
+  assert.ok(result.candidate);
+  assert.match(result.rhythmStrip, /1\/3/);
+  assert.equal('rhythmStrip' in result.candidate, false);
+});
+
 async function capturedArcRequest(t, { depthMode }) {
   const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
   await runConfigureStatus({ store, workId, planningReviews: { arc: false } });
