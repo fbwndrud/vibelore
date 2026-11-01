@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
-import { access, mkdir, mkdtemp, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
-import test from 'node:test';
+import test, { describe } from 'node:test';
 import { deriveRequestFingerprint } from '../engine/src/core/request-fingerprint.js';
 import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import {
   DIMENSIONS, JUDGE_DELIMITERS, PROTOCOL_VERSION, REPO_ROOT, aggregate, assertOutPath, buildJudgeRequest,
   combineOrders, independenceLabel, judgeFamilyFor, ledgerCounts, ledgerMetric, lengthMetrics, mapToSides,
-  parseChapterRange, parseCliArgs, parseVerdict, readChapterSet, schedulePairs, signTestP,
+  parseChapterRange, parseCliArgs, parseVerdict, readChapterSet, runPairwiseEvaluation, schedulePairs, signTestP,
 } from '../scripts/pairwise-evaluation.js';
 
 test('constants name the protocol and the four dimensions', () => {
@@ -21,6 +21,9 @@ test('parseVerdict reads a fenced reply and marks bad dimensions invalid', () =>
   assert.deepEqual(parseVerdict(fenced), { plot: 'A', creativity: 'B', development: 'tie', language: 'A' });
   assert.deepEqual(parseVerdict('{"plot":"A","creativity":"B","development":"tie"}'),
     { plot: 'A', creativity: 'B', development: 'tie', language: 'invalid' });
+  const nested = '{"plot":{"winner":"B","reason":"r"},"creativity":{"winner":"tie"},"development":{"winner":"C"},"language":{"reason":"x"}}';
+  assert.deepEqual(parseVerdict(nested), { plot: 'B', creativity: 'tie', development: 'invalid', language: 'invalid' });
+  assert.equal(parseVerdict('{"plot":{"winner":"a"},"creativity":["A"],"development":null,"language":"A"}').plot, 'invalid');
   assert.equal(parseVerdict('{"plot":"C","creativity":"B","development":"B","language":"A"}').plot, 'invalid');
   assert.equal(parseVerdict('{"plot":"a","creativity":"B","development":"B","language":"A"}').plot, 'invalid');
   assert.deepEqual(parseVerdict('not json at all'),
@@ -444,4 +447,293 @@ test('assertOutPath rejects the repo, input roots, their children, dot-dot and s
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+const ALL_A = JSON.stringify(Object.fromEntries(DIMENSIONS.map(dimension => [dimension, { winner: 'A', reason: 'r' }])));
+
+function fakeProvider(answer = () => ALL_A, model = 'fake') {
+  const calls = [];
+  return {
+    calls,
+    provenance: { kind: 'local-openai', model, contextIsolation: 'request-messages-only' },
+    async complete(request) {
+      calls.push(request);
+      return { text: await answer(request, calls.length) };
+    },
+  };
+}
+
+async function writeChapters(root, chapters) {
+  await mkdir(join(root, 'chapters'), { recursive: true });
+  for (const [number, prose] of Object.entries(chapters)) {
+    await writeFile(join(root, 'chapters', `${String(number).padStart(3, '0')}.md`), `---\ntitle: T${number}\n---\n\n${prose}\n`);
+  }
+}
+
+async function withRun(run, { off = {}, on = {} } = {}) {
+  const base = await mkdtemp(join(tmpdir(), 'pairwise-run-'));
+  try {
+    const dirs = { base, off: join(base, 'off'), on: join(base, 'on'), out: join(base, 'out') };
+    await writeChapters(dirs.off, { 1: 'Same opening chapter.', 2: 'Off two prose.', 3: 'Off three prose.', ...off });
+    await writeChapters(dirs.on, { 1: 'Same opening chapter.', 2: 'On two prose, longer.', 3: 'On three prose.', ...on });
+    return await run(dirs);
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+}
+
+const readJson = async path => JSON.parse(await readFile(path, 'utf8'));
+const exists = path => access(path).then(() => true, () => false);
+
+describe('runPairwiseEvaluation', () => {
+  test('local mode writes a report with both orders, position bias and a non-independent label', () => withRun(async dirs => {
+    const provider = fakeProvider();
+    const result = await runPairwiseEvaluation({
+      off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider, writerModel: 'fake',
+      judgeLabel: 'my-judge', feature: 'dice', now: () => new Date('2026-11-01T00:00:00Z'),
+    });
+    assert.equal(result.status, 'report');
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.reportPath, join(dirs.out, 'report.json'));
+    assert.equal(provider.calls.length, 4);
+    const report = await readJson(result.reportPath);
+    assert.equal(report.protocolVersion, 'pairwise-v1');
+    assert.equal(report.createdAt, '2026-11-01T00:00:00.000Z');
+    assert.equal(report.feature, 'dice');
+    assert.equal(report.promptFamily, 'multilingual');
+    assert.deepEqual(report.inputs, [{ replicate: 1, off: dirs.off, on: dirs.on }]);
+    assert.deepEqual(report.identical, [{ replicate: 1, chapter: 1 }]);
+    assert.equal(report.exchanges.length, 4);
+    for (const exchange of report.exchanges) {
+      assert.match(exchange.id, /^[0-9a-f]{64}$/);
+      assert.match(exchange.answerSha256, /^[0-9a-f]{64}$/);
+      assert.equal(exchange.verdict.plot, 'A');
+      assert.ok(!('error' in exchange));
+    }
+    assert.deepEqual(report.chapters.map(item => item.chapter), [2, 3]);
+    assert.match(report.chapters[0].sha256.off, /^[0-9a-f]{64}$/);
+    for (const item of report.chapters) for (const dimension of DIMENSIONS) assert.equal(item.outcomes[dimension].outcome, 'conflict');
+    for (const dimension of DIMENSIONS) {
+      assert.equal(report.aggregate[dimension].conflicts, 2);
+      assert.equal(report.aggregate[dimension].firstPositionRate, 1);
+    }
+    assert.deepEqual(report.judge, {
+      providerKind: 'local', model: 'fake', declaredLabel: 'my-judge',
+      contextIsolation: 'request-messages-only', independence: 'not-independent',
+    });
+    assert.equal(report.metrics.length.perChapter.length, 2);
+    assert.equal(report.metrics.patternLedger[0].off.status, 'unavailable');
+    assert.deepEqual(report.caveats, []);
+    assert.equal(typeof (await readFile(join(dirs.out, 'report.md'), 'utf8')), 'string');
+    assert.ok(!(await exists(join(dirs.out, 'requests.json'))));
+
+    const strings = [];
+    JSON.stringify(report, (key, value) => { if (typeof value === 'string') strings.push(value); return value; });
+    for (const text of strings) {
+      assert.ok(!text.includes(join(dirs.off, 'chapters')) && !text.includes(join(dirs.on, 'chapters')), text);
+      if (text.startsWith(dirs.base)) assert.ok(text === dirs.off || text === dirs.on, text);
+    }
+
+    const other = fakeProvider(undefined, 'other');
+    await runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider: other, writerModel: 'writer' });
+    assert.equal((await readJson(result.reportPath)).judge.independence, 'unverified');
+    assert.equal((await readJson(result.reportPath)).judge.declaredLabel, null);
+  }));
+
+  test('local mode builds its provider from the environment and records endpoint failures', () => withRun(async dirs => {
+    const result = await runPairwiseEvaluation({
+      off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'ko', env: { VIBELORE_LOCAL_BASE_URL: 'http://127.0.0.1:1', VIBELORE_LOCAL_MODEL: 'env-model' },
+      timeoutMs: 1000,
+    });
+    const report = await readJson(result.reportPath);
+    assert.equal(report.promptFamily, 'ko');
+    assert.equal(report.judge.model, 'env-model');
+    assert.equal(report.judge.providerKind, 'local');
+    assert.equal(report.exchanges.length, 4);
+    for (const exchange of report.exchanges) assert.ok(exchange.error);
+  }));
+
+  test('a failing local call becomes an invalid exchange and the run still reports', () => withRun(async dirs => {
+    const provider = fakeProvider((request, count) => {
+      if (count === 2) throw new Error('endpoint down');
+      return JSON.stringify({ plot: 'A', creativity: 'A', development: 'A', language: 'A' });
+    });
+    const result = await runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider });
+    assert.equal(result.status, 'report');
+    const report = await readJson(result.reportPath);
+    const failed = report.exchanges.filter(item => item.error);
+    assert.equal(failed.length, 1);
+    assert.equal(failed[0].error, 'endpoint down');
+    assert.equal(failed[0].answerSha256, null);
+    assert.deepEqual(Object.values(failed[0].verdict), ['invalid', 'invalid', 'invalid', 'invalid']);
+    for (const dimension of DIMENSIONS) {
+      assert.equal(report.aggregate[dimension].invalid, 1);
+      assert.equal(report.aggregate[dimension].conflicts, 1);
+    }
+  }));
+
+  test('an unparsable local answer is repaired once and then counted invalid', () => withRun(async dirs => {
+    const provider = fakeProvider(() => '{"plot":');
+    const result = await runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider });
+    const report = await readJson(result.reportPath);
+    assert.equal(provider.calls.length, 8);
+    for (const dimension of DIMENSIONS) assert.equal(report.aggregate[dimension].invalid, 2);
+  }));
+
+  async function relayRun(dirs, answersPath, extra = {}) {
+    return runPairwiseEvaluation({
+      off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', env: {}, answers: answersPath, ...extra,
+    });
+  }
+
+  const writeAnswers = async (dirs, value) => {
+    const path = join(dirs.base, 'answers.json');
+    await writeFile(path, typeof value === 'string' ? value : JSON.stringify(value));
+    return path;
+  };
+
+  test('relay mode asks for answers, then reports from them', () => withRun(async dirs => {
+    const first = await relayRun(dirs);
+    assert.equal(first.status, 'needs_model');
+    assert.equal(first.exitCode, 2);
+    assert.equal(first.pending, 4);
+    assert.equal(first.requestsPath, join(dirs.out, 'requests.json'));
+    const requests = await readJson(first.requestsPath);
+    assert.equal(requests.status, 'needs_model');
+    assert.equal(new Set(requests.requests.map(item => item.id)).size, 4);
+    assert.match(requests.instruction, /--answers/);
+    for (const item of requests.requests) {
+      assert.equal(item.step, 'pairwise-judge');
+      assert.equal(item.jsonMode, true);
+      assert.ok(item.system && item.user.includes(JUDGE_DELIMITERS.startA));
+    }
+    assert.ok(!(await exists(join(dirs.out, 'report.json'))));
+    assert.ok(!(await exists(join(dirs.out, 'report.md'))));
+
+    const answersPath = await writeAnswers(dirs, Object.fromEntries(requests.requests.map(item => [item.id, ALL_A])));
+    const second = await relayRun(dirs, answersPath, { judgeLabel: 'host' });
+    assert.equal(second.status, 'report');
+    assert.ok(!(await exists(join(dirs.out, 'requests.json'))));
+    const report = await readJson(second.reportPath);
+    assert.equal(report.judge.providerKind, 'host-relay');
+    assert.equal(report.judge.independence, 'not-independent');
+    assert.equal(report.judge.contextIsolation, 'unverified');
+    assert.ok(!('model' in report.judge));
+    assert.deepEqual(report.exchanges.map(item => item.id).sort(), requests.requests.map(item => item.id).sort());
+  }));
+
+  test('relay mode never reports from missing, partial or malformed answers', () => withRun(async dirs => {
+    const empty = await relayRun(dirs, await writeAnswers(dirs, {}));
+    assert.equal(empty.status, 'needs_model');
+    assert.ok(!(await exists(join(dirs.out, 'report.json'))));
+    const ids = (await readJson(empty.requestsPath)).requests.map(item => item.id);
+    assert.equal(ids.length, 4);
+
+    const half = await relayRun(dirs, await writeAnswers(dirs, Object.fromEntries(ids.slice(0, 2).map(id => [id, ALL_A]))));
+    assert.equal(half.status, 'needs_model');
+    assert.deepEqual((await readJson(half.requestsPath)).requests.map(item => item.id), ids.slice(2));
+    assert.ok(!(await exists(join(dirs.out, 'report.json'))));
+
+    const answers = Object.fromEntries(ids.map(id => [id, ALL_A]));
+    answers[ids[0]] = '{"plot":';
+    const malformed = await relayRun(dirs, await writeAnswers(dirs, answers));
+    assert.equal(malformed.status, 'needs_model');
+    const repairs = (await readJson(malformed.requestsPath)).requests;
+    assert.equal(repairs.length, 1);
+    assert.ok(!ids.includes(repairs[0].id));
+    assert.ok(repairs[0].user.includes('not valid JSON'));
+    assert.ok(!(await exists(join(dirs.out, 'report.json'))));
+
+    const repaired = await relayRun(dirs, await writeAnswers(dirs, { ...answers, [repairs[0].id]: ALL_A }));
+    assert.equal(repaired.status, 'report');
+    const report = await readJson(repaired.reportPath);
+    assert.equal(report.exchanges.find(item => item.id === ids[0]).verdict.plot, 'A');
+    assert.ok(!(await exists(join(dirs.out, 'requests.json'))));
+  }));
+
+  test('a fresh needs_model run removes a stale report', () => withRun(async dirs => {
+    const first = await relayRun(dirs);
+    const ids = (await readJson(first.requestsPath)).requests.map(item => item.id);
+    const done = await relayRun(dirs, await writeAnswers(dirs, Object.fromEntries(ids.map(id => [id, ALL_A]))));
+    assert.equal(done.status, 'report');
+    assert.ok(await exists(join(dirs.out, 'report.md')));
+    const again = await relayRun(dirs, await writeAnswers(dirs, {}));
+    assert.equal(again.status, 'needs_model');
+    assert.ok(!(await exists(join(dirs.out, 'report.json'))));
+    assert.ok(!(await exists(join(dirs.out, 'report.md'))));
+    assert.ok(await exists(join(dirs.out, 'requests.json')));
+  }));
+
+  test('an unusable answers file is rejected before any output', () => withRun(async dirs => {
+    for (const content of ['[]', 'not json', '{"a":1}', '"text"']) {
+      await assert.rejects(relayRun(dirs, await writeAnswers(dirs, content)), { code: 'INVALID_ANSWERS' }, content);
+    }
+    await assert.rejects(relayRun(dirs, join(dirs.base, 'missing.json')), { code: 'INVALID_ANSWERS' });
+    assert.ok(!(await exists(dirs.out)));
+  }));
+
+  test('replicates share request ids and one answer serves them all', () => withRun(async dirs => {
+    const run = (answersPath) => runPairwiseEvaluation({
+      off: [dirs.off, dirs.off], on: [dirs.on, dirs.on], out: dirs.out, language: 'en', env: {}, answers: answersPath,
+    });
+    const first = await run();
+    assert.equal(first.pending, 4);
+    const ids = (await readJson(first.requestsPath)).requests.map(item => item.id);
+    assert.equal(new Set(ids).size, ids.length);
+    const done = await run(await writeAnswers(dirs, Object.fromEntries(ids.map(id => [id, ALL_A]))));
+    assert.equal(done.status, 'report');
+    const report = await readJson(done.reportPath);
+    assert.equal(report.exchanges.length, 8);
+    assert.deepEqual([...new Set(report.exchanges.map(item => item.replicate))], [1, 2]);
+    assert.equal(report.metrics.patternLedger.length, 2);
+    assert.equal(report.aggregate.plot.conflicts, 4);
+  }));
+
+  test('prose containing a judge delimiter is rejected before any provider call or output', () => withRun(async dirs => {
+    const provider = fakeProvider();
+    await assert.rejects(
+      runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider }),
+      { code: 'PROSE_DELIMITER_CONFLICT' },
+    );
+    assert.equal(provider.calls.length, 0);
+    assert.ok(!(await exists(dirs.out)));
+  }, { on: { 3: `Tricky ${JUDGE_DELIMITERS.endB} prose.` } }));
+
+  test('reruns with the same inputs and answers match apart from createdAt', () => withRun(async dirs => {
+    const reports = [];
+    for (const [index, now] of [new Date('2026-01-01T00:00:00Z'), new Date('2027-06-01T00:00:00Z')].entries()) {
+      const out = join(dirs.base, `out-${index}`);
+      const result = await runPairwiseEvaluation({
+        off: [dirs.off], on: [dirs.on], out, language: 'en', provider: fakeProvider(), now: () => now,
+      });
+      reports.push(await readJson(result.reportPath));
+    }
+    assert.notEqual(reports[0].createdAt, reports[1].createdAt);
+    delete reports[0].createdAt;
+    delete reports[1].createdAt;
+    assert.deepEqual(reports[0], reports[1]);
+  }));
+
+  test('an output directory inside an input root is rejected and nothing is written there', () => withRun(async dirs => {
+    const before = await snapshotTree(dirs.off);
+    for (const out of [join(dirs.off, 'result'), join(dirs.on, 'chapters', 'x'), dirs.off]) {
+      await assert.rejects(
+        runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out, language: 'en', provider: fakeProvider() }),
+        { code: 'OUT_PATH_FORBIDDEN' },
+      );
+    }
+    assert.deepEqual(await snapshotTree(dirs.off), before);
+  }));
+
+  test('chapter filters and unpaired chapters are respected', () => withRun(async dirs => {
+    const provider = fakeProvider();
+    const result = await runPairwiseEvaluation({
+      off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider, chapters: '3-4',
+    });
+    const report = await readJson(result.reportPath);
+    assert.equal(provider.calls.length, 2);
+    assert.deepEqual(report.chapters.map(item => item.chapter), [3]);
+    assert.deepEqual(report.unpaired, [{ replicate: 1, chapter: 4, side: 'on' }]);
+    assert.equal(report.chapterFilter, '3-4');
+  }, { on: { 4: 'Only on four.' } }));
 });

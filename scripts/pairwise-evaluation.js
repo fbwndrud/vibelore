@@ -1,14 +1,18 @@
 import { createHash } from 'node:crypto';
-import { readFile, readdir, realpath, stat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { parseJsonCompletion } from '../engine/src/core/json-completion.js';
 import { publishedProse } from '../engine/src/core/length-measure.js';
 import { promptFamilyFor } from '../engine/src/core/language-policy.js';
+import { deriveRequestFingerprint } from '../engine/src/core/request-fingerprint.js';
 import { loadCurrentExperienceLedger } from '../src/core/experience-ledger.js';
 import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import { parseDocument } from '../src/md/frontmatter.js';
+import { PendingModelWork, createHostRelay, runWithRelay } from '../src/provider/host-relay.js';
+import { withJsonRepair } from '../src/provider/json-repair.js';
+import { createLocalOpenAIProvider } from '../src/provider/local-openai.js';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { patternViolations } from '../src/tools/story-experience.js';
 
@@ -19,10 +23,16 @@ export const DIMENSIONS = ['plot', 'creativity', 'development', 'language'];
 const LETTERS = new Set(['A', 'B', 'tie']);
 const SCORES = { on: 1, tie: 0.5, off: 0 };
 
+const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
 export function parseVerdict(text) {
   const parsed = parseJsonCompletion(text);
-  const source = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  return Object.fromEntries(DIMENSIONS.map(dimension => [dimension, LETTERS.has(source[dimension]) ? source[dimension] : 'invalid']));
+  const source = isRecord(parsed) ? parsed : {};
+  return Object.fromEntries(DIMENSIONS.map(dimension => {
+    const entry = source[dimension];
+    const letter = isRecord(entry) ? entry.winner : entry;
+    return [dimension, LETTERS.has(letter) ? letter : 'invalid'];
+  }));
 }
 
 export function mapToSides(verdict, order) {
@@ -365,4 +375,211 @@ export async function assertOutPath({ out, inputRoots, repoRoot }) {
     throw Object.assign(new Error(`--out must be outside the repository and every input directory: ${out}`), { code: 'OUT_PATH_FORBIDDEN' });
   }
   return resolved;
+}
+
+const REQUESTS_INSTRUCTION = 'Answer each request from its "system" and "user" text alone, as JSON without code fences. Collect the answers as {"<id>": "<answer text>"} in an answers file and run this script again with --answers <file>.';
+
+export function renderReportMarkdown(report) {
+  return report.caveats.join('\n');
+}
+
+const sha256 = text => createHash('sha256').update(text).digest('hex');
+const allInvalid = () => Object.fromEntries(DIMENSIONS.map(dimension => [dimension, 'invalid']));
+
+async function readAnswers(path) {
+  const invalid = detail => fail('INVALID_ANSWERS', `Answers file ${path} ${detail}`);
+  let parsed;
+  try {
+    parsed = JSON.parse(await readFile(path, 'utf8'));
+  } catch {
+    throw invalid('is unreadable or not valid JSON');
+  }
+  if (!isRecord(parsed) || Object.values(parsed).some(value => typeof value !== 'string')) {
+    throw invalid('must be a JSON object mapping request ids to answer text');
+  }
+  return parsed;
+}
+
+function buildExchanges(scheduled, family) {
+  return scheduled.map(({ a, b, ...rest }) => {
+    const request = buildJudgeRequest({ family, a, b });
+    return { ...rest, request, id: deriveRequestFingerprint(request) };
+  });
+}
+
+async function answerExchange(provider, exchange) {
+  const response = await provider.complete(exchange.request);
+  if (typeof response?.text !== 'string') throw new Error('judge returned no text');
+  return {
+    id: exchange.id,
+    replicate: exchange.replicate,
+    chapter: exchange.chapter,
+    order: exchange.order,
+    answerSha256: sha256(response.text),
+    verdict: parseVerdict(response.text),
+  };
+}
+
+async function judgeLocal(exchanges, provider) {
+  const judge = withJsonRepair(provider);
+  const results = [];
+  for (const exchange of exchanges) {
+    try {
+      results.push(await answerExchange(judge, exchange));
+    } catch (error) {
+      const { id, replicate, chapter, order } = exchange;
+      results.push({ id, replicate, chapter, order, answerSha256: null, verdict: allInvalid(), error: error.message });
+    }
+  }
+  return { results, pending: [] };
+}
+
+async function judgeRelay(exchanges, answers) {
+  const pass = async relay => {
+    const judge = withJsonRepair(relay);
+    const results = [];
+    for (const exchange of exchanges) {
+      try {
+        results.push(await answerExchange(judge, exchange));
+      } catch (error) {
+        if (!(error instanceof PendingModelWork)) throw error;
+      }
+    }
+    return results;
+  };
+  const { result, pending } = await runWithRelay(pass, async () => ({}), { answers });
+  return { results: result, pending };
+}
+
+function localProvider({ provider, env, timeoutMs }) {
+  if (provider) return provider;
+  const baseUrl = env.VIBELORE_LOCAL_BASE_URL;
+  const model = env.VIBELORE_LOCAL_MODEL;
+  return baseUrl && model ? createLocalOpenAIProvider({ baseUrl, model, timeoutMs }) : null;
+}
+
+function pairOutcomes(first, second) {
+  const sidesFirst = mapToSides(first.verdict, first.order);
+  const sidesSecond = mapToSides(second.verdict, second.order);
+  return Object.fromEntries(DIMENSIONS.map(dimension => [dimension, {
+    ...combineOrders(sidesFirst[dimension], sidesSecond[dimension]),
+    letters: [first.verdict[dimension], second.verdict[dimension]],
+  }]));
+}
+
+function judgedPairs(results) {
+  const byPair = new Map();
+  for (const result of results) {
+    const key = `${result.replicate}:${result.chapter}`;
+    byPair.set(key, { ...byPair.get(key), replicate: result.replicate, chapter: result.chapter, [result.order]: result });
+  }
+  return [...byPair.values()].map(({ replicate, chapter, ...orders }) => ({
+    replicate, chapter, outcomes: pairOutcomes(orders['off-first'], orders['on-first']),
+  }));
+}
+
+async function patternLedgerMetrics({ sets, pairs, exchanges }) {
+  const metrics = [];
+  for (let index = 0; index < pairs.length; index += 1) {
+    const replicate = index + 1;
+    const chapters = [...new Set(exchanges.filter(item => item.replicate === replicate).map(item => item.chapter))];
+    metrics.push({
+      replicate,
+      off: await ledgerMetric({ root: sets[index].off.root, chapters }),
+      on: await ledgerMetric({ root: sets[index].on.root, chapters }),
+    });
+  }
+  return metrics;
+}
+
+async function buildReport({ args, family, sets, pairs, plan, exchanges, results, judge, now }) {
+  const judged = judgedPairs(results);
+  return {
+    protocolVersion: PROTOCOL_VERSION,
+    createdAt: now().toISOString(),
+    feature: args.feature ?? null,
+    language: args.language,
+    promptFamily: family,
+    inputs: args.off.map((off, index) => ({ replicate: index + 1, off, on: args.on[index] })),
+    chapterFilter: args.chapters ?? null,
+    judge,
+    exchanges: results,
+    chapters: judged.map(({ replicate, chapter, outcomes }) => ({
+      replicate,
+      chapter,
+      sha256: { off: pairs[replicate - 1].off.get(chapter).sha256, on: pairs[replicate - 1].on.get(chapter).sha256 },
+      outcomes: Object.fromEntries(DIMENSIONS.map(dimension => [dimension, { outcome: outcomes[dimension].outcome, score: outcomes[dimension].score }])),
+    })),
+    aggregate: aggregate(judged.map(item => item.outcomes)),
+    metrics: {
+      length: lengthMetrics({ pairs, exchanges: plan.exchanges }),
+      patternLedger: await patternLedgerMetrics({ sets, pairs, exchanges }),
+    },
+    identical: plan.identical,
+    unpaired: plan.unpaired,
+    caveats: [],
+  };
+}
+
+function judgeDescription({ provider, args }) {
+  const provenance = provider ? provider.provenance : createHostRelay({}).provenance;
+  const providerKind = provider ? 'local' : 'host-relay';
+  const model = provider ? provenance.model : undefined;
+  return {
+    providerKind,
+    ...(model ? { model } : {}),
+    declaredLabel: args.judgeLabel ?? null,
+    contextIsolation: provenance.contextIsolation,
+    independence: independenceLabel({ providerKind, judgeModel: model, writerModel: args.writerModel }),
+  };
+}
+
+async function writeNeedsModel({ outDir, pending }) {
+  const requestsPath = join(outDir, 'requests.json');
+  await Promise.all([rm(join(outDir, 'report.json'), { force: true }), rm(join(outDir, 'report.md'), { force: true })]);
+  await writeFile(requestsPath, JSON.stringify({ status: 'needs_model', requests: pending, instruction: REQUESTS_INSTRUCTION }, null, 2));
+  return { status: 'needs_model', exitCode: 2, outDir, requestsPath, pending: pending.length };
+}
+
+async function writeReport({ outDir, report }) {
+  const reportPath = join(outDir, 'report.json');
+  await rm(join(outDir, 'requests.json'), { force: true });
+  await writeFile(reportPath, JSON.stringify(report, null, 2));
+  await writeFile(join(outDir, 'report.md'), renderReportMarkdown(report));
+  return { status: 'report', exitCode: 0, outDir, reportPath };
+}
+
+export async function runPairwiseEvaluation({
+  off, on, out, language, chapters, answers, feature, judgeLabel, writerModel, timeoutMs,
+  env = process.env, provider = null, now = () => new Date(),
+}) {
+  const args = { off, on, out, language, chapters, answers, feature, judgeLabel, writerModel };
+  if (!Array.isArray(off) || !off.length || !Array.isArray(on) || off.length !== on.length) {
+    throw fail('PAIR_COUNT_MISMATCH', '--off and --on must be given the same non-zero number of times');
+  }
+  if (!out) throw fail('MISSING_ARGUMENT', 'missing required argument --out');
+  const family = judgeFamilyFor(language);
+  const range = parseChapterRange(chapters);
+  const givenAnswers = answers ? await readAnswers(answers) : {};
+  await assertOutPath({ out, inputRoots: [...off, ...on], repoRoot: REPO_ROOT });
+
+  const sets = [];
+  for (let index = 0; index < off.length; index += 1) {
+    sets.push({ off: await readChapterSet(off[index]), on: await readChapterSet(on[index]) });
+  }
+  const pairs = sets.map(set => ({ off: set.off.chapters, on: set.on.chapters }));
+  const plan = schedulePairs({ pairs, chapters: range });
+  const exchanges = buildExchanges(plan.exchanges, family);
+
+  const outDir = resolve(out);
+  await mkdir(outDir, { recursive: true });
+  await assertOutPath({ out: outDir, inputRoots: [...off, ...on], repoRoot: REPO_ROOT });
+
+  const local = localProvider({ provider, env, timeoutMs });
+  const { results, pending } = local ? await judgeLocal(exchanges, local) : await judgeRelay(exchanges, givenAnswers);
+  if (pending.length) return writeNeedsModel({ outDir, pending });
+  const report = await buildReport({
+    args, family, sets, pairs, plan, exchanges, results, judge: judgeDescription({ provider: local, args }), now,
+  });
+  return writeReport({ outDir, report });
 }
