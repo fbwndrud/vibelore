@@ -58,6 +58,8 @@ const latin = (n, seed) => {
   return u.repeat(Math.ceil(n / u.length)).slice(0, n);
 };
 const legacyTokens = (value) => Math.max(1, Math.ceil([...String(value ?? '')].length / 2));
+// lineage serialized from the code before exclusions were recorded; it must stay byte-identical.
+const GOLDEN_LINEAGE = '{"snapshotId":"rev-7","storyTimeScope":{"worldline":"main","through":42},"publicationOrder":42,"query":"harbor council 등대지기","queryTerms":["harbor","council","등대지기"],"predicate":{},"indexGeneration":"unversioned","tokenizerRevision":"unspecified","rankerRevision":"unspecified","candidateUniverseHash":"sha256:a7c1b78e4629b8a69b60989a12760cd8f0bee51aac6459a09589ce0270888d18","selected":[{"id":"c9"},{"id":"c8"},{"id":"c7"},{"id":"c6"},{"id":"c5"}],"selectedIds":["c9","c8","c7","c6","c5"],"mandatoryIds":["m"],"boundaryWitness":{"id":"c4","score":3040,"reason":"budget_boundary"}}';
 const memoryInput = (text, extra = {}) => ({
   budget: { maxTokens: 3000, reservedTokens: 500 }, query: 'harbor council 등대지기',
   mandatory: [{ id: 'm', text: text(900, 99) }],
@@ -73,6 +75,7 @@ for (const promptFamily of [undefined, 'ko']) {
     // golden values recorded at 52e5aee
     assert.deepEqual(result.value.lineage.selectedIds, ['c9', 'c8', 'c7', 'c6', 'c5']);
     assert.deepEqual(result.value.usage, { maxTokens: 3000, reservedTokens: 500, mandatoryTokens: 450, discretionaryTokens: 1750, remainingTokens: 300, droppedForBudget: 5 });
+    assert.equal(JSON.stringify(result.value.lineage), GOLDEN_LINEAGE);
     assert.equal(result.value.usage.mandatoryTokens, legacyTokens(mixedKo(900, 99)));
     assert.ok(tokenUnits(mixedKo(900, 99)) < legacyTokens(mixedKo(900, 99)), 'fixture must be mixed enough for tokenUnits() to diverge');
   });
@@ -88,4 +91,30 @@ test('an en work selects more optional memory under the same budget', () => {
 
 test('an unknown prompt family is rejected, not silently treated as ko', () => {
   assert.throws(() => compileMemory(context, memoryInput(latin, { promptFamily: 'en' })));
+});
+
+test('excluded lists every ranked candidate left out, in rank order, with a reason', () => {
+  const { value } = compileMemory(context, memoryInput(mixedKo));
+  assert.deepEqual(value.excluded, ['c4', 'c3', 'c2', 'c1', 'c0'].map((id) => ({ id, reason: 'budget' })));
+  assert.equal('excluded' in value.lineage, false);
+});
+
+test('a candidate that cannot match the query is no-query-match, an overlapping one that does not fit is budget', () => {
+  const { value } = compileMemory(context, {
+    budget: { maxTokens: 10 }, query: 'harbor',
+    candidates: [
+      { id: 'a-hit', text: 'harbor lamp' }, { id: 'b-hit', text: 'harbor bell' }, { id: 'z-none', text: 'orchard' },
+    ],
+  });
+  assert.deepEqual(value.lineage.selectedIds, ['a-hit']);
+  assert.deepEqual(value.excluded, [{ id: 'b-hit', reason: 'budget' }, { id: 'z-none', reason: 'no-query-match' }]);
+  for (const entry of value.excluded) assert.deepEqual(Object.keys(entry).sort(), ['id', 'reason']);
+});
+
+test('selected and excluded partition the non-mandatory candidates', () => {
+  const { value } = compileMemory(context, memoryInput(mixedKo, {
+    candidates: [...Array.from({ length: 10 }, (_, i) => ({ id: `c${i}`, text: mixedKo(700, i), priority: i })), { id: 'empty', text: '' }, { id: 'm', text: 'dup of mandatory' }],
+  }));
+  const all = Array.from({ length: 10 }, (_, i) => `c${i}`).sort();
+  assert.deepEqual([...value.lineage.selectedIds, ...value.excluded.map((x) => x.id)].sort(), all);
 });

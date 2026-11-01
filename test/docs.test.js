@@ -117,3 +117,22 @@ test('webtoon distribution includes linked skill docs and the unmodified license
   assert.match(await readFile('src/assets/fonts/OFL.txt', 'utf8'), /SIL OPEN FONT LICENSE Version 1.1/);
   assert.match(await readFile('NOTICE', 'utf8'), /SIL Open Font License/);
 });
+
+test('workflow status and inspect docs describe the context explanation', async () => {
+  const section = (source, name) => {
+    const start = source.indexOf(`### \`${name}\``);
+    assert.notEqual(start, -1, `missing section ${name}`);
+    const end = source.indexOf('\n### ', start + 1);
+    const stop = source.indexOf('\n## ', start + 1);
+    return source.slice(start, Math.min(...[end, stop].filter(index => index !== -1), source.length));
+  };
+  for (const file of ['docs/TOOLS.md', 'docs/TOOLS.en.md']) {
+    const source = await readFile(file, 'utf8');
+    for (const name of ['lore_workflow_status', 'lore_workflow_inspect']) {
+      assert.match(section(source, name), /explain/, `${file}: ${name} does not document explain`);
+    }
+  }
+  for (const file of ['docs/OPERATIONS.md', 'docs/OPERATIONS.en.md']) {
+    assert.match(await readFile(file, 'utf8'), /explain[:=]"context"/, `${file} does not mention explain="context"`);
+  }
+});

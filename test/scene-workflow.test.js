@@ -50,6 +50,14 @@ describe('scene draft input', () => {
     assert.equal(result.contextAudit.episodeIntentDigest, null);
   });
 
+  it('reports empty exclusion lists when a scene has no earlier chapter', async () => {
+    const result = await runDraftTool({ store: await sceneStore(), workId, chapter: 1, plan: REQUEST, form: 'scene', providers: recordingProvider() });
+    assert.deepEqual(
+      [result.contextAudit.memory.excluded, result.contextAudit.memory.excludedTotal, result.contextAudit.memory.filtered, result.contextAudit.memory.filteredTotal],
+      [[], 0, [], 0],
+    );
+  });
+
   it('refuses an unsafe scene request', async () => {
     const store = await sceneStore();
     const providers = recordingProvider();

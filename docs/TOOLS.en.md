@@ -644,7 +644,36 @@ also returns the `pendingRunId` to pass to `lore_resume`, so the same run can co
 
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full`, `explain: context` |
+
+Pass `explain: "context"` to add `contextExplanation` to the response. It is a read-only explanation of what went into the last
+draft input, built only from the recorded audit (`workflow.contextAudit`). It calls no model and stores nothing, and its
+sentences are in the work's language. Each item carries its layer (`layer`), outcome (`outcome`), reason code (`code`) and sentence
+(`text`), and `sentences` is the list of just those sentences. It covers the fixed world facts and cast, the summaries in the
+continuity window, older memory, the previous chapter's closing scene, creative preferences, switched-off sections and settings
+hidden by a canon-time gate. Carried-state records and long-arc memory are not itemized, so an item missing from the list is not
+proof it was included; the last sentence says so. For a workflow recorded before per-item reasons were kept, only the
+older-memory layer is reduced to counts, and before any draft input exists it says just that. `explain` is ignored for
+`lane="webtoon"`. Selection, ranking and checks are unaffected.
+
+```json
+{
+  "contextExplanation": {
+    "available": true,
+    "sentences": [
+      "World facts and every character in this chapter's cast are always in the draft input in full; they are not budget-selected.",
+      "Summaries of chapters 4, 5, 6 are in the continuity window.",
+      "Summary of chapter 3 was cut because the continuity window hit its 2000-token budget; older entries go first.",
+      "1 older memory item is in the draft input: `summary:1`",
+      "Memory `summary:2` was not selected because the memory budget was full.",
+      "This explanation lists summaries, older memory, the previous chapter's closing scene, creative preferences, switched-off sections and canon gates; it does not itemize carried-state records or long-arc memory, so an item not listed is not proof it was included."
+    ]
+  }
+}
+```
+
+`workflow.contextAudit.memory` stays the raw record. It holds only the ids and reason codes of the excluded (`excluded`) and
+filtered (`filtered`) items, and their full counts (`excludedTotal`, `filteredTotal`), never their text.
 
 ### `lore_workflow_history`
 
@@ -673,7 +702,10 @@ answers are not exposed. For webtoons, choose the detail with `lane="webtoon"` a
 
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full`, `explain: context` |
+
+Pass `explain: "context"` to add the same `contextExplanation` as `lore_workflow_status`. It explains only the draft input of the
+workflow looked up, and being read-only it changes no receipt, manuscript or state.
 
 ## Webtoon production
 

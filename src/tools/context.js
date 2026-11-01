@@ -32,6 +32,14 @@ import { tokenUnits } from '../core/token-units.js';
 import { renderCharacter } from '../core/prompt-sections.js';
 
 export const MAX_CONTEXT_TOKENS = 18000;
+/** Longest id-only list an audit record carries; the true count travels beside it. */
+export const AUDIT_LIST_CAP = 30;
+
+/** Keeps the first `cap` entries of an audit list and reports how many there were. */
+export function capAuditList(list, cap = AUDIT_LIST_CAP) {
+  const all = Array.isArray(list) ? list : [];
+  return { items: all.slice(0, cap), total: all.length };
+}
 
 function renderAddressMap(state, foundation, kit) {
   const entries = Object.entries(state?.addressMap?.entries ?? {});
@@ -289,6 +297,7 @@ export async function selectWriterContinuity({ store, workId, chapter }) {
     indexGeneration: `memory:${memory.documents}`, tokenizerRevision: SEARCH_TERMS_REVISION, rankerRevision: memory.backend,
   });
   if (!compiled.ok) throw new Error(`${compiled.error.code}: ${compiled.error.message}`);
+  const { items: excluded, total: excludedTotal } = capAuditList(compiled.value.excluded);
   return {
     // Newest first, like the window.
     recentSummaryTexts: window.recentSummaries.map((summary) => ({ chapter: summary.chapterNumber, text: summary.summary })),
@@ -297,6 +306,8 @@ export async function selectWriterContinuity({ store, workId, chapter }) {
     })),
     trimmedSummaries: window.trimmedCount,
     droppedForBudget: compiled.value.usage.droppedForBudget,
+    excluded,
+    excludedTotal,
     retrieval: { documents: memory.documents, candidates: candidates.length, selected: compiled.value.discretionary.length },
   };
 }

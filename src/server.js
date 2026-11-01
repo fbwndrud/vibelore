@@ -667,6 +667,7 @@ const TOOLS = [
       lane: { type: 'string', enum: ['prose', 'webtoon'], description: 'prose(기본)=소설 집필, webtoon=웹툰 제작.' },
       workflowId: { type: 'string', description: 'webtoon 전용. 조회할 워크플로 id. 생략하면 현재 워크플로. prose는 항상 현재 워크플로를 본다.' },
       detail: { type: 'string', enum: ['summary', 'full'], description: 'webtoon 전용. 기본 summary. 상세 계획/참조가 필요할 때 full.' },
+      explain: { type: 'string', enum: ['context'], description: 'context=초고 입력에 어떤 항목이 왜 들어가고 빠졌는지 작품 언어로 읽기 전용 설명(contextExplanation)을 덧붙인다. 모델을 부르지 않으며 원고 본문은 포함하지 않는다. prose 전용이며 lane=webtoon에서는 무시된다.' },
     }, required: ['workId'] },
   },
   {
@@ -685,7 +686,9 @@ const TOOLS = [
     name: 'lore_workflow_inspect',
     annotations: READ_ONLY,
     description: '특정 또는 현재 워크플로의 상세 상태를 확인한다. 소설은 상세 상태와 검사 영수증을 주고, detail=full일 때만 보존·승인 대기 원고(draftProse)를 포함한다. 모델 응답은 제외한다. lane=webtoon의 full은 원작·계획 상세를 포함할 수 있으므로 필요한 경우만 사용한다.',
-    inputSchema: { type: 'object', properties: { ...projectArg, lane: { type: 'string', enum: ['prose', 'webtoon'] }, workflowId: { type: 'string' }, detail: { type: 'string', enum: ['summary', 'full'] } }, required: ['workId'] },
+    inputSchema: { type: 'object', properties: { ...projectArg, lane: { type: 'string', enum: ['prose', 'webtoon'] }, workflowId: { type: 'string' }, detail: { type: 'string', enum: ['summary', 'full'] },
+      explain: { type: 'string', enum: ['context'], description: 'context=초고 입력에 어떤 항목이 왜 들어가고 빠졌는지 작품 언어로 읽기 전용 설명(contextExplanation)을 덧붙인다. 모델을 부르지 않으며 원고 본문은 포함하지 않는다. prose 전용이며 lane=webtoon에서는 무시된다.' },
+    }, required: ['workId'] },
   },
   {
     name: 'lore_webtoon_style', annotations: writes(),
@@ -1014,11 +1017,11 @@ async function dispatchTool(store, name, args) {
     case 'lore_episode_status':
       return { status: 'ok', ...(await runEpisodeStatus({ store, workId: args.workId, chapter: args.chapter })) };
     case 'lore_workflow_status':
-      return { status: 'ok', ...(await runWorkflowStatus({ store, workId: args.workId })) };
+      return { status: 'ok', ...(await runWorkflowStatus({ store, workId: args.workId, explain: args.explain })) };
     case 'lore_workflow_history':
       return { status: 'ok', ...(await runWorkflowHistory({ store, workId: args.workId, workflowId: args.workflowId, limit: args.limit, includeModelExchanges: args.includeModelExchanges })) };
     case 'lore_workflow_inspect':
-      return { status: 'ok', ...(await runWorkflowInspect({ store, workId: args.workId, workflowId: args.workflowId, detail: args.detail })) };
+      return { status: 'ok', ...(await runWorkflowInspect({ store, workId: args.workId, workflowId: args.workflowId, detail: args.detail, explain: args.explain })) };
     case 'lore_resume': {
       const run = await loadRun(store.rootDir, args.runId);
       if (!run) throw new Error(`RUN_NOT_FOUND: runId "${args.runId}" 를 찾을 수 없습니다 (만료됐거나 이미 완료됨).`);

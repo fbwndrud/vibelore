@@ -309,6 +309,41 @@ describe('MCP surface', () => {
     assert.deepEqual(readOnly, ['lore_arc_status', 'lore_profile_status', 'lore_snapshot_status', 'lore_status', 'lore_story_status', 'lore_workflow_history', 'lore_workflow_status', 'lore_writer_status']);
   });
 
+  it('offers explain=context on workflow status and inspect only, and returns the explanation over stdio', async () => {
+    const listed = await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }], { surface: 'public' });
+    const tools = new Map(listed.get(2).result.tools.map((t) => [t.name, t]));
+    assert.deepEqual(tools.get('lore_workflow_status').inputSchema.properties.explain.enum, ['context']);
+    assert.equal(tools.get('lore_workflow_history').inputSchema.properties.explain, undefined);
+    const advanced = await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }], { surface: 'advanced' });
+    const inspect = advanced.get(2).result.tools.find((t) => t.name === 'lore_workflow_inspect');
+    assert.deepEqual(inspect.inputSchema.properties.explain.enum, ['context']);
+    assert.ok(inspect.inputSchema.properties.explain.description.length > 0);
+
+    const store = await qualityStore();
+    const invoke = async (name, more = {}) => {
+      const replies = await session([init, call(2, name, { project: store.rootDir, workId: qualityWorkId, ...more })], { surface: 'public' });
+      assert.equal(replies.get(2).result.isError, undefined, JSON.stringify(replies.get(2)));
+      return payload(replies.get(2));
+    };
+    const empty = await invoke('lore_workflow_status', { explain: 'context' });
+    assert.equal(empty.active, false);
+    assert.equal(empty.contextExplanation.available, false);
+    let result = await invoke('lore_write', { autonomy: 'guided' });
+    for (let pass = 0; result.status === 'needs_model' && pass < 30; pass++) {
+      const answers = {};
+      for (const request of result.requests) answers[request.id] = proofAnswer(request) ?? qualityOutputs[request.step] ?? '{}';
+      result = await invoke('lore_resume', { runId: result.runId, answers });
+    }
+    assert.equal(result.status, 'awaiting_approval', JSON.stringify(result));
+    const plain = await invoke('lore_workflow_status');
+    assert.equal(plain.contextExplanation, undefined);
+    const explained = await invoke('lore_workflow_status', { explain: 'context' });
+    assert.equal(explained.contextExplanation.available, true);
+    assert.ok(explained.contextExplanation.sentences.length >= 2);
+    const { contextExplanation, ...rest } = explained;
+    assert.deepEqual(rest, plain);
+  });
+
   it('exposes only legacy panel tools additionally on the compatibility surface', async () => {
     const listed = await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }], { surface: 'compat' });
     const tools = listed.get(2).result.tools;
@@ -495,6 +530,9 @@ describe('MCP surface', () => {
     assert.ok(result.jobs[0].referenceImages.some(i => i.id === 'adopted-style'));
     const status = await invoke('lore_workflow_status', { workId: webtoonWorkId, lane: 'webtoon', workflowId: result.workflowId });
     assert.equal(status.productionMode, 'scene-direct-v1'); assert.equal(status.panelCountMode, 'auto'); assert.equal(status.panelCount, 5);
+    const explained = await invoke('lore_workflow_status', { workId: webtoonWorkId, lane: 'webtoon', workflowId: result.workflowId, explain: 'context' });
+    assert.equal(explained.contextExplanation, undefined);
+    assert.deepEqual(explained, status);
   });
 
   it('records delegated style choice and auto panels through public MCP without a user approval gate', async () => {

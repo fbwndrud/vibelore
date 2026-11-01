@@ -527,7 +527,7 @@ host relay의 모델 입출력을 보존하며 통과로 계산하지 않습니�
 | 어떤 원고·계약을 누가 검토했는가 | 검토 record의 `proseHash`, `contractDigest`, `requestId`, `evaluator` |
 | 검토가 정상 완료됐는가 | `quality.review.status`, 각 record의 `status`와 `failure` |
 | 각 모델 요청에 무엇이 얼마나 들어갔는가 | `needs_model.inputReport`(요청별 절·글자 수·공유 캐시 여부), `lore_workflow_status`의 `workflow.lastInputReport` |
-| 초고 연속성에서 무엇이 잘렸는가 | `needs_model.trimmedContext`, `workflow.contextAudit.memory` |
+| 초고 연속성에서 무엇이 잘렸는가 | `lore_workflow_status(explain:"context")`의 읽기 쉬운 설명, 원본은 `needs_model.trimmedContext`, `workflow.contextAudit.memory` |
 | 사용자가 어떤 검토를 껐는가 | `quality.disabledReviews`, `quality.review.disabled`, record `status: "disabled_by_user"` |
 | 실제 요청·응답 전문은 무엇인가 | `modelExchanges`, 이벤트·검토 record의 `exchangeId` |
 | 어떤 설치 소스로 실행했는가 | `runtime_identified` |

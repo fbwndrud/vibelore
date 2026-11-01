@@ -265,9 +265,9 @@ flowchart TD
 | 도구 | 역할 |
 |---|---|
 | `lore_status` | 현재 화수, 다음 화, 인물, 사실, 복선, 아크 커서 |
-| `lore_workflow_status` | 활성 워크플로 단계와 다음 행동 |
+| `lore_workflow_status` | 활성 워크플로 단계와 다음 행동, `explain:"context"`로 읽기 쉬운 초고 입력 설명 추가 |
 | `lore_workflow_history` | 단계·검사·승인·커밋 감사 로그 |
-| `lore_workflow_inspect` | 검사 영수증과 안전한 상세 상태 |
+| `lore_workflow_inspect` | 검사 영수증과 안전한 상세 상태, `explain:"context"`로 읽기 쉬운 초고 입력 설명 추가 |
 | `lore_snapshot_status` | 장별 snapshot 조회 |
 | `lore_rollback` | snapshot 복원. 기존 상태는 archive 보존 |
 

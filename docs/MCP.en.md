@@ -265,9 +265,9 @@ flowchart TD
 | Tool | Role |
 |---|---|
 | `lore_status` | Current chapter count, next chapter, characters, facts, foreshadowing, arc cursor |
-| `lore_workflow_status` | Active workflow stage and next action |
+| `lore_workflow_status` | Active workflow stage and next action; `explain:"context"` adds a readable explanation of the draft input |
 | `lore_workflow_history` | Audit log of stages, checks, approvals and commits |
-| `lore_workflow_inspect` | Check receipts and safe detailed state |
+| `lore_workflow_inspect` | Check receipts and safe detailed state; `explain:"context"` adds a readable explanation of the draft input |
 | `lore_snapshot_status` | Look up per-chapter snapshots |
 | `lore_rollback` | Restore a snapshot. The existing state is kept in an archive |
 
