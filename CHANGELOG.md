@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `lore_workflow_status`와 `lore_workflow_inspect`에 선택 인자 `explain: "context"`를 추가합니다. 마지막 초고 입력에 무엇이 들어가고 무엇이 빠졌는지 기록된 감사 정보로 읽기 쉬운 문장(`contextExplanation`)을 작품 언어로 만들어 줍니다. 읽기 전용이며 모델을 호출하거나 저장하지 않습니다. 감사 기록(`contextAudit.memory`)에 제외·걸러낸 기억의 id와 이유 코드, 전체 개수(`excluded`, `excludedTotal`, `filtered`, `filteredTotal`)가 id만으로 더해집니다. 입력 선택·순위·검사·커밋과 모델 요청은 그대로입니다.
 - 저장소 전용 Lore Studio에 로컬 제작·고정 Edition·공유 자산 Library·명시적 반입/채택과
   제작 사이클 기록을 추가합니다. npm runtime에는 Studio를 포함하지 않습니다.
 - Studio 자격 증명을 명시적 옵션으로만 읽고 MCP의 임의 소유자 연결을 거부합니다.

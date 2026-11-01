@@ -630,7 +630,34 @@ editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full`, `explain: context` |
+
+`explain: "context"`를 넘기면 응답에 `contextExplanation`이 더해집니다. 마지막 초고가 어떤 입력으로 만들어졌는지
+기록된 감사 정보(`workflow.contextAudit`)만 읽어 보여 주는 읽기 전용 설명입니다. 모델을 호출하지 않고 아무것도 저장하지
+않으며, 문장은 작품 언어로 나옵니다. 항목마다 계층(`layer`), 결과(`outcome`), 이유 코드(`code`)와 문장(`text`)을 담고,
+`sentences`는 그 문장만 모은 목록입니다. 고정으로 들어가는 세계관·인물, 연속성 창의 요약, 오래된 기억, 직전 회차 끝 장면,
+창작 선호, 꺼 둔 절, 정사 시점 게이트로 숨긴 설정을 다룹니다. 이월 상태 기록과 장기 아크 기억은 항목별로 나열하지 않으므로
+목록에 없다고 초고 입력에 들어갔다는 뜻은 아니며, 마지막 문장이 이를 알립니다. 항목별 이유를 남기기 전에 기록된
+workflow는 개수만 알려 주고, 초고 입력이 아직 없으면 그 사실만 알려 줍니다. 선택·순위·검사에는 영향이 없습니다.
+
+```json
+{
+  "contextExplanation": {
+    "available": true,
+    "sentences": [
+      "세계관 사실과 이번 화 등장인물은 예산으로 고르지 않고 항상 전부 초고 입력에 들어갑니다.",
+      "4, 5, 6화 요약이 연속성 창에 들어갔습니다.",
+      "3화 요약은 연속성 창이 2000 토큰 예산에 닿아 뺐습니다. 오래된 항목부터 뺍니다.",
+      "오래된 기억 1개가 들어갔습니다: `summary:1`",
+      "기억 `summary:2`은(는) 기억 예산이 가득 차 선택되지 않았습니다.",
+      "이 설명은 요약, 오래된 기억, 직전 회차 끝 장면, 창작 선호, 꺼 둔 절, 정사 시점 게이트만 다룹니다. 이월 상태 기록과 장기 아크 기억은 항목별로 나열하지 않으므로, 여기에 없다고 해서 초고 입력에 들어갔다는 증거는 아닙니다."
+    ]
+  }
+}
+```
+
+`workflow.contextAudit.memory`는 원본 기록으로 남습니다. 거기에는 제외(`excluded`)·걸러낸(`filtered`) 항목의 id와
+이유 코드, 전체 개수(`excludedTotal`, `filteredTotal`)만 있고 본문은 없습니다.
 
 ### `lore_workflow_history`
 
@@ -659,7 +686,10 @@ editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full` |
+| `workId` | `project`, `lane: prose\|webtoon`, `workflowId`, `detail: summary\|full`, `explain: context` |
+
+`explain: "context"`를 넘기면 `lore_workflow_status`와 같은 `contextExplanation`이 더해집니다. 조회한 workflow의
+초고 입력만 설명하며, 읽기 전용이라 영수증·원고·상태는 바뀌지 않습니다.
 
 ## 웹툰 제작
 
