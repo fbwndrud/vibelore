@@ -15,13 +15,14 @@ const documents = [
   'skills/webtoon-discovery-interview/references/codex-images.md', 'src/assets/fonts/README.md',
 ];
 
-async function markdownFiles(directory) {
+async function markdownFiles(directory, packagedOnly = false) {
   const entries = await readdir(directory, { withFileTypes: true });
   const groups = await Promise.all(entries.map(entry => {
     const path = `${directory}/${entry.name}`;
+    if (packagedOnly && path === 'docs/experiments') return []; // local pilot evidence; still link-checked, never shipped
     if (path === 'docs/showcase') return []; // GitHub Pages site, not part of the npm package
     if (path === 'docs/research' || path === 'docs/superpowers' || path === 'docs/plans') return []; // internal records, not shipped
-    return entry.isDirectory() ? markdownFiles(path) : entry.name.endsWith('.md') ? [path] : [];
+    return entry.isDirectory() ? markdownFiles(path, packagedOnly) : entry.name.endsWith('.md') ? [path] : [];
   }));
   return groups.flat();
 }
@@ -62,7 +63,7 @@ test('documentation links, section anchors and fenced blocks stay valid', async 
 test('distributed Markdown links stay inside the packaged files', async () => {
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
   const packed = path => pkg.files.some(entry => entry.endsWith('/') ? path.startsWith(entry) : path === entry);
-  for (const file of new Set([...documents, ...await markdownFiles('docs')])) {
+  for (const file of new Set([...documents, ...await markdownFiles('docs', true)])) {
     assert.ok(packed(file), `Document missing from package: ${file}`);
     for (const match of proseOnly(await readFile(file, 'utf8')).matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
       if (/^[a-z]+:/i.test(match[1])) continue;

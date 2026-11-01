@@ -21,6 +21,23 @@
 
 `previousWorkflowId`를 지정하면 직전 장면의 실제 이미지·설계·검토 결과를 상속한다. 원문은 직전 구간 바로 다음 문단부터 시작해야 한다. 앞 장면에 수정 필요 판정이 있어도 그 기록을 보존한 채 이어갈 수 있으며, 실패를 승인으로 바꾸지 않는다. 실제 두 이미지를 비교한 인물·배경·동작 전환 근거와 관측 칸 수를 기록하고, 칸 수 불일치나 연속성 실패는 완료 처리를 막는다. 기존 저장 작업에 칸 수 모드를 소급 적용하지 않는다. 짧은 `renderBrief` 도입 전에 저장된 장면 작업은 다음 `revise`부터 새 요청 형식을 쓰며, 그때까지의 이미지 반입 영수증은 재사용하지 않는다.
 
+### 시각 검수 모델과 관찰 근거
+
+`lore_configure(webtoonReviewModel={provider:"host",modelId,reasoningEffort})`로 작품별 시각 검수 모델을 저장한다.
+호스트가 실제 그 모델로 요청과 모든 첨부 이미지를 전달하며, 설정 힌트와 실행 증거를 구분한다. `null`은 기본 모델 복귀다.
+소설·이미지 모델에는 영향을 주지 않으며 이미 대기 중인 요청도 바꾸지 않는다.
+
+새 검수 계약(version 2)은 실제 장면·채택 화풍·인물/소품 참조를 첨부하고 각 참조의 `imageIndex`와 역할을 전달한다.
+`visualChecks`의 reflectionGeometry·propStructure·handsAndContact·withinSceneContinuity·layoutAndTiming마다
+`status`, 실제 1부터 시작하는 `panels`, 관측 `evidence`를 기록한다. 먼저 보이는 형태를 쓰고 그 뒤 요구와 비교한다.
+필수 시각 관계를 확인하지 못하면 `uncertain`이며 통과하지 않는다. 장면에 필요하지 않은 정상적인 가림이나 부재는
+사유를 적은 `not_applicable`로 남긴다. `failed`·`uncertain` 항목을 공간/읽기 순서의 전체 true 값으로 덮을 수 없다.
+관측 내용의 의미 판단은 여전히 모델 검수이므로 구조 검사만으로 그림 품질을 보증하지 않는다. 화풍 취향은 advisory다.
+
+보존된 그림에 새 모델·프롬프트를 적용하려면 `lore_webtoon_scene(action="review",workflowId,feedback)`를 호출한다.
+이전 검수와 대기 요청 전체를 `reviewHistory`에 보존하고 실제 request ID/runId를 새로 발급한다. 이미지와 revision,
+재생성 예산은 유지하며, 실패해도 추가 이미지 요청 없이 `scene_needs_revision`에서 멈춘다.
+
 ### 화풍 예시와 채택
 
 사용자는 자기 말이나 참조 그림으로 원하는 느낌을 설명하고 실제 예시 한 장으로 직접 선택하거나 선택을 위임한다. 호스트 LLM이 그 말을 해석해 짧은 영어 설명을 쓰고, 이미지 모델이 그린다. Vibelore는 후보·원답·채택 판본·이미지 바이트·변경 범위를 보존한다. 세부 기법 메뉴나 여러 화풍 비교 실험을 사용자에게 필수로 요구하지 않는다.

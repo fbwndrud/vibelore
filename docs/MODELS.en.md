@@ -53,6 +53,17 @@ the chosen path and model, plus the model information the host actually saw, as 
 
 For the actual production steps, see [Making a webtoon](WEBTOON.en.md).
 
+## Webtoon visual reviewer
+
+Use `lore_configure(webtoonReviewModel={provider:"host",modelId:"gpt-6.1-terra",reasoningEffort:"medium"})`
+to save a per-work visual reviewer. Omission preserves the setting; `null` restores the host default.
+This is an **execution hint**: the host must actually send the request and images to a session or agent running that model.
+The setting alone is not evidence that the selected model inspected anything. Novel and image models are unaffected.
+
+New review requests use the setting; an already pending request remains pinned. To apply a new reviewer or prompt to an existing
+image, call `lore_webtoon_scene(action="review",workflowId="...",feedback="...")`. It archives the earlier review/request and
+reviews the preserved image without generating another image or triggering automatic redraws.
+
 ## Optional: local text model
 
 If you run a local model yourself, you can connect an OpenAI-compatible `/chat/completions` endpoint.
