@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { parseJsonCompletion } from '../engine/src/core/json-completion.js';
@@ -88,15 +88,20 @@ function fail(code, message) {
   return Object.assign(new Error(message), { code });
 }
 
+const isDirectory = path => stat(path).then(info => info.isDirectory(), () => false);
+
 export async function readChapterSet(dir) {
   let root = null;
   let chapterDir = dir;
   try {
     if (!(await stat(dir)).isDirectory()) throw new Error('not a directory');
     const nested = join(dir, 'chapters');
-    if (await stat(nested).then(info => info.isDirectory(), () => false)) {
+    const absolute = resolve(dir);
+    if (await isDirectory(nested)) {
       root = dir;
       chapterDir = nested;
+    } else if (basename(absolute) === 'chapters' && await isDirectory(join(dirname(absolute), '.vibelore'))) {
+      root = dirname(absolute);
     }
   } catch {
     throw fail('INPUT_UNREADABLE', `Cannot read chapter input: ${dir}`);
@@ -287,12 +292,19 @@ export function ledgerCounts(entries, chapters) {
 
 export async function ledgerMetric({ root, chapters }) {
   const base = { labelSource: LEDGER_LABEL_SOURCE };
-  if (root === null) return { ...base, status: 'unavailable', reason: 'no-root', missingChapters: [] };
-  const ledger = await loadCurrentExperienceLedger({ store: new MarkdownStateStore(root), workId: 'evaluation' });
-  if (ledger.status === 'stale') return { ...base, status: 'unavailable', reason: 'stale', missingChapters: [] };
-  if (!ledger.entries.length) return { ...base, status: 'unavailable', reason: 'no-entries', missingChapters: [] };
-  const counts = ledgerCounts(ledger.entries, chapters);
-  return { ...base, status: counts.missingChapters.length ? 'incomplete' : 'available', counts, missingChapters: counts.missingChapters };
+  const unavailable = reason => ({ ...base, status: 'unavailable', reason, missingChapters: [] });
+  if (root === null) return unavailable('no-root');
+  try {
+    const ledger = await loadCurrentExperienceLedger({ store: new MarkdownStateStore(root), workId: 'evaluation' });
+    if (ledger.status === 'stale') return unavailable('stale');
+    if (!Array.isArray(ledger.entries)) return unavailable('unreadable');
+    if (!ledger.entries.length) return unavailable('no-entries');
+    if (!ledger.entries.every(isRecord)) return unavailable('unreadable');
+    const counts = ledgerCounts(ledger.entries, chapters);
+    return { ...base, status: counts.missingChapters.length ? 'incomplete' : 'available', counts, missingChapters: counts.missingChapters };
+  } catch {
+    return unavailable('unreadable');
+  }
 }
 
 export function independenceLabel({ providerKind, judgeModel, writerModel }) {
@@ -302,6 +314,7 @@ export function independenceLabel({ providerKind, judgeModel, writerModel }) {
 }
 
 const REQUIRED_FLAGS = ['off', 'on', 'out', 'language'];
+const MAX_TIMEOUT_MS = 2147483647;
 
 export function parseCliArgs(argv) {
   let values;
@@ -336,8 +349,8 @@ export function parseCliArgs(argv) {
   }
   const rawTimeout = values['timeout-ms'] ?? '300000';
   const timeoutMs = /^\d+$/.test(rawTimeout) ? Number(rawTimeout) : NaN;
-  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
-    throw Object.assign(new Error('--timeout-ms must be a positive integer'), { code: 'INVALID_TIMEOUT' });
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMEOUT_MS) {
+    throw Object.assign(new Error(`--timeout-ms must be a positive integer of at most ${MAX_TIMEOUT_MS}`), { code: 'INVALID_TIMEOUT' });
   }
   return {
     off: values.off, on: values.on, out: values.out, language: values.language, chapters: values.chapters,
@@ -423,6 +436,7 @@ const LEDGER_REASONS = {
   'no-root': 'no work root was given for this copy',
   stale: 'stored ledger is stale',
   'no-entries': 'no ledger entries recorded',
+  unreadable: 'stored ledger could not be read',
 };
 
 function ledgerSummary(counts, scope) {
@@ -629,7 +643,7 @@ async function patternLedgerMetrics({ sets, pairs, exchanges }) {
   return metrics;
 }
 
-async function buildReport({ args, family, sets, pairs, plan, exchanges, results, judge, now }) {
+async function buildReport({ args, family, pairs, plan, patternLedger, results, judge, now }) {
   const judged = judgedPairs(results);
   const report = {
     protocolVersion: PROTOCOL_VERSION,
@@ -650,7 +664,7 @@ async function buildReport({ args, family, sets, pairs, plan, exchanges, results
     aggregate: aggregate(judged.map(item => item.outcomes)),
     metrics: {
       length: lengthMetrics({ pairs, exchanges: plan.exchanges }),
-      patternLedger: await patternLedgerMetrics({ sets, pairs, exchanges }),
+      patternLedger,
     },
     identical: plan.identical,
     unpaired: plan.unpaired,
@@ -706,19 +720,25 @@ export async function runPairwiseEvaluation({
   for (let index = 0; index < off.length; index += 1) {
     sets.push({ off: await readChapterSet(off[index]), on: await readChapterSet(on[index]) });
   }
+  const inputRoots = sets.flatMap(set => [set.off, set.on]).flatMap(item => [item.dir, ...(item.root ? [item.root] : [])]);
+  await assertOutPath({ out, inputRoots, repoRoot: REPO_ROOT });
   const pairs = sets.map(set => ({ off: set.off.chapters, on: set.on.chapters }));
   const plan = schedulePairs({ pairs, chapters: range });
+  if (!plan.exchanges.length) {
+    throw fail('NO_JUDGED_PAIRS', `No chapter pairs to judge: ${plan.identical.length} identical and ${plan.unpaired.length} unpaired chapter(s) after the chapter filter`);
+  }
   const exchanges = buildExchanges(plan.exchanges, family);
+  const patternLedger = await patternLedgerMetrics({ sets, pairs, exchanges });
 
   const outDir = resolve(out);
   await mkdir(outDir, { recursive: true });
-  await assertOutPath({ out: outDir, inputRoots: [...off, ...on], repoRoot: REPO_ROOT });
+  await assertOutPath({ out: outDir, inputRoots, repoRoot: REPO_ROOT });
 
   const local = localProvider({ provider, env, timeoutMs });
   const { results, pending } = local ? await judgeLocal(exchanges, local) : await judgeRelay(exchanges, givenAnswers);
   if (pending.length) return writeNeedsModel({ outDir, pending });
   const report = await buildReport({
-    args, family, sets, pairs, plan, exchanges, results, judge: judgeDescription({ provider: local, args }), now,
+    args, family, pairs, plan, patternLedger, results, judge: judgeDescription({ provider: local, args }), now,
   });
   return writeReport({ outDir, report });
 }
@@ -740,5 +760,5 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  process.exit(await main());
+  process.exitCode = await main();
 }

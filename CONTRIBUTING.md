@@ -56,8 +56,8 @@ and explain any compatibility or recovery-format changes.
 ## Offline A/B evaluation (developers)
 
 `scripts/pairwise-evaluation.js` compares two sets of chapters written from the
-same starting point, one with a feature off and one with it on, by asking a judge
-model which of each pair reads better. It is a developer-only measurement. It is
+same starting point, one with a feature off and one with it on, and records which
+version of each pair the judge prefers. It is a developer-only measurement. It is
 not an MCP tool, is not part of the writing flow, and is not packed into the npm
 package.
 
@@ -76,13 +76,17 @@ node scripts/pairwise-evaluation.js --off <off-root> --on <on-root> \
 `--off` and `--on` may be repeated and must be given the same number of times;
 the Nth `--off` is compared with the Nth `--on`. `--language` selects the judge
 prompt family. `--out` must be outside this repository and every input root, and
-the script only reads the input roots.
+the script only reads the input roots. Use a dedicated, otherwise empty `--out`
+directory: `report.json`, `report.md` and `requests.json` there are replaced or
+removed between runs. `--timeout-ms` (default 300000) limits each request to a
+local endpoint, in milliseconds.
 
 Without a local endpoint the script works through a request file. It writes
 `requests.json` to the output directory and exits with code 2. Answer each
 request independently, from its `system` and `user` text alone, collect the
 answers as `{"<id>": "<answer text>"}` in a JSON file and run the same command
-again with `--answers <file>`. A malformed answer may need one more round, in
+again with `--answers <file>`. Keep earlier answers in the same answers file and
+add the new ones to it across rounds. A malformed answer may need one more round, in
 which case a repair request appears in the next `requests.json`. Once every
 request is answered, `report.json` and `report.md` are written and the script
 exits with code 0. Exit code 1 means an error.

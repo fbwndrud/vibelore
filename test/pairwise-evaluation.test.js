@@ -120,6 +120,31 @@ test('readChapterSet reads a flat folder', async () => {
   });
 });
 
+test('readChapterSet treats a chapters folder inside a work as that work', async () => {
+  await withTempDir(async dir => {
+    await mkdir(join(dir, '.vibelore'));
+    await writeChapters(dir, { 1: 'One.' });
+    for (const input of [join(dir, 'chapters'), `${join(dir, 'chapters')}/`]) {
+      const set = await readChapterSet(input);
+      assert.equal(set.kind, 'work');
+      assert.equal(set.root, dir);
+      assert.deepEqual([...set.chapters.keys()], [1]);
+    }
+  });
+  await withTempDir(async dir => {
+    await writeChapters(dir, { 1: 'One.' });
+    const set = await readChapterSet(join(dir, 'chapters'));
+    assert.equal(set.kind, 'folder');
+    assert.equal(set.root, null);
+  });
+  await withTempDir(async dir => {
+    await mkdir(join(dir, '.vibelore'));
+    await mkdir(join(dir, 'drafts'));
+    await writeFile(join(dir, 'drafts', '001.md'), 'One.');
+    assert.equal((await readChapterSet(join(dir, 'drafts'))).root, null);
+  });
+});
+
 test('readChapterSet rejects unreadable input and empty chapters', async () => {
   await withTempDir(async dir => {
     const missing = join(dir, 'missing');
@@ -349,6 +374,28 @@ test('ledgerMetric is unavailable when no sidecar exists', async () => {
   });
 });
 
+test('ledgerMetric reports an unreadable ledger instead of throwing', async () => {
+  const cases = [
+    ['malformed json', null, async root => writeFile(join(root, '.vibelore', 'experience-ledger.json'), '{not json')],
+    ['non-array entries', { 'experience-ledger.json': { schemaVersion: 2, sourceHead: null, entries: { chapter: 1 } } }, null],
+    ['entries that are not objects', { 'experience-ledger.json': { schemaVersion: 2, sourceHead: null, entries: [null] } }, null],
+    ['corrupt publication', { 'pattern-ledger.json': [entry(1)] }, async root => {
+      await mkdir(join(root, '.vibelore', 'publication'), { recursive: true });
+      await writeFile(join(root, '.vibelore', 'publication', 'HEAD'), `sha256:${'1'.repeat(64)}`);
+    }],
+  ];
+  for (const [label, sidecars, after] of cases) {
+    await withWorkRoot(sidecars ?? {}, async root => {
+      if (after) await after(root);
+      const metric = await ledgerMetric({ root, chapters: [1] });
+      assert.equal(metric.status, 'unavailable', label);
+      assert.equal(metric.reason, 'unreadable', label);
+      assert.deepEqual(metric.missingChapters, [], label);
+      assert.equal(metric.labelSource, 'stored pattern-ledger review of the writing copy', label);
+    });
+  }
+});
+
 test('ledgerMetric never writes into the work root', async () => {
   for (const sidecars of [null, { 'pattern-ledger.json': [entry(1), entry(2), entry(3)] }]) {
     await withWorkRoot(sidecars, async root => {
@@ -408,7 +455,8 @@ test('parseCliArgs reports missing, mismatched, unknown and invalid arguments by
   assert.throws(() => parseCliArgs(['--off', 'a', '--off', 'b', '--on', 'c', '--out', 'o', '--language', 'ko']),
     error => error.code === 'PAIR_COUNT_MISMATCH');
   assert.throws(() => parseCliArgs([...REQUIRED_ARGV, '--bogus']), error => error.code === 'UNKNOWN_ARGUMENT');
-  for (const value of ['0', '-5', '1.5', 'abc']) {
+  assert.equal(parseCliArgs([...REQUIRED_ARGV, '--timeout-ms=2147483647']).timeoutMs, 2147483647);
+  for (const value of ['0', '-5', '1.5', 'abc', '2147483648', '99999999999']) {
     assert.throws(() => parseCliArgs([...REQUIRED_ARGV, `--timeout-ms=${value}`]),
       error => error.code === 'INVALID_TIMEOUT', value);
   }
@@ -728,6 +776,74 @@ describe('runPairwiseEvaluation', () => {
     assert.deepEqual(await snapshotTree(dirs.off), before);
   }));
 
+  test('a chapters folder inside a work cannot be used to reach the work root', () => withRun(async dirs => {
+    await mkdir(join(dirs.off, '.vibelore'));
+    await mkdir(join(dirs.on, '.vibelore'));
+    const before = await snapshotTree(dirs.off);
+    const provider = fakeProvider();
+    for (const out of [join(dirs.off, 'eval'), dirs.off, join(dirs.on, 'x')]) {
+      await assert.rejects(
+        runPairwiseEvaluation({
+          off: [join(dirs.off, 'chapters')], on: [join(dirs.on, 'chapters')], out, language: 'en', provider,
+        }),
+        { code: 'OUT_PATH_FORBIDDEN' },
+        out,
+      );
+    }
+    assert.deepEqual(await snapshotTree(dirs.off), before);
+    assert.ok(!(await exists(join(dirs.on, 'x'))));
+    assert.equal(provider.calls.length, 0);
+  }));
+
+  test('a chapters folder inside a work still gets its work root for the ledger metric', () => withRun(async dirs => {
+    const ledger = [{ chapter: 2, solutionPattern: 'x' }, { chapter: 3, solutionPattern: 'y' }];
+    for (const root of [dirs.off, dirs.on]) {
+      await mkdir(join(root, '.vibelore'));
+      await writeFile(join(root, '.vibelore', 'pattern-ledger.json'), JSON.stringify(ledger));
+    }
+    const result = await runPairwiseEvaluation({
+      off: [join(dirs.off, 'chapters')], on: [join(dirs.on, 'chapters')], out: dirs.out, language: 'en', provider: fakeProvider(),
+    });
+    const { patternLedger } = (await readJson(result.reportPath)).metrics;
+    assert.equal(patternLedger[0].off.status, 'available');
+    assert.equal(patternLedger[0].on.status, 'available');
+  }));
+
+  test('an unreadable ledger is recorded and the judged verdicts still produce a report', () => withRun(async dirs => {
+    await mkdir(join(dirs.off, '.vibelore'));
+    await writeFile(join(dirs.off, '.vibelore', 'experience-ledger.json'), '{broken');
+    const provider = fakeProvider();
+    const result = await runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider });
+    assert.equal(result.status, 'report');
+    assert.equal(provider.calls.length, 4);
+    const report = await readJson(result.reportPath);
+    assert.equal(report.metrics.patternLedger[0].off.status, 'unavailable');
+    assert.equal(report.metrics.patternLedger[0].off.reason, 'unreadable');
+    assert.equal(report.metrics.patternLedger[0].on.reason, 'no-entries');
+    assert.equal(report.chapters.length, 2);
+    const markdown = await readFile(join(dirs.out, 'report.md'), 'utf8');
+    assert.match(markdown, /Replicate 1 OFF: unavailable \(stored ledger could not be read\)/);
+    assert.doesNotMatch(markdown, FORBIDDEN_WORDS);
+  }));
+
+  test('a run with no judged pairs fails before creating the output or calling a provider', () => withRun(async dirs => {
+    for (const chapters of ['9', '1']) {
+      const provider = fakeProvider();
+      await assert.rejects(
+        runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider, chapters }),
+        error => error.code === 'NO_JUDGED_PAIRS' && /identical/.test(error.message) && /unpaired/.test(error.message),
+        chapters,
+      );
+      assert.equal(provider.calls.length, 0);
+      assert.ok(!(await exists(dirs.out)));
+    }
+    await assert.rejects(
+      runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', env: {}, chapters: '1' }),
+      { code: 'NO_JUDGED_PAIRS' },
+    );
+    assert.ok(!(await exists(dirs.out)));
+  }, { on: { 4: 'Only on four.' } }));
+
   test('chapter filters and unpaired chapters are respected', () => withRun(async dirs => {
     const provider = fakeProvider();
     const result = await runPairwiseEvaluation({
@@ -880,6 +996,12 @@ describe('renderReportMarkdown', () => {
     }));
     assert.match(markdown, /OFF: unavailable \(no ledger entries recorded\)/);
     assert.match(markdown, /ON: unavailable \(stored ledger is stale\)/);
+    const unreadable = renderReportMarkdown(sampleReport({
+      caveats: [],
+      metrics: metrics([{ replicate: 1, off: { ...base, reason: 'unreadable' }, on: { ...base, reason: 'unreadable' } }]),
+    }));
+    assert.match(unreadable, /OFF: unavailable \(stored ledger could not be read\)/);
+    assert.doesNotMatch(unreadable, FORBIDDEN_WORDS);
   });
 });
 
@@ -966,6 +1088,13 @@ describe('command line entry', () => {
     assert.equal(run.stdout, '');
   }));
 
+  test('exits 1 with NO_JUDGED_PAIRS when nothing can be judged', () => withRun(async dirs => {
+    const run = spawnSync(process.execPath, [script, ...baseArgs(dirs), '--chapters', '9'], { cwd: REPO_ROOT, env: cleanEnv(), encoding: 'utf8' });
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /^NO_JUDGED_PAIRS: /m);
+    assert.equal(await exists(dirs.out), false);
+  }));
+
   test('exits 1 with a coded message for an unknown argument', () => withRun(async dirs => {
     const run = spawnSync(process.execPath, [script, ...baseArgs(dirs), '--bogus'], { cwd: REPO_ROOT, env: cleanEnv(), encoding: 'utf8' });
     assert.equal(run.status, 1);
@@ -1023,5 +1152,11 @@ describe('contributor documentation', () => {
     const text = await readFile(join(REPO_ROOT, 'CONTRIBUTING.md'), 'utf8');
     assert.match(text, /^#{2,3} Offline A\/B evaluation \(developers\)$/m);
     for (const term of ['requests.json', '--answers', 'VIBELORE_LOCAL_BASE_URL']) assert.ok(text.includes(term), term);
+    const section = text.slice(text.search(/^#{2,3} Offline A\/B evaluation \(developers\)$/m)).split(/^## Release conventions$/m)[0];
+    assert.doesNotMatch(section, /reads\s+better/);
+    assert.match(section, /judge\s+prefers/);
+    assert.match(section, /300000/);
+    assert.match(section, /same\s+answers\s+file/);
+    assert.match(section, /dedicated,\s+otherwise\s+empty/);
   });
 });
