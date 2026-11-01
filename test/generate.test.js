@@ -19,6 +19,7 @@ import { runArcPlan, runArcDecide } from '../src/tools/arc.js';
 import { runArcQuality } from '../src/tools/arc-quality.js';
 import { runStoryProfile, runStoryProfileDecide } from '../src/tools/story-profile.js';
 import { buildContext } from '../src/tools/context.js';
+import { promptKit } from '../src/prompts/index.js';
 import { episodePlanningContractViolations, runEpisodePlan, runEpisodeDecide } from '../src/tools/episode-plan.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { repairMissingInfluenceObservation, runWriteWorkflow, runWorkflowDecide, runWorkflowHistory, proseHash } from '../src/tools/workflow.js';
@@ -566,6 +567,16 @@ describe('Phase 2 generation pipeline', () => {
     assert.deepEqual(result.contextAudit.memory.filtered, []);
     assert.equal(result.contextAudit.memory.filteredTotal, 0);
     assert.deepEqual(result.contextAudit.disabledDraftSections, ['older-memory']);
+  });
+
+  it('never puts the report-only explanation phrases into the draft request', async () => {
+    const { prompt } = await draftPrompt(await sevenChapterStore(), 8);
+    for (const language of ['ko', 'en']) {
+      const phrases = promptKit({ language }).phrases.contextExplain;
+      for (const text of [phrases.fixedMaterial(), phrases.coverageNote(), phrases.notYetDrafted(), phrases.detailUnavailable()]) {
+        assert.ok(!prompt.includes(text), text);
+      }
+    }
   });
 
   it('builds the same draft request from independently built stores', async () => {
