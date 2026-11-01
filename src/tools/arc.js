@@ -13,6 +13,8 @@ import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { reviewPlanningStage } from '../core/planning-stage-review.js';
 import { planningReviewSelection } from '../core/review-policy.js';
+import { normalizeEpisodeShape } from '../core/narrative-codes.js';
+import { renderArcBeatShape } from '../core/prompt-sections.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 
@@ -59,6 +61,7 @@ function normalizeEpisode(item, index, startChapter, readerLoadDefaults, kit) {
       newConcept: String(obj.readerLoad?.newConcept ?? '').trim().slice(0, 200),
       complexityReason: String(obj.readerLoad?.complexityReason ?? '').trim().slice(0, 300),
     },
+    ...normalizeEpisodeShape(obj),
     status: 'pending',
   };
 }
@@ -278,8 +281,10 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   const approval = await gateApprovalActivation({ store, workId, kind: 'arc', value: plan, providers, resolution: workLanguage, structuralErrors: deterministicArcViolations(plan), retryValidation });
   if (!approval.ok) return { ...approval, candidate: plan };
   await store.saveArcPlan(workId, plan);
+  const rhythmStrip = renderArcRhythmStrip(plan, kit);
   return {
     plan,
+    ...(rhythmStrip ? { rhythmStrip } : {}),
     ...(plan.status === 'pending'
       ? { needsApproval: true, instruction: '이 계획을 사용자에게 보여주고 마음에 드는지 물으세요. 승인 전에는 집필하지 마세요.' }
       : { needsApproval: false, instruction: '자동 승인되었습니다. 첫 회차부터 집필할 수 있습니다.' }),
@@ -375,9 +380,21 @@ export function renderBoundaryArc(plan, currentChapter, kitSource) {
   ].filter(Boolean).join('\n');
 }
 
+/** One line per episode that carries shape codes, for the host to show next to the plan; '' when none does. */
+export function renderArcRhythmStrip(plan, kitSource) {
+  const kit = asKit(kitSource);
+  const t = kit.phrases.arc;
+  return (plan?.episodes ?? [])
+    .map((episode) => ({ episode, shape: renderArcBeatShape(episode, kit) }))
+    .filter(({ shape }) => shape)
+    .map(({ episode, shape }) => `${t.mapEpisode(' ', episode.index, plan.estimatedEpisodes, episode.title)} ${shape}`)
+    .join('\n');
+}
+
 export function renderArcMap(plan, currentChapter, kitSource) {
   if (!plan || plan.status !== 'active') return '';
-  const t = asKit(kitSource).phrases.arc;
+  const kit = asKit(kitSource);
+  const t = kit.phrases.arc;
   return [
     t.mapHeading(plan.arcNumber, plan.title),
     t.promise(plan.promise),
@@ -395,6 +412,7 @@ export function renderArcMap(plan, currentChapter, kitSource) {
       episode.costCreatedByResolution ? t.mapResolutionCost(episode.costCreatedByResolution) : '',
       episode.carry || episode.hook ? t.mapCarry(episode.carry ?? episode.hook) : '',
       episode.exitValue ? t.mapExitValue(episode.exitValue) : '',
+      renderArcBeatShape(episode, kit),
     ].filter(Boolean).join(' / ')),
     ...(plan.characterArcs?.length ? [
       t.characterCurveHeading,
