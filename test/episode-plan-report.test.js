@@ -12,6 +12,7 @@ import { emptyStoryState } from '../engine/src/continuity/story-state.js';
 import { qualityStore, workId } from './fixtures/quality-workflow.js';
 import { approvalResponse } from './fixtures/approval-response.js';
 import { EXPECTATION_HANDLING } from '../src/core/narrative-codes.js';
+import { HOOK_EVENTS } from '../engine/src/continuity/ledger.js';
 import { planConflictAdvisories, runWorkflowDecide, runWorkflowHistory, runWriteWorkflow } from '../src/tools/workflow.js';
 import { qualityDecision } from '../src/core/quality-policy.js';
 import { runRelayedTool } from '../src/relay-runner.js';
@@ -62,6 +63,18 @@ test('previous-chapter hook events are classified, ordered and capped', () => {
   assert.deepEqual(text.split('\n').slice(1), ['h2: new (planted)', 'h3: paid (paid)', 'h10: old (advanced)']);
   const many = Array.from({ length: 12 }, (_, i) => ({ id: `h${i + 1}`, text: 't', status: 'open', plantedAtChapter: 2, lastMovedChapter: 2 }));
   assert.equal(renderPreviousChapterHookEvents({ hooks: many }, 3, kit).split('\n').length, 9);
+});
+
+test('closed, parked and reopened hooks are not reported as advanced', () => {
+  for (const event of ['closed', 'parked']) assert.ok(HOOK_EVENTS.includes(event));
+  const hooks = hooksFor(3, [['h1', 'sealed', 'closed', 1, 2], ['h2', 'asleep', 'dormant', 1, 2], ['h3', 'again', 'open', 1, 2], ['h4', 'paid off', 'paid', 1, 2], ['h5', 'born closed', 'closed', 2, 2]]);
+  assert.deepEqual(renderPreviousChapterHookEvents({ hooks }, 3, kit).split('\n').slice(1),
+    ['h1: sealed (closed)', 'h2: asleep (parked)', 'h3: again (advanced)', 'h4: paid off (paid)', 'h5: born closed (planted)']);
+});
+
+test('hook text is collapsed onto one line', () => {
+  const hooks = hooksFor(3, [['h1', 'a\n  b\r\nc', 'open', 1, 2]]);
+  assert.deepEqual(renderPreviousChapterHookEvents({ hooks }, 3, kit).split('\n').slice(1), ['h1: a b c (advanced)']);
 });
 
 test('a fixed none line for chapter 1, tracking off and no events', () => {

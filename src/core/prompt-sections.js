@@ -478,10 +478,13 @@ export function renderArcBeatShape(episode, kit) {
 
 const PREVIOUS_HOOK_EVENTS_MAX = 8;
 
+/** Ledger event name for a hook that moved in the previous chapter; unlisted statuses mean it advanced. */
+const HOOK_STATUS_EVENT = Object.freeze({ paid: 'paid', closed: 'closed', dormant: 'parked' });
+
 /**
- * What the previous chapter did to the hooks: planted, advanced or paid, one line each
- * (ledger codes, not translated), sorted by id. A heading plus a fixed none line when
- * there is nothing to show.
+ * What the previous chapter did to the hooks: planted, advanced, paid, closed or
+ * parked, one line each (ledger event names, not translated), sorted by id. A
+ * heading plus a fixed none line when there is nothing to show.
  */
 export function renderPreviousChapterHookEvents(state, chapter, kit, config = {}) {
   const t = kit.phrases.sections;
@@ -490,12 +493,13 @@ export function renderPreviousChapterHookEvents(state, chapter, kit, config = {}
     .map((hook) => {
       if (hook.plantedAtChapter === previous) return { hook, event: 'planted' };
       if (hook.lastMovedChapter !== previous) return null;
-      return { hook, event: hookStatusOf(hook) === 'paid' ? 'paid' : 'advanced' };
+      return { hook, event: HOOK_STATUS_EVENT[hookStatusOf(hook)] ?? 'advanced' };
     })
     .filter(Boolean)
     .sort((a, b) => String(a.hook.id).localeCompare(String(b.hook.id), 'en', { numeric: true }))
     .slice(0, PREVIOUS_HOOK_EVENTS_MAX);
-  return [t.prevHookEventsHeading, ...(events.length ? events.map(({ hook, event }) => `${hook.id}: ${clean(hook.text) || hook.id} (${event})`) : [t.prevHookEventsNone])].join('\n');
+  const oneLine = (value) => clean(value).replace(/\s+/g, ' ');
+  return [t.prevHookEventsHeading, ...(events.length ? events.map(({ hook, event }) => `${hook.id}: ${oneLine(hook.text) || hook.id} (${event})`) : [t.prevHookEventsNone])].join('\n');
 }
 
 /**
