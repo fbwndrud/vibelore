@@ -639,8 +639,13 @@ test("sealed script owner exports only selected state context and copied native 
   assert.deepEqual(await inventory(root), before);
 });
 test("completed native webtoon scene keeps production record hash and final image without importing author source snapshot", async () => {
-  const { sceneSetup, scenePlan, scenePreflight, sceneVisualChecks } =
-    await import("../../test/fixtures/webtoon-scene.js");
+  const {
+    sceneSetup,
+    scenePlan,
+    scenePreflight,
+    sceneCompositionCheck,
+    sceneVisualChecks,
+  } = await import("../../test/fixtures/webtoon-scene.js");
   const { runWebtoonSceneTool } = await import(
     "../../src/tools/webtoon-scene.js"
   );
@@ -657,6 +662,7 @@ test("completed native webtoon scene keeps production record hash and final imag
             ? scenePreflight(d)
             : {
                 ...d.schema,
+                ...sceneCompositionCheck(d.schema.compositionCheck),
                 visualChecks: sceneVisualChecks(),
                 observedPanelCount: 6,
                 inspectedImages: true,
