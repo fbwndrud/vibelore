@@ -182,9 +182,13 @@ StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 �
 - `webtoonReviewModel`: 웹툰 시각 검수에만 쓸 모델 ID 또는 `{provider:"host"|"local",modelId,reasoningEffort?}`.
   생략은 유지, `null`은 기본 모델 복귀입니다. 호스트가 실제 해당 모델로 실행해야 하는 힌트이며 실행 증거와 구분합니다.
 
+- `webtoonComposition`: 웹툰 구도 반복 다이제스트·경고 기준 `{shortWindowEpisodes?, shortWindowScenes?, overuseDelta?, overuseMinCount?, streakLength?, observedBasisRate?, protagonistIds?}`.
+  지정한 필드만 갱신하고 `null`은 기본값으로 되돌립니다. 기록과 제안만 하며 이미지 생성·채택·검수 판정을 막지 않습니다.
+  자세한 동작은 [구도 기록과 반복 다이제스트](reference/WEBTOON_WORKFLOW.md#구도-기록과-반복-다이제스트)를 참고하세요.
+
 - `disabledReviews`: 끌 매 화 검토 목록 전체(`story-profile-check`, `coherence-judge`,
-  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`). 꺼진 검토는
-  요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다.
+  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`, `composition-ledger`). 꺼진 검토는
+  요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다. `composition-ledger`는 웹툰 구도 반복 경고만 끕니다.
 - `planningReviews`: `{story?, arc?, episode?}`. false면 해당 단계의 의미·품질 모델 검토를 모두
   생략합니다. true면 켭니다. 지정한 필드만 갱신하며 구조·참조·설정·언어 검사는 유지합니다.
   기존 작품도 명시적으로 true를 지정하면 단계별 의미 검토를 적용합니다.
@@ -207,7 +211,7 @@ StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 �
 
 | 필수 | 선택 |
 |---|---|
-| `workId` | `project`, `disabledReviews`, `planningReviews`, `arcReview`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
+| `workId` | `project`, `disabledReviews`, `planningReviews`, `arcReview`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords`, `webtoonComposition` |
 
 ### `lore_style_anchor`
 
@@ -694,7 +698,7 @@ editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실
 
 새 웹툰 작업의 기본 경로입니다. 러프 없이 장면 전체와 대사를 함께 생성합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 이미지 선택이 없는 작품은 start가 먼저 `needs_image_runtime`을 반환합니다. 호스트가 실제로 가진 이미지 경로(내장 도구, API)를 `imageRuntime`으로 보고하면 `needs_image_choice`가 선택지 전체와 제안(내장 경로 우선)을 돌려주고, 사용자의 원답을 `feedback`에 넣어 `confirmImageChoice`로 확정합니다. 확정한 선택은 작품별로 유지되며 `changeImageChoice`로만 바꿉니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
 이 별도 경로는 원작 범위 고정 → 통합 영어 연출 → 생성 전 검증 → 장면 이미지 → 실제 시각 검토로 진행합니다.
-`action=start|revise|retry|review|verify|reject`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
+`action=start|revise|retry|review|verify|reject|composition_rebuild`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
 `previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback`, `asset`을 받습니다.
 이미지 선택이 없으면 start가 `needs_image_runtime` → `needs_image_choice`를 반환하며, `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`을 사용합니다.
 생성 전 검증이 통과해야 `needs_scene_image`가 나오며 이때만 고른 경로(`hostRequest` 또는 `apiRequest`)로 그림을 그립니다.
@@ -710,7 +714,11 @@ editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실
 카탈로그 참조가 선택한 원문 장면 어디에도 적용되지 않으면 `SCENE_ASSET_STATE_MISMATCH`로 거절합니다.
 참조의 `entityId`, `stateIds`, 적용 `sceneIds`를 보존하고, 여러 시점을 함께 그릴 때 이미지 요청에 적용 순간을 명시합니다.
 재개는 검증된 원천을 사용합니다. 완료본 검증은 원본 세계 폴더가 없어도 보존 원장의 발췌 범위와 카탈로그 참조 ID·범위를 대조합니다.
-세부 계약은 [기본 경로](reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)를 참고하세요.
+새로 시작한 장면은 생성 전 검증에서 구도 라벨을 붙이고, 채택하면 에피소드별 구도 기록을 남깁니다. 이 기록으로 만든 반복 다이제스트(`compositionDigest`)는
+계획과 생성 전 검증 요청에만 한 번씩 전달하며 이미지 프롬프트와 시각 검수 요청에는 싣지 않습니다. 연속·과다 사용은 검수 결과에 `COMPOSITION_REPETITION`
+advisory로만 남고 판정을 바꾸지 않습니다. `action=composition_rebuild`는 저장된 기록에서 구도 집계를 다시 만들며(모델·이미지 호출 없음)
+`{status:"composition_rebuilt", episodes, panels, sourceHead}`를 돌려줍니다. 기록이 없는 작품은 0 집계와 빈 색인을 씁니다.
+세부 계약은 [기본 경로](reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)와 [구도 기록과 반복 다이제스트](reference/WEBTOON_WORKFLOW.md#구도-기록과-반복-다이제스트)를 참고하세요.
 
 ### `lore_webtoon_plan` (deprecated)
 

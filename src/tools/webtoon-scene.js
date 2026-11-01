@@ -174,6 +174,9 @@ async function prepareCompositionDigest(repo, w) {
   } catch (error) { delete w.compositionDigest; w.compositionDigestError = compositionReason(error); }
 }
 
+/** The digest lines computed at scene_generate, for both planning requests; absent for workflows without composition or without lines. */
+const compositionDigestInput = w => w.compositionVersion && w.compositionDigest?.lines?.length ? { compositionDigest: w.compositionDigest.lines } : {};
+
 /** Soft repetition note on an adopted scene's review. It never changes the verdict and skips silently if anything fails. */
 async function attachCompositionAdvisory(repo, w) {
   try {
@@ -201,6 +204,7 @@ async function drive(repo, w, providers) {
         ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'This is the user-adopted visual treatment. Preserve it; source facts and identities remain authoritative. Any source expression profile is subordinate for presentation only.' } : {}),
         ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText, cast: w.source.cast, expression: w.source.expression } : {}), direction: w.direction,
         ...(w.compositionDefaults?.length ? { seriesComposition: w.compositionDefaults } : {}),
+        ...compositionDigestInput(w),
         panelCount: auto ? 'auto' : w.panelCount, previousScene: w.previousScene,
         feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...planSchema, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : planSchema }, providers,
       w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
@@ -215,6 +219,7 @@ async function drive(repo, w, providers) {
       `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. ${w.compositionVersion ? COMPOSITION_PREFLIGHT_INSTRUCTION : 'Keep camera and layout free.'} Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
       { source: w.sceneUnits, ...referenceContext(w), ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText } : {}), plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
         ...(w.compositionVersion && sceneCastList(w).length ? { cast: sceneCastList(w) } : {}),
+        ...compositionDigestInput(w),
         ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Copy styleBasis.profile.style exactly into renderBrief.style. The sample is for visual treatment only; preserve source identities and facts.' } : {}),
         ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
         coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
@@ -429,11 +434,22 @@ async function verifyProduction(repo, w) {
   return { status: 'verified', lane: 'webtoon', workflowId: w.workflowId, recordHash: w.productionRecordHash, record: recordFile, checks, unpreserved };
 }
 
+/** Rewrite the stored composition index from the per-episode rows. No model or image call; safe on a work with no composition data (writes an empty index). */
+async function rebuildComposition(store, repo, workId) {
+  const config = await loadWebtoonCompositionConfig(store, workId);
+  const composition = new CompositionStore(repo);
+  const index = await composition.rebuildIndex({ protagonistIds: config.protagonistIds });
+  const shards = await Promise.all((await composition.listEpisodes()).map(({ episodeKey }) => composition.readShard(episodeKey)));
+  const panels = shards.flat().filter(row => row.type === 'panel' && row.status === 'adopted').length;
+  return { status: 'composition_rebuilt', lane: 'webtoon', workId, episodes: index.order.length, panels, sourceHead: index.sourceHead };
+}
+
 /** Opt-in scene workflow: never migrates or republishes an existing panel workflow. */
 export async function runWebtoonSceneTool({ store, args, providers, run = null }) {
   if (!safeId(args.workId)) throw new Error('INVALID_WORK_ID');
   const repo = new WebtoonStore(store);
   return repo.locked(async () => {
+    if (!run && args.action === 'composition_rebuild') return rebuildComposition(store, repo, args.workId);
     let w = await repo.load(args.workflowId);
     if (w && w.workId !== args.workId) throw new Error('WORKFLOW_WORK_MISMATCH');
     if (!run && args.action === 'verify') {

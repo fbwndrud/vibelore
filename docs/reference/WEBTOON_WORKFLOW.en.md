@@ -50,6 +50,35 @@ Call `lore_webtoon_scene(action="review",workflowId,feedback)` to apply a new re
 the earlier review and complete pending request in `reviewHistory`, issues a new actual request ID/runId, and preserves the
 image, revision and redraw allowance. Failed re-review stops at `scene_needs_revision` without another image request.
 
+### Composition records and the repetition digest
+
+For a newly started scene, the pre-generation check (`webtoon-scene-preflight`) labels the composition of every moment with a fixed vocabulary from the schema:
+`shot` (ECU, CU, MCU, MS, FS, WS, EST, INSERT), `angle` (eye, high, low, top, worm, dutch, ots, pov), `focal` (face, hands, prop, space, text, two-face),
+`background` (detailed, bokeh, flat, white, fx, silhouette), per-character `visibility`, `side`, `facing` and `expression`, and a page `layout`.
+Values outside the vocabulary are refused with `INVALID_SCENE_COMPOSITION`. At most two moments per page may be marked `directed`, and only that framing reaches the image model.
+The other labels are records only; elements the source requires go in `required` with their source IDs. Composition sentences in the style description are split off as
+`seriesComposition` and sent with the direction request only, so the image prompt keeps just the style. Work that started earlier keeps its existing requests unchanged.
+
+When a scene is adopted, per-episode records (L0) accumulate under `.vibelore/webtoon/composition/l0/`. Where the visual review's `compositionCheck` observed a panel
+differently from its label, the observed value is what gets recorded. From these, scene, episode, cumulative and per-character aggregates (L1-L3) are derived deterministically, with no model call.
+
+Just before `scene_generate`, one repetition digest is computed from the aggregates and stored on the workflow. It compares the recent window (by default the last 2 episodes, or the last 6 scenes
+when there is one episode) with the baseline before it (a built-in default distribution when the record covers fewer than 3 episodes). It writes one English line each for over-used values, runs of the same closing frame,
+two-character arrangement or framing, and a small menu of under-used options. Only when `lines` is not empty, the same array is sent once as `compositionDigest` in the `scene_generate` and `scene_preflight`
+requests (it is not recomputed for preflight). It is never put in the image prompt or the visual review request, and if the computation fails only a reason is kept and generation continues.
+A revision that restarts at `scene_generate` computes a fresh digest. The digest is a suggestion: the source and the user's direction come first.
+
+After adoption, if a run or over-use reaches the latest page, the review result gets a `COMPOSITION_REPETITION` advisory (`category: "composition"`).
+It is record-only: it never changes the review verdict, adoption or redrawing, and it is not passed on in `previousScene` of later model requests.
+Configure it with `lore_configure(webtoonComposition={shortWindowEpisodes,shortWindowScenes,overuseDelta,overuseMinCount,streakLength,observedBasisRate,protagonistIds})`, updated field by field (`null` restores the default).
+`shortWindowEpisodes` and `shortWindowScenes` size the recent window, `overuseDelta` is the minimum share increase over the baseline, `overuseMinCount` the minimum number of panels for an over-use,
+`streakLength` the run length that counts as a streak, `observedBasisRate` the review-corrected share above which the digest says so, and `protagonistIds` names the lead characters (the most frequent ones when omitted).
+To silence only the advisory, put `composition-ledger` in `disabledReviews`; that setting does not turn the digest off.
+
+`lore_webtoon_scene(action="composition_rebuild")` rewrites the four aggregate files from the stored L0. It makes no model or image call and issues no `needs_model`, and it returns
+`{status:"composition_rebuilt", episodes, panels, sourceHead}` (`panels` counts adopted panels). The same records always produce the same bytes. A work with no composition records gets zero episodes and panels
+and an empty index written. Use it when the aggregates are damaged or stale, or after changing `protagonistIds`.
+
 ### Standalone scene-script source
 
 When the source is a standalone scene script rather than novel chapters, first adopt it with `lore_scene_script` inspect/apply ([SharedLore contract, Korean](SHARED_LORE_RUNTIME.md)). Then pass `scriptId` instead of `sourceChapters` on `action="start"`; passing both is `SCENE_SOURCE_AMBIGUOUS`. Source paragraph IDs are `<sceneId>-p-<n>`, and plan and preflight requests also carry the per-scene world point and state documents (`sharedLore`), cast and expression profile. Future states and author documents are excluded. References pick catalog images pinned by the script as `references:[{id, assetId, description}]`, using the bytes sealed inside the work; an unpinned assetId is `SCENE_ASSET_NOT_PINNED`. Interview, panel count, image path choice, preflight, visual review and revise/retry work as with a novel source. If the script file or sealed inputs change mid-workflow, it stops with `SCENE_SCRIPT_DRIFT`/`SCENE_SOURCE_CHANGED`.

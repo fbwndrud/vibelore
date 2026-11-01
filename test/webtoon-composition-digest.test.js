@@ -288,7 +288,9 @@ const seedHistory = async repo => {
   await writeFile(path, rows.map(r => JSON.stringify(r)).join('\n') + '\n');
 };
 
-test('scene_generate stores a digest for a v1 workflow but never sends it', async () => {
+const occurrences = (text, needle) => text.split(needle).length - 1;
+
+test('the digest computed at scene_generate reaches the plan and preflight requests once each, and nothing else', async () => {
   requests.length = 0;
   const { store, repo, args } = await sceneSetup();
   await seedHistory(repo);
@@ -298,14 +300,48 @@ test('scene_generate stores a digest for a v1 workflow but never sends it', asyn
   assert.ok(Array.isArray(w.compositionDigest.lines));
   assert.ok(w.compositionDigest.menu.length >= 2);
   assert.equal(w.compositionDigestError, undefined);
-  assert.ok(requests.length >= 2);
+  assert.ok(w.compositionDigest.lines.length > 0);
+  assert.deepEqual(requests.map(r => r.step), ['webtoon-scene-plan', 'webtoon-scene-preflight']);
   for (const request of requests) {
     const data = JSON.parse(request.messages.at(-1).content), text = JSON.stringify(request);
-    assert.ok(!('compositionDigest' in data) && !('compositionDigest' in (data.schema ?? {})), request.step);
-    for (const line of w.compositionDigest.lines) assert.ok(!text.includes(line), `${request.step} carries a digest line`);
+    assert.deepEqual(data.compositionDigest, w.compositionDigest.lines, `${request.step} carries the stored digest`);
+    assert.ok(!('compositionDigest' in (data.schema ?? {})), request.step);
+    for (const line of w.compositionDigest.lines) assert.equal(occurrences(text, JSON.stringify(line).slice(1, -1)), 1, `${request.step} repeats a digest line`);
   }
-  assert.ok(w.compositionDigest.lines.length > 0);
+  for (const line of w.compositionDigest.lines) {
+    assert.ok(!drawn.jobs[0].prompt.includes(line), 'the image prompt carries a digest line');
+    assert.ok(!JSON.stringify(drawn.jobs).includes(JSON.stringify(line).slice(1, -1)), 'an image job carries a digest line');
+  }
   assert.ok(!JSON.stringify(drawn).includes('compositionDigest'));
+  const pending = await runWebtoonSceneTool({ store, args: { workId, asset: assetFor(args, drawn.jobs[0]) }, providers: createHostRelay() });
+  const review = JSON.stringify(pending.requests[0]);
+  assert.ok(!review.includes('compositionDigest'));
+  for (const line of w.compositionDigest.lines) assert.ok(!review.includes(JSON.stringify(line).slice(1, -1)), 'the review request carries a digest line');
+});
+
+test('a revision recomputes the digest once and sends the new one to both planning requests', async () => {
+  requests.length = 0;
+  const { store, repo, args } = await sceneSetup();
+  await seedHistory(repo);
+  await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: planner });
+  const first = (await repo.load()).compositionDigest;
+  requests.length = 0;
+  await runWebtoonSceneTool({ store, args: { workId, action: 'revise', feedback: 'Show the second beat from a different side.' }, providers: planner });
+  const w = await repo.load();
+  assert.equal(requests.length, 2);
+  for (const request of requests) assert.deepEqual(JSON.parse(request.messages.at(-1).content).compositionDigest, w.compositionDigest.lines, request.step);
+  assert.ok(first.lines.length > 0);
+});
+
+test('a digest failure sends no digest and still plans', async () => {
+  requests.length = 0;
+  const { store, repo, args } = await sceneSetup();
+  await seedHistory(repo);
+  const path = repo.path('composition', 'l0', 'ep-0001.jsonl');
+  await writeFile(path, (await readFile(path, 'utf8')).slice(0, -9));
+  await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: planner });
+  assert.equal(requests.length, 2);
+  for (const request of requests) assert.ok(!('compositionDigest' in JSON.parse(request.messages.at(-1).content)), request.step);
 });
 
 test('a corrupt shard never blocks generation and leaves an inspectable reason', async () => {
@@ -328,8 +364,11 @@ test('a workflow that started without composition gets no digest and no error', 
   assert.ok(w.compositionDigest, 'the v1 workflow computed a digest before asking the model');
   delete w.compositionVersion; delete w.compositionDefaults; delete w.unmergedSceneReferences; delete w.compositionDigest; delete w.pending; w.direction = args.direction;
   await repo.save(w);
+  requests.length = 0;
   const result = await runWebtoonSceneTool({ store, args: { workId, action: 'retry' }, providers: planner });
   assert.equal(result.status, 'needs_scene_image');
+  assert.equal(requests.length, 2);
+  for (const request of requests) assert.ok(!('compositionDigest' in JSON.parse(request.messages.at(-1).content)), request.step);
   const after = await repo.load();
   assert.equal('compositionDigest' in after, false);
   assert.equal('compositionDigestError' in after, false);
@@ -397,4 +436,73 @@ test('the advisory never reaches the plan or review requests of a scene that con
   const w = await repo.load();
   assert.equal(w.previousScene.reviewPassed, true);
   assert.ok(!w.previousScene.findings.some(f => f.category === 'composition'));
+});
+
+// ---- composition_rebuild --------------------------------------------------
+
+const indexFiles = ['l1-scenes.json', 'l1-episodes.json', 'l2.json', 'l3.json'];
+const readIndexFiles = async repo => Promise.all(indexFiles.map(name => readFile(repo.path('composition', name), 'utf8')));
+const poisonProvider = { async complete() { throw new Error('rebuild must not call a model'); } };
+
+test('composition_rebuild rewrites the index from the stored rows without any model call', async () => {
+  const { store, repo } = await sceneSetup();
+  await seedHistory(repo);
+  const two = sceneRows('ep-0002', 'seed-3', [{ shot: 'WS', angle: 'high', focal: 'space', background: 'detailed', subjects: [] }]);
+  await writeFile(repo.path('composition', 'l0', 'ep-0002.jsonl'), two.map(r => JSON.stringify(r)).join('\n') + '\n');
+  const result = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider });
+  assert.equal(result.status, 'composition_rebuilt');
+  assert.equal(result.episodes, 2);
+  assert.equal(result.panels, 5, 'four seeded panels in the first episode plus one in the second');
+  const index = await new CompositionStore(repo).peekIndex();
+  assert.ok(index, 'all four index files are current');
+  assert.equal(result.sourceHead, index.sourceHead);
+  assert.ok(!('requests' in result) && !('jobs' in result) && result.status !== 'needs_model');
+  const before = await readIndexFiles(repo);
+  const again = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider });
+  assert.deepEqual(again, result);
+  assert.deepEqual(await readIndexFiles(repo), before, 'a second rebuild writes the same bytes');
+});
+
+test('composition_rebuild repairs a missing or stale index', async () => {
+  const { store, repo } = await sceneSetup();
+  await seedHistory(repo);
+  const composition = new CompositionStore(repo);
+  await composition.rebuildIndex();
+  const good = await readIndexFiles(repo);
+  await writeFile(repo.path('composition', 'l2.json'), '{"broken":');
+  assert.equal(await composition.peekIndex(), null);
+  await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider });
+  assert.deepEqual(await readIndexFiles(repo), good);
+});
+
+test('composition_rebuild uses the configured protagonist ids', async () => {
+  const { store, repo } = await sceneSetup();
+  await seedHistory(repo);
+  await runConfigureStatus({ store, workId, webtoonComposition: { protagonistIds: ['hero'] } });
+  await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider });
+  const index = await new CompositionStore(repo).peekIndex({ protagonistIds: ['hero'] });
+  assert.ok(index);
+  assert.deepEqual(index.configured, ['hero']);
+});
+
+test('composition_rebuild on a work with no composition data returns zero counts and writes an empty index', async () => {
+  const { store, repo } = await sceneSetup();
+  const result = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider });
+  assert.equal(result.status, 'composition_rebuilt');
+  assert.equal(result.episodes, 0);
+  assert.equal(result.panels, 0);
+  assert.equal(typeof result.sourceHead, 'string');
+  const index = await new CompositionStore(repo).peekIndex();
+  assert.deepEqual(index.order, []);
+});
+
+test('composition_rebuild counts only adopted panels and leaves workflows untouched', async () => {
+  const { store, repo, args } = await sceneSetup();
+  await seedHistory(repo);
+  await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: planner });
+  const before = await repo.load();
+  const rows = (await readFile(repo.path('composition', 'l0', 'ep-0001.jsonl'), 'utf8')).trim().split('\n').map(l => JSON.parse(l));
+  const result = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider });
+  assert.equal(result.panels, rows.filter(r => r.type === 'panel' && r.status === 'adopted').length);
+  assert.deepEqual(await repo.load(), before, 'the pending workflow is unchanged');
 });
