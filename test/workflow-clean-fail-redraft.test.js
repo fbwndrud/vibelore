@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { runWriteWorkflow, runWorkflowDecide, runWorkflowHistory, runWorkflowInspect, proseHash } from '../src/tools/workflow.js';
+import { runWriteWorkflow, runWorkflowDecide, runWorkflowHistory, runWorkflowInspect, runWorkflowStatus, proseHash } from '../src/tools/workflow.js';
 import { runSyncStatus } from '../src/tools/sync.js';
 import { qualityStore, outputs, workId } from './fixtures/quality-workflow.js';
 import { contractResponse } from './fixtures/contract-response.js';
+import { webtoonStore } from './fixtures/webtoon.js';
 
 // continuity-check answers with an unbound '{}' until `healthy` is set, which
 // spends the three-attempt validation budget and parks the draft as clean_fail.
@@ -112,6 +113,90 @@ test('lore_workflow_inspect returns the kept clean_fail draft prose', async () =
   const inspected = await runWorkflowInspect({ store, workId, detail: 'full' });
   assert.equal(inspected.draftProse, kept);
   assert.equal(inspected.workflow.draftProse, undefined);
+});
+
+const HANGUL = /[\u3131-\u318E\uAC00-\uD7A3]/;
+
+test('explain is inert unless it is exactly "context"', async () => {
+  const { store } = await cleanFailedStore();
+  const plain = await runWorkflowInspect({ store, workId });
+  assert.deepEqual(await runWorkflowInspect({ store, workId, explain: undefined }), plain);
+  assert.deepEqual(await runWorkflowInspect({ store, workId, explain: 'nonsense' }), plain);
+  assert.equal(plain.contextExplanation, undefined);
+  const status = await runWorkflowStatus({ store, workId });
+  assert.deepEqual(await runWorkflowStatus({ store, workId, explain: undefined }), status);
+  assert.deepEqual(await runWorkflowStatus({ store, workId, explain: 'nonsense' }), status);
+  assert.equal(status.contextExplanation, undefined);
+});
+
+test('explain=context adds a manuscript-free explanation to inspect and status without writing', async () => {
+  const { store } = await cleanFailedStore();
+  const kept = (await store.loadWorkflow(workId)).draftProse;
+  const before = JSON.stringify(await store.loadWorkflow(workId));
+  const events = JSON.stringify(await store.loadWorkflowEvents(workId, (await store.loadWorkflow(workId)).workflowId, 1000));
+  const inspected = await runWorkflowInspect({ store, workId, explain: 'context' });
+  assert.equal(inspected.contextExplanation.available, true);
+  assert.ok(inspected.contextExplanation.sentences.length >= 2, JSON.stringify(inspected.contextExplanation));
+  assert.ok(!JSON.stringify(inspected.contextExplanation).includes(kept.slice(0, 40)));
+  assert.equal(inspected.draftProse, undefined);
+  assert.equal(inspected.workflow.draftProse, undefined);
+  const status = await runWorkflowStatus({ store, workId, explain: 'context' });
+  assert.equal(status.contextExplanation.available, true);
+  assert.ok(status.contextExplanation.sentences.length >= 2);
+  assert.ok(!JSON.stringify(status).includes(kept.slice(0, 40)));
+  assert.equal(JSON.stringify(await store.loadWorkflow(workId)), before);
+  assert.equal(JSON.stringify(await store.loadWorkflowEvents(workId, (await store.loadWorkflow(workId)).workflowId, 1000)), events);
+  assert.ok(inspected.contextExplanation.sentences.some((sentence) => HANGUL.test(sentence)));
+});
+
+test('explain=context on an older stored audit reduces the older-memory layer to a counts item', async () => {
+  const { store } = await cleanFailedStore();
+  const workflow = await store.loadWorkflow(workId);
+  const audit = { ...workflow.contextAudit, memory: { ...workflow.contextAudit.memory } };
+  delete audit.memory.excluded;
+  delete audit.memory.filtered;
+  delete audit.draftInputTrace;
+  await store.saveWorkflow(workId, { ...workflow, contextAudit: audit });
+  const status = await runWorkflowStatus({ store, workId, explain: 'context' });
+  assert.equal(status.contextExplanation.available, true);
+  const older = status.contextExplanation.items.filter((entry) => entry.layer === 'older-memory');
+  assert.ok(older.length <= 1, JSON.stringify(older));
+  for (const entry of older) assert.equal(entry.code, 'detail-not-recorded');
+});
+
+test('explain=context without a stored audit says the draft has not been recorded yet', async () => {
+  const { store } = await cleanFailedStore();
+  const workflow = await store.loadWorkflow(workId);
+  await store.saveWorkflow(workId, { ...workflow, contextAudit: undefined });
+  for (const run of [runWorkflowStatus, runWorkflowInspect]) {
+    const out = await run({ store, workId, explain: 'context' });
+    assert.equal(out.contextExplanation.available, false);
+    assert.deepEqual(out.contextExplanation.items.map((entry) => entry.code), ['not-yet-drafted']);
+  }
+});
+
+test('explain=context with no workflow still answers with the not-yet-drafted explanation', async () => {
+  const store = await qualityStore();
+  const status = await runWorkflowStatus({ store, workId, explain: 'context' });
+  assert.equal(status.active, false);
+  assert.equal(status.contextExplanation.available, false);
+  assert.equal(status.contextExplanation.items[0].code, 'not-yet-drafted');
+  const inspected = await runWorkflowInspect({ store, workId, explain: 'context' });
+  assert.equal(inspected.found, false);
+  assert.equal(inspected.contextExplanation.items[0].code, 'not-yet-drafted');
+  assert.deepEqual(await runWorkflowStatus({ store, workId }), { active: false });
+  assert.deepEqual(await runWorkflowInspect({ store, workId }), { found: false });
+});
+
+test('explain=context follows the work language', async () => {
+  const { store } = await cleanFailedStore();
+  const audit = (await store.loadWorkflow(workId)).contextAudit;
+  const english = await webtoonStore({ language: 'en' });
+  await english.saveWorkflow('webtoon-test', { workflowId: 'wf-explain-en', workId: 'webtoon-test', stage: 'clean_fail', chapter: 1, contextAudit: audit });
+  const out = await runWorkflowStatus({ store: english, workId: 'webtoon-test', explain: 'context' });
+  assert.equal(out.contextExplanation.available, true);
+  assert.ok(out.contextExplanation.sentences.length >= 2);
+  for (const sentence of out.contextExplanation.sentences) assert.ok(!HANGUL.test(sentence), sentence);
 });
 
 async function completedChapterOne() {

@@ -35,7 +35,8 @@ import { createReviewAudit, reviewFindingAdvisories, reviewTimeoutMs } from '../
 import { compileDraftContract } from '../core/narrative-contract.js';
 import { assertCurrentChapterReceipt, currentValidationContext, sameIdentity, exceptionOnlyRebind, loadValidationSession, invalidateValidationSession } from '../core/validation-context.js';
 import { buildApprovalBinding, validateApprovalBinding } from '../../engine/src/core/validation-contract.js';
-import { promptKit } from '../prompts/index.js';
+import { asKit, promptKit, resolveWorkKit } from '../prompts/index.js';
+import { explainDraftContext } from '../core/context-explain.js';
 import { resolveWorkLanguage, executionFoundationSnapshot } from '../core/work-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { normalizeModelProfile, withModelProfile } from '../core/model-profile.js';
@@ -1176,9 +1177,24 @@ export async function runWorkflowDecide({ store, workId, approvalId, action, fee
   throw new Error('action은 approve, request_revision, hold 또는 reject여야 합니다.');
 }
 
-export async function runWorkflowStatus({ store, workId }) {
+/**
+ * Read-only explanation of a stored draft input, in the work's language. Only
+ * called when a caller asks for `explain: "context"`; it writes nothing.
+ */
+export async function contextExplanationFor({ store, workId, workflow }) {
+  let kit;
+  try {
+    kit = await resolveWorkKit({ store, workId });
+  } catch {
+    kit = asKit({});
+  }
+  return explainDraftContext({ contextAudit: workflow?.contextAudit, kit });
+}
+
+export async function runWorkflowStatus({ store, workId, explain }) {
   const workflow = await store.loadWorkflow(workId);
-  if (!workflow) return { active: false };
+  const explained = explain === 'context' ? { contextExplanation: await contextExplanationFor({ store, workId, workflow }) } : {};
+  if (!workflow) return { active: false, ...explained };
   const { draftProse, castManifestRaw, ...safe } = workflow;
   const active = !['completed', 'rejected', 'clean_fail'].includes(workflow.stage);
   if (active && workflow.stage === 'awaiting_model' && !safe.pendingRunId) {
@@ -1196,6 +1212,7 @@ export async function runWorkflowStatus({ store, workId }) {
         nextAction: `lore_resume에 runId \"${safe.pendingRunId}\"와 모델 answers를 전달하세요.`,
       },
     } : {}),
+    ...explained,
   };
 }
 
@@ -1208,9 +1225,10 @@ export async function runWorkflowHistory({ store, workId, workflowId, limit = 10
   return { found: true, workflowId: workflow.workflowId, events, ...(includeModelExchanges ? { modelExchanges } : {}) };
 }
 
-export async function runWorkflowInspect({ store, workId, workflowId, detail = 'summary' }) {
+export async function runWorkflowInspect({ store, workId, workflowId, detail = 'summary', explain }) {
   const workflow = await store.loadWorkflow(workId, workflowId ?? 'current');
-  if (!workflow) return { found: false };
+  const explained = explain === 'context' ? { contextExplanation: await contextExplanationFor({ store, workId, workflow }) } : {};
+  if (!workflow) return { found: false, ...explained };
   const receipt = workflow.checkId ? await store.loadCheckReceipt(workId, workflow.checkId) : null;
   const { draftProse, castManifestRaw, ...safe } = workflow;
   if (workflow.stage === 'awaiting_model' && !safe.pendingRunId) {
@@ -1220,5 +1238,5 @@ export async function runWorkflowInspect({ store, workId, workflowId, detail = '
     if (run) safe.pendingRunId = run.id;
   }
   // The kept or parked draft is what the user decides on; detail="full" shows it.
-  return { found: true, workflow: safe, receipt, ...(detail === 'full' && draftProse ? { draftProse } : {}) };
+  return { found: true, workflow: safe, receipt, ...(detail === 'full' && draftProse ? { draftProse } : {}), ...explained };
 }
