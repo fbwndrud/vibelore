@@ -366,6 +366,18 @@ test('backfill refuses a workflow that already records composition and a scene t
   await assert.rejects(runWebtoonSceneTool({ store: legacy.store, args: { workId, action: 'revise', feedback: 'x', compositionBackfill: true }, providers: createHostRelay() }), /SCENE_BACKFILL_REVIEW_ONLY/);
 });
 
+test('compositionBackfill is refused for every action but review, before anything runs', async () => {
+  const { store, repo, args } = await sceneSetup();
+  const refuses = extra => assert.rejects(runWebtoonSceneTool({ store, args: { workId, compositionBackfill: true, ...extra }, providers: createHostRelay() }), /SCENE_BACKFILL_REVIEW_ONLY/);
+  await refuses({ ...args });
+  assert.equal(await repo.load(), null, 'start created no workflow');
+  await refuses({ action: 'start', workId, sourceChapters: [1] });
+  await refuses({ action: 'composition_rebuild' });
+  await refuses({ action: 'verify' });
+  await refuses({ action: 'reject', feedback: 'stop' });
+  assert.equal(await repo.load(), null);
+});
+
 test('a plain re-review of a pre-change scene keeps its bytes: no composition field, no rows', async () => {
   const { store, repo, composition } = await completedLegacyScene();
   const pending = await runWebtoonSceneTool({ store, args: { workId, action: 'review' }, providers: createHostRelay() });

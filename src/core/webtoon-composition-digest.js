@@ -1,7 +1,7 @@
 import { digest } from './webtoon-contract.js';
 import { COMPOSITION_VOCAB } from './webtoon-composition.js';
 import { RETRY_FRAMING, isEnglish } from './webtoon-scene.js';
-import { emptyVector, subVector, addVector, windowCounts } from './webtoon-composition-aggregate.js';
+import { emptyVector, subVector, addVector, windowCounts, orderedScenes } from './webtoon-composition-aggregate.js';
 
 export const DEFAULT_COMPOSITION_CONFIG = Object.freeze({ shortWindowEpisodes: 2, shortWindowScenes: 6, overuseDelta: 0.20, overuseMinCount: 4,
   streakLength: 3, observedBasisRate: 0.40, protagonistIds: Object.freeze([]) });
@@ -75,8 +75,8 @@ function windowsOf(index, episodeKey, cfg) {
     return { short: windowCounts(index, from, last), base: from > 0 ? windowCounts(index, 0, from - 1) : emptyVector(), baselineEpisodes: from, last };
   }
   const episode = index.order[0];
-  const ids = Object.keys(index.scenes).filter(id => id.startsWith(`${episode}:`));
-  const short = ids.slice(-cfg.shortWindowScenes).reduce((acc, id) => addVector(acc, index.scenes[id].counts), emptyVector());
+  const scenes = orderedScenes(index).filter(scene => scene.episodeKey === episode);
+  const short = scenes.slice(-cfg.shortWindowScenes).reduce((acc, scene) => addVector(acc, scene.summary.counts), emptyVector());
   return { short, base: subVector(index.episodes[episode] ?? emptyVector(), short), baselineEpisodes: 0, last };
 }
 
@@ -105,10 +105,7 @@ function overusedOf(win, cfg) {
 }
 
 function pagesUpTo(index, last) {
-  const position = new Map(index.order.map((key, i) => [key, i]));
-  const episodeOf = id => id.slice(0, id.indexOf(':'));
-  return Object.keys(index.scenes).filter(id => position.has(episodeOf(id)) && position.get(episodeOf(id)) <= last)
-    .sort((a, b) => position.get(episodeOf(a)) - position.get(episodeOf(b))).map(id => index.scenes[id]);
+  return orderedScenes(index).filter(scene => scene.episodeIndex <= last).map(scene => scene.summary);
 }
 
 const runLength = (pages, valueOf) => {

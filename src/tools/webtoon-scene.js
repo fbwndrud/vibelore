@@ -46,7 +46,7 @@ export function scenePublicState(w) {
     autoRevision: w.autoRevision ?? { limit: 0, used: 0 }, attempts: w.attempts ?? [],
     style: w.styleSnapshot ?? null,
     delegation: w.delegation ?? null,
-    ...(w.compositionVersion ? { compositionDefaults: w.compositionDefaults ?? [] } : {}),
+    ...(w.compositionVersion ? { compositionDefaults: w.compositionDefaults ?? [], ...(w.compositionDigestError ? { compositionDigestError: w.compositionDigestError } : {}) } : {}),
     apiRestriction: w.apiRestriction ?? w.delegation?.apiPolicy ?? 'existing-only',
     limitations: ['Whole-scene raster with generated lettering; not editable vector lettering.', 'Host review is self-reported, not independent reader evaluation.'] };
 }
@@ -452,6 +452,7 @@ async function rebuildComposition(store, repo, workId) {
 /** Opt-in scene workflow: never migrates or republishes an existing panel workflow. */
 export async function runWebtoonSceneTool({ store, args, providers, run = null }) {
   if (!safeId(args.workId)) throw new Error('INVALID_WORK_ID');
+  if (!run && args.compositionBackfill !== undefined && args.action !== 'review') throw new Error('SCENE_BACKFILL_REVIEW_ONLY');
   const repo = new WebtoonStore(store);
   return repo.locked(async () => {
     if (!run && args.action === 'composition_rebuild') return rebuildComposition(store, repo, args.workId);
@@ -480,7 +481,6 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       return scenePublicState(w);
     }
     await verifyInputs(repo, w);
-    if (!run && args.compositionBackfill !== undefined && args.action !== 'review') throw new Error('SCENE_BACKFILL_REVIEW_ONLY');
     if (!run && args.action === 'review') {
       if (!w.sceneImage || w.stage === 'rejected') throw new Error('SCENE_REVIEW_IMAGE_REQUIRED');
       if (args.compositionBackfill === true) {

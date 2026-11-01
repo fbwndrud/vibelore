@@ -354,6 +354,7 @@ test('a corrupt shard never blocks generation and leaves an inspectable reason',
   const w = await repo.load();
   assert.equal(w.compositionDigest, undefined);
   assert.match(w.compositionDigestError, /CORRUPT_COMPOSITION_SHARD/);
+  assert.match(drawn.compositionDigestError, /CORRUPT_COMPOSITION_SHARD/, 'the reason is part of the public state');
 });
 
 test('a workflow that started without composition gets no digest and no error', async () => {
@@ -372,6 +373,8 @@ test('a workflow that started without composition gets no digest and no error', 
   const after = await repo.load();
   assert.equal('compositionDigest' in after, false);
   assert.equal('compositionDigestError' in after, false);
+  assert.equal('compositionDigestError' in result, false, 'public state of an older workflow is unchanged');
+  assert.equal('compositionDefaults' in result, false);
 });
 
 test('a repeated closing frame attaches the advisory after adoption without touching the verdict', async () => {

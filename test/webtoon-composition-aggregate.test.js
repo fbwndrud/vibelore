@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CompositionStore, sceneKey } from '../src/store/webtoon-composition-store.js';
 import { COMPOSITION_VOCAB, compositionFingerprint } from '../src/core/webtoon-composition.js';
+import { compositionDigest, DEFAULT_COMPOSITION_CONFIG } from '../src/core/webtoon-composition-digest.js';
 import { addVector, buildIndex, emptyVector, protagonistIdsFor, sceneSummary, subVector, windowCounts } from '../src/core/webtoon-composition-aggregate.js';
 
 const repoAt = async () => { const dir = await mkdtemp(join(tmpdir(), 'vl-comp-')); return { dir, path: (...p) => join(dir, ...p) }; };
@@ -131,6 +132,23 @@ test('adopting, readopting and rejecting scenes keeps the incremental index equa
   assert.equal(dropped.episodes['ep-0001'].panels, 3);
 });
 
+test('page order follows first adoption, so an incremental update and a rebuild give the same digest', async () => {
+  let tick = 0;
+  const store = new CompositionStore(await repoAt(), { now: () => `2026-11-01T00:00:${String(++tick).padStart(2, '0')}.000Z` });
+  const closing = shot => ({ preflight: { renderBrief: { pageComposition: { layout: 'grid' }, moments: [planned(), planned(), planned(undefined, shot)] } } });
+  const first = fake('wt-1', 1, ['p1'], closing('WS'));
+  await store.adoptScene(first, { adopted: true });
+  for (const n of [2, 3, 4]) await store.adoptScene(fake(`wt-${n}`, 1, [`p${n}`], closing('MS')), { adopted: true });
+  // The first page is reviewed again: its rows move to the end of the shard, but it stays the first page.
+  await store.adoptScene(first, { adopted: true });
+  const options = { episodeKey: 'ep-0001', castIds: ['hero', 'rival'], requiredLocks: [], seed: 'wt-5', config: DEFAULT_COMPOSITION_CONFIG, basisStats: await store.basisStats() };
+  const incremental = compositionDigest(await store.peekIndex(), options);
+  const rebuilt = compositionDigest(await store.rebuildIndex(), options);
+  assert.deepEqual(rebuilt, incremental);
+  assert.equal(rebuilt.streaks.some(streak => streak.kind === 'pageClose' && streak.length === 3), true, JSON.stringify(rebuilt.streaks));
+  assert.deepEqual(compositionDigest(await store.computeIndex(), options), incremental);
+});
+
 test('an adoption by a first-time store builds the index from scratch', async () => {
   const store = new CompositionStore(await repoAt());
   assert.equal(await store.peekIndex(), null);
@@ -238,7 +256,7 @@ test('scale: 300 episodes x 40 panels rebuild fast, windows are one subtraction,
   console.log(`# scale l1-scenes ${l1Scenes} l1-episodes ${l1Episodes} l2 ${l2} l3 ${l3} bytes`);
   assert.ok(l2 < 1.5 * 1024 * 1024, `l2.json is ${l2} bytes`);
   assert.ok(l1Episodes < 320 * 1024, `l1-episodes.json is ${l1Episodes} bytes (about 1 KB per episode)`);
-  assert.ok(l1Scenes < 850 * 1000, `l1-scenes.json is ${l1Scenes} bytes`);
+  assert.ok(l1Scenes < 900 * 1000, `l1-scenes.json is ${l1Scenes} bytes`);
   for (const [from, to] of [[0, 299], [10, 10], [0, 0], [299, 299], [5, 120], [100, 250], [33, 34], [200, 299], [1, 298], [149, 151]]) {
     const naive = index.order.slice(from, to + 1).map(k => index.episodes[k]).reduce(addVector, emptyVector());
     assert.deepEqual(windowCounts(index, from, to), naive);

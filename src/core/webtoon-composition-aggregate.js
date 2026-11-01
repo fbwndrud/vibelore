@@ -58,6 +58,8 @@ export function sceneSummary(rows, { protagonistIds = [] } = {}) {
   const counts = emptyVector(), requiredCounts = emptyVector(), characters = {}, closes = [];
   const page = rows.filter(r => r.type === 'page' && r.status === 'adopted').at(-1);
   let sceneType = null;
+  // When the scene was first adopted; page order never depends on where its rows sit in the shard.
+  const adoptedAt = rows.filter(r => r.type === 'page' && ['adopted', 'superseded'].includes(r.status) && r.adoptedAt).map(r => r.adoptedAt).sort()[0] ?? null;
   if (page) {
     sceneType = page.sceneType ?? null;
     if (COMPOSITION_VOCAB.layout.includes(page.layout)) counts.layout[page.layout] += 1;
@@ -86,7 +88,7 @@ export function sceneSummary(rows, { protagonistIds = [] } = {}) {
       for (const field of ['visibility', 'side', 'facing', 'expression']) if (s[field] !== undefined) bump(v[field], s[field]);
     }
   }
-  return { counts, requiredCounts, closes, fingerprints: counts.fingerprints, sceneType, characters };
+  return { counts, requiredCounts, closes, fingerprints: counts.fingerprints, sceneType, adoptedAt, characters };
 }
 
 /** The stored form of a scene summary: per-character vectors feed L3 only and are not kept per scene. */
@@ -167,6 +169,18 @@ export function applySceneToIndex(index, id, prevSummary, nextSummary, { order =
   const from = Math.max(0, Math.min(shared, order.indexOf(episodeKey)));
   return { ...index, sourceHead, scenes, episodes, order: [...order], prefix: prefixFrom(order, episodes, from, index.prefix),
     entities: entityDelta(index.entities, prevSummary, nextSummary) };
+}
+
+/**
+ * The index's scenes in reading order: by episode position, then first adoption time, then scene id.
+ * `[id, summary]` pairs; scenes of episodes missing from `order` are left out.
+ */
+export function orderedScenes(index) {
+  const position = new Map(index.order.map((key, i) => [key, i]));
+  const episodeOf = id => id.slice(0, id.indexOf(':'));
+  return Object.entries(index.scenes).filter(([id]) => position.has(episodeOf(id)))
+    .sort(([a, x], [b, y]) => position.get(episodeOf(a)) - position.get(episodeOf(b)) || cmp(x.adoptedAt ?? '', y.adoptedAt ?? '') || cmp(a, b))
+    .map(([id, summary]) => ({ id, episodeKey: episodeOf(id), episodeIndex: position.get(episodeOf(id)), summary }));
 }
 
 /** Counts over episodes fromIdx..toIdx (inclusive): one subtraction of prefix sums, plus the sparse maps of those episodes. */

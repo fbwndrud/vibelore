@@ -26,10 +26,10 @@ const rowKey = r => `${r.workflowId}:${r.revision}`;
 const INDEX_FILES = ['l1-scenes.json', 'l1-episodes.json', 'l2.json', 'l3.json'];
 const mapValues = (object, fn) => Object.fromEntries(Object.entries(object).map(([k, v]) => [k, fn(v)]));
 /** On disk a summary is sparse and its fingerprints map is stored once (it is `counts.fingerprints`). */
-const packSummary = ({ counts, requiredCounts, closes, sceneType }) => ({ counts: compactVector(counts), requiredCounts: compactVector(requiredCounts), closes, sceneType });
-const unpackSummary = ({ counts, requiredCounts, closes, sceneType }) => {
+const packSummary = ({ counts, requiredCounts, closes, sceneType, adoptedAt }) => ({ counts: compactVector(counts), requiredCounts: compactVector(requiredCounts), closes, sceneType, adoptedAt });
+const unpackSummary = ({ counts, requiredCounts, closes, sceneType, adoptedAt }) => {
   const full = expandVector(counts);
-  return { counts: full, requiredCounts: expandVector(requiredCounts), closes, fingerprints: full.fingerprints, sceneType };
+  return { counts: full, requiredCounts: expandVector(requiredCounts), closes, fingerprints: full.fingerprints, sceneType, adoptedAt: adoptedAt ?? null };
 };
 const sameIds = (a, b) => a.length === b.length && [...a].sort().every((id, i) => id === [...b].sort()[i]);
 
