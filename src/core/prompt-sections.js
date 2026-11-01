@@ -2,6 +2,7 @@ import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { isHookActive, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
 import { customItemFor, findRecord, hookStatusOf, ledgerHistory, ledgerNameKey, recordNames, trackingEnabled } from '../../engine/src/continuity/ledger.js';
 import { searchTerms } from './search-terms.js';
+import { normalizeEpisodeShape } from './narrative-codes.js';
 
 /**
  * Shared text renderers for every model request that carries characters, world
@@ -459,6 +460,20 @@ export function renderArcBeat(beat, kit) {
     lines.push(t.arcBeatField(label, value));
   }
   return lines.join('\n');
+}
+
+/** Shape codes of an arc beat as one localized line; '' when the beat carries none. */
+export function renderArcBeatShape(episode, kit) {
+  const t = kit.phrases.arc.shape;
+  const shape = normalizeEpisodeShape(episode);
+  const oneLine = (v) => v.replace(/\s+/g, ' ');
+  const parts = [];
+  if (shape.role) parts.push(t.role[shape.role]);
+  if (Number.isInteger(shape.twistLevel)) parts.push(t.twist(shape.twistLevel));
+  if (shape.expectationHandling) parts.push(t.expectation(t.handling[shape.expectationHandling]));
+  if (shape.hookType) parts.push(t.hook(t.hookType[shape.hookType]));
+  if (shape.hookOps?.length) parts.push(t.hooks(shape.hookOps.map((op) => t.hookItem(t.hookOp[op.op], oneLine(op.label)))));
+  return parts.length ? `${t.prefix}${parts.join(t.join)}` : '';
 }
 
 /**

@@ -325,6 +325,28 @@ export const phrases = {
     mapResolutionCost: (v) => `resolution cost=${v}`,
     mapCarry: (v) => `carries=${v}`,
     mapExitValue: (v) => `next value=${v}`,
+    rhythm: (depthMode, { unitMin, unitMax, breatherAfterTension }) => {
+      const unit = `${unitMin}-${unitMax}`;
+      const bodies = {
+        'commercial-dramatic': `Units of ${unit} episodes, each ending in a peak with a small payoff. After ${breatherAfterTension} consecutive tension episodes at most, place a breather. Mix fulfill with delay and twist. Use twistLevel 2-3 at most once per unit.`,
+        'light-webnovel': `Group episodes into suspense units of ${unit} episodes. Each unit ends in a peak with a payoff the reader can feel, mostly fulfill. After ${breatherAfterTension} tension episodes in a row (escalation/peak), give a breather or a payoff. Keep twistLevel mostly 0-1; use 3 at most once per arc.`,
+        'deep-world-driven': `Units of ${unit} episodes. After ${breatherAfterTension} consecutive tension episodes at most, place a breather; it may carry world texture or relationship change rather than rest. Delay is allowed when the arc states the reason and the payoff episode. Use twistLevel 3 only when a misconceptionStack entry sets it up.`,
+      };
+      return `Rhythm guidance:\n${bodies[Object.hasOwn(bodies, depthMode) ? depthMode : 'commercial-dramatic']} This is guidance, not a quota. A 3-episode arc may be one unit.`;
+    },
+    shape: {
+      prefix: 'shape: ',
+      join: ' · ',
+      role: { setup: 'setup', escalation: 'escalation', peak: 'peak', breather: 'breather' },
+      twist: (n) => `twist ${n}`,
+      expectation: (label) => `expectation: ${label}`,
+      handling: { fulfill: 'fulfill', delay: 'delay', twist: 'twist', invert: 'invert' },
+      hook: (label) => `hook: ${label}`,
+      hookType: { result: 'result', reinterpretation: 'reinterpretation', relationship: 'relationship', ability: 'ability', moral: 'moral', identity: 'identity', none: 'none' },
+      hooks: (items) => `hooks: ${items.join(', ')}`,
+      hookOp: { planted: 'plant', advanced: 'reinforce', paid: 'pay' },
+      hookItem: (opLabel, label) => `${opLabel} "${label}"`,
+    },
     characterCurveHeading: '- Character emotion curves:',
     characterCurve: (id, promise, beats) => `  - ${id}: ${promise} / ${beats}`,
     characterCurveBeat: (index, beat, note) => `ch.${index}=${beat}(${note})`,

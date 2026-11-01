@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { renderCharacters, renderWorldFacts, renderCurrentState } from '../src/core/prompt-sections.js';
+import { renderCharacters, renderWorldFacts, renderCurrentState, renderArcBeatShape } from '../src/core/prompt-sections.js';
 import { promptKit } from '../src/prompts/index.js';
 import { buildLanguageContract } from '../engine/src/core/language-policy.js';
 
@@ -285,4 +285,15 @@ test('writers and planners see the speaker-only aliases of the records they are 
     const text = renderCurrentState(state, foundation, { kit, mode, focusText: '통행 장부', config });
     assert.match(text, /화자 전용 별칭: "그 종이 쪼가리"\(마렌만\), "빚문서"\(도윤만\)/, mode);
   }
+});
+
+test('renderArcBeatShape localizes codes and is empty without codes', () => {
+  const english = promptKit({ language: 'en' });
+  assert.equal(renderArcBeatShape({ title: 't' }, english), '');
+  const line = renderArcBeatShape({ role: 'peak', twistLevel: 1, expectationHandling: 'twist', hookType: 'ability', hookOps: [{ op: 'paid', label: 'key' }] }, english);
+  assert.match(line, /peak.*twist 1.*ability.*pay "key"/);
+  assert.doesNotMatch(line, /\bpaid\b/);
+  assert.match(renderArcBeatShape({ twistLevel: 0 }, english), /twist 0/);
+  assert.match(renderArcBeatShape({ role: 'peak' }, promptKit({})), /[가-힣]/);
+  assert.doesNotMatch(renderArcBeatShape({ role: 'peak', hookOps: [{ op: 'paid', label: 'key' }] }, promptKit({ language: 'ja' })), /[가-힣]/);
 });

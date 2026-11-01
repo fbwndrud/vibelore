@@ -6,6 +6,7 @@ import {
   RHYTHM_CADENCE, rhythmModeOf, normalizeEpisodeShape,
 } from '../src/core/narrative-codes.js';
 import { HOOK_EVENTS } from '../engine/src/continuity/ledger.js';
+import { promptKit } from '../src/prompts/index.js';
 import * as ko from '../src/prompts/ko.js';
 import * as multilingual from '../src/prompts/multilingual.js';
 
@@ -42,3 +43,22 @@ test('pattern-ledger hookType alternatives come from HOOK_TYPES, unchanged in bo
     assert.ok(user.endsWith(`"hookType":"${HOOK_TYPES.join('|')}"}`) && user.includes('"hookType":"result|reinterpretation|relationship|ability|moral|identity|none"}'));
   }
 });
+
+for (const [name, kit] of [['ko', promptKit({})], ['multilingual', promptKit({ language: 'en' })]]) {
+  test(`${name}: rhythm text is generated from the cadence table`, () => {
+    for (const mode of Object.keys(RHYTHM_CADENCE)) {
+      const row = RHYTHM_CADENCE[mode];
+      const text = kit.phrases.arc.rhythm(mode, row);
+      assert.equal(text.match(/(\d+)-(\d+)/).slice(1, 3).join('-'), `${row.unitMin}-${row.unitMax}`, mode);
+      assert.match(text, new RegExp(`\\b${row.breatherAfterTension}\\b`), mode);
+      const changed = kit.phrases.arc.rhythm(mode, { unitMin: 7, unitMax: 9, breatherAfterTension: 5 });
+      assert.match(changed, /7-9/);
+      assert.doesNotMatch(changed, new RegExp(`${row.unitMin}-${row.unitMax}`));
+      assert.equal(text, kit.phrases.arc.rhythm(mode, row), 'deterministic');
+    }
+    const light = kit.phrases.arc.rhythm('light-webnovel', RHYTHM_CADENCE['light-webnovel']);
+    const deep = kit.phrases.arc.rhythm('deep-world-driven', RHYTHM_CADENCE['deep-world-driven']);
+    assert.notEqual(light, deep);
+    assert.equal(kit.phrases.arc.rhythm('constructor', RHYTHM_CADENCE['commercial-dramatic']), kit.phrases.arc.rhythm('commercial-dramatic', RHYTHM_CADENCE['commercial-dramatic']));
+  });
+}

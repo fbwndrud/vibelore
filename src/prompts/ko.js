@@ -320,6 +320,28 @@ export const phrases = {
     mapResolutionCost: (v) => `해결 비용=${v}`,
     mapCarry: (v) => `전달=${v}`,
     mapExitValue: (v) => `다음 가치=${v}`,
+    rhythm: (depthMode, { unitMin, unitMax, breatherAfterTension }) => {
+      const unit = `${unitMin}-${unitMax}`;
+      const bodies = {
+        'commercial-dramatic': `${unit}화 단위의 묶음으로 나누고, 각 묶음은 작은 보상이 있는 정점으로 끝낸다. 긴장 회차는 연속 ${breatherAfterTension}화까지만 두고 그다음에 숨 돌리는 회차를 놓는다. 충족(fulfill)에 지연(delay)과 반전(twist)을 섞는다. twistLevel 2-3은 한 묶음에 한 번까지만 쓴다.`,
+        'light-webnovel': `회차를 ${unit}화 단위의 긴장 묶음으로 나눈다. 각 묶음은 독자가 체감할 보상이 있는 정점으로 끝나며, 대부분 충족(fulfill)으로 처리한다. 긴장 회차(escalation/peak)가 ${breatherAfterTension}화 연속되면 숨 돌리는 회차나 보상을 둔다. twistLevel은 대체로 0-1로 두고, 3은 아크당 한 번까지만 쓴다.`,
+        'deep-world-driven': `${unit}화 단위의 묶음으로 나눈다. 긴장 회차는 연속 ${breatherAfterTension}화까지만 두고 그다음에 숨 돌리는 회차를 놓되, 그 회차는 휴식 대신 세계의 질감이나 관계의 변화를 담아도 된다. 지연(delay)은 아크가 이유와 보상 회차를 밝혀 둘 때만 허용한다. twistLevel 3은 misconceptionStack 항목이 근거를 깔아 둔 경우에만 쓴다.`,
+      };
+      return `리듬 지침:\n${bodies[Object.hasOwn(bodies, depthMode) ? depthMode : 'commercial-dramatic']} 이는 지침이지 할당량이 아니다. 3화짜리 아크는 한 묶음일 수 있다.`;
+    },
+    shape: {
+      prefix: '형태: ',
+      join: ' · ',
+      role: { setup: '도입', escalation: '고조', peak: '정점', breather: '숨 고르기' },
+      twist: (n) => `반전 ${n}`,
+      expectation: (label) => `기대: ${label}`,
+      handling: { fulfill: '충족', delay: '지연', twist: '반전', invert: '뒤집기' },
+      hook: (label) => `끝 고리: ${label}`,
+      hookType: { result: '결과', reinterpretation: '재해석', relationship: '관계', ability: '능력', moral: '도덕', identity: '정체', none: '없음' },
+      hooks: (items) => `복선: ${items.join(', ')}`,
+      hookOp: { planted: '심기', advanced: '강화', paid: '회수' },
+      hookItem: (opLabel, label) => `${opLabel} "${label}"`,
+    },
     characterCurveHeading: '- 인물 감정 곡선:',
     characterCurve: (id, promise, beats) => `  - ${id}: ${promise} / ${beats}`,
     characterCurveBeat: (index, beat, note) => `${index}화=${beat}(${note})`,
