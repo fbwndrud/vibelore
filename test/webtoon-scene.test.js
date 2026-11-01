@@ -545,6 +545,31 @@ test('v1 preflight request asks for labels in place of free camera and layout; o
   assert.ok(oldSystem.includes('Keep camera and layout free.')); assert.ok(!oldSystem.includes(COMPOSITION_PREFLIGHT_INSTRUCTION));
   assert.equal('composition' in oldData.schema.renderBrief.moments[0], false); assert.equal('pageComposition' in oldData.schema.renderBrief, false);
 });
+test('a v1 preflight request lists the cast ids the validator accepts; older workflows send no cast', async () => {
+  const cast = [{ localCharacterId: 'hero', entityId: 'character-a' }, { localCharacterId: 'rival', entityId: 'character-b' }];
+  const foundation = { characters: [{ id: 'hero', canonicalName: 'Yunjae' }] };
+  const capture = async mutate => {
+    const { store, repo, args } = await setup();
+    await runWebtoonSceneTool({ store, args, providers: provider() });
+    const w = await repo.load(); w.source.cast = cast; w.source.foundation = foundation; w.stage = 'scene_needs_revision'; mutate(w); await repo.save(w);
+    let request; const p = provider(), complete = p.complete;
+    p.complete = async r => { if (r.step === 'webtoon-scene-preflight') request = r; return complete(r); };
+    await runWebtoonSceneTool({ store, args: { workId, action: 'revise', feedback: 'Same door.' }, providers: p });
+    return JSON.parse(request.messages.at(-1).content);
+  };
+  const v1 = await capture(() => {});
+  assert.deepEqual(v1.cast, [{ id: 'hero', name: 'Yunjae' }, { id: 'rival', name: 'rival' }]);
+  // Every listed id is accepted as a subject by the validator.
+  const w = { compositionVersion: 1, panelCount: 1, sceneUnits: [{ id: 'u1' }], scenePlan: { texts: [] }, source: { cast } };
+  for (const { id } of v1.cast) assert.ok(validateSceneRenderBrief({ style: 'Ink.', pageComposition: { layout: 'strip-stack' },
+    moments: [{ sourceIds: ['u1'], action: 'She waits.', textIds: [], composition: { shot: 'MS', angle: 'eye', focal: 'face', background: 'flat', subjects: [{ id }] } }] }, w), id);
+  const legacy = await capture(w => { delete w.compositionVersion; });
+  assert.equal('cast' in legacy, false);
+  const plain = await setup(); let seen;
+  const p = provider(), complete = p.complete; p.complete = async r => { if (r.step === 'webtoon-scene-preflight') seen = r; return complete(r); };
+  await runWebtoonSceneTool({ store: plain.store, args: plain.args, providers: p });
+  assert.equal('cast' in JSON.parse(seen.messages.at(-1).content), false);
+});
 test('the v1 plan schema asks for a scene type that matches SCENE_TYPES; older workflows keep the old schema', async () => {
   const seen = {};
   const spy = () => { const p = provider(), complete = p.complete; p.complete = async request => { if (request.step === 'webtoon-scene-plan') seen.request = request; return complete(request); }; return p; };

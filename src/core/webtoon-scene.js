@@ -139,6 +139,13 @@ export const sceneBinding = w => digest({ version: 2, sourceHash: w.source.hash,
 export const sceneImageBinding = w => digest({ scene: sceneBinding(w), renderBrief: w.preflight?.renderBrief });
 
 const bad = (code, detail) => { throw new Error(`${code}: ${detail}`); };
+/** Id and display name of each cast member for the preflight model: the local id first, else a plain id, else the entity id. */
+export function sceneCastList(w) {
+  return (w.source?.cast ?? []).flatMap(c => {
+    const id = c?.localCharacterId ?? c?.id ?? c?.entityId;
+    return id ? [{ id, name: w.source.foundation?.characters?.find(f => f.id === c.localCharacterId)?.canonicalName ?? id }] : [];
+  });
+}
 /** The cast may name a character by its local id or its shared entity id. */
 const castIdsOf = cast => { const ids = (cast ?? []).flatMap(c => [c?.localCharacterId, c?.id, c?.entityId]).filter(Boolean); return ids.length ? ids : undefined; };
 /** Required elements must cite this scene's units; a text entry must name a real plan text. */
