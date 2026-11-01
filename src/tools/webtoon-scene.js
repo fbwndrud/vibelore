@@ -9,7 +9,7 @@ import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.j
 import { importWebtoonImages } from '../core/webtoon-board.js';
 import { sceneImageRequest, validateSceneImageProvenance } from '../core/webtoon-images.js';
 import { confirmedWebtoonSelection } from '../core/webtoon-image-selection.js';
-import { COMPOSITION_VOCAB_VERSION, splitCompositionDirection } from '../core/webtoon-composition.js';
+import { COMPOSITION_VOCAB, COMPOSITION_VOCAB_VERSION, REQUIRED_KINDS, splitCompositionDirection } from '../core/webtoon-composition.js';
 import { webtoonDelegation } from '../core/webtoon-delegation.js';
 import { webtoonMessage } from '../core/webtoon-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
@@ -17,12 +17,17 @@ import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
 import { loadWebtoonReviewModel } from '../core/review-policy.js';
 import { SCENE_IMAGE_REVIEW_VERSION, SCENE_IMAGE_REVIEW_PROMPT, sceneVisualCheckSchema, sceneReviewInputs } from '../core/webtoon-scene-review.js';
-import { SCENE_SCHEMA, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, mergeDuplicateReferences, CONTINUITY_CHECKS,
+import { SCENE_SCHEMA, SCENE_SCHEMA_V1, COMPOSITION_PREFLIGHT_INSTRUCTION, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, mergeDuplicateReferences, CONTINUITY_CHECKS,
   isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
 /** Shape of each findings[] item; findings may be empty. */
 const SCENE_FINDING_SHAPE = { severity: 'blocking | advisory', evidence: 'concrete evidence (required)' };
+const menu = field => COMPOSITION_VOCAB[field].join('|');
+/** Label shape shown to the preflight model; each value lists the allowed vocabulary. */
+const COMPOSITION_EXAMPLE = { shot: menu('shot'), angle: menu('angle'), focal: menu('focal'), background: menu('background'),
+  subjects: [{ id: 'character-id', visibility: menu('visibility'), side: menu('side'), facing: menu('facing'), expression: menu('expression') }],
+  directed: false, required: [{ kind: REQUIRED_KINDS.join('|'), id: 'element-id', sourceIds: ['source-unit-id'] }] };
 const terminal = w => ['completed', 'rejected'].includes(w.stage);
 const record = (w, event, data = {}) => w.events.push({ at: new Date().toISOString(), revision: w.revision, event, ...data });
 const isScene = w => w?.productionMode === SCENE_PRODUCTION_MODE;
@@ -152,6 +157,7 @@ async function modelTask(repo, w, step, system, data, providers, images) {
 async function drive(repo, w, providers) {
   if (w.stage === 'scene_generate') {
     const auto = scenePanelCountMode(w) === 'auto';
+    const planSchema = w.compositionVersion ? SCENE_SCHEMA_V1 : SCENE_SCHEMA;
     const r = await modelTask(repo, w, 'webtoon-scene-plan',
       'Adapt this source excerpt as ONE coherent comic scene. Combine editorial selection and staging in one brief. Write intent, facts, actions, staging and uncertainties in English; copy visible text verbatim in the source language. ' + SCENE_TEXT_KIND_INSTRUCTION
       + (auto ? `panelCount is "auto": choose the panel count (integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max}) that this adaptation needs and return it as panelCount; choose again from scratch on every revision. `
@@ -162,7 +168,7 @@ async function drive(repo, w, providers) {
         ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText, cast: w.source.cast, expression: w.source.expression } : {}), direction: w.direction,
         ...(w.compositionDefaults?.length ? { seriesComposition: w.compositionDefaults } : {}),
         panelCount: auto ? 'auto' : w.panelCount, previousScene: w.previousScene,
-        feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...SCENE_SCHEMA, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : SCENE_SCHEMA }, providers,
+        feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...planSchema, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : planSchema }, providers,
       w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
     if (r.waiting) return r.result;
     w.scenePlan = validateScenePlan(r.value, w.sceneUnits, { resolvePanelCount: auto });
@@ -172,12 +178,13 @@ async function drive(repo, w, providers) {
   if (w.stage === 'scene_preflight') {
     const hash = sceneBinding(w);
     const r = await modelTask(repo, w, 'webtoon-scene-preflight',
-      `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. Keep camera and layout free. Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
+      `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. ${w.compositionVersion ? COMPOSITION_PREFLIGHT_INSTRUCTION : 'Keep camera and layout free.'} Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
       { source: w.sceneUnits, ...referenceContext(w), ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText } : {}), plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
         ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Copy styleBasis.profile.style exactly into renderBrief.style. The sample is for visual treatment only; preserve source identities and facts.' } : {}),
         ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
         coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
-        renderBrief: { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers,
+        renderBrief: w.compositionVersion ? { style: '', pageComposition: { layout: COMPOSITION_VOCAB.layout.join('|') }, moments: [{ sourceIds: [], action: '', textIds: [], composition: COMPOSITION_EXAMPLE }] }
+          : { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers,
       w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
     if (r.waiting) return r.result;
     const passed = validateScenePreflight(r.value, w);

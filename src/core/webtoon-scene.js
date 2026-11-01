@@ -1,6 +1,7 @@
 import { digest, nonempty, safeId } from './webtoon-contract.js';
 import { sceneLetteringLine, webtoonMessage } from './webtoon-language.js';
 import { validateSceneVisualChecks, SCENE_VISUAL_CHECKS } from './webtoon-scene-review.js';
+import { COMPOSITION_LIMITS, COMPOSITION_VOCAB, REQUIRED_KINDS, SCENE_TYPES, validateCompositionLabel } from './webtoon-composition.js';
 
 export const SCENE_PRODUCTION_MODE = 'scene-direct-v1';
 export const PREVIOUS_SCENE_ID = 'previous-scene';
@@ -34,6 +35,10 @@ export const SCENE_SCHEMA = {
   staging: 'English minimum spatial relations. Leave unspecified mechanics and camera choices open.',
   uncertainties: ['English ambiguity in source; do not silently turn inference into fact'],
 };
+/** Replaces "Keep camera and layout free." in the preflight request for workflows that carry composition labels. */
+export const COMPOSITION_PREFLIGHT_INSTRUCTION = "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds.";
+/** Plan schema for workflows with composition metadata: the same plan plus the optional scene type. Kept literal because webtoon-composition.js imports this module. */
+export const SCENE_SCHEMA_V1 = { ...SCENE_SCHEMA, sceneType: 'dialogue|action|reveal|quiet' };
 export const SCENE_TEXT_KINDS = ['dialogue', 'thought', 'caption', 'sfx', 'physical'];
 /** Planner guidance for texts[].kind; physical writing is lettered on its object, so the plan must mark it. */
 export const SCENE_TEXT_KIND_INSTRUCTION = 'Set each texts[].kind to dialogue, thought, caption, sfx or physical. physical: writing that exists on an object in the scene (a note, page, sign or screen); speaker is the character who writes or holds it, or narrator. ';
@@ -119,6 +124,7 @@ export function validateScenePlan(plan, units, { resolvePanelCount = false } = {
   }
   needTextCoverage(plan.beats.flatMap(b => { need(Array.isArray(b.textIds), 'INVALID_SCENE_TEXT_ASSIGNMENT'); return b.textIds; }), plan.texts);
   need(Array.isArray(plan.uncertainties) && plan.uncertainties.every(isEnglish), 'INVALID_SCENE_UNCERTAINTIES');
+  need(plan.sceneType === undefined || SCENE_TYPES.includes(plan.sceneType), 'INVALID_SCENE_TYPE');
   return plan;
 }
 
@@ -132,6 +138,34 @@ export const sceneBinding = w => digest({ version: 2, sourceHash: w.source.hash,
 // Separate the source-review receipt from the drawing request it produces.
 export const sceneImageBinding = w => digest({ scene: sceneBinding(w), renderBrief: w.preflight?.renderBrief });
 
+const bad = (code, detail) => { throw new Error(`${code}: ${detail}`); };
+/** The cast may name a character by its local id or its shared entity id. */
+const castIdsOf = cast => { const ids = (cast ?? []).flatMap(c => [c?.localCharacterId, c?.id, c?.entityId]).filter(Boolean); return ids.length ? ids : undefined; };
+/** Required elements must cite this scene's units; a text entry must name a real plan text. */
+function validateRequiredElements(required, w) {
+  if (required === undefined) return;
+  need(Array.isArray(required), 'INVALID_SCENE_COMPOSITION: required must be an array');
+  const units = new Set(w.sceneUnits.map(u => u.id));
+  for (const r of required) {
+    const grounded = r !== null && typeof r === 'object' && REQUIRED_KINDS.includes(r.kind) && safeId(r.id)
+      && Array.isArray(r.sourceIds) && r.sourceIds.length > 0 && r.sourceIds.every(id => units.has(id))
+      && (r.kind !== 'text' || w.scenePlan.texts.some(t => t.id === r.id));
+    if (!grounded) bad('UNBOUND_SCENE_REQUIRED', 'a required element needs a known kind, a safe id and sourceIds from this scene (a text entry must name a plan text)');
+  }
+}
+/** Composition labels are checked only for workflows that carry a composition version. */
+function validateBriefComposition(brief, w) {
+  const castIds = castIdsOf(w.source?.cast);
+  let directed = 0;
+  for (const m of brief.moments) {
+    if (m.composition !== null && typeof m.composition === 'object') validateRequiredElements(m.composition.required, w);
+    validateCompositionLabel(m.composition, { castIds });
+    if (m.composition.directed === true) directed++;
+  }
+  need(directed <= COMPOSITION_LIMITS.directedPerPage, `SCENE_DIRECTED_LIMIT: at most ${COMPOSITION_LIMITS.directedPerPage} directed moments per page`);
+  need(COMPOSITION_VOCAB.layout.includes(brief.pageComposition?.layout), 'INVALID_SCENE_COMPOSITION: layout is not in the vocabulary');
+}
+
 export function validateSceneRenderBrief(brief, w) {
   need(brief && isEnglish(brief.style) && Array.isArray(brief.moments), 'SCENE_RENDER_BRIEF_REQUIRED');
   need(words(brief.style) <= SCENE_LIMITS.styleWords && brief.moments.length === w.panelCount, 'SCENE_RENDER_BRIEF_OVERLOADED');
@@ -144,6 +178,7 @@ export function validateSceneRenderBrief(brief, w) {
     need(Array.isArray(m.textIds), 'INVALID_SCENE_TEXT_ASSIGNMENT'); texts.push(...m.textIds);
   }
   needTextCoverage(texts, w.scenePlan.texts);
+  if (w.compositionVersion) validateBriefComposition(brief, w);
   need(brief.corrections === undefined || (Array.isArray(brief.corrections) && brief.corrections.length <= SCENE_LIMITS.corrections
     && brief.corrections.every(c => isEnglish(c) && words(c) <= SCENE_LIMITS.correctionWords)), 'SCENE_RENDER_BRIEF_OVERLOADED');
   // Emphasis states the wanted result only; naming the earlier failure or the wrong form primes the image model toward it.
