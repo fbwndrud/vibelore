@@ -7,6 +7,7 @@ import { deterministicArcViolations } from '../src/tools/arc-quality.js';
 import { promptKit } from '../src/prompts/index.js';
 import { qualityStore, workId } from './fixtures/quality-workflow.js';
 import { approvalResponse } from './fixtures/approval-response.js';
+import { EPISODE_ROLES, RHYTHM_CADENCE, rhythmModeOf } from '../src/core/narrative-codes.js';
 
 async function plan(t, shapes) {
   const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
@@ -52,4 +53,55 @@ test('the review result carries a localized rhythm strip and the active map repe
   assert.match(result.rhythmStrip, /1\/3/); assert.equal(result.rhythmStrip.split('\n').length, 2);
   assert.match(renderArcMap({ ...result.plan, status: 'active' }, 1, promptKit({})), /peak|정점/);
   assert.equal('rhythmStrip' in result.plan, false);
+});
+
+async function capturedArcRequest(t, { depthMode }) {
+  const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
+  await runConfigureStatus({ store, workId, planningReviews: { arc: false } });
+  const profile = await store.loadStoryProfile(workId);
+  await store.saveStoryProfile(workId, { ...profile, narrativeContract: { ...profile.narrativeContract, ...(depthMode ? { depthMode } : {}) } });
+  const raw = { title: '문 안', promise: '같이 논다', episodes: [1, 2, 3].map((i) => ({ title: `놀이 ${i}`, beat: `다른 사건 ${i}`, pressure: `장애 ${i}`, turn: `선택 ${i}`, carry: `다음 결과 ${i}` })) };
+  let captured;
+  await runArcPlan({ store, workId, mode: 'review', episodes: 3, replaceActive: true,
+    providers: { pending: [], async complete(req) {
+      const approval = approvalResponse(req); if (approval) return approval;
+      if (req.step === 'arc-plan') captured = req;
+      return { text: JSON.stringify(raw) };
+    } } });
+  return captured;
+}
+
+test('rhythm text follows depthMode and sits right after the direction line', async (t) => {
+  const kit = promptKit({});
+  const directionLabel = '사용자 방향과 StoryProfile:';
+  for (const mode of [...Object.keys(RHYTHM_CADENCE), undefined]) {
+    const { messages } = await capturedArcRequest(t, { depthMode: mode });
+    const expected = kit.phrases.arc.rhythm(rhythmModeOf(mode), RHYTHM_CADENCE[rhythmModeOf(mode)]);
+    const user = messages[1].content;
+    assert.ok(user.includes(expected), String(mode));
+    assert.ok(user.indexOf(directionLabel) < user.indexOf(expected) && user.indexOf(expected) < user.indexOf(kit.phrases.spine.heading), String(mode));
+  }
+});
+
+test('the English family places the rhythm text between the direction line and the spine', () => {
+  const kit = promptKit({ language: 'en' });
+  const rhythmText = kit.phrases.arc.rhythm('commercial-dramatic', RHYTHM_CADENCE['commercial-dramatic']);
+  const user = kit.messages('arc-plan', { title: 'T', genre: 'g', arcNumber: 1, startChapter: 1, count: 3, direction: 'D', rhythmText,
+    spineRender: kit.phrases.spine.heading, feedback: 'none', worldFacts: [], characters: [], seedsRender: '', summaries: [], previousArcReviewJson: '{}' })[1].content;
+  assert.ok(user.indexOf('User direction') < user.indexOf(rhythmText) && user.indexOf(rhythmText) < user.indexOf(kit.phrases.spine.heading));
+  assert.doesNotMatch(user, /[가-힣]/);
+});
+
+test('same inputs give identical arc-plan messages', async (t) => {
+  assert.deepEqual((await capturedArcRequest(t, {})).messages, (await capturedArcRequest(t, {})).messages);
+});
+
+test('system defines the five keys as intent, schema lists the codes', async (t) => {
+  const { messages } = await capturedArcRequest(t, {});
+  assert.match(messages[1].content, new RegExp(`"role":"${EPISODE_ROLES.join('\\|')}"`));
+  assert.match(messages[1].content, /"hookOps":\[\{"op":"planted\|advanced\|paid","label":""\}\]/);
+  for (const key of ['role', 'twistLevel', 'expectationHandling', 'hookType', 'hookOps']) assert.ok(messages[0].content.includes(key));
+  const en = promptKit({ language: 'en' }).system('arc-plan');
+  for (const key of ['role', 'twistLevel', 'expectationHandling', 'hookType', 'hookOps']) assert.ok(en.includes(key));
+  assert.doesNotMatch(en, /[가-힣]/);
 });

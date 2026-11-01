@@ -13,7 +13,7 @@ import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { reviewPlanningStage } from '../core/planning-stage-review.js';
 import { planningReviewSelection } from '../core/review-policy.js';
-import { normalizeEpisodeShape } from '../core/narrative-codes.js';
+import { RHYTHM_CADENCE, normalizeEpisodeShape, rhythmModeOf } from '../core/narrative-codes.js';
 import { renderArcBeatShape } from '../core/prompt-sections.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
@@ -207,6 +207,7 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
   if (!writerSkill || writerSkill.status !== 'active') throw new Error('승인된 WriterSkill을 먼저 만들고 승인하세요.');
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });
+  const rhythmMode = rhythmModeOf(storyProfile?.narrativeContract?.depthMode);
   const profileDirection = compileBriefWithProfile(direction || foundation.brief || '', storyProfile, 'arc', kit);
   // The planned beats become the chapters' arcCursorOps; they must fit the cursor as it stands before this arc.
   const priorState = startChapter > 1 ? await store.loadStoryState(workId, startChapter - 1) : null;
@@ -222,6 +223,7 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
     messages: kit.messages('arc-plan', {
       title: foundation.title ?? workId, genre: foundation.genre, arcNumber, startChapter, count,
       direction: profileDirection || kit.phrases.common.autonomous,
+      rhythmText: kit.phrases.arc.rhythm(rhythmMode, RHYTHM_CADENCE[rhythmMode]),
       spineRender: renderStorySpine(storySpine, kit),
       feedback: feedback || kit.phrases.common.noneParen,
       worldFacts: [...foundation.worldFacts.map((f) => f.statement), ...(foundation.sharedLore?.contextText ? [foundation.sharedLore.contextText] : [])],
