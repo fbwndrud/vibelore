@@ -52,9 +52,15 @@ const aliasPlanner = { provenance: { kind: 'fixture' }, async complete(req) {
 const assetFor = (args, job) => ({ path: args.references[0].path, inputHash: job.inputHash,
   provenance: { kind: 'openai-api', requestedModel: 'gpt-image-2.5-sunburst', selectionId: 'selected-api' } });
 
+/** Plan and preflight without cast subjects, for the first run of a scene whose cast is added afterwards. */
+const plainPlanner = { provenance: { kind: 'fixture' }, async complete(req) {
+  const d = JSON.parse(req.messages.at(-1).content);
+  return { text: JSON.stringify(req.step === 'webtoon-scene-plan' ? scenePlan(d.source) : scenePreflight(d)) };
+} };
+
 async function castedScene() {
   const scene = await sceneSetup(), { store, repo, args } = scene;
-  await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: aliasPlanner });
+  await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: plainPlanner });
   const w = await repo.load(); w.source.cast = cast; w.source.foundation = foundation; w.stage = 'scene_needs_revision'; await repo.save(w);
   const drawn = await runWebtoonSceneTool({ store, args: { workId, action: 'revise', feedback: 'Same door.' }, providers: aliasPlanner });
   assert.equal(drawn.status, 'needs_scene_image');
@@ -128,12 +134,10 @@ test('the review request lists the cast ids for a composition workflow only, and
 
 });
 
-test('a cast-less source gets neither a cast list nor the cast sentence in its review request', async () => {
-  const { store, args } = await sceneSetup();
-  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: { provenance: { kind: 'fixture' }, async complete(req) {
-    const d = JSON.parse(req.messages.at(-1).content);
-    return { text: JSON.stringify(req.step === 'webtoon-scene-plan' ? scenePlan(d.source) : scenePreflight(d)) };
-  } } });
+test('a source with neither a shared cast nor foundation characters gets no cast list and no cast sentence in its review request', async () => {
+  const { store, repo, args } = await sceneSetup();
+  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: plainPlanner });
+  const w = await repo.load(); w.source.foundation = { ...w.source.foundation, characters: [] }; await repo.save(w);
   const pending = await openReview({ store, args, drawn });
   assert.equal('cast' in JSON.parse(pending.requests[0].user), false);
   assert.equal(pending.requests[0].system.includes(COMPOSITION_CAST_SENTENCE), false);

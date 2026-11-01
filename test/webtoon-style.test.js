@@ -340,7 +340,8 @@ test('restyle to a sample whose bytes equal a user reference attaches them once 
   assert.equal(refs.some(x => x.id === STYLE_REFERENCE_ID), false);
   const kept = refs.find(x => x.id === 'ref');
   assert.deepEqual(kept.mergedIds, [STYLE_REFERENCE_ID]);
-  assert.match(kept.description, / Also: User-adopted art style only/);
+  assert.ok(kept.description.endsWith(' This same image is also the adopted art style sample: take the visual treatment from it.'));
+  assert.doesNotMatch(kept.description, /Also:|User-adopted art style only/);
   assert.equal(workflow.styleSnapshot.revisionId, style.revisionId);
   assert.equal(workflow.unmergedSceneReferences.filter(x => x.id === STYLE_REFERENCE_ID).length, 1);
 });

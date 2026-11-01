@@ -8,7 +8,9 @@ import { loadRun } from '../src/runs.js';
 import { CompositionStore, sceneEpisodeKey, sceneKey } from '../src/store/webtoon-composition-store.js';
 import { compositionFingerprint, COMPOSITION_VOCAB_VERSION } from '../src/core/webtoon-composition.js';
 import { sceneSetup, scenePlan, scenePreflight, sceneCompositionCheck } from './fixtures/webtoon-scene.js';
-import { workId } from './fixtures/webtoon.js';
+import { workId, pixel } from './fixtures/webtoon.js';
+import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
+import { join } from 'node:path';
 
 const checkNames = ['reflectionGeometry', 'propStructure', 'handsAndContact', 'withinSceneContinuity', 'layoutAndTiming'];
 const checks = () => Object.fromEntries(checkNames.map(key => [key, { status: 'not_applicable', panels: [], evidence: 'Synthetic protocol fixture.' }]));
@@ -23,6 +25,7 @@ const answer = (q, { fail = false } = {}) => {
   const a = { ...d.schema, ...sceneCompositionCheck(d.schema.compositionCheck), visualChecks: checks(), inspectedImages: true, observedPanelCount: d.requestedPanelCount,
     spatialCoherence: true, readingOrder: true, evidence: 'Synthetic protocol receipt.', findings: [],
     textObservations: d.plan.texts.map(t => ({ id: t.id, observedText: t.text, readable: true, speakerCorrect: true, evidence: 'Synthetic text.' })) };
+  if (d.schema.styleReview) a.styleReview = { inspectedReference: true, verdict: 'matches', evidence: 'Synthetic style receipt.' };
   if (fail) a.visualChecks.propStructure = { status: 'uncertain', panels: [1], evidence: 'Required support cannot be identified.' };
   return a;
 };
@@ -246,4 +249,33 @@ test('adopting through the tool keeps the derived index equal to a rebuild, and 
   const none = await new CompositionStore(failed.repo).peekIndex();
   assert.deepEqual(none.scenes, {});
   assert.deepEqual(none.order, ['ep-0001']);
+});
+
+test('the page row records the roles of references merged into a survivor', async () => {
+  const { store, repo, args } = await sceneSetup();
+  // The adopted style sample uses the same bytes as the user reference, so the style role merges into it.
+  const imagePath = join(store.rootDir, 'sample.png'); await writeFile(imagePath, pixel);
+  const proposal = await runWebtoonStyleTool({ store, args: { workId, action: 'propose', brief: 'rough ink', direction: 'Monochrome ink.', imagePath } });
+  await runWebtoonStyleTool({ store, args: { workId, action: 'approve', proposalId: proposal.proposalId, feedback: 'use this' } });
+  const styled = { async complete(req) {
+    const out = await planner.complete(req), d = JSON.parse(req.messages.at(-1).content);
+    if (req.step !== 'webtoon-scene-preflight') return out;
+    const answer = JSON.parse(out.text); answer.renderBrief.style = d.styleBasis.profile.style; return { text: JSON.stringify(answer) };
+  } };
+  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: styled });
+  assert.equal(drawn.status, 'needs_scene_image');
+  const w = await repo.load();
+  assert.deepEqual(w.sceneReferences[0].mergedIds, ['adopted-style']);
+  const done = await review(store, args, drawn);
+  assert.equal(done.status, 'completed');
+  const page = (await lines(repo)).find(r => r.type === 'page');
+  assert.deepEqual(page.references, [{ id: 'ref', hash: w.sceneReferences[0].hash, role: 'user', mergedRoles: ['adopted-style'] }]);
+});
+
+test('a reference without merged ids keeps the plain row shape', async () => {
+  const { store, repo, args } = await sceneSetup();
+  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: planner });
+  await review(store, args, drawn);
+  const page = (await lines(repo)).find(r => r.type === 'page');
+  assert.equal('mergedRoles' in page.references[0], false);
 });

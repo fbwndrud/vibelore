@@ -5,17 +5,32 @@ import { COMPOSITION_LIMITS, COMPOSITION_VOCAB, REQUIRED_KINDS, SCENE_TYPES, fra
 
 export const SCENE_PRODUCTION_MODE = 'scene-direct-v1';
 export const PREVIOUS_SCENE_ID = 'previous-scene';
+/** The adopted style sample's reference id; the style store exports the same value. */
+export const STYLE_SAMPLE_ID = 'adopted-style';
+/** Role of a reference by its id: the previous scene, the adopted style sample, or a user reference. */
+export const referenceRoleOf = id => id === PREVIOUS_SCENE_ID ? 'previous-scene' : id === STYLE_SAMPLE_ID ? 'adopted-style' : 'user';
+const MERGED_ROLE_PHRASES = {
+  [STYLE_SAMPLE_ID]: 'This same image is also the adopted art style sample: take the visual treatment from it.',
+  [PREVIOUS_SCENE_ID]: 'This same image is also the preceding scene: continue its identities and setting after its ending.',
+};
+/** What an image that also serves as another reference is told about the absorbed role; positive wording only. */
+function mergedRolePhrase(id) {
+  if (MERGED_ROLE_PHRASES[id]) return MERGED_ROLE_PHRASES[id];
+  const label = `${id} reference`;
+  return `This same image also serves as ${isEnglish(label) && !RETRY_FRAMING.test(label) ? id : 'another'} reference.`;
+}
 /**
  * The same bytes must reach an image job once. The first reference with a hash survives in order;
- * a later duplicate gives up its id (`mergedIds`) and its description (appended as " Also: ...").
+ * a later duplicate gives up its id (`mergedIds`) and its description, replaced by a fixed role phrase.
+ * `legacy: true` keeps the older " Also: <description>" wording for workflows stored before role phrases.
  */
-export function mergeDuplicateReferences(refs) {
+export function mergeDuplicateReferences(refs, { legacy = false } = {}) {
   const survivors = new Map();
   for (const ref of refs) {
     const kept = survivors.get(ref.hash);
     if (!kept) { survivors.set(ref.hash, { ...ref }); continue; }
     kept.mergedIds = [...(kept.mergedIds ?? []), ref.id];
-    kept.description = `${kept.description} Also: ${ref.description}`;
+    kept.description = `${kept.description} ${legacy ? `Also: ${ref.description}` : mergedRolePhrase(ref.id)}`;
   }
   return [...survivors.values()];
 }
@@ -148,11 +163,20 @@ export const sceneStyleText = w => w.styleSnapshot && w.compositionVersion ? spl
 export const sceneStyleBasis = w => w.styleSnapshot && w.compositionVersion ? { ...w.styleSnapshot, profile: { ...w.styleSnapshot.profile, style: sceneStyleText(w) } } : w.styleSnapshot;
 /** Every id the cast names a member by: its local id, its plain id or its shared entity id (empty strings do not count). */
 const castAliases = c => [c?.localCharacterId, c?.id, c?.entityId].filter(id => typeof id === 'string' && id !== '');
+/**
+ * The cast every composition consumer shares: the source's own cast when it has one, else the novel foundation's
+ * characters (id and canonical name), so a work without a shared cast still names its characters.
+ */
+export function sceneCast(w) {
+  const cast = w?.source?.cast;
+  if (Array.isArray(cast) && cast.length) return cast;
+  return (w?.source?.foundation?.characters ?? []).filter(c => c && typeof c.id === 'string' && c.id !== '').map(c => ({ id: c.id, ...(typeof c.canonicalName === 'string' && c.canonicalName !== '' ? { name: c.canonicalName } : {}) }));
+}
 /** Id and display name of each cast member for the models: the canonical id is the local id, else the plain id, else the entity id. */
 export function sceneCastList(w) {
-  return (w.source?.cast ?? []).flatMap(c => {
+  return sceneCast(w).flatMap(c => {
     const [id] = castAliases(c);
-    return id ? [{ id, name: w.source.foundation?.characters?.find(f => f.id === c.localCharacterId)?.canonicalName ?? id }] : [];
+    return id ? [{ id, name: w.source.foundation?.characters?.find(f => f.id === c.localCharacterId)?.canonicalName ?? c.name ?? id }] : [];
   });
 }
 /** The cast may name a character by any of its ids; validation accepts all of them. */
@@ -162,7 +186,7 @@ export const compositionCastIds = w => sceneCastList(w).map(c => c.id);
 /** Maps any alias of a cast member to its canonical id; other ids pass through unchanged. */
 export function castCanonicalizer(w) {
   const canonical = new Map();
-  for (const c of w.source?.cast ?? []) { const [id, ...aliases] = castAliases(c); for (const alias of aliases) if (!canonical.has(alias)) canonical.set(alias, id); }
+  for (const c of sceneCast(w)) { const [id, ...aliases] = castAliases(c); for (const alias of aliases) if (!canonical.has(alias)) canonical.set(alias, id); }
   return id => canonical.get(id) ?? id;
 }
 /** A composition label with its subjects named by canonical cast ids; a value that is not a label passes through. */
@@ -187,7 +211,7 @@ function validateRequiredElements(required, w) {
 }
 /** Composition labels are checked only for workflows that carry a composition version. */
 function validateBriefComposition(brief, w) {
-  const castIds = castIdsOf(w.source?.cast);
+  const castIds = castIdsOf(sceneCast(w));
   let directed = 0;
   for (const m of brief.moments) {
     if (m.composition !== null && typeof m.composition === 'object') validateRequiredElements(m.composition.required, w);

@@ -6,7 +6,7 @@ import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
 import { digest } from '../src/core/webtoon-contract.js';
 import { sceneImageBinding, validateSceneImageReview } from '../src/core/webtoon-scene.js';
-import { compositionCheckSchema, validateCompositionCheck, finalCompositionLabels, SCENE_IMAGE_REVIEW_PROMPT } from '../src/core/webtoon-scene-review.js';
+import { compositionCheckSchema, validateCompositionCheck, finalCompositionLabels, SCENE_IMAGE_REVIEW_PROMPT, COMPOSITION_CAST_SENTENCE } from '../src/core/webtoon-scene-review.js';
 import { sceneSetup, scenePlan, scenePreflight, sceneCompositionCheck, sceneComposition } from './fixtures/webtoon-scene.js';
 import { qualityStore, workId as qualityWorkId } from './fixtures/quality-workflow.js';
 import { workId } from './fixtures/webtoon.js';
@@ -274,7 +274,10 @@ test('the review request carries the composition check and sentence only for com
   const lq = legacy.requests[0];
   assert.equal(JSON.parse(lq.user).schema.compositionCheck, undefined);
   assert.equal(lq.system.includes('compositionCheck'), false);
-  assert.equal(q.system, lq.system.replace(SCENE_IMAGE_REVIEW_PROMPT, `${SCENE_IMAGE_REVIEW_PROMPT}\n${SENTENCE}`), 'only the one sentence differs');
+  // The novel foundation's characters stand in as the cast, so the cast sentence rides with the check sentence.
+  assert.deepEqual(JSON.parse(q.user).cast, [{ id: 'hero', name: '윤' }]);
+  assert.equal(q.system, lq.system.replace(SCENE_IMAGE_REVIEW_PROMPT, `${SCENE_IMAGE_REVIEW_PROMPT}\n${SENTENCE}\n${COMPOSITION_CAST_SENTENCE}`), 'only the check and cast sentences differ');
+  assert.equal('cast' in JSON.parse(lq.user), false);
 });
 
 // A scene that finished before composition labels existed: no compositionVersion, no composition rows.

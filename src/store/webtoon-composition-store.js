@@ -1,10 +1,9 @@
 import { readFile, readdir, rename, access } from 'node:fs/promises';
 import { digest, safeId } from '../core/webtoon-contract.js';
-import { PREVIOUS_SCENE_ID } from '../core/webtoon-scene.js';
+import { referenceRoleOf } from '../core/webtoon-scene.js';
 import { COMPOSITION_VOCAB_VERSION, compositionFingerprint } from '../core/webtoon-composition.js';
 import { applySceneToIndex, buildIndex, compactVector, expandVector, protagonistIdsFor, sceneSummary } from '../core/webtoon-composition-aggregate.js';
 import { finalCompositionLabels } from '../core/webtoon-scene-review.js';
-import { STYLE_REFERENCE_ID } from './webtoon-style-store.js';
 import { atomicWrite } from './webtoon-store.js';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -22,7 +21,6 @@ export function sceneEpisodeKey(w) {
 /** Identity of the source span a scene covers; independent of unit order. */
 export const sceneKey = w => digest([...w.sceneUnits.map(u => u.id)].sort());
 
-const referenceRole = id => id === PREVIOUS_SCENE_ID ? 'previous-scene' : id === STYLE_REFERENCE_ID ? 'adopted-style' : 'user';
 const rowKey = r => `${r.workflowId}:${r.revision}`;
 const INDEX_FILES = ['l1-scenes.json', 'l1-episodes.json', 'l2.json', 'l3.json'];
 const mapValues = (object, fn) => Object.fromEntries(Object.entries(object).map(([k, v]) => [k, fn(v)]));
@@ -72,7 +70,8 @@ export class CompositionStore {
     const panelCount = w.panelCount ?? labels.length;
     const base = { workflowId: w.workflowId, revision: w.revision, reviewVersion: w.imageReviewVersion ?? null, sceneKey: key, episodeKey, status };
     const page = { type: 'page', ...base, adoptedAt, layout: w.preflight?.renderBrief?.pageComposition?.layout ?? null,
-      openPanel: 1, closePanel: panelCount, sceneType: w.scenePlan?.sceneType ?? null, references: (w.sceneReferences ?? []).map(r => ({ id: r.id, hash: r.hash, role: referenceRole(r.id) })) };
+      openPanel: 1, closePanel: panelCount, sceneType: w.scenePlan?.sceneType ?? null, references: (w.sceneReferences ?? []).map(r => ({ id: r.id, hash: r.hash, role: referenceRoleOf(r.id),
+        ...(r.mergedIds?.length ? { mergedRoles: r.mergedIds.map(referenceRoleOf) } : {}) })) };
     const panels = labels.map(({ panel, label, source, confidence }) => {
       const planned = w.preflight?.renderBrief?.moments?.[panel - 1]?.composition;
       return { type: 'panel', ...base, panel, vocabVersion: w.compositionVersion ?? COMPOSITION_VOCAB_VERSION, source, confidence, label: label ?? null,

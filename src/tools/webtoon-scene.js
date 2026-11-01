@@ -565,7 +565,7 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
         const rebuilt = [...refs, styleReference(adopted), ...(last ? [{ ...last,
           description: 'Previous scene: identities, clothing, setting and temporal continuity. Visual treatment comes from the adopted style sample.' }] : [])];
         w.styleSnapshot = adopted;
-        if (w.unmergedSceneReferences) { w.unmergedSceneReferences = rebuilt; w.sceneReferences = mergeDuplicateReferences(rebuilt); } else w.sceneReferences = rebuilt;
+        if (w.unmergedSceneReferences) { w.unmergedSceneReferences = rebuilt; w.sceneReferences = mergeDuplicateReferences(rebuilt, { legacy: !w.compositionVersion }); } else w.sceneReferences = rebuilt;
         record(w, 'scene_style_changed', { styleRevisionId: adopted.revisionId });
       }
       if (args.direction !== undefined) w.direction = args.direction;

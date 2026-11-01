@@ -12,6 +12,7 @@ import { loadRun } from '../src/runs.js';
 import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering, PREVIOUS_SCENE_ID, mergeDuplicateReferences,
   COMPOSITION_PREFLIGHT_INSTRUCTION, SCENE_SCHEMA, RETRY_FRAMING, sceneImagePrompt } from '../src/core/webtoon-scene.js';
 import { SCENE_TYPES } from '../src/core/webtoon-composition.js';
+import { sceneCastList, castIdsOf, sceneCast, compositionCastIds, castCanonicalizer } from '../src/core/webtoon-scene.js';
 import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 
 const plan = scenePlan, preflight = scenePreflight, setup = sceneSetup;
@@ -439,7 +440,8 @@ test('identical reference bytes attach once with merged roles', async () => {
   assert.equal(new Set(refs.map(x => x.hash)).size, refs.length);
   const kept = refs.find(x => x.id === 'ref');
   assert.deepEqual(kept.mergedIds, ['adopted-style']);
-  assert.match(kept.description, / Also: /);
+  assert.ok(kept.description.endsWith(' This same image is also the adopted art style sample: take the visual treatment from it.'));
+  assert.doesNotMatch(kept.description, /Also:|User-adopted art style only/);
   assert.equal(refs.some(x => x.id === 'adopted-style'), false);
 });
 
@@ -454,8 +456,34 @@ test('mergeDuplicateReferences keeps the first occurrence in order and does not 
   assert.deepEqual(refs, copy);
   assert.deepEqual(merged.map(x => x.id), ['a', 'b']);
   assert.deepEqual(merged[0].mergedIds, ['c', 'd']);
-  assert.equal(merged[0].description, 'A. Also: C. Also: D.');
+  assert.equal(merged[0].description, 'A. This same image also serves as c reference. This same image also serves as d reference.');
   assert.equal(merged[1].mergedIds, undefined);
+});
+
+test('merged reference roles are fixed positive phrases chosen by the absorbed id', () => {
+  const merged = mergeDuplicateReferences([{ id: 'ref', hash: 'h', description: 'Hero sheet.' },
+    { id: 'adopted-style', hash: 'h', description: 'User-adopted art style only: x.' }, { id: 'previous-scene', hash: 'h', description: 'Previous scene: y.' }]);
+  assert.equal(merged.length, 1);
+  assert.deepEqual(merged[0].mergedIds, ['adopted-style', 'previous-scene']);
+  assert.equal(merged[0].description, 'Hero sheet. This same image is also the adopted art style sample: take the visual treatment from it. '
+    + 'This same image is also the preceding scene: continue its identities and setting after its ending.');
+  for (const id of ['adopted-style', 'previous-scene', 'bg-1']) {
+    const phrase = mergeDuplicateReferences([{ id: 'k', hash: 'h', description: '' }, { id, hash: 'h', description: 'Unused.' }])[0].description.trim();
+    assert.ok(isEnglish(phrase), phrase); assert.doesNotMatch(phrase, RETRY_FRAMING, phrase); assert.doesNotMatch(phrase, /Unused|Also:/);
+  }
+});
+
+test('the legacy option keeps the older Also wording and the style sample id matches the style store', async () => {
+  const merged = mergeDuplicateReferences([{ id: 'a', hash: 'h', description: 'A.' }, { id: 'b', hash: 'h', description: 'B.' }], { legacy: true });
+  assert.equal(merged[0].description, 'A. Also: B.');
+  const { STYLE_REFERENCE_ID } = await import('../src/store/webtoon-style-store.js'), { STYLE_SAMPLE_ID } = await import('../src/core/webtoon-scene.js');
+  assert.equal(STYLE_SAMPLE_ID, STYLE_REFERENCE_ID);
+});
+
+test('a merged id that would read as retry wording falls back to a neutral phrase', () => {
+  const merged = mergeDuplicateReferences([{ id: 'a', hash: 'h', description: 'A.' }, { id: 'not-again', hash: 'h', description: 'B.' }]);
+  assert.equal(merged[0].description, 'A. This same image also serves as another reference.');
+  assert.doesNotMatch(merged[0].description, RETRY_FRAMING);
 });
 
 // Labels in the render brief (composition metadata, P1).
@@ -568,7 +596,34 @@ test('a v1 preflight request lists the cast ids the validator accepts; older wor
   const plain = await setup(); let seen;
   const p = provider(), complete = p.complete; p.complete = async r => { if (r.step === 'webtoon-scene-preflight') seen = r; return complete(r); };
   await runWebtoonSceneTool({ store: plain.store, args: plain.args, providers: p });
-  assert.equal('cast' in JSON.parse(seen.messages.at(-1).content), false);
+  // A novel source has no shared cast: its foundation characters stand in, so a v1 request still lists them.
+  assert.deepEqual(JSON.parse(seen.messages.at(-1).content).cast, [{ id: 'hero', name: '윤' }]);
+});
+test('novel cast fallback: foundation characters serve every cast consumer when the source has no cast', async () => {
+  const w = { compositionVersion: 1, panelCount: 1, sceneUnits: [{ id: 'u1' }], scenePlan: { texts: [] }, source: { foundation: { characters: [{ id: 'hero', canonicalName: '윤' }, { id: 'rival', canonicalName: 'Rin' }] } } };
+  assert.deepEqual(sceneCastList(w), [{ id: 'hero', name: '윤' }, { id: 'rival', name: 'Rin' }]);
+  assert.deepEqual(castIdsOf(sceneCast(w)), ['hero', 'rival']);
+  assert.deepEqual(compositionCastIds(w), ['hero', 'rival']);
+  assert.equal(castCanonicalizer(w)('hero'), 'hero');
+  const brief = id => ({ style: 'Ink.', pageComposition: { layout: 'strip-stack' },
+    moments: [{ sourceIds: ['u1'], action: 'She waits.', textIds: [], composition: label({ subjects: [{ id }] }) }] });
+  assert.ok(validateSceneRenderBrief(brief('hero'), w));
+  assert.throws(() => validateSceneRenderBrief(brief('stranger'), w), /INVALID_SCENE_COMPOSITION: subject is not in the cast/);
+  // An explicit shared cast wins over the foundation; an empty one falls back; nothing at all restricts nothing.
+  assert.deepEqual(sceneCastList({ ...w, source: { ...w.source, cast: [{ localCharacterId: 'mira' }] } }).map(c => c.id), ['mira']);
+  assert.deepEqual(sceneCastList({ ...w, source: { ...w.source, cast: [] } }).map(c => c.id), ['hero', 'rival']);
+  assert.deepEqual(sceneCastList({ source: {} }), []);
+  assert.equal(castIdsOf(sceneCast({ source: {} })), undefined);
+  assert.ok(validateSceneRenderBrief(brief('anyone'), { ...w, source: {} }));
+});
+test('novel cast fallback: a non-English cast name never reaches the image prompt', () => {
+  const w = { ...wOf(1), scenePlan: { texts: [{ id: 'text-1', kind: 'caption', speaker: 'narrator', text: 'A' }] },
+    source: { foundation: { characters: [{ id: 'hero', canonicalName: '윤' }] } } };
+  const line = promptOf(w, label({ directed: true, focal: 'face' })).split('\n').find(l => l.startsWith('1. '));
+  assert.equal(line, '1. wide high-angle view: She waits.', 'the base phrase stays and the Korean name is left out');
+  assert.ok(isEnglish(line.replace(/She waits\./, '').replace(/^1\. /, '')));
+  const english = { ...w, source: { foundation: { characters: [{ id: 'hero', canonicalName: 'Yoon' }] } } };
+  assert.equal(promptOf(english, label({ directed: true, focal: 'face' })).split('\n').find(l => l.startsWith('1. ')), '1. wide high-angle view of Yoon: She waits.');
 });
 test('the v1 plan schema asks for a scene type that matches SCENE_TYPES; older workflows keep the old schema', async () => {
   const seen = {};

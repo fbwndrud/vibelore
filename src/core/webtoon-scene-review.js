@@ -1,6 +1,6 @@
 import { nonempty } from './webtoon-contract.js';
 import { validateCompositionLabel } from './webtoon-composition.js';
-import { castIdsOf, canonicalLabel, sceneCastList } from './webtoon-scene.js';
+import { castIdsOf, canonicalLabel, sceneCast, sceneCastList } from './webtoon-scene.js';
 
 export const SCENE_IMAGE_REVIEW_VERSION = 2;
 export const SCENE_VISUAL_CHECKS = ['reflectionGeometry', 'propStructure', 'handsAndContact', 'withinSceneContinuity', 'layoutAndTiming'];
@@ -83,7 +83,7 @@ export function validateCompositionCheck(check, w) {
   if (!Array.isArray(check) || check.length !== w.panelCount) fail(`exactly one entry per panel (${w.panelCount}) is required`);
   const results = isBackfill(w) ? ['observed', 'unclear'] : ['match', 'differs', 'unclear'];
   const carriesLabel = result => result === 'differs' || result === 'observed';
-  const castIds = castIdsOf(w.source?.cast);
+  const castIds = castIdsOf(sceneCast(w));
   check.forEach((e, i) => {
     if (e?.panel !== i + 1) fail(`entry ${i + 1} must be for panel ${i + 1}`);
     if (!results.includes(e.result)) fail(`panel ${e.panel} result must be ${results.join(', ')}`);
