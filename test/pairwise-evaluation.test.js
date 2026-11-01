@@ -7,8 +7,8 @@ import { deriveRequestFingerprint } from '../engine/src/core/request-fingerprint
 import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import {
   DIMENSIONS, JUDGE_DELIMITERS, PROTOCOL_VERSION, REPO_ROOT, aggregate, assertOutPath, buildJudgeRequest,
-  combineOrders, independenceLabel, judgeFamilyFor, ledgerCounts, ledgerMetric, lengthMetrics, mapToSides,
-  parseChapterRange, parseCliArgs, parseVerdict, readChapterSet, runPairwiseEvaluation, schedulePairs, signTestP,
+  buildCaveats, combineOrders, independenceLabel, judgeFamilyFor, ledgerCounts, ledgerMetric, lengthMetrics, mapToSides,
+  parseChapterRange, parseCliArgs, parseVerdict, readChapterSet, renderReportMarkdown, runPairwiseEvaluation, schedulePairs, signTestP,
 } from '../scripts/pairwise-evaluation.js';
 
 test('constants name the protocol and the four dimensions', () => {
@@ -523,7 +523,7 @@ describe('runPairwiseEvaluation', () => {
     });
     assert.equal(report.metrics.length.perChapter.length, 2);
     assert.equal(report.metrics.patternLedger[0].off.status, 'unavailable');
-    assert.deepEqual(report.caveats, []);
+    assert.deepEqual(report.caveats, buildCaveats(report));
     assert.equal(typeof (await readFile(join(dirs.out, 'report.md'), 'utf8')), 'string');
     assert.ok(!(await exists(join(dirs.out, 'requests.json'))));
 
@@ -736,4 +736,197 @@ describe('runPairwiseEvaluation', () => {
     assert.deepEqual(report.unpaired, [{ replicate: 1, chapter: 4, side: 'on' }]);
     assert.equal(report.chapterFilter, '3-4');
   }, { on: { 4: 'Only on four.' } }));
+});
+
+const FORBIDDEN_WORDS = /\b(better|worse|pass|fail)\b/i;
+
+function sampleReport(overrides = {}) {
+  const outcome = (name, score) => ({ outcome: name, score });
+  const stat = { n: 3, onWins: 2, offWins: 1, ties: 0, conflicts: 0, invalid: 0, onPreference: 0.75, signTestP: 1, firstPositionRate: 0.5 };
+  const side = { labelSource: 'stored pattern-ledger review of the writing copy', status: 'unavailable', reason: 'no-root', missingChapters: [] };
+  return {
+    protocolVersion: 'pairwise-v1',
+    createdAt: '2026-11-01T00:00:00.000Z',
+    feature: 'dice',
+    language: 'en',
+    promptFamily: 'multilingual',
+    inputs: [{ replicate: 1, off: '/in/off', on: '/in/on' }],
+    chapterFilter: null,
+    judge: { providerKind: 'host-relay', declaredLabel: null, contextIsolation: 'unverified', independence: 'not-independent' },
+    exchanges: [
+      { id: 'a', replicate: 1, chapter: 2, order: 'off-first', verdict: { plot: 'A', creativity: 'A', development: 'A', language: 'A' } },
+      { id: 'b', replicate: 1, chapter: 2, order: 'on-first', verdict: { plot: 'invalid', creativity: 'A', development: 'A', language: 'A' } },
+    ],
+    chapters: [{
+      replicate: 1, chapter: 2, sha256: { off: 'x', on: 'y' },
+      outcomes: { plot: outcome('on', 0.75), creativity: outcome('conflict', 0.5), development: outcome('tie', 0.5), language: outcome('invalid', null) },
+    }],
+    aggregate: Object.fromEntries(DIMENSIONS.map(dimension => [dimension, { ...stat }])),
+    metrics: {
+      length: { perChapter: [], totals: { off: 100, on: 130 }, ratio: 1.3, longerTextNote: true },
+      patternLedger: [{ replicate: 1, off: { ...side }, on: { ...side } }],
+    },
+    identical: [{ replicate: 1, chapter: 1 }],
+    unpaired: [{ replicate: 1, chapter: 4, side: 'on' }],
+    caveats: [],
+    ...overrides,
+  };
+}
+
+describe('buildCaveats', () => {
+  test('orders the generic, independence and sample caveats first', () => {
+    const caveats = buildCaveats(sampleReport());
+    assert.match(caveats[0], /LLM-judge pairwise preferences, not human evaluation, and may differ from what human readers prefer/);
+    assert.ok(caveats[1].includes('judged through the host relay; same host as the writer unless shown otherwise; not an independent evaluation'));
+    assert.match(caveats[2], /1 chapter pair was judged; sign-test p-values are listed in the table/);
+    for (const caveat of caveats) assert.doesNotMatch(caveat, FORBIDDEN_WORDS);
+  });
+
+  test('the baseline caveat appears unless the feature is baseline', () => {
+    for (const feature of ['dice', null]) {
+      assert.ok(buildCaveats(sampleReport({ feature })).some(text => text.includes('No A/A baseline supplied')));
+    }
+    assert.ok(!buildCaveats(sampleReport({ feature: 'baseline' })).some(text => text.includes('No A/A baseline supplied')));
+  });
+
+  test('the small-sample warning appears below 10 pairs only', () => {
+    const pairs = count => Array.from({ length: count }, (_, index) => ({ replicate: 1, chapter: index + 1 }));
+    assert.ok(buildCaveats(sampleReport({ chapters: pairs(3) })).some(text => text.includes('Small sample')));
+    assert.ok(buildCaveats(sampleReport({ chapters: pairs(9) })).some(text => text.includes('Small sample')));
+    assert.ok(!buildCaveats(sampleReport({ chapters: pairs(10) })).some(text => text.includes('Small sample')));
+    assert.ok(buildCaveats(sampleReport({ chapters: pairs(10) })).some(text => text.includes('10 chapter pairs were judged')));
+  });
+
+  test('the length caveat appears only with the longer-text note', () => {
+    const metrics = longerTextNote => ({ ...sampleReport().metrics, length: { perChapter: [], totals: { off: 100, on: 101 }, ratio: 1.01, longerTextNote } });
+    assert.ok(buildCaveats(sampleReport({ metrics: metrics(true) })).some(text => text.includes('length')));
+    assert.ok(!buildCaveats(sampleReport({ metrics: metrics(false) })).some(text => text.includes('length')));
+  });
+
+  test('local judging states the declared model and never claims independence', () => {
+    const judge = (independence, model = 'judge-x') => ({ providerKind: 'local', model, declaredLabel: null, contextIsolation: 'request-messages-only', independence });
+    const same = buildCaveats(sampleReport({ judge: judge('not-independent') }))[1];
+    assert.match(same, /judge-x/);
+    assert.match(same, /declared/);
+    assert.match(same, /unverified/);
+    assert.match(same, /not-independent/);
+    assert.match(same, /same model as the writer/);
+    const other = buildCaveats(sampleReport({ judge: judge('unverified') }))[1];
+    assert.match(other, /judge-x/);
+    assert.match(other, /unverified/);
+    assert.doesNotMatch(other, /not-independent|not an independent/);
+    assert.doesNotMatch(other.replace(/unverified/g, ''), /independent/);
+  });
+});
+
+describe('renderReportMarkdown', () => {
+  test('renders the caveat block first and the per-dimension table', () => {
+    const report = sampleReport({ caveats: buildCaveats(sampleReport()) });
+    const markdown = renderReportMarkdown(report);
+    assert.ok(markdown.startsWith(`# Pairwise evaluation report\n\n${report.caveats[0]}\n\n${report.caveats[1]}`));
+    assert.equal(markdown, renderReportMarkdown(report));
+    assert.match(markdown, /ON preferred in 2 of 3 pairs/);
+    assert.match(markdown, /OFF preferred in 1 of 3 pairs/);
+    assert.match(markdown, /Length/);
+    assert.doesNotMatch(markdown, FORBIDDEN_WORDS);
+  });
+
+  test('lists per-chapter outcomes, identical and unpaired chapters and invalid exchanges', () => {
+    const markdown = renderReportMarkdown(sampleReport({ caveats: [] }));
+    assert.match(markdown, /Replicate 1, chapter 2: plot ON \(0\.75\), creativity conflict \(0\.50\), development tie \(0\.50\), language invalid/);
+    assert.match(markdown, /Identical in both copies, not judged: replicate 1 chapter 1/);
+    assert.match(markdown, /Unpaired chapters, not judged: replicate 1 chapter 4 \(ON copy only\)/);
+    assert.match(markdown, /Exchanges with at least one invalid dimension: 1 of 2/);
+    assert.match(markdown, /OFF 100, ON 130, ON\/OFF ratio 1\.30/);
+  });
+
+  test('ledger sections show unavailable reasons, counts and incomplete states plainly', () => {
+    const label = 'stored pattern-ledger review of the writing copy';
+    const base = { labelSource: label, missingChapters: [] };
+    const metrics = {
+      ...sampleReport().metrics,
+      patternLedger: [{
+        replicate: 1,
+        off: { ...base, status: 'incomplete', counts: { perChapter: [], totals: {}, missingChapters: [2, 3] }, missingChapters: [2, 3] },
+        on: { ...base, status: 'available', counts: { perChapter: [{ chapter: 2, codes: { 'repeated-opening': 1 } }], totals: { 'repeated-opening': 1 }, missingChapters: [] } },
+      }, {
+        replicate: 2,
+        off: { ...base, status: 'unavailable', reason: 'stale' },
+        on: { ...base, status: 'incomplete', counts: { perChapter: [{ chapter: 2, codes: {} }], totals: {}, missingChapters: [3] }, missingChapters: [3] },
+      }],
+    };
+    const markdown = renderReportMarkdown(sampleReport({ metrics, caveats: [] }));
+    assert.match(markdown, /Replicate 1 OFF: incomplete; no judged chapter has a ledger entry \(chapters 2, 3\), so there are no counts to show; this is missing data, not a clean result/);
+    assert.match(markdown, /Replicate 1 ON: repeated-opening 1/);
+    assert.match(markdown, /Replicate 2 OFF: unavailable \(stored ledger is stale\)/);
+    assert.match(markdown, /Replicate 2 ON: incomplete; counts cover chapter 2 only \(no entry for chapter 3\); no pattern codes flagged in the covered chapters/);
+    assert.ok(markdown.includes(`Labels come from the ${label}`));
+    assert.match(markdown, /written by whichever model ran `pattern-ledger` in each copy/);
+    assert.doesNotMatch(markdown, FORBIDDEN_WORDS);
+
+    const no = renderReportMarkdown(sampleReport({ caveats: [] }));
+    assert.match(no, /Replicate 1 OFF: unavailable \(no work root was given for this copy\)/);
+  });
+
+  test('unavailable ledger reasons are all described', () => {
+    const base = { labelSource: 'x', status: 'unavailable', missingChapters: [] };
+    const metrics = patternLedger => ({ ...sampleReport().metrics, patternLedger });
+    const markdown = renderReportMarkdown(sampleReport({
+      caveats: [],
+      metrics: metrics([{ replicate: 1, off: { ...base, reason: 'no-entries' }, on: { ...base, reason: 'stale' } }]),
+    }));
+    assert.match(markdown, /OFF: unavailable \(no ledger entries recorded\)/);
+    assert.match(markdown, /ON: unavailable \(stored ledger is stale\)/);
+  });
+});
+
+describe('report.md from full runs', () => {
+  const readReports = async dirs => ({
+    markdown: await readFile(join(dirs.out, 'report.md'), 'utf8'),
+    report: await readJson(join(dirs.out, 'report.json')),
+  });
+
+  test('a relay run writes the caveat block first and stays free of verdict wording', () => withRun(async dirs => {
+    const run = answers => runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', env: {}, answers });
+    const first = await run();
+    const ids = (await readJson(first.requestsPath)).requests.map(item => item.id);
+    assert.match((await readJson(first.requestsPath)).instruction, /repair/);
+    const path = join(dirs.base, 'answers.json');
+    await writeFile(path, JSON.stringify(Object.fromEntries(ids.map(id => [id, ALL_A]))));
+    assert.equal((await run(path)).status, 'report');
+    const { markdown, report } = await readReports(dirs);
+    assert.ok(markdown.startsWith(`# Pairwise evaluation report\n\n${report.caveats[0]}`));
+    assert.match(markdown, /ON preferred in/);
+    assert.doesNotMatch(markdown, FORBIDDEN_WORDS);
+    assert.ok(markdown.includes('not an independent evaluation'));
+    assert.ok(report.caveats.some(text => text.includes('not an independent evaluation')));
+  }));
+
+  for (const language of ['ko', 'en']) {
+    test(`a ${language} local run carries every caveat in report.md and report.json`, () => withRun(async dirs => {
+      await runPairwiseEvaluation({
+        off: [dirs.off], on: [dirs.on], out: dirs.out, language, provider: fakeProvider(), writerModel: 'fake', judgeLabel: 'my-judge',
+      });
+      const { markdown, report } = await readReports(dirs);
+      assert.equal(report.caveats.length, 5);
+      assert.match(report.caveats[0], /not human evaluation/);
+      assert.match(report.caveats[1], /not-independent/);
+      for (const caveat of report.caveats) assert.ok(markdown.includes(caveat), caveat);
+      assert.ok(markdown.includes('my-judge'));
+      assert.match(markdown, /ON preferred in 0 of 2 pairs/);
+      assert.match(markdown, /Exchanges with at least one invalid dimension: 0 of 4/);
+      assert.doesNotMatch(markdown, FORBIDDEN_WORDS);
+    }));
+  }
+
+  test('invalid exchanges are counted without verdict wording', () => withRun(async dirs => {
+    const provider = fakeProvider((request, count) => {
+      if (count === 2) throw new Error('endpoint down');
+      return ALL_A;
+    });
+    await runPairwiseEvaluation({ off: [dirs.off], on: [dirs.on], out: dirs.out, language: 'en', provider });
+    const { markdown } = await readReports(dirs);
+    assert.match(markdown, /Exchanges with at least one invalid dimension: 1 of 4/);
+    assert.doesNotMatch(markdown, FORBIDDEN_WORDS);
+  }));
 });

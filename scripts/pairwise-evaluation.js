@@ -377,10 +377,147 @@ export async function assertOutPath({ out, inputRoots, repoRoot }) {
   return resolved;
 }
 
-const REQUESTS_INSTRUCTION = 'Answer each request from its "system" and "user" text alone, as JSON without code fences. Collect the answers as {"<id>": "<answer text>"} in an answers file and run this script again with --answers <file>.';
+const REQUESTS_INSTRUCTION = 'Answer each request from its "system" and "user" text alone, as JSON without code fences. Collect the answers as {"<id>": "<answer text>"} in an answers file and run this script again with --answers <file>. If an answer is not valid JSON, a repair request for it appears on the next run.';
+
+const SMALL_SAMPLE_PAIRS = 10;
+
+function independenceCaveat(judge) {
+  if (judge.providerKind === 'host-relay') {
+    return 'Independence: judged through the host relay; same host as the writer unless shown otherwise; not an independent evaluation.';
+  }
+  const model = judge.model ? `\`${judge.model}\`` : 'not recorded';
+  const declared = `Independence: the judge model id (${model}) is declared by the endpoint configuration and unverified`;
+  if (judge.independence === 'not-independent') {
+    return `${declared}; independence is labelled not-independent because it is the same model as the writer.`;
+  }
+  return `${declared}; independence from the writer is unverified.`;
+}
+
+export function buildCaveats(report) {
+  const pairs = report.chapters?.length ?? 0;
+  const sample = pairs < SMALL_SAMPLE_PAIRS
+    ? ` Small sample: fewer than ${SMALL_SAMPLE_PAIRS} judged pairs, so treat the preferences and p-values as rough indications only.`
+    : '';
+  const caveats = [
+    'Results are LLM-judge pairwise preferences, not human evaluation, and may differ from what human readers prefer.',
+    independenceCaveat(report.judge ?? {}),
+    `${pairs} chapter ${pairs === 1 ? 'pair was' : 'pairs were'} judged; sign-test p-values are listed in the table.${sample}`,
+  ];
+  if (report.feature !== 'baseline') {
+    caveats.push('No A/A baseline supplied: without a run that compares a copy against itself, the amount of preference caused by judge noise and presentation order alone is unknown.');
+  }
+  const length = report.metrics?.length;
+  if (length?.longerTextNote) {
+    const ratio = typeof length.ratio === 'number' ? ` (ON/OFF ratio ${length.ratio.toFixed(2)})` : '';
+    caveats.push(`The two sets differ noticeably in length${ratio}; a judge may favor a longer or shorter text for that reason alone.`);
+  }
+  return caveats;
+}
+
+const fixed = (value, digits) => (typeof value === 'number' ? value.toFixed(digits) : 'n/a');
+const chapterList = chapters => `${chapters.length === 1 ? 'chapter' : 'chapters'} ${chapters.join(', ')}`;
+const sideName = side => side.toUpperCase();
+const outcomeName = outcome => (outcome === 'on' || outcome === 'off' ? sideName(outcome) : outcome);
+
+const LEDGER_REASONS = {
+  'no-root': 'no work root was given for this copy',
+  stale: 'stored ledger is stale',
+  'no-entries': 'no ledger entries recorded',
+};
+
+function ledgerSummary(counts, scope) {
+  const codes = Object.entries(counts.totals).map(([code, count]) => `${code} ${count}`);
+  return codes.length ? codes.join(', ') : `no pattern codes flagged in ${scope}`;
+}
+
+function ledgerLine(replicate, side, metric) {
+  const prefix = `- Replicate ${replicate} ${sideName(side)}:`;
+  if (metric.status === 'unavailable') return `${prefix} unavailable (${LEDGER_REASONS[metric.reason] ?? metric.reason})`;
+  const { counts } = metric;
+  const covered = counts.perChapter.map(item => item.chapter);
+  if (metric.status === 'incomplete' && !covered.length) {
+    return `${prefix} incomplete; no judged chapter has a ledger entry (${chapterList(metric.missingChapters)}), so there are no counts to show; this is missing data, not a clean result`;
+  }
+  if (metric.status === 'incomplete') {
+    return `${prefix} incomplete; counts cover ${chapterList(covered)} only (no entry for ${chapterList(metric.missingChapters)}); ${ledgerSummary(counts, 'the covered chapters')}`;
+  }
+  return `${prefix} ${ledgerSummary(counts, `the ${covered.length} judged ${covered.length === 1 ? 'chapter' : 'chapters'}`)}`;
+}
+
+function judgeLines(judge) {
+  const lines = [`- Judge: ${judge.providerKind === 'host-relay' ? 'host relay' : 'local endpoint'}`];
+  if (judge.model) lines.push(`- Judge model id (declared, unverified): \`${judge.model}\``);
+  if (judge.declaredLabel) lines.push(`- Judge label (declared): ${judge.declaredLabel}`);
+  lines.push(`- Context isolation: ${judge.contextIsolation}`, `- Independence label: ${judge.independence}`);
+  return lines;
+}
+
+function dimensionRows(aggregateByDimension) {
+  const header = ['Dimension', 'ON preferred in', 'OFF preferred in', 'Ties', 'Conflicts', 'Invalid', 'onPreference', 'signTestP', 'firstPositionRate'];
+  const rows = DIMENSIONS.map(dimension => {
+    const stat = aggregateByDimension[dimension];
+    return [
+      dimension, `ON preferred in ${stat.onWins} of ${stat.n} pairs`, `OFF preferred in ${stat.offWins} of ${stat.n} pairs`,
+      stat.ties, stat.conflicts, stat.invalid, fixed(stat.onPreference, 3), fixed(stat.signTestP, 4), fixed(stat.firstPositionRate, 3),
+    ];
+  });
+  return [header, header.map(() => '---'), ...rows].map(row => `| ${row.join(' | ')} |`);
+}
+
+function chapterLine({ replicate, chapter, outcomes }) {
+  const parts = DIMENSIONS.map(dimension => {
+    const { outcome, score } = outcomes[dimension];
+    return `${dimension} ${outcomeName(outcome)}${typeof score === 'number' ? ` (${score.toFixed(2)})` : ''}`;
+  });
+  return `- Replicate ${replicate}, chapter ${chapter}: ${parts.join(', ')}`;
+}
+
+const listLine = (label, items) => `- ${label}: ${items.length ? items.join('; ') : 'none'}`;
 
 export function renderReportMarkdown(report) {
-  return report.caveats.join('\n');
+  const { length } = report.metrics;
+  const invalidExchanges = report.exchanges.filter(item => Object.values(item.verdict).includes('invalid')).length;
+  const lines = [
+    '# Pairwise evaluation report',
+    '',
+    ...report.caveats.flatMap(caveat => [caveat, '']),
+    '## Run',
+    '',
+    `- Created: ${report.createdAt}`,
+    `- Feature label: ${report.feature ?? 'none'}`,
+    `- Language: ${report.language} (judge prompt family ${report.promptFamily})`,
+    ...report.inputs.map(item => `- Replicate ${item.replicate}: OFF \`${item.off}\`, ON \`${item.on}\``),
+    `- Chapter filter: ${report.chapterFilter ?? 'none'}`,
+    ...judgeLines(report.judge),
+    '',
+    '## Preferences by dimension',
+    '',
+    ...dimensionRows(report.aggregate),
+    '',
+    'Each pair is judged in both presentation orders. A conflict means the two orders disagreed and counts toward neither side; invalid means at least one order gave no usable answer. firstPositionRate is the share of answers that chose the version shown first; 0.5 means no position preference.',
+    '',
+    '## Per-chapter outcomes',
+    '',
+    ...(report.chapters.length ? report.chapters.map(chapterLine) : ['- none']),
+    '',
+    '## Length',
+    '',
+    `- Totals over judged chapters (graphemes): OFF ${length.totals.off}, ON ${length.totals.on}, ON/OFF ratio ${fixed(length.ratio, 2)}`,
+    '',
+    '## Pattern ledger counts',
+    '',
+    ...report.metrics.patternLedger.flatMap(item => [ledgerLine(item.replicate, 'off', item.off), ledgerLine(item.replicate, 'on', item.on)]),
+    '',
+    `Labels come from the ${report.metrics.patternLedger[0]?.off.labelSource ?? LEDGER_LABEL_SOURCE}, written by whichever model ran \`pattern-ledger\` in each copy; this report does not know which model that was, and the two copies may differ.`,
+    '',
+    '## Excluded and invalid',
+    '',
+    listLine('Identical in both copies, not judged', report.identical.map(item => `replicate ${item.replicate} chapter ${item.chapter}`)),
+    listLine('Unpaired chapters, not judged', report.unpaired.map(item => `replicate ${item.replicate} chapter ${item.chapter} (${sideName(item.side)} copy only)`)),
+    `- Exchanges with at least one invalid dimension: ${invalidExchanges} of ${report.exchanges.length}`,
+    '',
+  ];
+  return lines.join('\n');
 }
 
 const sha256 = text => createHash('sha256').update(text).digest('hex');
@@ -494,7 +631,7 @@ async function patternLedgerMetrics({ sets, pairs, exchanges }) {
 
 async function buildReport({ args, family, sets, pairs, plan, exchanges, results, judge, now }) {
   const judged = judgedPairs(results);
-  return {
+  const report = {
     protocolVersion: PROTOCOL_VERSION,
     createdAt: now().toISOString(),
     feature: args.feature ?? null,
@@ -519,6 +656,8 @@ async function buildReport({ args, family, sets, pairs, plan, exchanges, results
     unpaired: plan.unpaired,
     caveats: [],
   };
+  report.caveats = buildCaveats(report);
+  return report;
 }
 
 function judgeDescription({ provider, args }) {
