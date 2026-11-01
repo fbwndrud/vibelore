@@ -130,6 +130,17 @@ For `needs_model` (`webtoon-scene-plan`, `webtoon-scene-preflight`,
 exact `runId` and JSON per request ID. This is model work; keep it separate from questions for the user.
 Lookups use `lore_workflow_status`/`history(lane="webtoon")`.
 
+For a user-selected visual reviewer, save `lore_configure(webtoonReviewModel={provider:"host",modelId,reasoningEffort})`.
+This is a host execution hint: actually run the image-review request on that model, using a separate model session or agent
+when the host supports it, and retain the real execution evidence. Never relabel a same-model answer as the selected reviewer.
+The selection affects only scene image review. Existing pending requests remain pinned; explicitly call
+`lore_webtoon_scene(action="review",workflowId,feedback)` to review the preserved image with new settings and the current prompt.
+This archives the old review/request, keeps the image and revision, and cannot trigger an automatic redraw.
+Open all attached images, including identity/setting references. Version 2 requires panel-specific `visualChecks` for reflections,
+prop structure/support, hands/contact, within-scene continuity and layout/timing. Observe before judging; required relationships
+that cannot be established are `uncertain` and do not pass. Legitimate absent/offscreen details not required by the scene can be
+`not_applicable` with a reason. Style taste remains advisory. `null` clears the saved reviewer choice.
+
 At `needs_scene_image`, read [Codex image execution](references/codex-images.md#scene-path-needs_scene_image). Execute
 `hostRequest` or `apiRequest` as selected and import the exact `inputHash` and execution provenance. Every automatic re-plan
 and every `revise` consumes another image call on that path. Open each actual file in a model request's `images` before

@@ -32,6 +32,24 @@ direction interview → scene adaptation and English direction → pre-generatio
 as a separate workflow. It starts with the `webtoon-discovery-interview` skill or
 `lore_webtoon_scene`. The output is a scene raster image (PNG/JPEG) with the lettering drawn in, plus `scene.html`, and the actual image generation is done by the host. SVG/HTML masters exist only on the per-panel path (deprecated).
 
+### Visual reviewer and observed evidence
+
+Save a per-work reviewer with `lore_configure(webtoonReviewModel={provider:"host",modelId,reasoningEffort})`; `null` restores
+the default. The host must actually send the request and all images to that model. A model hint is not execution evidence.
+Novel/image models and already pending requests are unaffected.
+
+Version 2 attaches the actual scene, adopted style and identity/prop references with `imageIndex` and role descriptions.
+Each `visualChecks` entry (reflectionGeometry, propStructure, handsAndContact, withinSceneContinuity, layoutAndTiming)
+requires a status, actual one-based panel numbers and observed evidence. Describe the pixels before comparing them with the
+requirement. An unobservable required relationship is `uncertain` and cannot pass. Legitimate absent/offscreen details not
+required by the scene may be `not_applicable` with a reason. Aggregate true booleans cannot override failed/uncertain checks.
+The meaning of the observations still depends on model review; structural validation does not guarantee image quality.
+Style taste remains advisory.
+
+Call `lore_webtoon_scene(action="review",workflowId,feedback)` to apply a new reviewer/prompt to a preserved image. It archives
+the earlier review and complete pending request in `reviewHistory`, issues a new actual request ID/runId, and preserves the
+image, revision and redraw allowance. Failed re-review stops at `scene_needs_revision` without another image request.
+
 ### Standalone scene-script source
 
 When the source is a standalone scene script rather than novel chapters, first adopt it with `lore_scene_script` inspect/apply ([SharedLore contract, Korean](SHARED_LORE_RUNTIME.md)). Then pass `scriptId` instead of `sourceChapters` on `action="start"`; passing both is `SCENE_SOURCE_AMBIGUOUS`. Source paragraph IDs are `<sceneId>-p-<n>`, and plan and preflight requests also carry the per-scene world point and state documents (`sharedLore`), cast and expression profile. Future states and author documents are excluded. References pick catalog images pinned by the script as `references:[{id, assetId, description}]`, using the bytes sealed inside the work; an unpinned assetId is `SCENE_ASSET_NOT_PINNED`. Interview, panel count, image path choice, preflight, visual review and revise/retry work as with a novel source. If the script file or sealed inputs change mid-workflow, it stops with `SCENE_SCRIPT_DRIFT`/`SCENE_SOURCE_CHANGED`.

@@ -179,6 +179,9 @@ base language가 `ko`면 한국어 특화 계열, 그 밖의 언어(영어 포�
 StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 모드를 한 번에 보여줍니다.
 구형 저장 데이터는 수정하지 않습니다. 선택 인자를 넘기면 작가 지원 설정만 저장합니다.
 
+- `webtoonReviewModel`: 웹툰 시각 검수에만 쓸 모델 ID 또는 `{provider:"host"|"local",modelId,reasoningEffort?}`.
+  생략은 유지, `null`은 기본 모델 복귀입니다. 호스트가 실제 해당 모델로 실행해야 하는 힌트이며 실행 증거와 구분합니다.
+
 - `disabledReviews`: 끌 매 화 검토 목록 전체(`story-profile-check`, `coherence-judge`,
   `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`). 꺼진 검토는
   요청하지 않고 `disabled_by_user`로 기록하며 auto 커밋을 막지 않습니다.
@@ -691,11 +694,15 @@ editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실
 
 새 웹툰 작업의 기본 경로입니다. 러프 없이 장면 전체와 대사를 함께 생성합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 이미지 선택이 없는 작품은 start가 먼저 `needs_image_runtime`을 반환합니다. 호스트가 실제로 가진 이미지 경로(내장 도구, API)를 `imageRuntime`으로 보고하면 `needs_image_choice`가 선택지 전체와 제안(내장 경로 우선)을 돌려주고, 사용자의 원답을 `feedback`에 넣어 `confirmImageChoice`로 확정합니다. 확정한 선택은 작품별로 유지되며 `changeImageChoice`로만 바꿉니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
 이 별도 경로는 원작 범위 고정 → 통합 영어 연출 → 생성 전 검증 → 장면 이미지 → 실제 시각 검토로 진행합니다.
-`action=start|revise|retry|verify|reject`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
+`action=start|revise|retry|review|verify|reject`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
 `previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback`, `asset`을 받습니다.
 이미지 선택이 없으면 start가 `needs_image_runtime` → `needs_image_choice`를 반환하며, `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`을 사용합니다.
 생성 전 검증이 통과해야 `needs_scene_image`가 나오며 이때만 고른 경로(`hostRequest` 또는 `apiRequest`)로 그림을 그립니다.
 원작·참조·계획 해시가 바뀐 반입과 미열람 시각 검토는 거절합니다.
+`action=review`는 보존 이미지의 검수만 새 모델 설정·프롬프트로 다시 실행합니다. 이미지와 revision·재생성 예산을 유지하고
+이전 검수·대기 요청은 `reviewHistory`에 보존합니다. 기존 대기 run은 닫히며 새 실제 request ID/runId로 답합니다.
+재검수 실패는 추가 이미지 호출 없이 `scene_needs_revision`으로 남습니다. 새 시각 검수는 `visualChecks` 다섯 항목의
+칸 번호·관측 근거를 요구하고 필수 관계의 `failed`·`uncertain`을 전체 true 값으로 통과시킬 수 없습니다.
 `scriptId`로 시작하면 `lore_scene_script`로 채택한 대본과 봉인 입력만 원천으로 쓰고, 참조는 `{id,assetId,description}`으로
 대본이 고정한 카탈로그 이미지를 지정합니다. 새로 시작한 장면은 완료 때 `.vibelore/productions/`에 원천 판본·잠금·참조와
 이미지 해시를 기록하며, `action=verify`가 세계 디렉터리 없이 그 기록과 봉인 바이트를 다시 검증합니다. 경로로만 받은 참조는

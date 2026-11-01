@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { sceneSetup, scenePlan, scenePreflight } from './fixtures/webtoon-scene.js';
+import { sceneSetup, scenePlan, scenePreflight, sceneVisualChecks } from './fixtures/webtoon-scene.js';
 import { workId, pixel } from './fixtures/webtoon.js';
 import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
@@ -27,7 +27,7 @@ function provider({ verdict = 'matches', inspectedReference = true, calls = [] }
     if (request.step === 'webtoon-scene-plan') answer = scenePlan(d.source);
     else if (request.step === 'webtoon-scene-preflight') {
       answer = scenePreflight(d); if (d.styleBasis) answer.renderBrief.style = d.styleBasis.profile.style;
-    } else answer = { ...d.schema, observedPanelCount: d.requestedPanelCount, inspectedImages: true,
+    } else answer = { ...d.schema, visualChecks: sceneVisualChecks(), observedPanelCount: d.requestedPanelCount, inspectedImages: true,
       spatialCoherence: true, readingOrder: true, evidence: 'Synthetic review fixture.',
       textObservations: d.plan.texts.map(t => ({ id: t.id, observedText: t.text, readable: true, speakerCorrect: true, evidence: 'Fixture caption.' })),
       ...(d.styleBasis ? { styleReview: { inspectedReference, verdict, evidence: 'Fixture visible treatment comparison.' } } : {}) };

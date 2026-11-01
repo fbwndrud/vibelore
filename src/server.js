@@ -263,8 +263,15 @@ const TOOLS = [
     name: 'lore_configure',
     annotations: writes({ idempotent: true }),
     description: '작품 설정을 조회하거나 바꾼다. 인자 없이 호출하면 읽기 전용으로 StoryProfile·StorySpine·WriterSkill을 하나의 NarrativeContract로 묶어 status(ready|incomplete), 누락 단계(missing), 언어·분량 계약, 검토·추적 설정을 돌려준다. '
-      + 'disabledReviews·disabledDraftSections·planningReviews·arcReview·tracking·customTracking·mergeRecords를 저장한다. 목록과 tracking 객체는 통째로 교체되고(빈 배열=모두 켬), planningReviews·arcReview는 지정한 필드만 갱신, mergeRecords는 누적된다. 검토 변경은 이후 실행에, 추적 변경은 다음 커밋부터 적용된다. 기존 원고는 바뀌지 않는다. 준비 질문 깊이와 검토 선택은 별개다. 모델 호출 없음.',
+      + 'disabledReviews·disabledDraftSections·planningReviews·arcReview·tracking·customTracking·mergeRecords·webtoonReviewModel을 저장한다. 목록과 tracking 객체는 통째로 교체되고(빈 배열=모두 켬), planningReviews·arcReview는 지정한 필드만 갱신, mergeRecords는 누적된다. webtoonReviewModel은 웹툰 시각 검수만의 모델 힌트이며 호스트가 실제 실행해야 한다(null=기본 모델 복귀). 대기 중인 요청은 유지되며 기존 이미지 재검수는 lore_webtoon_scene action=review다. 검토 변경은 이후 실행에, 추적 변경은 다음 커밋부터 적용된다. 기존 원고는 바뀌지 않는다. 준비 질문 깊이와 검토 선택은 별개다. 모델 호출 없음.',
     inputSchema: { type: 'object', properties: { ...projectArg,
+      webtoonReviewModel: { description: '작품별 웹툰 시각 검수 모델. 모델 ID 또는 {provider:host|local,modelId,reasoningEffort?}; null은 지정 해제. 이미지 모델·소설 모델은 바꾸지 않는다. 호스트는 힌트대로 실제 별도 실행하고 실행 근거를 보존한다.', anyOf: [
+        { type: 'null' }, { type: 'string', minLength: 1, maxLength: 120 },
+        { type: 'object', additionalProperties: false, required: ['modelId'], properties: {
+          provider: { type: 'string', enum: ['host', 'local'] }, modelId: { type: 'string', minLength: 1, maxLength: 120 },
+          reasoningEffort: { type: 'string', enum: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] },
+        } },
+      ] },
       disabledReviews: { type: 'array', items: { type: 'string', enum: ['story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger', 'arc-review'] },
         description: '끌 검토 목록 전체(빈 배열이면 모두 켬). 꺼진 검토는 요청하지 않고 실패로 보지 않는다. 연속성 추출·검사는 끌 수 없다.' },
       planningReviews: { type: 'object', properties: { story: { type: 'boolean' }, arc: { type: 'boolean' }, episode: { type: 'boolean' } }, additionalProperties: false,
@@ -718,7 +725,7 @@ const TOOLS = [
       + '상태는 .vibelore/webtoon/에 저장하고 소설 정본과 프로젝트 webtoon/ 폴더는 건드리지 않는다. 진행 중 워크플로가 있으면 start는 WEBTOON_WORKFLOW_ACTIVE로 거부되므로 revise나 retry로 끝낸다. 시각 검토를 통과하면 status=completed. 기존 컷별 workflow는 변경하지 않는다.',
     inputSchema: { type: 'object', properties: { ...projectArg,
       workflowId: { type: 'string', description: '대상 장면 워크플로 id. 생략하면 현재 워크플로.' }, revision: webtoonRevisionArg,
-      action: { type: 'string', enum: ['start', 'revise', 'retry', 'verify', 'reject'], description: 'start=새 장면 시작, revise=feedback으로 연출부터 다시(완료된 장면도 다시 연다), retry=모델 실패 단계 재시도, verify=완료 제작 기록·봉인 바이트 읽기 전용 검증, reject=사용자 중단 원답 feedback을 기록하고 대기 모델 요청을 해제하며 기존 파일 보존. 생략하면 현재 단계를 이어간다.' },
+      action: { type: 'string', enum: ['start', 'revise', 'retry', 'review', 'verify', 'reject'], description: 'start=새 장면 시작, revise=feedback으로 연출부터 다시(완료된 장면도 다시 연다), retry=모델 실패 단계 재시도, review=보존한 이미지의 시각 검수만 새 모델 설정·프롬프트로 다시 실행(이미지 호출·자동 재생성 없음), verify=완료 제작 기록·봉인 바이트 읽기 전용 검증, reject=사용자 중단 원답 feedback을 기록하고 대기 모델 요청을 해제하며 기존 파일 보존. 생략하면 현재 단계를 이어간다.' },
       sourceChapters: { type: 'array', items: { type: 'integer' }, description: 'start 전용. 각색할 소설 화 번호(1~20개). 생략하면 첫 화만. scriptId와 함께 쓰면 SCENE_SOURCE_AMBIGUOUS.' },
       scriptId: { type: 'string', description: 'start 전용. 소설 화 대신 lore_scene_script로 채택한 독립 장면 대본을 원천으로 쓴다. 대본·장면별 상태·asset은 채택 때 봉인한 판본만 사용한다.' },
       panelCount: { anyOf: [{ type: 'integer', minimum: SCENE_PANEL_LIMITS.min, maximum: SCENE_PANEL_LIMITS.max }, { type: 'string', enum: ['auto'] }], description: `사용자가 선택한 정확한 칸 수(${SCENE_PANEL_LIMITS.min}~${SCENE_PANEL_LIMITS.max}) 또는 "auto". auto는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 다시 고른다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성 경고가 warnings에 실린다. start에서 누락하면 needs_interview. 칸 크기와 배치는 AI가 선택.` },
@@ -960,7 +967,7 @@ async function dispatchTool(store, name, args) {
     case 'lore_status':
       return runStatus({ store, workId: args.workId });
     case 'lore_configure':
-      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords });
+      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords, webtoonReviewModel: args.webtoonReviewModel });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
     case 'lore_preferences':
