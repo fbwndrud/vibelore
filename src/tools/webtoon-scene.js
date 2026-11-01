@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
-import { CompositionStore, sceneEpisodeKey } from '../store/webtoon-composition-store.js';
+import { CompositionStore, CORRUPT_SHARD, sceneEpisodeKey } from '../store/webtoon-composition-store.js';
 import { WebtoonStyleStore, STYLE_REFERENCE_ID, styleReference, verifyStyleSnapshot } from '../store/webtoon-style-store.js';
 import { resolveProductionSource, scriptSourceUnits, verifyProductionSource } from '../core/production-source.js';
 import { readSealedProductionInput } from '../core/input-objects.js';
@@ -47,6 +47,7 @@ export function scenePublicState(w) {
     style: w.styleSnapshot ?? null,
     delegation: w.delegation ?? null,
     ...(w.compositionVersion ? { compositionDefaults: w.compositionDefaults ?? [], ...(w.compositionDigestError ? { compositionDigestError: w.compositionDigestError } : {}) } : {}),
+    ...(w.compositionRecordError ? { compositionRecordError: w.compositionRecordError } : {}),
     apiRestriction: w.apiRestriction ?? w.delegation?.apiPolicy ?? 'existing-only',
     limitations: ['Whole-scene raster with generated lettering; not editable vector lettering.', 'Host review is self-reported, not independent reader evaluation.'] };
 }
@@ -286,10 +287,19 @@ async function drive(repo, w, providers) {
     // Composition rows are stored first for the same reason: a failed write must leave the stage retryable, never silently skipped.
     // A backfill re-review only records what an already adopted scene shows: it never revises, redraws or reopens the scene.
     const backfill = w.backfillReview === true;
+    delete w.compositionRecordError;
     if (w.compositionVersion || w.compositionBackfill === true) {
       const protagonistIds = (await compositionSettings(repo.store, w.workId, w).catch(() => null))?.protagonistIds ?? [];
-      await new CompositionStore(repo).adoptScene(w, { adopted: passed || backfill, protagonistIds });
-      if (passed && w.compositionVersion) await attachCompositionAdvisory(repo, w);
+      try {
+        const recorded = await new CompositionStore(repo).adoptScene(w, { adopted: passed || backfill, protagonistIds });
+        if (recorded.indexError) record(w, 'composition_index_skipped', { reason: recorded.indexError });
+      } catch (error) {
+        // A damaged shard cannot take the page with it: say so, keep the review and carry on. Any other failure retries.
+        if (error?.code !== CORRUPT_SHARD) throw error;
+        w.compositionRecordError = compositionReason(error);
+        record(w, 'composition_record_failed', { reason: w.compositionRecordError });
+      }
+      if (passed && w.compositionVersion && !w.compositionRecordError) await attachCompositionAdvisory(repo, w);
     }
     // The record is written before the stage says completed, so a failed write retries instead of leaving an unverifiable scene.
     if ((passed || backfill) && w.productionRecord) await writeProductionRecord(repo, w);
@@ -452,14 +462,18 @@ async function verifyProduction(repo, w) {
   return { status: 'verified', lane: 'webtoon', workflowId: w.workflowId, recordHash: w.productionRecordHash, record: recordFile, checks, unpreserved };
 }
 
-/** Rewrite the stored composition index from the per-episode rows. No model or image call; safe on a work with no composition data (writes an empty index). */
-async function rebuildComposition(store, repo, workId, w) {
+/**
+ * Rewrite the stored composition index from the per-episode rows. No model or image call; safe on a work with no composition data (writes an empty index).
+ * A damaged shard stops the rebuild and is named; with `setAsideCorrupt` it is first renamed out of the way (its bytes are kept) and reported in `setAside`.
+ */
+async function rebuildComposition(store, repo, workId, w, { setAsideCorrupt = false } = {}) {
   const config = await compositionSettings(store, workId, w);
   const composition = new CompositionStore(repo);
+  const setAside = setAsideCorrupt ? await composition.setAsideCorrupt() : null;
   const index = await composition.rebuildIndex({ protagonistIds: config.protagonistIds });
   const shards = await Promise.all((await composition.listEpisodes()).map(({ episodeKey }) => composition.readShard(episodeKey)));
   const panels = shards.flat().filter(row => row.type === 'panel' && row.status === 'adopted').length;
-  return { status: 'composition_rebuilt', lane: 'webtoon', workId, episodes: index.order.length, panels, sourceHead: index.sourceHead };
+  return { status: 'composition_rebuilt', lane: 'webtoon', workId, episodes: index.order.length, panels, sourceHead: index.sourceHead, ...(setAside ? { setAside } : {}) };
 }
 
 /** Opt-in scene workflow: never migrates or republishes an existing panel workflow. */
@@ -471,7 +485,7 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
     if (!run && args.action === 'composition_rebuild') {
       // The workflow in hand tells which cast ids the configured lead characters stand for; without one they are used as given.
       const current = await repo.load(args.workflowId);
-      return rebuildComposition(store, repo, args.workId, isScene(current) && current.workId === args.workId ? current : null);
+      return rebuildComposition(store, repo, args.workId, isScene(current) && current.workId === args.workId ? current : null, { setAsideCorrupt: args.setAsideCorrupt === true });
     }
     let w = await repo.load(args.workflowId);
     if (w && w.workId !== args.workId) throw new Error('WORKFLOW_WORK_MISMATCH');

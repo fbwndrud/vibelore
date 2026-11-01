@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, rm } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
@@ -178,22 +179,57 @@ test('a workflow from before this change writes nothing', async () => {
   await assert.rejects(readdir(repo.path('composition')), { code: 'ENOENT' });
 });
 
-test('a store failure surfaces and leaves the review stage retryable', async () => {
+test('a write failure surfaces and leaves the review stage retryable', async () => {
   const { store, repo, args } = await sceneSetup();
   const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: planner });
-  await mkdir(repo.path('composition', 'l0'), { recursive: true });
-  await writeFile(shardPath(repo), '{"type":"pa');
+  // A directory where the shard should be is an I/O failure, not a damaged shard: it must stay retryable.
+  await mkdir(shardPath(repo), { recursive: true });
   const pending = await runWebtoonSceneTool({ store, args: { workId, asset: assetFor(args, drawn.jobs[0]) }, providers: createHostRelay() });
   const q = pending.requests[0], run = await loadRun(store.rootDir, pending.runId);
-  await assert.rejects(runWebtoonSceneTool({ store, args: run.args, run, providers: createHostRelay({ [q.id]: JSON.stringify(answer(q)) }) }), /CORRUPT_COMPOSITION_SHARD: ep-0001/);
+  await assert.rejects(runWebtoonSceneTool({ store, args: run.args, run, providers: createHostRelay({ [q.id]: JSON.stringify(answer(q)) }) }), /EISDIR/);
   const failed = await repo.load();
   assert.deepEqual([failed.stage, failed.failedStage], ['scene_model_failed', 'scene_image_review']);
-  await writeFile(shardPath(repo), '');
+  await rm(shardPath(repo), { recursive: true });
   const again = await runWebtoonSceneTool({ store, args: { workId, action: 'retry' }, providers: createHostRelay() });
   const q2 = again.requests[0], run2 = await loadRun(store.rootDir, again.runId);
   const retry = await runWebtoonSceneTool({ store, args: run2.args, run: run2, providers: createHostRelay({ [q2.id]: JSON.stringify(answer(q2)) }) });
   assert.equal(retry.status, 'completed');
   assert.equal((await lines(repo)).filter(r => r.type === 'page').length, 1);
+  assert.equal('compositionRecordError' in retry, false);
+});
+
+test('a damaged shard never blocks adoption: the scene completes, the record is written and the reason is visible', async () => {
+  const { store, repo, args } = await sceneSetup();
+  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: planner });
+  await mkdir(dirname(shardPath(repo)), { recursive: true });
+  const damaged = '{"type":"pa';
+  await writeFile(shardPath(repo), damaged);
+  const done = await review(store, args, drawn);
+  assert.equal(done.status, 'completed');
+  assert.match(done.compositionRecordError, /^CORRUPT_COMPOSITION_SHARD: ep-0001$/);
+  const w = await repo.load();
+  assert.equal(w.stage, 'completed');
+  assert.equal(w.visualReview.passed, true);
+  assert.equal(typeof w.productionRecordHash, 'string', 'the production record was written');
+  assert.deepEqual((await runWebtoonSceneTool({ store, args: { workId, action: 'verify' }, providers: createHostRelay() })).status, 'verified');
+  const event = w.events.find(e => e.event === 'composition_record_failed');
+  assert.ok(event, JSON.stringify(w.events.map(e => e.event)));
+  assert.match(event.reason, /CORRUPT_COMPOSITION_SHARD: ep-0001/);
+  assert.equal(await readFile(shardPath(repo), 'utf8'), damaged, 'the damaged shard is left as it was');
+});
+
+test('an index that cannot be written is recorded as an event and never blocks adoption', async () => {
+  const { store, repo, args } = await sceneSetup();
+  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: planner });
+  await mkdir(repo.path('composition', 'l2.json'), { recursive: true });
+  const done = await review(store, args, drawn);
+  assert.equal(done.status, 'completed');
+  const w = await repo.load();
+  assert.equal((await lines(repo)).filter(r => r.type === 'page').length, 1, 'the rows were recorded');
+  const event = w.events.find(e => e.event === 'composition_index_skipped');
+  assert.ok(event, JSON.stringify(w.events.map(e => e.event)));
+  assert.equal(typeof event.reason, 'string');
+  assert.equal('compositionRecordError' in done, false);
 });
 
 test('adopting through the tool keeps the derived index equal to a rebuild, and a rejected review leaves it empty of scenes', async () => {

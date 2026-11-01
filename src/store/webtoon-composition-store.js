@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, rename, access } from 'node:fs/promises';
 import { digest, safeId } from '../core/webtoon-contract.js';
 import { PREVIOUS_SCENE_ID } from '../core/webtoon-scene.js';
 import { COMPOSITION_VOCAB_VERSION, compositionFingerprint } from '../core/webtoon-composition.js';
@@ -8,6 +8,7 @@ import { STYLE_REFERENCE_ID } from './webtoon-style-store.js';
 import { atomicWrite } from './webtoon-store.js';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+export const CORRUPT_SHARD = 'CORRUPT_COMPOSITION_SHARD';
 const SCRIPT_PREFIX = 'script-';
 const chapterOf = key => /^ep-(\d{4,})$/.exec(key)?.[1];
 
@@ -31,6 +32,9 @@ const unpackSummary = ({ counts, requiredCounts, closes, sceneType, adoptedAt })
   const full = expandVector(counts);
   return { counts: full, requiredCounts: expandVector(requiredCounts), closes, fingerprints: full.fingerprints, sceneType, adoptedAt: adoptedAt ?? null };
 };
+const exists = path => access(path).then(() => true, () => false);
+/** Short reason that never carries a path: the error code or its first token. */
+const shortReason = error => /^[A-Z][A-Z_]+(: [\w-]+)?/.exec(String(error?.message ?? error))?.[0] ?? error?.code ?? error?.name ?? 'ERROR';
 const sameIds = (a, b) => a.length === b.length && [...a].sort().every((id, i) => id === [...b].sort()[i]);
 
 function parseShard(text, episodeKey) {
@@ -40,7 +44,7 @@ function parseShard(text, episodeKey) {
   return parts.map(line => {
     try { const row = JSON.parse(line); if (row && typeof row === 'object' && !Array.isArray(row)) return row; }
     catch { /* reported below */ }
-    throw new Error(`CORRUPT_COMPOSITION_SHARD: ${episodeKey}`);
+    throw Object.assign(new Error(`${CORRUPT_SHARD}: ${episodeKey}`), { code: CORRUPT_SHARD });
   });
 }
 
@@ -171,18 +175,46 @@ export class CompositionStore {
     return updated;
   }
   /**
-   * Record a scene's rows, then keep the derived index in step. The index is rebuildable, so a failure here is
-   * swallowed: it can never block the review verdict, and the next loadIndex notices the stale source head.
+   * Record a scene's rows, then keep the derived index in step. The index is rebuildable, so a failure there
+   * never blocks the caller: it comes back as `indexError` (a short reason) and the next loadIndex notices the stale source head.
+   * A damaged shard makes the rows themselves unrecordable and surfaces as CORRUPT_COMPOSITION_SHARD.
    */
   async adoptScene(w, { adopted, protagonistIds = [] }) {
-    const before = await this.peekIndex({ protagonistIds }).catch(() => null);
     const key = sceneKey(w);
-    const prevRows = before ? (await this.readShard(sceneEpisodeKey(w))).filter(r => r.sceneKey === key) : [];
+    let indexError = null, before = null, prevRows = [];
+    try {
+      before = await this.peekIndex({ protagonistIds });
+      // The scene's rows as they stand before the rewrite: the index subtracts their summary.
+      if (before) prevRows = (await this.readShard(sceneEpisodeKey(w))).filter(r => r.sceneKey === key);
+    } catch (error) { before = null; indexError = shortReason(error); }
     const recorded = await this.recordScene(w, { adopted });
     try {
       if (before) await this.applySceneToIndex(before, recorded.episodeKey, key, prevRows, { protagonistIds });
       else await this.rebuildIndex({ protagonistIds });
-    } catch { /* derived data */ }
-    return recorded;
+    } catch (error) { indexError = shortReason(error); }
+    return { ...recorded, indexError };
+  }
+  /**
+   * Rename every damaged episode shard to a sibling name the store no longer lists or reads (bytes kept), so the
+   * rest of the history can be rebuilt. Returns the episode keys that were set aside.
+   */
+  async setAsideCorrupt() {
+    let names;
+    try { names = await readdir(this.repo.path('composition', 'l0')); }
+    catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+    const stamp = this.now().replace(/[^0-9A-Za-z]/g, '');
+    const aside = [];
+    for (const name of names.filter(n => n.endsWith('.jsonl')).sort()) {
+      const key = name.slice(0, -'.jsonl'.length);
+      if (!safeId(key)) continue;
+      try { await this.readShard(key); continue; }
+      catch (error) { if (error.code !== CORRUPT_SHARD) throw error; }
+      const from = this.shardPath(key);
+      let target = `${from}.corrupt-${stamp}`;
+      for (let n = 2; await exists(target); n++) target = `${from}.corrupt-${stamp}-${n}`;
+      await rename(from, target);
+      aside.push(key);
+    }
+    return aside;
   }
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { runConfigureStatus } from '../src/tools/configure.js';
@@ -508,4 +508,57 @@ test('composition_rebuild counts only adopted panels and leaves workflows untouc
   const result = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider });
   assert.equal(result.panels, rows.filter(r => r.type === 'panel' && r.status === 'adopted').length);
   assert.deepEqual(await repo.load(), before, 'the pending workflow is unchanged');
+});
+
+test('composition_rebuild stops at a damaged shard and names it', async () => {
+  const { store, repo } = await sceneSetup();
+  await seedHistory(repo);
+  const path = repo.path('composition', 'l0', 'ep-0001.jsonl');
+  await writeFile(path, (await readFile(path, 'utf8')).slice(0, -9));
+  await assert.rejects(runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider }), /CORRUPT_COMPOSITION_SHARD: ep-0001/);
+  await assert.rejects(runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild', setAsideCorrupt: false }, providers: poisonProvider }), /CORRUPT_COMPOSITION_SHARD: ep-0001/);
+});
+
+test('composition_rebuild with setAsideCorrupt renames damaged shards out of the way, keeps their bytes and rebuilds from the rest', async () => {
+  const { store, repo } = await sceneSetup();
+  await seedHistory(repo);
+  const l0 = repo.path('composition', 'l0'), healthy = sceneRows('ep-0002', 'seed-3', [{ shot: 'WS', angle: 'high', focal: 'space', background: 'detailed', subjects: [] }]);
+  await writeFile(repo.path('composition', 'l0', 'ep-0002.jsonl'), healthy.map(r => JSON.stringify(r)).join('\n') + '\n');
+  const damagedEpisode = (await readFile(repo.path('composition', 'l0', 'ep-0001.jsonl'), 'utf8')).slice(0, -9);
+  await writeFile(repo.path('composition', 'l0', 'ep-0001.jsonl'), damagedEpisode);
+  const damagedScript = '{"type":"page"';
+  await writeFile(repo.path('composition', 'l0', 'script-demo.jsonl'), damagedScript);
+  const result = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild', setAsideCorrupt: true }, providers: poisonProvider });
+  assert.equal(result.status, 'composition_rebuilt');
+  assert.deepEqual(result.setAside, ['ep-0001', 'script-demo']);
+  assert.equal(result.episodes, 1);
+  assert.equal(result.panels, 1);
+  const names = (await readdir(l0)).sort();
+  assert.deepEqual(names.filter(n => n.endsWith('.jsonl')), ['ep-0002.jsonl']);
+  const aside = names.filter(n => !n.endsWith('.jsonl'));
+  assert.equal(aside.length, 2);
+  const kept = {};
+  for (const name of aside) kept[name.slice(0, name.indexOf('.'))] = await readFile(repo.path('composition', 'l0', name), 'utf8');
+  assert.deepEqual(kept, { 'ep-0001': damagedEpisode, 'script-demo': damagedScript }, 'the damaged bytes are kept');
+  const composition = new CompositionStore(repo);
+  assert.deepEqual((await composition.listEpisodes()).map(e => e.episodeKey), ['ep-0002']);
+  assert.ok(await composition.peekIndex(), 'the index is current without the set-aside shards');
+  // Nothing is left to set aside, and a plain rebuild works again.
+  const again = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild', setAsideCorrupt: true }, providers: poisonProvider });
+  assert.deepEqual(again.setAside, []);
+  assert.deepEqual((await readdir(l0)).sort(), names);
+  assert.equal((await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider })).status, 'composition_rebuilt');
+});
+
+test('setAsideCorrupt on a healthy or empty work changes nothing and reports an empty list', async () => {
+  const { store, repo } = await sceneSetup();
+  const empty = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild', setAsideCorrupt: true }, providers: poisonProvider });
+  assert.deepEqual(empty.setAside, []);
+  await seedHistory(repo);
+  const before = await readFile(repo.path('composition', 'l0', 'ep-0001.jsonl'), 'utf8');
+  const result = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild', setAsideCorrupt: true }, providers: poisonProvider });
+  assert.deepEqual(result.setAside, []);
+  assert.equal(await readFile(repo.path('composition', 'l0', 'ep-0001.jsonl'), 'utf8'), before);
+  const plain = await runWebtoonSceneTool({ store, args: { workId, action: 'composition_rebuild' }, providers: poisonProvider });
+  assert.equal('setAside' in plain, false, 'without the flag the result keeps its shape');
 });

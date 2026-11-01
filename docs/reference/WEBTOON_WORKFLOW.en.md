@@ -82,6 +82,8 @@ To silence only the advisory, put `composition-ledger` in `disabledReviews`; tha
 `lore_webtoon_scene(action="composition_rebuild")` rewrites the four aggregate files from the stored L0. It makes no model or image call and issues no `needs_model`, and it returns
 `{status:"composition_rebuilt", episodes, panels, sourceHead}` (`panels` counts adopted panels). The same records always produce the same bytes. A work with no composition records gets zero episodes and panels
 and an empty index written. Use it when the aggregates are damaged or stale, or after changing `protagonistIds`.
+A damaged episode file stops the rebuild with `CORRUPT_COMPOSITION_SHARD: <episode>`. `setAsideCorrupt=true` renames each damaged file to a sibling name that is no longer listed or read (`<episode>.jsonl.corrupt-<time>`, bytes kept), rebuilds from the rest and returns the keys as `setAside`.
+When a scene is adopted while its episode file is damaged, the adoption, the review result and the production record are unaffected: the scene state shows `compositionRecordError` and a `composition_record_failed` event is logged, and the file is left as it was.
 
 ### Standalone scene-script source
 

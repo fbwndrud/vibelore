@@ -70,6 +70,8 @@
 `lore_webtoon_scene(action="composition_rebuild")`는 저장된 L0에서 집계 파일 네 개를 다시 쓴다. 모델·이미지 호출과 `needs_model`이 없으며
 `{status:"composition_rebuilt", episodes, panels, sourceHead}`를 돌려준다(`panels`는 채택된 칸 수). 같은 기록이면 항상 같은 바이트이고,
 구도 기록이 없는 작품에서는 에피소드·칸 0과 빈 집계를 쓴다. 집계가 손상됐거나 오래됐을 때, 또는 `protagonistIds`를 바꾼 뒤에 쓴다.
+손상된 에피소드 파일이 있으면 `CORRUPT_COMPOSITION_SHARD: <에피소드>`로 멈춘다. `setAsideCorrupt=true`는 손상된 파일마다 이름을 더는 목록·읽기에 쓰이지 않는 형제 이름(`<에피소드>.jsonl.corrupt-<시각>`, 바이트 보존)으로 바꾸고 나머지로 다시 만들며 키를 `setAside`로 돌려준다.
+에피소드 파일이 손상된 상태에서 장면을 채택해도 채택·검수 결과·제작 기록은 그대로이고, 장면 상태에 `compositionRecordError`가 나타나며 `composition_record_failed` 이벤트가 남는다. 파일은 건드리지 않는다.
 
 ### 화풍 예시와 채택
 
