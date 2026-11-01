@@ -371,3 +371,30 @@ test('configured protagonist ids reach the adopted index', async () => {
   assert.ok(index, 'the index was written for the configured ids');
   assert.deepEqual(index.configured, ['hero']);
 });
+
+test('the advisory never reaches the plan or review requests of a scene that continues from it', async () => {
+  requests.length = 0;
+  const { store, repo, args } = await sceneSetup();
+  await seedHistory(repo);
+  const start = { ...args, autoRevisions: 0 };
+  const drawn = await runWebtoonSceneTool({ store, args: { ...start, sourceUnitIds: ['ch-1-p-1'] }, providers: planner });
+  const first = await finish(store, args, drawn);
+  assert.equal(first.status, 'completed');
+  const advisory = (await repo.load(first.workflowId)).visualReview.findings.find(f => f.code === 'COMPOSITION_REPETITION');
+  assert.ok(advisory, 'the first scene carries the advisory');
+  requests.length = 0;
+  const next = await runWebtoonSceneTool({ store, args: { ...start, previousWorkflowId: first.workflowId, sourceUnitIds: ['ch-1-p-2'] }, providers: planner });
+  assert.equal(next.status, 'needs_scene_image');
+  const pending = await runWebtoonSceneTool({ store, args: { workId, asset: assetFor(args, next.jobs[0]) }, providers: createHostRelay() });
+  const q = pending.requests[0];
+  assert.equal(q.step, 'webtoon-scene-image-review');
+  const sent = [...requests, q];
+  assert.ok(sent.some(r => JSON.parse(r.user ?? r.messages.at(-1).content).previousScene), 'the continuation sends previousScene');
+  for (const request of sent) {
+    const text = JSON.stringify(request);
+    assert.ok(!text.includes('COMPOSITION_REPETITION') && !text.includes(advisory.evidence), request.step);
+  }
+  const w = await repo.load();
+  assert.equal(w.previousScene.reviewPassed, true);
+  assert.ok(!w.previousScene.findings.some(f => f.category === 'composition'));
+});

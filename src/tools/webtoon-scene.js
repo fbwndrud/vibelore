@@ -111,7 +111,7 @@ function needCurrentPreflight(w) {
 /** Start a new plan revision; earlier candidates stay on disk under their own revision directory. */
 function beginRevision(w, feedback) {
   delete w.reviewOnly;
-  w.previousFindings = w.visualReview ?? w.preflight; w.feedback = feedback;
+  w.previousFindings = forModels(w.visualReview ?? w.preflight); w.feedback = feedback;
   w.imagePromptVersion = 2;
   w.revision++; w.pending = null; w.preflight = null; w.visualReview = null; w.scenePlan = null; w.sceneImage = null; w.artifacts = {}; w.stage = 'scene_generate';
   if (scenePanelCountMode(w) === 'auto') w.panelCount = undefined;
@@ -155,6 +155,9 @@ async function modelTask(repo, w, step, system, data, providers, images) {
   w.timings.push({ step, startedAt: task.startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(task.startedAt), scope: 'host relay including orchestration, not pure model inference' });
   w.consumedRunIds.push(task.runId); w.pending = null; return { value };
 }
+
+/** A review as later model requests may see it: the record-only composition advisory stays out. Reviews without one are returned unchanged. */
+const forModels = review => review?.findings?.some(f => f.category === 'composition') ? { ...review, findings: review.findings.filter(f => f.category !== 'composition') } : review;
 
 /** Short reason kept on the workflow when composition data could not be used; never the full message, which may carry paths. */
 const compositionReason = error => /^[A-Z][A-Z_]+(: [\w-]+)?/.exec(String(error?.message ?? error))?.[0] ?? error?.code ?? error?.name ?? 'ERROR';
@@ -347,7 +350,7 @@ async function startScene(store, repo, args, current) {
     ...(styleSnapshot ? { styleSnapshot } : {}),
     ...(delegation ? { delegation, apiRestriction: delegation.apiPolicy } : {}),
     panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount }),
-    ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: previous.visualReview.findings, reviewPassed: previous.visualReview.passed } } : {}),
+    ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: forModels(previous.visualReview).findings, reviewPassed: previous.visualReview.passed } } : {}),
     imagePolicy: policy, imageSelection: saved.selection, autoRevision: { limit: autoLimit, used: 0 }, attempts: [],
     unmergedSceneReferences: unmerged,
     sceneReferences: mergeDuplicateReferences(unmerged),
