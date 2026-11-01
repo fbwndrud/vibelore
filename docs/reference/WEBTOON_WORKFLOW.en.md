@@ -59,6 +59,10 @@ Values outside the vocabulary are refused with `INVALID_SCENE_COMPOSITION`. At m
 The other labels are records only; elements the source requires go in `required` with their source IDs. Composition sentences in the adopted style description are split off as
 `seriesComposition` and sent with the plan request only; the other requests and the image prompt carry just the style direction. A `direction` given explicitly at start is kept whole. Work that started earlier keeps its existing requests unchanged.
 
+A cast member may be labelled by its local id, plain id or shared entity id. The stored brief, the observed labels from the visual review and every record use one canonical id per member
+(the local id, else the plain id, else the entity id), and `protagonistIds` in the settings resolve to the same ids. The pre-generation request lists the cast as `cast`;
+the visual review request lists it too when it asks for the composition check, so observed labels can name the same members.
+
 When a scene is adopted, per-episode records (L0) accumulate under `.vibelore/webtoon/composition/l0/`. Where the visual review's `compositionCheck` observed a panel
 differently from its label, the observed value is what gets recorded. From these, scene, episode, cumulative and per-character aggregates (L1-L3) are derived deterministically, with no model call.
 

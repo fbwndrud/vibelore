@@ -1,6 +1,6 @@
 import { nonempty } from './webtoon-contract.js';
 import { validateCompositionLabel } from './webtoon-composition.js';
-import { castIdsOf } from './webtoon-scene.js';
+import { castIdsOf, canonicalLabel, sceneCastList } from './webtoon-scene.js';
 
 export const SCENE_IMAGE_REVIEW_VERSION = 2;
 export const SCENE_VISUAL_CHECKS = ['reflectionGeometry', 'propStructure', 'handsAndContact', 'withinSceneContinuity', 'layoutAndTiming'];
@@ -62,8 +62,14 @@ const isBackfill = w => w.compositionBackfill === true;
 /** Composition is asked for only by workflows that carry a composition version or are being backfilled; older workflows keep their review bytes. */
 export const compositionCheckActive = w => Boolean(w.compositionVersion) || isBackfill(w);
 
-/** The review prompt, with the composition sentence appended only when the check is asked for. */
-export const sceneImageReviewPrompt = w => compositionCheckActive(w) ? `${SCENE_IMAGE_REVIEW_PROMPT}\n${COMPOSITION_CHECK_SENTENCE}` : SCENE_IMAGE_REVIEW_PROMPT;
+export const COMPOSITION_CAST_SENTENCE = 'Name each subject in an observed label by an id from the cast list.';
+
+/** The cast the check may name, in the review request; empty for a work without a usable cast and for workflows that do not ask for the check. */
+export const compositionReviewCast = w => compositionCheckActive(w) ? sceneCastList(w) : [];
+
+/** The review prompt, with the composition sentences appended only when the check is asked for. */
+export const sceneImageReviewPrompt = w => !compositionCheckActive(w) ? SCENE_IMAGE_REVIEW_PROMPT
+  : `${SCENE_IMAGE_REVIEW_PROMPT}\n${COMPOSITION_CHECK_SENTENCE}${compositionReviewCast(w).length ? `\n${COMPOSITION_CAST_SENTENCE}` : ''}`;
 
 /** One placeholder entry per panel the image must show; the count is the panel count resolved for this revision. */
 export function compositionCheckSchema(w) {
@@ -90,6 +96,9 @@ export function validateCompositionCheck(check, w) {
     catch (err) { fail(`panel ${e.panel} observed label: ${err.message}`); }
   });
 }
+
+/** The check with every observed label naming its subjects by canonical cast ids; entries without a label are unchanged. */
+export const canonicalCompositionCheck = (check, w) => check.map(e => e?.observed ? { ...e, observed: canonicalLabel(e.observed, w) } : e);
 
 /** The label each panel ends with: the plan when it matched, the observation when it differs, the plan flagged unclear otherwise. */
 export function finalCompositionLabels(w) {

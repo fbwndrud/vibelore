@@ -146,15 +146,33 @@ const bad = (code, detail) => { throw new Error(`${code}: ${detail}`); };
 export const sceneStyleText = w => w.styleSnapshot && w.compositionVersion ? splitCompositionDirection(w.styleSnapshot.profile.style).direction : w.styleSnapshot?.profile.style;
 /** `styleBasis` for model requests: the pinned snapshot, with the style text from `sceneStyleText`. */
 export const sceneStyleBasis = w => w.styleSnapshot && w.compositionVersion ? { ...w.styleSnapshot, profile: { ...w.styleSnapshot.profile, style: sceneStyleText(w) } } : w.styleSnapshot;
-/** Id and display name of each cast member for the preflight model: the local id first, else a plain id, else the entity id. */
+/** Every id the cast names a member by: its local id, its plain id or its shared entity id (empty strings do not count). */
+const castAliases = c => [c?.localCharacterId, c?.id, c?.entityId].filter(id => typeof id === 'string' && id !== '');
+/** Id and display name of each cast member for the models: the canonical id is the local id, else the plain id, else the entity id. */
 export function sceneCastList(w) {
   return (w.source?.cast ?? []).flatMap(c => {
-    const id = c?.localCharacterId ?? c?.id ?? c?.entityId;
+    const [id] = castAliases(c);
     return id ? [{ id, name: w.source.foundation?.characters?.find(f => f.id === c.localCharacterId)?.canonicalName ?? id }] : [];
   });
 }
-/** The cast may name a character by its local id or its shared entity id. */
-export const castIdsOf = cast => { const ids = (cast ?? []).flatMap(c => [c?.localCharacterId, c?.id, c?.entityId]).filter(Boolean); return ids.length ? ids : undefined; };
+/** The cast may name a character by any of its ids; validation accepts all of them. */
+export const castIdsOf = cast => { const ids = (cast ?? []).flatMap(castAliases); return ids.length ? ids : undefined; };
+/** Canonical ids, one per cast member, in cast order. */
+export const compositionCastIds = w => sceneCastList(w).map(c => c.id);
+/** Maps any alias of a cast member to its canonical id; other ids pass through unchanged. */
+export function castCanonicalizer(w) {
+  const canonical = new Map();
+  for (const c of w.source?.cast ?? []) { const [id, ...aliases] = castAliases(c); for (const alias of aliases) if (!canonical.has(alias)) canonical.set(alias, id); }
+  return id => canonical.get(id) ?? id;
+}
+/** A composition label with its subjects named by canonical cast ids; a value that is not a label passes through. */
+export function canonicalLabel(label, w) {
+  if (!Array.isArray(label?.subjects)) return label;
+  const canonical = castCanonicalizer(w);
+  return { ...label, subjects: label.subjects.map(s => s !== null && typeof s === 'object' && 'id' in s ? { ...s, id: canonical(s.id) } : s) };
+}
+/** A validated render brief with every moment's labelled subjects named by canonical cast ids. */
+export const canonicalRenderBrief = (brief, w) => ({ ...brief, moments: brief.moments.map(m => m.composition ? { ...m, composition: canonicalLabel(m.composition, w) } : m) });
 /** Required elements must cite this scene's units; a text entry must name a real plan text. */
 function validateRequiredElements(required, w) {
   if (required === undefined) return;
@@ -231,8 +249,8 @@ export function sceneImagePrompt(w) {
   const physical = w.scenePlan.texts.some(t => t.kind === 'physical')
     ? 'Letter each text marked "written on an object" directly on that paper, sign or screen in the scene, never in a balloon or caption box.\n' : '';
   // Only the cast ids the validator accepts can be named; anything else falls back to the id itself.
-  const names = new Map(sceneCastList(w).map(c => [c.id, c.name]));
-  const nameOf = id => names.get(id) ?? id;
+  const names = new Map(sceneCastList(w).map(c => [c.id, c.name])), canonical = castCanonicalizer(w);
+  const nameOf = id => names.get(canonical(id)) ?? id;
   const referenceRole = reference => {
     if (!reference.sceneIds) return reference.description;
     const moments = brief.moments.flatMap((moment, i) => moment.sourceIds.some(id =>

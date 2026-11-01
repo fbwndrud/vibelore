@@ -18,9 +18,9 @@ import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
 import { loadWebtoonReviewModel, loadWebtoonCompositionConfig, loadDisabledReviews } from '../core/review-policy.js';
 import { compositionDigest, compositionAdvisory } from '../core/webtoon-composition-digest.js';
-import { SCENE_IMAGE_REVIEW_VERSION, sceneVisualCheckSchema, sceneReviewInputs, sceneImageReviewPrompt, compositionCheckSchema, compositionCheckActive } from '../core/webtoon-scene-review.js';
+import { SCENE_IMAGE_REVIEW_VERSION, sceneVisualCheckSchema, sceneReviewInputs, sceneImageReviewPrompt, compositionCheckSchema, compositionCheckActive, compositionReviewCast, canonicalCompositionCheck } from '../core/webtoon-scene-review.js';
 import { SCENE_SCHEMA, SCENE_SCHEMA_V1, COMPOSITION_PREFLIGHT_INSTRUCTION, sceneCastList, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, mergeDuplicateReferences, CONTINUITY_CHECKS,
-  isEnglish, castIdsOf, sceneStyleBasis, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
+  isEnglish, canonicalRenderBrief, castCanonicalizer, compositionCastIds, sceneStyleBasis, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
 /** Shape of each findings[] item; findings may be empty. */
@@ -162,14 +162,22 @@ const forModels = review => review?.findings?.some(f => f.category === 'composit
 /** Short reason kept on the workflow when composition data could not be used; never the full message, which may carry paths. */
 const compositionReason = error => /^[A-Z][A-Z_]+(: [\w-]+)?/.exec(String(error?.message ?? error))?.[0] ?? error?.code ?? error?.name ?? 'ERROR';
 
+/** Composition thresholds, with the configured lead characters named by the canonical cast ids this workflow uses. */
+async function compositionSettings(store, workId, w) {
+  const config = await loadWebtoonCompositionConfig(store, workId);
+  if (!w) return config;
+  const canonical = castCanonicalizer(w);
+  return { ...config, protagonistIds: [...new Set(config.protagonistIds.map(canonical))] };
+}
+
 /** Digest of the work's framing history for this scene's planner. Record-only: a failure leaves a reason and never blocks generation. */
 async function prepareCompositionDigest(repo, w) {
   delete w.compositionDigest; delete w.compositionDigestError;
   try {
-    const config = await loadWebtoonCompositionConfig(repo.store, w.workId);
+    const config = await compositionSettings(repo.store, w.workId, w);
     const composition = new CompositionStore(repo);
     const index = await composition.readIndex({ protagonistIds: config.protagonistIds });
-    w.compositionDigest = compositionDigest(index, { episodeKey: sceneEpisodeKey(w), castIds: castIdsOf(w.source?.cast) ?? [], requiredLocks: [],
+    w.compositionDigest = compositionDigest(index, { episodeKey: sceneEpisodeKey(w), castIds: compositionCastIds(w), requiredLocks: [],
       seed: `${w.workflowId}:${w.revision}`, config, basisStats: await composition.basisStats() });
   } catch (error) { delete w.compositionDigest; w.compositionDigestError = compositionReason(error); }
 }
@@ -181,7 +189,7 @@ const compositionDigestInput = w => w.compositionVersion && w.compositionDigest?
 async function attachCompositionAdvisory(repo, w) {
   try {
     if ((await loadDisabledReviews(repo.store, w.workId)).includes('composition-ledger')) return;
-    const config = await loadWebtoonCompositionConfig(repo.store, w.workId);
+    const config = await compositionSettings(repo.store, w.workId, w);
     const index = await new CompositionStore(repo).readIndex({ protagonistIds: config.protagonistIds });
     const advisory = compositionAdvisory(index, { episodeKey: sceneEpisodeKey(w), config });
     if (!advisory) return;
@@ -228,6 +236,8 @@ async function drive(repo, w, providers) {
       w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
     if (r.waiting) return r.result;
     const passed = validateScenePreflight(r.value, w);
+    // The cast may be labelled by any of its ids; the stored brief, its hash and every record use the canonical one.
+    if (passed && w.compositionVersion) r.value.renderBrief = canonicalRenderBrief(r.value.renderBrief, w);
     w.preflight = { ...r.value, passed, reviewedAt: new Date().toISOString(), ...(passed ? { renderBriefHash: digest(r.value.renderBrief) } : {}) };
     await repo.writeCandidate(w, 'preflight.json', JSON.stringify(w.preflight, null, 2));
     if (passed) await repo.writeCandidate(w, 'render-brief.json', JSON.stringify(w.preflight.renderBrief, null, 2));
@@ -253,6 +263,7 @@ async function drive(repo, w, providers) {
       { reviewVersion: w.imageReviewVersion, referenceImages: reviewInputs.referenceImages,
         feedback: [w.feedback, w.reviewFeedback].filter(Boolean).join('\n'),
         source: w.sceneUnits, plan: w.scenePlan, renderBrief: w.preflight?.renderBrief, previousScene: w.previousScene, requestedPanelCount: w.panelCount, image: { path: w.sceneImage.path, hash: w.sceneImage.hash },
+        ...(compositionReviewCast(w).length ? { cast: compositionReviewCast(w) } : {}),
         ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Open the adopted sample too. Compare actual visual treatment to the user preference and sample, not its cast or composition. Report matches, differs or uncertain with visible evidence. Style taste is advisory, never a blocking finding or automatic regeneration reason.' } : {}),
         schema: { subjectHash: digest({ binding: sceneImageBinding(w), imageHash: w.sceneImage.hash }), inspectedImages: false, observedPanelCount: null,
           visualChecks: sceneVisualCheckSchema(),
@@ -263,7 +274,9 @@ async function drive(repo, w, providers) {
           spatialCoherence: false, readingOrder: false, evidence: '', findings: [], findingItem: SCENE_FINDING_SHAPE } }, providers,
       reviewInputs.images);
     if (r.waiting) return r.result;
-    const passed = validateSceneImageReview(r.value, w); w.visualReview = { ...r.value, passed };
+    const passed = validateSceneImageReview(r.value, w);
+    if (compositionCheckActive(w)) r.value.compositionCheck = canonicalCompositionCheck(r.value.compositionCheck, w);
+    w.visualReview = { ...r.value, passed };
     if (w.styleSnapshot && r.value.styleReview.verdict !== 'matches') {
       w.visualReview.findings = [...w.visualReview.findings, { severity: 'advisory', category: 'style', evidence: r.value.styleReview.evidence }];
     }
@@ -274,7 +287,7 @@ async function drive(repo, w, providers) {
     // A backfill re-review only records what an already adopted scene shows: it never revises, redraws or reopens the scene.
     const backfill = w.backfillReview === true;
     if (w.compositionVersion || w.compositionBackfill === true) {
-      const protagonistIds = (await loadWebtoonCompositionConfig(repo.store, w.workId).catch(() => null))?.protagonistIds ?? [];
+      const protagonistIds = (await compositionSettings(repo.store, w.workId, w).catch(() => null))?.protagonistIds ?? [];
       await new CompositionStore(repo).adoptScene(w, { adopted: passed || backfill, protagonistIds });
       if (passed && w.compositionVersion) await attachCompositionAdvisory(repo, w);
     }
@@ -440,8 +453,8 @@ async function verifyProduction(repo, w) {
 }
 
 /** Rewrite the stored composition index from the per-episode rows. No model or image call; safe on a work with no composition data (writes an empty index). */
-async function rebuildComposition(store, repo, workId) {
-  const config = await loadWebtoonCompositionConfig(store, workId);
+async function rebuildComposition(store, repo, workId, w) {
+  const config = await compositionSettings(store, workId, w);
   const composition = new CompositionStore(repo);
   const index = await composition.rebuildIndex({ protagonistIds: config.protagonistIds });
   const shards = await Promise.all((await composition.listEpisodes()).map(({ episodeKey }) => composition.readShard(episodeKey)));
@@ -455,7 +468,11 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
   if (!run && args.compositionBackfill !== undefined && args.action !== 'review') throw new Error('SCENE_BACKFILL_REVIEW_ONLY');
   const repo = new WebtoonStore(store);
   return repo.locked(async () => {
-    if (!run && args.action === 'composition_rebuild') return rebuildComposition(store, repo, args.workId);
+    if (!run && args.action === 'composition_rebuild') {
+      // The workflow in hand tells which cast ids the configured lead characters stand for; without one they are used as given.
+      const current = await repo.load(args.workflowId);
+      return rebuildComposition(store, repo, args.workId, isScene(current) && current.workId === args.workId ? current : null);
+    }
     let w = await repo.load(args.workflowId);
     if (w && w.workId !== args.workId) throw new Error('WORKFLOW_WORK_MISMATCH');
     if (!run && args.action === 'verify') {
