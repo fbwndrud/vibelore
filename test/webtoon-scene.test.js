@@ -10,7 +10,7 @@ import { readWebtoonWorkflow } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
 import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering, PREVIOUS_SCENE_ID, mergeDuplicateReferences,
-  COMPOSITION_PREFLIGHT_INSTRUCTION, SCENE_SCHEMA, RETRY_FRAMING } from '../src/core/webtoon-scene.js';
+  COMPOSITION_PREFLIGHT_INSTRUCTION, SCENE_SCHEMA, RETRY_FRAMING, sceneImagePrompt } from '../src/core/webtoon-scene.js';
 import { SCENE_TYPES } from '../src/core/webtoon-composition.js';
 import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 
@@ -596,4 +596,34 @@ test('a workflow saved before composition metadata draws the exact same image pr
   const saved = await repo.load();
   assert.equal(saved.compositionVersion, undefined);
   assert.equal('composition' in saved.preflight.renderBrief.moments[0], false);
+});
+
+// Directed framing in the image prompt (composition metadata, P2).
+const promptOf = (w, ...compositions) => sceneImagePrompt({ ...w, panelCount: compositions.length, sceneReferences: [{ description: 'Cast sheet.' }],
+  preflight: { renderBrief: briefOf(...compositions) } });
+const promptWorkflow = () => ({ ...wOf(1), scenePlan: { texts: [{ id: 'text-1', kind: 'caption', speaker: 'narrator', text: 'A' }] }, source: { cast: [{ localCharacterId: 'hero', entityId: 'character-a' }], foundation: { characters: [{ id: 'hero', canonicalName: 'Yoon' }] } } });
+test('image prompt: only directed moments carry a framing phrase, the rest stay unchanged', () => {
+  const plain = label({ focal: 'space', subjects: [] }), d = (over = {}) => label({ directed: true, ...over });
+  const lines = promptOf(promptWorkflow(), plain, d({ shot: 'CU', angle: 'low', focal: 'face' }), plain, plain, d({ shot: 'WS', angle: 'high', focal: 'space', subjects: [] }), plain).split('\n');
+  const moment = n => lines.find(l => l.startsWith(`${n}. `));
+  for (const n of [1, 3, 4, 6]) assert.equal(moment(n), `${n}. She waits.`, `moment ${n} unchanged`);
+  assert.match(moment(2), /^2\. .+ of Yoon: She waits\.$/);
+  assert.match(moment(5), /^5\. .+ view: She waits\.$/);
+  assert.equal(lines.filter(l => /^\d+\. .+: She waits\.$/.test(l)).length, 2);
+});
+test('image prompt: directed framing keeps the camera freedom sentence and never reads as a retry', () => {
+  const prompt = promptOf(promptWorkflow(), label({ directed: true }), label());
+  assert.match(prompt, /Choose panel sizes, layout and camera angles/);
+  const framing = prompt.split('\n').find(l => l.startsWith('1. ')).slice(3).split(': She waits.')[0];
+  assert.ok(framing.length > 0);
+  assert.doesNotMatch(framing, RETRY_FRAMING);
+});
+test('image prompt: a directed subject without a foundation name falls back to the cast id', () => {
+  const w = { ...promptWorkflow(), source: { cast: [{ entityId: 'character-a' }] } };
+  assert.match(promptOf(w, { ...label({ subjects: [{ id: 'character-a' }], focal: 'face' }), directed: true }), /^1\. .+ of character-a: She waits\./m);
+});
+test('image prompt: a workflow without a composition version never gets framing', () => {
+  const w = promptWorkflow(); delete w.compositionVersion;
+  const prompt = promptOf(w, label({ directed: true }));
+  assert.match(prompt, /^1\. She waits\.$/m);
 });
