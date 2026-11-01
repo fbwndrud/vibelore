@@ -7,7 +7,7 @@ import { deterministicArcViolations } from '../src/tools/arc-quality.js';
 import { promptKit } from '../src/prompts/index.js';
 import { qualityStore, workId } from './fixtures/quality-workflow.js';
 import { approvalResponse } from './fixtures/approval-response.js';
-import { EPISODE_ROLES, RHYTHM_CADENCE, rhythmModeOf } from '../src/core/narrative-codes.js';
+import { ARC_HOOK_OPS, EPISODE_ROLES, HOOK_TYPES, RHYTHM_CADENCE, TENSION_ROLES, TWIST_LEVELS, normalizeEpisodeShape, rhythmModeOf } from '../src/core/narrative-codes.js';
 
 async function plan(t, shapes) {
   const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
@@ -115,9 +115,26 @@ test('same inputs give identical arc-plan messages', async (t) => {
 test('system defines the five keys as intent, schema lists the codes', async (t) => {
   const { messages } = await capturedArcRequest(t, {});
   assert.match(messages[1].content, new RegExp(`"role":"${EPISODE_ROLES.join('\\|')}"`));
+  // The placeholder lists the levels: a copied literal fails validation instead of storing 0 everywhere.
+  assert.ok(messages[1].content.includes(`"twistLevel":"${TWIST_LEVELS.join('|')}"`));
+  assert.equal(messages[1].content.includes('"twistLevel":0'), false);
+  assert.equal('twistLevel' in normalizeEpisodeShape({ twistLevel: TWIST_LEVELS.join('|') }), false);
+  assert.equal(normalizeEpisodeShape({ twistLevel: '2' }).twistLevel, 2);
+  assert.equal(normalizeEpisodeShape({ twistLevel: 2 }).twistLevel, 2);
   assert.match(messages[1].content, /"hookOps":\[\{"op":"planted\|advanced\|paid","label":""\}\]/);
   for (const key of ['role', 'twistLevel', 'expectationHandling', 'hookType', 'hookOps']) assert.ok(messages[0].content.includes(key));
   const en = promptKit({ language: 'en' }).system('arc-plan');
   for (const key of ['role', 'twistLevel', 'expectationHandling', 'hookType', 'hookOps']) assert.ok(en.includes(key));
   assert.doesNotMatch(en, /[가-힣]/);
+});
+
+test('the arc-plan system paragraph and rhythm text list the codes from the tables', () => {
+  const ko = promptKit({}); const en = promptKit({ language: 'en' });
+  const koSystem = ko.system('arc-plan'); const enSystem = en.system('arc-plan');
+  for (const code of [...EPISODE_ROLES, ...HOOK_TYPES, ...ARC_HOOK_OPS]) { assert.ok(koSystem.includes(code), code); assert.ok(enSystem.includes(code), code); }
+  assert.ok(enSystem.includes(`(${EPISODE_ROLES.join(', ')})`));
+  assert.ok(enSystem.includes(`(${HOOK_TYPES.join(', ')})`));
+  assert.ok(enSystem.includes(`${ARC_HOOK_OPS.slice(0, -1).join(', ')} or ${ARC_HOOK_OPS.at(-1)}`));
+  assert.ok(koSystem.includes(`(${HOOK_TYPES.join(', ')})`));
+  for (const k of [ko, en]) assert.ok(k.phrases.arc.rhythm('light-webnovel', RHYTHM_CADENCE['light-webnovel']).includes(`(${TENSION_ROLES.join('/')})`));
 });
