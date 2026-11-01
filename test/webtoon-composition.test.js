@@ -15,9 +15,9 @@ import {
 
 const label = () => ({
   shot: 'WS', angle: 'high', focal: 'space', background: 'detailed',
-  subjects: [{ id: 'harry', visibility: 'face', side: 'L', facing: 'R', expression: 'tired' },
-    { id: 'ron', visibility: 'partial', side: 'R', facing: 'L', expression: 'neutral' }],
-  directed: true, required: [{ kind: 'prop', id: 'mirror', sourceIds: ['u12'] }], note: 'Harry waits by the mirror',
+  subjects: [{ id: 'hero', visibility: 'face', side: 'L', facing: 'R', expression: 'tired' },
+    { id: 'rival', visibility: 'partial', side: 'R', facing: 'L', expression: 'neutral' }],
+  directed: true, required: [{ kind: 'prop', id: 'lamp', sourceIds: ['u12'] }], note: 'Hero waits by the lamp',
 });
 const rejects = (value, opts, code = /INVALID_SCENE_COMPOSITION/) => assert.throws(() => validateCompositionLabel(value, opts), code);
 
@@ -41,7 +41,7 @@ test('vocabulary values, limits and kinds are fixed and frozen', () => {
 
 test('validateCompositionLabel accepts a full label and returns it', () => {
   const l = label();
-  assert.equal(validateCompositionLabel(l, { castIds: ['harry', 'ron'] }), l);
+  assert.equal(validateCompositionLabel(l, { castIds: ['hero', 'rival'] }), l);
   const bare = { shot: 'CU', angle: 'eye', focal: 'face', background: 'flat', subjects: [] };
   assert.equal(validateCompositionLabel(bare), bare);
   validateCompositionLabel({ ...label(), vocabVersion: 1 });
@@ -53,14 +53,14 @@ test('validateCompositionLabel rejects off-vocabulary values, gaps, bad subjects
   rejects({ ...label(), focal: 'elbow' });
   rejects({ ...label(), background: 'neon' });
   for (const key of ['shot', 'angle', 'focal', 'background']) { const l = label(); delete l[key]; rejects(l); }
-  rejects({ ...label(), subjects: 'harry' });
+  rejects({ ...label(), subjects: 'hero' });
   rejects({ ...label(), subjects: undefined });
-  rejects({ ...label(), subjects: [{ id: 'ghost', visibility: 'face', side: 'L' }] }, { castIds: ['harry'] });
+  rejects({ ...label(), subjects: [{ id: 'ghost', visibility: 'face', side: 'L' }] }, { castIds: ['hero'] });
   rejects({ ...label(), subjects: [{ id: '../x', visibility: 'face', side: 'L' }] });
-  rejects({ ...label(), subjects: [{ id: 'harry', visibility: 'gone', side: 'L' }] });
-  rejects({ ...label(), subjects: [{ id: 'harry', visibility: 'face', side: 'M' }] });
-  rejects({ ...label(), subjects: [{ id: 'harry', facing: 'up' }] });
-  rejects({ ...label(), subjects: [{ id: 'harry', expression: 'wry' }] });
+  rejects({ ...label(), subjects: [{ id: 'hero', visibility: 'gone', side: 'L' }] });
+  rejects({ ...label(), subjects: [{ id: 'hero', visibility: 'face', side: 'M' }] });
+  rejects({ ...label(), subjects: [{ id: 'hero', facing: 'up' }] });
+  rejects({ ...label(), subjects: [{ id: 'hero', expression: 'wry' }] });
   rejects({ ...label(), note: 'one two three four five six seven eight nine ten eleven twelve thirteen' });
   rejects({ ...label(), required: [{ kind: 'mood', id: 'x', sourceIds: ['u1'] }] });
   rejects(null); rejects('WS');
@@ -84,7 +84,7 @@ test('migrateCompositionLabel is the identity for the current version and unmapp
 });
 
 test('framingPhrase is positive English of at most 12 words for every shot and angle', () => {
-  const nameOf = id => ({ harry: 'Harry' })[id] ?? id;
+  const nameOf = id => ({ hero: 'Hero' })[id] ?? id;
   for (const shot of COMPOSITION_VOCAB.shot) for (const angle of COMPOSITION_VOCAB.angle) for (const focal of COMPOSITION_VOCAB.focal) {
     const phrase = framingPhrase({ ...label(), shot, angle, focal }, nameOf);
     assert.equal(isEnglish(phrase), true, phrase);
@@ -96,7 +96,7 @@ test('framingPhrase is positive English of at most 12 words for every shot and a
 
 test('framingPhrase drops a name that would break the phrase rules', () => {
   const l = { ...label(), shot: 'CU', angle: 'eye', focal: 'face' };
-  assert.match(framingPhrase(l, () => 'Harry'), /Harry/);
+  assert.match(framingPhrase(l, () => 'Hero'), /Hero/);
   for (const bad of ['No Name', '해리', 'one two three four five six seven eight nine ten']) {
     const phrase = framingPhrase(l, () => bad);
     assert.equal(isEnglish(phrase) && !RETRY_FRAMING.test(phrase) && phrase.split(/\s+/).length <= 12, true, bad);

@@ -82,14 +82,14 @@ test('a single-episode work windows the last six scenes', () => {
   assert.equal(hit.basis, 'prior');
 });
 
-const closing = angle => [label({ shot: 'WS', angle }), label({ shot: 'ECU', angle }, { id: 'draco', side: 'R' })];
+const closing = angle => [label({ shot: 'WS', angle }), label({ shot: 'ECU', angle }, { id: 'rival', side: 'R' })];
 
 test('three consecutive pages closing on the same framing give one streak line', () => {
   const index = indexOf([[closing('eye')], [closing('low')], [closing('top')]]);
-  const result = compositionDigest(index, { ...base, episodeKey: 'ep-0003', castIds: ['hero', 'draco'] });
+  const result = compositionDigest(index, { ...base, episodeKey: 'ep-0003', castIds: ['hero', 'rival'] });
   assert.equal(result.streaks.length, 1, JSON.stringify(result.streaks));
-  assert.deepEqual({ kind: result.streaks[0].kind, key: result.streaks[0].key, length: result.streaks[0].length }, { kind: 'pageClose', key: 'ECU|draco', length: 3 });
-  assert.equal(result.lines.filter(line => /draco/.test(line) && /3 pages/.test(line)).length, 1, result.lines.join('\n'));
+  assert.deepEqual({ kind: result.streaks[0].kind, key: result.streaks[0].key, length: result.streaks[0].length }, { kind: 'pageClose', key: 'ECU|rival', length: 3 });
+  assert.equal(result.lines.filter(line => /rival/.test(line) && /3 pages/.test(line)).length, 1, result.lines.join('\n'));
 });
 
 test('two pages are not a streak, and a streak must run to the latest page', () => {
@@ -102,7 +102,7 @@ test('two pages are not a streak, and a streak must run to the latest page', () 
 
 test('streak kinds are capped at two', () => {
   const pair = [label({ shot: 'ECU' }, { side: 'R' }), label({ shot: 'ECU' }, { side: 'R' })];
-  for (const l of pair) l.subjects.push(subject('draco', { side: 'L' }));
+  for (const l of pair) l.subjects.push(subject('rival', { side: 'L' }));
   const result = compositionDigest(indexOf([[pair], [pair], [pair], [pair]]), { ...base, episodeKey: 'ep-0004', castIds: [] });
   assert.deepEqual(result.streaks.map(s => s.kind), ['pageClose', 'twoShotSide']);
 });
@@ -114,7 +114,7 @@ test('a repeated framing alone is a fingerprint streak', () => {
 });
 
 const varied = () => indexOf([[mix(6, 0)], [mix(6, 0)], [mix(6, 0)], [mix(6, 0)]]);
-const menuOf = (seed, extra = {}) => compositionDigest(varied(), { ...base, episodeKey: 'ep-0004', castIds: ['hero', 'draco', 'mira'], seed, ...extra }).menu;
+const menuOf = (seed, extra = {}) => compositionDigest(varied(), { ...base, episodeKey: 'ep-0004', castIds: ['hero', 'rival', 'mira'], seed, ...extra }).menu;
 
 test('the menu is reproducible for a seed and can differ between seeds', () => {
   assert.deepEqual(menuOf('wt-a:1'), menuOf('wt-a:1'));
@@ -127,10 +127,10 @@ test('the menu is reproducible for a seed and can differ between seeds', () => {
 });
 
 test('menu options never touch a locked field or a subject outside the cast', () => {
-  const crowd = indexOf([0, 1, 2, 3].map(() => [[label({}, {}), { ...label({ focal: 'two-face' }), subjects: [subject('hero'), subject('draco', { side: 'R' }), subject('mira', { side: 'C' })] }]]));
+  const crowd = indexOf([0, 1, 2, 3].map(() => [[label({}, {}), { ...label({ focal: 'two-face' }), subjects: [subject('hero'), subject('rival', { side: 'R' }), subject('mira', { side: 'C' })] }]]));
   const seen = new Set();
   for (const seed of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
-    const locked = compositionDigest(crowd, { ...base, episodeKey: 'ep-0004', castIds: ['hero', 'draco'], seed, requiredLocks: ['shot', 'angle', 'background'] }).menu;
+    const locked = compositionDigest(crowd, { ...base, episodeKey: 'ep-0004', castIds: ['hero', 'rival'], seed, requiredLocks: ['shot', 'angle', 'background'] }).menu;
     assert.ok(locked.every(o => !['shot', 'angle', 'background'].includes(o.field)), JSON.stringify(locked));
     const cast = compositionDigest(crowd, { ...base, episodeKey: 'ep-0004', castIds: ['mira'], seed }).menu;
     for (const o of cast.filter(o => o.field === 'subject')) { assert.equal(o.value, 'mira'); seen.add(seed); }
@@ -161,7 +161,7 @@ test('menu options come from the least used values of the long baseline', () => 
 test('every line stays within eight, positive English, with bounded groups', () => {
   const noisy = label({ shot: 'ECU', angle: 'low' }, { id: 'no-one' });
   const episodes = [[mix(2, 0)], [mix(2, 0)], [mix(2, 0)], [[noisy, noisy, noisy, noisy]], [[noisy, noisy, noisy, noisy]], [[noisy, noisy, noisy, noisy]], [[noisy, noisy, noisy, noisy]]];
-  for (const castIds of [[], ['hero', 'no-one', 'draco']]) for (const seed of ['a', 'b', 'c']) {
+  for (const castIds of [[], ['hero', 'no-one', 'rival']]) for (const seed of ['a', 'b', 'c']) {
     const result = compositionDigest(indexOf(episodes), { ...base, episodeKey: 'ep-0007', castIds, seed, basisStats: { corrected: 9, total: 10 } });
     assert.ok(result.lines.length >= 3 && result.lines.length <= 8, result.lines.join('\n'));
     assert.ok(result.overused.length <= 3 && result.streaks.length <= 2);

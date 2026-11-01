@@ -483,7 +483,7 @@ test('v1 render brief: at most two directed moments per page', () => {
   assert.throws(() => validateSceneRenderBrief(briefOf(d, d, d), w), /SCENE_DIRECTED_LIMIT/);
 });
 test('v1 render brief: required elements cite real scene units; text entries name real plan texts', () => {
-  const w = wOf(1), ok = { kind: 'prop', id: 'mirror', sourceIds: ['u1'] };
+  const w = wOf(1), ok = { kind: 'prop', id: 'lamp', sourceIds: ['u1'] };
   const brief = required => briefOf(label({ required }));
   assert.ok(validateSceneRenderBrief(brief([ok, { kind: 'text', id: 'text-1', sourceIds: ['u2'] }]), w));
   for (const bad of [{ ...ok, sourceIds: ['nope'] }, { ...ok, sourceIds: [] }, { ...ok, sourceIds: undefined }, { ...ok, kind: 'vibe' }, { ...ok, id: 'has space' }, { ...ok, id: undefined },
