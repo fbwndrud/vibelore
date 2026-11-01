@@ -652,8 +652,9 @@ sentences are in the work's language. Each item carries its layer (`layer`), out
 (`text`), and `sentences` is the list of just those sentences. It covers the fixed world facts and cast, the summaries in the
 continuity window, older memory, the previous chapter's closing scene, creative preferences, switched-off sections and settings
 hidden by a canon-time gate. Carried-state records and long-arc memory are not itemized, so an item missing from the list is not
-proof it was included; the last sentence says so. A workflow recorded before per-item reasons were kept shows counts only, and
-before any draft input exists it says just that. Selection, ranking and checks are unaffected.
+proof it was included; the last sentence says so. For a workflow recorded before per-item reasons were kept, only the
+older-memory layer is reduced to counts, and before any draft input exists it says just that. `explain` is ignored for
+`lane="webtoon"`. Selection, ranking and checks are unaffected.
 
 ```json
 {
@@ -663,7 +664,7 @@ before any draft input exists it says just that. Selection, ranking and checks a
       "World facts and every character in this chapter's cast are always in the draft input in full; they are not budget-selected.",
       "Summaries of chapters 4, 5, 6 are in the continuity window.",
       "Summary of chapter 3 was cut because the continuity window hit its 2000-token budget; older entries go first.",
-      "1 older memory items are in the draft input: `summary:1`",
+      "1 older memory item is in the draft input: `summary:1`",
       "Memory `summary:2` was not selected because the memory budget was full.",
       "This explanation lists summaries, older memory, the previous chapter's closing scene, creative preferences, switched-off sections and canon gates; it does not itemize carried-state records or long-arc memory, so an item not listed is not proof it was included."
     ]
