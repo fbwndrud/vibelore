@@ -1,6 +1,6 @@
 import { digest, nonempty, safeId } from './webtoon-contract.js';
 import { sceneLetteringLine, webtoonMessage } from './webtoon-language.js';
-import { validateSceneVisualChecks, SCENE_VISUAL_CHECKS } from './webtoon-scene-review.js';
+import { validateSceneVisualChecks, validateCompositionCheck, compositionCheckActive, SCENE_VISUAL_CHECKS } from './webtoon-scene-review.js';
 import { COMPOSITION_LIMITS, COMPOSITION_VOCAB, REQUIRED_KINDS, SCENE_TYPES, framingPhrase, validateCompositionLabel } from './webtoon-composition.js';
 
 export const SCENE_PRODUCTION_MODE = 'scene-direct-v1';
@@ -147,7 +147,7 @@ export function sceneCastList(w) {
   });
 }
 /** The cast may name a character by its local id or its shared entity id. */
-const castIdsOf = cast => { const ids = (cast ?? []).flatMap(c => [c?.localCharacterId, c?.id, c?.entityId]).filter(Boolean); return ids.length ? ids : undefined; };
+export const castIdsOf = cast => { const ids = (cast ?? []).flatMap(c => [c?.localCharacterId, c?.id, c?.entityId]).filter(Boolean); return ids.length ? ids : undefined; };
 /** Required elements must cite this scene's units; a text entry must name a real plan text. */
 function validateRequiredElements(required, w) {
   if (required === undefined) return;
@@ -258,6 +258,7 @@ export function validateSceneImageReview(review, w) {
   need(Array.isArray(review.findings) && typeof review.spatialCoherence === 'boolean' && typeof review.readingOrder === 'boolean' && nonempty(review.evidence), 'INCOMPLETE_SCENE_IMAGE_REVIEW');
   need(review.findings.every(f => ['blocking', 'advisory'].includes(f.severity) && nonempty(f.evidence)), 'INVALID_SCENE_FINDING');
   need(Number.isInteger(review.observedPanelCount) && review.observedPanelCount > 0, 'SCENE_PANEL_COUNT_NOT_OBSERVED');
+  if (compositionCheckActive(w)) validateCompositionCheck(review.compositionCheck, w); // recorded only: never part of the verdict below
   const visualChecksPassed = (w.imageReviewVersion ?? 1) < 2 || validateSceneVisualChecks(review.visualChecks, review.observedPanelCount);
   if (w.styleSnapshot) need(review.styleReview?.inspectedReference === true
     && ['matches', 'differs', 'uncertain'].includes(review.styleReview.verdict)

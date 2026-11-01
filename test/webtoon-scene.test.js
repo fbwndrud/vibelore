@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { workId, pixel, otherPixel } from './fixtures/webtoon.js';
-import { scenePlan, scenePreflight, sceneSetup, sceneVisualChecks, sceneComposition } from './fixtures/webtoon-scene.js';
+import { scenePlan, scenePreflight, sceneSetup, sceneVisualChecks, sceneCompositionCheck, sceneComposition } from './fixtures/webtoon-scene.js';
 import { digest } from '../src/core/webtoon-contract.js';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { readWebtoonWorkflow } from '../src/tools/webtoon.js';
@@ -33,7 +33,7 @@ function provider({ blocking = false, visual = true } = {}) {
     const d = JSON.parse(r.messages.at(-1).content); let answer;
     if (r.step === 'webtoon-scene-plan') answer = plan(d.source);
     else if (r.step === 'webtoon-scene-preflight') answer = preflight(d, blocking);
-    else answer = { ...d.schema, visualChecks: sceneVisualChecks(), observedPanelCount: 6, inspectedImages: visual, spatialCoherence: true, readingOrder: true, evidence: 'The actual image was inspected in this fixture.', textObservations: d.plan.texts.map(t => ({ id: t.id, observedText: t.text, readable: true, speakerCorrect: true, evidence: 'Visible caption.' })) };
+    else answer = { ...d.schema, ...sceneCompositionCheck(d.schema.compositionCheck), visualChecks: sceneVisualChecks(), observedPanelCount: 6, inspectedImages: visual, spatialCoherence: true, readingOrder: true, evidence: 'The actual image was inspected in this fixture.', textObservations: d.plan.texts.map(t => ({ id: t.id, observedText: t.text, readable: true, speakerCorrect: true, evidence: 'Visible caption.' })) };
     return { text: JSON.stringify(answer) };
   } };
 }

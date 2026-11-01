@@ -1,4 +1,6 @@
 import { nonempty } from './webtoon-contract.js';
+import { validateCompositionLabel } from './webtoon-composition.js';
+import { castIdsOf } from './webtoon-scene.js';
 
 export const SCENE_IMAGE_REVIEW_VERSION = 2;
 export const SCENE_VISUAL_CHECKS = ['reflectionGeometry', 'propStructure', 'handsAndContact', 'withinSceneContinuity', 'layoutAndTiming'];
@@ -51,4 +53,53 @@ export function validateSceneVisualChecks(checks, panelCount) {
     }
   }
   return SCENE_VISUAL_CHECKS.every(key => ['passed', 'not_applicable'].includes(checks[key].status));
+}
+
+export const COMPOSITION_CHECK_SENTENCE = 'For compositionCheck, compare each panel to its planned composition label; report differs with the observed label only when visible evidence shows it, and unclear when it cannot be seen.';
+
+/** A completed scene from before composition labels, reviewed once to record what was drawn (set by the backfill action). */
+const isBackfill = w => w.compositionBackfill === true;
+/** Composition is asked for only by workflows that carry a composition version or are being backfilled; older workflows keep their review bytes. */
+export const compositionCheckActive = w => Boolean(w.compositionVersion) || isBackfill(w);
+
+/** The review prompt, with the composition sentence appended only when the check is asked for. */
+export const sceneImageReviewPrompt = w => compositionCheckActive(w) ? `${SCENE_IMAGE_REVIEW_PROMPT}\n${COMPOSITION_CHECK_SENTENCE}` : SCENE_IMAGE_REVIEW_PROMPT;
+
+/** One placeholder entry per panel the image must show; the count is the panel count resolved for this revision. */
+export function compositionCheckSchema(w) {
+  const result = isBackfill(w) ? 'observed|unclear' : 'match|differs|unclear';
+  return Array.from({ length: w.panelCount }, (_, i) => ({ panel: i + 1, result, observed: null, evidence: '' }));
+}
+
+/** Throws INCOMPLETE_SCENE_COMPOSITION_REVIEW unless the check has one well-formed entry per panel; it never affects the verdict. */
+export function validateCompositionCheck(check, w) {
+  const fail = detail => { throw new Error(`INCOMPLETE_SCENE_COMPOSITION_REVIEW: ${detail}`); };
+  if (!Array.isArray(check) || check.length !== w.panelCount) fail(`exactly one entry per panel (${w.panelCount}) is required`);
+  const results = isBackfill(w) ? ['observed', 'unclear'] : ['match', 'differs', 'unclear'];
+  const carriesLabel = result => result === 'differs' || result === 'observed';
+  const castIds = castIdsOf(w.source?.cast);
+  check.forEach((e, i) => {
+    if (e?.panel !== i + 1) fail(`entry ${i + 1} must be for panel ${i + 1}`);
+    if (!results.includes(e.result)) fail(`panel ${e.panel} result must be ${results.join(', ')}`);
+    if (!nonempty(e.evidence)) fail(`panel ${e.panel} needs evidence`);
+    if (!carriesLabel(e.result)) {
+      if (e.observed !== null && e.observed !== undefined) fail(`panel ${e.panel} must not carry an observed label`);
+      return;
+    }
+    try { validateCompositionLabel(e.observed, { castIds }); }
+    catch (err) { fail(`panel ${e.panel} observed label: ${err.message}`); }
+  });
+}
+
+/** The label each panel ends with: the plan when it matched, the observation when it differs, the plan flagged unclear otherwise. */
+export function finalCompositionLabels(w) {
+  const check = w.visualReview?.compositionCheck;
+  if (!Array.isArray(check)) return [];
+  const planned = n => w.preflight?.renderBrief?.moments?.[n - 1]?.composition ?? null;
+  return check.map(({ panel, result, observed }) => {
+    if (result === 'differs') return { panel, label: observed, source: 'review-corrected', confidence: 'clear' };
+    if (result === 'observed') return { panel, label: observed, source: 'observed-backfill', confidence: 'clear' };
+    if (isBackfill(w)) return { panel, label: null, source: 'observed-backfill', confidence: 'unclear' };
+    return { panel, label: planned(panel), source: 'plan', confidence: result === 'match' ? 'clear' : 'unclear' };
+  });
 }

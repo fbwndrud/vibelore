@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { sharedSaga, SAGA_PROJECTIONS } from './fixtures/shared-lore.js';
-import { scenePlan, scenePreflight, sceneVisualChecks } from './fixtures/webtoon-scene.js';
+import { scenePlan, scenePreflight, sceneVisualChecks, sceneCompositionCheck } from './fixtures/webtoon-scene.js';
 import { AssetCatalogStore } from '../src/store/asset-catalog-store.js';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { WebtoonStore, atomicWrite } from '../src/store/webtoon-store.js';
@@ -166,7 +166,7 @@ describe('standalone scene script', () => {
         review.renderBrief.moments.forEach((moment, i) => { moment.sourceIds = [d.source[i % d.source.length].id]; });
         return review;
       }
-      return { ...d.schema, visualChecks: sceneVisualChecks(), observedPanelCount: 4, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspected the imported image.',
+      return { ...d.schema, ...sceneCompositionCheck(d.schema.compositionCheck), visualChecks: sceneVisualChecks(), observedPanelCount: 4, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspected the imported image.',
         textObservations: d.plan.texts.map(x => ({ id: x.id, observedText: x.text, readable: true, speakerCorrect: true, evidence: 'Visible.' })) }; };
     const drive = async result => {
       for (let pass = 0; result.status === 'needs_model' && pass < 10; pass++)

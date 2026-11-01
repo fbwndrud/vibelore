@@ -33,6 +33,9 @@ export function scenePreflight(d, blocking = false) {
 /** Valid label with no directed moment and no cast subject, for requests whose schema asks for composition. */
 export const sceneComposition = () => ({ shot: 'MS', angle: 'eye', focal: 'space', background: 'detailed', subjects: [], directed: false });
 
+/** Review answer fields for a composition check: every panel matches its plan. Empty when the request carries no composition check. */
+export const sceneCompositionCheck = schema => Array.isArray(schema) ? { compositionCheck: schema.map(e => ({ panel: e.panel, result: 'match', observed: null, evidence: 'Synthetic protocol fixture; framing matches the plan.' })) } : {};
+
 /** Webtoon store with a confirmed API selection and one reference image, plus valid start args. */
 export async function sceneSetup({ language, prose } = {}) {
   const store = await webtoonStore({ language, prose }), repo = new WebtoonStore(store);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
-import { sceneSetup, scenePlan, scenePreflight, sceneVisualChecks } from './fixtures/webtoon-scene.js';
+import { sceneSetup, scenePlan, scenePreflight, sceneVisualChecks, sceneCompositionCheck } from './fixtures/webtoon-scene.js';
 
 const PROSE = {
   ko: '윤이 닫힌 문 앞에 멈췄다.\n\n"안에 있나요?"',
@@ -19,7 +19,7 @@ function provider() {
     const d = JSON.parse(r.messages.at(-1).content); let answer;
     if (r.step === 'webtoon-scene-plan') answer = scenePlan(d.source);
     else if (r.step === 'webtoon-scene-preflight') answer = scenePreflight(d);
-    else answer = { ...d.schema, visualChecks: sceneVisualChecks(), observedPanelCount: 6, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspection.',
+    else answer = { ...d.schema, ...sceneCompositionCheck(d.schema.compositionCheck), visualChecks: sceneVisualChecks(), observedPanelCount: 6, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspection.',
       textObservations: d.plan.texts.map(t => ({ id: t.id, observedText: t.text.normalize('NFD'), readable: true, speakerCorrect: true, evidence: 'Visible.' })) };
     return { text: JSON.stringify(answer) };
   } };

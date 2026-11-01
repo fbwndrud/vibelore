@@ -16,7 +16,7 @@ import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
 import { loadWebtoonReviewModel } from '../core/review-policy.js';
-import { SCENE_IMAGE_REVIEW_VERSION, SCENE_IMAGE_REVIEW_PROMPT, sceneVisualCheckSchema, sceneReviewInputs } from '../core/webtoon-scene-review.js';
+import { SCENE_IMAGE_REVIEW_VERSION, sceneVisualCheckSchema, sceneReviewInputs, sceneImageReviewPrompt, compositionCheckSchema, compositionCheckActive } from '../core/webtoon-scene-review.js';
 import { SCENE_SCHEMA, SCENE_SCHEMA_V1, COMPOSITION_PREFLIGHT_INSTRUCTION, sceneCastList, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, mergeDuplicateReferences, CONTINUITY_CHECKS,
   isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
@@ -210,13 +210,14 @@ async function drive(repo, w, providers) {
     if (!w.pending) w.imageReviewVersion = SCENE_IMAGE_REVIEW_VERSION;
     const reviewInputs = sceneReviewInputs(w);
     const r = await modelTask(repo, w, 'webtoon-scene-image-review',
-      SCENE_IMAGE_REVIEW_PROMPT,
+      sceneImageReviewPrompt(w),
       { reviewVersion: w.imageReviewVersion, referenceImages: reviewInputs.referenceImages,
         feedback: [w.feedback, w.reviewFeedback].filter(Boolean).join('\n'),
         source: w.sceneUnits, plan: w.scenePlan, renderBrief: w.preflight?.renderBrief, previousScene: w.previousScene, requestedPanelCount: w.panelCount, image: { path: w.sceneImage.path, hash: w.sceneImage.hash },
         ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Open the adopted sample too. Compare actual visual treatment to the user preference and sample, not its cast or composition. Report matches, differs or uncertain with visible evidence. Style taste is advisory, never a blocking finding or automatic regeneration reason.' } : {}),
         schema: { subjectHash: digest({ binding: sceneImageBinding(w), imageHash: w.sceneImage.hash }), inspectedImages: false, observedPanelCount: null,
           visualChecks: sceneVisualCheckSchema(),
+          ...(compositionCheckActive(w) ? { compositionCheck: compositionCheckSchema(w) } : {}),
           ...(w.previousScene ? { continuity: { inspectedPreviousImage: false, ...Object.fromEntries(CONTINUITY_CHECKS.map(k => [k, { passed: false, evidence: '' }])) } } : {}),
           ...(w.styleSnapshot ? { styleReview: { inspectedReference: false, verdict: 'matches|differs|uncertain', evidence: '' } } : {}),
           coveredBeatIds: w.scenePlan.beats.map(b => b.id), textObservations: w.scenePlan.texts.map(t => ({ id: t.id, observedText: '', readable: false, speakerCorrect: false, evidence: '' })),

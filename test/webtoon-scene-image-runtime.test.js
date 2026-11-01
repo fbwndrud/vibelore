@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFile, readFile } from 'node:fs/promises';
 import { workId } from './fixtures/webtoon.js';
-import { scenePlan, scenePreflight, sceneSetup, sceneVisualChecks } from './fixtures/webtoon-scene.js';
+import { scenePlan, scenePreflight, sceneSetup, sceneVisualChecks, sceneCompositionCheck } from './fixtures/webtoon-scene.js';
 import { digest } from '../src/core/webtoon-contract.js';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 
@@ -12,7 +12,7 @@ function provider() {
     const d = JSON.parse(r.messages.at(-1).content); let answer;
     if (r.step === 'webtoon-scene-plan') answer = scenePlan(d.source);
     else if (r.step === 'webtoon-scene-preflight') answer = scenePreflight(d);
-    else answer = { ...d.schema, visualChecks: sceneVisualChecks(), observedPanelCount: 6, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspection.',
+    else answer = { ...d.schema, ...sceneCompositionCheck(d.schema.compositionCheck), visualChecks: sceneVisualChecks(), observedPanelCount: 6, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspection.',
       textObservations: d.plan.texts.map(t => ({ id: t.id, observedText: t.text, readable: true, speakerCorrect: true, evidence: 'Visible caption.' })) };
     return { text: JSON.stringify(answer) };
   } };
