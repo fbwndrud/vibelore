@@ -12,7 +12,7 @@ import { CHARACTER_ARC_BEATS } from '../../engine/src/continuity/character-arc.j
 import { phrases as multilingualPhrases } from '../prompts/multilingual.js';
 import { WORLDBUILDING_QUESTIONS } from './worldbuilding.js';
 import { DISCOVERY_QUESTIONS } from './discovery-preference.js';
-import { EPISODE_ROLES, EXPECTATION_HANDLING, ARC_HOOK_OPS } from './narrative-codes.js';
+import { EPISODE_ROLES, EXPECTATION_HANDLING, ARC_HOOK_OPS, TWIST_LEVELS } from './narrative-codes.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const MAX_ATTEMPTS = 3;
@@ -44,6 +44,7 @@ function machineLeaf(key, path, value) {
   // Shape codes are machine leaves only at their own path with a table value; `role` elsewhere stays free text.
   if (key === 'role') return parent === 'episodes' && EPISODE_ROLES.includes(value);
   if (key === 'expectationHandling') return parent === 'episodes' && EXPECTATION_HANDLING.includes(value);
+  if (key === 'twistLevel') return parent === 'episodes' && TWIST_LEVELS.map(String).includes(String(value));
   if (key === 'op') return parent === 'hookOps' && ARC_HOOK_OPS.includes(value);
   if (key === 'handling') return parent === 'readerExpectation' && EXPECTATION_HANDLING.includes(value);
   if (key === 'verdict') return ['quality', 'targetedReview'].includes(parent);

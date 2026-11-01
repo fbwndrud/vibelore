@@ -236,6 +236,9 @@ test('shape codes are machine leaves only at their own path with a valid value',
   const e = out.episodes[0];
   assert.deepEqual([e.role, e.expectationHandling, e.hookType, e.hookOps[0].op], [{ id: 'peak' }, { id: 'twist' }, { id: 'ability' }, { id: 'paid' }]);
   assert.equal(e.twistLevel, 1);
+  assert.deepEqual(projectApprovalValue({ episodes: [{ twistLevel: '2' }] }).episodes[0].twistLevel, { id: '2' });
+  assert.equal(projectApprovalValue({ episodes: [{ twistLevel: 'high' }] }).episodes[0].twistLevel, 'high');
+  assert.equal(projectApprovalValue({ steps: [{ twistLevel: '2' }] }).steps[0].twistLevel, '2');
   assert.equal(e.hookOps[0].label, 'the key');
   assert.equal(projectApprovalValue({ episodes: [{ role: 'villain' }] }).episodes[0].role, 'villain');
   assert.equal(projectApprovalValue({ characters: [{ intrinsic: { role: 'peak' } }] }).characters[0].intrinsic.role, 'peak');
