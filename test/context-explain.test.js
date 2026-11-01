@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { promptKit } from '../src/prompts/index.js';
-import { explainDraftContext, LAYER_SENTENCE_CAP, safeId } from '../src/core/context-explain.js';
+import { writerOlderMemory } from '../src/tools/generate.js';
+import { explainDraftContext, LAYER_SENTENCE_CAP, OLDER_MEMORY_CAP, safeId } from '../src/core/context-explain.js';
 
 const ko = promptKit({ language: 'ko' }).phrases.contextExplain;
 const en = promptKit({ language: 'en' }).phrases.contextExplain;
@@ -61,10 +62,19 @@ describe('contextExplain phrases', () => {
     assert.equal(en.canonGateHidden('fact:w7', 12), 'Setting `fact:w7` was hidden from this draft by a canon gate: it takes effect from chapter 12.');
     assert.equal(en.summaryCut(4, 2000), 'Summary of chapter 4 was cut because the continuity window hit its 2000-token budget; older entries go first.');
     assert.equal(en.olderMemoryNoMatch('character:hana'), 'Memory `character:hana` was not selected: nothing in the chapter plan matched it.');
-    assert.equal(en.olderMemoryInFoundation('fact:w1'), 'Memory `fact:w1` was not repeated because it is already in the prompt in full (world facts, hooks and cast characters are sent whole).');
+    assert.equal(en.olderMemoryInFoundation('fact:w1'), 'Memory `fact:w1` is not repeated in older memory: world facts and cast characters are sent in full in their own sections, and only open hooks appear in the current state.');
     assert.equal(en.previousTailDropped(4000), "The previous chapter's closing scene was dropped because the draft brief exceeded its 4000-token budget.");
     assert.equal(en.sectionSwitchedOff('author-craft'), 'The author-craft section is switched off in your settings (`disabledDraftSections`).');
     assert.equal(en.andMore(5), 'and 5 more.');
+    assert.equal(en.summaryIncluded('3, 4, 5', 3), 'Summaries of chapters 3, 4, 5 are in the continuity window.');
+    assert.equal(en.summaryIncluded('6', 1), 'Summary of chapter 6 is in the continuity window.');
+    assert.equal(en.olderMemoryIncluded(2, '`summary:1`, `summary:2`'), '2 older memory items are in the draft input: `summary:1`, `summary:2`');
+    assert.equal(en.olderMemoryIncluded(1, '`summary:1`'), '1 older memory item is in the draft input: `summary:1`');
+    assert.equal(en.outsideWindow(2), '2 earlier chapter summaries are outside the continuity window; they only return through memory retrieval.');
+    assert.equal(en.outsideWindow(1), '1 earlier chapter summary is outside the continuity window; it only returns through memory retrieval.');
+    assert.equal(en.preferencesIncluded(3), '3 creative preferences you adopted are in the draft input.');
+    assert.equal(en.preferencesIncluded(1), '1 creative preference you adopted is in the draft input.');
+    assert.equal(en.olderMemoryCountsOnly(1, 1, 0), 'This draft was recorded before per-item reasons existed; only counts are known: 1 candidate, 1 selected, 0 dropped for budget.');
     assert.deepEqual(en.sectionLabels, { 'older-memory': 'older-memory', 'previous-tail': 'previous-tail', 'author-craft': 'author-craft', 'style-anchor': 'style-anchor' });
   });
 
@@ -73,7 +83,7 @@ describe('contextExplain phrases', () => {
     assert.equal(ko.canonGateHidden('fact:w7', 12), '설정 `fact:w7`은(는) 정사 시점 게이트로 이번 초고에서 숨겼습니다. 12화부터 적용됩니다.');
     assert.equal(ko.summaryCut(4, 2000), '4화 요약은 연속성 창이 2000 토큰 예산에 닿아 뺐습니다. 오래된 항목부터 뺍니다.');
     assert.equal(ko.olderMemoryNoMatch('character:hana'), '기억 `character:hana`은(는) 선택되지 않았습니다. 이번 화 계획과 겹치는 내용이 없었습니다.');
-    assert.equal(ko.olderMemoryInFoundation('fact:w1'), '기억 `fact:w1`은(는) 이미 프롬프트에 전부 들어 있어 다시 넣지 않았습니다. 세계관 사실·떡밥·등장인물은 통째로 보냅니다.');
+    assert.equal(ko.olderMemoryInFoundation('fact:w1'), '기억 `fact:w1`은(는) 오래된 기억에 다시 넣지 않았습니다. 세계관 사실과 등장인물은 각자의 절에 전부 들어가고, 떡밥은 열린 것만 현재 상태에 나옵니다.');
     assert.equal(ko.previousTailDropped(4000), '직전 회차 끝 장면은 초고 요청이 4000 토큰 예산을 넘어 뺐습니다.');
     assert.equal(ko.sectionSwitchedOff('author-craft'), 'author-craft 절은 설정(`disabledDraftSections`)에서 꺼져 있습니다.');
     assert.equal(ko.andMore(5), '그 밖에 5개가 더 있습니다.');
@@ -96,6 +106,7 @@ describe('contextExplain phrases', () => {
     assert.match(ko.coverageNote(), /들어갔다는 증거는 아닙니다/);
     assert.match(en.olderMemoryOverCap('x', 8), /capped at 8 items/);
     assert.match(en.olderMemoryCountsOnly(9, 4, 5), /9 candidates, 4 selected, 5 dropped for budget/);
+    assert.doesNotMatch(en.olderMemoryInFoundation('x'), /already in the prompt/);
   });
 });
 
@@ -161,7 +172,7 @@ describe('explainDraftContext reason codes', () => {
     assert.equal(result.schema, 1);
     assert.equal(result.items[0].layer, 'fixed');
     assert.equal(result.items[0].text, enKit.phrases.contextExplain.fixedMaterial());
-    assert.ok(result.sentences.includes(enKit.phrases.contextExplain.summaryIncluded('7, 6, 5')));
+    assert.ok(result.sentences.includes(enKit.phrases.contextExplain.summaryIncluded('7, 6, 5', 3)));
     assert.ok(result.sentences.includes(enKit.phrases.contextExplain.olderMemoryIncluded(1, '`summary:1`')));
     assert.ok(result.sentences.includes(enKit.phrases.contextExplain.previousTailIncluded()));
     assert.ok(result.sentences.includes(enKit.phrases.contextExplain.preferencesIncluded(2)));
@@ -262,7 +273,7 @@ describe('explainDraftContext old and missing records', () => {
     const { draftInputTrace, ...rest } = audit();
     const result = explainDraftContext({ contextAudit: rest, kit: enKit });
     assert.equal(result.available, true);
-    assert.ok(result.sentences.includes(enKit.phrases.contextExplain.summaryIncluded('7, 6, 5')));
+    assert.ok(result.sentences.includes(enKit.phrases.contextExplain.summaryIncluded('7, 6, 5', 3)));
   });
 });
 
@@ -294,6 +305,30 @@ describe('explainDraftContext failures', () => {
     assert.doesNotThrow(() => explainDraftContext());
   });
 
+  it('treats a null or missing argument as a missing audit', () => {
+    for (const missing of [null, undefined]) {
+      const result = explainDraftContext(missing);
+      assert.equal(result.available, false);
+      assert.equal(result.items[0].code, 'not-yet-drafted');
+      assert.equal(result.family, null);
+    }
+    assert.doesNotThrow(() => explainDraftContext(7));
+    assert.doesNotThrow(() => explainDraftContext('x'));
+  });
+
+  it('skips id-less entries in the older-memory lists', () => {
+    const input = withMemory({
+      excluded: [{}, { reason: 'budget' }, { id: '', reason: 'budget' }, { id: 'summary:3', reason: 'budget' }], excludedTotal: 4,
+      filtered: [{}, { id: 'fact:w1', reason: 'in-foundation' }], filteredTotal: 2,
+    }, { draftInputTrace: { ...audit().draftInputTrace, continuity: { recentSummaryChapters: [7], olderMemoryRefs: [], excluded: [{ kind: 'olderMemory', reason: 'unsafe-content' }, { kind: 'recentSummary', chapter: 4, reason: 'truncated' }] } } });
+    for (const kit of [koKit, enKit]) {
+      const result = explainDraftContext({ contextAudit: input, kit });
+      const left = result.items.filter((item) => item.layer === 'olderMemory' && item.outcome === 'left-out');
+      assert.deepEqual(left.map((item) => item.subject), ['fact:w1', 'summary:3']);
+      assert.ok(result.sentences.every((sentence) => !sentence.includes('`?`')));
+    }
+  });
+
   it('renders the generic sentence for an unknown reason code', () => {
     for (const kit of [koKit, enKit]) {
       const result = explainDraftContext({ contextAudit: excludedBy([{ id: 'summary:3', reason: 'mystery' }]), kit });
@@ -312,8 +347,86 @@ describe('explainDraftContext failures', () => {
       }),
       kit: enKit,
     });
-    assert.ok(result.sentences.includes(enKit.phrases.contextExplain.summaryIncluded('7, ?')));
+    assert.ok(result.sentences.includes(enKit.phrases.contextExplain.summaryIncluded('7, ?', 2)));
     assert.ok(result.sentences.includes(enKit.phrases.contextExplain.summaryCut('?', '?')));
+  });
+});
+
+describe('explainDraftContext switched-off sections', () => {
+  const noisy = (disabled) => withMemory({
+    excluded: [{ id: 'summary:3', reason: 'budget' }], excludedTotal: 1, filtered: [{ id: 'fact:w1', reason: 'in-foundation' }], filteredTotal: 1,
+  }, { disabledDraftSections: disabled });
+
+  it('leaves the older-memory layer to the sections layer when older-memory is switched off', () => {
+    for (const kit of [koKit, enKit]) {
+      const result = explainDraftContext({ contextAudit: noisy(['older-memory']), kit });
+      assert.equal(result.items.filter((item) => item.layer === 'olderMemory').length, 0);
+      const off = byCode(result, 'disabled-by-user');
+      assert.equal(off.length, 1);
+      assert.equal(off[0].text, kit.phrases.contextExplain.sectionSwitchedOff(kit.phrases.contextExplain.sectionLabels['older-memory']));
+      const old = explainDraftContext({ contextAudit: withMemory({ retrieval: { documents: 9, candidates: 4, selected: 1 }, excluded: undefined }, { disabledDraftSections: ['older-memory'] }), kit });
+      assert.equal(old.items.filter((item) => item.layer === 'olderMemory').length, 0);
+    }
+  });
+
+  it('still explains older memory when another section is switched off', () => {
+    const result = explainDraftContext({ contextAudit: noisy(['author-craft']), kit: enKit });
+    assert.ok(result.items.some((item) => item.layer === 'olderMemory' && item.outcome === 'left-out'));
+  });
+
+  it('suppresses the previous-tail layer when previous-tail is switched off', () => {
+    const dropped = { sections: { previousTail: { originalTokens: 30, includedTokens: 0, truncated: true, reason: 'plan-token-budget' } } };
+    for (const trace of [dropped, audit().draftInputTrace]) {
+      const result = explainDraftContext({ contextAudit: withTrace(trace, { disabledDraftSections: ['previous-tail'] }), kit: enKit });
+      assert.equal(result.items.filter((item) => item.layer === 'previousTail').length, 0);
+      assert.equal(byCode(result, 'disabled-by-user').length, 1);
+      const shown = explainDraftContext({ contextAudit: withTrace(trace), kit: enKit });
+      assert.equal(shown.items.filter((item) => item.layer === 'previousTail').length, 1);
+    }
+  });
+});
+
+describe('explainDraftContext older-memory parity with the writer filter', () => {
+  it('uses the cap the writer-side filter keeps', () => {
+    const items = Array.from({ length: 9 }, (_, i) => ({ scope: 'summary', ref: `${i + 1}`, text: 'x' }));
+    const { kept, dropped } = writerOlderMemory(items, () => false);
+    assert.equal(kept.length, OLDER_MEMORY_CAP);
+    assert.deepEqual(dropped, [{ id: 'summary:9', reason: 'over-cap' }]);
+    const result = explainDraftContext({ contextAudit: withMemory({ filtered: dropped, filteredTotal: 1 }), kit: enKit });
+    assert.ok(result.sentences.includes(enKit.phrases.contextExplain.olderMemoryOverCap('summary:9', kept.length)));
+  });
+
+  it('explains a dormant hook the filter drops without claiming it is in the prompt', () => {
+    const items = [{ scope: 'hook', ref: 'h-dormant', text: 'x' }, { scope: 'summary', ref: '1', text: 'x' }];
+    const { kept, dropped } = writerOlderMemory(items, () => false);
+    assert.deepEqual(kept.map((item) => `${item.scope}:${item.ref}`), ['summary:1']);
+    assert.deepEqual(dropped, [{ id: 'hook:h-dormant', reason: 'in-foundation' }]);
+    for (const kit of [koKit, enKit]) {
+      const result = explainDraftContext({ contextAudit: withMemory({ filtered: dropped, filteredTotal: 1 }), kit });
+      const [entry] = byCode(result, 'in-foundation');
+      assert.equal(entry.subject, 'hook:h-dormant');
+      assert.equal(entry.text, kit.phrases.contextExplain.olderMemoryInFoundation('hook:h-dormant'));
+    }
+    const text = explainDraftContext({ contextAudit: withMemory({ filtered: dropped, filteredTotal: 1 }), kit: enKit }).sentences.join(' ');
+    assert.match(text, /only open hooks appear in the current state/);
+    assert.doesNotMatch(text, /already in the prompt|hooks[^.]*sent (in full|whole)/);
+  });
+});
+
+describe('explainDraftContext singular counts', () => {
+  it('uses singular English wording for a count of one', () => {
+    const result = explainDraftContext({
+      contextAudit: audit({
+        recentSummaryChapters: [6],
+        draftInputTrace: { ...audit().draftInputTrace, continuity: { recentSummaryChapters: [6], olderMemoryRefs: ['summary:1'], excluded: [] }, sections: { previousTail: { originalTokens: 9, includedTokens: 9, truncated: false, reason: null }, creativePreferences: { originalTokens: 9, includedTokens: 9, includedIds: ['p1'], truncated: false, reason: null } } },
+        memory: { ...audit().memory, trimmedSummaries: 1 },
+      }),
+      kit: enKit,
+    });
+    assert.ok(result.sentences.includes('Summary of chapter 6 is in the continuity window.'));
+    assert.ok(result.sentences.includes('1 older memory item is in the draft input: `summary:1`'));
+    assert.ok(result.sentences.includes('1 earlier chapter summary is outside the continuity window; it only returns through memory retrieval.'));
+    assert.ok(result.sentences.includes('1 creative preference you adopted is in the draft input.'));
   });
 });
 

@@ -6,7 +6,7 @@
 /** Most item-sentences one layer prints before it collapses the rest into one "and N more". */
 export const LAYER_SENTENCE_CAP = 12;
 // The writer-side older-memory filter keeps this many items; `over-cap` names the rest.
-const OLDER_MEMORY_CAP = 8;
+export const OLDER_MEMORY_CAP = 8;
 const MAX_ID_CODE_POINTS = 64;
 
 const plain = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
@@ -92,7 +92,7 @@ const recentSummaries = (audit, t, push, u) => {
   const stored = list(trace.recentSummaryChapters).length ? trace.recentSummaryChapters : audit.recentSummaryChapters;
   const chapters = list(stored);
   if (chapters.length) {
-    push(item('recentSummaries', 'included', 'included', t.summaryIncluded(chapters.map(finite).join(', ')), { count: chapters.length }));
+    push(item('recentSummaries', 'included', 'included', t.summaryIncluded(chapters.map(finite).join(', '), chapters.length), { count: chapters.length }));
   }
   const ctx = { t, u };
   const cut = entries(trace.excluded)
@@ -106,6 +106,8 @@ const recentSummaries = (audit, t, push, u) => {
 };
 
 const olderMemory = (audit, t, push, u) => {
+  // The sections layer reports a switched-off older-memory section.
+  if (list(audit.disabledDraftSections).includes('older-memory')) return;
   const memory = plain(audit.memory);
   const trace = plain(plain(audit.draftInputTrace).continuity);
   const refs = list(trace.olderMemoryRefs).length ? trace.olderMemoryRefs : audit.olderMemoryRefs;
@@ -115,9 +117,11 @@ const olderMemory = (audit, t, push, u) => {
   }
   const ctx = { t, u };
   const memoryItem = (rawSubject, reason) => excludedItem(ctx, 'olderMemory', 'memory', rawSubject, reason);
-  const fromTrace = entries(trace.excluded).filter((entry) => entry.kind === 'olderMemory').map((entry) => memoryItem(entry.ref, entry.reason));
-  const fromFiltered = entries(memory.filtered).map((entry) => memoryItem(entry.id, entry.reason));
-  const fromExcluded = entries(memory.excluded).map((entry) => memoryItem(entry.id, entry.reason));
+  // An entry without an id has no subject to name, so it is skipped like a canon-gate entry without a ref.
+  const named = (stored, idKey, kind) => entries(stored).filter((entry) => safeId(entry[idKey]) && (!kind || entry.kind === kind));
+  const fromTrace = named(trace.excluded, 'ref', 'olderMemory').map((entry) => memoryItem(entry.ref, entry.reason));
+  const fromFiltered = named(memory.filtered, 'id').map((entry) => memoryItem(entry.id, entry.reason));
+  const fromExcluded = named(memory.excluded, 'id').map((entry) => memoryItem(entry.id, entry.reason));
   const countOf = (stored, listed) => Math.max(Number.isFinite(stored) ? stored : 0, listed.length);
   const total = fromTrace.length + countOf(memory.filteredTotal, fromFiltered) + countOf(memory.excludedTotal, fromExcluded);
   pushCapped(push, t, 'olderMemory', [...fromTrace, ...fromFiltered, ...fromExcluded], total);
@@ -179,8 +183,11 @@ function failure(kit, code, phrase) {
  * Why each piece of material is in or out of a stored draft input.
  * Deterministic and read-only; never throws.
  */
-export function explainDraftContext({ contextAudit, kit } = {}) {
+export function explainDraftContext(args) {
+  let kit;
   try {
+    const { contextAudit } = args ?? {};
+    kit = args?.kit;
     if (contextAudit === null || contextAudit === undefined) return failure(kit, 'not-yet-drafted', 'notYetDrafted');
     if (typeof contextAudit !== 'object' || Array.isArray(contextAudit)) return failure(kit, 'detail-not-recorded', 'detailUnavailable');
     const t = kit.phrases.contextExplain;
