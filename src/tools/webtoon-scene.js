@@ -285,6 +285,11 @@ async function startScene(store, repo, args, current) {
   if (!Array.isArray(references) || !references.length || references.length > SCENE_LIMITS.referenceImages - (drawFromPrevious ? 1 : 0) - (styleSnapshot ? 1 : 0)
     || references.some(r => [PREVIOUS_SCENE_ID, STYLE_REFERENCE_ID].includes(r.id)) || new Set(references.map(r => r.id)).size !== references.length
     || references.some(r => !safeId(r.id) || !isEnglish(r.description) || !nonempty(r.hash))) throw new Error('SCENE_REFERENCES_REQUIRED');
+  // Kept as chosen so a later restyle can merge again from the originals instead of patching merged entries.
+  const unmerged = [...references, ...(styleSnapshot ? [styleReference(styleSnapshot)] : []),
+      ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: styleSnapshot
+        ? 'Previous scene: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
+        : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])];
   const w = { workflowId: `wt-${randomUUID()}`, productionMode: SCENE_PRODUCTION_MODE, imagePromptVersion: 2, workId: args.workId, revision: 1,
     stage: 'scene_generate', source, sceneUnits, direction,
     ...(styleSnapshot ? { styleSnapshot } : {}),
@@ -292,10 +297,8 @@ async function startScene(store, repo, args, current) {
     panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount }),
     ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: previous.visualReview.findings, reviewPassed: previous.visualReview.passed } } : {}),
     imagePolicy: policy, imageSelection: saved.selection, autoRevision: { limit: autoLimit, used: 0 }, attempts: [],
-    sceneReferences: mergeDuplicateReferences([...references, ...(styleSnapshot ? [styleReference(styleSnapshot)] : []),
-      ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: styleSnapshot
-        ? 'Previous scene: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
-        : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])]),
+    unmergedSceneReferences: unmerged,
+    sceneReferences: mergeDuplicateReferences(unmerged),
     acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity(), productionRecord: true };
   record(w, 'scene_started', { sourceHash: source.hash, ...(delegation ? { delegation } : {}) });
   return w;
@@ -437,11 +440,14 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       if (args.styleRevisionId !== undefined) {
         const adopted = await new WebtoonStyleStore(repo, w.workId).adopted(args.styleRevisionId);
         if (w.direction === w.styleSnapshot?.profile.style) w.direction = adopted.profile.style;
-        const refs = w.sceneReferences.filter(r => r.id !== STYLE_REFERENCE_ID);
+        // Workflows started after reference merging rebuild from the unmerged originals; older ones keep the original rebuild.
+        const refs = (w.unmergedSceneReferences ?? w.sceneReferences).filter(r => r.id !== STYLE_REFERENCE_ID);
         if (refs.length >= SCENE_LIMITS.referenceImages) throw new Error('SCENE_REFERENCES_REQUIRED');
         const last = refs.at(-1)?.id === PREVIOUS_SCENE_ID ? refs.pop() : null;
-        w.styleSnapshot = adopted; w.sceneReferences = [...refs, styleReference(adopted), ...(last ? [{ ...last,
+        const rebuilt = [...refs, styleReference(adopted), ...(last ? [{ ...last,
           description: 'Previous scene: identities, clothing, setting and temporal continuity. Visual treatment comes from the adopted style sample.' }] : [])];
+        w.styleSnapshot = adopted;
+        if (w.unmergedSceneReferences) { w.unmergedSceneReferences = rebuilt; w.sceneReferences = mergeDuplicateReferences(rebuilt); } else w.sceneReferences = rebuilt;
         record(w, 'scene_style_changed', { styleRevisionId: adopted.revisionId });
       }
       if (args.direction !== undefined) w.direction = args.direction;

@@ -320,3 +320,51 @@ test('status decisions name only the scenes the user chose and always describe t
   assert.deepEqual(status.decisions[0].scope.explicitTargets, [r.workflowId]);
   assert.deepEqual(status.decisions[0].evidence, { userAnswer: '이제 이 느낌으로' });
 });
+
+// Restyle keeps the one-attachment-per-bytes rule. `bytes` picks the new sample so it can collide with the user reference (`pixel`).
+async function restyle({ store, repo, bytes, first, mutate }) {
+  const r = first.started ?? await runWebtoonSceneTool({ store, args: first.args, providers: provider() });
+  if (mutate) { const w = await repo.load(); mutate(w); await repo.save(w); }
+  const imagePath = join(store.rootDir, 'restyle.png'); await writeFile(imagePath, bytes);
+  const c = await call(store, { action: 'propose', brief: 'new look', direction: 'Soft watercolor.', imagePath });
+  const change = await call(store, { action: 'approve', proposalId: c.proposalId, feedback: 'switch', applyToWorkflows: [r.workflowId] });
+  const fixed = await runWebtoonSceneTool({ store, args: { workId, action: 'revise', styleRevisionId: change.style.revisionId, feedback: 'new style' }, providers: provider() });
+  return { fixed, style: change.style, workflow: await repo.load() };
+}
+
+test('restyle to a sample whose bytes equal a user reference attaches them once with the new style role', async () => {
+  const { store, repo, args } = await sceneSetup(); await adopt(store);
+  const { fixed, style, workflow } = await restyle({ store, repo, bytes: pixel, first: { args } });
+  const refs = fixed.jobs[0].referenceImages;
+  assert.equal(new Set(refs.map(x => x.hash)).size, refs.length);
+  assert.equal(refs.some(x => x.id === STYLE_REFERENCE_ID), false);
+  const kept = refs.find(x => x.id === 'ref');
+  assert.deepEqual(kept.mergedIds, [STYLE_REFERENCE_ID]);
+  assert.match(kept.description, / Also: User-adopted art style only/);
+  assert.equal(workflow.styleSnapshot.revisionId, style.revisionId);
+  assert.equal(workflow.unmergedSceneReferences.filter(x => x.id === STYLE_REFERENCE_ID).length, 1);
+});
+
+test('restyle away from a merged style leaves no stale merge on the survivor', async () => {
+  const { store, repo, args } = await sceneSetup();
+  const merged = join(store.rootDir, 'same.png'); await writeFile(merged, pixel);
+  const c = await call(store, { action: 'propose', brief: 'same bytes', direction: 'Monochrome ink.', imagePath: merged });
+  await call(store, { action: 'approve', proposalId: c.proposalId, feedback: 'ok' });
+  const first = await runWebtoonSceneTool({ store, args, providers: provider() });
+  assert.deepEqual(first.jobs[0].referenceImages.find(x => x.id === 'ref').mergedIds, [STYLE_REFERENCE_ID]);
+  const { fixed, style } = await restyle({ store, repo, bytes: otherPixel, first: { started: first } });
+  const refs = fixed.jobs[0].referenceImages, survivor = refs.find(x => x.id === 'ref');
+  assert.equal(survivor.mergedIds, undefined); assert.doesNotMatch(survivor.description, /Also:/);
+  const styles = refs.filter(x => x.id === STYLE_REFERENCE_ID);
+  assert.equal(styles.length, 1); assert.equal(styles[0].hash, style.image.hash);
+});
+
+test('a workflow saved before reference merging restyles exactly as it did before', async () => {
+  const { store, repo, args } = await sceneSetup(); await adopt(store);
+  const { fixed, workflow } = await restyle({ store, repo, bytes: pixel, first: { args },
+    mutate: w => { delete w.unmergedSceneReferences; } });
+  assert.equal(workflow.unmergedSceneReferences, undefined);
+  assert.deepEqual(fixed.jobs[0].referenceImages.map(x => x.id), ['ref', STYLE_REFERENCE_ID]);
+  assert.equal(fixed.jobs[0].referenceImages[0].mergedIds, undefined);
+  assert.equal(fixed.jobs[0].referenceImages[0].hash, fixed.jobs[0].referenceImages[1].hash);
+});
