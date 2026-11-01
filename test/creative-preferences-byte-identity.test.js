@@ -6,8 +6,8 @@ import { contractResponse } from './fixtures/contract-response.js';
 import { runReviseTool } from '../src/tools/generate.js';
 import { runWriteWorkflow } from '../src/tools/workflow.js';
 
-// Frozen on the base code before any preference work: a work with no active
-// preference must keep sending these exact requests and writing this exact receipt.
+// The pins track the current base build and are re-pinned on deliberate prompt changes: a work
+// with no active preference must keep sending these exact requests and writing this exact receipt.
 const EXPECTED = {
   draft: 'b4b9e57ca5471ed0cd1a1cdc3d2f22a23cd1b8d51aa0524bfca4ae5de9ff1dbe',
   coherence: 'ee4ee92b7aac23b46d7bab865dd70d4af7d3547423739aa01f2a270955ac953c',

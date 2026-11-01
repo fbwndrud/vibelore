@@ -418,12 +418,12 @@ A failed (`clean_fail`) scene does not block; after the arc is approved, `lore_w
 
 Each chapter may optionally carry shape codes: `role` (`setup|escalation|peak|breather`),
 `twistLevel` (0-3), `expectationHandling` (`fulfill|delay|twist|invert`), `hookType`, and
-`hookOps` (a list of one of `planted|advanced|paid` plus a label). All are optional and never
-enforced. Invalid values are dropped and the plan stays valid. Rhythm guidance (such as a breather
-after a run of tension) follows the work's `depthMode`, and is `commercial-dramatic` when there is
-no profile. When at least one chapter carries codes, the review result includes `rhythmStrip`, one
-line per chapter in the work language, showing the rhythm. Existing arcs without codes are saved and
-shown as before.
+`hookOps` (up to 4 `{op, label}` entries, where `op` is one of `planted|advanced|paid`). All are
+optional and never enforced. Invalid values are dropped and the plan stays valid. Rhythm guidance
+(such as a breather after a run of tension) follows the work's `depthMode`, and is
+`commercial-dramatic` when there is no profile. When at least one chapter carries codes, the review
+result includes `rhythmStrip`, one line per chapter that carries codes, in the work language,
+showing the rhythm. Existing arcs without codes are saved and shown as before.
 
 | Required | Optional |
 |---|---|

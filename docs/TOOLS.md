@@ -409,11 +409,12 @@ pending 계획은 같은 번호로 다시 만들 수 있고 완료된 아크 뒤
 
 각 회차는 선택적으로 형태 코드를 가질 수 있습니다: `role`(`setup|escalation|peak|breather`),
 `twistLevel`(0~3), `expectationHandling`(`fulfill|delay|twist|invert`), `hookType`, 그리고
-`hookOps`(`planted|advanced|paid` 중 하나와 라벨의 목록). 모두 선택이며 강제하지 않습니다.
+`hookOps`(`op`가 `planted|advanced|paid`인 `{op, label}` 항목, 최대 4개). 모두 선택이며
+강제하지 않습니다.
 유효하지 않은 값은 버려지고 계획은 그대로 유효합니다. 리듬 안내(긴장이 이어진 뒤의 숨 고르기
 등)는 작품의 `depthMode`를 따르며 프로필이 없으면 `commercial-dramatic`입니다. 코드가 있는
-회차가 하나라도 있으면 검토 결과에 `rhythmStrip`이 포함되어 회차당 한 줄(작품 언어)로
-리듬을 보여 줍니다. 코드가 없는 기존 아크는 저장·표시가 이전과 같습니다.
+회차가 하나라도 있으면 검토 결과에 `rhythmStrip`이 포함되어, 코드가 있는 회차마다 한 줄(작품
+언어)로 리듬을 보여 줍니다. 코드가 없는 기존 아크는 저장·표시가 이전과 같습니다.
 
 | 필수 | 선택 |
 |---|---|
