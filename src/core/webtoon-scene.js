@@ -39,7 +39,7 @@ export const SCENE_TEXT_KINDS = ['dialogue', 'thought', 'caption', 'sfx', 'physi
 export const SCENE_TEXT_KIND_INSTRUCTION = 'Set each texts[].kind to dialogue, thought, caption, sfx or physical. physical: writing that exists on an object in the scene (a note, page, sign or screen); speaker is the character who writes or holds it, or narrator. ';
 const need = (ok, message) => { if (!ok) throw new Error(message); };
 /** Retry-report wording that must not reach the image model. */
-const RETRY_FRAMING = /\b(previous|prior|last time|earlier|again|instead|wrong|mistake|misspell\w*|incorrect|error|fix|failed|not|no|never|don't|do not|avoid|stop)\b/i;
+export const RETRY_FRAMING = /\b(previous|prior|last time|earlier|again|instead|wrong|mistake|misspell\w*|incorrect|error|fix|failed|not|no|never|don't|do not|avoid|stop)\b/i;
 /** Direction fields are English for every work language: every letter must be Latin script (digits, punctuation and symbols pass). */
 export const isEnglish = value => nonempty(value) && [...value.matchAll(/\p{L}/gu)].every(([c]) => /\p{Script=Latin}/u.test(c));
 const nfc = s => s.normalize('NFC');

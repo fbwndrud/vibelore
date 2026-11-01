@@ -9,6 +9,7 @@ import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.j
 import { importWebtoonImages } from '../core/webtoon-board.js';
 import { sceneImageRequest, validateSceneImageProvenance } from '../core/webtoon-images.js';
 import { confirmedWebtoonSelection } from '../core/webtoon-image-selection.js';
+import { COMPOSITION_VOCAB_VERSION, splitCompositionDirection } from '../core/webtoon-composition.js';
 import { webtoonDelegation } from '../core/webtoon-delegation.js';
 import { webtoonMessage } from '../core/webtoon-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
@@ -38,6 +39,7 @@ export function scenePublicState(w) {
     autoRevision: w.autoRevision ?? { limit: 0, used: 0 }, attempts: w.attempts ?? [],
     style: w.styleSnapshot ?? null,
     delegation: w.delegation ?? null,
+    ...(w.compositionVersion ? { compositionDefaults: w.compositionDefaults ?? [] } : {}),
     apiRestriction: w.apiRestriction ?? w.delegation?.apiPolicy ?? 'existing-only',
     limitations: ['Whole-scene raster with generated lettering; not editable vector lettering.', 'Host review is self-reported, not independent reader evaluation.'] };
 }
@@ -158,6 +160,7 @@ async function drive(repo, w, providers) {
       { source: w.sceneUnits, foundation: w.source.foundation, documents: w.source.documents, ...referenceContext(w),
         ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'This is the user-adopted visual treatment. Preserve it; source facts and identities remain authoritative. Any source expression profile is subordinate for presentation only.' } : {}),
         ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText, cast: w.source.cast, expression: w.source.expression } : {}), direction: w.direction,
+        ...(w.compositionDefaults?.length ? { seriesComposition: w.compositionDefaults } : {}),
         panelCount: auto ? 'auto' : w.panelCount, previousScene: w.previousScene,
         feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...SCENE_SCHEMA, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : SCENE_SCHEMA }, providers,
       w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
@@ -256,8 +259,10 @@ async function startScene(store, repo, args, current) {
   const previous = args.previousWorkflowId ? await loadPreviousScene(repo, args) : undefined;
   if (current && !terminal(current) && !(previous?.workflowId === current.workflowId && current.stage === 'scene_needs_revision')) throw new Error('WEBTOON_WORKFLOW_ACTIVE');
   const styleSnapshot = await new WebtoonStyleStore(repo, args.workId).adopted(args.styleRevisionId);
-  const direction = args.direction ?? styleSnapshot?.profile.style;
-  if (!isEnglish(direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
+  const fullDirection = args.direction ?? styleSnapshot?.profile.style;
+  if (!isEnglish(fullDirection)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
+  // Series-level framing sentences go to planning only; the image prompt keeps the style direction.
+  const { direction, compositionDefaults } = splitCompositionDirection(fullDirection);
   const autoLimit = args.autoRevisions ?? delegation?.maxAutoRevisions ?? SCENE_AUTO_REVISIONS.default;
   if (!Number.isInteger(autoLimit) || autoLimit < 0 || autoLimit > SCENE_AUTO_REVISIONS.max) throw new Error('INVALID_SCENE_AUTO_REVISIONS');
   if (delegation?.maxAutoRevisions !== undefined && autoLimit > delegation.maxAutoRevisions) throw new Error('WEBTOON_DELEGATION_RETRY_LIMIT');
@@ -292,6 +297,7 @@ async function startScene(store, repo, args, current) {
         : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])];
   const w = { workflowId: `wt-${randomUUID()}`, productionMode: SCENE_PRODUCTION_MODE, imagePromptVersion: 2, workId: args.workId, revision: 1,
     stage: 'scene_generate', source, sceneUnits, direction,
+    compositionVersion: COMPOSITION_VOCAB_VERSION, compositionDefaults,
     ...(styleSnapshot ? { styleSnapshot } : {}),
     ...(delegation ? { delegation, apiRestriction: delegation.apiPolicy } : {}),
     panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount }),
