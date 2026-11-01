@@ -51,7 +51,9 @@ export const SCENE_SCHEMA = {
   uncertainties: ['English ambiguity in source; do not silently turn inference into fact'],
 };
 /** Replaces "Keep camera and layout free." in the preflight request for workflows that carry composition labels. */
-export const COMPOSITION_PREFLIGHT_INSTRUCTION = "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds.";
+export const COMPOSITION_PREFLIGHT_INSTRUCTION = "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds. A line of dialogue alone does not make the speaker's face a required element. Keep camera and framing words out of moment actions; the composition label carries them.";
+/** Replaces "Let the image artist choose composition." in the plan request for workflows that carry composition labels. */
+export const COMPOSITION_PLAN_INSTRUCTION = "Set sceneType to dialogue, action, reveal or quiet. seriesComposition and compositionDigest describe the series' framing habits and recent repetition; use them only to vary staging where the source allows. Leave panel framing to the later brief.";
 /** Plan schema for workflows with composition metadata: the same plan plus the optional scene type. Kept literal because webtoon-composition.js imports this module. */
 export const SCENE_SCHEMA_V1 = { ...SCENE_SCHEMA, sceneType: 'dialogue|action|reveal|quiet' };
 export const SCENE_TEXT_KINDS = ['dialogue', 'thought', 'caption', 'sfx', 'physical'];
@@ -209,10 +211,13 @@ function validateRequiredElements(required, w) {
     if (!grounded) bad('UNBOUND_SCENE_REQUIRED', 'a required element needs a known kind, a safe id and sourceIds from this scene (a text entry must name a plan text)');
   }
 }
+/** Framing vocabulary belongs to the composition label; a moment action describes what happens. */
+const MOMENT_FRAMING = /\b(extreme close-?ups?|close-?ups?|wide shots?|long shots?|medium shots?|establishing shots?|camera|framing|(low|high|dutch)[- ]angle|bird'?s[- ]eye|worm'?s[- ]eye|over[- ]the[- ]shoulder)\b/i;
 /** Composition labels are checked only for workflows that carry a composition version. */
 function validateBriefComposition(brief, w) {
   const castIds = castIdsOf(sceneCast(w));
   let directed = 0;
+  brief.moments.forEach((m, i) => need(!MOMENT_FRAMING.test(m.action), `SCENE_MOMENT_FRAMING: moment ${i + 1}`));
   for (const m of brief.moments) {
     if (m.composition !== null && typeof m.composition === 'object') validateRequiredElements(m.composition.required, w);
     validateCompositionLabel(m.composition, { castIds });

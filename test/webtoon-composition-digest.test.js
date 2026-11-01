@@ -172,6 +172,32 @@ test('every line stays within eight, positive English, with bounded groups', () 
   }
 });
 
+test('all overused values share one line, joined as "A, B and C"; the structured list keeps each of them', () => {
+  const heavy = label({ shot: 'ECU', angle: 'low', focal: 'hands', background: 'fx' });
+  const episodes = [[mix(2, 0)], [mix(2, 0)], [mix(2, 0)], [[heavy, heavy, heavy, heavy]], [[heavy, heavy, heavy, heavy]]];
+  const result = compositionDigest(indexOf(episodes), { ...base, episodeKey: 'ep-0005', castIds: [] });
+  assert.equal(result.overused.length, 3, 'the structured list is capped at three');
+  const lean = result.lines.filter(line => line.startsWith('Recent pages lean on'));
+  assert.equal(lean.length, 1, result.lines.join('\n'));
+  assert.match(lean[0], /^Recent pages lean on [^,;]+, [^,;]+ and [^,;]+; give the next page a fresh framing\.$/);
+  assert.ok(!/ and .* and /.test(lean[0]), 'only the last two are joined by "and"');
+  assert.ok(!unsafe(lean[0]), lean[0]);
+  assert.ok(result.lines.length <= 8);
+});
+
+test('one overused value reads as a plain phrase and two as "A and B"', () => {
+  const one = compositionDigest(banded([mix(4, 1), mix(4, 1)]), { ...base, episodeKey: 'ep-0005', castIds: ['hero'] });
+  const lean = lines => lines.filter(line => line.startsWith('Recent pages lean on'));
+  assert.equal(lean(one.lines).length, 1);
+  assert.equal(one.overused.length, 1);
+  assert.doesNotMatch(lean(one.lines)[0], / and |,/);
+  const heavy = label({ shot: 'ECU', angle: 'low' });
+  const two = compositionDigest(indexOf([[mix(2, 0)], [mix(2, 0)], [mix(2, 0)], [[heavy, heavy, heavy, heavy]], [[heavy, heavy, heavy, heavy]]]), { ...base, episodeKey: 'ep-0005', castIds: [] });
+  const twoLeans = lean(two.lines);
+  assert.equal(two.overused.length, 2);
+  assert.deepEqual(twoLeans, ['Recent pages lean on extreme close-ups and low-angle views; give the next page a fresh framing.']);
+});
+
 test('a subject id that would read as retry framing is never offered', () => {
   const menu = menuOf('a', { castIds: ['avoid-it', 'not-here'] });
   assert.ok(menu.every(o => o.field !== 'subject'), JSON.stringify(menu));

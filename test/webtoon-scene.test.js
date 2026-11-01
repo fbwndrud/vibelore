@@ -505,6 +505,26 @@ test('v1 render brief: every moment needs a valid label and the page layout must
   // A work without a cast has nothing to check subject ids against.
   assert.ok(validateSceneRenderBrief(briefOf(label(), label()), { ...w, source: {} }));
 });
+test('v1 render brief: a speaker line alone does not require the speaker face', () => {
+  const w = wOf(1);
+  const brief = briefOf(label({ required: [] }));
+  brief.moments[0].textIds = ['text-1'];
+  assert.ok(validateSceneRenderBrief(brief, { ...w, scenePlan: { texts: [{ id: 'text-1', kind: 'dialogue', speaker: 'hero', text: 'Hi.' }] } }));
+  brief.moments[0].composition = label({});
+  assert.ok(validateSceneRenderBrief(brief, w), 'a label without required is accepted too');
+});
+test('v1 render brief: moment actions carry no framing words; older workflows are untouched', () => {
+  const w = wOf(1), withAction = action => ({ ...briefOf(label()), moments: [{ ...briefOf(label()).moments[0], action }] });
+  for (const bad of ['Close-up on her hand.', 'A wide shot of the street.', 'Extreme close-ups of her eyes.', 'She turns toward the camera.', 'Tight framing on the door.',
+    'A low-angle look at him.', 'Dutch angle on the stairs.', "A bird's-eye view of the room.", 'An over-the-shoulder look at the letter.', 'A medium shot of two people.', 'An establishing shot of the yard.', 'Long shot of the road.'])
+    assert.throws(() => validateSceneRenderBrief(withAction(bad), w), /SCENE_MOMENT_FRAMING: moment 1$/, bad);
+  for (const ok of ['A shot rings out.', 'She stands at an angle to the door.', 'He closes the door.', 'She waits at the door.'])
+    assert.ok(validateSceneRenderBrief(withAction(ok), w), ok);
+  const second = { ...briefOf(label(), label()), moments: briefOf(label(), label()).moments.map((m, i) => i === 1 ? { ...m, action: 'Close-up on her hand.' } : m) };
+  assert.throws(() => validateSceneRenderBrief(second, wOf(2)), /SCENE_MOMENT_FRAMING: moment 2$/);
+  const legacy = { ...w }; delete legacy.compositionVersion;
+  assert.ok(validateSceneRenderBrief({ style: 'Ink.', moments: [{ sourceIds: ['u1'], action: 'Close-up on her hand.', textIds: ['text-1'] }] }, legacy));
+});
 test('v1 render brief: at most two directed moments per page', () => {
   const w = wOf(3), d = label({ directed: true });
   assert.ok(validateSceneRenderBrief(briefOf(d, d, label()), w));
@@ -559,8 +579,9 @@ test('v1 preflight request asks for labels in place of free camera and layout; o
   await runWebtoonSceneTool({ store, args, providers: spy() });
   const system = seen.request.messages[0].content, data = JSON.parse(seen.request.messages.at(-1).content);
   assert.ok(system.includes(COMPOSITION_PREFLIGHT_INSTRUCTION)); assert.ok(!system.includes('Keep camera and layout free.'));
-  assert.equal(COMPOSITION_PREFLIGHT_INSTRUCTION, "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds.");
-  assert.ok(isEnglish(COMPOSITION_PREFLIGHT_INSTRUCTION)); assert.doesNotMatch(COMPOSITION_PREFLIGHT_INSTRUCTION, RETRY_FRAMING);
+  assert.equal(COMPOSITION_PREFLIGHT_INSTRUCTION, "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds. A line of dialogue alone does not make the speaker's face a required element. Keep camera and framing words out of moment actions; the composition label carries them.");
+  // This text goes to the reviewing model, never to the image model, so retry wording is not a concern here.
+  assert.ok(isEnglish(COMPOSITION_PREFLIGHT_INSTRUCTION));
   const example = data.schema.renderBrief.moments[0].composition;
   for (const key of ['shot', 'angle', 'focal', 'background', 'subjects', 'directed', 'required']) assert.ok(key in example, key);
   assert.match(data.schema.renderBrief.pageComposition.layout, /strip-stack/);
@@ -624,6 +645,25 @@ test('novel cast fallback: a non-English cast name never reaches the image promp
   assert.ok(isEnglish(line.replace(/She waits\./, '').replace(/^1\. /, '')));
   const english = { ...w, source: { foundation: { characters: [{ id: 'hero', canonicalName: 'Yoon' }] } } };
   assert.equal(promptOf(english, label({ directed: true, focal: 'face' })).split('\n').find(l => l.startsWith('1. ')), '1. wide high-angle view of Yoon: She waits.');
+});
+test('the v1 plan system text asks for sceneType and explains the composition inputs; older workflows keep the old sentence', async () => {
+  const V1_SENTENCE = "Set sceneType to dialogue, action, reveal or quiet. seriesComposition and compositionDigest describe the series' framing habits and recent repetition; use them only to vary staging where the source allows. Leave panel framing to the later brief.";
+  const OLD_SENTENCE = 'Let the image artist choose composition.';
+  const planSystem = async legacy => {
+    const { store, repo, args } = await setup();
+    await runWebtoonSceneTool({ store, args, providers: provider() });
+    if (legacy) { const w = await repo.load(); delete w.compositionVersion; w.stage = 'scene_needs_revision'; await repo.save(w); }
+    let system; const p = provider(), complete = p.complete;
+    p.complete = async r => { if (r.step === 'webtoon-scene-plan') system = r.messages[0].content; return complete(r); };
+    if (legacy) await runWebtoonSceneTool({ store, args: { workId, action: 'revise', feedback: 'Same door.' }, providers: p });
+    else { const w = await repo.load(); w.stage = 'scene_needs_revision'; await repo.save(w); await runWebtoonSceneTool({ store, args: { workId, action: 'revise', feedback: 'Same door.' }, providers: p }); }
+    return system;
+  };
+  const v1 = await planSystem(false), old = await planSystem(true);
+  assert.ok(v1.includes(V1_SENTENCE)); assert.ok(!v1.includes(OLD_SENTENCE));
+  assert.ok(isEnglish(V1_SENTENCE.replace(/seriesComposition|compositionDigest|sceneType/g, 'x')));
+  assert.ok(old.includes(OLD_SENTENCE)); assert.ok(!old.includes('sceneType') && !old.includes('seriesComposition'));
+  assert.equal(v1.replace(V1_SENTENCE, OLD_SENTENCE), old, 'only the one sentence differs');
 });
 test('the v1 plan schema asks for a scene type that matches SCENE_TYPES; older workflows keep the old schema', async () => {
   const seen = {};

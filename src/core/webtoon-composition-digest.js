@@ -135,12 +135,17 @@ function streaksOf(index, last, cfg) {
   return found.slice(0, MAX_STREAKS);
 }
 
-function overuseLine(item, lead) {
+function overusePhrase(item, lead) {
   const names = PLURAL[item.field];
-  const phrase = item.field === 'protagonistVisibility' ? VISIBILITY_PHRASE[item.value](who(lead))
+  return item.field === 'protagonistVisibility' ? VISIBILITY_PHRASE[item.value](who(lead))
     : item.field === 'twoShotSide' ? `${who(lead)} ${SIDE_WORDS[item.value]} in two-shots` : names[item.value];
-  return `Recent pages lean on ${phrase}; give the next page a fresh framing.`;
 }
+
+/** "A", "A and B", "A, B and C". */
+const joinList = items => items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
+
+/** One line for every overused value, so the planner reads a single note about repetition. */
+const overuseLine = (items, lead) => `Recent pages lean on ${joinList(items.map(item => overusePhrase(item, lead)))}; give the next page a fresh framing.`;
 
 function streakLine(streak, lead) {
   if (streak.kind === 'pageClose') {
@@ -157,7 +162,7 @@ function analyze(index, { episodeKey, config }) {
   const lead = (index.protagonistIds ?? [])[0];
   const overused = overusedOf(win, cfg), streaks = streaksOf(index, win.last, cfg);
   return { cfg, win, lead, overused, streaks,
-    lines: [...overused.map(o => overuseLine(o, lead)), ...streaks.map(s => streakLine(s, lead))] };
+    lines: [...(overused.length ? [overuseLine(overused, lead)] : []), ...streaks.map(s => streakLine(s, lead))] };
 }
 
 /** The least used values per menu field (and cast subjects) that no required element locks, drawn with the seeded generator. */
