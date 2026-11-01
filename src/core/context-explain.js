@@ -74,8 +74,18 @@ const fixed = (audit, t, push) => {
   push(item('fixed', 'included', 'fixed', t.fixedMaterial()));
 };
 
-// Filled in by the canon-gate task: setting hidden by a canon gate.
-const canonGates = () => {};
+// Settings a canon gate hid from this draft: refs and chapter numbers only.
+const canonGates = (audit, t, push) => {
+  const gates = audit.canonGates;
+  if (!gates || typeof gates !== 'object' || Array.isArray(gates)) return;
+  const hidden = entries(gates.hidden)
+    .filter((entry) => safeId(entry.ref))
+    .map((entry) => {
+      const ref = safeId(entry.ref);
+      return item('canonGates', 'left-out', 'canon_gate', t.canonGateHidden(ref, finite(entry.fromChapter)), { subject: ref });
+    });
+  pushCapped(push, t, 'canonGates', hidden, gates.total);
+};
 
 const recentSummaries = (audit, t, push, u) => {
   const trace = plain(plain(audit.draftInputTrace).continuity);

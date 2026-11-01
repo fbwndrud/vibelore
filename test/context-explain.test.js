@@ -357,3 +357,68 @@ describe('explainDraftContext caps', () => {
     assert.equal(byCode(result, 'and-more')[0].count, 3);
   });
 });
+
+describe('explainDraftContext canon gates', () => {
+  const gates = {
+    hidden: [
+      { ref: 'fact:w7', kind: 'world-fact', fromChapter: 12, reason: 'canon_gate' },
+      { ref: 'character:kai', kind: 'progression', fromChapter: 15, reason: 'canon_gate' },
+    ],
+    total: 2,
+  };
+  const hiddenList = (count) => Array.from({ length: count }, (_, i) => ({ ref: `fact:w${i}`, kind: 'world-fact', fromChapter: 3, reason: 'canon_gate' }));
+
+  it('lists each hidden setting in both kits', () => {
+    for (const kit of [koKit, enKit]) {
+      const result = explainDraftContext({ contextAudit: audit({ canonGates: gates }), kit });
+      const items = byCode(result, 'canon_gate');
+      assert.equal(items.length, 2);
+      assert.ok(items.every((entry) => entry.layer === 'canonGates' && entry.outcome === 'left-out'));
+      assert.deepEqual(items.map((entry) => entry.subject), ['fact:w7', 'character:kai']);
+      assert.equal(items[0].text, kit.phrases.contextExplain.canonGateHidden('fact:w7', 12));
+      assert.match(items[1].text, /15/);
+    }
+    const en = explainDraftContext({ contextAudit: audit({ canonGates: gates }), kit: enKit });
+    assert.equal(byCode(en, 'canon_gate')[0].text, 'Setting `fact:w7` was hidden from this draft by a canon gate: it takes effect from chapter 12.');
+    const ko = explainDraftContext({ contextAudit: audit({ canonGates: gates }), kit: koKit });
+    assert.equal(byCode(ko, 'canon_gate')[0].text, '설정 `fact:w7`은(는) 정사 시점 게이트로 이번 초고에서 숨겼습니다. 12화부터 적용됩니다.');
+  });
+
+  it('sits between fixed and recentSummaries', () => {
+    const layers = explainDraftContext({ contextAudit: audit({ canonGates: gates }), kit: enKit }).items.map((entry) => entry.layer);
+    assert.deepEqual([...new Set(layers)].slice(0, 3), ['fixed', 'canonGates', 'recentSummaries']);
+  });
+
+  it('caps the layer and counts the rest from the stored total', () => {
+    const forty = explainDraftContext({ contextAudit: audit({ canonGates: { hidden: hiddenList(40), total: 40 } }), kit: enKit });
+    assert.equal(byCode(forty, 'canon_gate').length, 12);
+    assert.equal(forty.items.filter((entry) => entry.layer === 'canonGates' && entry.code === 'and-more')[0].text, enKit.phrases.contextExplain.andMore(28));
+    const thirty = explainDraftContext({ contextAudit: audit({ canonGates: { hidden: hiddenList(30), total: 100 } }), kit: koKit });
+    assert.equal(byCode(thirty, 'canon_gate').length, 12);
+    assert.equal(thirty.items.filter((entry) => entry.layer === 'canonGates' && entry.code === 'and-more')[0].text, koKit.phrases.contextExplain.andMore(88));
+    const exact = explainDraftContext({ contextAudit: audit({ canonGates: { hidden: hiddenList(12), total: 12 } }), kit: enKit });
+    assert.equal(exact.items.filter((entry) => entry.code === 'and-more').length, 0);
+  });
+
+  it('adds nothing when canonGates is absent or malformed', () => {
+    const base = explainDraftContext({ contextAudit: audit(), kit: enKit });
+    for (const canonGates of [undefined, null, 'x', 7, [], { hidden: 'x' }, { hidden: [null, 5, {}] }]) {
+      const result = explainDraftContext({ contextAudit: audit({ canonGates }), kit: enKit });
+      assert.equal(byCode(result, 'canon_gate').length, 0);
+      assert.equal(result.items.filter((entry) => entry.layer === 'canonGates').length, 0);
+      assert.equal(result.items[0].text, base.items[0].text);
+    }
+  });
+
+  it('renders ? for a chapter that is not finite and sanitizes the ref', () => {
+    const result = explainDraftContext({
+      contextAudit: audit({ canonGates: { hidden: [{ ref: 'fact:a\nb', kind: 'world-fact', fromChapter: null, reason: 'canon_gate' }, { ref: 'fact:c', fromChapter: 'soon' }], total: 2 } }),
+      kit: enKit,
+    });
+    const [first, second] = byCode(result, 'canon_gate');
+    assert.equal(first.subject, 'fact:a b');
+    assert.equal(first.text, enKit.phrases.contextExplain.canonGateHidden('fact:a b', '?'));
+    assert.equal(second.text, enKit.phrases.contextExplain.canonGateHidden('fact:c', '?'));
+    for (const sentence of result.sentences) assert.doesNotMatch(sentence, /\n/);
+  });
+});
