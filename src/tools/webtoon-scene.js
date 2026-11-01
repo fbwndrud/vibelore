@@ -271,16 +271,19 @@ async function drive(repo, w, providers) {
     const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(w.visualReview.findings, null, 2))}</pre></html>`;
     await repo.writeCandidate(w, 'scene.html', html);
     // Composition rows are stored first for the same reason: a failed write must leave the stage retryable, never silently skipped.
+    // A backfill re-review only records what an already adopted scene shows: it never revises, redraws or reopens the scene.
+    const backfill = w.backfillReview === true;
     if (w.compositionVersion || w.compositionBackfill === true) {
       const protagonistIds = (await loadWebtoonCompositionConfig(repo.store, w.workId).catch(() => null))?.protagonistIds ?? [];
-      await new CompositionStore(repo).adoptScene(w, { adopted: passed, protagonistIds });
+      await new CompositionStore(repo).adoptScene(w, { adopted: passed || backfill, protagonistIds });
       if (passed && w.compositionVersion) await attachCompositionAdvisory(repo, w);
     }
     // The record is written before the stage says completed, so a failed write retries instead of leaving an unverifiable scene.
-    if (passed && w.productionRecord) await writeProductionRecord(repo, w);
-    w.stage = passed ? 'completed' : 'scene_needs_revision';
-    record(w, 'scene_reviewed', { passed, imageHash: w.sceneImage.hash });
-    if (!passed && !w.reviewOnly && autoRevise(w)) return drive(repo, w, providers);
+    if ((passed || backfill) && w.productionRecord) await writeProductionRecord(repo, w);
+    w.stage = passed || backfill ? 'completed' : 'scene_needs_revision';
+    delete w.backfillReview;
+    record(w, 'scene_reviewed', { passed, imageHash: w.sceneImage.hash, ...(backfill ? { backfill: true } : {}) });
+    if (!passed && !backfill && !w.reviewOnly && autoRevise(w)) return drive(repo, w, providers);
   }
   return scenePublicState(w);
 }
@@ -475,8 +478,13 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       return scenePublicState(w);
     }
     await verifyInputs(repo, w);
+    if (!run && args.compositionBackfill !== undefined && args.action !== 'review') throw new Error('SCENE_BACKFILL_REVIEW_ONLY');
     if (!run && args.action === 'review') {
       if (!w.sceneImage || w.stage === 'rejected') throw new Error('SCENE_REVIEW_IMAGE_REQUIRED');
+      if (args.compositionBackfill === true) {
+        if (w.compositionVersion) throw new Error('SCENE_BACKFILL_NOT_NEEDED');
+        if (w.stage !== 'completed') throw new Error('SCENE_BACKFILL_REQUIRES_COMPLETED');
+      }
       if (w.visualReview || w.pending) {
         const previousReview = { visualReview: w.visualReview, pending: w.pending ?? null,
           reviewModel: w.reviewModel ?? null, imageReviewVersion: w.imageReviewVersion ?? 1,
@@ -486,6 +494,7 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       }
       if (w.pending) await dropRun(store.rootDir, w.pending.runId);
       w.visualReview = null; delete w.productionRecordHash;
+      if (args.compositionBackfill === true) { w.compositionBackfill = true; w.backfillReview = true; } else delete w.backfillReview;
       w.pending = null; w.stage = 'scene_image_review'; w.reviewOnly = true;
       w.reviewFeedback = args.feedback;
       record(w, 'scene_rereview_requested', { feedback: args.feedback, imageHash: w.sceneImage.hash });
@@ -526,6 +535,7 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       }
       if (args.direction !== undefined) w.direction = args.direction;
       if (w.pending) await dropRun(store.rootDir, w.pending.runId);
+      delete w.backfillReview;
       beginRevision(w, args.feedback);
       record(w, 'scene_revision_requested', { feedback: args.feedback });
     }

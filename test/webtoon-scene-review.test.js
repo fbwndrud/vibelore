@@ -11,6 +11,7 @@ import { sceneSetup, scenePlan, scenePreflight, sceneCompositionCheck, sceneComp
 import { qualityStore, workId as qualityWorkId } from './fixtures/quality-workflow.js';
 import { workId } from './fixtures/webtoon.js';
 import { readFile } from 'node:fs/promises';
+import { CompositionStore } from '../src/store/webtoon-composition-store.js';
 
 const terra = { provider: 'host', modelId: 'gpt-6.1-terra', reasoningEffort: 'medium' };
 const checkNames = ['reflectionGeometry', 'propStructure', 'handsAndContact', 'withinSceneContinuity', 'layoutAndTiming'];
@@ -274,4 +275,104 @@ test('the review request carries the composition check and sentence only for com
   assert.equal(JSON.parse(lq.user).schema.compositionCheck, undefined);
   assert.equal(lq.system.includes('compositionCheck'), false);
   assert.equal(q.system, lq.system.replace(SCENE_IMAGE_REVIEW_PROMPT, `${SCENE_IMAGE_REVIEW_PROMPT}\n${SENTENCE}`), 'only the one sentence differs');
+});
+
+// A scene that finished before composition labels existed: no compositionVersion, no composition rows.
+async function completedLegacyScene() {
+  const { store, repo, args } = await sceneSetup();
+  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 2 }, providers: planner });
+  const w = await repo.load(); delete w.compositionVersion; await repo.save(w);
+  const pending = await runWebtoonSceneTool({ store, args: { workId, asset: assetFor(args, drawn.jobs[0]) }, providers: createHostRelay() });
+  const q = pending.requests[0], run = await loadRun(store.rootDir, pending.runId);
+  const done = await runWebtoonSceneTool({ store, args: run.args, run, providers: createHostRelay({ [q.id]: JSON.stringify(reviewAnswer(q)) }) });
+  assert.equal(done.status, 'completed');
+  return { store, repo, composition: new CompositionStore(repo) };
+}
+const allRows = async composition => (await Promise.all((await composition.listEpisodes()).map(({ episodeKey }) => composition.readShard(episodeKey)))).flat();
+function backfillAnswer(q, { unclearPanel = 2, mutate } = {}) {
+  const d = JSON.parse(q.user);
+  const answer = reviewAnswer(q);
+  answer.compositionCheck = d.schema.compositionCheck.map(e => e.panel === unclearPanel
+    ? { panel: e.panel, result: 'unclear', observed: null, evidence: `Panel ${e.panel} is cropped.` }
+    : { panel: e.panel, result: 'observed', observed: sceneComposition(), evidence: `Panel ${e.panel} was inspected.` });
+  mutate?.(answer);
+  return answer;
+}
+async function answerReview(store, pending, answer) {
+  const run = await loadRun(store.rootDir, pending.runId);
+  return runWebtoonSceneTool({ store, args: run.args, run, providers: createHostRelay({ [pending.requests[0].id]: JSON.stringify(answer(pending.requests[0])) }) });
+}
+
+test('a backfill re-review of a completed pre-change scene records observed-backfill rows and stays completed', async () => {
+  const { store, repo, composition } = await completedLegacyScene();
+  assert.deepEqual(await allRows(composition), [], 'a pre-change scene starts with no composition rows');
+  const before = await repo.load();
+  const pending = await runWebtoonSceneTool({ store, args: { workId, action: 'review', compositionBackfill: true }, providers: createHostRelay() });
+  assert.equal(pending.status, 'needs_model');
+  const request = JSON.parse(pending.requests[0].user);
+  assert.deepEqual(request.schema.compositionCheck.map(e => e.result), Array(6).fill('observed|unclear'));
+  assert.ok(pending.requests[0].system.includes(SENTENCE));
+  const done = await answerReview(store, pending, q => backfillAnswer(q));
+  assert.equal(done.status, 'completed');
+  const state = await repo.load();
+  assert.equal(state.stage, 'completed');
+  assert.equal(state.compositionBackfill, true, 'the flag stays persisted for later label derivation');
+  assert.equal(state.compositionVersion, undefined);
+  assert.equal(state.reviewHistory.length, 1, 'the previous review is preserved');
+  assert.equal(state.revision, before.revision);
+  const panels = (await allRows(composition)).filter(r => r.type === 'panel');
+  assert.equal(panels.length, 6);
+  assert.ok(panels.every(r => r.source === 'observed-backfill' && r.status === 'adopted'));
+  assert.equal(panels.filter(r => r.confidence === 'unclear').length, 1);
+  assert.equal(panels.find(r => r.panel === 2).label, null);
+  assert.deepEqual(panels.find(r => r.panel === 1).label, sceneComposition());
+  assert.equal(done.compositionAdvisory, undefined, 'backfill adds no repetition advisory');
+});
+
+test('a backfill review that fails other checks still records adopted rows, keeps the scene completed and shows the findings', async () => {
+  const { store, repo, composition } = await completedLegacyScene();
+  const pending = await runWebtoonSceneTool({ store, args: { workId, action: 'review', compositionBackfill: true }, providers: createHostRelay() });
+  const done = await answerReview(store, pending, q => backfillAnswer(q, { mutate: a => {
+    a.visualChecks.propStructure = { status: 'failed', panels: [1], evidence: 'The support is missing.' };
+    a.findings = [{ severity: 'blocking', category: 'prop', evidence: 'The support is missing.' }];
+  } }));
+  assert.equal(done.status, 'completed');
+  assert.equal(done.jobs, undefined, 'no image is requested');
+  assert.equal(done.visualReview.passed, false);
+  assert.equal(done.visualReview.findings.length, 1);
+  const state = await repo.load();
+  assert.equal(state.stage, 'completed');
+  assert.equal(state.visualReview.passed, false);
+  assert.deepEqual(state.autoRevision, { used: 0, limit: 2 });
+  const rows = await allRows(composition);
+  assert.ok(rows.length === 7 && rows.every(r => r.status === 'adopted'), 'rows are adopted although the review failed');
+});
+
+test('backfill refuses a workflow that already records composition and a scene that is not completed', async () => {
+  const modern = await sceneSetup();
+  const drawn = await runWebtoonSceneTool({ store: modern.store, args: modern.args, providers: planner });
+  const pending = await runWebtoonSceneTool({ store: modern.store, args: { workId, asset: assetFor(modern.args, drawn.jobs[0]) }, providers: createHostRelay() });
+  const done = await answerReview(modern.store, pending, q => reviewAnswer(q));
+  assert.equal(done.status, 'completed');
+  await assert.rejects(runWebtoonSceneTool({ store: modern.store, args: { workId, action: 'review', compositionBackfill: true }, providers: createHostRelay() }), /SCENE_BACKFILL_NOT_NEEDED/);
+
+  const legacy = await sceneSetup();
+  const drawnLegacy = await runWebtoonSceneTool({ store: legacy.store, args: legacy.args, providers: planner });
+  const w = await legacy.repo.load(); delete w.compositionVersion; await legacy.repo.save(w);
+  const reviewing = await runWebtoonSceneTool({ store: legacy.store, args: { workId, asset: assetFor(legacy.args, drawnLegacy.jobs[0]) }, providers: createHostRelay() });
+  assert.equal(reviewing.status, 'needs_model');
+  await assert.rejects(runWebtoonSceneTool({ store: legacy.store, args: { workId, action: 'review', compositionBackfill: true }, providers: createHostRelay() }), /SCENE_BACKFILL_REQUIRES_COMPLETED/);
+  assert.equal((await legacy.repo.load()).compositionBackfill, undefined, 'a refused backfill leaves no flag behind');
+  await assert.rejects(runWebtoonSceneTool({ store: legacy.store, args: { workId, action: 'revise', feedback: 'x', compositionBackfill: true }, providers: createHostRelay() }), /SCENE_BACKFILL_REVIEW_ONLY/);
+});
+
+test('a plain re-review of a pre-change scene keeps its bytes: no composition field, no rows', async () => {
+  const { store, repo, composition } = await completedLegacyScene();
+  const pending = await runWebtoonSceneTool({ store, args: { workId, action: 'review' }, providers: createHostRelay() });
+  assert.equal(JSON.parse(pending.requests[0].user).schema.compositionCheck, undefined);
+  assert.equal(pending.requests[0].system.includes('compositionCheck'), false);
+  const done = await answerReview(store, pending, q => reviewAnswer(q));
+  assert.equal(done.status, 'completed');
+  assert.deepEqual(await allRows(composition), []);
+  assert.equal((await repo.load()).compositionBackfill, undefined);
 });
