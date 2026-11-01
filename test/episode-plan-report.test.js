@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { rm } from 'node:fs/promises';
 import { runConfigureStatus } from '../src/tools/configure.js';
-import { runEpisodePlan } from '../src/tools/episode-plan.js';
+import { renderEpisodeOutcome, renderEpisodePlan, runEpisodePlan } from '../src/tools/episode-plan.js';
+import { STAGE_REVIEW_FOCUS } from '../src/core/planning-stage-review.js';
+import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../src/core/writer-episode-packet.js';
 import { promptKit } from '../src/prompts/index.js';
 import { renderArcBeat, renderArcBeatShape, renderPreviousChapterHookEvents } from '../src/core/prompt-sections.js';
 import { profileCheckInputs } from '../src/core/profile-check-input.js';
@@ -118,4 +120,105 @@ test('ja episode-plan messages contain no Hangul instructions and are identical 
   assert.deepEqual(build(), build());
   for (const message of build()) assert.doesNotMatch(message.content, HANGUL);
   assert.match(build()[1].content, /^h1: 鍵の謎 \(planted\)$/m);
+});
+
+// Runs the episode planner once with the model answer overlaid on a valid plan.
+async function runWith(t, overrides, arcCodes = {}, { chapter = 1 } = {}) {
+  const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
+  await runConfigureStatus({ store, workId, planningReviews: { episode: false } });
+  const arc = await store.loadArcPlan(workId);
+  await store.saveArcPlan(workId, { ...arc, episodes: arc.episodes.map((episode) => (episode.chapter === chapter ? { ...episode, ...arcCodes } : episode)) });
+  return runEpisodePlan({ store, workId, chapter, mode: 'review',
+    providers: { pending: [], async complete(req) {
+      return approvalResponse(req) ?? { text: JSON.stringify({ ...minimalPlan, ...overrides }) };
+    } } });
+}
+
+test('recap and a complete planConflict are stored with length caps; an incomplete or malformed report is dropped', async (t) => {
+  const kept = (await runWith(t, { recap: 'r'.repeat(500), planConflict: { beatAssumption: 'a', actualState: 'b', evidence: 'e'.repeat(400) } })).plan;
+  assert.equal(kept.recap.length, 400);
+  assert.equal(kept.planConflict.evidence.length, 300);
+  assert.deepEqual(Object.keys(kept.planConflict), ['beatAssumption', 'actualState', 'evidence']);
+  const noEvidence = (await runWith(t, { planConflict: { beatAssumption: 'a', actualState: 'b' } })).plan;
+  assert.equal(noEvidence.planConflict.evidence, '');
+  assert.equal('planConflict' in (await runWith(t, { planConflict: { beatAssumption: 'a', actualState: '' } })).plan, false);
+  assert.equal('planConflict' in (await runWith(t, { planConflict: { beatAssumption: '', actualState: 'b', evidence: 'e' } })).plan, false);
+  assert.equal('recap' in (await runWith(t, {})).plan, false);
+  assert.equal('recap' in (await runWith(t, { recap: '   ' })).plan, false);
+  for (const bad of [42, ['x'], { text: 'x' }, null]) {
+    const plan = (await runWith(t, { recap: bad, planConflict: bad })).plan;
+    assert.equal('recap' in plan, false);
+    assert.equal('planConflict' in plan, false);
+    assert.equal(plan.title, minimalPlan.title);
+  }
+  assert.equal('planConflict' in (await runWith(t, { planConflict: 'conflict' })).plan, false);
+});
+
+test('handling and hookType inherit from the arc beat; invalid codes fall back', async (t) => {
+  const coded = { expectationHandling: 'twist', hookType: 'ability' };
+  assert.equal((await runWith(t, {}, coded)).plan.readerExpectation.handling, 'twist');
+  assert.equal((await runWith(t, { readerExpectation: { handling: 'delay' } }, coded)).plan.readerExpectation.handling, 'delay');
+  assert.equal((await runWith(t, { readerExpectation: { handling: 'bogus' } }, coded)).plan.readerExpectation.handling, 'twist');
+  assert.equal('handling' in (await runWith(t, { readerExpectation: { handling: 'bogus' } })).plan.readerExpectation, false);
+  assert.equal('handling' in (await runWith(t, {})).plan.readerExpectation, false);
+  assert.equal((await runWith(t, {}, coded)).plan.exitValue.hookType, 'ability');
+  assert.equal((await runWith(t, {})).plan.exitValue.hookType, 'result');
+  assert.equal((await runWith(t, { exitValue: { hookType: 'moral' } }, coded)).plan.exitValue.hookType, 'moral');
+});
+
+test('recap and planConflict stay out of the writer packet and every rendered plan', async (t) => {
+  const recap = 'RECAP-MARKER 지난 화 요약';
+  const planConflict = { beatAssumption: 'ASSUME-MARKER', actualState: 'ACTUAL-MARKER', evidence: 'EVIDENCE-MARKER' };
+  const { plan } = await runWith(t, { recap, planConflict });
+  assert.equal(plan.recap, recap);
+  const packet = compileWriterEpisodePacket({ episodePlan: { ...plan, status: 'active' }, arcEpisode: plan.arcBeat, prevState: emptyStoryState(workId), budget: { maxTokens: WRITER_PACKET_MAX_TOKENS } });
+  assert.ok(packet.ok, JSON.stringify(packet));
+  const rendered = [JSON.stringify(packet), renderEpisodePlan(plan, kit), renderEpisodePlan(plan, enKit), renderEpisodeOutcome(plan, kit)].join('\n');
+  for (const marker of ['RECAP-MARKER', 'ASSUME-MARKER', 'ACTUAL-MARKER', 'EVIDENCE-MARKER']) assert.equal(rendered.includes(marker), false, marker);
+});
+
+test('a planning-stage revision cannot change or erase the first pass report', async (t) => {
+  for (const revisedReport of [{}, { recap: 'changed', planConflict: { beatAssumption: 'x', actualState: 'y', evidence: 'z' } }]) {
+    const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
+    const profile = await store.loadStoryProfile(workId);
+    await store.saveStoryProfile(workId, { ...profile, discovery: { depth: 'deep', authority: 'user', userAnswer: '함께 자세히 준비해요.' } });
+    const review = (findings) => ({ checks: STAGE_REVIEW_FOCUS.episode.map((focus) => ({ focus, result: 'met', evidence: '선택이 사건을 바꾼다.' })), findings });
+    const repair = { id: 'promise', evidence: '목표가 약하다.', reason: '확정한 목표와 다르다.', action: 'repair', contractEvidence: '문을 연다', revision: '목표를 되살린다.' };
+    const steps = [];
+    const first = { ...minimalPlan, recap: 'r', planConflict: { beatAssumption: 'a', actualState: 'b', evidence: 'e' } };
+    let reviews = 0;
+    const { plan } = await runEpisodePlan({ store, workId, chapter: 1, mode: 'review',
+      providers: { pending: [], async complete(req) {
+        steps.push(req.step);
+        const approval = approvalResponse(req); if (approval) return approval;
+        if (req.step === 'episode-plan') return { text: JSON.stringify(first) };
+        if (req.step === 'episode-plan-review') return { text: JSON.stringify(review(reviews++ === 0 ? [repair] : [])) };
+        if (req.step === 'episode-plan-revision') return { text: JSON.stringify({ ...minimalPlan, title: '수정된 제목', ...revisedReport }) };
+        throw new Error(`unexpected ${req.step}`);
+      } } });
+    assert.ok(steps.includes('episode-plan-revision'), steps.join(','));
+    assert.equal(plan.title, '수정된 제목');
+    assert.equal(plan.recap, 'r');
+    assert.deepEqual(plan.planConflict, { beatAssumption: 'a', actualState: 'b', evidence: 'e' });
+  }
+});
+
+test('a revision cannot add a report the first pass did not make', async (t) => {
+  const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
+  const profile = await store.loadStoryProfile(workId);
+  await store.saveStoryProfile(workId, { ...profile, discovery: { depth: 'deep', authority: 'user', userAnswer: '함께 자세히 준비해요.' } });
+  const review = (findings) => ({ checks: STAGE_REVIEW_FOCUS.episode.map((focus) => ({ focus, result: 'met', evidence: '선택이 사건을 바꾼다.' })), findings });
+  const repair = { id: 'promise', evidence: '목표가 약하다.', reason: '확정한 목표와 다르다.', action: 'repair', contractEvidence: '문을 연다', revision: '목표를 되살린다.' };
+  let reviews = 0;
+  const { plan } = await runEpisodePlan({ store, workId, chapter: 1, mode: 'review',
+    providers: { pending: [], async complete(req) {
+      const approval = approvalResponse(req); if (approval) return approval;
+      if (req.step === 'episode-plan') return { text: JSON.stringify(minimalPlan) };
+      if (req.step === 'episode-plan-review') return { text: JSON.stringify(review(reviews++ === 0 ? [repair] : [])) };
+      if (req.step === 'episode-plan-revision') return { text: JSON.stringify({ ...minimalPlan, title: '수정된 제목', recap: 'new', planConflict: { beatAssumption: 'x', actualState: 'y' } }) };
+      throw new Error(`unexpected ${req.step}`);
+    } } });
+  assert.equal(plan.title, '수정된 제목');
+  assert.equal('recap' in plan, false);
+  assert.equal('planConflict' in plan, false);
 });
