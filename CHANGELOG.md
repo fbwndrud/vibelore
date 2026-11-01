@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `lore_webtoon_scene`이 구도 메타데이터를 기록합니다. 새로 시작한 장면은 생성 전 검증에서 모든 칸에 고정 어휘의 구도 라벨(샷·각도·초점·배경·인물별 가시성·위치·시선·표정, 페이지 레이아웃, 원문이 요구하는 요소)을 붙이고, `directed`로 표시한 최대 두 칸의 프레이밍만 그림 모델에 전달하며 나머지는 기록 전용입니다. 인물은 로컬 id·일반 id·개체 id 어느 것으로 불러도 하나의 정규 id로 저장됩니다. 실제 그림 검수는 `compositionCheck`로 칸마다 라벨과 대조해 달리 보이면 관찰값을 남기되 판정에는 쓰지 않습니다. 채택된 장면은 에피소드별 기록(L0)을 쌓고 여기서 장면·에피소드·누적·인물별 집계(L1~L3)를 모델 호출 없이 결정론적으로 만듭니다. 이 집계로 만든 반복 다이제스트(`compositionDigest`)는 계획과 생성 전 검증 요청에만 한 번씩 실리고, 반복이 최신 페이지에 닿으면 `COMPOSITION_REPETITION` advisory가 검수 결과에 붙습니다(`lore_configure`의 `webtoonComposition`으로 기준을 바꾸고 `disabledReviews`의 `composition-ledger`로 경고만 끕니다). 둘 다 이미지 생성·채택·검수 판정을 막지 않으며, 손상된 기록 파일이 있어도 채택은 계속되고 `compositionRecordError`로 알립니다. `action="composition_rebuild"`는 집계를 다시 만들고(`setAsideCorrupt`로 손상된 에피소드 파일을 바이트를 보존한 채 비켜 둘 수 있음), 구도 기록이 없는 이전 완료 장면은 `action="review"`의 `compositionBackfill=true`로 새 이미지 없이 그려진 구도만 관측해 기록합니다. 같은 바이트의 참조 이미지는 이미지 요청에 한 번만 첨부합니다. 구도 메타데이터 이전에 시작한 장면의 요청·프롬프트·검수는 바이트까지 그대로입니다.
 - 저장소 전용 Lore Studio에 로컬 제작·고정 Edition·공유 자산 Library·명시적 반입/채택과
   제작 사이클 기록을 추가합니다. npm runtime에는 Studio를 포함하지 않습니다.
 - Studio 자격 증명을 명시적 옵션으로만 읽고 MCP의 임의 소유자 연결을 거부합니다.
