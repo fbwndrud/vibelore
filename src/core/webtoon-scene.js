@@ -4,6 +4,20 @@ import { validateSceneVisualChecks, SCENE_VISUAL_CHECKS } from './webtoon-scene-
 
 export const SCENE_PRODUCTION_MODE = 'scene-direct-v1';
 export const PREVIOUS_SCENE_ID = 'previous-scene';
+/**
+ * The same bytes must reach an image job once. The first reference with a hash survives in order;
+ * a later duplicate gives up its id (`mergedIds`) and its description (appended as " Also: ...").
+ */
+export function mergeDuplicateReferences(refs) {
+  const survivors = new Map();
+  for (const ref of refs) {
+    const kept = survivors.get(ref.hash);
+    if (!kept) { survivors.set(ref.hash, { ...ref }); continue; }
+    kept.mergedIds = [...(kept.mergedIds ?? []), ref.id];
+    kept.description = `${kept.description} Also: ${ref.description}`;
+  }
+  return [...survivors.values()];
+}
 export const SCENE_CHECKS = ['sourceFidelity', 'spatialFeasibility', 'temporalCausality', 'visualLoad'];
 export const CONTINUITY_CHECKS = ['identity', 'setting', 'actionTransition'];
 export const SCENE_PANEL_LIMITS = { min: 1, max: 12, autoMin: 3, continuityMin: 3 };

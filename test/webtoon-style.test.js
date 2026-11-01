@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { sceneSetup, scenePlan, scenePreflight, sceneVisualChecks } from './fixtures/webtoon-scene.js';
-import { workId, pixel } from './fixtures/webtoon.js';
+import { workId, pixel, otherPixel } from './fixtures/webtoon.js';
 import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { readWebtoonWorkflow } from '../src/tools/webtoon.js';
@@ -12,8 +12,10 @@ import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
 
 const call = (store, args) => runWebtoonStyleTool({ store, args: { workId, ...args } });
+// Distinct from the scene reference bytes, so the sample is attached as its own reference.
+const samplePixel = otherPixel;
 async function candidate(store, direction = 'Monochrome ink with expressive adult faces.') {
-  const imagePath = join(store.rootDir, 'sample.png'); await writeFile(imagePath, pixel);
+  const imagePath = join(store.rootDir, 'sample.png'); await writeFile(imagePath, samplePixel);
   return call(store, { action: 'propose', brief: '옛날 만화처럼 거칠게, 얼굴은 어른처럼.', direction, imagePath });
 }
 async function adopt(store, direction) {
@@ -48,7 +50,7 @@ test('a user-provided sample is preserved, requires explicit adoption, and canno
   assert.equal(approved.style.brief, '옛날 만화처럼 거칠게, 얼굴은 어른처럼.');
   assert.equal(approved.style.adoption.feedback, '이 그림으로 해 줘.');
   assert.equal(approved.style.image.provenance.kind, 'user-provided');
-  assert.deepEqual(await readFile(approved.style.image.path), pixel);
+  assert.deepEqual(await readFile(approved.style.image.path), samplePixel);
   assert.equal(await repo.load(), null); assert.deepEqual(await readFile(store.chapterPath(1)), before);
   assert.equal((await call(store, { action: 'approve', proposalId: c.proposalId, feedback: '좋아' })).alreadyAdopted, true);
 });

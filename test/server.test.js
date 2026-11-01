@@ -492,7 +492,8 @@ describe('MCP surface', () => {
     assert.equal(result.status, 'needs_scene_image'); assert.equal(result.panelCount, 5);
     assert.match(result.jobs[0].prompt, /EXACTLY 5 panels/);
     assert.equal(result.style.revisionId, adopted.style.revisionId);
-    assert.ok(result.jobs[0].referenceImages.some(i => i.id === 'adopted-style'));
+    // The sample reuses the user reference's bytes here, so the adopted style rides on that one attachment.
+    assert.ok(result.jobs[0].referenceImages.some(i => i.id === 'adopted-style' || i.mergedIds?.includes('adopted-style')));
     const status = await invoke('lore_workflow_status', { workId: webtoonWorkId, lane: 'webtoon', workflowId: result.workflowId });
     assert.equal(status.productionMode, 'scene-direct-v1'); assert.equal(status.panelCountMode, 'auto'); assert.equal(status.panelCount, 5);
   });

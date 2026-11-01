@@ -16,7 +16,7 @@ import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
 import { loadWebtoonReviewModel } from '../core/review-policy.js';
 import { SCENE_IMAGE_REVIEW_VERSION, SCENE_IMAGE_REVIEW_PROMPT, sceneVisualCheckSchema, sceneReviewInputs } from '../core/webtoon-scene-review.js';
-import { SCENE_SCHEMA, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, CONTINUITY_CHECKS,
+import { SCENE_SCHEMA, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, mergeDuplicateReferences, CONTINUITY_CHECKS,
   isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
@@ -292,10 +292,10 @@ async function startScene(store, repo, args, current) {
     panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount }),
     ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: previous.visualReview.findings, reviewPassed: previous.visualReview.passed } } : {}),
     imagePolicy: policy, imageSelection: saved.selection, autoRevision: { limit: autoLimit, used: 0 }, attempts: [],
-    sceneReferences: [...references, ...(styleSnapshot ? [styleReference(styleSnapshot)] : []),
+    sceneReferences: mergeDuplicateReferences([...references, ...(styleSnapshot ? [styleReference(styleSnapshot)] : []),
       ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: styleSnapshot
         ? 'Previous scene: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
-        : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
+        : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])]),
     acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity(), productionRecord: true };
   record(w, 'scene_started', { sourceHash: source.hash, ...(delegation ? { delegation } : {}) });
   return w;

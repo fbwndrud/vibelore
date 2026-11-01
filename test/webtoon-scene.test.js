@@ -2,14 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { workId, pixel } from './fixtures/webtoon.js';
+import { workId, pixel, otherPixel } from './fixtures/webtoon.js';
 import { scenePlan, scenePreflight, sceneSetup, sceneVisualChecks } from './fixtures/webtoon-scene.js';
 import { digest } from '../src/core/webtoon-contract.js';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { readWebtoonWorkflow } from '../src/tools/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
-import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering, PREVIOUS_SCENE_ID } from '../src/core/webtoon-scene.js';
+import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering, PREVIOUS_SCENE_ID, mergeDuplicateReferences } from '../src/core/webtoon-scene.js';
+import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 
 const plan = scenePlan, preflight = scenePreflight, setup = sceneSetup;
 
@@ -121,7 +122,9 @@ test('a count mismatch blocks completion and changing a selected count cannot re
 test('a passed previous scene is carried as the next scene image reference', async () => {
   const { store, args: base } = await setup(), args = { ...base, autoRevisions: 0 };
   const r = await runWebtoonSceneTool({ store, args: { ...args, sourceUnitIds: ['ch-1-p-1'] }, providers: provider() });
-  const first = await runWebtoonSceneTool({ store, args: { workId, asset: { path: args.references[0].path, inputHash: r.jobs[0].inputHash,
+  // A generated image with its own bytes; identical bytes would merge into the reference instead.
+  const generated = join(store.rootDir, 'generated.png'); await writeFile(generated, otherPixel);
+  const first = await runWebtoonSceneTool({ store, args: { workId, asset: { path: generated, inputHash: r.jobs[0].inputHash,
     provenance: { kind: 'openai-api', requestedModel: 'gpt-image-2.5-sunburst', selectionId: 'selected-api' } } }, providers: provider() });
   assert.equal(first.status, 'completed');
   const next = await runWebtoonSceneTool({ store, args: { ...args, previousWorkflowId: first.workflowId, sourceUnitIds: ['ch-1-p-2'] }, providers: provider() });
@@ -415,4 +418,40 @@ test('the image review request names the actual image files so an adapter can at
     provenance: { kind: 'openai-api', requestedModel: 'gpt-image-2.5-sunburst', selectionId: 'selected-api' } } }, providers: p });
   assert.equal(done.status, 'completed');
   assert.deepEqual(review.images, [{ path: done.image.path, mime: 'image/png' }]);
+});
+
+test('identical reference bytes attach once with merged roles', async () => {
+  const { store, args } = await setup();
+  // The adopted style sample uses the same bytes as the user reference.
+  const imagePath = join(store.rootDir, 'sample.png'); await writeFile(imagePath, pixel);
+  const proposal = await runWebtoonStyleTool({ store, args: { workId, action: 'propose', brief: 'rough ink', direction: 'Monochrome ink.', imagePath } });
+  await runWebtoonStyleTool({ store, args: { workId, action: 'approve', proposalId: proposal.proposalId, feedback: 'use this' } });
+  const base = provider(), styled = { ...base, async complete(req) {
+    const out = await base.complete(req), d = JSON.parse(req.messages.at(-1).content);
+    if (req.step !== 'webtoon-scene-preflight') return out;
+    const answer = JSON.parse(out.text); answer.renderBrief.style = d.styleBasis.profile.style; return { text: JSON.stringify(answer) };
+  } };
+  const r = await runWebtoonSceneTool({ store, args, providers: styled });
+  assert.equal(r.status, 'needs_scene_image');
+  const refs = r.jobs[0].referenceImages;
+  assert.equal(new Set(refs.map(x => x.hash)).size, refs.length);
+  const kept = refs.find(x => x.id === 'ref');
+  assert.deepEqual(kept.mergedIds, ['adopted-style']);
+  assert.match(kept.description, / Also: /);
+  assert.equal(refs.some(x => x.id === 'adopted-style'), false);
+});
+
+test('distinct reference bytes are untouched', () => {
+  const refs = [{ id: 'a', hash: 'h1', description: 'A.' }, { id: 'b', hash: 'h2', description: 'B.' }];
+  assert.deepEqual(mergeDuplicateReferences(refs), refs);
+});
+
+test('mergeDuplicateReferences keeps the first occurrence in order and does not mutate its input', () => {
+  const refs = [{ id: 'a', hash: 'h1', description: 'A.' }, { id: 'b', hash: 'h2', description: 'B.' }, { id: 'c', hash: 'h1', description: 'C.' }, { id: 'd', hash: 'h1', description: 'D.' }];
+  const copy = structuredClone(refs), merged = mergeDuplicateReferences(refs);
+  assert.deepEqual(refs, copy);
+  assert.deepEqual(merged.map(x => x.id), ['a', 'b']);
+  assert.deepEqual(merged[0].mergedIds, ['c', 'd']);
+  assert.equal(merged[0].description, 'A. Also: C. Also: D.');
+  assert.equal(merged[1].mergedIds, undefined);
 });
