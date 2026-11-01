@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { rm } from 'node:fs/promises';
 import { runConfigureStatus } from '../src/tools/configure.js';
-import { renderEpisodeOutcome, renderEpisodePlan, runEpisodePlan } from '../src/tools/episode-plan.js';
+import { PLAN_REPORT_KEYS, planReport, renderEpisodeOutcome, renderEpisodePlan, runEpisodePlan } from '../src/tools/episode-plan.js';
 import { STAGE_REVIEW_FOCUS } from '../src/core/planning-stage-review.js';
 import { WRITER_PACKET_MAX_TOKENS, compileWriterEpisodePacket } from '../src/core/writer-episode-packet.js';
 import { promptKit } from '../src/prompts/index.js';
@@ -188,6 +188,14 @@ test('handling and hookType inherit from the arc beat; invalid codes fall back',
   assert.equal((await runWith(t, { exitValue: { hookType: 'cliffhanger' } }, coded)).plan.exitValue.hookType, 'ability');
   assert.equal((await runWith(t, { exitValue: { hookType: 'cliffhanger' } })).plan.exitValue.hookType, 'cliffhanger');
   assert.equal((await runWith(t, { exitValue: { hookType: '' } })).plan.exitValue.hookType, 'result');
+});
+
+test('the planner report contract is exported and frozen', () => {
+  assert.deepEqual(PLAN_REPORT_KEYS, ['recap', 'planConflict']);
+  assert.ok(Object.isFrozen(PLAN_REPORT_KEYS));
+  assert.deepEqual(planReport({ recap: 'r', planConflict: { beatAssumption: 'a', actualState: 'b' } }), { recap: 'r', planConflict: { beatAssumption: 'a', actualState: 'b', evidence: '' } });
+  assert.deepEqual(Object.keys(planReport({ recap: 'r', planConflict: { beatAssumption: 'a', actualState: 'b' } })), PLAN_REPORT_KEYS);
+  assert.deepEqual(planReport({}), {});
 });
 
 test('recap and planConflict stay out of the writer packet and every rendered plan', async (t) => {

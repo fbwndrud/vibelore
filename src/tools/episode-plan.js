@@ -26,12 +26,15 @@ const strings = (value, max = 20) => Array.isArray(value)
 const text = (value, max = 1000) => String(value ?? '').trim().slice(0, max);
 const scalarText = (value) => typeof value === 'string' || typeof value === 'number' ? value : '';
 
+// The planner's own report keys: later plan-building steps must carry them through unchanged.
+export const PLAN_REPORT_KEYS = Object.freeze(['recap', 'planConflict']);
+
 /**
  * The planner's own report on its inputs. It is stored with the plan but never
  * rendered to the writer or the critics. A malformed value is dropped, and a
  * conflict is kept only when it names both the assumption and the actual state.
  */
-function planReport(obj) {
+export function planReport(obj) {
   const recap = typeof obj.recap === 'string' ? text(obj.recap, 400) : '';
   const raw = obj.planConflict && typeof obj.planConflict === 'object' && !Array.isArray(obj.planConflict) ? obj.planConflict : null;
   const field = (value) => (typeof value === 'string' ? text(value, 300) : '');
