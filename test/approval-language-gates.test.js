@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { buildLanguageContract } from '../engine/src/core/language-policy.js';
 import { createGenreProfileRegistry } from '../engine/src/continuity/genre-profile.js';
-import { gateApprovalActivation, projectApprovalValue } from '../src/core/approval-language-gate.js';
+import { APPROVAL_LANGUAGE_FIELDS, gateApprovalActivation, projectApprovalValue } from '../src/core/approval-language-gate.js';
 import { runInit } from '../src/tools/init.js';
 import { runStoryProfile, runStoryProfileDecide, runStoryProfileStatus } from '../src/tools/story-profile.js';
 import { ensureStoryIdentity, ensurePilotContract } from '../src/tools/story-experience.js';
@@ -229,4 +229,24 @@ test('a quality review record is bound in the hash but not language-reviewed', a
   assert.notEqual(projectApprovalValue({ ...spine, quality: { ...spine.quality, score: 70 } }).quality.id, projected.quality.id);
   // 같은 이름이라도 심사 기록 모양이 아니면 그대로 생성 필드로 검토된다.
   assert.equal(projectApprovalValue({ quality: 'a sentence' }).quality, 'a sentence');
+});
+
+test('shape codes are machine leaves only at their own path with a valid value', () => {
+  const out = projectApprovalValue({ episodes: [{ role: 'peak', expectationHandling: 'twist', hookType: 'ability', twistLevel: 1, hookOps: [{ op: 'paid', label: 'the key' }] }] });
+  const e = out.episodes[0];
+  assert.deepEqual([e.role, e.expectationHandling, e.hookType, e.hookOps[0].op], [{ id: 'peak' }, { id: 'twist' }, { id: 'ability' }, { id: 'paid' }]);
+  assert.equal(e.twistLevel, 1);
+  assert.equal(e.hookOps[0].label, 'the key');
+  assert.equal(projectApprovalValue({ episodes: [{ role: 'villain' }] }).episodes[0].role, 'villain');
+  assert.equal(projectApprovalValue({ characters: [{ intrinsic: { role: 'peak' } }] }).characters[0].intrinsic.role, 'peak');
+  assert.deepEqual(projectApprovalValue({ readerExpectation: { handling: 'delay' } }).readerExpectation.handling, { id: 'delay' });
+  assert.equal(projectApprovalValue({ handling: 'delay' }).handling, 'delay');
+  assert.equal(projectApprovalValue({ steps: [{ op: 'paid' }] }).steps[0].op, 'paid');
+  assert.equal(projectApprovalValue({ hookOps: [{ op: 'register' }] }).hookOps[0].op, 'register');
+  assert.equal(projectApprovalValue({ episodes: [{ expectationHandling: 'skip' }] }).episodes[0].expectationHandling, 'skip');
+});
+
+test('recap, planConflict fields and hook labels are language-reviewed text', () => {
+  for (const name of ['recap', 'label', 'beatAssumption', 'actualState']) assert.ok(APPROVAL_LANGUAGE_FIELDS.humanTextFields.includes(name), name);
+  assert.ok(!APPROVAL_LANGUAGE_FIELDS.humanTextFields.includes('role'));
 });
