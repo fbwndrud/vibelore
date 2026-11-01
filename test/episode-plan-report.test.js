@@ -184,6 +184,10 @@ test('handling and hookType inherit from the arc beat; invalid codes fall back',
   assert.equal((await runWith(t, {}, coded)).plan.exitValue.hookType, 'ability');
   assert.equal((await runWith(t, {})).plan.exitValue.hookType, 'result');
   assert.equal((await runWith(t, { exitValue: { hookType: 'moral' } }, coded)).plan.exitValue.hookType, 'moral');
+  // A model value outside the code table never overrides the arc's code.
+  assert.equal((await runWith(t, { exitValue: { hookType: 'cliffhanger' } }, coded)).plan.exitValue.hookType, 'ability');
+  assert.equal((await runWith(t, { exitValue: { hookType: 'cliffhanger' } })).plan.exitValue.hookType, 'cliffhanger');
+  assert.equal((await runWith(t, { exitValue: { hookType: '' } })).plan.exitValue.hookType, 'result');
 });
 
 test('recap and planConflict stay out of the writer packet and every rendered plan', async (t) => {

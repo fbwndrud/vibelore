@@ -17,7 +17,7 @@ import { loadLedgerConfig, planningReviewSelection } from '../core/review-policy
 import { renderStorySpine } from './story-spine.js';
 import { ledgerBaseState } from './ledger-log.js';
 import { reviewPlanningStage } from '../core/planning-stage-review.js';
-import { EXPECTATION_HANDLING } from '../core/narrative-codes.js';
+import { EXPECTATION_HANDLING, HOOK_TYPES } from '../core/narrative-codes.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
@@ -344,7 +344,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       exitValue: {
         closedQuestion: text(obj.exitValue?.closedQuestion),
         nextQuestion,
-        hookType: text(obj.exitValue?.hookType || arcBeat.hookType || 'result', 40),
+        hookType: [obj.exitValue?.hookType, arcBeat.hookType].find((code) => HOOK_TYPES.includes(code)) ?? text(obj.exitValue?.hookType || 'result', 40),
         specificFutureValue: text(obj.exitValue?.specificFutureValue || nextQuestion),
       },
       metricDramaturgy: Object.fromEntries(Object.entries(obj.metricDramaturgy && typeof obj.metricDramaturgy === 'object' ? obj.metricDramaturgy : {}).map(([key, value]) => [key, text(value, 500)])),
