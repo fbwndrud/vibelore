@@ -17,6 +17,8 @@ export const COMPOSITION_VOCAB = Object.freeze({
 });
 export const REQUIRED_KINDS = Object.freeze(['character', 'prop', 'action', 'location', 'text', 'state']);
 export const SCENE_TYPES = Object.freeze(['dialogue', 'action', 'reveal', 'quiet']);
+/** Reserved subject id for figures outside the cast (walk-ons, crowds); valid for any source and never a character in the aggregates. */
+export const EXTRA_SUBJECT_ID = 'extra';
 export const COMPOSITION_LIMITS = Object.freeze({ directedPerPage: 2, noteWords: 12 });
 
 /** Old-version value maps keyed by source version; empty while only version 1 exists. */
@@ -35,7 +37,7 @@ export function validateCompositionLabel(label, { castIds } = {}) {
   if (!Array.isArray(label.subjects)) invalid('subjects must be an array');
   for (const s of label.subjects) {
     if (!plain(s) || !safeId(s.id)) invalid('subject id is invalid');
-    if (castIds && !castIds.includes(s.id)) invalid('subject is not in the cast');
+    if (castIds && s.id !== EXTRA_SUBJECT_ID && !castIds.includes(s.id)) invalid('subject is not in the cast');
     for (const field of ['visibility', 'side', 'facing', 'expression']) if (s[field] !== undefined) oneOf(field, s[field]);
   }
   if (label.directed !== undefined && typeof label.directed !== 'boolean') invalid('directed must be a boolean');

@@ -47,11 +47,11 @@
 나머지 라벨은 기록 전용이며 원문이 요구하는 요소는 `required`에 근거 ID와 함께 적는다. 채택한 화풍 설명 중 구도 문장은 `seriesComposition`으로 분리되어
 계획 요청에만 실리고 다른 요청과 이미지 프롬프트에는 화풍 방향만 남는다. 시각 검수 요청도 화풍을 `styleBasis`에 한 번만 싣고, 같은 요청의 `renderBrief`에서는 `style`을 뺀다. 시작할 때 명시한 `direction`은 나누지 않고 그대로 쓴다. 이전부터 진행 중이던 작업은 이 동작을 바꾸지 않고 기존 요청을 그대로 유지한다.
 
-계획 요청은 `sceneType`(dialogue·action·reveal·quiet)을 정하게 하고, `seriesComposition`과 `compositionDigest`는 원문이 허락하는 범위에서 연출을 달리하는 데만 쓰라고 안내한다. 칸 구도는 이어지는 생성 전 검증에 맡긴다. 순간 설명(`action`)에는 카메라·프레이밍 말(close-up, wide shot, camera, low angle 등 영어 표기)을 쓰지 않는다. 구도는 라벨이 담으며, 이런 말이 있으면 `SCENE_MOMENT_FRAMING: moment N`으로 거절한다. 대사 한 줄만으로 화자의 얼굴이 `required`가 되지는 않는다.
+계획 요청은 `sceneType`(dialogue·action·reveal·quiet)을 정하게 하고, `seriesComposition`과 `compositionDigest`는 원문이 허락하는 범위에서 연출을 달리하는 데만 쓰라고 안내한다. 칸 구도는 이어지는 생성 전 검증에 맡긴다. 순간 설명(`action`)에는 카메라·프레이밍 말(close-up, wide shot, camera angle, low angle 등 영어 표기)을 쓰지 않는다. 구도는 라벨이 담으며, 이런 말이 있으면 `SCENE_MOMENT_FRAMING: moment N`으로 거절한다. 대사 한 줄만으로 화자의 얼굴이 `required`가 되지는 않는다.
 
 인물은 로컬 id·일반 id·공유 개체 id 중 무엇으로 라벨해도 된다. 저장되는 브리프와 시각 검수의 관찰 라벨, 모든 기록은 인물당 하나의 정규 id
 (로컬 id, 없으면 일반 id, 없으면 개체 id)를 쓰고 설정의 `protagonistIds`도 같은 id로 해석한다. 생성 전 검증 요청은 `cast`로 인물 목록을 싣고,
-구도 확인을 요구하는 시각 검수 요청에도 같은 목록을 실어 관찰 라벨이 같은 인물을 가리키게 한다. 공유 인물 목록이 없는 소설 원작은 기반(foundation)의 인물(id와 정식 이름)을 그 목록으로 쓰므로, 이 경우에도 목록이 요청에 실리고 목록 밖의 인물 id는 거절한다.
+구도 확인을 요구하는 시각 검수 요청에도 같은 목록을 실어 관찰 라벨이 같은 인물을 가리키게 한다. 공유 인물 목록이 없는 소설 원작은 기반(foundation)의 인물(id와 정식 이름)을 그 목록으로 쓰므로, 이 경우에도 목록이 요청에 실리고 목록 밖의 인물 id는 거절한다. 예약 id `extra`는 어느 원작에서나 목록 밖 인물(행인·군중)에 쓸 수 있으며, 인물별 집계·주인공 추정·다이제스트 메뉴에는 들어가지 않고 연출 문구에서는 "a bystander"로 쓰인다.
 
 같은 바이트의 참조 이미지는 이미지 요청에 한 번만 첨부한다. 먼저 나온 참조가 남고, 합쳐진 쪽의 역할은 설명 전체를 되풀이하지 않고 고정된 짧은 문구로 알린다(채택한 화풍 견본이면 "This same image is also the adopted art style sample: take the visual treatment from it.", 이전 장면이면 "This same image is also the preceding scene: continue its identities and setting after its ending.", 그 밖의 참조면 "This same image also serves as <id> reference."). 합쳐진 id는 `mergedIds`에 남고, 채택된 장면의 L0 페이지 행은 참조마다 `role`과 함께 합쳐진 역할을 `mergedRoles`로 기록한다. 이 방식은 새로 시작한 작업에만 적용되며 이전 작업의 저장된 참조는 바꾸지 않는다.
 

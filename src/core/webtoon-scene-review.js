@@ -62,7 +62,7 @@ const isBackfill = w => w.compositionBackfill === true;
 /** Composition is asked for only by workflows that carry a composition version or are being backfilled; older workflows keep their review bytes. */
 export const compositionCheckActive = w => Boolean(w.compositionVersion) || isBackfill(w);
 
-export const COMPOSITION_CAST_SENTENCE = 'Name each subject in an observed label by an id from the cast list.';
+export const COMPOSITION_CAST_SENTENCE = 'Name each subject in an observed label by an id from the cast list, or extra for a figure outside it.';
 
 /** The cast the check may name, in the review request; empty for a work without a usable cast and for workflows that do not ask for the check. */
 export const compositionReviewCast = w => compositionCheckActive(w) ? sceneCastList(w) : [];

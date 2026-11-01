@@ -184,3 +184,8 @@ test('an invalid backfill answer fails the stage, and a retry with a valid answe
   assert.equal((await repo.load()).stage, 'completed');
   assert.equal((await allRows(new CompositionStore(repo))).filter(r => r.type === 'panel').length, 6);
 });
+
+test('the cast sentence also names the reserved id for figures outside the cast', () => {
+  assert.match(COMPOSITION_CAST_SENTENCE, /cast list/);
+  assert.match(COMPOSITION_CAST_SENTENCE, /\bextra\b/);
+});

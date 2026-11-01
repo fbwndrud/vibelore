@@ -1,4 +1,4 @@
-import { COMPOSITION_VOCAB, COMPOSITION_VOCAB_VERSION, migrateCompositionLabel } from './webtoon-composition.js';
+import { COMPOSITION_VOCAB, COMPOSITION_VOCAB_VERSION, EXTRA_SUBJECT_ID, migrateCompositionLabel } from './webtoon-composition.js';
 
 /** Dynamic-key sections: zero entries are dropped so incremental updates equal a full rebuild. */
 const SPARSE = new Set(['pageClose', 'fingerprints']);
@@ -82,6 +82,7 @@ export function sceneSummary(rows, { protagonistIds = [] } = {}) {
     }
     if (page && row.panel === page.closePanel) { const key = closeKey(label); closes.push(key); bump(counts.pageClose, key); }
     for (const s of label.subjects) {
+      if (s.id === EXTRA_SUBJECT_ID) continue;
       const v = characters[s.id] ??= emptyVector();
       v.panels += 1;
       for (const field of ['shot', 'angle', 'focal', 'background']) bump(v[field], label[field]);

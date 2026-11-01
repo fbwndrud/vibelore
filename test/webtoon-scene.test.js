@@ -12,7 +12,7 @@ import { loadRun } from '../src/runs.js';
 import { validateScenePlan, sceneBinding, sceneImageBinding, validateSceneRenderBrief, SCENE_CHECKS, isEnglish, sameLettering, PREVIOUS_SCENE_ID, mergeDuplicateReferences,
   COMPOSITION_PREFLIGHT_INSTRUCTION, SCENE_SCHEMA, RETRY_FRAMING, sceneImagePrompt } from '../src/core/webtoon-scene.js';
 import { SCENE_TYPES } from '../src/core/webtoon-composition.js';
-import { sceneCastList, castIdsOf, sceneCast, compositionCastIds, castCanonicalizer } from '../src/core/webtoon-scene.js';
+import { sceneCastList, castIdsOf, sceneCast, compositionCastIds, castCanonicalizer, canonicalRenderBrief } from '../src/core/webtoon-scene.js';
 import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 
 const plan = scenePlan, preflight = scenePreflight, setup = sceneSetup;
@@ -515,10 +515,10 @@ test('v1 render brief: a speaker line alone does not require the speaker face', 
 });
 test('v1 render brief: moment actions carry no framing words; older workflows are untouched', () => {
   const w = wOf(1), withAction = action => ({ ...briefOf(label()), moments: [{ ...briefOf(label()).moments[0], action }] });
-  for (const bad of ['Close-up on her hand.', 'A wide shot of the street.', 'Extreme close-ups of her eyes.', 'She turns toward the camera.', 'Tight framing on the door.',
-    'A low-angle look at him.', 'Dutch angle on the stairs.', "A bird's-eye view of the room.", 'An over-the-shoulder look at the letter.', 'A medium shot of two people.', 'An establishing shot of the yard.', 'Long shot of the road.'])
+  for (const bad of ['Close-up on her hand.', 'A wide shot of the street.', 'Extreme close-ups of her eyes.', 
+    'Several camera angles of the street.', 'A low-angle look at him.', 'Dutch angle on the stairs.', "A bird's-eye view of the room.", 'An over-the-shoulder look at the letter.', 'A medium shot of two people.', 'An establishing shot of the yard.', 'Long shot of the road.'])
     assert.throws(() => validateSceneRenderBrief(withAction(bad), w), /SCENE_MOMENT_FRAMING: moment 1$/, bad);
-  for (const ok of ['A shot rings out.', 'She stands at an angle to the door.', 'He closes the door.', 'She waits at the door.'])
+  for (const ok of ['A shot rings out.', 'She stands at an angle to the door.', 'He closes the door.', 'She waits at the door.', 'A camera flashes.', 'He is framing his rival.', 'She hangs a framing hammer on the wall.'])
     assert.ok(validateSceneRenderBrief(withAction(ok), w), ok);
   const second = { ...briefOf(label(), label()), moments: briefOf(label(), label()).moments.map((m, i) => i === 1 ? { ...m, action: 'Close-up on her hand.' } : m) };
   assert.throws(() => validateSceneRenderBrief(second, wOf(2)), /SCENE_MOMENT_FRAMING: moment 2$/);
@@ -579,7 +579,7 @@ test('v1 preflight request asks for labels in place of free camera and layout; o
   await runWebtoonSceneTool({ store, args, providers: spy() });
   const system = seen.request.messages[0].content, data = JSON.parse(seen.request.messages.at(-1).content);
   assert.ok(system.includes(COMPOSITION_PREFLIGHT_INSTRUCTION)); assert.ok(!system.includes('Keep camera and layout free.'));
-  assert.equal(COMPOSITION_PREFLIGHT_INSTRUCTION, "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds. A line of dialogue alone does not make the speaker's face a required element. Keep camera and framing words out of moment actions; the composition label carries them.");
+  assert.equal(COMPOSITION_PREFLIGHT_INSTRUCTION, "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds. A line of dialogue alone does not make the speaker's face a required element. Keep camera and framing words out of moment actions; the composition label carries them. Use the subject id extra for any figure outside the cast.");
   // This text goes to the reviewing model, never to the image model, so retry wording is not a concern here.
   assert.ok(isEnglish(COMPOSITION_PREFLIGHT_INSTRUCTION));
   const example = data.schema.renderBrief.moments[0].composition;
@@ -636,6 +636,22 @@ test('novel cast fallback: foundation characters serve every cast consumer when 
   assert.deepEqual(sceneCastList({ source: {} }), []);
   assert.equal(castIdsOf(sceneCast({ source: {} })), undefined);
   assert.ok(validateSceneRenderBrief(brief('anyone'), { ...w, source: {} }));
+});
+test('the reserved subject id extra is accepted for any cast, and framing names it a bystander', () => {
+  const brief = id => ({ style: 'Ink.', pageComposition: { layout: 'strip-stack' },
+    moments: [{ sourceIds: ['u1'], action: 'She waits.', textIds: ['text-1'], composition: label({ subjects: [{ id }], directed: true, focal: 'face' }) }] });
+  const novel = { ...wOf(1), source: { foundation: { characters: [{ id: 'hero', canonicalName: '윤' }] } } };
+  assert.ok(validateSceneRenderBrief(brief('extra'), novel));
+  assert.ok(validateSceneRenderBrief(brief('extra'), wOf(1)), 'also with a shared cast');
+  assert.ok(validateSceneRenderBrief(brief('extra'), { ...novel, source: {} }));
+  assert.throws(() => validateSceneRenderBrief(brief('stranger'), novel), /INVALID_SCENE_COMPOSITION/);
+  assert.equal(canonicalRenderBrief(brief('extra'), novel).moments[0].composition.subjects[0].id, 'extra');
+  const w = { ...novel, scenePlan: { texts: [{ id: 'text-1', kind: 'caption', speaker: 'narrator', text: 'A' }] } };
+  const line = promptOf(w, label({ directed: true, focal: 'face', subjects: [{ id: 'extra' }] })).split('\n').find(l => l.startsWith('1. '));
+  assert.equal(line, '1. wide high-angle view of a bystander: She waits.');
+  // Even a cast member named extra does not change the reserved meaning.
+  const odd = { ...w, source: { foundation: { characters: [{ id: 'extra', canonicalName: 'Zed' }] } } };
+  assert.match(promptOf(odd, label({ directed: true, focal: 'face', subjects: [{ id: 'extra' }] })), /of a bystander: She waits/);
 });
 test('novel cast fallback: a non-English cast name never reaches the image prompt', () => {
   const w = { ...wOf(1), scenePlan: { texts: [{ id: 'text-1', kind: 'caption', speaker: 'narrator', text: 'A' }] },

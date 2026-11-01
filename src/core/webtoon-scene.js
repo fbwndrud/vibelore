@@ -1,7 +1,7 @@
 import { digest, nonempty, safeId } from './webtoon-contract.js';
 import { sceneLetteringLine, webtoonMessage } from './webtoon-language.js';
 import { validateSceneVisualChecks, validateCompositionCheck, compositionCheckActive, SCENE_VISUAL_CHECKS } from './webtoon-scene-review.js';
-import { COMPOSITION_LIMITS, COMPOSITION_VOCAB, REQUIRED_KINDS, SCENE_TYPES, framingPhrase, splitCompositionDirection, validateCompositionLabel } from './webtoon-composition.js';
+import { COMPOSITION_LIMITS, COMPOSITION_VOCAB, EXTRA_SUBJECT_ID, REQUIRED_KINDS, SCENE_TYPES, framingPhrase, splitCompositionDirection, validateCompositionLabel } from './webtoon-composition.js';
 
 export const SCENE_PRODUCTION_MODE = 'scene-direct-v1';
 export const PREVIOUS_SCENE_ID = 'previous-scene';
@@ -51,7 +51,7 @@ export const SCENE_SCHEMA = {
   uncertainties: ['English ambiguity in source; do not silently turn inference into fact'],
 };
 /** Replaces "Keep camera and layout free." in the preflight request for workflows that carry composition labels. */
-export const COMPOSITION_PREFLIGHT_INSTRUCTION = "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds. A line of dialogue alone does not make the speaker's face a required element. Keep camera and framing words out of moment actions; the composition label carries them.";
+export const COMPOSITION_PREFLIGHT_INSTRUCTION = "Label every moment's composition with the vocabulary in the schema. Mark at most two decisive moments as directed; their framing reaches the artist. Other labels record intent only. Consider compositionDigest suggestions only where the source allows. Mark source-required elements in required with their sourceIds. A line of dialogue alone does not make the speaker's face a required element. Keep camera and framing words out of moment actions; the composition label carries them. Use the subject id extra for any figure outside the cast.";
 /** Replaces "Let the image artist choose composition." in the plan request for workflows that carry composition labels. */
 export const COMPOSITION_PLAN_INSTRUCTION = "Set sceneType to dialogue, action, reveal or quiet. seriesComposition and compositionDigest describe the series' framing habits and recent repetition; use them only to vary staging where the source allows. Leave panel framing to the later brief.";
 /** Plan schema for workflows with composition metadata: the same plan plus the optional scene type. Kept literal because webtoon-composition.js imports this module. */
@@ -212,7 +212,7 @@ function validateRequiredElements(required, w) {
   }
 }
 /** Framing vocabulary belongs to the composition label; a moment action describes what happens. */
-const MOMENT_FRAMING = /\b(extreme close-?ups?|close-?ups?|wide shots?|long shots?|medium shots?|establishing shots?|camera|framing|(low|high|dutch)[- ]angle|bird'?s[- ]eye|worm'?s[- ]eye|over[- ]the[- ]shoulder)\b/i;
+const MOMENT_FRAMING = /\b(extreme close-?ups?|close-?ups?|wide shots?|long shots?|medium shots?|establishing shots?|camera angles?|(low|high|dutch)[- ]angle|bird'?s[- ]eye|worm'?s[- ]eye|over[- ]the[- ]shoulder)\b/i;
 /** Composition labels are checked only for workflows that carry a composition version. */
 function validateBriefComposition(brief, w) {
   const castIds = castIdsOf(sceneCast(w));
@@ -279,7 +279,7 @@ export function sceneImagePrompt(w) {
     ? 'Letter each text marked "written on an object" directly on that paper, sign or screen in the scene, never in a balloon or caption box.\n' : '';
   // Only the cast ids the validator accepts can be named; anything else falls back to the id itself.
   const names = new Map(sceneCastList(w).map(c => [c.id, c.name])), canonical = castCanonicalizer(w);
-  const nameOf = id => names.get(canonical(id)) ?? id;
+  const nameOf = id => id === EXTRA_SUBJECT_ID ? 'a bystander' : names.get(canonical(id)) ?? id;
   const referenceRole = reference => {
     if (!reference.sceneIds) return reference.description;
     const moments = brief.moments.flatMap((moment, i) => moment.sourceIds.some(id =>

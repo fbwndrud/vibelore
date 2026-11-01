@@ -1,5 +1,5 @@
 import { digest } from './webtoon-contract.js';
-import { COMPOSITION_VOCAB } from './webtoon-composition.js';
+import { COMPOSITION_VOCAB, EXTRA_SUBJECT_ID } from './webtoon-composition.js';
 import { RETRY_FRAMING, isEnglish } from './webtoon-scene.js';
 import { emptyVector, subVector, addVector, windowCounts, orderedScenes } from './webtoon-composition-aggregate.js';
 
@@ -179,7 +179,7 @@ function menuOf(index, win, { castIds, requiredLocks, seed }) {
     const characters = index.entities?.character ?? {};
     const total = Object.values(characters).reduce((n, v) => n + (v.panels ?? 0), 0);
     const pool = Array.isArray(castIds) && castIds.length ? [...new Set(castIds)] : Object.keys(characters);
-    const ranked = pool.filter(id => typeof id === 'string' && clean(`${id}'s reaction`))
+    const ranked = pool.filter(id => typeof id === 'string' && id !== EXTRA_SUBJECT_ID && clean(`${id}'s reaction`))
       .map(id => ({ id, share: total > 0 ? (characters[id]?.panels ?? 0) / total : 0 }))
       .sort((a, b) => a.share - b.share || (a.id < b.id ? -1 : 1));
     for (const entry of ranked.slice(0, PER_FIELD_CANDIDATES)) candidates.push({ field: 'subject', value: entry.id, text: `${entry.id}'s reaction` });

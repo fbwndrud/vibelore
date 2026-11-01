@@ -92,6 +92,18 @@ test('protagonist ids: configured wins, otherwise the most frequent subject', ()
   assert.equal(configured.scenes['ep-0001:s1'].counts.protagonistVisibility.face, 1);
 });
 
+test('the reserved subject id extra never becomes a protagonist or a per-character vector', () => {
+  const extra = { id: 'extra', visibility: 'face', side: 'R' };
+  const rows = [pageRow(), panelRow(1, {}, { subjects: [extra] }), panelRow(2, {}, { subjects: [extra, { id: 'hero', visibility: 'face', side: 'L' }] }), panelRow(3, {}, { subjects: [extra] }),
+    panelRow(4, {}, { subjects: [{ id: 'hero', visibility: 'face', side: 'L' }] })];
+  const index = buildIndex([{ episodeKey: 'ep-0001', rows }], {});
+  assert.equal('extra' in index.entities.character, false);
+  assert.deepEqual(index.entities.character.hero.panels, 2);
+  assert.deepEqual(protagonistIdsFor(index, []), ['hero']);
+  assert.deepEqual(index.protagonistIds, ['hero']);
+  assert.equal(index.scenes['ep-0001:s1'].counts.shot.MS, 4, 'the panels themselves still count');
+});
+
 const planned = (subjects = [{ id: 'hero', visibility: 'face', side: 'L' }], shot = 'MS') =>
   ({ composition: { shot, angle: 'eye', focal: 'face', background: 'detailed', subjects, directed: false } });
 const fake = (workflowId, ep, units, extra = {}) => ({ workflowId, revision: 1, imageReviewVersion: 2, compositionVersion: 1, panelCount: 3,

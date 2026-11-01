@@ -198,6 +198,16 @@ test('one overused value reads as a plain phrase and two as "A and B"', () => {
   assert.deepEqual(twoLeans, ['Recent pages lean on extreme close-ups and low-angle views; give the next page a fresh framing.']);
 });
 
+test('the reserved subject id extra is never offered as a menu subject', () => {
+  const extras = indexOf([[[label({}, { id: 'extra' }), label({}, { id: 'extra' })]]]);
+  for (const seed of ['a', 'b', 'c', 'd', 'e', 'f']) {
+    for (const castIds of [['hero', 'extra', 'rival'], []]) {
+      const menu = compositionDigest(extras, { ...base, episodeKey: 'ep-0001', castIds, seed }).menu;
+      assert.ok(menu.every(o => o.value !== 'extra'), JSON.stringify(menu));
+    }
+  }
+});
+
 test('a subject id that would read as retry framing is never offered', () => {
   const menu = menuOf('a', { castIds: ['avoid-it', 'not-here'] });
   assert.ok(menu.every(o => o.field !== 'subject'), JSON.stringify(menu));

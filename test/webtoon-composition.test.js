@@ -47,6 +47,13 @@ test('validateCompositionLabel accepts a full label and returns it', () => {
   validateCompositionLabel({ ...label(), vocabVersion: 1 });
 });
 
+test('validateCompositionLabel accepts the reserved subject id extra with any cast list', () => {
+  const l = { ...label(), subjects: [{ id: 'extra', visibility: 'back', side: 'R' }, { id: 'hero', visibility: 'face', side: 'L' }] };
+  assert.equal(validateCompositionLabel(l, { castIds: ['hero'] }), l);
+  assert.equal(validateCompositionLabel(l), l);
+  rejects({ ...label(), subjects: [{ id: 'extras', visibility: 'face', side: 'L' }] }, { castIds: ['hero'] });
+});
+
 test('validateCompositionLabel rejects off-vocabulary values, gaps, bad subjects and long notes', () => {
   rejects({ ...label(), shot: 'XL' });
   rejects({ ...label(), angle: 'sideways' });
