@@ -8,7 +8,7 @@ import { runRewrite } from '../../engine/src/generators/text/steps/rewrite.js';
 import { runNextArcProposal } from '../../engine/src/generators/text/steps/next-arc-proposal.js';
 import { emptyStoryState, reduceStoryState } from '../../engine/src/continuity/story-state.js';
 import { arcPositionFromRatio } from '../../engine/src/core/arc-context.js';
-import { selectWriterContinuity } from './context.js';
+import { capAuditList, selectWriterContinuity } from './context.js';
 import { ledgerEntitySnapshots } from '../../engine/src/continuity/ledger.js';
 import { ledgerBaseState, ledgerSeedEntities, ledgerSeedState, rebuildLedgerLog } from './ledger-log.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
@@ -274,6 +274,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     characterNames: Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName])) });
   const writerPacket = [draftContract.writerText, authorCraftPacket,
     draftSectionsOff.includes('style-anchor') ? '' : renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
+  const olderMemory = continuitySelection && !draftSectionsOff.includes('older-memory')
+    ? writerOlderMemory(continuitySelection.olderMemory, (item) => detailedPlan.cast.includes(item.ref)) : { kept: [], dropped: [] };
   const compilerInputs = {
     identity: {
       workId, chapter, workflowId, invocation: workflowId ? 'workflow' : 'direct',
@@ -292,8 +294,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
     continuity: {
       genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
       recentSummaries: continuitySelection?.recentSummaryTexts ?? [],
-      olderMemory: continuitySelection && !draftSectionsOff.includes('older-memory')
-        ? writerOlderMemory(continuitySelection.olderMemory, (item) => detailedPlan.cast.includes(item.ref)) : [],
+      olderMemory: olderMemory.kept,
       castIds: detailedPlan.cast,
       locations: detailedPlan.locations,
       previousSceneTail,
@@ -361,6 +362,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
         trimmedSummaries: continuitySelection?.trimmedSummaries ?? 0,
         droppedForBudget: continuitySelection?.droppedForBudget ?? 0,
         retrieval: continuitySelection?.retrieval ?? null,
+        ...memoryExclusionAudit(continuitySelection, olderMemory.dropped),
       },
       recentSummaryChapters: result.compiled.trace.continuity.recentSummaryChapters,
       olderMemoryRefs: result.compiled.trace.continuity.olderMemoryRefs,
@@ -431,6 +433,8 @@ async function runSceneDraft({ store, workId, chapter, plan, tension, providers,
     characterNames: Object.fromEntries(foundation.characters.map((character) => [character.id, character.canonicalName])) });
   const writerPacket = [draftContract.writerText,
     draftSectionsOff.includes('style-anchor') ? '' : renderStyleAnchor(styleAnchor, kit)].filter(Boolean).join('\n\n');
+  const olderMemory = continuitySelection && !draftSectionsOff.includes('older-memory')
+    ? writerOlderMemory(continuitySelection.olderMemory, (item) => castIds.includes(item.ref)) : { kept: [], dropped: [] };
   const compilerInputs = {
     identity: {
       workId, chapter, workflowId, invocation: workflowId ? 'workflow' : 'direct',
@@ -449,8 +453,7 @@ async function runSceneDraft({ store, workId, chapter, plan, tension, providers,
     continuity: {
       genreLine: kit.phrases.draftInput.genreLine(foundation.genre, foundation.povMode || kit.phrases.draftInput.defaultPov),
       recentSummaries: continuitySelection?.recentSummaryTexts ?? [],
-      olderMemory: continuitySelection && !draftSectionsOff.includes('older-memory')
-        ? writerOlderMemory(continuitySelection.olderMemory, (item) => castIds.includes(item.ref)) : [],
+      olderMemory: olderMemory.kept,
       castIds,
       locations: [],
       previousSceneTail,
@@ -500,6 +503,7 @@ async function runSceneDraft({ store, workId, chapter, plan, tension, providers,
         trimmedSummaries: continuitySelection?.trimmedSummaries ?? 0,
         droppedForBudget: continuitySelection?.droppedForBudget ?? 0,
         retrieval: continuitySelection?.retrieval ?? null,
+        ...memoryExclusionAudit(continuitySelection, olderMemory.dropped),
       },
       recentSummaryChapters: result.compiled.trace.continuity.recentSummaryChapters,
       olderMemoryRefs: result.compiled.trace.continuity.olderMemoryRefs,
@@ -569,9 +573,28 @@ export async function runReviseTool({ store, workId, chapter, prose, castManifes
 
 // World facts, characters already in the prompt's Foundation and active hooks
 // reach the writer elsewhere; older memory keeps what only retrieval can add.
-function writerOlderMemory(items, characterInFoundation) {
-  return items.filter((item) => !['fact', 'hook'].includes(item.scope)
-    && !(item.scope === 'character' && characterInFoundation(item))).slice(0, 8);
+// `dropped` names what this filter removed, by id and reason only.
+export function writerOlderMemory(items, characterInFoundation) {
+  const rest = [];
+  const dropped = [];
+  for (const item of items) {
+    if (['fact', 'hook'].includes(item.scope) || (item.scope === 'character' && characterInFoundation(item))) {
+      dropped.push({ id: `${item.scope}:${item.ref}`, reason: 'in-foundation' });
+    } else rest.push(item);
+  }
+  for (const item of rest.slice(8)) dropped.push({ id: `${item.scope}:${item.ref}`, reason: 'over-cap' });
+  return { kept: rest.slice(0, 8), dropped };
+}
+
+/** The `contextAudit.memory` keys that report what the selection and the older-memory filter left out. */
+function memoryExclusionAudit(selection, dropped) {
+  const filtered = capAuditList(dropped);
+  return {
+    excluded: selection?.excluded ?? [],
+    excludedTotal: selection?.excludedTotal ?? 0,
+    filtered: filtered.items,
+    filteredTotal: filtered.total,
+  };
 }
 
 export async function runRewriteTool({ store, workId, chapter, intent, language = null, providers }) {
@@ -587,7 +610,7 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
   const continuity = selection ? renderContinuity({
     genreLine: '',
     recentSummaries: selection.recentSummaryTexts,
-    olderMemory: writerOlderMemory(selection.olderMemory, () => true),
+    olderMemory: writerOlderMemory(selection.olderMemory, () => true).kept,
     maxContextTokens: 2000,
     kit: promptKit({ contract: workLanguage.contract }),
   }) : null;

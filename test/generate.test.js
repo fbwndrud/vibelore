@@ -11,7 +11,7 @@ import { describe, it } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { createPreflightRelay } from '../src/provider/host-relay.js';
 import { createLocalOpenAIProvider } from '../src/provider/local-openai.js';
-import { runCreate, runDraftTool, runReviseTool, runRewriteTool, runNextArc, runRefold } from '../src/tools/generate.js';
+import { runCreate, runDraftTool, runReviseTool, runRewriteTool, runNextArc, runRefold, writerOlderMemory } from '../src/tools/generate.js';
 import { runCommit, runStatus } from '../src/tools/commit.js';
 import { saveWriterSupportPolicy } from '../src/core/review-policy.js';
 import { runEraResearchTool } from '../src/tools/era-research.js';
@@ -353,14 +353,17 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal(result.contextAudit.draftInputTrace.identity.invocation, 'direct');
   });
 
-  async function sevenChapterStore() {
+  // `bulkyFirst` starts the arc at chapter 3 and gives chapter 1 a summary larger than the memory budget, so retrieval finds it and the budget leaves it out.
+  async function sevenChapterStore({ bulkyFirst = false } = {}) {
     const store = await createdStore({ legacy: true });
     const arc = activePlan();
     arc.estimatedEpisodes = 9;
-    arc.episodes = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => ({ ...arc.episodes[0], index, chapter: index, title: `${index}화`, beat: '윤재가 은빛열쇠 를 되찾는다. 보상에 붙는 세금' }));
+    if (bulkyFirst) arc.startChapter = 3;
+    arc.episodes = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => ({ ...arc.episodes[0], index, chapter: bulkyFirst ? index + 2 : index, title: `${index}화`, beat: '윤재가 은빛열쇠 를 되찾는다. 보상에 붙는 세금' }));
     await store.saveArcPlan('tax-tower', arc);
     for (let chapter = 1; chapter <= 7; chapter += 1) {
-      const summary = chapter === 1 ? '윤재는 은빛열쇠 하나를 창구에 맡겼다. OLD_MEMORY_TOKEN'
+      const summary = chapter === 1 && bulkyFirst ? `윤재는 은빛열쇠를 세금 창구에 맡겼다. ${'BULKY_SUMMARY_TOKEN '.repeat(1600)}`
+        : chapter === 1 ? '윤재는 은빛열쇠 하나를 창구에 맡겼다. OLD_MEMORY_TOKEN'
         : chapter === 2 ? '두 번째 고지서가 도착했다. UNMATCHED_SUMMARY_2'
           : `윤재가 ${chapter}번째 고지서를 받았다. RECENT_SUMMARY_${chapter}`;
       const delta = emptyDelta(chapter);
@@ -484,6 +487,93 @@ describe('Phase 2 generation pipeline', () => {
     assert.doesNotMatch(prompt, /정확한 행동은 장면에서 발견한다/);
     assert.match(prompt, /RECENT_SUMMARY_7/, 'the summary window stays');
     assert.deepEqual(result.contextAudit.disabledDraftSections, ['older-memory', 'previous-tail', 'author-craft']);
+  });
+
+  it('reports what the older-memory filter dropped, with the same output the draft always received', () => {
+    const scoped = ['fact', 'hook', 'fact'].map((scope, i) => ({ scope, ref: `s${i}`, text: 'x' }));
+    const items = [...scoped,
+      { scope: 'character', ref: 'hero', text: 'x' }, { scope: 'character', ref: 'other', text: 'x' },
+      ...Array.from({ length: 9 }, (_, i) => ({ scope: 'summary', ref: `${i + 1}`, text: 'x' }))];
+    const { kept, dropped } = writerOlderMemory(items, (item) => item.ref === 'hero');
+    assert.equal(kept.length, 8);
+    assert.deepEqual(kept.map((item) => `${item.scope}:${item.ref}`),
+      ['character:other', ...Array.from({ length: 7 }, (_, i) => `summary:${i + 1}`)]);
+    assert.deepEqual(dropped, [
+      { id: 'fact:s0', reason: 'in-foundation' }, { id: 'hook:s1', reason: 'in-foundation' },
+      { id: 'fact:s2', reason: 'in-foundation' }, { id: 'character:hero', reason: 'in-foundation' },
+      { id: 'summary:8', reason: 'over-cap' }, { id: 'summary:9', reason: 'over-cap' },
+    ]);
+    const eightSummaries = items.slice(0, 5).concat(items.slice(5, 12));
+    assert.equal(writerOlderMemory(eightSummaries, (item) => item.ref === 'hero').dropped.filter((d) => d.reason === 'over-cap').length, 0);
+    const nineSummaries = items.slice(0, 5).concat(items.slice(5, 13));
+    const nine = writerOlderMemory(nineSummaries, (item) => item.ref === 'hero');
+    assert.equal(nine.kept.length, 8);
+    assert.deepEqual(nine.dropped.filter((d) => d.reason === 'over-cap'), [{ id: 'summary:8', reason: 'over-cap' }]);
+  });
+
+  it('audits the memory the draft left out, by id and reason only', async () => {
+    const { result } = await draftPrompt(await sevenChapterStore(), 8);
+    const { memory } = result.contextAudit;
+    for (const key of ['excluded', 'filtered']) assert.ok(Array.isArray(memory[key]), key);
+    assert.equal(memory.excludedTotal, memory.excluded.length);
+    assert.equal(memory.filteredTotal, memory.filtered.length);
+    for (const entry of memory.excluded) {
+      assert.deepEqual(Object.keys(entry).sort(), ['id', 'reason']);
+      assert.ok(['budget', 'no-query-match', 'unsafe-content', 'truncated', 'context-token-budget'].includes(entry.reason), entry.reason);
+    }
+    for (const entry of memory.filtered) {
+      assert.deepEqual(Object.keys(entry).sort(), ['id', 'reason']);
+      assert.ok(['in-foundation', 'over-cap'].includes(entry.reason), entry.reason);
+    }
+    const json = JSON.stringify(memory);
+    for (const secret of ['OLD_MEMORY_TOKEN', 'RECENT_SUMMARY_', 'UNMATCHED_SUMMARY_2']) assert.ok(!json.includes(secret), secret);
+  });
+
+  it('carries a retrieval exclusion from the memory compiler into the draft audit', async () => {
+    const store = await sevenChapterStore({ bulkyFirst: true });
+    const { result, prompt } = await draftPrompt(store, 8);
+    const { memory } = result.contextAudit;
+    assert.deepEqual(memory.excluded, [{ id: 'summary:1', reason: 'budget' }]);
+    assert.equal(memory.excludedTotal, 1);
+    assert.ok(!JSON.stringify(result.contextAudit).includes('BULKY_SUMMARY_TOKEN'));
+    assert.ok(!prompt.includes('BULKY_SUMMARY_TOKEN'), 'an excluded candidate never reaches the request');
+  });
+
+  it('audits a scene draft with the same keys and shapes as a chapter draft', async () => {
+    const store = await sevenChapterStore({ bulkyFirst: true });
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      if (req.step === 'draft') return { text: '윤재가 창구 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    const result = await runDraftTool({ store, workId: 'tax-tower', chapter: 8, plan: '윤재가 은빛열쇠를 들고 세금 창구 앞에 선다.', form: 'scene', providers: p });
+    const { memory } = result.contextAudit;
+    assert.equal(result.contextAudit.form, 'scene');
+    assert.deepEqual(Object.keys(memory).filter((key) => ['excluded', 'excludedTotal', 'filtered', 'filteredTotal'].includes(key)),
+      ['excluded', 'excludedTotal', 'filtered', 'filteredTotal']);
+    assert.deepEqual(memory.excluded, [{ id: 'summary:1', reason: 'budget' }]);
+    assert.equal(memory.excludedTotal, 1);
+    assert.equal(memory.filteredTotal, memory.filtered.length);
+    for (const entry of memory.filtered) assert.deepEqual(Object.keys(entry).sort(), ['id', 'reason']);
+    assert.ok(!JSON.stringify(memory).includes('BULKY_SUMMARY_TOKEN'));
+  });
+
+  it('reports the filtered list as empty when older memory is switched off', async () => {
+    const store = await sevenChapterStore();
+    await saveWriterSupportPolicy(store, 'tax-tower', { disabledDraftSections: ['older-memory'] });
+    const { result } = await draftPrompt(store, 8);
+    assert.deepEqual(result.contextAudit.memory.filtered, []);
+    assert.equal(result.contextAudit.memory.filteredTotal, 0);
+    assert.deepEqual(result.contextAudit.disabledDraftSections, ['older-memory']);
+  });
+
+  it('builds the same draft request from independently built stores', async () => {
+    const first = (await draftPrompt(await sevenChapterStore(), 8)).result.contextAudit.providerRequestHash;
+    const second = (await draftPrompt(await sevenChapterStore(), 8)).result.contextAudit.providerRequestHash;
+    assert.equal(first, second);
+    // Recorded before the exclusion audit existed; auditing what was left out must not change the request.
+    assert.equal(first, 'sha256:01fb7293d356404003f25fbab8ed94bfd7519aa2a89faf9c91cdffbf88cba5db');
   });
 
   it('opens chapter one without a continuity window or older memory', async () => {
