@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { deriveRequestFingerprint } from '../engine/src/core/request-fingerprint.js';
 import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import {
-  DIMENSIONS, JUDGE_DELIMITERS, PROTOCOL_VERSION, aggregate, buildJudgeRequest, combineOrders, judgeFamilyFor,
-  lengthMetrics, mapToSides, parseChapterRange, parseVerdict, readChapterSet, schedulePairs, signTestP,
+  DIMENSIONS, JUDGE_DELIMITERS, PROTOCOL_VERSION, aggregate, buildJudgeRequest, combineOrders, independenceLabel,
+  judgeFamilyFor, ledgerCounts, ledgerMetric, lengthMetrics, mapToSides, parseChapterRange, parseVerdict,
+  readChapterSet, schedulePairs, signTestP,
 } from '../scripts/pairwise-evaluation.js';
 
 test('constants name the protocol and the four dimensions', () => {
@@ -243,4 +244,126 @@ test('judgeFamilyFor maps a language tag to a prompt family', () => {
   assert.equal(judgeFamilyFor('en'), 'multilingual');
   assert.equal(judgeFamilyFor('ja'), 'multilingual');
   assert.throws(() => judgeFamilyFor('not a tag!'));
+});
+
+const entry = (chapter, extra = {}) => ({ chapter, solutionPattern: 'same trick', ...extra });
+
+test('ledgerCounts flags a repeated pattern only on the third chapter', () => {
+  const entries = [entry(1), entry(2), entry(3)];
+  const counts = ledgerCounts(entries, [1, 2, 3]);
+  assert.equal(counts.totals.PATTERN_REPETITION, 1);
+  assert.deepEqual(counts.perChapter.map(item => item.chapter), [1, 2, 3]);
+  assert.deepEqual(counts.perChapter.map(item => item.codes.PATTERN_REPETITION ?? 0), [0, 0, 1]);
+  assert.deepEqual(counts.missingChapters, []);
+});
+
+test('ledgerCounts lists judged chapters that have no entry', () => {
+  const counts = ledgerCounts([entry(1), entry(2), entry(3)], new Set([3, 4]));
+  assert.deepEqual(counts.missingChapters, [4]);
+  assert.deepEqual(counts.perChapter.map(item => item.chapter), [3]);
+  assert.equal(counts.totals.PATTERN_REPETITION, 1);
+});
+
+test('ledgerCounts does not depend on entry order', () => {
+  const sorted = ledgerCounts([entry(1), entry(2), entry(3)], [3]);
+  const shuffled = ledgerCounts([entry(3), entry(1), entry(2)], [3]);
+  assert.deepEqual(shuffled, sorted);
+});
+
+async function snapshotTree(dir, base = dir) {
+  const out = [];
+  for (const item of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, item.name);
+    out.push(path.slice(base.length));
+    if (item.isDirectory()) out.push(...await snapshotTree(path, base));
+  }
+  return out.sort();
+}
+
+async function withWorkRoot(sidecars, run) {
+  const root = await mkdtemp(join(tmpdir(), 'pairwise-ledger-'));
+  try {
+    await mkdir(join(root, 'chapters'), { recursive: true });
+    if (sidecars) {
+      await mkdir(join(root, '.vibelore'), { recursive: true });
+      for (const [name, value] of Object.entries(sidecars)) await writeFile(join(root, '.vibelore', name), JSON.stringify(value));
+    }
+    await run(root);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+test('ledgerMetric is unavailable without a work root', async () => {
+  const metric = await ledgerMetric({ root: null, chapters: [3] });
+  assert.equal(metric.status, 'unavailable');
+  assert.equal(metric.reason, 'no-root');
+  assert.equal(metric.labelSource, 'stored pattern-ledger review of the writing copy');
+});
+
+test('ledgerMetric reads a legacy pattern ledger and counts judged chapters', async () => {
+  await withWorkRoot({ 'pattern-ledger.json': [entry(1), entry(2), entry(3)] }, async root => {
+    const metric = await ledgerMetric({ root, chapters: [3] });
+    assert.equal(metric.status, 'available');
+    assert.deepEqual(metric.missingChapters, []);
+    assert.equal(metric.counts.totals.PATTERN_REPETITION, 1);
+  });
+});
+
+test('ledgerMetric is incomplete when a judged chapter has no entry', async () => {
+  await withWorkRoot({ 'pattern-ledger.json': [entry(1), entry(2), entry(3)] }, async root => {
+    const metric = await ledgerMetric({ root, chapters: new Set([3, 4]) });
+    assert.equal(metric.status, 'incomplete');
+    assert.deepEqual(metric.missingChapters, [4]);
+    assert.equal(metric.counts.totals.PATTERN_REPETITION, 1);
+  });
+});
+
+test('ledgerMetric treats a ledger from another head as stale', async () => {
+  const ledger = { schemaVersion: 2, sourceHead: `sha256:${'0'.repeat(64)}`, entries: [entry(1), entry(2), entry(3)] };
+  await withWorkRoot({ 'experience-ledger.json': ledger }, async root => {
+    const metric = await ledgerMetric({ root, chapters: [3] });
+    assert.equal(metric.status, 'unavailable');
+    assert.equal(metric.reason, 'stale');
+  });
+});
+
+test('ledgerMetric is unavailable when the ledger has no entries', async () => {
+  await withWorkRoot({ 'pattern-ledger.json': [] }, async root => {
+    const metric = await ledgerMetric({ root, chapters: [3] });
+    assert.equal(metric.status, 'unavailable');
+    assert.equal(metric.reason, 'no-entries');
+  });
+});
+
+test('ledgerMetric is unavailable when no sidecar exists', async () => {
+  await withWorkRoot(null, async root => {
+    const metric = await ledgerMetric({ root, chapters: [3] });
+    assert.equal(metric.reason, 'no-entries');
+  });
+});
+
+test('ledgerMetric never writes into the work root', async () => {
+  for (const sidecars of [null, { 'pattern-ledger.json': [entry(1), entry(2), entry(3)] }]) {
+    await withWorkRoot(sidecars, async root => {
+      const before = await snapshotTree(root);
+      await ledgerMetric({ root, chapters: [3, 4] });
+      assert.deepEqual(await snapshotTree(root), before);
+    });
+  }
+});
+
+test('independenceLabel never claims independence', () => {
+  assert.equal(independenceLabel({ providerKind: 'host-relay', judgeModel: 'a', writerModel: 'b' }), 'not-independent');
+  assert.equal(independenceLabel({ providerKind: 'local', judgeModel: 'm', writerModel: 'm' }), 'not-independent');
+  assert.equal(independenceLabel({ providerKind: 'local', judgeModel: 'm', writerModel: 'n' }), 'unverified');
+  assert.equal(independenceLabel({ providerKind: 'local', judgeModel: 'm' }), 'unverified');
+  assert.equal(independenceLabel({ providerKind: 'local' }), 'unverified');
+  for (const providerKind of ['host-relay', 'local', 'other', undefined]) {
+    for (const judgeModel of ['m', 'n', undefined]) {
+      for (const writerModel of ['m', 'n', undefined]) {
+        assert.notEqual(independenceLabel({ providerKind, judgeModel, writerModel }), 'independent');
+      }
+    }
+  }
 });

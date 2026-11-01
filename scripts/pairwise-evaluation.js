@@ -4,8 +4,11 @@ import { join } from 'node:path';
 import { parseJsonCompletion } from '../engine/src/core/json-completion.js';
 import { publishedProse } from '../engine/src/core/length-measure.js';
 import { promptFamilyFor } from '../engine/src/core/language-policy.js';
+import { loadCurrentExperienceLedger } from '../src/core/experience-ledger.js';
 import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import { parseDocument } from '../src/md/frontmatter.js';
+import { MarkdownStateStore } from '../src/store/markdown-store.js';
+import { patternViolations } from '../src/tools/story-experience.js';
 
 export const PROTOCOL_VERSION = 'pairwise-v1';
 export const DIMENSIONS = ['plot', 'creativity', 'development', 'language'];
@@ -242,4 +245,45 @@ export function buildJudgeRequest({ family, a, b }) {
       { role: 'user', content: `${startA}\n${a}\n${endA}\n\n${startB}\n${b}\n${endB}` },
     ],
   };
+}
+
+const LEDGER_LABEL_SOURCE = 'stored pattern-ledger review of the writing copy';
+
+export function ledgerCounts(entries, chapters) {
+  const judged = [...new Set(chapters)].sort((left, right) => left - right);
+  const ordered = [...entries].sort((left, right) => left.chapter - right.chapter);
+  const perChapter = [];
+  const totals = {};
+  const missingChapters = [];
+  for (const chapter of judged) {
+    const current = ordered.find(item => item.chapter === chapter);
+    if (!current) {
+      missingChapters.push(chapter);
+      continue;
+    }
+    const prior = ordered.filter(item => item.chapter < chapter);
+    const codes = {};
+    for (const { code } of patternViolations(prior, current)) {
+      codes[code] = (codes[code] ?? 0) + 1;
+      totals[code] = (totals[code] ?? 0) + 1;
+    }
+    perChapter.push({ chapter, codes });
+  }
+  return { perChapter, totals, missingChapters };
+}
+
+export async function ledgerMetric({ root, chapters }) {
+  const base = { labelSource: LEDGER_LABEL_SOURCE };
+  if (root === null) return { ...base, status: 'unavailable', reason: 'no-root', missingChapters: [] };
+  const ledger = await loadCurrentExperienceLedger({ store: new MarkdownStateStore(root), workId: 'evaluation' });
+  if (ledger.status === 'stale') return { ...base, status: 'unavailable', reason: 'stale', missingChapters: [] };
+  if (!ledger.entries.length) return { ...base, status: 'unavailable', reason: 'no-entries', missingChapters: [] };
+  const counts = ledgerCounts(ledger.entries, chapters);
+  return { ...base, status: counts.missingChapters.length ? 'incomplete' : 'available', counts, missingChapters: counts.missingChapters };
+}
+
+export function independenceLabel({ providerKind, judgeModel, writerModel }) {
+  if (providerKind === 'host-relay') return 'not-independent';
+  if (providerKind === 'local' && judgeModel && judgeModel === writerModel) return 'not-independent';
+  return 'unverified';
 }
