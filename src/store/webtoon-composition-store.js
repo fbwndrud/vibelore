@@ -7,6 +7,7 @@ import { finalCompositionLabels } from '../core/webtoon-scene-review.js';
 import { STYLE_REFERENCE_ID } from './webtoon-style-store.js';
 import { atomicWrite } from './webtoon-store.js';
 
+const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const SCRIPT_PREFIX = 'script-';
 const chapterOf = key => /^ep-(\d{4,})$/.exec(key)?.[1];
 
@@ -103,6 +104,19 @@ export class CompositionStore {
     const texts = new Map(await Promise.all(keys.map(async key => [key, await readFile(this.shardPath(key), 'utf8')])));
     return { texts, sourceHead: digest(keys.map(key => [key, digest(texts.get(key))])) };
   }
+  /** Adopted, confident, non-directed panels across the work, and how many of them the review corrected. */
+  async basisStats() {
+    const { texts } = await this.readSources();
+    let corrected = 0, total = 0;
+    for (const [episodeKey, text] of texts) {
+      for (const row of parseShard(text, episodeKey)) {
+        if (row.type !== 'panel' || row.status !== 'adopted' || row.confidence !== 'clear' || !plain(row.label) || row.directed === true) continue;
+        total++;
+        if (row.source === 'review-corrected') corrected++;
+      }
+    }
+    return { corrected, total };
+  }
   /** The stored index when all four files agree with the current shards and settings; otherwise null. Never writes. */
   async peekIndex({ protagonistIds = [] } = {}) {
     try {
@@ -128,11 +142,17 @@ export class CompositionStore {
     };
     for (const [name, body] of Object.entries(files)) await atomicWrite(this.repo.path('composition', name), JSON.stringify(body));
   }
-  /** Deterministic rebuild of L1-L3 from L0; costs no model calls. */
-  async rebuildIndex({ protagonistIds = [] } = {}) {
+  /** Deterministic L1-L3 from L0 without touching disk; costs no model calls. */
+  async computeIndex({ protagonistIds = [] } = {}) {
     const { texts, sourceHead } = await this.readSources();
     const rowsByEpisode = (await this.listEpisodes()).map(({ episodeKey }) => ({ episodeKey, rows: parseShard(texts.get(episodeKey) ?? '', episodeKey) }));
-    const index = buildIndex(rowsByEpisode, { protagonistIds, sourceHead });
+    return buildIndex(rowsByEpisode, { protagonistIds, sourceHead });
+  }
+  /** The index for reading only: the stored one when current, otherwise computed in memory and not written. */
+  async readIndex(options = {}) { return await this.peekIndex(options) ?? await this.computeIndex(options); }
+  /** Deterministic rebuild of L1-L3 from L0, written to disk. */
+  async rebuildIndex(options = {}) {
+    const index = await this.computeIndex(options);
     await this.saveIndex(index);
     return index;
   }

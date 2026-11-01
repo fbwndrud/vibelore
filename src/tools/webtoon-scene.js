@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
-import { CompositionStore } from '../store/webtoon-composition-store.js';
+import { CompositionStore, sceneEpisodeKey } from '../store/webtoon-composition-store.js';
 import { WebtoonStyleStore, STYLE_REFERENCE_ID, styleReference, verifyStyleSnapshot } from '../store/webtoon-style-store.js';
 import { resolveProductionSource, scriptSourceUnits, verifyProductionSource } from '../core/production-source.js';
 import { readSealedProductionInput } from '../core/input-objects.js';
@@ -16,10 +16,11 @@ import { webtoonMessage } from '../core/webtoon-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
-import { loadWebtoonReviewModel } from '../core/review-policy.js';
+import { loadWebtoonReviewModel, loadWebtoonCompositionConfig, loadDisabledReviews } from '../core/review-policy.js';
+import { compositionDigest, compositionAdvisory } from '../core/webtoon-composition-digest.js';
 import { SCENE_IMAGE_REVIEW_VERSION, sceneVisualCheckSchema, sceneReviewInputs, sceneImageReviewPrompt, compositionCheckSchema, compositionCheckActive } from '../core/webtoon-scene-review.js';
 import { SCENE_SCHEMA, SCENE_SCHEMA_V1, COMPOSITION_PREFLIGHT_INSTRUCTION, sceneCastList, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, mergeDuplicateReferences, CONTINUITY_CHECKS,
-  isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
+  isEnglish, castIdsOf, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
 /** Shape of each findings[] item; findings may be empty. */
@@ -155,8 +156,37 @@ async function modelTask(repo, w, step, system, data, providers, images) {
   w.consumedRunIds.push(task.runId); w.pending = null; return { value };
 }
 
+/** Short reason kept on the workflow when composition data could not be used; never the full message, which may carry paths. */
+const compositionReason = error => /^[A-Z][A-Z_]+(: [\w-]+)?/.exec(String(error?.message ?? error))?.[0] ?? error?.code ?? error?.name ?? 'ERROR';
+
+/** Digest of the work's framing history for this scene's planner. Record-only: a failure leaves a reason and never blocks generation. */
+async function prepareCompositionDigest(repo, w) {
+  delete w.compositionDigest; delete w.compositionDigestError;
+  try {
+    const config = await loadWebtoonCompositionConfig(repo.store, w.workId);
+    const composition = new CompositionStore(repo);
+    const index = await composition.readIndex({ protagonistIds: config.protagonistIds });
+    w.compositionDigest = compositionDigest(index, { episodeKey: sceneEpisodeKey(w), castIds: castIdsOf(w.source?.cast) ?? [], requiredLocks: [],
+      seed: `${w.workflowId}:${w.revision}`, config, basisStats: await composition.basisStats() });
+  } catch (error) { delete w.compositionDigest; w.compositionDigestError = compositionReason(error); }
+}
+
+/** Soft repetition note on an adopted scene's review. It never changes the verdict and skips silently if anything fails. */
+async function attachCompositionAdvisory(repo, w) {
+  try {
+    if ((await loadDisabledReviews(repo.store, w.workId)).includes('composition-ledger')) return;
+    const config = await loadWebtoonCompositionConfig(repo.store, w.workId);
+    const index = await new CompositionStore(repo).readIndex({ protagonistIds: config.protagonistIds });
+    const advisory = compositionAdvisory(index, { episodeKey: sceneEpisodeKey(w), config });
+    if (!advisory) return;
+    w.visualReview.findings = [...w.visualReview.findings, advisory];
+    await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
+  } catch (error) { record(w, 'composition_advisory_skipped', { reason: compositionReason(error) }); }
+}
+
 async function drive(repo, w, providers) {
   if (w.stage === 'scene_generate') {
+    if (w.compositionVersion && !w.pending) await prepareCompositionDigest(repo, w);
     const auto = scenePanelCountMode(w) === 'auto';
     const planSchema = w.compositionVersion ? SCENE_SCHEMA_V1 : SCENE_SCHEMA;
     const r = await modelTask(repo, w, 'webtoon-scene-plan',
@@ -233,7 +263,11 @@ async function drive(repo, w, providers) {
     const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(w.visualReview.findings, null, 2))}</pre></html>`;
     await repo.writeCandidate(w, 'scene.html', html);
     // Composition rows are stored first for the same reason: a failed write must leave the stage retryable, never silently skipped.
-    if (w.compositionVersion || w.compositionBackfill === true) await new CompositionStore(repo).adoptScene(w, { adopted: passed });
+    if (w.compositionVersion || w.compositionBackfill === true) {
+      const protagonistIds = (await loadWebtoonCompositionConfig(repo.store, w.workId).catch(() => null))?.protagonistIds ?? [];
+      await new CompositionStore(repo).adoptScene(w, { adopted: passed, protagonistIds });
+      if (passed && w.compositionVersion) await attachCompositionAdvisory(repo, w);
+    }
     // The record is written before the stage says completed, so a failed write retries instead of leaving an unverifiable scene.
     if (passed && w.productionRecord) await writeProductionRecord(repo, w);
     w.stage = passed ? 'completed' : 'scene_needs_revision';

@@ -1,5 +1,7 @@
 import { LEDGER_FEATURES, TRACKING_FEATURES } from '../../engine/src/continuity/ledger.js';
 import { normalizeModelEntry, REASONING_EFFORTS } from './model-profile.js';
+import { DEFAULT_COMPOSITION_CONFIG } from './webtoon-composition-digest.js';
+import { safeId } from './webtoon-contract.js';
 
 /**
  * Per-work switches for what supports the writer. None is required.
@@ -14,7 +16,7 @@ import { normalizeModelEntry, REASONING_EFFORTS } from './model-profile.js';
  */
 export const OPTIONAL_REVIEWS = Object.freeze([
   'story-profile-check', 'coherence-judge', 'editorial-quality',
-  'character-fidelity', 'reader-hook', 'pattern-ledger', 'arc-review',
+  'character-fidelity', 'reader-hook', 'pattern-ledger', 'arc-review', 'composition-ledger',
 ]);
 export const PLANNING_REVIEW_STAGES = Object.freeze(['story', 'arc', 'episode']);
 export const DEFAULT_ARC_REVIEW = Object.freeze({ everyEpisodes: 5, atEnd: true });
@@ -68,6 +70,27 @@ function checkedWebtoonReviewModel(value) {
 /** Optional execution hint for visual review only; the host must actually honor it. */
 export async function loadWebtoonReviewModel(store, workId) {
   return checkedWebtoonReviewModel((await loadPolicy(store, workId)).webtoonReviewModel ?? null);
+}
+
+const inRange = (min, max, integer = false) => option => typeof option === 'number' && Number.isFinite(option) && option >= min && option <= max && (!integer || Number.isInteger(option));
+const COMPOSITION_FIELD_CHECKS = {
+  shortWindowEpisodes: inRange(1, 20, true), shortWindowScenes: inRange(1, 50, true), overuseMinCount: inRange(1, 100, true), streakLength: inRange(2, 10, true),
+  overuseDelta: option => inRange(0, 1)(option) && option > 0, observedBasisRate: inRange(0, 1),
+  protagonistIds: option => Array.isArray(option) && option.length <= 8 && option.every(safeId),
+};
+/** Same types and ranges as the defaults; a field left out keeps its stored value. */
+function checkedWebtoonComposition(value) {
+  if (value === null) return null;
+  const invalid = key => { throw new Error(`INVALID_WEBTOON_COMPOSITION: ${key}`); };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) invalid('object');
+  for (const [key, option] of Object.entries(value)) if (!COMPOSITION_FIELD_CHECKS[key]?.(option)) invalid(key);
+  return structuredClone(value);
+}
+
+/** Thresholds for the composition digest and advisory; every field defaults to the specified value. */
+export async function loadWebtoonCompositionConfig(store, workId) {
+  const stored = (await loadPolicy(store, workId)).webtoonComposition ?? {};
+  return { ...DEFAULT_COMPOSITION_CONFIG, ...stored, protagonistIds: [...(stored.protagonistIds ?? DEFAULT_COMPOSITION_CONFIG.protagonistIds)] };
 }
 
 /**
@@ -170,7 +193,7 @@ export async function loadDisabledDraftSections(store, workId) {
 }
 
 /** Replaces the given lists; a list left undefined keeps its stored value. */
-export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords, webtoonReviewModel } = {}) {
+export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords, webtoonReviewModel, webtoonComposition } = {}) {
   const current = await loadPolicy(store, workId);
   const atChapter = await nextChapter(store);
   const merges = [...(current.merges ?? [])];
@@ -186,6 +209,7 @@ export async function saveWriterSupportPolicy(store, workId, { disabledReviews, 
   const next = {
     ...current,
     ...(webtoonReviewModel === undefined ? {} : { webtoonReviewModel: checkedWebtoonReviewModel(webtoonReviewModel) }),
+    ...(webtoonComposition === undefined ? {} : { webtoonComposition: webtoonComposition === null ? null : { ...(current.webtoonComposition ?? {}), ...checkedWebtoonComposition(webtoonComposition) } }),
     disabled: disabledReviews === undefined ? (current.disabled ?? []) : checked(disabledReviews, OPTIONAL_REVIEWS, 'REVIEW'),
     draftSectionsOff: disabledDraftSections === undefined ? (current.draftSectionsOff ?? []) : checked(disabledDraftSections, OPTIONAL_DRAFT_SECTIONS, 'DRAFT_SECTION'),
     ...(planningReviews === undefined ? {} : { planningReviews: { ...(current.planningReviews ?? {}), ...checkedReviewOptions(planningReviews, PLANNING_REVIEW_STAGES, 'PLANNING_REVIEWS') } }),

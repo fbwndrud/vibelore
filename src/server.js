@@ -263,7 +263,7 @@ const TOOLS = [
     name: 'lore_configure',
     annotations: writes({ idempotent: true }),
     description: '작품 설정을 조회하거나 바꾼다. 인자 없이 호출하면 읽기 전용으로 StoryProfile·StorySpine·WriterSkill을 하나의 NarrativeContract로 묶어 status(ready|incomplete), 누락 단계(missing), 언어·분량 계약, 검토·추적 설정을 돌려준다. '
-      + 'disabledReviews·disabledDraftSections·planningReviews·arcReview·tracking·customTracking·mergeRecords·webtoonReviewModel을 저장한다. 목록과 tracking 객체는 통째로 교체되고(빈 배열=모두 켬), planningReviews·arcReview는 지정한 필드만 갱신, mergeRecords는 누적된다. webtoonReviewModel은 웹툰 시각 검수만의 모델 힌트이며 호스트가 실제 실행해야 한다(null=기본 모델 복귀). 대기 중인 요청은 유지되며 기존 이미지 재검수는 lore_webtoon_scene action=review다. 검토 변경은 이후 실행에, 추적 변경은 다음 커밋부터 적용된다. 기존 원고는 바뀌지 않는다. 준비 질문 깊이와 검토 선택은 별개다. 모델 호출 없음.',
+      + 'disabledReviews·disabledDraftSections·planningReviews·arcReview·tracking·customTracking·mergeRecords·webtoonReviewModel·webtoonComposition을 저장한다. 목록과 tracking 객체는 통째로 교체되고(빈 배열=모두 켬), planningReviews·arcReview는 지정한 필드만 갱신, mergeRecords는 누적된다. webtoonReviewModel은 웹툰 시각 검수만의 모델 힌트이며 호스트가 실제 실행해야 한다(null=기본 모델 복귀). 대기 중인 요청은 유지되며 기존 이미지 재검수는 lore_webtoon_scene action=review다. 검토 변경은 이후 실행에, 추적 변경은 다음 커밋부터 적용된다. 기존 원고는 바뀌지 않는다. 준비 질문 깊이와 검토 선택은 별개다. 모델 호출 없음.',
     inputSchema: { type: 'object', properties: { ...projectArg,
       webtoonReviewModel: { description: '작품별 웹툰 시각 검수 모델. 모델 ID 또는 {provider:host|local,modelId,reasoningEffort?}; null은 지정 해제. 이미지 모델·소설 모델은 바꾸지 않는다. 호스트는 힌트대로 실제 별도 실행하고 실행 근거를 보존한다.', anyOf: [
         { type: 'null' }, { type: 'string', minLength: 1, maxLength: 120 },
@@ -272,7 +272,14 @@ const TOOLS = [
           reasoningEffort: { type: 'string', enum: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] },
         } },
       ] },
-      disabledReviews: { type: 'array', items: { type: 'string', enum: ['story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger', 'arc-review'] },
+      webtoonComposition: { description: '웹툰 구도 반복 다이제스트·경고 기준. 지정한 필드만 갱신하고 null은 기본값 복귀. 기록만 하며 이미지 생성·채택·검수 판정을 막지 않는다. 경고만 끄려면 disabledReviews에 composition-ledger를 넣는다.',
+        anyOf: [{ type: 'null' }, { type: 'object', additionalProperties: false, properties: {
+          shortWindowEpisodes: { type: 'integer', minimum: 1, maximum: 20 }, shortWindowScenes: { type: 'integer', minimum: 1, maximum: 50 },
+          overuseDelta: { type: 'number', exclusiveMinimum: 0, maximum: 1 }, overuseMinCount: { type: 'integer', minimum: 1, maximum: 100 },
+          streakLength: { type: 'integer', minimum: 2, maximum: 10 }, observedBasisRate: { type: 'number', minimum: 0, maximum: 1 },
+          protagonistIds: { type: 'array', maxItems: 8, items: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,100}$' } },
+        } }] },
+      disabledReviews: { type: 'array', items: { type: 'string', enum: ['story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger', 'arc-review', 'composition-ledger'] },
         description: '끌 검토 목록 전체(빈 배열이면 모두 켬). 꺼진 검토는 요청하지 않고 실패로 보지 않는다. 연속성 추출·검사는 끌 수 없다.' },
       planningReviews: { type: 'object', properties: { story: { type: 'boolean' }, arc: { type: 'boolean' }, episode: { type: 'boolean' } }, additionalProperties: false,
         description: '전체 이야기·아크·에피소드의 창작 검토 선택. false는 해당 단계의 의미·품질 모델 검토를 모두 생략하고 disabled_by_user로 기록한다. true는 켠다(기존 작품도 명시적으로 켜면 의미 검토 적용). 지정한 필드만 갱신한다. 구조·설정·언어 검사는 유지한다.' },
@@ -967,7 +974,7 @@ async function dispatchTool(store, name, args) {
     case 'lore_status':
       return runStatus({ store, workId: args.workId });
     case 'lore_configure':
-      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords, webtoonReviewModel: args.webtoonReviewModel });
+      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords, webtoonReviewModel: args.webtoonReviewModel, webtoonComposition: args.webtoonComposition });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
     case 'lore_preferences':
