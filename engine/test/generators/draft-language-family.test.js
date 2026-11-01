@@ -16,6 +16,7 @@ import { describe, expect, it } from '../_support/vitest-shim.mjs';
 import { createGenreProfileRegistry } from '../../src/continuity/genre-profile.js';
 import { emptyStoryState } from '../../src/continuity/story-state.js';
 import { buildLanguageContract, LanguagePolicyError } from '../../src/core/language-policy.js';
+import { promptFamilyCaptureContext } from '../../src/core/prompt-language.js';
 import { runDraft, __buildDraftSystemForTest as buildDraftSystem, } from '../../src/generators/text/steps/draft.js';
 
 const registry = createGenreProfileRegistry();
@@ -435,5 +436,20 @@ describe('draft — 저장된 Foundation 언어 메타데이터 상속', () => {
         const { system, user } = await capture();
         expect(system).toContain('당신은 한국어 웹소설 작가이다.');
         expect(user).toContain('## 목표 글자 수\n3500');
+    });
+});
+
+describe('draft — 연재 메타 서술 금지', () => {
+    const KO_RULE = "본문 안에서 'N화에서', '지난 화', '앞서 말했듯' 같은 연재 메타 서술을 쓰지 않는다.";
+    const EN_RULE = "Never refer to the serial inside the prose: no chapter numbers or 'last episode', no 'as mentioned before', no paragraph that recaps earlier plot as a summary. Earlier events return only through a character's present memory, sensation or dialogue.";
+    const en = promptFamilyCaptureContext('multilingual');
+    it('both families forbid serial meta-narration in chapter and scene form', () => {
+        const koSystem = buildDraftSystem();
+        const enSystem = buildDraftSystem(undefined, undefined, en);
+        expect(koSystem).toContain(KO_RULE);
+        expect(enSystem).toContain(EN_RULE);
+        expect(buildDraftSystem(undefined, undefined, en, { form: 'scene' })).toContain(EN_RULE);
+        expect(buildDraftSystem(undefined, undefined, undefined, { form: 'scene' })).toContain(KO_RULE);
+        expect(HANGUL.test(enSystem)).toBe(false);
     });
 });

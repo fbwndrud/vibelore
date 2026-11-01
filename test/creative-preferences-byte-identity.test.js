@@ -9,7 +9,7 @@ import { runWriteWorkflow } from '../src/tools/workflow.js';
 // Frozen on the base code before any preference work: a work with no active
 // preference must keep sending these exact requests and writing this exact receipt.
 const EXPECTED = {
-  draft: 'ef2679697ca5ee742b1ffb75b45046f104d70a6ca3841071db7cc03b57cb4e98',
+  draft: 'b4b9e57ca5471ed0cd1a1cdc3d2f22a23cd1b8d51aa0524bfca4ae5de9ff1dbe',
   coherence: 'ee4ee92b7aac23b46d7bab865dd70d4af7d3547423739aa01f2a270955ac953c',
   revise: '3d0c0ced95b7346f6fa3badd2b53677890f0a21a03e8a1adbcedfd5db639d4e3',
   receipt: 'd35bb4459cc57d00b31f082860aa285aba2fb6759c10f9a633b20c19dec1af2a',
