@@ -11,6 +11,7 @@
 
 import { rangeReviewSteps } from './range-review.js';
 import { planningRecoverySteps } from './planning-recovery.js';
+import { HOOK_TYPES } from '../core/narrative-codes.js';
 export const family = 'ko';
 
 /** 단계별 system/user 템플릿. user 는 작품 데이터를 받아 최종 문자열을 만든다. */
@@ -151,7 +152,7 @@ export const steps = {
 
   'pattern-ledger': {
     system: '회차의 표면 소재가 아니라 독자가 실제로 경험한 서사 패턴을 정규화해 추출한다. 서로 다른 표현이 같은 기능이면 같은 짧은 범주명을 쓴다. 해결 방식·도덕적 선택·대가의 형태·결정적 증거 계열·주 장면 모드·정서 온도·마지막 이미지·코미디 구조·주인공 사고법·판단 오차와 수정·조연의 독립 행동·마지막 훅 유형을 기록한다. 순수 JSON만 출력한다.',
-    user: (c) => `${c.notesText ? `${c.notesText}\n\n` : ''}본문:\n${c.prose}\nJSON: {"solutionPattern":"환경이용|규칙재해석|협상|전투|희생|정보전|관계선택|기타","moralChoice":"사람vs성과처럼 선택의 양쪽을 짧게","costShape":"신체|관계|지위|자원|정보|시간|정체성|없음|기타","evidenceFamily":"문서|수치|물증|증언|행동모순|공간흔적|감각|없음|기타","sceneMode":"전투|협상|조사|훈련|이동|휴식|재판|침투|기타","emotionalTemperature":"경쾌|긴장|공포|분노|슬픔|친밀|수치|해방|기타","endingImage":"문서봉인|검은증거|부상|이별|새인물|공간변화|규칙고지|관계행동|기타","comedyMechanism":"","protagonistMethod":"","mistakeAndCorrection":"","supportingAgency":{"characterId":"독립적으로 한 선택"},"hookType":"result|reinterpretation|relationship|ability|moral|identity|none"}`,
+    user: (c) => `${c.notesText ? `${c.notesText}\n\n` : ''}본문:\n${c.prose}\nJSON: {"solutionPattern":"환경이용|규칙재해석|협상|전투|희생|정보전|관계선택|기타","moralChoice":"사람vs성과처럼 선택의 양쪽을 짧게","costShape":"신체|관계|지위|자원|정보|시간|정체성|없음|기타","evidenceFamily":"문서|수치|물증|증언|행동모순|공간흔적|감각|없음|기타","sceneMode":"전투|협상|조사|훈련|이동|휴식|재판|침투|기타","emotionalTemperature":"경쾌|긴장|공포|분노|슬픔|친밀|수치|해방|기타","endingImage":"문서봉인|검은증거|부상|이별|새인물|공간변화|규칙고지|관계행동|기타","comedyMechanism":"","protagonistMethod":"","mistakeAndCorrection":"","supportingAgency":{"characterId":"독립적으로 한 선택"},"hookType":"${HOOK_TYPES.join('|')}"}`,
   },
 
   // main(4a928e2) src/tools/check.js 의 story-profile-check 와 byte 단위로 같다.
