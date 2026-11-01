@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { sceneSetup, scenePlan, scenePreflight } from './fixtures/webtoon-scene.js';
-import { workId } from './fixtures/webtoon.js';
+import { workId, otherPixel } from './fixtures/webtoon.js';
+import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 import { runWebtoonSceneTool } from '../src/tools/webtoon-scene.js';
 import { WebtoonStore } from '../src/store/webtoon-store.js';
 import { isEnglish, RETRY_FRAMING } from '../src/core/webtoon-scene.js';
@@ -119,7 +122,10 @@ function capture() {
   return { seen, provenance: { kind: 'fixture' }, async complete(r) {
     const d = JSON.parse(r.messages.at(-1).content); seen[r.step] = d;
     if (r.step === 'webtoon-scene-plan') return { text: JSON.stringify(scenePlan(d.source)) };
-    if (r.step === 'webtoon-scene-preflight') return { text: JSON.stringify(scenePreflight(d)) };
+    if (r.step === 'webtoon-scene-preflight') {
+      const answer = scenePreflight(d); if (d.styleBasis) answer.renderBrief.style = d.styleBasis.profile.style;
+      return { text: JSON.stringify(answer) };
+    }
     throw new Error('unexpected step ' + r.step);
   } };
 }
@@ -143,4 +149,36 @@ test('a scene without composition sentences sends no seriesComposition', async (
   await runWebtoonSceneTool({ store, args: { ...args, direction: 'Full color comic. Original Korean lettering.' }, providers });
   assert.equal('seriesComposition' in providers.seen['webtoon-scene-plan'], false);
   assert.deepEqual((await new WebtoonStore(store).load()).compositionDefaults, []);
+});
+
+async function adoptStyle(store, direction, file) {
+  const imagePath = join(store.rootDir, file); await writeFile(imagePath, otherPixel);
+  const c = await runWebtoonStyleTool({ store, args: { workId, action: 'propose', brief: 'look', direction, imagePath } });
+  return (await runWebtoonStyleTool({ store, args: { workId, action: 'approve', proposalId: c.proposalId, feedback: 'use it', applyToWorkflows: [] } })).style;
+}
+async function restyleFlow({ mutate }) {
+  const { store, args } = await sceneSetup(), repo = new WebtoonStore(store);
+  await adoptStyle(store, 'Monochrome ink. Close-ups on hands.', 'a.png');
+  const { direction, ...rest } = args;
+  const first = await runWebtoonSceneTool({ store, args: rest, providers: capture() });
+  if (mutate) { const w = await repo.load(); mutate(w); await repo.save(w); }
+  const next = await adoptStyle(store, 'Soft watercolor. Wide shots of the street.', 'b.png');
+  await runWebtoonSceneTool({ store, args: { workId, action: 'revise', styleRevisionId: next.revisionId, feedback: 'new style' }, providers: capture() });
+  return { first, workflow: await repo.load() };
+}
+
+test('restyle keeps following the style direction after the composition split', async () => {
+  const { first, workflow } = await restyleFlow({});
+  assert.deepEqual(first.compositionDefaults, ['Close-ups on hands.']);
+  assert.equal(workflow.direction, 'Soft watercolor.');
+  assert.deepEqual(workflow.compositionDefaults, ['Wide shots of the street.']);
+});
+
+test('a workflow saved before the composition split restyles exactly as it did before', async () => {
+  const { workflow } = await restyleFlow({ mutate: w => {
+    delete w.compositionVersion; delete w.compositionDefaults; w.direction = w.styleSnapshot.profile.style;
+  } });
+  assert.equal(workflow.direction, 'Soft watercolor. Wide shots of the street.');
+  assert.equal(workflow.compositionVersion, undefined);
+  assert.equal(workflow.compositionDefaults, undefined);
 });

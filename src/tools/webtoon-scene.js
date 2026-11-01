@@ -445,7 +445,10 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       if (args.direction !== undefined && !isEnglish(args.direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
       if (args.styleRevisionId !== undefined) {
         const adopted = await new WebtoonStyleStore(repo, w.workId).adopted(args.styleRevisionId);
-        if (w.direction === w.styleSnapshot?.profile.style) w.direction = adopted.profile.style;
+        if (w.compositionVersion) {
+          // The stored direction is the split style direction; follow the style while it still equals the pinned one.
+          if (w.direction === splitCompositionDirection(w.styleSnapshot?.profile.style ?? '').direction) ({ direction: w.direction, compositionDefaults: w.compositionDefaults } = splitCompositionDirection(adopted.profile.style));
+        } else if (w.direction === w.styleSnapshot?.profile.style) w.direction = adopted.profile.style;
         // Workflows started after reference merging rebuild from the unmerged originals; older ones keep the original rebuild.
         const refs = (w.unmergedSceneReferences ?? w.sceneReferences).filter(r => r.id !== STYLE_REFERENCE_ID);
         if (refs.length >= SCENE_LIMITS.referenceImages) throw new Error('SCENE_REFERENCES_REQUIRED');
