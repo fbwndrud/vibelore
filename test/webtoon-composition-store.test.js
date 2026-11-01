@@ -195,3 +195,19 @@ test('a store failure surfaces and leaves the review stage retryable', async () 
   assert.equal(retry.status, 'completed');
   assert.equal((await lines(repo)).filter(r => r.type === 'page').length, 1);
 });
+
+test('adopting through the tool keeps the derived index equal to a rebuild, and a rejected review leaves it empty of scenes', async () => {
+  const { store, repo, args } = await sceneSetup();
+  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: planner });
+  await review(store, args, drawn);
+  const composition = new CompositionStore(repo), index = await composition.peekIndex();
+  assert.ok(index, 'adoption wrote a fresh index');
+  assert.equal(Object.keys(index.scenes).length, 1);
+  assert.deepEqual(await composition.rebuildIndex(), index);
+  const failed = await sceneSetup();
+  const failedDrawn = await runWebtoonSceneTool({ store: failed.store, args: { ...failed.args, autoRevisions: 0 }, providers: planner });
+  await review(failed.store, failed.args, failedDrawn, { fail: true });
+  const none = await new CompositionStore(failed.repo).peekIndex();
+  assert.deepEqual(none.scenes, {});
+  assert.deepEqual(none.order, ['ep-0001']);
+});
