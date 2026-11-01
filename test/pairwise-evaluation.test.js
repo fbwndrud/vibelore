@@ -3,9 +3,11 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { deriveRequestFingerprint } from '../engine/src/core/request-fingerprint.js';
+import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import {
-  DIMENSIONS, PROTOCOL_VERSION, aggregate, combineOrders, lengthMetrics, mapToSides, parseChapterRange,
-  parseVerdict, readChapterSet, schedulePairs, signTestP,
+  DIMENSIONS, JUDGE_DELIMITERS, PROTOCOL_VERSION, aggregate, buildJudgeRequest, combineOrders, judgeFamilyFor,
+  lengthMetrics, mapToSides, parseChapterRange, parseVerdict, readChapterSet, schedulePairs, signTestP,
 } from '../scripts/pairwise-evaluation.js';
 
 test('constants name the protocol and the four dimensions', () => {
@@ -180,4 +182,65 @@ test('lengthMetrics counts graphemes of judged chapters and flags a large gap', 
   const graphemes = run('한글', '가\u0301👨‍👩‍👧');
   assert.deepEqual(graphemes.totals, { off: 2, on: 2 });
   assert.equal(lengthMetrics({ pairs: [], exchanges: [] }).ratio, null);
+});
+
+const PROSE_A = '문이 열리고 낯선 사람이 들어왔다. 그는 아무 말 없이 젖은 외투를 벗었다.';
+const PROSE_B = 'The lamp guttered twice before the stranger crossed the threshold and set down his case.';
+
+test('judge system text follows the prompt family and names the four dimensions', () => {
+  for (const family of ['ko', 'multilingual']) {
+    const system = buildJudgeRequest({ family, a: PROSE_A, b: PROSE_B }).messages[0].content;
+    for (const dimension of DIMENSIONS) assert.match(system, new RegExp(`"${dimension}":\\{"winner":"A\\|B\\|tie"`));
+    assert.ok(system.includes('tie'));
+    assert.ok(system.includes(relayScaffold(family).json));
+    assert.ok(system.endsWith(`\n\n${hostExecutionNote(family)}`));
+    assert.equal(system.split('\n\n').at(-1), hostExecutionNote(family));
+  }
+  const ko = buildJudgeRequest({ family: 'ko', a: PROSE_A, b: PROSE_B }).messages[0].content;
+  const en = buildJudgeRequest({ family: 'multilingual', a: PROSE_A, b: PROSE_B }).messages[0].content;
+  assert.match(ko, /\p{Script=Hangul}/u);
+  assert.doesNotMatch(en, /\p{Script=Hangul}/u);
+  assert.ok(!ko.includes(en.split('\n\n')[0]));
+  assert.match(en, /indistinguishable/);
+  assert.match(en, /length/i);
+  assert.match(en, /JSON/);
+});
+
+test('judge user message wraps only the two versions', () => {
+  const request = buildJudgeRequest({ family: 'multilingual', a: PROSE_A, b: PROSE_B });
+  const { startA, endA, startB, endB } = JUDGE_DELIMITERS;
+  assert.deepEqual(JUDGE_DELIMITERS, {
+    startA: '<<<VERSION A>>>', endA: '<<<END VERSION A>>>', startB: '<<<VERSION B>>>', endB: '<<<END VERSION B>>>',
+  });
+  assert.equal(request.messages[1].role, 'user');
+  assert.equal(request.messages[1].content, `${startA}\n${PROSE_A}\n${endA}\n\n${startB}\n${PROSE_B}\n${endB}`);
+  assert.doesNotMatch(request.messages[1].content, /\bON\b|\bOFF\b/);
+  for (const message of request.messages) assert.doesNotMatch(message.content, /\bON\b|\bOFF\b|chapters\/|\.vibelore|world\/|characters\//);
+});
+
+test('judge request is a deterministic host json request without sampling limits', () => {
+  const base = { family: 'multilingual', a: PROSE_A, b: PROSE_B };
+  const request = buildJudgeRequest(base);
+  assert.equal(request.step, 'pairwise-judge');
+  assert.equal(request.jsonMode, true);
+  assert.deepEqual(request.model, { provider: 'host', modelId: 'host-agent' });
+  assert.ok(!('temperature' in request));
+  assert.ok(!('maxTokens' in request));
+  const fingerprint = deriveRequestFingerprint(request);
+  assert.equal(deriveRequestFingerprint(buildJudgeRequest({ ...base })), fingerprint);
+  assert.notEqual(deriveRequestFingerprint(buildJudgeRequest({ ...base, a: PROSE_B, b: PROSE_A })), fingerprint);
+  assert.notEqual(deriveRequestFingerprint(buildJudgeRequest({ ...base, family: 'ko' })), fingerprint);
+});
+
+test('judge request refuses prose that contains its own delimiter', () => {
+  for (const [a, b] of [[`x ${JUDGE_DELIMITERS.endA} y`, PROSE_B], [PROSE_A, `x ${JUDGE_DELIMITERS.endA} y`]]) {
+    assert.throws(() => buildJudgeRequest({ family: 'ko', a, b }), { code: 'PROSE_DELIMITER_CONFLICT' });
+  }
+});
+
+test('judgeFamilyFor maps a language tag to a prompt family', () => {
+  assert.equal(judgeFamilyFor('ko'), 'ko');
+  assert.equal(judgeFamilyFor('en'), 'multilingual');
+  assert.equal(judgeFamilyFor('ja'), 'multilingual');
+  assert.throws(() => judgeFamilyFor('not a tag!'));
 });

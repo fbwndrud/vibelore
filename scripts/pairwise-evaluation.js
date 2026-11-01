@@ -3,6 +3,8 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseJsonCompletion } from '../engine/src/core/json-completion.js';
 import { publishedProse } from '../engine/src/core/length-measure.js';
+import { promptFamilyFor } from '../engine/src/core/language-policy.js';
+import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import { parseDocument } from '../src/md/frontmatter.js';
 
 export const PROTOCOL_VERSION = 'pairwise-v1';
@@ -175,4 +177,69 @@ export function lengthMetrics({ pairs, exchanges }) {
   const totals = perChapter.reduce((sum, item) => ({ off: sum.off + item.off, on: sum.on + item.on }), { off: 0, on: 0 });
   const ratio = totals.off > 0 ? totals.on / totals.off : null;
   return { perChapter, totals, ratio, longerTextNote: ratio !== null && (ratio < 0.85 || ratio > 1.15) };
+}
+
+export const JUDGE_DELIMITERS = Object.freeze({
+  startA: '<<<VERSION A>>>',
+  endA: '<<<END VERSION A>>>',
+  startB: '<<<VERSION B>>>',
+  endB: '<<<END VERSION B>>>',
+});
+
+const JUDGE_SCHEMA = '{"plot":{"winner":"A|B|tie","reason":"<=200 chars"},"creativity":{"winner":"A|B|tie","reason":"<=200 chars"},"development":{"winner":"A|B|tie","reason":"<=200 chars"},"language":{"winner":"A|B|tie","reason":"<=200 chars"}}';
+
+const JUDGE_SYSTEM = {
+  ko: [
+    '너는 같은 연재 소설 한 화의 두 판본을 나란히 읽는 비교 독자다. 어느 판본이 어떤 방식으로 만들어졌는지 알려져 있지 않으며, 알려고 하지 않는다.',
+    [
+      '네 가지 항목마다 더 나은 판본을 고른다.',
+      '- plot: 사건들이 서로 맞물리며 앞으로 나아가는가.',
+      '- creativity: 뜻밖이지만 작품에 어울리는 선택이 있는가.',
+      '- development: 인물과 상황이 변하고, 그 변화에 충분한 지면이 주어지는가.',
+      '- language: 문장의 질과 작품 고유의 목소리에 대한 어울림.',
+    ].join('\n'),
+    '두 판본을 구별할 수 없을 때만 tie를 고른다. 조금이라도 차이가 보이면 더 나은 쪽을 고른다.',
+    '분량이 길든 짧든 그것만으로 선호하지 않으며, 판본이 어떻게 만들어졌는지는 언급하지 않는다.',
+    `답은 항목마다 승자(A, B, tie)와 200자 이내의 이유를 담은 다음 형태다.\n${JUDGE_SCHEMA}`,
+    relayScaffold('ko').json,
+    hostExecutionNote('ko'),
+  ],
+  multilingual: [
+    'You are a comparative reader who reads two versions of the same serial-fiction chapter side by side. You are not told how either version was produced and you do not try to guess.',
+    [
+      'For each of the four dimensions, pick the better version.',
+      '- plot: the events cohere and move the story forward.',
+      '- creativity: the choices are unexpected yet fit the work.',
+      '- development: characters and situation change, and the change is given room.',
+      '- language: sentence quality and fit to the work\'s voice.',
+    ].join('\n'),
+    'Choose tie only when the two versions are indistinguishable on that dimension. If you can see any difference, pick the better one.',
+    'Do not prefer a version for its length, whether longer or shorter, and do not comment on how the versions were made.',
+    `Answer with the winner (A, B or tie) and a reason of at most 200 characters for each dimension, in this shape:\n${JUDGE_SCHEMA}`,
+    relayScaffold('multilingual').json,
+    hostExecutionNote('multilingual'),
+  ],
+};
+
+export function judgeFamilyFor(language) {
+  return promptFamilyFor(language) === 'ko' ? 'ko' : 'multilingual';
+}
+
+export function buildJudgeRequest({ family, a, b }) {
+  const markers = Object.values(JUDGE_DELIMITERS);
+  for (const prose of [a, b]) {
+    if (markers.some(marker => prose.includes(marker))) {
+      throw fail('PROSE_DELIMITER_CONFLICT', 'Chapter prose contains a judge delimiter');
+    }
+  }
+  const { startA, endA, startB, endB } = JUDGE_DELIMITERS;
+  return {
+    step: 'pairwise-judge',
+    jsonMode: true,
+    model: { provider: 'host', modelId: 'host-agent' },
+    messages: [
+      { role: 'system', content: JUDGE_SYSTEM[family === 'ko' ? 'ko' : 'multilingual'].join('\n\n') },
+      { role: 'user', content: `${startA}\n${a}\n${endA}\n\n${startB}\n${b}\n${endB}` },
+    ],
+  };
 }
