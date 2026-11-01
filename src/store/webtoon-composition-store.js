@@ -2,7 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { digest, safeId } from '../core/webtoon-contract.js';
 import { PREVIOUS_SCENE_ID } from '../core/webtoon-scene.js';
 import { COMPOSITION_VOCAB_VERSION, compositionFingerprint } from '../core/webtoon-composition.js';
-import { applySceneToIndex, buildIndex, protagonistIdsFor, sceneSummary } from '../core/webtoon-composition-aggregate.js';
+import { applySceneToIndex, buildIndex, compactVector, expandVector, protagonistIdsFor, sceneSummary } from '../core/webtoon-composition-aggregate.js';
 import { finalCompositionLabels } from '../core/webtoon-scene-review.js';
 import { STYLE_REFERENCE_ID } from './webtoon-style-store.js';
 import { atomicWrite } from './webtoon-store.js';
@@ -23,6 +23,13 @@ export const sceneKey = w => digest([...w.sceneUnits.map(u => u.id)].sort());
 const referenceRole = id => id === PREVIOUS_SCENE_ID ? 'previous-scene' : id === STYLE_REFERENCE_ID ? 'adopted-style' : 'user';
 const rowKey = r => `${r.workflowId}:${r.revision}`;
 const INDEX_FILES = ['l1-scenes.json', 'l1-episodes.json', 'l2.json', 'l3.json'];
+const mapValues = (object, fn) => Object.fromEntries(Object.entries(object).map(([k, v]) => [k, fn(v)]));
+/** On disk a summary is sparse and its fingerprints map is stored once (it is `counts.fingerprints`). */
+const packSummary = ({ counts, requiredCounts, closes, sceneType }) => ({ counts: compactVector(counts), requiredCounts: compactVector(requiredCounts), closes, sceneType });
+const unpackSummary = ({ counts, requiredCounts, closes, sceneType }) => {
+  const full = expandVector(counts);
+  return { counts: full, requiredCounts: expandVector(requiredCounts), closes, fingerprints: full.fingerprints, sceneType };
+};
 const sameIds = (a, b) => a.length === b.length && [...a].sort().every((id, i) => id === [...b].sort()[i]);
 
 function parseShard(text, episodeKey) {
@@ -105,7 +112,8 @@ export class CompositionStore {
       if (!parts.every(p => p.vocabVersion === COMPOSITION_VOCAB_VERSION && p.sourceHead === sourceHead)) return null;
       if (!sameIds(scenes.configured ?? [], protagonistIds)) return null;
       return { vocabVersion: l2.vocabVersion, sourceHead, configured: scenes.configured, protagonistIds: scenes.protagonistIds,
-        scenes: scenes.scenes, episodes: episodes.episodes, order: l2.order, prefix: l2.prefix, entities: l3.entities };
+        scenes: mapValues(scenes.scenes, unpackSummary), episodes: mapValues(episodes.episodes, expandVector), order: l2.order, prefix: l2.prefix.map(expandVector),
+        entities: { character: mapValues(l3.entities.character, expandVector), sceneType: mapValues(l3.entities.sceneType, expandVector) } };
     } catch { return null; }
   }
   /** The index, rebuilt from L0 when it is missing, unreadable or stale (vocabulary, source head or protagonist setting). */
@@ -113,10 +121,10 @@ export class CompositionStore {
   async saveIndex(index) {
     const meta = { vocabVersion: index.vocabVersion, sourceHead: index.sourceHead };
     const files = {
-      'l1-scenes.json': { ...meta, configured: index.configured, protagonistIds: index.protagonistIds, scenes: index.scenes },
-      'l1-episodes.json': { ...meta, episodes: index.episodes },
-      'l2.json': { ...meta, order: index.order, prefix: index.prefix },
-      'l3.json': { ...meta, entities: index.entities },
+      'l1-scenes.json': { ...meta, configured: index.configured, protagonistIds: index.protagonistIds, scenes: mapValues(index.scenes, packSummary) },
+      'l1-episodes.json': { ...meta, episodes: mapValues(index.episodes, compactVector) },
+      'l2.json': { ...meta, order: index.order, prefix: index.prefix.map(compactVector) },
+      'l3.json': { ...meta, entities: { character: mapValues(index.entities.character, compactVector), sceneType: mapValues(index.entities.sceneType, compactVector) } },
     };
     for (const [name, body] of Object.entries(files)) await atomicWrite(this.repo.path('composition', name), JSON.stringify(body));
   }
@@ -129,15 +137,15 @@ export class CompositionStore {
     return index;
   }
   /**
-   * Update a loaded index for one scene whose rows were just rewritten: subtract its stored summary, add the new one,
-   * recompute prefix sums from the affected episode. Falls back to a full rebuild when the implied protagonist changes.
+   * Update a loaded index for one scene whose rows were just rewritten: subtract the summary of its previous rows
+   * (`prevRows`, read before the rewrite), add the new one, recompute prefix sums from the affected episode.
+   * Falls back to a full rebuild when the implied protagonist changes.
    */
-  async applySceneToIndex(index, episodeKey, key, { protagonistIds = [] } = {}) {
+  async applySceneToIndex(index, episodeKey, key, prevRows, { protagonistIds = [] } = {}) {
     const [rows, { sourceHead }, episodes] = await Promise.all([this.readShard(episodeKey), this.readSources(), this.listEpisodes()]);
-    const mine = rows.filter(r => r.sceneKey === key);
-    const next = mine.some(r => r.status === 'adopted') ? sceneSummary(mine, { protagonistIds: index.protagonistIds }) : null;
+    const summaryOf = list => list.some(r => r.status === 'adopted') ? sceneSummary(list, { protagonistIds: index.protagonistIds }) : null;
     const id = `${episodeKey}:${key}`;
-    const updated = applySceneToIndex(index, id, index.scenes[id] ?? null, next, { order: episodes.map(e => e.episodeKey), sourceHead });
+    const updated = applySceneToIndex(index, id, summaryOf(prevRows), summaryOf(rows.filter(r => r.sceneKey === key)), { order: episodes.map(e => e.episodeKey), sourceHead });
     if (!sameIds(protagonistIdsFor(updated, protagonistIds), updated.protagonistIds)) return this.rebuildIndex({ protagonistIds });
     await this.saveIndex(updated);
     return updated;
@@ -148,9 +156,11 @@ export class CompositionStore {
    */
   async adoptScene(w, { adopted, protagonistIds = [] }) {
     const before = await this.peekIndex({ protagonistIds }).catch(() => null);
+    const key = sceneKey(w);
+    const prevRows = before ? (await this.readShard(sceneEpisodeKey(w))).filter(r => r.sceneKey === key) : [];
     const recorded = await this.recordScene(w, { adopted });
     try {
-      if (before) await this.applySceneToIndex(before, recorded.episodeKey, sceneKey(w), { protagonistIds });
+      if (before) await this.applySceneToIndex(before, recorded.episodeKey, key, prevRows, { protagonistIds });
       else await this.rebuildIndex({ protagonistIds });
     } catch { /* derived data */ }
     return recorded;

@@ -33,6 +33,20 @@ export const subVector = (a, b) => combine(a, b, -1, false);
 /** The constant-size part of a vector: what prefix sums and entity vectors store. */
 const fixedPart = vector => ({ ...vector, pageClose: {}, fingerprints: {} });
 
+/** Drop zero entries and empty maps; `expandVector` restores the fixed shape. Used for on-disk L1-L3 only. */
+export function compactVector(value) {
+  const out = {};
+  for (const [key, v] of Object.entries(value)) {
+    if (plain(v)) { const inner = compactVector(v); if (Object.keys(inner).length) out[key] = inner; }
+    else if (v !== 0) out[key] = v;
+  }
+  return out;
+}
+export const expandVector = compact => addVector(emptyVector(), compact ?? {});
+
+/** Fingerprint counts are keyed by a short prefix of the full fingerprint: equality is all aggregation needs. */
+export const shortFingerprint = fingerprint => String(fingerprint).replace(/^sha256:/, '').slice(0, 12);
+
 const bump = (map, key, by = 1) => { map[key] = (map[key] ?? 0) + by; };
 const closeKey = label => `${label.shot}|${label.subjects[0]?.id ?? '-'}`;
 
@@ -58,7 +72,7 @@ export function sceneSummary(rows, { protagonistIds = [] } = {}) {
     for (const field of ['shot', 'angle', 'focal', 'background']) bump(target[field], label[field]);
     for (const s of label.subjects) for (const field of ['visibility', 'side', 'facing', 'expression']) if (s[field] !== undefined) bump(target[field], s[field]);
     if (required) continue;
-    if (row.fingerprint) bump(counts.fingerprints, row.fingerprint);
+    if (row.fingerprint) bump(counts.fingerprints, shortFingerprint(row.fingerprint));
     const protagonist = label.subjects.find(s => protagonistIds.includes(s.id));
     if (protagonist) {
       if (protagonist.visibility !== undefined) bump(counts.protagonistVisibility, protagonist.visibility);
@@ -75,6 +89,8 @@ export function sceneSummary(rows, { protagonistIds = [] } = {}) {
   return { counts, requiredCounts, closes, fingerprints: counts.fingerprints, sceneType, characters };
 }
 
+/** The stored form of a scene summary: per-character vectors feed L3 only and are not kept per scene. */
+const stored = ({ characters, ...summary }) => summary;
 const sceneId = (episodeKey, sceneKey) => `${episodeKey}:${sceneKey}`;
 
 /** Group an episode's rows by scene; a scene exists only when some row of it is adopted. */
@@ -93,7 +109,7 @@ function entityDelta(entities, prev, next) {
   const out = { character: { ...entities.character }, sceneType: { ...entities.sceneType } };
   const apply = (summary, sign) => {
     if (!summary) return;
-    for (const [id, vector] of Object.entries(summary.characters)) out.character[id] = combine(out.character[id], vector, sign, false);
+    for (const [id, vector] of Object.entries(summary.characters ?? {})) out.character[id] = combine(out.character[id], vector, sign, false);
     if (summary.sceneType) out.sceneType[summary.sceneType] = combine(out.sceneType[summary.sceneType], fixedPart(summary.counts), sign, false);
   };
   apply(prev, -1); apply(next, 1);
@@ -118,7 +134,7 @@ export function buildIndex(rowsByEpisode, { protagonistIds = [], sourceHead = nu
       let episode = emptyVector();
       for (const [key, list] of adoptedScenes(rows)) {
         const summary = sceneSummary(list, { protagonistIds: resolved });
-        scenes[sceneId(episodeKey, key)] = summary;
+        scenes[sceneId(episodeKey, key)] = stored(summary);
         episode = addVector(episode, summary.counts);
         entities = entityDelta(entities, null, summary);
       }
@@ -135,13 +151,14 @@ export function buildIndex(rowsByEpisode, { protagonistIds = [], sourceHead = nu
 
 /**
  * Subtract the scene's previous summary and add the new one (either may be null), then recompute prefix sums
- * from the first affected episode. The result deep-equals a full buildIndex over the same rows.
+ * from the first affected episode. Both summaries must come from `sceneSummary` (they carry the per-character
+ * vectors that L3 needs; the index keeps summaries without them). The result deep-equals a full buildIndex over the same rows.
  * `order` is the current episode order (a new episode may appear); `sourceHead` the new digest.
  */
 export function applySceneToIndex(index, id, prevSummary, nextSummary, { order = index.order, sourceHead = index.sourceHead } = {}) {
   const episodeKey = id.slice(0, id.indexOf(':'));
   const scenes = { ...index.scenes };
-  if (nextSummary) scenes[id] = nextSummary; else delete scenes[id];
+  if (nextSummary) scenes[id] = stored(nextSummary); else delete scenes[id];
   const episodes = { ...index.episodes };
   episodes[episodeKey] = addVector(subVector(episodes[episodeKey] ?? emptyVector(), prevSummary?.counts ?? emptyVector()), nextSummary?.counts ?? emptyVector());
   for (const key of Object.keys(episodes)) if (!order.includes(key)) delete episodes[key];

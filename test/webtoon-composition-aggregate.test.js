@@ -40,6 +40,7 @@ test('a scene summary counts only adopted, clear, mapped, labelled, non-required
   assert.equal(s.counts.shot.CU, 0);
   assert.equal(s.sceneType, 'dialogue');
   assert.deepEqual(Object.keys(s.characters), ['hero']);
+  assert.equal('characters' in buildIndex([{ episodeKey: 'ep-0001', rows }], {}).scenes['ep-0001:s1'], false, 'per-character vectors feed L3 only');
 });
 
 test('page close, fingerprints and the protagonist side in multi-subject panels are summarised', () => {
@@ -183,12 +184,24 @@ test('a missing or vocabulary-stale index file is rebuilt; a changed protagonist
 
 test('the implied protagonist changing mid-history falls back to a full rebuild that still matches', async () => {
   const store = new CompositionStore(await repoAt());
-  const only = id => fake(`wt-${id}`, 1, [`p-${id}`], { preflight: { renderBrief: { pageComposition: { layout: 'grid' }, moments: [1, 2, 3].map(() => planned([{ id, visibility: 'face', side: 'L' }])) } } });
-  await store.adoptScene(only('aaa'), { adopted: true });
+  let rebuilds = 0;
+  const rebuild = store.rebuildIndex.bind(store);
+  store.rebuildIndex = async options => { rebuilds++; return rebuild(options); };
+  const scene = (id, ep, ids) => fake(`wt-${id}`, ep, [`p-${id}`], { preflight: { renderBrief: { pageComposition: { layout: 'grid' },
+    moments: ids.map(subject => planned([{ id: subject, visibility: 'face', side: 'L' }])) } } });
+  await store.adoptScene(scene('first', 1, ['aaa', 'aaa', 'mmm']), { adopted: true });
   assert.deepEqual((await store.peekIndex()).protagonistIds, ['aaa']);
-  await store.adoptScene(fake('wt-x', 2, ['q1'], { preflight: { renderBrief: { pageComposition: { layout: 'grid' }, moments: [1, 2, 3].map(() => planned([{ id: 'zzz', visibility: 'face', side: 'L' }, { id: 'yyy', visibility: 'face', side: 'R' }])) } } }), { adopted: true });
-  const index = await sameAsRebuild(store);
-  assert.equal(index.protagonistIds.length, 1);
+  const afterFirst = rebuilds;
+  await store.adoptScene(scene('second', 2, ['zzz', 'zzz', 'zzz']), { adopted: true });
+  assert.equal(rebuilds, afterFirst + 1, 'the changed implied protagonist forced a full rebuild');
+  const stored = await store.peekIndex();
+  assert.deepEqual(stored.protagonistIds, ['zzz']);
+  assert.deepEqual(stored, await store.rebuildIndex());
+  // without a flip the update stays incremental
+  const before = rebuilds;
+  await store.adoptScene(scene('third', 3, ['zzz', 'mmm', 'mmm']), { adopted: true });
+  assert.equal(rebuilds, before, 'no flip, no rebuild');
+  assert.deepEqual(await store.peekIndex(), await store.rebuildIndex());
 });
 
 test('scale: 300 episodes x 40 panels rebuild fast, windows are one subtraction, l2.json stays small', async () => {
@@ -220,8 +233,12 @@ test('scale: 300 episodes x 40 panels rebuild fast, windows are one subtraction,
   assert.equal(index.prefix.length, 301);
   assert.equal(index.prefix.at(-1).panels, 12000);
   const l2 = (await stat(repo.path('composition', 'l2.json'))).size;
-  console.log(`# scale l2.json ${l2} bytes`);
+  const sizeOf = async name => (await stat(repo.path('composition', name))).size;
+  const [l1Scenes, l1Episodes, l3] = [await sizeOf('l1-scenes.json'), await sizeOf('l1-episodes.json'), await sizeOf('l3.json')];
+  console.log(`# scale l1-scenes ${l1Scenes} l1-episodes ${l1Episodes} l2 ${l2} l3 ${l3} bytes`);
   assert.ok(l2 < 1.5 * 1024 * 1024, `l2.json is ${l2} bytes`);
+  assert.ok(l1Episodes < 320 * 1024, `l1-episodes.json is ${l1Episodes} bytes (about 1 KB per episode)`);
+  assert.ok(l1Scenes < 850 * 1000, `l1-scenes.json is ${l1Scenes} bytes`);
   for (const [from, to] of [[0, 299], [10, 10], [0, 0], [299, 299], [5, 120], [100, 250], [33, 34], [200, 299], [1, 298], [149, 151]]) {
     const naive = index.order.slice(from, to + 1).map(k => index.episodes[k]).reduce(addVector, emptyVector());
     assert.deepEqual(windowCounts(index, from, to), naive);
