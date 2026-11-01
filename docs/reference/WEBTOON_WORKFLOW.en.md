@@ -56,14 +56,14 @@ For a newly started scene, the pre-generation check (`webtoon-scene-preflight`) 
 `shot` (ECU, CU, MCU, MS, FS, WS, EST, INSERT), `angle` (eye, high, low, top, worm, dutch, ots, pov), `focal` (face, hands, prop, space, text, two-face),
 `background` (detailed, bokeh, flat, white, fx, silhouette), per-character `visibility`, `side`, `facing` and `expression`, and a page `layout`.
 Values outside the vocabulary are refused with `INVALID_SCENE_COMPOSITION`. At most two moments per page may be marked `directed`, and only that framing reaches the image model.
-The other labels are records only; elements the source requires go in `required` with their source IDs. Composition sentences in the style description are split off as
-`seriesComposition` and sent with the direction request only, so the image prompt keeps just the style. Work that started earlier keeps its existing requests unchanged.
+The other labels are records only; elements the source requires go in `required` with their source IDs. Composition sentences in the adopted style description are split off as
+`seriesComposition` and sent with the plan request only; the other requests and the image prompt carry just the style direction. A `direction` given explicitly at start is kept whole. Work that started earlier keeps its existing requests unchanged.
 
 When a scene is adopted, per-episode records (L0) accumulate under `.vibelore/webtoon/composition/l0/`. Where the visual review's `compositionCheck` observed a panel
 differently from its label, the observed value is what gets recorded. From these, scene, episode, cumulative and per-character aggregates (L1-L3) are derived deterministically, with no model call.
 
 Just before `scene_generate`, one repetition digest is computed from the aggregates and stored on the workflow. It compares the recent window (by default the last 2 episodes, or the last 6 scenes
-when there is one episode) with the baseline before it (a built-in default distribution when the record covers fewer than 3 episodes). It writes one English line each for over-used values, runs of the same closing frame,
+when there is one episode) with the baseline before it (a built-in default distribution when fewer than 3 episodes precede the recent window). It writes one English line each for over-used values, runs of the same closing frame,
 two-character arrangement or framing, and a small menu of under-used options. Only when `lines` is not empty, the same array is sent once as `compositionDigest` in the `scene_generate` and `scene_preflight`
 requests (it is not recomputed for preflight). It is never put in the image prompt or the visual review request, and if the computation fails only a reason is kept and generation continues.
 A revision that restarts at `scene_generate` computes a fresh digest. The digest is a suggestion: the source and the user's direction come first.

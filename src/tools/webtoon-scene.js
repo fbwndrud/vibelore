@@ -20,7 +20,7 @@ import { loadWebtoonReviewModel, loadWebtoonCompositionConfig, loadDisabledRevie
 import { compositionDigest, compositionAdvisory } from '../core/webtoon-composition-digest.js';
 import { SCENE_IMAGE_REVIEW_VERSION, sceneVisualCheckSchema, sceneReviewInputs, sceneImageReviewPrompt, compositionCheckSchema, compositionCheckActive } from '../core/webtoon-scene-review.js';
 import { SCENE_SCHEMA, SCENE_SCHEMA_V1, COMPOSITION_PREFLIGHT_INSTRUCTION, sceneCastList, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, mergeDuplicateReferences, CONTINUITY_CHECKS,
-  isEnglish, castIdsOf, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
+  isEnglish, castIdsOf, sceneStyleBasis, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
 /** Shape of each findings[] item; findings may be empty. */
@@ -201,7 +201,7 @@ async function drive(repo, w, providers) {
         : 'Honor the user-selected panelCount ')
       + 'without making one beat equal one panel. Do not prescribe panel rectangles, coordinates or a camera per sentence. Identify only necessary spatial facts. Separate ambiguity from facts, never invent physics to fill a gap. Let the image artist choose composition. Preserve causality, character motivation and exact speaker identities. A beat is an event, not a panel. Do not reuse prior shot lists.',
       { source: w.sceneUnits, foundation: w.source.foundation, documents: w.source.documents, ...referenceContext(w),
-        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'This is the user-adopted visual treatment. Preserve it; source facts and identities remain authoritative. Any source expression profile is subordinate for presentation only.' } : {}),
+        ...(w.styleSnapshot ? { styleBasis: sceneStyleBasis(w), styleInstruction: 'This is the user-adopted visual treatment. Preserve it; source facts and identities remain authoritative. Any source expression profile is subordinate for presentation only.' } : {}),
         ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText, cast: w.source.cast, expression: w.source.expression } : {}), direction: w.direction,
         ...(w.compositionDefaults?.length ? { seriesComposition: w.compositionDefaults } : {}),
         ...compositionDigestInput(w),
@@ -220,7 +220,7 @@ async function drive(repo, w, providers) {
       { source: w.sceneUnits, ...referenceContext(w), ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText } : {}), plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
         ...(w.compositionVersion && sceneCastList(w).length ? { cast: sceneCastList(w) } : {}),
         ...compositionDigestInput(w),
-        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Copy styleBasis.profile.style exactly into renderBrief.style. The sample is for visual treatment only; preserve source identities and facts.' } : {}),
+        ...(w.styleSnapshot ? { styleBasis: sceneStyleBasis(w), styleInstruction: 'Copy styleBasis.profile.style exactly into renderBrief.style. The sample is for visual treatment only; preserve source identities and facts.' } : {}),
         ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
         coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
         renderBrief: w.compositionVersion ? { style: '', pageComposition: { layout: COMPOSITION_VOCAB.layout.join('|') }, moments: [{ sourceIds: [], action: '', textIds: [], composition: COMPOSITION_EXAMPLE }] }
@@ -316,10 +316,12 @@ async function startScene(store, repo, args, current) {
   const previous = args.previousWorkflowId ? await loadPreviousScene(repo, args) : undefined;
   if (current && !terminal(current) && !(previous?.workflowId === current.workflowId && current.stage === 'scene_needs_revision')) throw new Error('WEBTOON_WORKFLOW_ACTIVE');
   const styleSnapshot = await new WebtoonStyleStore(repo, args.workId).adopted(args.styleRevisionId);
-  const fullDirection = args.direction ?? styleSnapshot?.profile.style;
-  if (!isEnglish(fullDirection)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
-  // Series-level framing sentences go to planning only; the image prompt keeps the style direction.
-  const { direction, compositionDefaults } = splitCompositionDirection(fullDirection);
+  // Series-level framing sentences of the adopted style go to planning only; the image prompt keeps the style direction.
+  // A direction the user gave explicitly is kept whole, as revise keeps it.
+  const styleSplit = styleSnapshot ? splitCompositionDirection(styleSnapshot.profile.style) : null;
+  const direction = args.direction ?? styleSplit?.direction;
+  const compositionDefaults = styleSplit?.compositionDefaults ?? [];
+  if (!isEnglish(direction) || (args.direction === undefined && !isEnglish(styleSnapshot.profile.style))) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
   const autoLimit = args.autoRevisions ?? delegation?.maxAutoRevisions ?? SCENE_AUTO_REVISIONS.default;
   if (!Number.isInteger(autoLimit) || autoLimit < 0 || autoLimit > SCENE_AUTO_REVISIONS.max) throw new Error('INVALID_SCENE_AUTO_REVISIONS');
   if (delegation?.maxAutoRevisions !== undefined && autoLimit > delegation.maxAutoRevisions) throw new Error('WEBTOON_DELEGATION_RETRY_LIMIT');
@@ -520,8 +522,10 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       if (args.styleRevisionId !== undefined) {
         const adopted = await new WebtoonStyleStore(repo, w.workId).adopted(args.styleRevisionId);
         if (w.compositionVersion) {
-          // The stored direction is the split style direction; follow the style while it still equals the pinned one.
-          if (w.direction === splitCompositionDirection(w.styleSnapshot?.profile.style ?? '').direction) ({ direction: w.direction, compositionDefaults: w.compositionDefaults } = splitCompositionDirection(adopted.profile.style));
+          // The series framing sentences always come from the adopted style; the stored direction follows it only while it still equals the pinned style direction.
+          const split = splitCompositionDirection(adopted.profile.style);
+          if (w.direction === splitCompositionDirection(w.styleSnapshot?.profile.style ?? '').direction) w.direction = split.direction;
+          w.compositionDefaults = split.compositionDefaults;
         } else if (w.direction === w.styleSnapshot?.profile.style) w.direction = adopted.profile.style;
         // Workflows started after reference merging rebuild from the unmerged originals; older ones keep the original rebuild.
         const refs = (w.unmergedSceneReferences ?? w.sceneReferences).filter(r => r.id !== STYLE_REFERENCE_ID);

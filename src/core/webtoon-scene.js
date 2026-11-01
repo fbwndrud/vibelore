@@ -1,7 +1,7 @@
 import { digest, nonempty, safeId } from './webtoon-contract.js';
 import { sceneLetteringLine, webtoonMessage } from './webtoon-language.js';
 import { validateSceneVisualChecks, validateCompositionCheck, compositionCheckActive, SCENE_VISUAL_CHECKS } from './webtoon-scene-review.js';
-import { COMPOSITION_LIMITS, COMPOSITION_VOCAB, REQUIRED_KINDS, SCENE_TYPES, framingPhrase, validateCompositionLabel } from './webtoon-composition.js';
+import { COMPOSITION_LIMITS, COMPOSITION_VOCAB, REQUIRED_KINDS, SCENE_TYPES, framingPhrase, splitCompositionDirection, validateCompositionLabel } from './webtoon-composition.js';
 
 export const SCENE_PRODUCTION_MODE = 'scene-direct-v1';
 export const PREVIOUS_SCENE_ID = 'previous-scene';
@@ -139,6 +139,13 @@ export const sceneBinding = w => digest({ version: 2, sourceHash: w.source.hash,
 export const sceneImageBinding = w => digest({ scene: sceneBinding(w), renderBrief: w.preflight?.renderBrief });
 
 const bad = (code, detail) => { throw new Error(`${code}: ${detail}`); };
+/**
+ * The adopted style as models and the image prompt see it. Workflows with composition labels carry the series framing
+ * sentences separately (seriesComposition), so only the style direction remains here; older workflows keep the whole text.
+ */
+export const sceneStyleText = w => w.styleSnapshot && w.compositionVersion ? splitCompositionDirection(w.styleSnapshot.profile.style).direction : w.styleSnapshot?.profile.style;
+/** `styleBasis` for model requests: the pinned snapshot, with the style text from `sceneStyleText`. */
+export const sceneStyleBasis = w => w.styleSnapshot && w.compositionVersion ? { ...w.styleSnapshot, profile: { ...w.styleSnapshot.profile, style: sceneStyleText(w) } } : w.styleSnapshot;
 /** Id and display name of each cast member for the preflight model: the local id first, else a plain id, else the entity id. */
 export function sceneCastList(w) {
   return (w.source?.cast ?? []).flatMap(c => {
@@ -176,7 +183,7 @@ function validateBriefComposition(brief, w) {
 export function validateSceneRenderBrief(brief, w) {
   need(brief && isEnglish(brief.style) && Array.isArray(brief.moments), 'SCENE_RENDER_BRIEF_REQUIRED');
   need(words(brief.style) <= SCENE_LIMITS.styleWords && brief.moments.length === w.panelCount, 'SCENE_RENDER_BRIEF_OVERLOADED');
-  if (w.styleSnapshot) need(brief.style === w.styleSnapshot.profile.style, 'SCENE_STYLE_BRIEF_MISMATCH');
+  if (w.styleSnapshot) need(brief.style === sceneStyleText(w), 'SCENE_STYLE_BRIEF_MISMATCH');
   const ids = new Set(w.sceneUnits.map(u => u.id));
   const texts = [];
   for (const m of brief.moments) {

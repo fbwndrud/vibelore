@@ -130,9 +130,11 @@ function capture() {
   } };
 }
 
-test('a new scene keeps composition sentences out of the style direction and passes them only to scene_generate', async () => {
+test('a new scene keeps style composition sentences out of the style direction and passes them only to scene_generate', async () => {
   const { store, args } = await sceneSetup(), providers = capture();
-  const r = await runWebtoonSceneTool({ store, args, providers });
+  await adoptStyle(store, 'Full color comic. Original Korean lettering. AI chooses layout.', 'a.png');
+  const { direction, ...rest } = args;
+  const r = await runWebtoonSceneTool({ store, args: rest, providers });
   assert.deepEqual(r.compositionDefaults, ['AI chooses layout.']);
   const w = await new WebtoonStore(store).load();
   assert.equal(w.compositionVersion, COMPOSITION_VOCAB_VERSION);
@@ -142,6 +144,27 @@ test('a new scene keeps composition sentences out of the style direction and pas
   assert.equal(providers.seen['webtoon-scene-plan'].direction, 'Full color comic. Original Korean lettering.');
   assert.equal(providers.seen['webtoon-scene-preflight'].direction.includes('layout'), false);
   assert.equal('seriesComposition' in providers.seen['webtoon-scene-preflight'], false);
+});
+
+test('an explicit start direction is kept whole and is not split', async () => {
+  const { store, args } = await sceneSetup(), providers = capture();
+  const r = await runWebtoonSceneTool({ store, args, providers });
+  assert.deepEqual(r.compositionDefaults, []);
+  const w = await new WebtoonStore(store).load();
+  assert.equal(w.direction, args.direction);
+  assert.deepEqual(w.compositionDefaults, []);
+  assert.equal(providers.seen['webtoon-scene-plan'].direction, args.direction);
+  assert.equal('seriesComposition' in providers.seen['webtoon-scene-plan'], false);
+});
+
+test('an explicit start direction leaves the adopted style framing in seriesComposition', async () => {
+  const { store, args } = await sceneSetup(), providers = capture();
+  await adoptStyle(store, `Monochrome ink. ${FRAMING}`, 'a.png');
+  await runWebtoonSceneTool({ store, args: { ...args, direction: 'Quiet corridor mood. AI chooses layout.' }, providers });
+  const w = await new WebtoonStore(store).load();
+  assert.equal(w.direction, 'Quiet corridor mood. AI chooses layout.');
+  assert.deepEqual(w.compositionDefaults, [FRAMING]);
+  assert.deepEqual(providers.seen['webtoon-scene-plan'].seriesComposition, [FRAMING]);
 });
 
 test('a scene without composition sentences sends no seriesComposition', async () => {
@@ -174,6 +197,17 @@ test('restyle keeps following the style direction after the composition split', 
   assert.deepEqual(workflow.compositionDefaults, ['Wide shots of the street.']);
 });
 
+test('restyle swaps the series framing sentences even when the start direction was explicit', async () => {
+  const { store, args } = await sceneSetup(), repo = new WebtoonStore(store);
+  await adoptStyle(store, 'Monochrome ink. Close-ups on hands.', 'a.png');
+  await runWebtoonSceneTool({ store, args: { ...args, direction: 'Quiet corridor mood.' }, providers: capture() });
+  const next = await adoptStyle(store, 'Soft watercolor. Wide shots of the street.', 'b.png');
+  await runWebtoonSceneTool({ store, args: { workId, action: 'revise', styleRevisionId: next.revisionId, feedback: 'new style' }, providers: capture() });
+  const w = await repo.load();
+  assert.equal(w.direction, 'Quiet corridor mood.');
+  assert.deepEqual(w.compositionDefaults, ['Wide shots of the street.']);
+});
+
 test('a workflow saved before the composition split restyles exactly as it did before', async () => {
   const { workflow } = await restyleFlow({ mutate: w => {
     delete w.compositionVersion; delete w.compositionDefaults; w.direction = w.styleSnapshot.profile.style;
@@ -181,4 +215,39 @@ test('a workflow saved before the composition split restyles exactly as it did b
   assert.equal(workflow.direction, 'Soft watercolor. Wide shots of the street.');
   assert.equal(workflow.compositionVersion, undefined);
   assert.equal(workflow.compositionDefaults, undefined);
+});
+
+const FRAMING = 'Varied face and hand framing.';
+test('style framing sentences reach the planner as seriesComposition only, never the image prompt or the preflight', async () => {
+  const { store, args } = await sceneSetup(), providers = capture();
+  await adoptStyle(store, `Monochrome ink. ${FRAMING}`, 'a.png');
+  const { direction, ...rest } = args;
+  const r = await runWebtoonSceneTool({ store, args: rest, providers });
+  assert.equal(r.status, 'needs_scene_image');
+  const plan = providers.seen['webtoon-scene-plan'], preflight = providers.seen['webtoon-scene-preflight'];
+  assert.deepEqual(plan.seriesComposition, [FRAMING]);
+  const { seriesComposition, ...planRest } = plan;
+  assert.equal(JSON.stringify(planRest).includes('framing'), false, 'plan request outside seriesComposition');
+  assert.equal(JSON.stringify(preflight).includes('framing'), false, 'preflight request');
+  assert.equal(plan.styleBasis.profile.style, 'Monochrome ink.');
+  assert.equal(preflight.styleBasis.profile.style, 'Monochrome ink.');
+  assert.match(r.jobs[0].prompt, /^Style: Monochrome ink\.$/m);
+  assert.equal(r.jobs[0].prompt.includes('framing'), false);
+  const w = await new WebtoonStore(store).load();
+  assert.equal(w.preflight.renderBrief.style, 'Monochrome ink.');
+  assert.deepEqual(w.compositionDefaults, [FRAMING]);
+});
+
+test('a workflow without composition keeps the whole adopted style in the image prompt', async () => {
+  const { store, args } = await sceneSetup(), repo = new WebtoonStore(store), providers = capture();
+  await adoptStyle(store, `Monochrome ink. ${FRAMING}`, 'a.png');
+  const { direction, ...rest } = args;
+  await runWebtoonSceneTool({ store, args: rest, providers });
+  const w = await repo.load();
+  delete w.compositionVersion; delete w.compositionDefaults; delete w.unmergedSceneReferences; delete w.pending;
+  w.direction = w.styleSnapshot.profile.style; w.stage = 'scene_generate'; w.preflight = null; w.scenePlan = null;
+  await repo.save(w);
+  const legacy = capture(), r = await runWebtoonSceneTool({ store, args: { workId, workflowId: w.workflowId }, providers: legacy });
+  assert.match(r.jobs[0].prompt, new RegExp(`^Style: Monochrome ink\\. ${FRAMING}$`, 'm'));
+  assert.equal(legacy.seen['webtoon-scene-preflight'].styleBasis.profile.style, `Monochrome ink. ${FRAMING}`);
 });
