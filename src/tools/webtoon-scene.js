@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
+import { CompositionStore } from '../store/webtoon-composition-store.js';
 import { WebtoonStyleStore, STYLE_REFERENCE_ID, styleReference, verifyStyleSnapshot } from '../store/webtoon-style-store.js';
 import { resolveProductionSource, scriptSourceUnits, verifyProductionSource } from '../core/production-source.js';
 import { readSealedProductionInput } from '../core/input-objects.js';
@@ -231,6 +232,8 @@ async function drive(repo, w, providers) {
     await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
     const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(w.visualReview.findings, null, 2))}</pre></html>`;
     await repo.writeCandidate(w, 'scene.html', html);
+    // Composition rows are stored first for the same reason: a failed write must leave the stage retryable, never silently skipped.
+    if (w.compositionVersion || w.compositionBackfill === true) await new CompositionStore(repo).recordScene(w, { adopted: passed });
     // The record is written before the stage says completed, so a failed write retries instead of leaving an unverifiable scene.
     if (passed && w.productionRecord) await writeProductionRecord(repo, w);
     w.stage = passed ? 'completed' : 'scene_needs_revision';
