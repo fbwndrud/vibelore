@@ -8,7 +8,7 @@ import { loadRun } from '../src/runs.js';
 import { CompositionStore, sceneEpisodeKey, sceneKey } from '../src/store/webtoon-composition-store.js';
 import { compositionFingerprint, COMPOSITION_VOCAB_VERSION } from '../src/core/webtoon-composition.js';
 import { sceneSetup, scenePlan, scenePreflight, sceneCompositionCheck } from './fixtures/webtoon-scene.js';
-import { workId, pixel } from './fixtures/webtoon.js';
+import { workId, pixel, otherPixel } from './fixtures/webtoon.js';
 import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 import { join } from 'node:path';
 
@@ -278,4 +278,41 @@ test('a reference without merged ids keeps the plain row shape', async () => {
   await review(store, args, drawn);
   const page = (await lines(repo)).find(r => r.type === 'page');
   assert.equal('mergedRoles' in page.references[0], false);
+});
+
+// The review request names the adopted style once: as the (split) style basis, not again inside the render brief.
+async function styledReviewRequest({ legacy = false } = {}) {
+  const { store, repo, args } = await sceneSetup();
+  const imagePath = join(store.rootDir, 'style.png'); await writeFile(imagePath, otherPixel);
+  const direction = 'Monochrome ink with soft grey wash. Varied face and hand framing. Single-column vertical scroll.';
+  const proposal = await runWebtoonStyleTool({ store, args: { workId, action: 'propose', brief: 'rough ink', direction, imagePath } });
+  await runWebtoonStyleTool({ store, args: { workId, action: 'approve', proposalId: proposal.proposalId, feedback: 'use this' } });
+  const styled = { async complete(req) {
+    const out = await planner.complete(req), d = JSON.parse(req.messages.at(-1).content);
+    if (req.step !== 'webtoon-scene-preflight') return out;
+    const answer = JSON.parse(out.text); answer.renderBrief.style = d.styleBasis.profile.style; return { text: JSON.stringify(answer) };
+  } };
+  const drawn = await runWebtoonSceneTool({ store, args: { ...args, autoRevisions: 0 }, providers: styled });
+  assert.equal(drawn.status, 'needs_scene_image');
+  if (legacy) { const w = await repo.load(); delete w.compositionVersion; await repo.save(w); }
+  const pending = await runWebtoonSceneTool({ store, args: { workId, asset: assetFor(args, drawn.jobs[0]) }, providers: createHostRelay() });
+  return { request: pending.requests[0], data: JSON.parse(pending.requests[0].user), repo };
+}
+
+test('a composition review request carries the split style once and no style inside the render brief', async () => {
+  const { data, repo } = await styledReviewRequest();
+  const w = await repo.load();
+  assert.equal(data.styleBasis.profile.style, 'Monochrome ink with soft grey wash.');
+  assert.equal('style' in data.renderBrief, false);
+  assert.equal(JSON.stringify(data).split('Monochrome ink with soft grey wash.').length - 1, 1, 'the style sentence appears once');
+  assert.doesNotMatch(JSON.stringify(data), /Varied face and hand framing|Single-column/, 'series framing sentences stay out of the review request');
+  assert.ok(Array.isArray(data.renderBrief.moments) && data.renderBrief.pageComposition, 'the rest of the brief is intact');
+  assert.equal(w.preflight.renderBrief.style, 'Monochrome ink with soft grey wash.', 'the stored brief is unchanged');
+});
+
+test('a workflow without a composition version keeps its review request bytes', async () => {
+  const { data } = await styledReviewRequest({ legacy: true });
+  assert.equal(data.styleBasis.profile.style, 'Monochrome ink with soft grey wash. Varied face and hand framing. Single-column vertical scroll.');
+  assert.equal(data.renderBrief.style, 'Monochrome ink with soft grey wash.');
+  assert.equal('compositionCheck' in data.schema, false);
 });

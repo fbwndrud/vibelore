@@ -186,6 +186,17 @@ async function prepareCompositionDigest(repo, w) {
 /** The digest lines computed at scene_generate, for both planning requests; absent for workflows without composition or without lines. */
 const compositionDigestInput = w => w.compositionVersion && w.compositionDigest?.lines?.length ? { compositionDigest: w.compositionDigest.lines } : {};
 
+/**
+ * The render brief as the image reviewer sees it. With composition on and an adopted style, the style sentence reaches the
+ * reviewer once, in styleBasis, so the brief copy leaves its own `style` out. Other workflows send the brief unchanged.
+ */
+function reviewRenderBrief(w) {
+  const brief = w.preflight?.renderBrief;
+  if (!brief || !w.styleSnapshot || !compositionCheckActive(w)) return brief;
+  const { style, ...rest } = brief;
+  return rest;
+}
+
 /** Soft repetition note on an adopted scene's review. It never changes the verdict and skips silently if anything fails. */
 async function attachCompositionAdvisory(repo, w) {
   try {
@@ -263,9 +274,9 @@ async function drive(repo, w, providers) {
       sceneImageReviewPrompt(w),
       { reviewVersion: w.imageReviewVersion, referenceImages: reviewInputs.referenceImages,
         feedback: [w.feedback, w.reviewFeedback].filter(Boolean).join('\n'),
-        source: w.sceneUnits, plan: w.scenePlan, renderBrief: w.preflight?.renderBrief, previousScene: w.previousScene, requestedPanelCount: w.panelCount, image: { path: w.sceneImage.path, hash: w.sceneImage.hash },
+        source: w.sceneUnits, plan: w.scenePlan, renderBrief: reviewRenderBrief(w), previousScene: w.previousScene, requestedPanelCount: w.panelCount, image: { path: w.sceneImage.path, hash: w.sceneImage.hash },
         ...(compositionReviewCast(w).length ? { cast: compositionReviewCast(w) } : {}),
-        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Open the adopted sample too. Compare actual visual treatment to the user preference and sample, not its cast or composition. Report matches, differs or uncertain with visible evidence. Style taste is advisory, never a blocking finding or automatic regeneration reason.' } : {}),
+        ...(w.styleSnapshot ? { styleBasis: compositionCheckActive(w) ? sceneStyleBasis(w) : w.styleSnapshot, styleInstruction: 'Open the adopted sample too. Compare actual visual treatment to the user preference and sample, not its cast or composition. Report matches, differs or uncertain with visible evidence. Style taste is advisory, never a blocking finding or automatic regeneration reason.' } : {}),
         schema: { subjectHash: digest({ binding: sceneImageBinding(w), imageHash: w.sceneImage.hash }), inspectedImages: false, observedPanelCount: null,
           visualChecks: sceneVisualCheckSchema(),
           ...(compositionCheckActive(w) ? { compositionCheck: compositionCheckSchema(w) } : {}),

@@ -107,12 +107,16 @@ function adoptedScenes(rows) {
 
 const isZero = value => plain(value) ? Object.values(value).every(isZero) : value === 0;
 
+/** L3 groups scenes whose plan named no scene type under this key. */
+export const UNKNOWN_SCENE_TYPE = 'unknown';
+
 function entityDelta(entities, prev, next) {
   const out = { character: { ...entities.character }, sceneType: { ...entities.sceneType } };
   const apply = (summary, sign) => {
     if (!summary) return;
     for (const [id, vector] of Object.entries(summary.characters ?? {})) out.character[id] = combine(out.character[id], vector, sign, false);
-    if (summary.sceneType) out.sceneType[summary.sceneType] = combine(out.sceneType[summary.sceneType], fixedPart(summary.counts), sign, false);
+    const type = summary.sceneType ?? UNKNOWN_SCENE_TYPE;
+    out.sceneType[type] = combine(out.sceneType[type], fixedPart(summary.counts), sign, false);
   };
   apply(prev, -1); apply(next, 1);
   for (const group of Object.values(out)) for (const [id, v] of Object.entries(group)) if (isZero(v)) delete group[id];

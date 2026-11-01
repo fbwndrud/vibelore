@@ -7,7 +7,7 @@
  *   node scripts/check-prompt-duplication.js --self-test  run the analysis on a built-in duplicated payload
  *
  * The fixture workflows are driven through the real lore_webtoon_scene handlers (novel source, an adopted style whose
- * bytes equal a user reference, a previous scene, a v1 composition with a non-empty digest), so every request below is
+ * bytes equal a user reference and whose direction carries a series framing sentence, a previous scene, a v1 composition with a non-empty digest), so every request below is
  * assembled by product code, never by hand:
  *   webtoon-scene-plan, webtoon-scene-preflight, the image job (prompt + referenceImages), webtoon-scene-image-review.
  *
@@ -147,14 +147,20 @@ async function buildRecords() {
 
     // Adopted style sample with the same bytes as the user reference.
     const sample = join(store.rootDir, 'sample.png'); await writeFile(sample, pixel);
-    const proposal = await runWebtoonStyleTool({ store, args: { workId, action: 'propose', brief: 'rough ink', direction: 'Monochrome ink.', imagePath: sample } });
+    const proposal = await runWebtoonStyleTool({ store, args: { workId, action: 'propose', brief: 'rough ink', direction: 'Monochrome ink with soft grey wash. Varied face and hand framing.', imagePath: sample } });
     await runWebtoonStyleTool({ store, args: { workId, action: 'approve', proposalId: proposal.proposalId, feedback: 'use this' } });
 
     const sent = [];
+    // Scene 2 gets its own sentences, so the previous scene's plan is never a byte copy of the current plan.
+    let second = false;
+    const secondScene = plan => ({ ...plan, intent: 'A voice answers from behind the door.',
+      facts: plan.facts.map(f => ({ ...f, statement: 'The door stays closed while someone replies.' })),
+      beats: plan.beats.map(b => ({ ...b, action: 'She listens, then speaks into the room.' })),
+      staging: 'Both people stay on opposite sides of the closed door.' });
     const planner = { provenance: { kind: 'fixture' }, async complete(req) {
       sent.push(req);
       const d = JSON.parse(req.messages.at(-1).content);
-      if (req.step === 'webtoon-scene-plan') return { text: JSON.stringify(scenePlan(d.source)) };
+      if (req.step === 'webtoon-scene-plan') return { text: JSON.stringify(second ? secondScene(scenePlan(d.source)) : scenePlan(d.source)) };
       const answer = scenePreflight(d); if (d.styleBasis) answer.renderBrief.style = d.styleBasis.profile.style;
       return { text: JSON.stringify(answer) };
     } };
@@ -178,7 +184,7 @@ async function buildRecords() {
     if (first.status !== 'completed') throw new Error(`FIXTURE: the first scene ended as ${first.status}`);
 
     // Scene 2: the requests under test.
-    sent.length = 0;
+    sent.length = 0; second = true;
     const drawn2 = await runWebtoonSceneTool({ store, args: { ...start, previousWorkflowId: first.workflowId, sourceUnitIds: ['ch-1-p-2'] }, providers: planner });
     if (drawn2.status !== 'needs_scene_image') throw new Error(`FIXTURE: the second scene ended as ${drawn2.status}`);
     const w = await repo.load();

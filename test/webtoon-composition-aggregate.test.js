@@ -132,6 +132,25 @@ test('adopting, readopting and rejecting scenes keeps the incremental index equa
   assert.equal(dropped.episodes['ep-0001'].panels, 3);
 });
 
+test('scenes without a scene type count under the unknown type in L3, and incremental equals rebuild', async () => {
+  const store = new CompositionStore(await repoAt());
+  await store.adoptScene(fake('wt-a', 1, ['p1']), { adopted: true });
+  await store.adoptScene(fake('wt-b', 1, ['p2'], { scenePlan: {} }), { adopted: true });
+  await store.adoptScene(fake('wt-c', 2, ['p3'], { scenePlan: { sceneType: undefined } }), { adopted: true });
+  const index = await sameAsRebuild(store);
+  assert.deepEqual(Object.keys(index.entities.sceneType).sort(), ['action', 'unknown']);
+  assert.equal(index.entities.sceneType.unknown.panels, 6);
+  assert.equal(index.entities.sceneType.action.panels, 3);
+  // The per-scene summary still says null, and rereading the stored files agrees.
+  assert.equal(index.scenes[`ep-0001:${sceneKey(fake('x', 1, ['p2']))}`].sceneType, null);
+  assert.deepEqual(await store.peekIndex(), index);
+  // Readopting a scene with a type moves its counts out of unknown; the incremental result still equals a rebuild.
+  await store.adoptScene(fake('wt-d', 1, ['p2'], { scenePlan: { sceneType: 'quiet' } }), { adopted: true });
+  const moved = await sameAsRebuild(store);
+  assert.equal(moved.entities.sceneType.unknown.panels, 3);
+  assert.equal(moved.entities.sceneType.quiet.panels, 3);
+});
+
 test('page order follows first adoption, so an incremental update and a rebuild give the same digest', async () => {
   let tick = 0;
   const store = new CompositionStore(await repoAt(), { now: () => `2026-11-01T00:00:${String(++tick).padStart(2, '0')}.000Z` });
