@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { parseJsonCompletion } from '../engine/src/core/json-completion.js';
 import { publishedProse } from '../engine/src/core/length-measure.js';
@@ -721,4 +721,24 @@ export async function runPairwiseEvaluation({
     args, family, sets, pairs, plan, exchanges, results, judge: judgeDescription({ provider: local, args }), now,
   });
   return writeReport({ outDir, report });
+}
+
+export async function main(argv = process.argv.slice(2), env = process.env) {
+  try {
+    const { timeoutMs, ...args } = parseCliArgs(argv);
+    const result = await runPairwiseEvaluation({ ...args, timeoutMs, env });
+    if (result.status === 'needs_model') {
+      console.log(`needs_model: ${result.pending} pending request(s) written to ${result.requestsPath}`);
+    } else {
+      console.log(`report written: ${result.reportPath}`);
+    }
+    return result.exitCode;
+  } catch (error) {
+    console.error(`${error.code ?? 'ERROR'}: ${error.message}`);
+    return 1;
+  }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  process.exit(await main());
 }

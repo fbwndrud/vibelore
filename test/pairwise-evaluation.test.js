@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
+import { execFile, spawnSync } from 'node:child_process';
+import { createServer } from 'node:http';
 import { access, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
+import { promisify } from 'node:util';
 import test, { describe } from 'node:test';
 import { deriveRequestFingerprint } from '../engine/src/core/request-fingerprint.js';
 import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import {
   DIMENSIONS, JUDGE_DELIMITERS, PROTOCOL_VERSION, REPO_ROOT, aggregate, assertOutPath, buildJudgeRequest,
-  buildCaveats, combineOrders, independenceLabel, judgeFamilyFor, ledgerCounts, ledgerMetric, lengthMetrics, mapToSides,
+  buildCaveats, combineOrders, independenceLabel, judgeFamilyFor, ledgerCounts, ledgerMetric, lengthMetrics, main, mapToSides,
   parseChapterRange, parseCliArgs, parseVerdict, readChapterSet, renderReportMarkdown, runPairwiseEvaluation, schedulePairs, signTestP,
 } from '../scripts/pairwise-evaluation.js';
 
@@ -928,5 +931,89 @@ describe('report.md from full runs', () => {
     const { markdown } = await readReports(dirs);
     assert.match(markdown, /Exchanges with at least one invalid dimension: 1 of 4/);
     assert.doesNotMatch(markdown, FORBIDDEN_WORDS);
+  }));
+});
+
+describe('command line entry', () => {
+  const script = join(REPO_ROOT, 'scripts', 'pairwise-evaluation.js');
+  const cleanEnv = () => {
+    const env = { ...process.env };
+    delete env.VIBELORE_LOCAL_BASE_URL;
+    delete env.VIBELORE_LOCAL_MODEL;
+    return env;
+  };
+  const baseArgs = (dirs, language = 'en') => ['--off', dirs.off, '--on', dirs.on, '--out', dirs.out, '--language', language];
+
+  test('main is exported and importing the module starts no run', () => {
+    assert.equal(typeof main, 'function');
+  });
+
+  test('exits 2 and names requests.json when the host must answer', () => withRun(async dirs => {
+    const run = spawnSync(process.execPath, [script, ...baseArgs(dirs)], { cwd: REPO_ROOT, env: cleanEnv(), encoding: 'utf8' });
+    assert.equal(run.status, 2, run.stderr);
+    assert.match(run.stdout, /requests\.json/);
+    assert.match(run.stdout, /4 pending/);
+    assert.equal(await exists(join(dirs.out, 'requests.json')), true);
+    assert.equal(await exists(join(dirs.out, 'report.json')), false);
+  }));
+
+  test('exits 1 with a coded message and no stack for a forbidden output path', () => withRun(async dirs => {
+    const args = ['--off', dirs.off, '--on', dirs.on, '--out', join(dirs.off, 'results'), '--language', 'en'];
+    const run = spawnSync(process.execPath, [script, ...args], { cwd: REPO_ROOT, env: cleanEnv(), encoding: 'utf8' });
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /^OUT_PATH_FORBIDDEN: /m);
+    assert.doesNotMatch(run.stderr, /\n\s+at /);
+    assert.equal(run.stdout, '');
+  }));
+
+  test('exits 1 with a coded message for an unknown argument', () => withRun(async dirs => {
+    const run = spawnSync(process.execPath, [script, ...baseArgs(dirs), '--bogus'], { cwd: REPO_ROOT, env: cleanEnv(), encoding: 'utf8' });
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /^UNKNOWN_ARGUMENT: /m);
+  }));
+
+  test('main prints a raw filesystem error under its own code and still returns 1', () => withRun(async dirs => {
+    const blocker = join(dirs.base, 'blocker');
+    await writeFile(blocker, 'not a directory');
+    const errors = [];
+    const write = process.stderr.write;
+    process.stderr.write = chunk => { errors.push(String(chunk)); return true; };
+    let code;
+    try {
+      code = await main(['--off', dirs.off, '--on', dirs.on, '--out', join(blocker, 'out'), '--language', 'en'], cleanEnv());
+    } finally {
+      process.stderr.write = write;
+    }
+    assert.equal(code, 1);
+    assert.match(errors.join(''), /^(ENOTDIR|EEXIST|ERROR): /);
+    assert.doesNotMatch(errors.join(''), /\n\s+at /);
+  }));
+
+  test('local mode writes both reports and records the endpoint model', () => withRun(async dirs => {
+    const server = createServer((request, response) => {
+      request.resume();
+      request.on('end', () => {
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify({ choices: [{ message: { content: ALL_A } }] }));
+      });
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const env = {
+        ...cleanEnv(),
+        VIBELORE_LOCAL_BASE_URL: `http://127.0.0.1:${server.address().port}/v1`,
+        VIBELORE_LOCAL_MODEL: 'cli-test-model',
+      };
+      const args = [script, ...baseArgs(dirs, 'ko'), '--judge-label', 'cli-judge', '--feature', 'dice'];
+      const { stdout } = await promisify(execFile)(process.execPath, args, { cwd: REPO_ROOT, env, encoding: 'utf8' });
+      assert.match(stdout, /report\.json/);
+      assert.equal(await exists(join(dirs.out, 'report.md')), true);
+      const report = await readJson(join(dirs.out, 'report.json'));
+      assert.equal(report.judge.model, 'cli-test-model');
+      assert.equal(report.judge.declaredLabel, 'cli-judge');
+      assert.equal(report.language, 'ko');
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+    }
   }));
 });
