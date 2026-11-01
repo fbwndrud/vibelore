@@ -156,12 +156,15 @@ test('explain=context on an older stored audit reduces the older-memory layer to
   delete audit.memory.excluded;
   delete audit.memory.filtered;
   delete audit.draftInputTrace;
+  audit.memory.retrieval = { documents: 31, candidates: 17, selected: 6 };
+  audit.memory.droppedForBudget = 4;
   await store.saveWorkflow(workId, { ...workflow, contextAudit: audit });
   const status = await runWorkflowStatus({ store, workId, explain: 'context' });
   assert.equal(status.contextExplanation.available, true);
-  const older = status.contextExplanation.items.filter((entry) => entry.layer === 'older-memory');
-  assert.ok(older.length <= 1, JSON.stringify(older));
-  for (const entry of older) assert.equal(entry.code, 'detail-not-recorded');
+  const older = status.contextExplanation.items.filter((entry) => entry.layer === 'olderMemory');
+  assert.equal(older.length, 1, JSON.stringify(status.contextExplanation.items));
+  assert.equal(older[0].code, 'detail-not-recorded');
+  for (const count of ['17', '6', '4']) assert.ok(older[0].text.includes(count), older[0].text);
 });
 
 test('explain=context without a stored audit says the draft has not been recorded yet', async () => {
