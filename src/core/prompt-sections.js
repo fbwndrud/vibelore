@@ -476,6 +476,28 @@ export function renderArcBeatShape(episode, kit) {
   return parts.length ? `${t.prefix}${parts.join(t.join)}` : '';
 }
 
+const PREVIOUS_HOOK_EVENTS_MAX = 8;
+
+/**
+ * What the previous chapter did to the hooks: planted, advanced or paid, one line each
+ * (ledger codes, not translated), sorted by id. A heading plus a fixed none line when
+ * there is nothing to show.
+ */
+export function renderPreviousChapterHookEvents(state, chapter, kit, config = {}) {
+  const t = kit.phrases.sections;
+  const previous = chapter - 1;
+  const events = previous < 1 || !state || !trackingEnabled(config, 'hooks') ? [] : asArray(state.hooks)
+    .map((hook) => {
+      if (hook.plantedAtChapter === previous) return { hook, event: 'planted' };
+      if (hook.lastMovedChapter !== previous) return null;
+      return { hook, event: hookStatusOf(hook) === 'paid' ? 'paid' : 'advanced' };
+    })
+    .filter(Boolean)
+    .sort((a, b) => String(a.hook.id).localeCompare(String(b.hook.id), 'en', { numeric: true }))
+    .slice(0, PREVIOUS_HOOK_EVENTS_MAX);
+  return [t.prevHookEventsHeading, ...(events.length ? events.map(({ hook, event }) => `${hook.id}: ${clean(hook.text) || hook.id} (${event})`) : [t.prevHookEventsNone])].join('\n');
+}
+
 /**
  * Continuity-check sections. Each item carries the path the reviewer may cite as
  * evidence; quotes are checked against the original objects at that path.

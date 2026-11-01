@@ -1,6 +1,6 @@
 import { renderLongMemory } from './arc-summary.js';
 import { planningFoundation } from '../core/lore-runtime.js';
-import { planningCast, renderArcBeat, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
+import { planningCast, renderArcBeat, renderArcBeatShape, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderPreviousChapterHookEvents, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { characterArcBeatsForEpisode, episodeForChapter } from './arc.js';
 import { renderStoryProfile } from './story-profile.js';
@@ -198,7 +198,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   if (storyProfile && storyProfile.status !== 'active') throw new Error('StoryProfile 승인 후 에피소드를 계획하세요.');
   const prior = await store.loadEpisodePlan(workId, chapter);
   const summaries = await store.loadRecentChapterSummaries(workId, chapter, 5);
-  const state = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1 }) : null;
+  const ledgerConfig = await loadLedgerConfig(store, workId);
+  const state = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1, config: ledgerConfig }) : null;
   const knownHookIds = new Set((state?.hooks ?? []).map((hook) => hook.id));
   const identity = await store.loadStoryIdentity(workId);
   const pilotContract = chapter === 1 ? await store.loadPilotContract(workId) : null;
@@ -216,6 +217,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       arcTitle: arcPlan.title, arcPromise: arcPlan.promise,
       arcBeatsText: renderCharacterArcBeats(characterArcBeatsForEpisode(arcPlan, arcBeat.index), foundation, kit) || kit.phrases.common.noneParen,
       arcBeatText: renderArcBeat(arcBeat, kit),
+      arcShapeText: renderArcBeatShape(arcBeat, kit),
       direction: direction || kit.phrases.common.noneParen,
       feedback: feedback || kit.phrases.common.noneParen,
       priorText: prior ? renderEpisodePlan(prior, kit) || kit.phrases.common.noneParen : kit.phrases.common.noneParen,
@@ -223,7 +225,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       castText: renderCastBrief(foundation, kit, { focusText: planFocus, chapter }),
       summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
       longMemoryText: await renderLongMemory({ store, workId, arcPlan, chapter, kit }),
-      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'planner', focusText: planFocus, oldestHooks: 3, config: await loadLedgerConfig(store, workId) }) || kit.phrases.common.noneParen,
+      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'planner', focusText: planFocus, oldestHooks: 3, config: ledgerConfig }) || kit.phrases.common.noneParen,
+      hookEventsText: renderPreviousChapterHookEvents(state, chapter, kit, ledgerConfig),
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };
