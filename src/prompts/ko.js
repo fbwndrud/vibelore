@@ -440,6 +440,7 @@ export const phrases = {
       sceneMode: '주 장면 모드', emotionalTemperature: '정서 온도', endingImage: '결말 이미지',
     },
     readerCheckFailed: (key, evidence) => `독자 견인 점검 ${key} 불충족${evidence ? ` (근거: ${evidence})` : ''}`,
+    planConflict: (assumption, actual, evidence) => `회차 계획 충돌: 아크 비트는 "${assumption}"을(를) 전제하지만 실제 상태는 "${actual}"${evidence ? ` (근거: ${evidence})` : ''}`,
     perfectJudgment: '최근 3화에서 주인공 판단의 오차·반론·수정이 없다.',
     hookRepetition: (hookType) => `최근 3화가 같은 ${hookType} 훅으로 끝난다. 다음 회차 가치의 종류를 바꿔라.`,
   },

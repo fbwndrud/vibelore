@@ -12,6 +12,13 @@ import { emptyStoryState } from '../engine/src/continuity/story-state.js';
 import { qualityStore, workId } from './fixtures/quality-workflow.js';
 import { approvalResponse } from './fixtures/approval-response.js';
 import { EXPECTATION_HANDLING } from '../src/core/narrative-codes.js';
+import { planConflictAdvisories, runWorkflowDecide, runWorkflowHistory, runWriteWorkflow } from '../src/tools/workflow.js';
+import { qualityDecision } from '../src/core/quality-policy.js';
+import { runRelayedTool } from '../src/relay-runner.js';
+import { createPreflightRelay } from '../src/provider/host-relay.js';
+import { loadRun } from '../src/runs.js';
+import { contractResponse } from './fixtures/contract-response.js';
+import { outputs, sceneStore } from './fixtures/quality-workflow.js';
 
 const HANGUL = /[가-힣ᄀ-ᇿ㄰-㆏]/;
 const kit = promptKit({});
@@ -221,4 +228,87 @@ test('a revision cannot add a report the first pass did not make', async (t) => 
   assert.equal(plan.title, '수정된 제목');
   assert.equal('recap' in plan, false);
   assert.equal('planConflict' in plan, false);
+});
+
+test('planConflictAdvisories is soft, advisory-only and empty without a conflict', () => {
+  assert.deepEqual(planConflictAdvisories(null, 1), []);
+  assert.deepEqual(planConflictAdvisories({}, 1), []);
+  const report = { beatAssumption: '열쇠는 아직 상자 안에 있다', actualState: '열쇠는 이미 회수되었다', evidence: '지난 화 마지막 장면' };
+  for (const k of [kit, enKit]) {
+    const [advisory, ...rest] = planConflictAdvisories({ planConflict: report }, 3, k);
+    assert.equal(rest.length, 0);
+    assert.deepEqual([advisory.severity, advisory.advisoryOnly, advisory.code, advisory.chapterNumber], ['soft', true, 'EPISODE_PLAN_CONFLICT', 3]);
+    for (const text of Object.values(report)) assert.ok(advisory.message.includes(text), text);
+    assert.equal(qualityDecision({ violations: [advisory] }).shouldRevise, false);
+  }
+  assert.doesNotMatch(planConflictAdvisories({ planConflict: { beatAssumption: 'a', actualState: 'b', evidence: 'c' } }, 1, enKit)[0].message, HANGUL);
+  assert.equal(planConflictAdvisories({ planConflict: { beatAssumption: 'a', actualState: 'b' } }, 1)[0].message.includes('(근거'), false);
+  assert.deepEqual(Object.keys(enKit.phrases.experience).sort(), Object.keys(kit.phrases.experience).sort());
+});
+
+async function conflictStore() {
+  const store = await qualityStore();
+  const plan = await store.loadEpisodePlan(workId, 1);
+  await store.saveEpisodePlan(workId, { ...plan, arcEpisodeIndex: 1, planConflict: { beatAssumption: '열쇠는 상자 안에 있다', actualState: '열쇠는 이미 회수되었다', evidence: '지난 화 결말' } });
+  return store;
+}
+const answerStep = (req) => contractResponse(req) ?? { text: outputs[req.step] ?? '{}' };
+const conflictEvents = async (store) => (await runWorkflowHistory({ store, workId })).events.filter((e) => e.event === 'episode_plan_conflict');
+
+test('guided shows the advisory with the draft; auto commits anyway; the event is logged once across passes', async () => {
+  const guidedStore = await conflictStore();
+  const direct = { async complete(req) {
+    if (req.step === 'revise') return { text: JSON.stringify({ replacements: [], insertions: [{ afterParagraph: 1, text: '조용히 손을 내렸다.' }] }) };
+    return answerStep(req);
+  } };
+  const guided = await runWriteWorkflow({ store: guidedStore, workId, autonomy: 'guided', providers: direct });
+  assert.equal(guided.status, 'awaiting_approval', JSON.stringify(guided));
+  assert.ok(guided.quality.advisories.some((x) => x.code === 'EPISODE_PLAN_CONFLICT'));
+  // A user-requested revision is judged again; the same plan conflict is not logged again.
+  await runWorkflowDecide({ store: guidedStore, workId, approvalId: guided.approvalId, action: 'request_revision', feedback: '마지막에 조용한 몸짓을 더한다.', providers: direct });
+  const revised = await runWriteWorkflow({ store: guidedStore, workId, autonomy: 'guided', providers: direct });
+  assert.equal(revised.status, 'awaiting_approval', JSON.stringify(revised));
+  assert.ok(revised.quality.advisories.some((x) => x.code === 'EPISODE_PLAN_CONFLICT'));
+  assert.equal((await conflictEvents(guidedStore)).length, 1);
+
+  // A relayed host answers one round at a time, so the workflow replays its stages on every pass.
+  const store = await conflictStore();
+  let passes = 0;
+  const invoke = async (previous) => {
+    passes += 1;
+    const run = previous?.runId ? await loadRun(store.rootDir, previous.runId) : null;
+    const answers = { ...run?.answers };
+    for (const req of previous?.requests ?? []) {
+      answers[req.id] = answerStep({ step: req.step, messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }] }).text;
+    }
+    return runRelayedTool({ store, toolName: 'lore_write', args: run?.args ?? { workId, autonomy: 'auto' }, run, answers,
+      providerForTool: (_name, seed) => createPreflightRelay(seed),
+      executeTool: (s, _name, args, providers) => runWriteWorkflow({ store: s, ...args, providers }) });
+  };
+  let auto = await invoke();
+  for (let i = 0; i < 40 && auto.status === 'needs_model'; i += 1) auto = await invoke(auto);
+  assert.equal(auto.status, 'completed', JSON.stringify(auto));
+  assert.ok(passes > 2, `expected several passes, got ${passes}`);
+  assert.ok(auto.quality.advisories.some((x) => x.code === 'EPISODE_PLAN_CONFLICT'));
+
+  const events = await conflictEvents(store);
+  assert.equal(events.length, 1);
+  assert.deepEqual([events[0].chapter, events[0].arcEpisodeIndex, events[0].beatAssumption, events[0].actualState], [1, 1, '열쇠는 상자 안에 있다', '열쇠는 이미 회수되었다']);
+  assert.equal(typeof events[0].at, 'string');
+  const history = (await runWorkflowHistory({ store, workId })).events;
+  assert.equal(history.some((e) => e.event === 'revision_requested' || e.event === 'revise_started'), false);
+});
+
+test('a plan without a conflict logs nothing, and a scene workflow has no episode plan to conflict with', async () => {
+  const plain = await qualityStore();
+  const result = await runWriteWorkflow({ store: plain, workId, autonomy: 'auto', providers: { async complete(req) { return answerStep(req); } } });
+  assert.equal(result.status, 'completed', JSON.stringify(result));
+  assert.equal(result.quality.advisories.some((x) => x.code === 'EPISODE_PLAN_CONFLICT'), false);
+  assert.equal((await conflictEvents(plain)).length, 0);
+
+  const store = await sceneStore();
+  const scene = await runWriteWorkflow({ store, workId, form: 'scene', instruction: '두 사람이 조용히 대화한다.', autonomy: 'guided', providers: { async complete(req) { return answerStep(req); } } });
+  assert.ok(scene.quality, JSON.stringify(scene));
+  assert.equal(scene.quality.advisories.some((x) => x.code === 'EPISODE_PLAN_CONFLICT'), false);
+  assert.equal((await conflictEvents(store)).length, 0);
 });
