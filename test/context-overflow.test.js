@@ -32,7 +32,7 @@ import { describe, it } from 'node:test';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { runInit } from '../src/tools/init.js';
 import { approvalFixtureProvider } from './fixtures/approval-response.js';
-import { buildContext, MAX_CONTEXT_TOKENS, selectWriterContinuity } from '../src/tools/context.js';
+import { AUDIT_LIST_CAP, buildContext, capAuditList, MAX_CONTEXT_TOKENS, selectWriterContinuity } from '../src/tools/context.js';
 import { tokenUnits } from '../src/core/token-units.js';
 
 async function newStore(tag) {
@@ -193,5 +193,24 @@ describe('writing-context token budget is script-aware (src/tools/context.js)', 
     assert.deepEqual(selection.olderMemory, []);
     assert.equal(selection.trimmedSummaries, 0);
     assert.equal(selection.droppedForBudget, 0);
+    assert.ok(Array.isArray(selection.excluded));
+    assert.equal(selection.excludedTotal, selection.excluded.length);
+    assert.deepEqual(selection.excluded, []);
+  });
+
+  it('caps the audit list at AUDIT_LIST_CAP while keeping the true total', () => {
+    const list = (n) => Array.from({ length: n }, (_, i) => ({ id: `memory:${i}`, reason: 'budget' }));
+    assert.equal(AUDIT_LIST_CAP, 30);
+    const over = capAuditList(list(31));
+    assert.equal(over.items.length, 30);
+    assert.equal(over.total, 31);
+    assert.deepEqual(over.items, list(30));
+    const exact = capAuditList(list(30));
+    assert.equal(exact.items.length, 30);
+    assert.equal(exact.total, 30);
+    assert.deepEqual(capAuditList([]), { items: [], total: 0 });
+    assert.deepEqual(capAuditList(undefined), { items: [], total: 0 });
+    assert.equal(capAuditList(list(5), 2).items.length, 2);
+    assert.equal(capAuditList(list(5), 2).total, 5);
   });
 });
