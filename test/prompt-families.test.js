@@ -614,3 +614,14 @@ describe('대사 정책과 승인 분량', () => {
     assert.doesNotMatch(none, /3000/);
   });
 });
+
+describe('character-fidelity motivation axis', () => {
+  it('defines the motivation axis in both families', () => {
+    const ctx = new Proxy({}, { get: () => '' });
+    const koUser = ko.steps['character-fidelity'].user(ctx);
+    const enUser = multilingual.steps['character-fidelity'].user(ctx);
+    assert.match(koUser, /motivation은/);
+    assert.match(enUser, /motivation drops when a foreground character acts only because the plot needs it/);
+    assert.doesNotMatch(enUser, /[가-힣]/);
+  });
+});

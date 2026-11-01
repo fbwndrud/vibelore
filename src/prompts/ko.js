@@ -194,6 +194,7 @@ export const steps = {
       '본문에 실제 등장하거나 이번 장면의 선택 압력으로 직접 작동한 인물만 평가한다. 등록됐지만 이번 화에 나오지 않은 인물은 감점하지 않는다. dimensions는 작품 전체가 아니라 이번 화에 실제 작동한 인물들의 충실도를 각 축별 0~100으로 평가한다. score는 기존 다섯 핵심 dimensions의 산술평균이어야 한다. flexibilityDimensions는 캐릭터가 프로필을 반복 낭독하지 않고 상황에 따라 변주되는지를 별도로 평가한다.',
       'voice는 이름을 가려도 화자를 구분할 수 있는지, speechProfile과 관계별 말투 변형이 살아 있는지, 이번 화 말투 목표의 압력과 숨은 목적이 대사에 반영됐는지를 본다.',
       'dialogueIntent는 대화 전체가 정보 설명만으로 끝나는지 본다. 개별 대사마다 회피·압박·시험·유혹·관계 재정의를 강제하지 않으며, 짧은 대답·일상 반응·말하지 않음이 장면의 사람다운 호흡을 만들면 긍정적으로 평가한다.',
+      'motivation은 전면에 선 인물이 오직 플롯이 필요해서만 움직일 때(그 전에 지면에 드러난 욕구나 압력이 없을 때), 또는 서술이 동기를 직접 밝혀 버리고 선택이 그것을 드러내게 하지 않을 때 낮게 준다.',
       'findings에는 반드시 해당 판단을 독립적으로 확인할 수 있는 짧은 본문 근거와 confidence(0~1)를 붙인다. 장면 하나의 명확한 불일치는 평균 점수를 억지로 낮추지 말고 finding으로 분리한다.',
       'JSON: {"score":0,"dimensions":{"voice":0,"motivation":0,"responseCausality":0,"relationshipContinuity":0,"dialogueIntent":0},"flexibilityDimensions":{"voiceRange":0,"offAxisHumanity":0,"profileRestraint":0},"characters":[{"characterId":"id","verdict":"pass|warn|fail","evidence":"행동/대사 근거"}],"findings":[{"characterId":"id","dimension":"voice|motivation|responseCausality|relationshipContinuity|dialogueIntent|voiceRange|offAxisHumanity|profileRestraint","code":"VOICE_MISMATCH|VOICE_NOT_DISTINCT|VOICE_SAMPLE_COPIED|MOTIVATION_BREAK|UNCAUSED_RESPONSE|RELATIONSHIP_DRIFT|GENERIC_DIALOGUE|DIALOGUE_INFO_ONLY|VOICE_RANGE_NARROW|OFF_AXIS_HUMANITY_MISSING|PROFILE_OVERPERFORMANCE","message":"최소 수정 방향","evidence":"본문의 짧고 구체적인 근거","confidence":0.0}]}',
     ].join('\n'),
