@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, readdir, realpath, stat } from 'node:fs/promises';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import { parseJsonCompletion } from '../engine/src/core/json-completion.js';
 import { publishedProse } from '../engine/src/core/length-measure.js';
 import { promptFamilyFor } from '../engine/src/core/language-policy.js';
@@ -10,6 +12,7 @@ import { parseDocument } from '../src/md/frontmatter.js';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { patternViolations } from '../src/tools/story-experience.js';
 
+export const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 export const PROTOCOL_VERSION = 'pairwise-v1';
 export const DIMENSIONS = ['plot', 'creativity', 'development', 'language'];
 
@@ -286,4 +289,80 @@ export function independenceLabel({ providerKind, judgeModel, writerModel }) {
   if (providerKind === 'host-relay') return 'not-independent';
   if (providerKind === 'local' && judgeModel && judgeModel === writerModel) return 'not-independent';
   return 'unverified';
+}
+
+const REQUIRED_FLAGS = ['off', 'on', 'out', 'language'];
+
+export function parseCliArgs(argv) {
+  let values;
+  try {
+    ({ values } = parseArgs({
+      args: argv,
+      strict: true,
+      options: {
+        off: { type: 'string', multiple: true },
+        on: { type: 'string', multiple: true },
+        out: { type: 'string' },
+        language: { type: 'string' },
+        chapters: { type: 'string' },
+        answers: { type: 'string' },
+        feature: { type: 'string' },
+        'judge-label': { type: 'string' },
+        'writer-model': { type: 'string' },
+        'timeout-ms': { type: 'string' },
+      },
+    }));
+  } catch (error) {
+    throw Object.assign(new Error(error.message), { code: 'UNKNOWN_ARGUMENT' });
+  }
+  for (const flag of REQUIRED_FLAGS) {
+    const value = values[flag];
+    if (value === undefined || (Array.isArray(value) && value.length === 0)) {
+      throw Object.assign(new Error(`missing required argument --${flag}`), { code: 'MISSING_ARGUMENT' });
+    }
+  }
+  if (values.off.length !== values.on.length) {
+    throw Object.assign(new Error('--off and --on must be given the same number of times'), { code: 'PAIR_COUNT_MISMATCH' });
+  }
+  const rawTimeout = values['timeout-ms'] ?? '300000';
+  const timeoutMs = /^\d+$/.test(rawTimeout) ? Number(rawTimeout) : NaN;
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
+    throw Object.assign(new Error('--timeout-ms must be a positive integer'), { code: 'INVALID_TIMEOUT' });
+  }
+  return {
+    off: values.off, on: values.on, out: values.out, language: values.language, chapters: values.chapters,
+    answers: values.answers, feature: values.feature, judgeLabel: values['judge-label'],
+    writerModel: values['writer-model'], timeoutMs,
+  };
+}
+
+function isInside(parent, child) {
+  const path = relative(parent, child);
+  return path === '' || (path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path));
+}
+
+async function resolveExisting(path) {
+  const absolute = resolve(path);
+  const rest = [];
+  let current = absolute;
+  for (;;) {
+    try {
+      return join(await realpath(current), ...rest);
+    } catch (error) {
+      if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error;
+      const parent = dirname(current);
+      if (parent === current) return absolute;
+      rest.unshift(current.slice(parent.length).replace(/^[\\/]+/, ''));
+      current = parent;
+    }
+  }
+}
+
+export async function assertOutPath({ out, inputRoots, repoRoot }) {
+  const resolved = await resolveExisting(out);
+  const forbidden = await Promise.all([repoRoot, ...inputRoots].map(resolveExisting));
+  if (forbidden.some(root => isInside(root, resolved))) {
+    throw Object.assign(new Error(`--out must be outside the repository and every input directory: ${out}`), { code: 'OUT_PATH_FORBIDDEN' });
+  }
+  return resolved;
 }

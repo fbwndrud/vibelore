@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import test from 'node:test';
 import { deriveRequestFingerprint } from '../engine/src/core/request-fingerprint.js';
 import { hostExecutionNote, relayScaffold } from '../src/core/relay-prompt-layout.js';
 import {
-  DIMENSIONS, JUDGE_DELIMITERS, PROTOCOL_VERSION, aggregate, buildJudgeRequest, combineOrders, independenceLabel,
-  judgeFamilyFor, ledgerCounts, ledgerMetric, lengthMetrics, mapToSides, parseChapterRange, parseVerdict,
-  readChapterSet, schedulePairs, signTestP,
+  DIMENSIONS, JUDGE_DELIMITERS, PROTOCOL_VERSION, REPO_ROOT, aggregate, assertOutPath, buildJudgeRequest,
+  combineOrders, independenceLabel, judgeFamilyFor, ledgerCounts, ledgerMetric, lengthMetrics, mapToSides,
+  parseChapterRange, parseCliArgs, parseVerdict, readChapterSet, schedulePairs, signTestP,
 } from '../scripts/pairwise-evaluation.js';
 
 test('constants name the protocol and the four dimensions', () => {
@@ -365,5 +365,83 @@ test('independenceLabel never claims independence', () => {
         assert.notEqual(independenceLabel({ providerKind, judgeModel, writerModel }), 'independent');
       }
     }
+  }
+});
+
+const REQUIRED_ARGV = ['--off', 'a', '--on', 'b', '--out', 'o', '--language', 'ko'];
+
+function argvWithout(flag) {
+  const result = [];
+  for (let i = 0; i < REQUIRED_ARGV.length; i += 2) {
+    if (REQUIRED_ARGV[i] !== flag) result.push(REQUIRED_ARGV[i], REQUIRED_ARGV[i + 1]);
+  }
+  return result;
+}
+
+test('parseCliArgs reads repeated pairs and options with defaults', () => {
+  const parsed = parseCliArgs([
+    '--off', 'off1', '--on', 'on1', '--off', 'off2', '--on', 'on2', '--out', 'result', '--language', 'ko',
+    '--chapters', '5-12', '--answers', 'answers.json', '--feature', 'f', '--judge-label', 'j',
+    '--writer-model', 'w', '--timeout-ms', '600000',
+  ]);
+  assert.deepEqual(parsed, {
+    off: ['off1', 'off2'], on: ['on1', 'on2'], out: 'result', language: 'ko', chapters: '5-12',
+    answers: 'answers.json', feature: 'f', judgeLabel: 'j', writerModel: 'w', timeoutMs: 600000,
+  });
+  const minimal = parseCliArgs(REQUIRED_ARGV);
+  assert.equal(minimal.timeoutMs, 300000);
+  assert.equal(minimal.chapters, undefined);
+  assert.deepEqual(minimal.off, ['a']);
+});
+
+test('parseCliArgs reports missing, mismatched, unknown and invalid arguments by code', () => {
+  for (const flag of ['--off', '--on', '--out', '--language']) {
+    assert.throws(() => parseCliArgs(argvWithout(flag)),
+      error => error.code === 'MISSING_ARGUMENT' && error.message.includes(flag), flag);
+  }
+  assert.throws(() => parseCliArgs(['--off', 'a', '--off', 'b', '--on', 'c', '--out', 'o', '--language', 'ko']),
+    error => error.code === 'PAIR_COUNT_MISMATCH');
+  assert.throws(() => parseCliArgs([...REQUIRED_ARGV, '--bogus']), error => error.code === 'UNKNOWN_ARGUMENT');
+  for (const value of ['0', '-5', '1.5', 'abc']) {
+    assert.throws(() => parseCliArgs([...REQUIRED_ARGV, `--timeout-ms=${value}`]),
+      error => error.code === 'INVALID_TIMEOUT', value);
+  }
+});
+
+test('assertOutPath allows fresh and empty output directories outside inputs and the repo', async () => {
+  const base = await mkdtemp(join(tmpdir(), 'pairwise-out-'));
+  try {
+    const input = join(base, 'input');
+    await mkdir(input);
+    const fresh = join(base, 'fresh');
+    assert.equal(await assertOutPath({ out: fresh, inputRoots: [input], repoRoot: REPO_ROOT }), join(await realpath(base), 'fresh'));
+    await assert.rejects(access(fresh));
+    const existing = join(base, 'existing');
+    await mkdir(existing);
+    assert.equal(await assertOutPath({ out: existing, inputRoots: [input], repoRoot: REPO_ROOT }), join(await realpath(base), 'existing'));
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+});
+
+test('assertOutPath rejects the repo, input roots, their children, dot-dot and symlink routes', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'pairwise-out-'));
+  try {
+    const root = join(dir, 'input');
+    await mkdir(root);
+    const link = join(dir, 'link');
+    await symlink(root, link);
+    const repoOut = join(REPO_ROOT, 'tmp-pairwise-out');
+    await assert.rejects(assertOutPath({ out: repoOut, inputRoots: [root], repoRoot: REPO_ROOT }),
+      error => error.code === 'OUT_PATH_FORBIDDEN');
+    await assert.rejects(access(repoOut));
+    const forbidden = [root, join(root, 'child'), join(root, '..', basename(root), 'x'), link, join(link, 'child')];
+    for (const out of forbidden) {
+      await assert.rejects(assertOutPath({ out, inputRoots: [root], repoRoot: REPO_ROOT }),
+        error => error.code === 'OUT_PATH_FORBIDDEN', out);
+    }
+    await assert.rejects(access(join(root, 'child')));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });
