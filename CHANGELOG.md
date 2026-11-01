@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- 개발자용 오프라인 A/B 평가 스크립트 `scripts/pairwise-evaluation.js`를 추가합니다. 기능을 끈 사본과 켠 사본의 같은 회차를
+  순서를 바꿔 두 번 판정 모델에 비교시켜 차원별 선호를 `report.json`/`report.md`로 만듭니다. 호스트 릴레이는 `requests.json`과
+  `--answers`로, 로컬 엔드포인트는 `VIBELORE_LOCAL_BASE_URL`·`VIBELORE_LOCAL_MODEL`로 판정합니다. 결과는 LLM 판정의 선호이며
+  사람 평가가 아닙니다. 작품에 쓰지 않고 어떤 검사도 막지 않으며 npm 패키지와 `npm test`의 모델 호출에 포함되지 않습니다.
 - 저장소 전용 Lore Studio에 로컬 제작·고정 Edition·공유 자산 Library·명시적 반입/채택과
   제작 사이클 기록을 추가합니다. npm runtime에는 Studio를 포함하지 않습니다.
 - Studio 자격 증명을 명시적 옵션으로만 읽고 MCP의 임의 소유자 연결을 거부합니다.

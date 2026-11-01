@@ -53,6 +53,53 @@ artifacts whose source or redistribution rights are unknown.
 The maintainer reviews changes before merging. Keep PRs small enough to review,
 and explain any compatibility or recovery-format changes.
 
+## Offline A/B evaluation (developers)
+
+`scripts/pairwise-evaluation.js` compares two sets of chapters written from the
+same starting point, one with a feature off and one with it on, by asking a judge
+model which of each pair reads better. It is a developer-only measurement. It is
+not an MCP tool, is not part of the writing flow, and is not packed into the npm
+package.
+
+Prepare the sets by copying the whole work root, including hidden state, twice.
+Enable the feature in the ON copy only, then run the same chapter range with
+`lore_write` in both copies. For a noise baseline, make a second OFF copy, write
+the same range in it, compare the two OFF copies and label that run
+`--feature baseline`.
+
+```sh
+node scripts/pairwise-evaluation.js --off <off-root> --on <on-root> \
+  --out <output-dir> --language <code> [--chapters 1-5,8] [--answers <file>] \
+  [--feature <label>] [--judge-label <text>] [--writer-model <id>] [--timeout-ms <n>]
+```
+
+`--off` and `--on` may be repeated and must be given the same number of times;
+the Nth `--off` is compared with the Nth `--on`. `--language` selects the judge
+prompt family. `--out` must be outside this repository and every input root, and
+the script only reads the input roots.
+
+Without a local endpoint the script works through a request file. It writes
+`requests.json` to the output directory and exits with code 2. Answer each
+request independently, from its `system` and `user` text alone, collect the
+answers as `{"<id>": "<answer text>"}` in a JSON file and run the same command
+again with `--answers <file>`. A malformed answer may need one more round, in
+which case a repair request appears in the next `requests.json`. Once every
+request is answered, `report.json` and `report.md` are written and the script
+exits with code 0. Exit code 1 means an error.
+
+To judge with a local OpenAI-compatible endpoint instead, set
+`VIBELORE_LOCAL_BASE_URL` and `VIBELORE_LOCAL_MODEL`; no request file is written.
+
+Read results as follows.
+
+- They are LLM-judge preferences, not human evaluation.
+- Judging through the host relay is labelled not independent. A local endpoint's
+  model id is only declared and stays unverified.
+- Length is not normalized; the report notes a large length difference between the
+  sets, which can sway a judge on its own.
+- The script never writes into a work, never gates a commit or release, and no
+  model runs inside `npm test`.
+
 ## Release conventions
 
 Run `npm run check:publish` before merging release changes. It runs both test suites,

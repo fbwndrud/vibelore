@@ -1017,3 +1017,11 @@ describe('command line entry', () => {
     }
   }));
 });
+
+describe('contributor documentation', () => {
+  test('CONTRIBUTING.md documents the offline A/B evaluation', async () => {
+    const text = await readFile(join(REPO_ROOT, 'CONTRIBUTING.md'), 'utf8');
+    assert.match(text, /^#{2,3} Offline A\/B evaluation \(developers\)$/m);
+    for (const term of ['requests.json', '--answers', 'VIBELORE_LOCAL_BASE_URL']) assert.ok(text.includes(term), term);
+  });
+});
