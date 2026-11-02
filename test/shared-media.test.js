@@ -144,7 +144,7 @@ describe('standalone scene script', () => {
     assert.equal(adopted.status, 'adopted');
     const policy = imagePolicyFor('gpt-image-2.5-sunburst', 'openai-api'), repo = new WebtoonStore(new MarkdownStateStore(root));
     await atomicWrite(repo.path('image-selection.json'), JSON.stringify({ workId, policy, selection: { id: 'selected-api', workId, policyHash: digest(policy) } }));
-    const start = { workId, action: 'start', scriptId: 'tower-night', panelCount: 4, direction: 'Full color comic. Original Korean lettering. AI chooses layout.',
+    const start = { workId, action: 'start', sceneDirect: { userAnswer: 'scene fixture' }, scriptId: 'tower-night', panelCount: 4, direction: 'Full color comic. Original Korean lettering. AI chooses layout.',
       references: [{ id: 'adult', assetId: 'adult-portrait', description: 'Adult identity only.' }, { id: 'child', assetId: 'child-portrait', description: 'Childhood flashback identity only.' }] };
     const ambiguous = await rpc(root, 'lore_webtoon_scene', { ...start, sourceChapters: [1] });
     assert.equal(ambiguous.structuredContent.code, 'SCENE_SOURCE_AMBIGUOUS');

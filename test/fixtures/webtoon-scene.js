@@ -34,5 +34,5 @@ export async function sceneSetup({ language, prose } = {}) {
   const policy = imagePolicyFor('gpt-image-2.5-sunburst', 'openai-api');
   await atomicWrite(repo.path('image-selection.json'), JSON.stringify({ workId, policy, selection: { id: 'selected-api', workId, policyHash: digest(policy) } }));
   const path = join(store.rootDir, 'ref.png'); await writeFile(path, pixel);
-  return { store, repo, args: { workId, action: 'start', panelCount: 6, sourceChapters: [1], direction: 'Full color comic. Original Korean lettering. AI chooses layout.', references: [{ id: 'ref', path, hash: digest(pixel), description: 'Character identity only.' }] } };
+  return { store, repo, args: { workId, action: 'start', sceneDirect: { userAnswer: 'scene fixture' }, panelCount: 6, sourceChapters: [1], direction: 'Full color comic. Original Korean lettering. AI chooses layout.', references: [{ id: 'ref', path, hash: digest(pixel), description: 'Character identity only.' }] } };
 }

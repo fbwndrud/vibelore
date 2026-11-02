@@ -14,7 +14,7 @@ import { webtoonMessage } from '../core/webtoon-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
-import { loadWebtoonReviewModel } from '../core/review-policy.js';
+import { loadWebtoonReviewModel, loadWebtoonSceneDirect } from '../core/review-policy.js';
 import { SCENE_IMAGE_REVIEW_VERSION, SCENE_IMAGE_REVIEW_PROMPT, sceneVisualCheckSchema, sceneReviewInputs } from '../core/webtoon-scene-review.js';
 import { SCENE_SCHEMA, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, CONTINUITY_CHECKS,
   isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
@@ -238,8 +238,19 @@ async function loadPreviousScene(repo, args) {
   return previous;
 }
 
+/** One scene per image is opt-in: needs the user's own words (this call or the work setting); delegation never counts. */
+async function sceneDirectOptIn(store, args) {
+  const answer = args.sceneDirect?.userAnswer;
+  if (typeof answer === 'string' && answer.trim()) return { userAnswer: answer, source: 'args' };
+  const saved = await loadWebtoonSceneDirect(store, args.workId);
+  if (saved.enabled && nonempty(saved.userAnswer)) return { userAnswer: saved.userAnswer, source: 'work-setting' };
+  throw new Error('SCENE_DIRECT_OPT_IN_REQUIRED: 장면 통째 이미지는 사용자가 직접 요청할 때만 시작할 수 있습니다. 기본 경로인 lore_webtoon_episode(페이지·칸 단위)를 쓰거나, 사용자의 말을 sceneDirect.userAnswer로 넘기세요. delegation은 이 선택을 대신하지 않습니다. '
+    + '/ A whole-scene image starts only when the user asks for it. Use the default lore_webtoon_episode (pages of panels), or pass the user\'s own words as sceneDirect.userAnswer; delegation does not stand in for this choice.');
+}
+
 /** Validate every user choice before any model or image call; returns the interview instead of a workflow when the count is missing. */
 async function startScene(store, repo, args, current) {
+  const sceneDirect = await sceneDirectOptIn(store, args);
   const delegation = webtoonDelegation(args.delegation);
   if (delegation && delegation.scope !== 'production') throw new Error('SCENE_DELEGATION_SCOPE');
   const panelCount = args.panelCount ?? (delegation ? 'auto' : undefined);
@@ -297,7 +308,7 @@ async function startScene(store, repo, args, current) {
         ? 'Previous scene: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
         : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
     acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity(), productionRecord: true };
-  record(w, 'scene_started', { sourceHash: source.hash, ...(delegation ? { delegation } : {}) });
+  record(w, 'scene_started', { sourceHash: source.hash, sceneDirect, ...(delegation ? { delegation } : {}) });
   return w;
 }
 

@@ -744,6 +744,7 @@ const TOOLS = [
       sourceChapters: { type: 'array', items: { type: 'integer' }, description: 'start 전용. 각색할 소설 화 번호(1~20개). 생략하면 첫 화만. scriptId와 함께 쓰면 SCENE_SOURCE_AMBIGUOUS.' },
       scriptId: { type: 'string', description: 'start 전용. 소설 화 대신 lore_scene_script로 채택한 독립 장면 대본을 원천으로 쓴다. 대본·장면별 상태·asset은 채택 때 봉인한 판본만 사용한다.' },
       panelCount: { anyOf: [{ type: 'integer', minimum: SCENE_PANEL_LIMITS.min, maximum: SCENE_PANEL_LIMITS.max }, { type: 'string', enum: ['auto'] }], description: `사용자가 선택한 정확한 칸 수(${SCENE_PANEL_LIMITS.min}~${SCENE_PANEL_LIMITS.max}) 또는 "auto". auto는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 다시 고른다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성 경고가 warnings에 실린다. start에서 누락하면 needs_interview. 칸 크기와 배치는 AI가 선택.` },
+      sceneDirect: { type: 'object', additionalProperties: false, properties: { userAnswer: { type: 'string', minLength: 1, maxLength: 500 } }, description: 'start 전용. 장면 통째 이미지 선택에 대한 사용자의 실제 답변. 사용자가 직접 요청한 말이 필요하며 delegation(알아서)으로는 대신할 수 없다. 작품 설정 webtoonSceneDirect가 켜져 있으면 생략 가능. 기본 경로는 lore_webtoon_episode.' },
       previousWorkflowId: { type: 'string', description: '이어지는 직전 장면 workflow. 실제 이미지·설계·검토 결과를 상속해 연속성을 검증하며 이전 검토 판정은 그대로 보존.' },
       sourceUnitIds: { type: 'array', items: { type: 'string' }, description: '고정된 원작 문단 ID. 생략 시 선택 회차 전체. 한 이미지에 담을 장면 범위로 지정한다.' },
       styleRevisionId: { type: 'string', description: 'start에서 미지정하면 이 작품이 채택한 최신 화풍을 고정한다. 이미 진행 중인 장면은 기준을 유지한다. 새 기준을 적용하려면 사용자 피드백과 함께 revise에 명시한다.' },
