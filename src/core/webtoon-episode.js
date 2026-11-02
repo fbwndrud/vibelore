@@ -1,7 +1,7 @@
 import { parseDocument } from '../md/frontmatter.js';
 import { digest, nonempty, safeId } from './webtoon-contract.js';
 import { EDITORIAL_SCHEMA, validateEditorial } from './webtoon-editorial.js';
-import { SCENE_TEXT_KINDS, isVerbatimText } from './webtoon-scene.js';
+import { SCENE_TEXT_KINDS, SCENE_LIMITS, isVerbatimText, validateSceneRenderBrief, imagePromptBody } from './webtoon-scene.js';
 
 export const EPISODE_PRODUCTION_MODE = 'episode-pages-v1';
 /** Reserved reference id for the previous page image. */
@@ -72,4 +72,58 @@ export function validateAdaptation(adaptation, { units, cast = [], maxPages = EP
   });
   need([...beats.values()].every(b => !retained(b) || used.has(b.id)), 'EPISODE_RETAINED_BEAT_MISSING');
   return adaptation;
+}
+
+const pageState = (w, page) => (w.pages ?? []).find(p => p.id === page.id);
+
+/** Runtime state of the page before `page`, only once it passed its own review; otherwise null (never a failed page). */
+export function previousPageState(w, page) {
+  const pages = w.adaptation?.pages ?? [], i = pages.findIndex(p => p.id === page.id);
+  const state = i > 0 ? pageState(w, pages[i - 1]) : undefined;
+  return state?.review?.passed === true ? state : null;
+}
+
+/** The page in the shape the scene validators and prompt blocks read: its panels' units and texts stand in for a scene. */
+export function pageView(w, page) {
+  const cited = new Set(page.panels.flatMap(p => p.sourceIds));
+  return { panelCount: page.panels.length, sceneUnits: w.units.filter(u => cited.has(u.id)), scenePlan: { texts: pageTexts(page) }, styleSnapshot: w.styleSnapshot };
+}
+
+export const PAGE_BRIEF_CHECKS = ['shows', 'bridge', 'visibleRelations'];
+export const PAGE_BRIEF_PROMPT = `Check only whether this page can be drawn: shows must be visible, each panel must follow from the previous one (bridge), and the visible relations between people, objects and places must be possible. Do not change facts, order or texts. Return renderBrief with exactly one moment per panel, in panel order; each moment's textIds equal that panel's text ids, its sourceIds cite the source units, and its action is ONE visible instant of at most ${SCENE_LIMITS.momentWords} English words. The style line is at most ${SCENE_LIMITS.styleWords} words. drawability judges this final brief; if the page cannot be drawn, fail it instead of deferring to the image model.`;
+
+/** Binds a page brief to this adaptation, this page, the previous page image it will be drawn beside, the references, policy and style. */
+export const pageBriefBinding = (w, page) => digest({ adaptation: adaptationDigest(w.adaptation), page: pageDigest(page),
+  previousPageImage: previousPageState(w, page)?.image.hash ?? null, references: w.references, policy: w.imagePolicy, styleRevision: w.styleSnapshot?.revisionId ?? null });
+
+export const PAGE_FINDING_SHAPE = { severity: 'blocking | advisory', evidence: 'concrete evidence (required)' };
+
+/** Skeleton the host fills: one moment per panel, texts pre-assigned in panel order. */
+export const pageBriefSchema = (w, page) => ({ subjectHash: pageBriefBinding(w, page),
+  checks: PAGE_BRIEF_CHECKS.map(id => ({ id, passed: false, evidence: '' })), findings: [], findingItem: PAGE_FINDING_SHAPE,
+  renderBrief: { style: w.styleSnapshot?.profile.style ?? '', moments: page.panels.map(p => ({ sourceIds: [], action: '', textIds: p.texts.map(t => t.id) })) },
+  drawability: { passed: false, evidence: '' } });
+
+/** Throws on a stale, incomplete or reordered brief; false when a check or finding blocks; otherwise the drawability verdict. */
+export function validatePageBrief(review, w, page) {
+  need(review?.subjectHash === pageBriefBinding(w, page), 'STALE_PAGE_BRIEF');
+  need(Array.isArray(review.findings) && Array.isArray(review.checks) && review.checks.length === PAGE_BRIEF_CHECKS.length
+    && PAGE_BRIEF_CHECKS.every(id => review.checks.filter(c => c?.id === id && typeof c.passed === 'boolean' && nonempty(c.evidence)).length === 1), 'INCOMPLETE_PAGE_BRIEF');
+  need(review.findings.every(f => ['blocking', 'advisory'].includes(f?.severity) && nonempty(f.evidence)), 'INVALID_PAGE_BRIEF_FINDING');
+  if (!review.checks.every(c => c.passed) || review.findings.some(f => f.severity === 'blocking')) return false;
+  const moments = review.renderBrief?.moments;
+  if (Array.isArray(moments) && moments.length === page.panels.length) page.panels.forEach((panel, i) =>
+    need(Array.isArray(moments[i]?.textIds) && moments[i].textIds.join('\n') === panel.texts.map(t => t.id).join('\n'), 'PAGE_BRIEF_ORDER'));
+  validateSceneRenderBrief(review.renderBrief, pageView(w, page));
+  need(typeof review.drawability?.passed === 'boolean' && nonempty(review.drawability?.evidence), 'PAGE_DRAWABILITY_REQUIRED');
+  return review.drawability.passed;
+}
+
+/** The image model sees the approved page brief (`w.pages[i].brief.renderBrief`), the exact texts and the reference roles; page k of n. */
+export function pageImagePrompt(w, page, k, n) {
+  const view = pageView(w, page), brief = validateSceneRenderBrief(pageState(w, page)?.brief?.renderBrief, view);
+  return imagePromptBody({ ...view, sceneReferences: w.references, source: w.source }, brief, {
+    opening: `Page ${k} of ${n} of one webtoon episode. Draw EXACTLY ${page.panels.length} panels. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.`,
+    references: `Match the character reference identities. ${previousPageState(w, page)
+      ? 'The last image is the previous page of this episode: continue its identities, clothing and setting, not its events or layout.' : 'Reference sheets are for their described roles, not page layout.'}` });
 }

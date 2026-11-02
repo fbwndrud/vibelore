@@ -1,7 +1,7 @@
 import { digest, nonempty } from './webtoon-contract.js';
 import { SCENE_IMAGE_REVIEW_PROMPT, validateSceneVisualChecks, sceneVisualCheckSchema } from './webtoon-scene-review.js';
 import { sameLettering } from './webtoon-scene.js';
-import { adaptationDigest, pageDigest, pageTexts } from './webtoon-episode.js';
+import { adaptationDigest, pageDigest, pageTexts, previousPageState, PAGE_FINDING_SHAPE } from './webtoon-episode.js';
 
 const need = (ok, code) => { if (!ok) throw new Error(code); };
 
@@ -55,12 +55,7 @@ export function pageReviewSubject(w, page) {
 }
 
 /** The previous page is attached for comparison only once it passed its own review. */
-export function previousPageAttached(w, page) {
-  const pages = w.adaptation?.pages ?? [], i = pages.findIndex(p => p.id === page.id);
-  return i > 0 && pageState(w, pages[i - 1])?.review?.passed === true;
-}
-
-const FINDING_SHAPE = { severity: 'blocking | advisory', evidence: 'concrete evidence (required)' };
+export const previousPageAttached = (w, page) => previousPageState(w, page) !== null;
 
 /** Skeleton the host fills. panelDelivery is an array with one entry per panel id, like textObservations. */
 export function pageReviewSchema(w, page) {
@@ -69,7 +64,7 @@ export function pageReviewSchema(w, page) {
     panelDelivery: page.panels.map(p => ({ id: p.id, status: 'delivered|partial|missing', evidence: '' })),
     textObservations: pageTexts(page).map(t => ({ id: t.id, observedText: '', readable: false, speakerCorrect: false, evidence: '' })),
     ...(previousPageAttached(w, page) ? { previousPage: Object.fromEntries(PAGE_CONTINUITY_CHECKS.map(k => [k, { passed: false, evidence: '' }])) } : {}),
-    findings: [], findingItem: FINDING_SHAPE };
+    findings: [], findingItem: PAGE_FINDING_SHAPE };
 }
 
 /** Observations about ids the plan never had are advisory findings, not a reason to reject the whole review. Run before validation. */

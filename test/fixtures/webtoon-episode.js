@@ -1,3 +1,6 @@
+import { imagePolicyFor } from '../../src/core/webtoon-images.js';
+import { pageBriefSchema } from '../../src/core/webtoon-episode.js';
+
 /** Plain adaptation fixtures for the episode path: one expand beat over all units, one page, three panels, one dialogue text. */
 const clone = value => structuredClone(value);
 const panelAt = (units, page, n, extra = {}) => ({ id: `p${page}-${n}`, beatIds: ['beat-1'], sourceIds: n === 3 ? units.slice(1).map(u => u.id) : [units[0].id],
@@ -61,4 +64,27 @@ export function withPages(a, n) {
 /** Minimal workflow object for adaptation review: source, units and a valid adaptation. */
 export function reviewWorkflow(units, overrides = {}) {
   return { source: { hash: 'sha256:source', cast: [{ id: 'c1', name: '윤', appearance: '짧은 머리' }] }, units, adaptation: adaptationFor(units), adaptationReviewModel: null, ...overrides };
+}
+
+/** Episode workflow for page briefs and prompts: `n` pages with runtime state, one reference, an image policy and an adopted style. */
+export function pageWorkflow(units, { pages = 2, passedThrough = 0, ...overrides } = {}) {
+  const adaptation = withPages(adaptationFor(units), pages), image = id => ({ hash: `sha256:img-${id}`, path: `/${id}.png`, width: 1024, height: 1536 });
+  return { source: { hash: 'sha256:source' }, units, adaptation, imagePolicy: imagePolicyFor('gpt-image-2.5-sunburst', 'openai-api'),
+    references: [{ id: 'ref', path: '/ref.png', hash: 'sha256:ref', description: 'Character identity only.' }],
+    styleSnapshot: { revisionId: 'sha256:style-1', profile: { style: 'Colored ink.' }, image: { path: '/style.png', hash: 'sha256:style' } },
+    pages: adaptation.pages.map((p, i) => ({ id: p.id, image: image(p.id), tiles: [], ...(i < passedThrough ? { review: { passed: true } } : {}) })), ...overrides };
+}
+
+/** A filled page brief: every check passes, one short moment per panel with that panel's text ids; `over` patches the pieces a test cares about. */
+export function briefFor(w, page, over = {}) {
+  const s = pageBriefSchema(w, page);
+  return { ...s, checks: s.checks.map(c => ({ ...c, passed: true, evidence: 'Visible in the panel.' })), findingItem: undefined,
+    drawability: { passed: true, evidence: 'Synthetic fixture moments; no real image quality claim.' },
+    renderBrief: { ...s.renderBrief, moments: s.renderBrief.moments.map((m, i) => ({ ...m, sourceIds: page.panels[i].sourceIds, action: `Panel ${i + 1}: she waits at the door.` })) }, ...over };
+}
+
+/** The same brief with the first two moments' text ids swapped. */
+export function briefWithSwappedTexts(w, page) {
+  const brief = briefFor(w, page), [a, b, ...rest] = brief.renderBrief.moments;
+  return { ...brief, renderBrief: { ...brief.renderBrief, moments: [{ ...a, textIds: b.textIds }, { ...b, textIds: a.textIds }, ...rest] } };
 }
