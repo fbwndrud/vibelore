@@ -1,7 +1,7 @@
 import { digest, nonempty } from './webtoon-contract.js';
 import { SCENE_IMAGE_REVIEW_PROMPT, validateSceneVisualChecks, sceneVisualCheckSchema } from './webtoon-scene-review.js';
 import { sameLettering } from './webtoon-scene.js';
-import { adaptationDigest, pageDigest, pageTexts, previousPageState, PAGE_FINDING_SHAPE } from './webtoon-episode.js';
+import { adaptationDigest, pageDigest, pageTexts, previousPageState, pageState, PAGE_FINDING_SHAPE } from './webtoon-episode.js';
 
 const need = (ok, code) => { if (!ok) throw new Error(code); };
 
@@ -44,8 +44,6 @@ export function validateTiles(tiles, page) {
   }
   return tiles;
 }
-
-const pageState = (w, page) => (w.pages ?? []).find(p => p.id === page.id);
 
 /** Binds a review to this adaptation, this page, the exact page image and its exact tiles. */
 export function pageReviewSubject(w, page) {

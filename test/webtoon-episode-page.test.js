@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PAGE_BRIEF_CHECKS, PAGE_BRIEF_PROMPT, pageBriefBinding, pageBriefSchema, pageImagePrompt, pageTexts, pageView, previousPageState, validatePageBrief } from '../src/core/webtoon-episode.js';
+import { PAGE_BRIEF_CHECKS, PAGE_BRIEF_PROMPT, pageBriefBinding, pageBriefSchema, pageImagePrompt, pageReferences, pageTexts, pageView, previousPageState, validatePageBrief } from '../src/core/webtoon-episode.js';
 import { letteringText } from '../src/core/webtoon-scene.js';
 import { briefFor, briefWithSwappedTexts, pageWorkflow } from './fixtures/webtoon-episode.js';
 
@@ -109,4 +109,28 @@ test('page prompt attaches the previous page only after it passed', () => {
 
 test('page prompt needs the approved brief', () => {
   assert.throws(() => pageImagePrompt(first, page1, 1, 3), code(/SCENE_RENDER_BRIEF_REQUIRED/));
+});
+
+test('page references are listed in attach order with style and previous-page roles', () => {
+  const prompt = pageImagePrompt(withBrief(second, page2), page2, 2, 3);
+  assert.match(prompt, /^Image 1: Character identity only\.$/m);
+  assert.match(prompt, /^Image 2: User-adopted art style only/m);
+  assert.match(prompt, /^Image 3: Previous page of this episode: identities, clothing/m);
+  assert.deepEqual(pageReferences(second, page2).map(r => r.id), ['ref', 'adopted-style', 'previous-page']);
+  assert.equal(pageReferences(second, page2).at(-1).hash, second.pages[0].image.hash);
+  const p1 = pageImagePrompt(withBrief(first, page1), page1, 1, 3);
+  assert.match(p1, /^Image 2: User-adopted art style only/m);
+  assert.equal(/Image 3:|Previous page/.test(p1), false);
+  const failed = withBrief({ ...second, pages: second.pages.map((p, i) => i ? p : { ...p, review: { passed: false } }) }, page2);
+  assert.deepEqual(pageReferences(failed, page2).map(r => r.id), ['ref', 'adopted-style']);
+  assert.equal(/Image 3:/.test(pageImagePrompt(failed, page2, 2, 3)), false);
+  const plain = { ...second, styleSnapshot: undefined };
+  assert.match(pageReferences(plain, page2).at(-1).description, /^Previous finished page/);
+});
+
+test('references with scene ids render as plain roles on a page', () => {
+  const w = withBrief({ ...first, references: [{ ...first.references[0], sceneIds: ['s9'] }] }, page1);
+  const prompt = pageImagePrompt(w, page1, 1, 3);
+  assert.match(prompt, /^Image 1: Character identity only\.$/m);
+  assert.equal(/no depicted moment|Use for moments/.test(prompt), false);
 });

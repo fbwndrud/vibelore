@@ -1,5 +1,6 @@
 import { parseDocument } from '../md/frontmatter.js';
 import { digest, nonempty, safeId } from './webtoon-contract.js';
+import { styleReference } from '../store/webtoon-style-store.js';
 import { EDITORIAL_SCHEMA, validateEditorial } from './webtoon-editorial.js';
 import { SCENE_TEXT_KINDS, SCENE_LIMITS, isVerbatimText, validateSceneRenderBrief, imagePromptBody } from './webtoon-scene.js';
 
@@ -74,7 +75,7 @@ export function validateAdaptation(adaptation, { units, cast = [], maxPages = EP
   return adaptation;
 }
 
-const pageState = (w, page) => (w.pages ?? []).find(p => p.id === page.id);
+export const pageState = (w, page) => (w.pages ?? []).find(p => p.id === page.id);
 
 /** Runtime state of the page before `page`, only once it passed its own review; otherwise null (never a failed page). */
 export function previousPageState(w, page) {
@@ -94,7 +95,7 @@ export const PAGE_BRIEF_PROMPT = `Check only whether this page can be drawn: sho
 
 /** Binds a page brief to this adaptation, this page, the previous page image it will be drawn beside, the references, policy and style. */
 export const pageBriefBinding = (w, page) => digest({ adaptation: adaptationDigest(w.adaptation), page: pageDigest(page),
-  previousPageImage: previousPageState(w, page)?.image.hash ?? null, references: w.references, policy: w.imagePolicy, styleRevision: w.styleSnapshot?.revisionId ?? null });
+  previousPageImage: previousPageState(w, page)?.image?.hash ?? null, references: w.references, policy: w.imagePolicy, styleRevision: w.styleSnapshot?.revisionId ?? null });
 
 export const PAGE_FINDING_SHAPE = { severity: 'blocking | advisory', evidence: 'concrete evidence (required)' };
 
@@ -119,10 +120,22 @@ export function validatePageBrief(review, w, page) {
   return review.drawability.passed;
 }
 
+/**
+ * Reference images in attach order: the user's references, the adopted style sample, then the previous page once it passed.
+ * Episode units carry no scene ids, so the user references lose their scene binding and render as plain roles.
+ */
+export function pageReferences(w, page) {
+  const previous = previousPageState(w, page);
+  return [...w.references.map(({ sceneIds, ...reference }) => reference), ...(w.styleSnapshot ? [styleReference(w.styleSnapshot)] : []),
+    ...(previous ? [{ id: PREVIOUS_PAGE_ID, path: previous.image.path, hash: previous.image.hash, description: w.styleSnapshot
+      ? 'Previous page of this episode: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
+      : 'Previous finished page of this episode: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])];
+}
+
 /** The image model sees the approved page brief (`w.pages[i].brief.renderBrief`), the exact texts and the reference roles; page k of n. */
 export function pageImagePrompt(w, page, k, n) {
   const view = pageView(w, page), brief = validateSceneRenderBrief(pageState(w, page)?.brief?.renderBrief, view);
-  return imagePromptBody({ ...view, sceneReferences: w.references, source: w.source }, brief, {
+  return imagePromptBody({ ...view, sceneReferences: pageReferences(w, page), source: w.source }, brief, {
     opening: `Page ${k} of ${n} of one webtoon episode. Draw EXACTLY ${page.panels.length} panels. Choose panel sizes, layout and camera angles. Each panel shows one clear moment.`,
     references: `Match the character reference identities. ${previousPageState(w, page)
       ? 'The last image is the previous page of this episode: continue its identities, clothing and setting, not its events or layout.' : 'Reference sheets are for their described roles, not page layout.'}` });
