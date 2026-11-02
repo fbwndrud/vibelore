@@ -6,6 +6,7 @@ import { LORE_ARRAY_TARGETS } from '../../engine/src/lore/scenes.js';
 import { verifyLoreProductionLock } from '../../engine/src/lore/production.js';
 import { openCanonRepository } from './canon-repository.js';
 import { createPublicationUnit } from './publication-unit.js';
+import { chapterFoundation } from './chapter-foundation.js';
 
 /** Marker for a value that exists only per scene (or per chapter in a plan); never a work-local fallback. */
 export const SHARED_SCENE_SPECIFIC = '[SharedLore: scene-specific value — see the pinned scene list]';
@@ -46,12 +47,15 @@ export async function loadLoreRuntime({ canonicalStore, foundation, chapter, pre
   const sealedChapter = outsideBinding || preferSealed && tree?.chapters?.[chapter];
   const sealed = sealedChapter ? tree.productionInputs?.[chapter] ?? null : undefined;
   const productionLock = sealedChapter ? (sealed ? verifyLoreProductionLock(sealed) && sealed : null) : await prepareProductionInput({ sharedLore, chapter });
-  if (!productionLock) return { foundation, productionLock: null };
+  if (!productionLock) return { foundation: chapterFoundation({ raw: foundation, chapter }), productionLock: null };
   const result = projectLoreFoundation(foundation, { projections: productionLock.projections, varying: productionLock.sceneVarying ?? [] }, chapter);
   result.sharedLore = { productionLockId: productionLock.revisionId, contextText: renderProductionContext(productionLock, result),
     ...(productionLock.sceneVarying?.length ? { sceneVarying: productionLock.sceneVarying } : {}) };
-  return { foundation: result, productionLock };
+  return { foundation: chapterFoundation({ raw: result, chapter }), productionLock };
 }
+
+/** Canon horizon for a planned range: its last chapter, or the whole canon when no range is given. */
+const planningHorizon = chapters => chapters?.length ? Math.max(...chapters) : Infinity;
 
 /**
  * Planning sees the same resolver as writing. A shared field is taken only
@@ -62,7 +66,8 @@ export async function loadPlanningLore({ store, canonicalStore, workId, chapters
   const foundation = await (canonicalStore ?? store).loadFoundation(workId);
   const sharedLore = canonicalStore?.publishedRevision?.tree?.sharedLore;
   requireWorldbuildingBinding(foundation, sharedLore);
-  if (!foundation || !sharedLore?.binding) return { foundation, planning: null };
+  const horizon = planningHorizon(chapters);
+  if (!foundation || !sharedLore?.binding) return { foundation: chapterFoundation({ raw: foundation, chapter: horizon }), planning: null };
   const { locks, missingChapters, blocked } = await prepareProductionInputs({ sharedLore, chapters });
   requireLore(!blocked.length, 'SHARED_LORE_UNRESOLVED', 'planning requires nonconflicting shared values', blocked);
   const values = new Map();
@@ -79,7 +84,7 @@ export async function loadPlanningLore({ store, canonicalStore, workId, chapters
   }
   const dto = projectLoreFoundation(foundation, { projections, varying }, chapters[0]);
   dto.sharedLore = { planning: true, loreRevisionId: sharedLore.binding.loreRevisionId, bindingRevisionId: sharedLore.binding.revisionId, contextText: renderPlanningContext(locks, missingChapters), missingChapters };
-  return { foundation: dto, planning: { loreRevisionId: sharedLore.binding.loreRevisionId, bindingRevisionId: sharedLore.binding.revisionId, locks: locks.map(l => l.revisionId), documents: [...new Set(locks.flatMap(l => l.scenes.flatMap(s => s.documents.map(d => d.id))))], missingChapters } };
+  return { foundation: chapterFoundation({ raw: dto, chapter: horizon }), planning: { loreRevisionId: sharedLore.binding.loreRevisionId, bindingRevisionId: sharedLore.binding.revisionId, locks: locks.map(l => l.revisionId), documents: [...new Set(locks.flatMap(l => l.scenes.flatMap(s => s.documents.map(d => d.id))))], missingChapters } };
 }
 
 /** Planning entry point: the bound view for linked works, the work's own Foundation otherwise. */
@@ -89,7 +94,7 @@ export async function planningFoundation({ store, workId, chapters }) {
   if (!binding) {
     const foundation = await canonicalStore.loadFoundation(workId);
     requireWorldbuildingBinding(foundation, null);
-    return { foundation, planning: null };
+    return { foundation: chapterFoundation({ raw: foundation, chapter: planningHorizon(chapters) }), planning: null };
   }
   return loadPlanningLore({ store, canonicalStore, workId, chapters: chapters ?? binding.chapters.map(c => c.chapter) });
 }

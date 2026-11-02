@@ -144,8 +144,11 @@ test('a large world delivers selected original rules and custom values to story,
   assert.doesNotMatch(input.context.foundation.sharedLore.contextText, /UNRELATED_HISTORY|TS_ONLY|FUTURE_SECRET_TOKEN/);
   const offlineCanon = { publishedRevision: { ...published, tree: { ...published.tree,
     sharedLore: { ...published.tree.sharedLore, worldRoot: '/missing-world-during-review' } } } };
-  const sealed = await loadLoreRuntime({ canonicalStore: offlineCanon, foundation: published.tree.foundation, chapter: 1, preferSealed: true });
+  const gatedFoundation = { ...published.tree.foundation, worldFacts: [...(published.tree.foundation.worldFacts ?? []), { id: 'wg', statement: 'GATED_BOUND_TOKEN', registeredAtChapter: 12 }] };
+  const sealed = await loadLoreRuntime({ canonicalStore: offlineCanon, foundation: gatedFoundation, chapter: 1, preferSealed: true });
   assert.equal(sealed.productionLock.revisionId, lock.revisionId);
+  assert.doesNotMatch(JSON.stringify(sealed.foundation), /GATED_BOUND_TOKEN/);
+  assert.equal(sealed.foundation.sharedLore.contextText, (await loadLoreRuntime({ canonicalStore: offlineCanon, foundation: published.tree.foundation, chapter: 1, preferSealed: true })).foundation.sharedLore.contextText);
   assert.match(sealed.foundation.sharedLore.contextText, /MAGIC_COST_ONE_YEAR/);
 });
 
