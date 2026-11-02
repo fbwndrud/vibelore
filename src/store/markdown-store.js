@@ -45,12 +45,26 @@ function comparableLanguage(value) {
 
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
 
-/** Turns a gate parse error into CANON_GATE_INVALID with the work-relative document and the 1-based line holding the offending text. */
+/** True when the line is the "###" gate heading carrying exactly this marker text. */
+function isGateHeadingLine(line, text) {
+  const match = /^###(?!#)\s*(.*)$/.exec(line.trim());
+  return match !== null && match[1].trim() === text;
+}
+
+/** True when the line is a world-fact bullet whose statement is, or starts with a bracket holding, exactly this text. */
+function isFactLine(line, text) {
+  const bullet = /^\s*[-*+]\s+(?:\([^)]*\)\s*)?(.*)$/.exec(line);
+  if (!bullet) return false;
+  const statement = bullet[1].trim();
+  const tag = /^\[([^\]]*)\]/.exec(statement);
+  return statement === text || (tag !== null && tag[1].trim() === text);
+}
+
+/** Turns a gate parse error into CANON_GATE_INVALID naming the document and, when found, the 1-based line of the offending heading or fact. */
 function canonGateError(doc, fileText, lineText) {
-  const lines = String(fileText).split('\n');
-  const needle = String(lineText ?? '');
-  const index = needle ? lines.findIndex((line) => line.includes(needle)) : -1;
-  const error = new Error(`CANON_GATE_INVALID: ${doc} ${index + 1}`);
+  const needle = String(lineText ?? '').trim();
+  const index = needle ? String(fileText).split('\n').findIndex((line) => isGateHeadingLine(line, needle) || isFactLine(line, needle)) : -1;
+  const error = new Error(`CANON_GATE_INVALID: ${doc}${index >= 0 ? ` ${index + 1}` : ''}`);
   error.code = 'CANON_GATE_INVALID';
   return error;
 }

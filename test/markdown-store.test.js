@@ -301,6 +301,33 @@ describe('MarkdownStateStore -- canon gate markers', () => {
     });
   });
 
+  it('reports the exact bad heading when an earlier valid heading contains its text', async () => {
+    for (const [good, bad] of [['### 10화부터', '### 0화부터'], ['### from chapter 10', '### from chapter 0']]) {
+      const store = await savedWithGatedDescription();
+      const text = await readFile(store.characterPath('riel'), 'utf8');
+      const edited = text.replace('### 12화부터', `${good}\n본문.\n\n${bad}`);
+      await writeFile(store.characterPath('riel'), edited);
+      const line = edited.split('\n').findIndex((l) => l === bad) + 1;
+      await assert.rejects(() => store.loadFoundation('my-novel'), (error) => {
+        assert.equal(error.message, `CANON_GATE_INVALID: characters/riel.md ${line}`);
+        return true;
+      });
+    }
+  });
+
+  it('reports the exact bad fact when an earlier valid fact contains its text', async () => {
+    const store = await newStore();
+    await store.saveFoundation(sampleFoundation());
+    const text = await readFile(store.settingPath, 'utf8');
+    const edited = text.replace(/(## 세계 사실\n)/, '$1- (w5) [10화부터] 먼저.\n- (w6) [0화부터] 잘못.\n');
+    await writeFile(store.settingPath, edited);
+    const line = edited.split('\n').findIndex((l) => l.includes('[0화부터]')) + 1;
+    await assert.rejects(() => store.loadFoundation('my-novel'), (error) => {
+      assert.equal(error.message, `CANON_GATE_INVALID: world/setting.md ${line}`);
+      return true;
+    });
+  });
+
   it('rejects an invalid fact tag with the file and line', async () => {
     const store = await newStore();
     await store.saveFoundation(sampleFoundation());
