@@ -18,7 +18,7 @@ import { runEraResearchTool } from '../src/tools/era-research.js';
 import { runArcPlan, runArcDecide } from '../src/tools/arc.js';
 import { runArcQuality } from '../src/tools/arc-quality.js';
 import { runStoryProfile, runStoryProfileDecide } from '../src/tools/story-profile.js';
-import { buildContext } from '../src/tools/context.js';
+import { buildContext, selectWriterContinuity } from '../src/tools/context.js';
 import { episodePlanningContractViolations, runEpisodePlan, runEpisodeDecide } from '../src/tools/episode-plan.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { repairMissingInfluenceObservation, runWriteWorkflow, runWorkflowDecide, runWorkflowHistory, proseHash } from '../src/tools/workflow.js';
@@ -479,6 +479,17 @@ describe('Phase 2 generation pipeline', () => {
     const open = (await buildContext({ store, workId: 'tax-tower', chapter: 12 })).context;
     assert.match(open, /- \(w9\) \[12화부터\] GATED_FACT_TOKEN/);
     assert.match(open, /GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('keeps gated description blocks out of retrieved memory before their chapter', async () => {
+    const store = await createdStore({ legacy: true });
+    await addGatedCanon(store);
+    // The plan premise is the retrieval query; its words match the gated block but spell neither token.
+    await store.saveEpisodePlan('tax-tower', { ...activeEpisodePlan(), chapter: 5, arcEpisodeIndex: 5, title: '열쇠', premise: 'GATED PROGRESSION 윤재' });
+    const context = (await buildContext({ store, workId: 'tax-tower', chapter: 5 })).context;
+    assert.doesNotMatch(context, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+    const continuity = await selectWriterContinuity({ store, workId: 'tax-tower', chapter: 5 });
+    assert.doesNotMatch(JSON.stringify(continuity), /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
   });
 
   it('gives a whole-chapter rewrite the same continuity window and older memory as a draft', async () => {

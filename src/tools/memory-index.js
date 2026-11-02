@@ -6,6 +6,7 @@ import { searchTerms } from '../core/search-terms.js';
 import { ledgerBaseState, ledgerPrevState } from './ledger-log.js';
 import { trackingEnabled } from '../../engine/src/continuity/ledger.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
+import { splitGatedSection } from '../core/canon-gates.js';
 
 const ftsQuery = (queryTerms) => queryTerms.map((term) => `"${term.replaceAll('"', '""')}"`).join(' OR ');
 
@@ -28,7 +29,8 @@ export async function rebuildMemoryIndex({ store, workId, language }) {
     const insert = { run: (scope, ref, chapter, text) => statement.run(scope, ref, chapter, text, searchTerms(text, language).join(' ')) };
     const foundation = await store.loadFoundation(workId);
     for (const fact of foundation?.worldFacts ?? []) insert.run('fact', fact.id, fact.registeredAtChapter ?? 1, fact.statement);
-    for (const character of foundation?.characters ?? []) insert.run('character', character.id, character.registeredAtChapter ?? 1, [character.canonicalName, ...(character.aliases ?? []), character.contradiction, character.description].filter(Boolean).join(' '));
+    // Gated description blocks are not indexed: retrieval has no chapter gate of its own.
+    for (const character of foundation?.characters ?? []) insert.run('character', character.id, character.registeredAtChapter ?? 1, [character.canonicalName, ...(character.aliases ?? []), character.contradiction, typeof character.description === 'string' ? splitGatedSection(character.description).base : character.description].filter(Boolean).join(' '));
     const chapters = await store.listChapters();
     for (const summary of await store.loadRecentChapterSummaries(workId, Number.MAX_SAFE_INTEGER, 10000)) {
       if (summary?.summary) insert.run('summary', String(summary.chapterNumber), summary.chapterNumber, summary.summary);
