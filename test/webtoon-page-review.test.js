@@ -166,3 +166,16 @@ test('foreign text observations move to an advisory with the fixed prefix', () =
   assert.equal(moveForeignTextObservations(review, page), review);
   assert.equal(withForeign.textObservations.length, review.textObservations.length + 1);
 });
+
+test('a configured reviewer model asks for evidence and the review fails without it', () => {
+  const model = { provider: 'host', modelId: 'page-reviewer' }, configured = { ...w, reviewModel: model };
+  assert.deepEqual(pageReviewSchema(configured, page).reviewerEvidence, { modelId: '', responseId: '' });
+  assert.equal('reviewerEvidence' in pageReviewSchema(w, page), false);
+  const withEvidence = reviewerEvidence => fill(configured, page, { reviewerEvidence });
+  assert.equal(validatePageReview(withEvidence({ modelId: 'page-reviewer', responseId: 'resp-1' }), configured, page), true);
+  for (const bad of [undefined, { modelId: 'page-reviewer', responseId: '' }, { modelId: 'someone-else', responseId: 'resp-1' }, { responseId: 'resp-1' }]) {
+    assert.throws(() => validatePageReview(withEvidence(bad), configured, page), code(/PAGE_REVIEWER_EVIDENCE_REQUIRED/));
+  }
+  // Without a configured model the host's own review needs no evidence.
+  assert.equal(validatePageReview(fill(w, page), w, page), true);
+});

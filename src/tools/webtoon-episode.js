@@ -170,7 +170,6 @@ function approveAdaptation(w, by, feedback) {
 
 async function modelTask(repo, w, step, system, data, providers, images) {
   if (!w.pending) {
-    if (step === 'webtoon-page-review') w.reviewModel = await loadWebtoonReviewModel(repo.store, w.workId);
     const model = step === 'webtoon-adaptation-review' && w.adaptationReviewModel ? w.adaptationReviewModel
       : step === 'webtoon-page-review' && w.reviewModel ? w.reviewModel : { provider: 'host', modelId: 'host-agent' };
     const request = { model, jsonMode: true, step, ...(images?.length ? { images } : {}),
@@ -303,6 +302,8 @@ async function drivePages(repo, w, providers) {
     } else if (w.stage === 'page_review') {
       if (await hashOfFile(state.image.path) !== state.image.hash) throw new Error('PAGE_IMAGE_CHANGED');
       for (const tile of state.tiles) if (await hashOfFile(tile.path) !== tile.hash) throw new Error('PAGE_TILE_CHANGED');
+      // The reviewer is pinned before the request is built: the schema asks for its evidence, and a pending request keeps its issued model.
+      if (!w.pending) w.reviewModel = await loadWebtoonReviewModel(repo.store, w.workId);
       const inputs = pageReviewInputs(w, page, state);
       const r = await modelTask(repo, w, 'webtoon-page-review', PAGE_REVIEW_PROMPT,
         { pageNumber: k + 1, totalPages: total, referenceImages: inputs.referenceImages, feedback: state.feedback, source: pageView(w, page).sceneUnits, page, renderBrief: state.brief?.renderBrief,
@@ -344,9 +345,11 @@ async function importPageImage(repo, w, asset) {
   if (image.mime !== 'image/png') throw new Error('PAGE_IMAGE_PNG_REQUIRED');
   const bytes = Buffer.from(image.base64, 'base64'), { width, height } = pngSize(bytes);
   const path = await repo.writeCandidate(w, pageFile(k, state, 'png'), bytes);
-  state.image = { mime: image.mime, hash: image.hash, path, width, height, provenance: image.provenance };
+  // The paid image is kept either way; a quality other than the one asked for is recorded, never trusted from the host.
+  const { qualityMismatch, ...reported } = image.provenance, mismatch = w.imageQuality != null && reported.requestedQuality !== w.imageQuality;
+  state.image = { mime: image.mime, hash: image.hash, path, width, height, provenance: { ...reported, ...(mismatch ? { qualityMismatch: true } : {}) } };
   goTo(w, state, 'needs_page_tiles');
-  record(w, 'page_image_imported', { pageId: page.id, hash: image.hash, provenance: image.provenance });
+  record(w, 'page_image_imported', { pageId: page.id, hash: image.hash, provenance: state.image.provenance });
 }
 
 /** Stores the 8 tiles of the current page image. Sizes and hashes come from the stored bytes, and tiles of another image are refused. */
@@ -380,9 +383,9 @@ async function writeEpisodeRecord(repo, w) {
     imagePolicy: w.imagePolicy, imageQuality: w.imageQuality ?? null,
     pages: w.pages.map((state, i) => ({ id: state.id, index: i + 1, digest: state.digest,
       image: { hash: state.image.hash, mime: state.image.mime, path: rel(state.image.path), width: state.image.width, height: state.image.height,
-        requestedModel: state.image.provenance?.requestedModel ?? null, requestedQuality: state.image.provenance?.requestedQuality ?? null, observedModel: state.image.provenance?.observedModel ?? null },
+        requestedModel: state.image.provenance?.requestedModel ?? null, requestedQuality: state.image.provenance?.requestedQuality ?? null, qualityMismatch: state.image.provenance?.qualityMismatch === true, observedModel: state.image.provenance?.observedModel ?? null },
       tiles: state.tiles.map(t => ({ id: t.id, hash: t.hash, path: rel(t.path), width: t.width, height: t.height })),
-      review: { hash: digest(state.review), model: state.review.model, independence: state.review.independence } })),
+      review: { hash: digest(state.review), model: state.review.model, independence: state.review.independence, reviewerEvidence: state.review.reviewerEvidence ?? null } })),
     completedAt: new Date().toISOString() };
   await atomicWrite(recordPath(repo, w), JSON.stringify(rec, null, 2));
   w.productionRecordHash = digest(rec);
@@ -468,7 +471,8 @@ function revisePages(w, ids, feedback) {
   const first = Math.min(...ids.map(id => w.pages.findIndex(p => p.id === id))), named = new Set(ids);
   w.pages = w.pages.map((state, i) => i < first ? state : { ...freshPage(w.adaptation.pages[i]), attempts: [...state.attempts,
     ...(state.image ? [{ revision: state.revision, failedAt: 'user_revision', imageHash: state.image.hash, feedback }] : [])], ...(named.has(state.id) ? { feedback } : {}) });
-  w.revision++; w.stage = 'page_brief'; delete w.productionRecordHash; delete w.failedStage;
+  // Pages before the first reset one are untouched, so the workflow resumes at the current page's own stage, never at a new brief.
+  w.revision++; w.stage = workflowStage(w.pages[currentIndex(w)].stage); delete w.productionRecordHash; delete w.failedStage;
   record(w, 'page_revision_requested', { pageIds: ids, from: w.pages[first].id, feedback });
 }
 

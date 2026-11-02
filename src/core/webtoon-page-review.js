@@ -62,7 +62,7 @@ export function pageReviewSchema(w, page) {
     panelDelivery: page.panels.map(p => ({ id: p.id, status: 'delivered|partial|missing', evidence: '' })),
     textObservations: pageTexts(page).map(t => ({ id: t.id, observedText: '', readable: false, speakerCorrect: false, evidence: '' })),
     ...(previousPageAttached(w, page) ? { previousPage: Object.fromEntries(PAGE_CONTINUITY_CHECKS.map(k => [k, { passed: false, evidence: '' }])) } : {}),
-    findings: [], findingItem: PAGE_FINDING_SHAPE };
+    findings: [], findingItem: PAGE_FINDING_SHAPE, ...(w.reviewModel ? { reviewerEvidence: { modelId: '', responseId: '' } } : {}) };
 }
 
 /** Observations about ids the plan never had are advisory findings, not a reason to reject the whole review. Run before validation. */
@@ -78,6 +78,8 @@ const sameIds = (items, ids) => Array.isArray(items) && items.length === ids.len
 
 export function validatePageReview(review, w, page) {
   need(review?.subjectHash === pageReviewSubject(w, page) && review.inspectedImages === true, 'PAGE_IMAGE_NOT_INSPECTED');
+  // A configured reviewer must say which model answered; without one the review is the host's own.
+  if (w.reviewModel) need(review.reviewerEvidence?.modelId === w.reviewModel.modelId && nonempty(review.reviewerEvidence?.responseId), 'PAGE_REVIEWER_EVIDENCE_REQUIRED');
   const texts = pageTexts(page);
   need(sameIds(review.textObservations, texts.map(t => t.id)) && review.textObservations.every(o => typeof o.observedText === 'string'
     && typeof o.readable === 'boolean' && typeof o.speakerCorrect === 'boolean' && nonempty(o.evidence)), 'INCOMPLETE_PAGE_TEXT_REVIEW');

@@ -128,11 +128,12 @@ export function pageBriefAnswer(d, { block = false } = {}) {
 }
 
 /** Host answer for `webtoon-page-review`: every check passes and the lettering is transcribed exactly; `wrongText` makes the first text read differently on the tiles. */
-export function pageReviewAnswer(d, { wrongText } = {}) {
+export function pageReviewAnswer(d, request, { wrongText } = {}) {
   const { schema } = d, expected = Object.fromEntries(pageTexts(d.page).map(t => [t.id, t.text]));
   return { ...schema, findingItem: undefined, inspectedImages: true, observedPanelCount: d.page.panels.length, visualChecks: sceneVisualChecks(),
     panelDelivery: schema.panelDelivery.map(x => ({ ...x, status: 'delivered', evidence: 'Drawn in the page.' })),
     textObservations: schema.textObservations.map((o, i) => ({ ...o, observedText: wrongText && i === 0 ? wrongText : expected[o.id], readable: true, speakerCorrect: true, evidence: 'Read on the tiles.' })),
+    ...(schema.reviewerEvidence ? { reviewerEvidence: { modelId: request.model.modelId, responseId: 'fixture-page-response-1' } } : {}),
     ...(schema.previousPage ? { previousPage: Object.fromEntries(Object.keys(schema.previousPage).map(k => [k, { passed: true, evidence: 'Same person and clothes.' }])) } : {}) };
 }
 
@@ -152,7 +153,7 @@ export function provider({ adaptationReview, pages, adaptation, answerPages = fa
     if (answerPages && request.step === 'webtoon-page-brief') return { text: JSON.stringify(pageBriefAnswer(d, { block: pageBrief === 'block' })) };
     if (answerPages && request.step === 'webtoon-page-review') {
       const calls = reviews[d.page.id] = (reviews[d.page.id] ?? 0) + 1;
-      return { text: JSON.stringify(pageReviewAnswer(d, pageReview?.(d, calls))) };
+      return { text: JSON.stringify(pageReviewAnswer(d, request, pageReview?.(d, calls))) };
     }
     pending.splice(0, pending.length, { id: deriveRequestFingerprint(request), step: request.step, jsonMode: true,
       system: request.messages[0].content, user: request.messages.at(-1).content });

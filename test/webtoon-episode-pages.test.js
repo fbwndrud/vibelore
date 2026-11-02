@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { workId } from './fixtures/webtoon.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
@@ -120,13 +121,14 @@ test('the page review request carries the page, 8 tiles, the previous page, then
   const { store, args } = await episodeSetup(), p = drawing({ pages: 2 });
   const next = await importPageAndPass(store, (await driveToImage(store, args, p)).jobs[0], p);
   await importPage(store, next.jobs[0], p);
-  const w = await saved(store);
   const { jobs: [tiles] } = await tool(store, {}, p);
   await importTiles(store, tiles, p);
+  const w = await saved(store);
   const requests = p.requests.filter(r => r.step === 'webtoon-page-review'), second = requests.at(-1), data = JSON.parse(second.messages.at(-1).content);
   assert.equal(second.images.length, 1 + 8 + 1 + 1);
   assert.equal(second.images[0].path, (await saved(store)).pages[1].image.path);
-  assert.deepEqual(data.referenceImages.map(r => r.id), ['current-page', ...w.pages[1].tiles?.map(t => t.id) ?? ['t-r1c1', 't-r1c2', 't-r2c1', 't-r2c2', 't-r3c1', 't-r3c2', 't-r4c1', 't-r4c2'], 'previous-page', 'ref']);
+  assert.deepEqual(data.referenceImages.map(r => r.id), ['current-page', ...w.pages[1].tiles.map(t => t.id), 'previous-page', 'ref']);
+  assert.equal(w.pages[1].tiles.length, 8); assert.deepEqual(second.images.slice(1, 9).map(i => i.path), w.pages[1].tiles.map(t => t.path));
   assert.equal(second.images[9].path, w.pages[0].image.path);
   assert.deepEqual(Object.keys(data.schema.previousPage).sort(), ['clothing', 'identity', 'props', 'transition']);
   assert.equal(JSON.parse(requests[0].messages.at(-1).content).schema.previousPage, undefined);
@@ -363,6 +365,7 @@ test('an invalid page review stops at model_failed and retry asks the reviewer a
   const { store, args } = await episodeSetup(), p = drawing();
   const { jobs: [job] } = await driveToImage(store, args, p);
   const { jobs: [tiles] } = await importPage(store, job, p);
+  const drawnHash = (await saved(store)).pages[0].image.hash;
   const base = p.complete.bind(p); let broken = true;
   p.complete = async request => {
     const response = await base(request);
@@ -371,7 +374,7 @@ test('an invalid page review stops at model_failed and retry asks the reviewer a
   };
   await assert.rejects(importTiles(store, tiles, p), /INCOMPLETE_PAGE_DELIVERY/);
   const failed = await saved(store);
-  assert.equal(failed.stage, 'model_failed'); assert.equal(failed.failedStage, 'page_review'); assert.equal(failed.pages[0].image.hash, failed.pages[0].image.hash);
+  assert.equal(failed.stage, 'model_failed'); assert.equal(failed.failedStage, 'page_review'); assert.equal(failed.pages[0].image.hash, drawnHash); assert.equal(failed.pages[0].tiles.length, 8);
   broken = false;
   const done = await tool(store, { action: 'retry' }, p);
   assert.equal(done.status, 'completed'); assert.equal(p.requests.filter(r => r.step === 'webtoon-page-review').length, 2);
@@ -406,7 +409,120 @@ test('host relay answers the page brief and the page review with the configured 
   const { jobs: [tiles] } = await importPage(store, r.jobs[0], createHostRelay());
   r = await importTiles(store, tiles, createHostRelay());
   assert.equal(r.status, 'needs_model'); assert.equal(r.requests[0].step, 'webtoon-page-review'); assert.equal(r.requests[0].model.modelId, 'page-reviewer');
-  r = await resume(r, d => pageReviewAnswer(d));
+  r = await resume(r, (d, q) => pageReviewAnswer(d, q));
   assert.equal(r.status, 'completed'); assert.equal((await saved(store)).pages[0].review.independence, 'configured-model');
   assert.equal((await saved(store)).pages[0].review.model.modelId, 'page-reviewer');
+});
+
+test('revising a later page leaves the unfinished current page and its paid image alone', async () => {
+  const { store, args } = await episodeSetup(), p = drawing({ pages: 3 });
+  const { jobs: [job] } = await driveToImage(store, args, p);
+  await importPage(store, job, p);
+  const before = await saved(store), drawn = before.pages[0].image.hash;
+  assert.equal(before.stage, 'needs_page_tiles');
+  const r = await tool(store, { action: 'revise', target: 'page', pageIds: ['page-3'], feedback: '셋째 쪽은 나중에 다시' }, p);
+  const w = await saved(store);
+  assert.equal(r.status, 'needs_page_tiles'); assert.equal(w.stage, 'needs_page_tiles'); assert.equal(r.jobs.length, 1); assert.equal(r.jobs[0].kind, 'page-tiles');
+  assert.equal(w.pages[0].image.hash, drawn); assert.equal(w.pages[0].stage, 'needs_page_tiles'); assert.equal(briefRequests(p).length, 1);
+  assert.equal(w.pages[2].feedback, '셋째 쪽은 나중에 다시');
+  // A stopped page stays stopped as well.
+  const q = drawing({ pages: 2, pageReview: () => ({ wrongText: '다른 글자' }) }), s2 = await episodeSetup();
+  let x = await driveToImage(s2.store, s2.args, q);
+  x = await importPageAndPass(s2.store, x.jobs[0], q); x = await importPageAndPass(s2.store, x.jobs[0], q);
+  assert.equal(x.status, 'page_needs_revision');
+  const y = await tool(s2.store, { action: 'revise', target: 'page', pageIds: ['page-2'], feedback: '둘째 쪽 메모' }, q);
+  assert.equal(y.status, 'page_needs_revision'); assert.equal(y.jobs, undefined);
+});
+
+test('a configured page reviewer must return evidence, which is stored and recorded', async () => {
+  const { store, args } = await episodeSetup();
+  await runConfigureStatus({ store, workId, webtoonReviewModel: { provider: 'host', modelId: 'page-reviewer' } });
+  const p = drawing(), base = p.complete.bind(p); let evidence = null;
+  p.complete = async request => {
+    const response = await base(request);
+    if (request.step !== 'webtoon-page-review') return response;
+    const value = JSON.parse(response.text); if (evidence === null) delete value.reviewerEvidence; else value.reviewerEvidence = evidence;
+    return { text: JSON.stringify(value) };
+  };
+  const { jobs: [job] } = await driveToImage(store, args, p);
+  const { jobs: [tiles] } = await importPage(store, job, p);
+  await assert.rejects(importTiles(store, tiles, p), /PAGE_REVIEWER_EVIDENCE_REQUIRED/);
+  evidence = { modelId: 'someone-else', responseId: 'r-1' };
+  await assert.rejects(tool(store, { action: 'retry' }, p), /PAGE_REVIEWER_EVIDENCE_REQUIRED/);
+  evidence = { modelId: 'page-reviewer', responseId: '' };
+  await assert.rejects(tool(store, { action: 'retry' }, p), /PAGE_REVIEWER_EVIDENCE_REQUIRED/);
+  evidence = { modelId: 'page-reviewer', responseId: 'r-42' };
+  const done = await tool(store, { action: 'retry' }, p);
+  assert.equal(done.status, 'completed');
+  const w = await saved(store), review = w.pages[0].review;
+  assert.equal(review.independence, 'configured-model'); assert.deepEqual(review.reviewerEvidence, evidence);
+  const record = JSON.parse(await readFile(join(store.rootDir, '.vibelore', 'productions', `${w.workflowId}-r${w.revision}.json`), 'utf8'));
+  assert.deepEqual(record.pages[0].review.reviewerEvidence, evidence); assert.equal(record.pages[0].review.model.modelId, 'page-reviewer');
+  const schema = JSON.parse(p.requests.filter(r => r.step === 'webtoon-page-review')[0].messages.at(-1).content).schema;
+  assert.deepEqual(schema.reviewerEvidence, { modelId: '', responseId: '' });
+});
+
+test('without a configured page reviewer the review is same-host and asks for no evidence', async () => {
+  const { store, args } = await episodeSetup(), p = drawing();
+  await passAll(store, await driveToImage(store, args, p), p);
+  const w = await saved(store);
+  assert.equal(w.pages[0].review.independence, 'same-host'); assert.equal(w.pages[0].review.reviewerEvidence, undefined);
+  assert.equal(JSON.parse(p.requests.find(r => r.step === 'webtoon-page-review').messages.at(-1).content).schema.reviewerEvidence, undefined);
+});
+
+test('a quality that differs from the job is accepted, flagged and recorded', async () => {
+  const { store, args } = await episodeSetup();
+  await runConfigureStatus({ store, workId, webtoonImageQuality: 'high' });
+  const p = drawing({ pages: 3 }), first = await driveToImage(store, args, p);
+  const sent = (job, quality) => ({ ...provenanceFor(job), requestedQuality: quality, qualityMismatch: false });
+  const differs = await importPage(store, first.jobs[0], p, { provenance: sent(first.jobs[0], 'low') });
+  assert.deepEqual([(await saved(store)).pages[0].image.provenance.requestedQuality, (await saved(store)).pages[0].image.provenance.qualityMismatch], ['low', true]);
+  const second = await importTiles(store, differs.jobs[0], p);
+  // A page whose host said nothing about quality is flagged; the one that matches is not.
+  const { requestedQuality, ...bare } = provenanceFor(second.jobs[0]);
+  const missing = await importPage(store, second.jobs[0], p, { provenance: bare });
+  assert.equal((await saved(store)).pages[1].image.provenance.qualityMismatch, true);
+  const third = await importTiles(store, missing.jobs[0], p);
+  const ok = await importPage(store, third.jobs[0], p);
+  assert.equal((await saved(store)).pages[2].image.provenance.qualityMismatch, undefined);
+  const done = await importTiles(store, ok.jobs[0], p);
+  const w = await saved(store), record = JSON.parse(await readFile(join(store.rootDir, '.vibelore', 'productions', `${w.workflowId}-r${w.revision}.json`), 'utf8'));
+  assert.equal(done.status, 'completed');
+  assert.deepEqual(record.pages.map(pg => [pg.image.requestedQuality, pg.image.qualityMismatch]), [['low', true], [null, true], ['high', false]]);
+  assert.equal(w.events.filter(e => e.event === 'page_image_imported' && e.provenance.qualityMismatch).length, 2);
+});
+
+test('a work without a quality setting never flags a mismatch', async () => {
+  const { store, args } = await episodeSetup(), p = drawing(), { jobs: [job] } = await driveToImage(store, args, p);
+  await importPage(store, job, p, { provenance: { ...provenanceFor(job), requestedQuality: 'low' } });
+  assert.equal((await saved(store)).pages[0].image.provenance.qualityMismatch, undefined);
+});
+
+test('image and tile paths outside the project are refused', async () => {
+  const { store, args } = await episodeSetup(), p = drawing();
+  const { jobs: [job] } = await driveToImage(store, args, p), outside = join(tmpdir(), `outside-${Date.now()}.png`);
+  await writeFile(outside, pngOf(PAGE_SIZE.width, PAGE_SIZE.height));
+  await assert.rejects(tool(store, { asset: { pageId: job.pageId, path: outside, inputHash: job.inputHash, provenance: provenanceFor(job) } }, p), /ASSET_OUTSIDE_PROJECT/);
+  assert.equal((await saved(store)).pages[0].image, null);
+  const { jobs: [tiles] } = await importPage(store, job, p);
+  await assert.rejects(tool(store, { tiles: { pageId: tiles.pageId, imageHash: tiles.imageHash, items: [{ id: 't-r1c1', path: outside }] } }, p), /ASSET_OUTSIDE_PROJECT/);
+  assert.equal((await saved(store)).pages[0].tiles, null);
+  await rm(outside);
+});
+
+test('a second adaptation revise before approval keeps the original kept set', async () => {
+  const { store, p, done } = await completed(3);
+  assert.equal(done.status, 'completed');
+  const before = await saved(store), draw = hashes(before);
+  const first = drawing({ pages: 3, adaptation: changePage(2, '첫 번째 수정안') });
+  Object.assign(p, { complete: first.complete, requests: first.requests });
+  await tool(store, { action: 'revise', target: 'adaptation', feedback: '첫 수정' }, p);
+  assert.equal((await saved(store)).pages.length, 0); assert.equal((await saved(store)).keptPages.length, 3);
+  const second = drawing({ pages: 3, adaptation: changePage(2, '두 번째 수정안') });
+  Object.assign(p, { complete: second.complete, requests: second.requests });
+  const gate = await tool(store, { action: 'revise', target: 'adaptation', feedback: '두 번째 수정' }, p);
+  assert.deepEqual((await saved(store)).keptPages.map(pg => pg.image.hash), draw);
+  const next = await tool(store, { action: 'approve', approvalId: gate.approvalView.approvalId, feedback: '이대로' }, p);
+  const w = await saved(store);
+  assert.deepEqual(hashes(w), [draw[0], draw[1], null]); assert.equal(next.jobs[0].pageId, 'page-3'); assert.equal(w.keptPages, undefined);
 });
