@@ -123,6 +123,27 @@ test('a fact gate at or before the last published chapter is retroactive; a defa
   assert.deepEqual(moved.canonGates.retroactive, [{ target: 'fact:w1', fromChapter: 2 }]);
 });
 
+test('a published fact gate lowered to the first chapter by removing its tag is retroactive', async () => {
+  const { store, settingPath } = await publishedWork();
+  await commitSecondChapter(store);
+  const original = await readFile(settingPath, 'utf8');
+  await writeFile(settingPath, original.replace('A gate leads to the garden.', '[from chapter 12] A gate leads to the garden.'));
+  const gated = await validate(store);
+  assert.equal(gated.status, 'awaiting_approval', JSON.stringify(gated));
+  assert.equal(gated.canonGates, undefined);
+  const applied = await runSyncStatus({ store, workId: 'w', action: 'apply', approvalId: gated.approvalId, providers: noModel });
+  assert.equal(applied.status, 'completed', JSON.stringify(applied));
+  await writeFile(settingPath, original);
+  const lowered = await validate(store);
+  assert.equal(lowered.status, 'awaiting_approval', JSON.stringify(lowered));
+  assert.deepEqual(lowered.designDiff.worldFacts.changed, [{ id: 'w1', beforeFromChapter: 12, afterFromChapter: 1 }]);
+  assert.deepEqual(lowered.canonGates.retroactive, [{ target: 'fact:w1', fromChapter: 1 }]);
+  assert.match(lowered.nextAction, /fact:w1\(1~2화\)/);
+  await writeFile(settingPath, original.replace('A gate leads to the garden.', '[from chapter 30] A gate leads to the garden.'));
+  const later = await validate(store);
+  assert.equal(later.canonGates, undefined);
+});
+
 test('a new character block opened at a published chapter is retroactive; a later one is not', async () => {
   const { store, root, settingPath } = await publishedWork();
   assert.ok(settingPath);
@@ -132,7 +153,7 @@ test('a new character block opened at a published chapter is retroactive; a late
   assert.deepEqual(retro.canonGates.retroactive, [{ target: 'character:kai', fromChapter: 1 }]);
   assert.match(retro.nextAction, /character:kai/);
   assert.match(retro.nextAction, /1화/);
-  assert.match(retro.nextAction, /이미 발행된 화는 다시 검사하지 않습니다|다시 검사/);
+  assert.match(retro.nextAction, /구간의 발행된 화는 이 게이트 없이 쓰였고 다시 검사하지 않습니다\./);
   await writeFile(join(root, 'characters', 'kai.md'), kaiDoc('### from chapter 12\nLost an arm.'));
   const later = await validate(store);
   assert.equal(later.status, 'awaiting_approval', JSON.stringify(later));
@@ -148,6 +169,16 @@ test('a retroactive gate is listed once per target and chapter and does not bloc
   assert.deepEqual(validated.canonGates.retroactive, [{ target: 'character:kai', fromChapter: 1 }]);
   const applied = await runSyncStatus({ store, workId: 'w', action: 'apply', approvalId: validated.approvalId, providers: noModel });
   assert.equal(applied.status, 'completed');
+});
+
+test('a gate-only edit after validate makes apply return STALE_SYNC_CANDIDATE', async () => {
+  const { store, settingPath } = await publishedWork();
+  const original = await readFile(settingPath, 'utf8');
+  await writeFile(settingPath, original.replace('A gate leads to the garden.', '[from chapter 12] A gate leads to the garden.'));
+  const validated = await validate(store);
+  assert.equal(validated.status, 'awaiting_approval', JSON.stringify(validated));
+  await writeFile(settingPath, original.replace('A gate leads to the garden.', '[from chapter 20] A gate leads to the garden.'));
+  await assert.rejects(runSyncStatus({ store, workId: 'w', action: 'apply', approvalId: validated.approvalId, providers: noModel }), /STALE_SYNC_CANDIDATE/);
 });
 
 test('a gate marker outside a Description section is advised but does not block approval', async () => {

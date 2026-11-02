@@ -173,7 +173,9 @@ function retroactiveGates(before, after, last) {
   const oldFacts = byId(before?.worldFacts);
   for (const fact of after?.worldFacts ?? []) {
     const chapter = factChapter(fact);
-    if (chapter > 1 && (!oldFacts.has(fact.id) || factChapter(oldFacts.get(fact.id)) !== chapter)) add(`fact:${fact.id}`, chapter);
+    const previous = oldFacts.has(fact.id) ? factChapter(oldFacts.get(fact.id)) : null;
+    // A gate lowered to an already published chapter (down to 1 when the tag is removed) opens earlier text there.
+    if (previous === null ? chapter > 1 : (chapter !== previous && (chapter > 1 || chapter < previous))) add(`fact:${fact.id}`, chapter);
   }
   const oldCast = byId(before?.characters);
   const blocksOf = (character) => (typeof character?.description === 'string' ? splitGatedSection(character.description).blocks : []);
@@ -227,7 +229,7 @@ async function validateDesign({ store, workId, inspected }) {
   const last = Math.max(0, ...Object.keys(publication.value.tree?.chapters ?? {}).map(Number).filter(Number.isFinite));
   const retroactive = retroactiveGates(publication.value.tree?.foundation, working, last);
   const ignoredMarkers = (await store.scanIgnoredGateMarkers?.()) ?? [];
-  // Advisory only: nothing here is stored in the candidate or gates apply.
+  // Advisory only: these notes are returned to the caller, are not stored in the candidate and do not block apply.
   const canonGates = {
     ...(retroactive.length ? { retroactive } : {}),
     ...(ignoredMarkers.length ? { ignoredMarkers } : {}),
