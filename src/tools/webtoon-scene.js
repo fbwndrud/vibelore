@@ -301,7 +301,11 @@ async function startScene(store, repo, args, current) {
   return w;
 }
 
-const recordPath = (repo, w) => join(repo.store.rootDir, '.vibelore', 'productions', `${w.workflowId}-r${w.revision}.json`);
+export const recordPath = (repo, w) => join(repo.store.rootDir, '.vibelore', 'productions', `${w.workflowId}-r${w.revision}.json`);
+/** What a production record keeps of the source and of each reference; episodes reuse both. */
+export const recordedSource = source => ({ kind: source.kind ?? 'novel-chapters', sourceVersion: source.sourceVersion ?? 1, hash: source.hash, sourceCanonHead: source.sourceCanonHead ?? null,
+  ...(source.kind === 'scene-script' ? { scriptId: source.scriptId, scriptRevisionId: source.scriptRevisionId, productionLockId: source.productionLockId, loreRevisionId: source.loreRevisionId, assetCatalogRevisionId: source.assetCatalogRevisionId } : { chapters: source.chapters.map(c => ({ chapter: c.chapter, hash: c.hash })) }) });
+export const recordedReferences = references => references.map(r => ({ id: r.id, hash: r.hash, ...(r.assetId ? { assetId: r.assetId, assetRevisionId: r.assetRevisionId, preserved: 'sealed-input' } : { preserved: r.id === STYLE_REFERENCE_ID ? 'style-candidate' : r.id === PREVIOUS_SCENE_ID ? 'workflow-candidate' : 'path-only' }) }));
 /**
  * Completion seals what was used: source revision and lock, reference bytes,
  * the reviewed image and the review digests. Path-only references are marked
@@ -309,10 +313,9 @@ const recordPath = (repo, w) => join(repo.store.rootDir, '.vibelore', 'productio
  */
 async function writeProductionRecord(repo, w) {
   const rec = { schemaVersion: 1, kind: 'webtoon-scene', workId: w.workId, workflowId: w.workflowId, revision: w.revision,
-    source: { kind: w.source.kind ?? 'novel-chapters', sourceVersion: w.source.sourceVersion ?? 1, hash: w.source.hash, sourceCanonHead: w.source.sourceCanonHead ?? null,
-      ...(w.source.kind === 'scene-script' ? { scriptId: w.source.scriptId, scriptRevisionId: w.source.scriptRevisionId, productionLockId: w.source.productionLockId, loreRevisionId: w.source.loreRevisionId, assetCatalogRevisionId: w.source.assetCatalogRevisionId } : { chapters: w.source.chapters.map(c => ({ chapter: c.chapter, hash: c.hash })) }) },
+    source: recordedSource(w.source),
     sourceUnitIds: w.sceneUnits.map(u => u.id), language: w.source.languageContract?.language ?? 'ko',
-    references: w.sceneReferences.map(r => ({ id: r.id, hash: r.hash, ...(r.assetId ? { assetId: r.assetId, assetRevisionId: r.assetRevisionId, preserved: 'sealed-input' } : { preserved: r.id === STYLE_REFERENCE_ID ? 'style-candidate' : r.id === PREVIOUS_SCENE_ID ? 'workflow-candidate' : 'path-only' }) })),
+    references: recordedReferences(w.sceneReferences),
     ...(w.styleSnapshot ? { styleRevisionId: w.styleSnapshot.revisionId } : {}),
     ...(w.delegation ? { delegation: w.delegation } : {}),
     ...(w.apiRestriction ? { apiRestriction: w.apiRestriction } : {}),

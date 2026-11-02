@@ -8,6 +8,8 @@ import { OPTIONAL_REVIEWS } from '../src/core/review-policy.js';
 import { WebtoonStore } from '../src/store/webtoon-store.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { loadRun } from '../src/runs.js';
+import { digest } from '../src/core/webtoon-contract.js';
+import { adaptationDigest } from '../src/core/webtoon-episode.js';
 
 const tool = (store, args, providers) => runWebtoonEpisodeTool({ store, args, providers });
 const saved = store => new WebtoonStore(store).load();
@@ -53,6 +55,18 @@ test('approve with a stale approvalId is refused', async () => {
   assert.equal(revised.status, 'awaiting_adaptation_approval'); assert.notEqual(revised.approvalView.approvalId, first.approvalView.approvalId);
   await assert.rejects(tool(store, { workId, action: 'approve', approvalId: first.approvalView.approvalId, feedback: '좋아요' }, provider()), /ADAPTATION_APPROVAL_STALE/);
   const approved = await tool(store, { workId, action: 'approve', approvalId: revised.approvalView.approvalId, feedback: '좋아요' }, provider());
+  assert.equal(approved.approval.id, revised.approvalView.approvalId);
+});
+
+test('a revision that yields the same adaptation and review still invalidates the old approvalId', async () => {
+  const { store, args } = await episodeSetup(), same = () => provider({ adaptation: (d, base) => ({ ...base, pageCountReason: '한 장면이라 한 쪽이면 충분하다' }) });
+  const first = await tool(store, args, same());
+  const revised = await tool(store, { workId, action: 'revise', target: 'adaptation', feedback: '다시 확인해 주세요.' }, same());
+  assert.equal(digest(revised.adaptation.pages), digest(first.adaptation.pages)); assert.equal(adaptationDigest(revised.adaptation), adaptationDigest(first.adaptation));
+  assert.deepEqual(revised.adaptationReview.checks, first.adaptationReview.checks);
+  assert.notEqual(revised.approvalView.approvalId, first.approvalView.approvalId);
+  await assert.rejects(tool(store, { workId, action: 'approve', approvalId: first.approvalView.approvalId, feedback: '좋아요' }, same()), /ADAPTATION_APPROVAL_STALE/);
+  const approved = await tool(store, { workId, action: 'approve', approvalId: revised.approvalView.approvalId, feedback: '좋아요' }, same());
   assert.equal(approved.approval.id, revised.approvalView.approvalId);
 });
 

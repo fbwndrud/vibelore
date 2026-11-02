@@ -1,8 +1,13 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { imagePolicyFor } from '../../src/core/webtoon-images.js';
-import { pageBriefSchema } from '../../src/core/webtoon-episode.js';
+import { pageBriefSchema, pageTexts } from '../../src/core/webtoon-episode.js';
+import { TILE_GRID } from '../../src/core/webtoon-page-review.js';
+import { runWebtoonEpisodeTool } from '../../src/tools/webtoon-episode.js';
+import { workId } from './webtoon.js';
 import { ADAPTATION_REVIEW_CHECKS } from '../../src/core/webtoon-adaptation-review.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
-import { sceneSetup } from './webtoon-scene.js';
+import { sceneSetup, sceneVisualChecks } from './webtoon-scene.js';
 
 /** Plain adaptation fixtures for the episode path: one expand beat over all units, one page, three panels, one dialogue text. */
 const clone = value => structuredClone(value);
@@ -113,19 +118,93 @@ export function adaptationReviewAnswer(d, request, { fail = false } = {}) {
     ...(d.schema.reviewerEvidence ? { reviewerEvidence: { modelId: request.model.modelId, responseId: 'fixture-response-1' } } : {}) };
 }
 
+/** Host answer for `webtoon-page-brief`, shaped from the request schema: one short moment per panel; `block` fails every check. A redraw gets one positive correction. */
+export function pageBriefAnswer(d, { block = false } = {}) {
+  const { schema } = d;
+  return { ...schema, findingItem: undefined, checks: schema.checks.map(c => ({ ...c, passed: !block, evidence: 'Visible in the panel.' })),
+    drawability: { passed: true, evidence: 'Synthetic fixture moments; no real image quality claim.' },
+    renderBrief: { ...schema.renderBrief, style: schema.renderBrief.style || 'Colored ink.', ...(d.feedback ? { corrections: ['The lettering reads cleanly in every balloon.'] } : {}),
+      moments: schema.renderBrief.moments.map((m, i) => ({ ...m, sourceIds: d.page.panels[i].sourceIds, action: `Panel ${i + 1}: she waits at the door.` })) } };
+}
+
+/** Host answer for `webtoon-page-review`: every check passes and the lettering is transcribed exactly; `wrongText` makes the first text read differently on the tiles. */
+export function pageReviewAnswer(d, { wrongText } = {}) {
+  const { schema } = d, expected = Object.fromEntries(pageTexts(d.page).map(t => [t.id, t.text]));
+  return { ...schema, findingItem: undefined, inspectedImages: true, observedPanelCount: d.page.panels.length, visualChecks: sceneVisualChecks(),
+    panelDelivery: schema.panelDelivery.map(x => ({ ...x, status: 'delivered', evidence: 'Drawn in the page.' })),
+    textObservations: schema.textObservations.map((o, i) => ({ ...o, observedText: wrongText && i === 0 ? wrongText : expected[o.id], readable: true, speakerCorrect: true, evidence: 'Read on the tiles.' })),
+    ...(schema.previousPage ? { previousPage: Object.fromEntries(Object.keys(schema.previousPage).map(k => [k, { passed: true, evidence: 'Same person and clothes.' }])) } : {}) };
+}
+
 /**
- * Fixture host for the episode path. `adaptationReview: 'fail'` fails every adaptation review. The page brief is left unanswered
- * (it is Task 7's), reported the way a relay would: through `pending`.
+ * Fixture host for the episode path. `adaptationReview: 'fail'` fails every adaptation review; `pages` makes the adaptation `n` pages and
+ * `adaptation(d, base)` may reshape it. The page brief and the page review are left unanswered (reported through `pending`, as a relay
+ * would) unless `answerPages` is set; then `pageBrief: 'block'` blocks every brief and `pageReview(d, calls)` may return answer options
+ * for review number `calls` of that page, e.g. `{ wrongText }`.
  */
-export function provider({ adaptationReview } = {}) {
-  const requests = [], pending = [];
-  return { requests, pending, provenance: { kind: 'fixture', contextIsolation: 'unverified' }, async complete(request) {
+export function provider({ adaptationReview, pages, adaptation, answerPages = false, pageBrief, pageReview } = {}) {
+  const requests = [], pending = [], reviews = {};
+  return { requests, pending, reviews, provenance: { kind: 'fixture', contextIsolation: 'unverified' }, async complete(request) {
     requests.push(request);
     const d = JSON.parse(request.messages.at(-1).content);
-    if (request.step === 'webtoon-adaptation') return { text: JSON.stringify(adaptationAnswer(d)) };
+    if (request.step === 'webtoon-adaptation') { const base = adaptationAnswer(d); return { text: JSON.stringify(adaptation ? adaptation(d, pages ? withPages(base, pages) : base) : pages ? withPages(base, pages) : base) }; }
     if (request.step === 'webtoon-adaptation-review') return { text: JSON.stringify(adaptationReviewAnswer(d, request, { fail: adaptationReview === 'fail' })) };
+    if (answerPages && request.step === 'webtoon-page-brief') return { text: JSON.stringify(pageBriefAnswer(d, { block: pageBrief === 'block' })) };
+    if (answerPages && request.step === 'webtoon-page-review') {
+      const calls = reviews[d.page.id] = (reviews[d.page.id] ?? 0) + 1;
+      return { text: JSON.stringify(pageReviewAnswer(d, pageReview?.(d, calls))) };
+    }
     pending.splice(0, pending.length, { id: deriveRequestFingerprint(request), step: request.step, jsonMode: true,
       system: request.messages[0].content, user: request.messages.at(-1).content });
     throw new Error(`PENDING_${request.step}`);
   } };
+}
+
+export const PAGE_SIZE = { width: 1024, height: 1536 };
+let seeds = 0;
+/** A PNG of the given size whose bytes are unique per call: signature, IHDR, one IDAT holding a counter, IEND. No image data and no dependencies. */
+export function pngOf(width, height) {
+  const chunk = (type, data) => { const b = Buffer.alloc(12 + data.length); b.writeUInt32BE(data.length, 0); b.write(type, 4, 'latin1'); data.copy(b, 8); return b; };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(width, 0); ihdr.writeUInt32BE(height, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', Buffer.from(`seed-${seeds++}`)), chunk('IEND', Buffer.alloc(0))]);
+}
+
+const call = (store, args, providers) => runWebtoonEpisodeTool({ store, args: { workId, ...args }, providers });
+export const episodeCall = call;
+
+/** Start, approve as the user and return the call that issues the first page image job (the provider must have `answerPages`). */
+export async function driveToImage(store, args, providers) {
+  const gate = await call(store, args, providers);
+  return call(store, { action: 'approve', approvalId: gate.approvalView.approvalId, feedback: '이대로 그려 주세요.' }, providers);
+}
+
+/** Provenance the host would report for this job, requested quality included when the job carries one. */
+export const provenanceFor = job => ({ kind: 'openai-api', requestedModel: job.apiRequest.model, selectionId: job.apiRequest.selectionId, ...(job.quality ? { requestedQuality: job.quality } : {}) });
+
+/** The host stores a drawn page under the project and reports it; returns the tool result (the page-tiles job). */
+export async function importPage(store, job, providers, { size = PAGE_SIZE, bytes = pngOf(size.width, size.height), ...over } = {}) {
+  const dir = join(store.rootDir, 'host'); await mkdir(dir, { recursive: true });
+  const path = join(dir, `${job.pageId}-${seeds++}.png`); await writeFile(path, bytes);
+  return call(store, { asset: { pageId: job.pageId, path, inputHash: job.inputHash, provenance: provenanceFor(job), ...over } }, providers);
+}
+
+/** The host crops the tiles of a page-tiles job at its scale (sizes exact to the rect, files carrying only a header) and reports them. */
+export async function importTiles(store, job, providers, { over = {}, sizeOf = r => ({ width: r.w * TILE_GRID.scale, height: r.h * TILE_GRID.scale }) } = {}) {
+  const dir = join(store.rootDir, 'host'); await mkdir(dir, { recursive: true });
+  const items = [];
+  for (const rect of job.rects) { const path = join(dir, `${job.pageId}-${rect.id}-${seeds++}.png`); await writeFile(path, pngOf(sizeOf(rect).width, sizeOf(rect).height)); items.push({ id: rect.id, path }); }
+  return call(store, { tiles: { pageId: job.pageId, imageHash: job.imageHash, items, ...over } }, providers);
+}
+
+/** Draw, tile and review the page of an image job; resolves to the result after its review (the next page's image job, or the finished episode). */
+export async function importPageAndPass(store, job, providers) {
+  const drawn = await importPage(store, job, providers);
+  return importTiles(store, drawn.jobs[0], providers);
+}
+
+/** Pass every page from the given image job on; resolves to the last result. */
+export async function passAll(store, first, providers) {
+  let r = first;
+  while (r.jobs?.[0]?.kind === 'page') r = await importPageAndPass(store, r.jobs[0], providers);
+  return r;
 }
