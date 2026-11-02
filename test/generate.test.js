@@ -387,8 +387,9 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal(result.contextAudit.draftInputTrace.identity.invocation, 'direct');
   });
 
-  async function sevenChapterStore() {
+  async function sevenChapterStore({ beforeCommit } = {}) {
     const store = await createdStore({ legacy: true });
+    if (beforeCommit) await beforeCommit(store);
     const arc = activePlan();
     arc.estimatedEpisodes = 9;
     arc.episodes = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => ({ ...arc.episodes[0], index, chapter: index, title: `${index}화`, beat: '윤재가 은빛열쇠 를 되찾는다. 보상에 붙는 세금' }));
@@ -489,6 +490,63 @@ describe('Phase 2 generation pipeline', () => {
     assert.ok(request);
     const text = `${request.system}\n${request.user}`;
     assert.doesNotMatch(text, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  const EXPECTED_GATES = { hidden: [
+    { ref: 'fact:w9', kind: 'world-fact', fromChapter: 12, reason: 'canon_gate' },
+    { ref: 'character:hero', kind: 'progression', fromChapter: 12, reason: 'canon_gate' },
+  ], total: 2 };
+
+  it('records the gated-out canon as ids and chapters in the draft audit, never as text', async () => {
+    const { result, prompt } = await draftPrompt(await sevenChapterStore({ beforeCommit: addGatedCanon }), 8);
+    assert.deepEqual(result.contextAudit.canonGates, EXPECTED_GATES);
+    assert.doesNotMatch(JSON.stringify(result.contextAudit), /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+    assert.doesNotMatch(prompt, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('records the gated-out canon in the scene draft audit', async () => {
+    const store = await sevenChapterStore({ beforeCommit: addGatedCanon });
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      if (req.step === 'draft') return { text: '윤재가 창구 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    const result = await runDraftTool({ store, workId: 'tax-tower', chapter: 8, plan: '윤재가 창구 앞에 선다.', form: 'scene', providers: p });
+    assert.deepEqual(result.contextAudit.canonGates, EXPECTED_GATES);
+    assert.doesNotMatch(JSON.stringify(result.contextAudit), /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('records the gated-out canon on a rewrite and keeps the parked request stable and free of it', async () => {
+    const store = await sevenChapterStore({ beforeCommit: addGatedCanon });
+    const run = async () => {
+      const relay = createPreflightRelay({});
+      const result = await runRewriteTool({ store, workId: 'tax-tower', chapter: 5, intent: '더 절박하게', providers: relay });
+      return { result, request: relay.pending.find((r) => r.step === 'rewrite') };
+    };
+    const first = await run();
+    assert.deepEqual(first.result.canonGates, EXPECTED_GATES);
+    assert.ok(first.request);
+    assert.doesNotMatch(`${first.request.system}\n${first.request.user}`, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+    assert.equal((await run()).request.id, first.request.id);
+  });
+
+  it('records the gated-out canon on a revise', async () => {
+    const store = await sevenChapterStore({ beforeCommit: addGatedCanon });
+    const relay = createPreflightRelay({});
+    const result = await runReviseTool({ store, workId: 'tax-tower', chapter: 5, prose: '윤재가 섰다.', providers: relay });
+    assert.deepEqual(result.canonGates, EXPECTED_GATES);
+    assert.doesNotMatch(JSON.stringify(result), /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('adds no canonGates key for a work without gates', async () => {
+    const store = await sevenChapterStore();
+    const { result } = await draftPrompt(store, 8);
+    assert.equal('canonGates' in result.contextAudit, false);
+    const rewrite = await runRewriteTool({ store, workId: 'tax-tower', chapter: 5, intent: '더 절박하게', providers: createPreflightRelay({}) });
+    assert.equal('canonGates' in rewrite, false);
+    const revise = await runReviseTool({ store, workId: 'tax-tower', chapter: 5, prose: '윤재가 섰다.', providers: createPreflightRelay({}) });
+    assert.equal('canonGates' in revise, false);
   });
 
   it('shows in-range gated canon labelled in the arc-plan request and keeps later canon out', async () => {
