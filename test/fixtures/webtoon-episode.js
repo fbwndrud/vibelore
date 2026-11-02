@@ -57,3 +57,8 @@ export function withPages(a, n) {
     texts: panel.texts.map((t, j) => ({ ...t, id: `t${k + 1}-${i + 1}-${j + 1}` })) })) }));
   return next;
 }
+
+/** Minimal workflow object for adaptation review: source, units and a valid adaptation. */
+export function reviewWorkflow(units, overrides = {}) {
+  return { source: { hash: 'sha256:source', cast: [{ id: 'c1', name: '윤', appearance: '짧은 머리' }] }, units, adaptation: adaptationFor(units), adaptationReviewModel: null, ...overrides };
+}
