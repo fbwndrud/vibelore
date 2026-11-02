@@ -171,6 +171,23 @@ test('planning refuses unresolved required values and excessive context instead 
 
 });
 
+test('bound planning gates the foundation at the planned chapters and stays fully open without them', async t => {
+  const { w, store, binding } = await magicWorld(t);
+  const foundation = await store.loadFoundation(workId);
+  const gated = { ...foundation, worldFacts: [...(foundation.worldFacts ?? []), { id: 'wg', statement: 'GATED_PLANNING_TOKEN', registeredAtChapter: 12 }] };
+  // Without rootDir the stub is used as the canonical store itself, so this goes through the bound delegation.
+  const bound = { loadFoundation: async () => gated, publishedRevision: { tree: { sharedLore: { worldRoot: w.root, binding: createWorkBinding({ ...binding }) } } } };
+  const early = await planningFoundation({ store: bound, workId, chapters: [1] });
+  assert.ok(early.planning);
+  assert.doesNotMatch(JSON.stringify(early.foundation), /GATED_PLANNING_TOKEN/);
+  const direct = await loadPlanningLore({ store: bound, canonicalStore: bound, workId, chapters: [1] });
+  assert.doesNotMatch(JSON.stringify(direct.foundation), /GATED_PLANNING_TOKEN/);
+  const open = await planningFoundation({ store: bound, workId });
+  assert.ok(open.planning);
+  assert.equal(open.foundation.worldFacts.find(f => f.id === 'wg').registeredAtChapter, 12);
+  assert.match(open.foundation.sharedLore.contextText, /MAGIC_COST_ONE_YEAR/);
+});
+
 test('prepared worlds must be connected before planning; legacy works still plan without a shared world', async t => {
   const store = await qualityStore(); t.after(() => rm(store.rootDir, { recursive: true, force: true }));
   assert.equal((await planningFoundation({ store, workId })).planning, null);

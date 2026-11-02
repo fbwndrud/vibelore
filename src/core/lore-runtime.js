@@ -62,12 +62,12 @@ const planningHorizon = chapters => chapters?.length ? Math.max(...chapters) : I
  * when every bound chapter in the planned range agrees; otherwise the plan gets
  * a scene-specific marker plus the per-chapter values, never the work's copy.
  */
-export async function loadPlanningLore({ store, canonicalStore, workId, chapters }) {
+export async function loadPlanningLore({ store, canonicalStore, workId, chapters, horizon = planningHorizon(chapters) }) {
   const foundation = await (canonicalStore ?? store).loadFoundation(workId);
   const sharedLore = canonicalStore?.publishedRevision?.tree?.sharedLore;
   requireWorldbuildingBinding(foundation, sharedLore);
-  const horizon = planningHorizon(chapters);
-  if (!foundation || !sharedLore?.binding) return { foundation: chapterFoundation({ raw: foundation, chapter: horizon }), planning: null };
+  if (!foundation) return { foundation, planning: null };
+  if (!sharedLore?.binding) return { foundation: chapterFoundation({ raw: foundation, chapter: horizon }), planning: null };
   const { locks, missingChapters, blocked } = await prepareProductionInputs({ sharedLore, chapters });
   requireLore(!blocked.length, 'SHARED_LORE_UNRESOLVED', 'planning requires nonconflicting shared values', blocked);
   const values = new Map();
@@ -96,5 +96,6 @@ export async function planningFoundation({ store, workId, chapters }) {
     requireWorldbuildingBinding(foundation, null);
     return { foundation: chapterFoundation({ raw: foundation, chapter: planningHorizon(chapters) }), planning: null };
   }
-  return loadPlanningLore({ store, canonicalStore, workId, chapters: chapters ?? binding.chapters.map(c => c.chapter) });
+  // The projection range defaults to the binding's chapters, but the canon horizon follows the caller's own chapters.
+  return loadPlanningLore({ store, canonicalStore, workId, chapters: chapters ?? binding.chapters.map(c => c.chapter), horizon: planningHorizon(chapters) });
 }
