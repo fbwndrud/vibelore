@@ -1,4 +1,5 @@
 import { LEDGER_FEATURES, TRACKING_FEATURES } from '../../engine/src/continuity/ledger.js';
+import { normalizeModelEntry, REASONING_EFFORTS } from './model-profile.js';
 
 /**
  * Per-work switches for what supports the writer. None is required.
@@ -52,6 +53,21 @@ const RULE_TYPES = new Set(['monotonic', 'frozenAfter', 'speakerOnly']);
 
 async function loadPolicy(store, workId) {
   return (await store.loadReviewPolicy?.(workId)) ?? {};
+}
+
+function checkedWebtoonReviewModel(value) {
+  if (value === null) return null;
+  const model = normalizeModelEntry(value);
+  if (!model?.modelId || !['host', 'local'].includes(model.provider)
+    || (value?.reasoningEffort !== undefined && !REASONING_EFFORTS.includes(value.reasoningEffort))) {
+    throw new Error('INVALID_WEBTOON_REVIEW_MODEL');
+  }
+  return model;
+}
+
+/** Optional execution hint for visual review only; the host must actually honor it. */
+export async function loadWebtoonReviewModel(store, workId) {
+  return checkedWebtoonReviewModel((await loadPolicy(store, workId)).webtoonReviewModel ?? null);
 }
 
 /**
@@ -154,7 +170,7 @@ export async function loadDisabledDraftSections(store, workId) {
 }
 
 /** Replaces the given lists; a list left undefined keeps its stored value. */
-export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords } = {}) {
+export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords, webtoonReviewModel } = {}) {
   const current = await loadPolicy(store, workId);
   const atChapter = await nextChapter(store);
   const merges = [...(current.merges ?? [])];
@@ -169,6 +185,7 @@ export async function saveWriterSupportPolicy(store, workId, { disabledReviews, 
   const nextTracking = tracking === undefined ? (current.tracking ?? {}) : checkedTracking(tracking);
   const next = {
     ...current,
+    ...(webtoonReviewModel === undefined ? {} : { webtoonReviewModel: checkedWebtoonReviewModel(webtoonReviewModel) }),
     disabled: disabledReviews === undefined ? (current.disabled ?? []) : checked(disabledReviews, OPTIONAL_REVIEWS, 'REVIEW'),
     draftSectionsOff: disabledDraftSections === undefined ? (current.draftSectionsOff ?? []) : checked(disabledDraftSections, OPTIONAL_DRAFT_SECTIONS, 'DRAFT_SECTION'),
     ...(planningReviews === undefined ? {} : { planningReviews: { ...(current.planningReviews ?? {}), ...checkedReviewOptions(planningReviews, PLANNING_REVIEW_STAGES, 'PLANNING_REVIEWS') } }),

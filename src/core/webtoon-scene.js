@@ -1,5 +1,6 @@
 import { digest, nonempty, safeId } from './webtoon-contract.js';
 import { sceneLetteringLine, webtoonMessage } from './webtoon-language.js';
+import { validateSceneVisualChecks, SCENE_VISUAL_CHECKS } from './webtoon-scene-review.js';
 
 export const SCENE_PRODUCTION_MODE = 'scene-direct-v1';
 export const PREVIOUS_SCENE_ID = 'previous-scene';
@@ -198,12 +199,14 @@ export function validateSceneImageReview(review, w) {
   need(Array.isArray(review.findings) && typeof review.spatialCoherence === 'boolean' && typeof review.readingOrder === 'boolean' && nonempty(review.evidence), 'INCOMPLETE_SCENE_IMAGE_REVIEW');
   need(review.findings.every(f => ['blocking', 'advisory'].includes(f.severity) && nonempty(f.evidence)), 'INVALID_SCENE_FINDING');
   need(Number.isInteger(review.observedPanelCount) && review.observedPanelCount > 0, 'SCENE_PANEL_COUNT_NOT_OBSERVED');
+  const visualChecksPassed = (w.imageReviewVersion ?? 1) < 2 || validateSceneVisualChecks(review.visualChecks, review.observedPanelCount);
   if (w.styleSnapshot) need(review.styleReview?.inspectedReference === true
     && ['matches', 'differs', 'uncertain'].includes(review.styleReview.verdict)
     && nonempty(review.styleReview.evidence), 'INCOMPLETE_SCENE_STYLE_REVIEW');
   if (w.previousScene) need(review.continuity?.inspectedPreviousImage === true && CONTINUITY_CHECKS.every(k =>
     typeof review.continuity[k]?.passed === 'boolean' && nonempty(review.continuity[k]?.evidence)), 'INCOMPLETE_SCENE_CONTINUITY_REVIEW');
   return review.observedPanelCount === w.panelCount
+    && visualChecksPassed
     && (!w.previousScene || CONTINUITY_CHECKS.every(k => review.continuity[k].passed))
     && !review.findings.some(f => f.severity === 'blocking') && review.spatialCoherence && review.readingOrder && review.textObservations.every(o => o.readable && o.speakerCorrect
     && sameLettering(o.observedText, w.scenePlan.texts.find(t => t.id === o.id).text));
@@ -224,6 +227,7 @@ export function sceneRevisionFeedback(w) {
     for (const k of CONTINUITY_CHECKS) if (r.continuity?.[k]?.passed === false) lines.push(`Continuity ${k}: ${r.continuity[k].evidence}`);
     if (r.spatialCoherence === false) lines.push('Spatial relationships were incoherent.');
     if (r.readingOrder === false) lines.push('Reading order was unclear.');
+    for (const key of SCENE_VISUAL_CHECKS) if (['failed', 'uncertain'].includes(r.visualChecks?.[key]?.status)) lines.push(`Visual ${key}: ${r.visualChecks[key].evidence}`);
     for (const f of r.findings ?? []) if (f.severity === 'blocking') lines.push(f.evidence);
   } else if (w.preflight) {
     for (const c of w.preflight.checks ?? []) if (c.passed === false) lines.push(`Preflight ${c.name}: ${c.evidence}`);

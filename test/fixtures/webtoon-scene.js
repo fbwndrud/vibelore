@@ -5,6 +5,12 @@ import { WebtoonStore, atomicWrite } from '../../src/store/webtoon-store.js';
 import { imagePolicyFor } from '../../src/core/webtoon-images.js';
 import { digest } from '../../src/core/webtoon-contract.js';
 import { SCENE_CHECKS } from '../../src/core/webtoon-scene.js';
+import { SCENE_VISUAL_CHECKS } from '../../src/core/webtoon-scene-review.js';
+
+/** Protocol-only fixture, never evidence of visual quality. */
+export const sceneVisualChecks = () => Object.fromEntries(SCENE_VISUAL_CHECKS.map(key => [key, {
+  status: 'not_applicable', panels: [], evidence: 'Synthetic protocol fixture; no real geometry is being evaluated.',
+}]));
 
 /** One-beat scene brief bound to the fixture chapter; `panelCount` is only added when a caller asks for auto mode. */
 export function scenePlan(source, panelCount) {

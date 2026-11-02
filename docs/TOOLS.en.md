@@ -183,6 +183,9 @@ Compiles the existing StoryProfile, StoryIdentity and WriterSkill into a non-dup
 shows the StorySpine, ArcIntent, the next EpisodeIntent and the current quality pipeline mode at once.
 It does not change old stored data. With the optional arguments it stores the writer-support settings only.
 
+- `webtoonReviewModel`: model ID or `{provider:"host"|"local",modelId,reasoningEffort?}` for visual scene review only.
+  Omission preserves it; `null` restores the default. It is a hint the host must execute, not execution evidence.
+
 - `disabledReviews`: the full list of per-chapter reviews to turn off (`story-profile-check`, `coherence-judge`,
   `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`). A review that is off is not
   requested, is recorded as `disabled_by_user` and does not block auto commits.
@@ -705,11 +708,15 @@ the user's answer. `decisions` always describe the adopted head, even when `styl
 
 The default path for new webtoon work. It generates a whole scene together with its dialogue, without roughs. For a new scene the user must choose `panelCount` as an integer (1-12) or `"auto"`; if it is missing, `needs_interview` suggests `[4, 6, 8, 9, "auto"]`. With `auto` the AI picks a suitable number of 3-12 panels anew for each adaptation, and the check, image and review after that are fixed to that number. Integers under 3 are allowed, but a continuity-loss warning is put in the response `warnings`. For a work with no image choice, start first returns `needs_image_runtime`. Once the host reports the image paths it really has (built-in tools, APIs) as `imageRuntime`, `needs_image_choice` returns every option and a proposal (the built-in path first); put the user's own answer in `feedback` and confirm with `confirmImageChoice`. The choice is kept per work and changes only through `changeImageChoice`. With `previousWorkflowId` it inherits the previous scene's actual image and review results and checks the continuity of characters, background and action. If the actual panel count differs from the choice, it doesn't complete. A new scene sends an image request only after the pre-generation check has settled a short `renderBrief` and a `drawability` judgment. The drawing model is not sent review reports or duplicate direction text. If the pre-generation check or the image review fails, it redesigns automatically `autoRevisions` times (start only, 0-3, default 2), using the observed defects as feedback, and issues a new image request. Failed attempts remain in the response `attempts`; with 0 it stops at `scene_needs_revision` as before.
 This separate path goes: pin the source range → unified English direction → pre-generation check → scene image → visual review of the actual image.
-It takes `action=start|revise|retry|verify|reject`, `workflowId`, `revision`, `sourceChapters` or `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
+It takes `action=start|revise|retry|review|verify|reject`, `workflowId`, `revision`, `sourceChapters` or `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
 `previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback` and `asset`.
 Without an image choice, start returns `needs_image_runtime`, then `needs_image_choice`; `needs_model` uses `lore_resume` and lookups use `lane=webtoon`.
 `needs_scene_image` appears only after the pre-generation check passes, and only then is the image drawn on the chosen path (`hostRequest` or `apiRequest`).
 Imports whose source, reference or plan hash changed, and visual reviews that didn't open the image, are refused.
+`action=review` runs only visual review of the preserved image with the current reviewer/prompt. It keeps image bytes, revision
+and redraw budget, and archives the earlier receipt/pending request in `reviewHistory`. The old run is closed; answer the new
+actual request ID/runId. Failed re-review stops at `scene_needs_revision` without another drawing call. New reviews require five
+panel-specific `visualChecks`; a broad true verdict cannot override a failed or uncertain required visual relationship.
 Starting with `scriptId` uses only the script adopted through `lore_scene_script` and its sealed inputs; references name pinned catalog
 images as `{id,assetId,description}`. A newly started scene writes a record of the source revision, lock, references and image hash to
 `.vibelore/productions/` on completion, and `action=verify` re-checks that record and the sealed bytes without the world directory.

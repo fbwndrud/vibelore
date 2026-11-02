@@ -1,5 +1,7 @@
 # 소설 집필 — vibelore
 
+사용자 선호(2026-10-29): 생성된 웹툰의 시각 검수는 GPT-6.1 Terra(`gpt-6.1-terra`)를 별도로 실행해 맡긴다. 작품별 `lore_configure(webtoonReviewModel={provider:"host",modelId:"gpt-6.1-terra",reasoningEffort:"medium"})`에 저장하고, 호스트가 실제 해당 모델로 검수 요청과 첨부 이미지를 전달한다. 모델 힌트만 저장한 것을 실행 증거로 보고하지 않는다. 거울 반사·소품 구조와 접지·손과 접촉·컷 간 위치·읽기 여백은 실제 칸 번호와 관찰 근거로 판정하며, 필수 관계가 확인 불가이면 통과를 추정하지 않는다. 기존 그림의 재검수는 `lore_webtoon_scene(action="review")`로 하며 추가 그림 생성 없이 이전 검수 기록을 보존한다.
+
 웹툰 각색·제작·수정 요청은 `webtoon-discovery-interview` 스킬과 [웹툰 작업 흐름](docs/reference/WEBTOON_WORKFLOW.md)을 따른다. 새 작업은 `lore_webtoon_scene` 장면 경로로 만든다. 원작 범위·화풍·참조·칸 수(정수 또는 `auto`)·이미지 모델은 사용자 선택이나 위임으로 정한다. 대화 맥락에서 해석한 제작·진행 의사의 승인 범위와 미지정 설정은 스킬의 [Authorization and defaults](skills/webtoon-discovery-interview/SKILL.md#authorization-and-defaults)를 먼저 적용한다. 대사는 작품 언어 원문 그대로 이미지에 들어간다. `lore_webtoon_plan` 컷별 경로는 deprecated이며 진행 중인 기존 작업을 마무리할 때만 쓴다. `needs_interview`는 사용자 질문, `needs_model`은 모델 응답이다. 조회는 `lane="webtoon"`을 사용하고 웹툰 결과는 소설 정본과 분리한다.
 
 “알아서/자동으로/묻지 말고”는 웹툰 선택 위임으로 기록한다. `lore_webtoon_style`의 `delegation.scope`로 예시만·화풍 선택·제작 범위를 나누고, 제작 위임이면 미지정 칸 수는 `auto`다. 위임 선택은 실제 예시를 본 호스트의 `choice`로 기록하며 사용자 직접 승인으로 보고하지 않는다. 최신 비용·재시도 제한을 지키고 기존 장면 수정은 명시된 대상만 한다. 자세한 경계 상황은 웹툰 스킬과 실행 규약을 따른다.
