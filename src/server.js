@@ -263,7 +263,7 @@ const TOOLS = [
     name: 'lore_configure',
     annotations: writes({ idempotent: true }),
     description: '작품 설정을 조회하거나 바꾼다. 인자 없이 호출하면 읽기 전용으로 StoryProfile·StorySpine·WriterSkill을 하나의 NarrativeContract로 묶어 status(ready|incomplete), 누락 단계(missing), 언어·분량 계약, 검토·추적 설정을 돌려준다. '
-      + 'disabledReviews·disabledDraftSections·planningReviews·arcReview·tracking·customTracking·mergeRecords·webtoonReviewModel을 저장한다. 목록과 tracking 객체는 통째로 교체되고(빈 배열=모두 켬), planningReviews·arcReview는 지정한 필드만 갱신, mergeRecords는 누적된다. webtoonReviewModel은 웹툰 시각 검수만의 모델 힌트이며 호스트가 실제 실행해야 한다(null=기본 모델 복귀). 대기 중인 요청은 유지되며 기존 이미지 재검수는 lore_webtoon_scene action=review다. 검토 변경은 이후 실행에, 추적 변경은 다음 커밋부터 적용된다. 기존 원고는 바뀌지 않는다. 준비 질문 깊이와 검토 선택은 별개다. 모델 호출 없음.',
+      + 'disabledReviews·disabledDraftSections·planningReviews·arcReview·tracking·customTracking·mergeRecords·webtoonReviewModel·webtoonAdaptationReviewModel·webtoonPageCap·webtoonImageQuality·webtoonSceneDirect를 저장한다. 목록과 tracking 객체는 통째로 교체되고(빈 배열=모두 켬), planningReviews·arcReview는 지정한 필드만 갱신, mergeRecords는 누적된다. webtoonReviewModel은 웹툰 시각 검수만의 모델 힌트이며 호스트가 실제 실행해야 한다(null=기본 모델 복귀). webtoonAdaptationReviewModel·webtoonPageCap·webtoonImageQuality·webtoonSceneDirect도 웹툰 전용 호스트 힌트이며 null은 기본값 복귀다. 대기 중인 요청은 유지되며 기존 이미지 재검수는 lore_webtoon_scene action=review다. 검토 변경은 이후 실행에, 추적 변경은 다음 커밋부터 적용된다. 기존 원고는 바뀌지 않는다. 준비 질문 깊이와 검토 선택은 별개다. 모델 호출 없음.',
     inputSchema: { type: 'object', properties: { ...projectArg,
       webtoonReviewModel: { description: '작품별 웹툰 시각 검수 모델. 모델 ID 또는 {provider:host|local,modelId,reasoningEffort?}; null은 지정 해제. 이미지 모델·소설 모델은 바꾸지 않는다. 호스트는 힌트대로 실제 별도 실행하고 실행 근거를 보존한다.', anyOf: [
         { type: 'null' }, { type: 'string', minLength: 1, maxLength: 120 },
@@ -271,6 +271,19 @@ const TOOLS = [
           provider: { type: 'string', enum: ['host', 'local'] }, modelId: { type: 'string', minLength: 1, maxLength: 120 },
           reasoningEffort: { type: 'string', enum: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] },
         } },
+      ] },
+      webtoonAdaptationReviewModel: { description: '작품별 웹툰 회차 각색 검토 모델(웹툰 전용 호스트 힌트). 형식·규칙은 webtoonReviewModel과 같다; null은 지정 해제. 소설·이미지 모델은 바꾸지 않는다.', anyOf: [
+        { type: 'null' }, { type: 'string', minLength: 1, maxLength: 120 },
+        { type: 'object', additionalProperties: false, required: ['modelId'], properties: {
+          provider: { type: 'string', enum: ['host', 'local'] }, modelId: { type: 'string', minLength: 1, maxLength: 120 },
+          reasoningEffort: { type: 'string', enum: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] },
+        } },
+      ] },
+      webtoonPageCap: { description: '웹툰 회차 각색의 페이지 상한(웹툰 전용 호스트 힌트). 1~20 정수, 기본 6; null은 기본값 복귀.', anyOf: [{ type: 'null' }, { type: 'integer', minimum: 1, maximum: 20 }] },
+      webtoonImageQuality: { description: '웹툰 이미지 생성 품질(웹툰 전용 호스트 힌트). null은 지정 해제.', anyOf: [{ type: 'null' }, { type: 'string', enum: ['low', 'medium', 'high'] }] },
+      webtoonSceneDirect: { description: '웹툰 장면 통째 직접 생성 사용 여부(웹툰 전용 호스트 힌트). enabled=true는 사용자의 실제 답변 userAnswer가 필요하다; null은 기본값({enabled:false}) 복귀.', anyOf: [
+        { type: 'null' },
+        { type: 'object', additionalProperties: false, required: ['enabled'], properties: { enabled: { type: 'boolean' }, userAnswer: { type: 'string', maxLength: 500 } } },
       ] },
       disabledReviews: { type: 'array', items: { type: 'string', enum: ['story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger', 'arc-review'] },
         description: '끌 검토 목록 전체(빈 배열이면 모두 켬). 꺼진 검토는 요청하지 않고 실패로 보지 않는다. 연속성 추출·검사는 끌 수 없다.' },
@@ -967,7 +980,8 @@ async function dispatchTool(store, name, args) {
     case 'lore_status':
       return runStatus({ store, workId: args.workId });
     case 'lore_configure':
-      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords, webtoonReviewModel: args.webtoonReviewModel });
+      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords, webtoonReviewModel: args.webtoonReviewModel,
+        webtoonAdaptationReviewModel: args.webtoonAdaptationReviewModel, webtoonPageCap: args.webtoonPageCap, webtoonImageQuality: args.webtoonImageQuality, webtoonSceneDirect: args.webtoonSceneDirect });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
     case 'lore_preferences':

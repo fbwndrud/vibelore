@@ -70,6 +70,41 @@ export async function loadWebtoonReviewModel(store, workId) {
   return checkedWebtoonReviewModel((await loadPolicy(store, workId)).webtoonReviewModel ?? null);
 }
 
+const WEBTOON_IMAGE_QUALITIES = ['low', 'medium', 'high'];
+const DEFAULT_WEBTOON_PAGE_CAP = 6;
+function checkedWebtoonPageCap(value) {
+  if (value === null) return null;
+  if (!Number.isInteger(value) || value < 1 || value > 20) throw new Error('INVALID_WEBTOON_PAGE_CAP');
+  return value;
+}
+function checkedWebtoonImageQuality(value) {
+  if (value === null) return null;
+  if (!WEBTOON_IMAGE_QUALITIES.includes(value)) throw new Error('INVALID_WEBTOON_IMAGE_QUALITY');
+  return value;
+}
+function checkedWebtoonSceneDirect(value) {
+  if (value === null) return null;
+  if (typeof value?.enabled !== 'boolean') throw new Error('INVALID_WEBTOON_SCENE_DIRECT');
+  if (!value.enabled) return { enabled: false };
+  const userAnswer = typeof value.userAnswer === 'string' ? value.userAnswer.trim() : '';
+  if (!userAnswer) throw new Error('WEBTOON_SCENE_DIRECT_USER_ANSWER_REQUIRED');
+  return { enabled: true, userAnswer };
+}
+
+/** Optional execution hint for episode adaptation review only; same rules as the visual review model. */
+export async function loadWebtoonAdaptationReviewModel(store, workId) {
+  return checkedWebtoonReviewModel((await loadPolicy(store, workId)).webtoonAdaptationReviewModel ?? null);
+}
+export async function loadWebtoonPageCap(store, workId) {
+  return checkedWebtoonPageCap((await loadPolicy(store, workId)).webtoonPageCap ?? null) ?? DEFAULT_WEBTOON_PAGE_CAP;
+}
+export async function loadWebtoonImageQuality(store, workId) {
+  return checkedWebtoonImageQuality((await loadPolicy(store, workId)).webtoonImageQuality ?? null);
+}
+export async function loadWebtoonSceneDirect(store, workId) {
+  return checkedWebtoonSceneDirect((await loadPolicy(store, workId)).webtoonSceneDirect ?? null) ?? { enabled: false };
+}
+
 /**
  * What the story ledger tracks for this work, and the merges the user approved.
  * `history` holds each tracking/author-item change with the chapter it takes
@@ -170,7 +205,7 @@ export async function loadDisabledDraftSections(store, workId) {
 }
 
 /** Replaces the given lists; a list left undefined keeps its stored value. */
-export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords, webtoonReviewModel } = {}) {
+export async function saveWriterSupportPolicy(store, workId, { disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords, webtoonReviewModel, webtoonAdaptationReviewModel, webtoonPageCap, webtoonImageQuality, webtoonSceneDirect } = {}) {
   const current = await loadPolicy(store, workId);
   const atChapter = await nextChapter(store);
   const merges = [...(current.merges ?? [])];
@@ -186,6 +221,10 @@ export async function saveWriterSupportPolicy(store, workId, { disabledReviews, 
   const next = {
     ...current,
     ...(webtoonReviewModel === undefined ? {} : { webtoonReviewModel: checkedWebtoonReviewModel(webtoonReviewModel) }),
+    ...(webtoonAdaptationReviewModel === undefined ? {} : { webtoonAdaptationReviewModel: checkedWebtoonReviewModel(webtoonAdaptationReviewModel) }),
+    ...(webtoonPageCap === undefined ? {} : { webtoonPageCap: checkedWebtoonPageCap(webtoonPageCap) }),
+    ...(webtoonImageQuality === undefined ? {} : { webtoonImageQuality: checkedWebtoonImageQuality(webtoonImageQuality) }),
+    ...(webtoonSceneDirect === undefined ? {} : { webtoonSceneDirect: checkedWebtoonSceneDirect(webtoonSceneDirect) }),
     disabled: disabledReviews === undefined ? (current.disabled ?? []) : checked(disabledReviews, OPTIONAL_REVIEWS, 'REVIEW'),
     draftSectionsOff: disabledDraftSections === undefined ? (current.draftSectionsOff ?? []) : checked(disabledDraftSections, OPTIONAL_DRAFT_SECTIONS, 'DRAFT_SECTION'),
     ...(planningReviews === undefined ? {} : { planningReviews: { ...(current.planningReviews ?? {}), ...checkedReviewOptions(planningReviews, PLANNING_REVIEW_STAGES, 'PLANNING_REVIEWS') } }),
