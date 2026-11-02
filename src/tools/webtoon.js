@@ -25,6 +25,8 @@ import { interviewAreas } from '../core/webtoon-contract.js';
 import { PRESENTATION_REQUIRED, presentationOf } from '../core/webtoon-presentation.js';
 import { scenePublicState, sceneStyleChange } from './webtoon-scene.js';
 import { SCENE_PRODUCTION_MODE } from '../core/webtoon-scene.js';
+import { EPISODE_PRODUCTION_MODE } from '../core/webtoon-episode.js';
+import { episodePublicState } from './webtoon-episode.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const terminal = (workflow) => ['completed', 'rejected'].includes(workflow.stage);
@@ -730,6 +732,7 @@ export async function runWebtoonTool({ store, toolName, args, providers, run = n
   const result = await repo.locked(async () => {
     let workflow = await repo.load(args.workflowId);
     if (workflow?.productionMode === SCENE_PRODUCTION_MODE) throw new Error('USE_WEBTOON_SCENE_TOOL');
+    if (workflow?.productionMode === EPISODE_PRODUCTION_MODE) throw new Error('USE_WEBTOON_EPISODE_TOOL');
     if (workflow && workflow.workId !== args.workId) throw new Error('WORKFLOW_WORK_MISMATCH');
     if (run) {
       if (!workflow?.pending || workflow.pending.runId !== run.id || workflow.revision !== run.args.revision) throw new Error('STALE_WEBTOON_RUN');
@@ -1009,6 +1012,8 @@ export async function readWebtoonWorkflow({ store, workId, workflowId, includeMo
   if (!workflow) return { active: false, found: false, lane: 'webtoon' };
   if (workflow.workId !== workId) throw new Error('WORKFLOW_WORK_MISMATCH');
   if (workflow.productionMode === SCENE_PRODUCTION_MODE) return { ...scenePublicState(workflow), found: true, active: !terminal(workflow), styleChange: await sceneStyleChange(repo, workflow),
+    ...(history ? { events: workflow.events } : {}) };
+  if (workflow.productionMode === EPISODE_PRODUCTION_MODE) return { ...episodePublicState(workflow), found: true, active: !terminal(workflow), styleChange: await sceneStyleChange(repo, workflow),
     ...(history ? { events: workflow.events } : {}) };
   const result = { ...publicState(workflow), active: !terminal(workflow), found: true,
     drift: digest(await repo.inventory()) !== digest(workflow.acceptedInventory),
