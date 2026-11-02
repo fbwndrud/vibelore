@@ -23,7 +23,7 @@ import { episodePlanningContractViolations, runEpisodePlan, runEpisodeDecide } f
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { repairMissingInfluenceObservation, runWriteWorkflow, runWorkflowDecide, runWorkflowHistory, proseHash } from '../src/tools/workflow.js';
 import { patternViolations } from '../src/tools/story-experience.js';
-import { compileAuthorCraftPacket, compileWriterPacket, createDifferenceContract, writerSkillViolations } from '../src/tools/writer-skill.js';
+import { compileAuthorCraftPacket, compileWriterPacket, createDifferenceContract, runWriterSkill, writerSkillViolations } from '../src/tools/writer-skill.js';
 import { createPublicationUnit } from '../src/core/publication-unit.js';
 import { saveExperienceLedgerForHead } from '../src/core/experience-ledger.js';
 import { REVIEW_RESPONSES } from './fixtures/review-responses.js';
@@ -561,6 +561,19 @@ describe('Phase 2 generation pipeline', () => {
     const episode = await captureStep(runEpisodePlan, { store, workId: 'tax-tower', chapter: 1, mode: 'review' });
     assert.equal(episode.step, 'episode-plan');
     assert.doesNotMatch(JSON.stringify(episode.messages), /FACT_THREE|FACT_FOUR|TOKEN_THREE|TOKEN_FOUR/);
+  });
+
+  it('labels every gated world fact in the writer-skill request and leaves a work without gates unchanged', async () => {
+    const store = await createdStore({ legacy: true });
+    const plain = await captureStep(runWriterSkill, { store, workId: 'tax-tower' });
+    const plainText = plain.messages.map((m) => m.content).join('\n');
+    assert.match(plainText, /"worldFacts":\["탑의 시스템은 모든 보상에 세금을 매긴다\."\]/);
+    assert.doesNotMatch(plainText, /화부터/);
+    await addGatedCanon(store);
+    const gated = await captureStep(runWriterSkill, { store, workId: 'tax-tower' });
+    const gatedText = gated.messages.map((m) => m.content).join('\n');
+    assert.match(gatedText, /\[12화부터\] GATED_FACT_TOKEN/);
+    assert.doesNotMatch(gatedText, /(?<!\] )GATED_FACT_TOKEN/);
   });
 
   it('leaves the arc-plan fact and character lines unchanged for a work without gates', async () => {

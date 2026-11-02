@@ -87,7 +87,7 @@ test('planningFoundation gates an unbound work at the highest planned chapter', 
 
 test('every chapter-scoped and planning entry point reads the foundation through the gate', async () => {
   const chapterSites = ['src/core/lore-runtime.js', 'src/tools/generate.js', 'src/tools/workflow.js', 'src/tools/context.js', 'src/tools/check.js', 'src/tools/range-review.js'];
-  const planningSites = ['src/tools/arc.js', 'src/tools/episode-plan.js', 'src/tools/story-spine.js'];
+  const planningSites = ['src/tools/arc.js', 'src/tools/episode-plan.js', 'src/tools/story-spine.js', 'src/tools/writer-skill.js'];
   for (const file of chapterSites) assert.ok((await readFile(file, 'utf8')).includes('chapterFoundation('), `${file} must use chapterFoundation(`);
   for (const file of planningSites) assert.ok((await readFile(file, 'utf8')).includes('planningFoundation('), `${file} must use planningFoundation(`);
   const walk = async (dir) => {
