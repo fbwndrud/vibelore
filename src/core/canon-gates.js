@@ -106,6 +106,16 @@ function assertHorizon(horizon) {
 
 const factChapter = (fact) => fact?.registeredAtChapter ?? 1;
 
+/** splitGatedSection for an already-loaded character; an invalid marker names the character and the way out. */
+function splitCharacterDescription(character) {
+  try {
+    return splitGatedSection(character.description);
+  } catch (error) {
+    if (error?.code !== 'CANON_GATE_INVALID') throw error;
+    throw gateError('CANON_GATE_INVALID', `${error.lineText ?? error.message} (character:${character.id}). Fix the canon Markdown for this character and apply it through lore_sync.`, { lineText: error.lineText });
+  }
+}
+
 /** Copy of the foundation holding only what is open at the horizon chapter; the input is not mutated. */
 export function gateFoundation(foundation, horizon) {
   assertHorizon(horizon);
@@ -114,7 +124,7 @@ export function gateFoundation(foundation, horizon) {
   if (Array.isArray(out.worldFacts)) out.worldFacts = out.worldFacts.filter((fact) => factChapter(fact) <= horizon);
   for (const character of Array.isArray(out.characters) ? out.characters : []) {
     if (!character || typeof character !== 'object') continue;
-    const { base, blocks } = typeof character.description === 'string' ? splitGatedSection(character.description) : { base: '', blocks: [] };
+    const { base, blocks } = typeof character.description === 'string' ? splitCharacterDescription(character) : { base: '', blocks: [] };
     // Already-projected progressions are re-filtered too, so a lower horizon never leaks.
     const progressions = blocks.length ? blocks : character.progressions;
     if (blocks.length) {
@@ -142,7 +152,7 @@ export function gateSummary(foundation, horizon) {
   }
   for (const character of foundation.characters ?? []) {
     if (typeof character?.description !== 'string') continue;
-    for (const block of splitGatedSection(character.description).blocks) {
+    for (const block of splitCharacterDescription(character).blocks) {
       gated += 1;
       if (block.fromChapter > horizon) hidden.push({ ref: `character:${character.id}`, kind: 'progression', fromChapter: block.fromChapter, reason: 'canon_gate' });
     }

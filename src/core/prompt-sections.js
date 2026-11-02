@@ -26,9 +26,14 @@ export function factText(fact, kit) {
   return typeof from === 'number' && from > 1 ? `[${kit.phrases.common.fromChapter(from)}] ${fact.statement}` : fact?.statement;
 }
 
+/** The label and flattened text of each open progression block of a character (empty when none). */
+function progressionEntries(character, kit) {
+  return asArray(character?.progressions).map((block) => ({ label: kit.phrases.common.fromChapter(block.fromChapter), text: flatLines(block.text) }));
+}
+
 /** `label: text` parts for each open progression block of a character (empty when none). */
 export function progressionParts(character, kit) {
-  return asArray(character?.progressions).map((block) => `${kit.phrases.common.fromChapter(block.fromChapter)}: ${flatLines(block.text)}`);
+  return progressionEntries(character, kit).map(({ label, text }) => `${label}: ${text}`);
 }
 
 export function renderCharacter(foundation, character, chapter, kit, { appearance = true, initialPlacement = false, description = false } = {}) {
@@ -44,9 +49,7 @@ export function renderCharacter(foundation, character, chapter, kit, { appearanc
   if (asArray(character.aliases).length) lines.push(t.characterAliases(character.aliases.join(', ')));
   if (description && clean(character.description)) lines.push(t.characterDescription(clean(character.description)));
   if (character.contradiction) lines.push(t.characterContradiction(character.contradiction));
-  for (const block of asArray(character.progressions)) {
-    lines.push(t.characterProgression(kit.phrases.common.fromChapter(block.fromChapter), flatLines(block.text)));
-  }
+  for (const { label, text } of progressionEntries(character, kit)) lines.push(t.characterProgression(label, text));
   const model = character.dramaticModel;
   if (model?.valueOrder?.length) lines.push(t.valueOrder(model.valueOrder.join(' > ')));
   for (const trait of (model?.behaviorTraits ?? []).slice(0, 3)) {

@@ -1128,6 +1128,38 @@ describe('Phase 2 generation pipeline', () => {
     assert.ok(workflow.contextAudit.episodePacketTrace.omittedFields.includes('createdAt'));
   });
 
+  it('lore_write keeps gated canon out of the character-fidelity review before its chapter', async () => {
+    const store = await createdStore({ legacy: true });
+    await store.saveStoryProfile('tax-tower', {
+      workId: 'tax-tower', status: 'active', genreLabel: '관료제 성장물', engineGenre: 'litrpg',
+      subgenres: [], tones: [], storyEngines: ['성장'], themes: [],
+      format: { pov: '3인칭제한', chapterChars: 3300, serialization: '웹소설', dialogueBreakMode: 'relaxed' },
+      tracking: { engineBacked: [], semantic: [] },
+      promptGuidance: { worldbuild: [], cast: [], arc: [], draft: [], avoid: [] },
+    });
+    await store.saveArcPlan('tax-tower', activePlan());
+    await addGatedCanon(store);
+    await store.saveEpisodePlan('tax-tower', { ...activeEpisodePlan(), chapter: 1, arcEpisodeIndex: 1 });
+    const requests = [];
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      requests.push(req);
+      if (req.step === 'draft') return { text: `${SYNTHETIC_LONG_PROSE}\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧` };
+      if (req.step === 'revise') return { text: revisionPatch() };
+      if (req.step === 'coherence-judge') return { text: '{"score":90,"reason":"연결됨"}' };
+      if (req.step === 'chapter-summary') return { text: '{"summary":"윤재가 문을 열었다.","plotBeat":"rising","sceneTags":[],"povCharacter":"hero"}' };
+      if (req.step === 'story-profile-check') return { text: '{"findings":[]}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'guided', providers: p });
+    const fidelity = requests.find((req) => req.step === 'character-fidelity');
+    assert.ok(fidelity, 'the character-fidelity review is requested');
+    const text = fidelity.messages.map((m) => m.content).join('\n');
+    assert.match(text, /빈정대지 않고 모든 부조리를 진지하게 받아들인다/, 'the review reads the open description');
+    assert.doesNotMatch(text, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN|12화부터/);
+  });
+
   it('preflight starts with StoryIdentity and does not leak placeholders into later stages', async () => {
     const store = await createdStore();
     await store.saveStoryProfile('tax-tower', {

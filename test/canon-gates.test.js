@@ -157,3 +157,15 @@ test('formatGateMarker renders both styles', () => {
   assert.equal(formatGateMarker(12, 'ko'), '12화부터');
   assert.equal(formatGateMarker(12, 'en'), 'from chapter 12');
 });
+
+test('an invalid marker in an already-loaded foundation names the character and the way out', () => {
+  const broken = { worldFacts: [], characters: [{ id: 'kai', canonicalName: 'Kai', description: 'Apprentice.\n\n### 다음 화부터\nHeir.' }] };
+  for (const run of [() => gateFoundation(broken, 3), () => gateSummary(broken, 3)]) {
+    assert.throws(run, (error) => {
+      assert.equal(error.code, 'CANON_GATE_INVALID');
+      assert.match(error.message, /^CANON_GATE_INVALID: .*character:kai/);
+      assert.match(error.message, /lore_sync/);
+      return true;
+    });
+  }
+});
