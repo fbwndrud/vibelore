@@ -221,6 +221,7 @@ export const phrases = {
     autonomousShort: '(free)',
     unknown: 'unknown',
     chapterSuffix: (n) => `ch. ${n}`,
+    fromChapter: (n) => `from chapter ${n}`,
     chapterProseLabel: (n) => `Chapter ${n} prose`,
   },
 
@@ -678,6 +679,7 @@ export const phrases = {
     characterDescription: (v) => `  - description: ${v}`,
     characterAliases: (v) => `  - aliases: ${v}`,
     characterContradiction: (v) => `  - contradiction: ${v}`,
+    characterProgression: (label, text) => `  - ${label}: ${text}`,
     valueOrder: (v) => `  - value order: ${v}`,
     behaviorTrait: (trigger, bias, benefit, cost) => `  - behaviour bias: ${trigger} → ${bias} (benefit: ${benefit}; cost: ${cost})`,
     perception: (first, late) => `  - perception: sees first ${first} / misses first ${late}`,

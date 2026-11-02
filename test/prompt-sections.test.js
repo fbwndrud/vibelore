@@ -286,3 +286,92 @@ test('writers and planners see the speaker-only aliases of the records they are 
     assert.match(text, /화자 전용 별칭: "그 종이 쪼가리"\(마렌만\), "빚문서"\(도윤만\)/, mode);
   }
 });
+
+// ---- canon time gates: rendering of gated facts and progressions ----
+
+const gateRaw = {
+  genre: 'action',
+  intrinsicChanges: [],
+  worldFacts: [
+    { id: 'f1', statement: 'PLAIN_FACT', registeredAtChapter: 1 },
+    { id: 'f2', statement: 'KING_DEAD', registeredAtChapter: 12 },
+  ],
+  characters: [
+    { id: 'c1', canonicalName: '리아', registeredAtChapter: 1, intrinsic: { gender: 'female', role: '주인공' },
+      mutable: {}, description: 'BASE\n\n### 12화부터\nLOST\nARM\n\n### 30화부터\nHEIR' },
+  ],
+};
+
+test('gated facts and progressions render with their chapter label, per kit', async () => {
+  const { renderWriterFoundation } = await import('../src/core/prompt-sections.js');
+  const { chapterFoundation } = await import('../src/core/chapter-foundation.js');
+  const cases = [
+    [kit, '12화부터', '30화부터'],
+    [en, 'from chapter 12', 'from chapter 30'],
+  ];
+  for (const [k, label12, label30] of cases) {
+    const at = (chapter) => renderWriterFoundation(chapterFoundation({ raw: gateRaw, chapter }), [], chapter, k);
+    const t11 = at(11);
+    assert.ok(!t11.includes('KING_DEAD') && !t11.includes('LOST'));
+    const t12 = at(12);
+    assert.ok(t12.includes(`- [${label12}] KING_DEAD`));
+    assert.ok(t12.includes(`  - ${label12}: LOST ARM`));
+    assert.ok(!t12.includes('HEIR'));
+    const t30 = at(30);
+    assert.ok(t30.includes(`  - ${label12}: LOST ARM\n  - ${label30}: HEIR`));
+    assert.ok(t30.includes('- PLAIN_FACT'));
+  }
+});
+
+test('cast brief appends open progressions to the character line', async () => {
+  const { renderCastBrief } = await import('../src/core/prompt-sections.js');
+  const { chapterFoundation } = await import('../src/core/chapter-foundation.js');
+  const brief = (chapter) => renderCastBrief(chapterFoundation({ raw: gateRaw, chapter }), kit, { chapter });
+  const line12 = brief(12).split('\n').find((l) => l.includes('(c1)'));
+  assert.ok(line12.endsWith(' · 12화부터: LOST ARM'));
+  assert.ok(!brief(11).includes('LOST'));
+  assert.ok(brief(30).split('\n').find((l) => l.includes('(c1)')).endsWith(' · 12화부터: LOST ARM · 30화부터: HEIR'));
+});
+
+test('a foundation without gates renders the same text through chapterFoundation and directly', async () => {
+  const { renderWriterFoundation, renderCastBrief, renderCheckSections } = await import('../src/core/prompt-sections.js');
+  const { chapterFoundation } = await import('../src/core/chapter-foundation.js');
+  for (const k of [kit, en]) {
+    const gated = chapterFoundation({ raw: foundation, chapter: 5 });
+    assert.equal(renderWriterFoundation(gated, [], 5, k), renderWriterFoundation(foundation, [], 5, k));
+    assert.equal(renderCastBrief(gated, k, { chapter: 5 }), renderCastBrief(foundation, k, { chapter: 5 }));
+    assert.equal(renderCharacters(gated, [], 5, k, { description: true }), renderCharacters(foundation, [], 5, k, { description: true }));
+    const check = (f) => renderCheckSections({ foundation: f, prevState: state, kit: k, focusText: '리아', config: {} });
+    assert.deepEqual(check(gated), check(foundation));
+  }
+});
+
+test('a character not yet registered renders nothing even when it has an open progression', async () => {
+  const { chapterFoundation } = await import('../src/core/chapter-foundation.js');
+  const raw = { ...gateRaw, characters: [{ id: 'c9', canonicalName: '늦은', registeredAtChapter: 20, intrinsic: {}, mutable: {}, description: 'B\n\n### 5화부터\nEARLY' }] };
+  assert.equal(renderCharacters(chapterFoundation({ raw, chapter: 10 }), [], 10, kit), '');
+});
+
+test('the check world-fact line keeps the projected index of the facts it shows', async () => {
+  const { renderCheckSections } = await import('../src/core/prompt-sections.js');
+  const { chapterFoundation } = await import('../src/core/chapter-foundation.js');
+  const raw = { ...gateRaw, worldFacts: [
+    { id: 'w0', statement: 'GATED_STATEMENT', registeredAtChapter: 5 },
+    { id: 'w1', statement: 'PLAIN_STATEMENT', registeredAtChapter: 1 },
+  ] };
+  const sections = renderCheckSections({ foundation: chapterFoundation({ raw, chapter: 1 }), prevState: state, kit, focusText: '', config: {} });
+  const text = JSON.stringify(sections);
+  assert.ok(text.includes('[foundation.worldFacts[0]] PLAIN_STATEMENT'));
+  assert.ok(!text.includes('GATED_STATEMENT'));
+  const later = renderCheckSections({ foundation: chapterFoundation({ raw, chapter: 5 }), prevState: state, kit, focusText: '', config: {} });
+  assert.ok(JSON.stringify(later).includes('[foundation.worldFacts[0]] [5화부터] GATED_STATEMENT'));
+});
+
+test('progression helpers join block lines with a space', async () => {
+  const { factText, progressionParts } = await import('../src/core/prompt-sections.js');
+  assert.equal(factText({ statement: 'S', registeredAtChapter: 1 }, kit), 'S');
+  assert.equal(factText({ statement: 'S' }, kit), 'S');
+  assert.equal(factText({ statement: 'S', registeredAtChapter: 3 }, en), '[from chapter 3] S');
+  assert.deepEqual(progressionParts({ progressions: [{ fromChapter: 12, text: 'LOST\nARM' }] }, kit), ['12화부터: LOST ARM']);
+  assert.deepEqual(progressionParts({}, kit), []);
+});
