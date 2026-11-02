@@ -1,5 +1,8 @@
 import { imagePolicyFor } from '../../src/core/webtoon-images.js';
 import { pageBriefSchema } from '../../src/core/webtoon-episode.js';
+import { ADAPTATION_REVIEW_CHECKS } from '../../src/core/webtoon-adaptation-review.js';
+import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
+import { sceneSetup } from './webtoon-scene.js';
 
 /** Plain adaptation fixtures for the episode path: one expand beat over all units, one page, three panels, one dialogue text. */
 const clone = value => structuredClone(value);
@@ -87,4 +90,42 @@ export function briefFor(w, page, over = {}) {
 export function briefWithSwappedTexts(w, page) {
   const brief = briefFor(w, page), [a, b, ...rest] = brief.renderBrief.moments;
   return { ...brief, renderBrief: { ...brief.renderBrief, moments: [{ ...a, textIds: b.textIds }, { ...b, textIds: a.textIds }, ...rest] } };
+}
+
+/** Webtoon store with a confirmed API selection and one reference image, plus valid episode start args (no page count: the work cap applies). */
+export async function episodeSetup(options) {
+  const { store, repo, args: { panelCount, ...args } } = await sceneSetup(options);
+  return { store, repo, args };
+}
+
+/** Host answer for `webtoon-adaptation`: one page of three panels; the speaker is the first cast member of the request, and the page-count reason follows the feedback so a revision differs. */
+export const adaptationAnswer = d => withSpeaker(adaptationFor(d.source,
+  { pageCountReason: d.feedback ? `피드백 반영: ${d.feedback.slice(0, 40)}` : '한 장면이라 한 쪽이면 충분하다' }), d.cast?.[0]?.id ?? 'narrator');
+
+/** Host answer for `webtoon-adaptation-review` shaped from the request schema; `fail` fails readThrough and adds a blocking and an advisory finding. */
+export function adaptationReviewAnswer(d, request, { fail = false } = {}) {
+  const [panel] = d.scriptOnly.pages[0].panels;
+  return { ...d.schema, findingItem: undefined, checks: Object.fromEntries(ADAPTATION_REVIEW_CHECKS.map(key => [key,
+    key === 'readThrough' && fail ? { status: 'failed', panels: [panel.id], evidence: `Panel ${panel.id} has an action with no visible cause.` }
+      : { status: 'passed', panels: [panel.id], evidence: `Panel ${panel.id} reads as intended.` }])),
+    findings: [...(fail ? [{ severity: 'blocking', panels: [panel.id], evidence: `Panel ${panel.id}: show what makes her stop.` }] : []),
+      { severity: 'advisory', panels: [panel.id], evidence: 'Minor polish: tighten the last bridge.' }],
+    ...(d.schema.reviewerEvidence ? { reviewerEvidence: { modelId: request.model.modelId, responseId: 'fixture-response-1' } } : {}) };
+}
+
+/**
+ * Fixture host for the episode path. `adaptationReview: 'fail'` fails every adaptation review. The page brief is left unanswered
+ * (it is Task 7's), reported the way a relay would: through `pending`.
+ */
+export function provider({ adaptationReview } = {}) {
+  const requests = [], pending = [];
+  return { requests, pending, provenance: { kind: 'fixture', contextIsolation: 'unverified' }, async complete(request) {
+    requests.push(request);
+    const d = JSON.parse(request.messages.at(-1).content);
+    if (request.step === 'webtoon-adaptation') return { text: JSON.stringify(adaptationAnswer(d)) };
+    if (request.step === 'webtoon-adaptation-review') return { text: JSON.stringify(adaptationReviewAnswer(d, request, { fail: adaptationReview === 'fail' })) };
+    pending.splice(0, pending.length, { id: deriveRequestFingerprint(request), step: request.step, jsonMode: true,
+      system: request.messages[0].content, user: request.messages.at(-1).content });
+    throw new Error(`PENDING_${request.step}`);
+  } };
 }

@@ -51,7 +51,7 @@ export async function sceneStyleChange(repo, w) {
 }
 
 /** Asset adoption is script-wide; a media excerpt must enforce its narrower scene scope. */
-function catalogReferenceScope(source, units, reference) {
+export function catalogReferenceScope(source, units, reference) {
   const asset = source.assets?.find(a => a.assetId === reference.assetId);
   if (!asset) throw new Error('SCENE_ASSET_NOT_PINNED');
   const selectedScenes = new Set(units.map(unit => unit.sceneId));
