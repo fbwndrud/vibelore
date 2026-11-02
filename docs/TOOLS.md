@@ -225,6 +225,11 @@ Published HEAD 이후 사람이 수정한 `world/`, `characters/`, `chapters/` M
 `inspect`는 변경을 분류하고, 마지막 화는 `validate`가 검사한 뒤 발급한 `approvalId`로
 `apply`해야 재발행됩니다. 이전 화와 설계 변경은 영향 분석 없이 자동 적용하지 않습니다.
 공백·단어 경계·문단 경계를 포함한 파일 바이트 변경을 감지합니다. 구형 fingerprint도 저장된 원본 바이트 hash로 비교합니다.
+설계 변경 `validate`는 참고용 필드를 함께 돌려주며 어느 것도 `apply`를 막지 않습니다. 세계 사실의 `[N화부터]` 표지가 바뀌면
+`designDiff.worldFacts.changed[].beforeFromChapter/afterFromChapter`로 알립니다. `canonGates.retroactive: [{ target, fromChapter }]`는 이미 발행된
+화에 걸치는 게이트(그 화들은 게이트 없이 쓰였고 다시 검사하지 않음), `canonGates.ignoredMarkers: [{ path, line }]`는 인물 설명·세계 사실 밖에 있어
+게이트로 쓰이지 않는 표지입니다. 유효한 N이 없는 표지는 `FOUNDATION_PARSE_FAILED`로 멈추며 reason은 `CANON_GATE_INVALID: <파일> <줄>`입니다.
+표기와 규칙은 [정본을 손으로 고친 뒤](OPERATIONS.md#정본을-손으로-고친-뒤)를 따릅니다.
 `world/story-spine.md`, `world/writer-skill.md` 손수정은 `plan_review_required`로 분류하며,
 `validate`/`apply`는 `PLAN_DOCUMENT_SYNC_UNSUPPORTED`로 차단합니다. 편집 원문을 별도 보존하고 파일을
 마지막 승인본으로 복원한 뒤 변경 내용을 `lore_story_plan` 또는 `lore_writer_skill`의 `feedback`으로 전달해 검토·승인하세요.
@@ -771,7 +776,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 
 ### `lore_draft`
 
-저장하지 않은 초고를 생성합니다.
+저장하지 않은 초고를 생성합니다. 그 화 시점에 아직 효력이 없는 `N화부터` 설계가 가려졌다면 `contextAudit.canonGates`에 `{ hidden: [{ ref, kind, fromChapter, reason: 'canon_gate' }], total }`로 id와 번호만 남깁니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -787,7 +792,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 
 ### `lore_revise`
 
-검사 위반을 최소 수정한 전체 본문을 생성합니다. 결과는 다시 검사해야 합니다.
+검사 위반을 최소 수정한 전체 본문을 생성합니다. 결과는 다시 검사해야 합니다. 가려진 `N화부터` 설계가 있으면 최상위 `canonGates`에 같은 형식으로 id와 번호만 남깁니다.
 
 | 필수 | 선택 |
 |---|---|
@@ -807,7 +812,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 
 ### `lore_rewrite`
 
-저장된 한 화를 `intent`에 맞춰 다시 쓴 초안을 반환합니다. 자동 저장하지 않습니다.
+저장된 한 화를 `intent`에 맞춰 다시 쓴 초안을 반환합니다. 자동 저장하지 않습니다. 가려진 `N화부터` 설계가 있으면 최상위 `canonGates`에 id와 번호만 남깁니다.
 
 | 필수 | 선택 |
 |---|---|

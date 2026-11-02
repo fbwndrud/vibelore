@@ -7,7 +7,7 @@ import { loadLoreRuntime, planningFoundation } from '../src/core/lore-runtime.js
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { createFoundation, registerCharacter } from '../engine/src/continuity/foundation.js';
 import { createGenreProfileRegistry } from '../engine/src/continuity/genre-profile.js';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -83,4 +83,25 @@ test('planningFoundation gates an unbound work at the highest planned chapter', 
   const open = await planningFoundation({ store, workId: 'gated' });
   assert.deepEqual(open.foundation.worldFacts.map((fact) => fact.id), ['w1', 'w7']);
   assert.equal(open.foundation.characters.find((c) => c.id === 'kai').progressions.length, 1);
+});
+
+test('every chapter-scoped and planning entry point reads the foundation through the gate', async () => {
+  const chapterSites = ['src/core/lore-runtime.js', 'src/tools/generate.js', 'src/tools/workflow.js', 'src/tools/context.js', 'src/tools/check.js', 'src/tools/range-review.js'];
+  const planningSites = ['src/tools/arc.js', 'src/tools/episode-plan.js', 'src/tools/story-spine.js'];
+  for (const file of chapterSites) assert.ok((await readFile(file, 'utf8')).includes('chapterFoundation('), `${file} must use chapterFoundation(`);
+  for (const file of planningSites) assert.ok((await readFile(file, 'utf8')).includes('planningFoundation('), `${file} must use planningFoundation(`);
+  const walk = async (dir) => {
+    const out = [];
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) out.push(...await walk(path));
+      else if (entry.name.endsWith('.js')) out.push(path);
+    }
+    return out;
+  };
+  const allowed = new Set(['src/core/chapter-foundation.js', 'src/core/canon-gates.js']);
+  for (const file of await walk('src')) {
+    if (allowed.has(file)) continue;
+    assert.ok(!(await readFile(file, 'utf8')).includes('gateFoundation('), `${file} must not call gateFoundation( directly`);
+  }
 });

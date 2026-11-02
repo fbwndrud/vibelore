@@ -231,6 +231,11 @@ Detects `world/`, `characters/` and `chapters/` Markdown edited by people after 
 `inspect` classifies the changes; the last chapter is republished only when `apply` is called with the `approvalId`
 that `validate` issued after checking it. Changes to earlier chapters and design are not applied automatically without an impact analysis.
 File byte changes, including whitespace, word boundaries and paragraph breaks, count as drift. Older fingerprints use their stored raw byte hashes.
+`validate` for a design change also returns advisory fields; none of them blocks `apply`. When the `[from chapter N]` marker of a world fact changes,
+`designDiff.worldFacts.changed[].beforeFromChapter/afterFromChapter` reports it. `canonGates.retroactive: [{ target, fromChapter }]` lists gates that reach
+chapters already published (those chapters were written without the gate and are not re-checked), and `canonGates.ignoredMarkers: [{ path, line }]` lists markers
+outside character descriptions and world facts, which are not gated. A marker without a valid N stops with `FOUNDATION_PARSE_FAILED`, whose reason is
+`CANON_GATE_INVALID: <file> <line>`. Syntax and rules are in [After editing the canon by hand](OPERATIONS.en.md#after-editing-the-canon-by-hand).
 Edits to `world/story-spine.md` or `world/writer-skill.md` are classified as `plan_review_required`;
 `validate`/`apply` block with `PLAN_DOCUMENT_SYNC_UNSUPPORTED`. Preserve the edited text separately, restore the document
 to its last approved version, then pass the changes as `feedback` to `lore_story_plan` or `lore_writer_skill` for review and approval.
@@ -785,7 +790,7 @@ Assembles canon facts, characters, relationships, foreshadowing and recent summa
 
 ### `lore_draft`
 
-Generates an unsaved draft.
+Generates an unsaved draft. When design marked `from chapter N` is not yet in effect at that chapter and was hidden, `contextAudit.canonGates` records only ids and numbers as `{ hidden: [{ ref, kind, fromChapter, reason: 'canon_gate' }], total }`.
 
 | Required | Optional |
 |---|---|
@@ -801,7 +806,7 @@ Runs the deterministic and semantic checks on the prose.
 
 ### `lore_revise`
 
-Generates the full prose with minimal fixes for the check violations. The result must be checked again.
+Generates the full prose with minimal fixes for the check violations. The result must be checked again. When gated design was hidden, the top-level `canonGates` records only ids and numbers in the same shape.
 
 | Required | Optional |
 |---|---|
@@ -821,7 +826,7 @@ If there is an active integrated workflow, that workflow's `checkId` and exactly
 
 ### `lore_rewrite`
 
-Returns a draft that rewrites one saved chapter according to `intent`. It is not saved automatically.
+Returns a draft that rewrites one saved chapter according to `intent`. It is not saved automatically. When gated design was hidden, the top-level `canonGates` records only ids and numbers.
 
 | Required | Optional |
 |---|---|

@@ -205,6 +205,31 @@ When only the sentences of an earlier chapter change, use the rewrite/refold flo
 - If you changed a saved earlier chapter, the check and commit path and refold are needed.
 - A workflow in progress becomes stale. Check the state and start a new run.
 
+### Time gates: making design take effect from chapter N
+
+Character descriptions and world facts can be written to take effect from a given chapter. Works without gates behave as before.
+
+```markdown
+## Description
+An apprentice.
+
+### from chapter 12
+Lost the left arm.
+```
+
+```markdown
+- (w7) [from chapter 12] The king is dead.
+```
+
+- Inside a character's `## Description` (`## 설명` in Korean documents), a `### from chapter N` sub-heading (Korean `### N화부터`) opens a block. The block ends at the next `###` heading, the next `## ` heading or the end of the section, and adds to the base description.
+- For a world fact, put `[from chapter N]` (Korean `[N화부터]`) after the optional `(id)` of the bullet. The fact takes effect from that chapter.
+- Case and spaces are not significant, and N is a whole number of 1 or more. Both phrases are read in every document; when vibelore saves facts it writes the phrase of the document's language.
+- Only descriptions and world-fact bullets are gated. Markers elsewhere are not gated and are reported by `lore_sync` as `canonGates.ignoredMarkers`. Markers inside fenced code are not treated specially.
+- Markdown sets when design text takes effect; tracked story state records what happened. Put traits that must stay pinned in frontmatter or structured fields.
+- Published chapters before N are not re-checked.
+- A rollback restores the canon files as they were. To re-apply gates, go through `lore_sync`.
+- A marker without a valid N stops `lore_sync validate` with `FOUNDATION_PARSE_FAILED`, whose reason is `CANON_GATE_INVALID: <file> <line>` (for example `### 0화부터` or `[from chapter x]`). Any `###` heading in a Description that ends in `화부터` counts as a marker attempt. Files are not touched; fix the marker and run `validate` again.
+
 ## Story ledger and tracking settings
 
 Objects, knowledge, scheduled events and hooks extracted each chapter are kept in **one ledger** for the whole work.
