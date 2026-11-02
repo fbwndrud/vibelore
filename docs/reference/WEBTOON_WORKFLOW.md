@@ -14,7 +14,7 @@
 
 - 원천: `sourceChapters`(소설 화 번호) 또는 `scriptId`(채택한 장면 대본). 둘 다 주면 `EPISODE_SOURCE_AMBIGUOUS`다. 선택적 `sourceUnitIds`로 문단 범위를 좁힌다.
 - 쪽 수: 사용자가 정확한 수를 고르면 `pages`(1~20), 아니면 생략하거나 상한 `maxPages`(1~20)만 준다. 상한을 생략하면 `lore_configure`의 `webtoonPageCap`, 그것도 없으면 6이다. 쪽 수는 각색의 결과이며 이유를 `pageCountReason`에 적는다. `pages`를 주면 각색이 정확히 그 수여야 한다. 범위를 벗어나면 `INVALID_EPISODE_PAGE_COUNT`다.
-- `references:[{id,path,hash,description}]`: 인물·배경 참조(PNG/JPEG, 프로젝트 안, 영어 description). 최소 1개이며 채택 화풍 예시와 직전 쪽 슬롯을 뺀 최대 14개다. id `adopted-style`·`previous-page`는 예약이다. 빠지면 `EPISODE_REFERENCES_REQUIRED`다. 대본 원천에서는 카탈로그 이미지를 `{id,assetId,description}`으로 지정한다.
+- `references:[{id,path,hash,description}]`: 인물·배경 참조(PNG/JPEG, 프로젝트 안, 영어 description). 최소 1개이며 이미지 슬롯은 모두 16개로, 직전 쪽 슬롯과 채택 화풍이 있으면 화풍 예시 슬롯이 그 안에 들어간다. id `adopted-style`·`previous-page`는 예약이다. 빠지면 `EPISODE_REFERENCES_REQUIRED`다. 대본 원천에서는 카탈로그 이미지를 `{id,assetId,description}`으로 지정한다.
 - `direction`(영어, 채택 화풍이 있으면 생략 가능), `styleRevisionId`(생략하면 채택한 최신 화풍을 시작 때 고정).
 - `adaptationRevisions`·`pageRevisions`(각 0~2, 기본 1): 각색 검토와 쪽 시각 검토가 불합격일 때 자동으로 다시 하는 횟수다. 재그리기마다 새 이미지 호출이 생긴다. 위임의 `maxAutoRevisions`를 넘으면 `WEBTOON_DELEGATION_RETRY_LIMIT`다.
 - 이미지 경로·모델: 장면 경로와 같은 `needs_image_runtime → needs_image_choice → confirmImageChoice` 확인을 거친다. 작품의 `webtoonImageQuality`(`low|medium|high`)가 있으면 이미지 요청 job에 `quality`로 실린다.
@@ -158,6 +158,8 @@
 ### 소설 없는 장면 대본 원천
 
 원작이 소설 화가 아니라 독립 장면 대본이면 먼저 `lore_scene_script`로 대본을 inspect/apply해 채택한다([SharedLore 계약](SHARED_LORE_RUNTIME.md#소설-없는-제작-원천-장면-대본)). 그 뒤 `action="start"`에 `sourceChapters` 대신 `scriptId`를 넣는다. 둘 다 넣으면 `SCENE_SOURCE_AMBIGUOUS`다. 원천 문단 ID는 `<sceneId>-p-<n>`이며, plan·preflight 요청에는 장면별 세계 시점·상태 원문(`sharedLore`)과 cast, 표현 프로필이 함께 간다. 미래 상태와 author 문서는 들어가지 않는다. 참조는 `references:[{id, assetId, description}]`으로 대본이 고정한 카탈로그 이미지를 고르며, 작품 안에 봉인된 바이트를 쓴다. 고정되지 않은 assetId는 `SCENE_ASSET_NOT_PINNED`다. 인터뷰·칸 수·이미지 경로 선택·preflight·시각 검토·revise/retry 순서는 소설 원천과 같다. 진행 중에 대본 파일이나 봉인 입력이 바뀌면 `SCENE_SCRIPT_DRIFT`/`SCENE_SOURCE_CHANGED`로 멈춘다.
+
+에피소드 경로(`lore_webtoon_episode`)도 같은 원천을 `scriptId`로 쓰며 대응 오류는 `EPISODE_SOURCE_AMBIGUOUS`(둘 다 지정)와 `EPISODE_ASSET_NOT_PINNED`(고정되지 않은 `assetId`)다.
 
 새로 시작한 장면 작업은 완료 때 `.vibelore/productions/`에 원천 판본·lock·참조 asset revision과 hash·이미지 hash·plan/preflight/review digest를 기록한다. `action="verify"`는 이 기록과 봉인 입력·참조·이미지 바이트를 읽기 전용으로 다시 확인하며 공유 세계 디렉터리가 없어도 동작한다. 경로로 받은 참조는 `unpreserved`로 보고한다. 이 기능 이전에 시작한 작업은 기록 없이 그대로 완료된다(`SCENE_PRODUCTION_NOT_RECORDED`). 웹툰 결과는 공유 세계와 소설 정본을 바꾸지 않는다.
 

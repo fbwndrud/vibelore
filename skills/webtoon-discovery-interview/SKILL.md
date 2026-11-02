@@ -114,8 +114,8 @@ See the full [edge cases](../../docs/reference/WEBTOON_WORKFLOW.md#선택-위임
    of several styles. Follow [Adopting a style sample](#adopting-a-style-sample) below. The host writes the short English
    summary; the user chooses by looking at the image. Page format and adaptation priorities may remain in `direction`.
 3. **Reference images.** File paths of supplied or authorized generated character and background references, with an English `description`.
-   They are required on every `start` (at least one; at most 14 not counting the automatically attached adopted-style sample
-   and previous-page slots; ids `adopted-style` and `previous-page` are reserved), otherwise the start fails with `EPISODE_REFERENCES_REQUIRED`. With a script source, a catalog image the script
+   They are required on every `start` (at least one; 16 image slots in total, which include the previous-page slot and, when a style is adopted, the
+   automatically attached adopted-style sample; ids `adopted-style` and `previous-page` are reserved), otherwise the start fails with `EPISODE_REFERENCES_REQUIRED`. With a script source, a catalog image the script
    pinned is passed as `{id, assetId, description}` instead of a path. The confirmed image model and adopted style sample are reused between episodes; character and background references
    are supplied on each start. The field name is `hash` (`inputHash` is a field only for the `asset` that imports a generated
    page image; they are different contracts).
@@ -275,7 +275,7 @@ step: `completed` means the host's own image review passed, not user approval or
 
 ## Appendix: per-panel path (deprecated)
 
-The following applies only to continuing per-panel work already started. New work uses the scene path above.
+The following applies only to continuing per-panel work already started. New work uses `lore_webtoon_episode` (or, only on the user's explicit request, the scene option above).
 
 Continue with `lore_webtoon_plan` and the existing `workflowId`; starting new work (no existing workflow, or `newWorkflow` on a
 finished one) is refused with `WEBTOON_PANEL_PATH_DEPRECATED`. Use the source project's `project` and `workId`. Read and reuse the novel intent already approved; don't reinterpret it as a new

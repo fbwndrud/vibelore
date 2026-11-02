@@ -101,9 +101,18 @@ A webtoon is a **separate work, approval and storage path** from novel writing. 
 world and character material, and the state at that chapter are pinned and used for the adaptation.
 Because the current settings documents and the state of a past scene can differ, the AI judges together with that point's manuscript.
 
-### Default path: whole scene (`lore_webtoon_scene`)
+### Default path: episode pages (`lore_webtoon_episode`)
 
-New webtoon work generates each whole scene as one image, dialogue included, without roughs or per-panel drawing.
+New webtoon work adapts a chapter into several pages (3-6 panels each) and generates each page with its dialogue, without roughs or per-panel drawing.
+The order is: pin the source → page- and panel-level adaptation script → adaptation check (`webtoonAdaptationReviewModel`, `same-host` when unset) → user approval →
+for each page (brief → page image → fixed 2×4 tiles → visual review) → completed; no image is requested before approval.
+Production delegation replaces approval, as a delegation record, only after the check passes. State is stored in `.vibelore/webtoon/` and a production
+record goes to `.vibelore/productions/` on completion. The detailed contract is the [webtoon execution contract](reference/WEBTOON_WORKFLOW.en.md#default-path-episode-pages).
+
+### Option path: whole scene (`lore_webtoon_scene`, explicit request only)
+
+Used only when the user asks for it directly; it generates each whole scene as one image, dialogue included, without roughs or per-panel drawing.
+`start` needs the user's actual answer in `sceneDirect.userAnswer` (or the work setting `webtoonSceneDirect`).
 
 ```mermaid
 flowchart TD
@@ -177,7 +186,7 @@ refer to it and their link reviews are checked again. Not every panel is redrawn
 
 ### Compositing art and lettering (per-panel path · deprecated)
 
-The default path includes the dialogue and text in the image generation itself and checks wording, speaker and reading order in the visual review.
+The episode and scene paths include the dialogue and text in the image generation itself and checks wording, speaker and reading order in the visual review.
 The separate lettering composite below exists only on the per-panel path.
 
 Dialogue, inner thoughts, narration and sound effects are managed apart from the art. The host AI reads from the actual image the speaker position,
@@ -246,7 +255,8 @@ You don't need to read them for normal use.
 | MCP tools and the input/response boundary | [Server](../src/server.js) |
 | Novel writing stages, review and approval | [Writing workflow](../src/tools/workflow.js) |
 | Reading and saving the novel canon | [Canon reading](../src/core/canon-repository.js), [Publication unit](../src/core/publication-unit.js), [File store](../src/store/markdown-store.js) |
-| Webtoon default path (whole scene) | [Webtoon scene tool](../src/tools/webtoon-scene.js), [Scene core](../src/core/webtoon-scene.js), [Webtoon store](../src/store/webtoon-store.js) |
+| Webtoon default path (episode pages) | [Webtoon episode tool](../src/tools/webtoon-episode.js), [Episode core](../src/core/webtoon-episode.js), [Webtoon store](../src/store/webtoon-store.js) |
+| Webtoon option path (whole scene) | [Webtoon scene tool](../src/tools/webtoon-scene.js), [Scene core](../src/core/webtoon-scene.js), [Webtoon store](../src/store/webtoon-store.js) |
 | Webtoon per-panel path (deprecated) stages, approval and separate records | [Webtoon tool](../src/tools/webtoon.js), [Webtoon store](../src/store/webtoon-store.js) |
 | Per-panel path scene split, composition, preceding-image dependencies | [Scene split](../src/core/webtoon-segments.js), [Rough approval](../src/core/webtoon-storyboard.js), [Continuity](../src/core/webtoon-continuity.js) |
 | Per-panel path generation requests and lettering composite | [Image requests](../src/core/webtoon-images.js), [Text roles](../src/core/webtoon-text.js), [Lettering](../src/core/webtoon-lettering.js), [Final screen](../src/core/webtoon-board.js) |

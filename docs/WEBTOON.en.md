@@ -19,7 +19,8 @@ You don't need to write tool calls yourself. Just talk to the AI as in the examp
   Don't paste an API key into the chat; set it in the execution environment. For how the paths differ, see [Model settings](MODELS.en.md).
 - **Reference art:** at least one character or background reference image file (PNG/JPEG) inside the work folder.
 
-The finished result is one PNG/JPEG image per scene with the dialogue drawn in, plus `scene.html` that shows it.
+On the default method the finished result is one PNG image per page with the dialogue drawn in, plus `episode.html` that shows the pages stacked vertically.
+The whole-scene method, used only on your explicit request, makes one PNG/JPEG image per scene plus `scene.html` that shows it.
 A page format such as one tall vertical image is set in the direction. Splitting it for platform upload is a separate job.
 The manuscript and images stay on your computer, but material needed to make and review the images can be
 sent to the connected AI service. See [Data and security](../SECURITY.md).
@@ -35,16 +36,17 @@ If the interview skill wasn't loaded, add this line.
 
 > Read `skills/webtoon-discovery-interview/SKILL.md` in the vibelore install folder and follow that procedure.
 
-## Two production methods
+## Production methods
 
-| | Whole scene (default) | Per panel (deprecated) |
-|---|---|---|
-| Unit of drawing | One scene in one image, dialogue included | One panel at a time |
-| Rough check | None | Yes. The final art starts only after approval |
-| Lettering | Drawn inside the image. Changing it means redrawing | Placed on top of the image. Easy to change just the wording |
-| When it fits | When you want to see a chapter quickly | When you want to direct each shot |
+| | Episode pages (default) | Whole scene (on explicit request) | Per panel (deprecated) |
+|---|---|---|---|
+| Unit of drawing | A chapter as several pages (3-6 panels each), dialogue included | One scene in one image, dialogue included | One panel at a time |
+| Script check | The adaptation script is reviewed and the final art starts only after your approval | None | The final art starts only after the rough is approved |
+| Lettering | Drawn inside the image; each page is cut into tiles and read character by character | Drawn inside the image. Changing it means redrawing | Placed on top of the image. Easy to change just the wording |
+| When it fits | When you want a chapter that reads page by page | When you want a single scene as one image | When you want to direct each shot |
 
-New work is made only with the whole-scene method. The per-panel method is used only to finish work already in progress
+New work is made with the episode-pages method (`lore_webtoon_episode`). The whole-scene method (`lore_webtoon_scene`) is used only
+when you ask for it directly, and delegation ("you choose") cannot stand in for that. The per-panel method is used only to finish work already in progress
 and cannot be started anew. The [showcase](https://fbwndrud.github.io/vibelore/showcase/) works were also made
 with the whole-scene method.
 
@@ -80,7 +82,20 @@ take priority; failure never silently switches the path or model. You can say "l
 completed files stay preserved. Earlier scenes change only when you explicitly ask to revise them.
 Character and background reference art is named each time a scene starts. The adopted style sample carries over automatically.
 
-## Whole scene: one image, dialogue included
+## Episode pages: pages from an approved script
+
+A source chapter (or an adopted scene script) is adapted into several pages. The order is adaptation script → script check → **your approval** →
+for each page (pre-drawing check → image → lettering check → image review). Before you have seen and approved the script (pages, panels,
+dialogue, check results and the estimated image calls), no image is drawn. You can give an exact page count or only a cap; otherwise the
+adaptation chooses within the work's cap (6 pages by default). The lettering of a page is verified by cutting the image into 8 tiles and reading each
+text character by character. If a check fails, the script is redone or the page redrawn within the set number of times (each redraw is a new image call);
+if it still fails you are shown the result and the evidence and asked how to fix it. The adaptation reviewer model can be set separately with
+`lore_configure`; without it the result is labelled a same-host self-review (`same-host`). If you delegate ("you choose"), approval is
+replaced only after the adaptation check passes.
+
+> Make chapter 1 into a webtoon. Choose the number of pages yourself, and show me the adaptation script first.
+
+## Whole scene: one image, dialogue included (on explicit request)
 
 The source paragraph range is split into scenes, and each scene goes through direction → pre-generation check → image → review of the actual
 image. The drawing path and model chosen earlier are reused, and the drawing follows the character and background reference art you name.
@@ -100,7 +115,7 @@ and the evidence and asked how to fix it. There is no separate approval step; a 
 
 ## Per panel (deprecated): what you check at each step
 
-This applies only to per-panel work already in progress. New work is made with the whole-scene method above.
+This applies only to per-panel work already in progress. New work is made with the episode-pages method above.
 
 | Step | What you see | What to check |
 |---|---|---|
@@ -141,7 +156,9 @@ review and your check. Passing the checks does not mean there are no staging pro
 
 ## Where is the finished result?
 
-The result of a whole-scene job stays in the work folder under `.vibelore/webtoon/candidates/<workflowId>/r<revision>/`
+The result of an episode-pages job stays in the same folder, `.vibelore/webtoon/candidates/<workflowId>/r<revision>/`, as the page images from `page-01.png`,
+`episode.html` that shows the pages in sequence, and the adaptation and review JSON.
+The result of a whole-scene job stays in that folder
 as the scene image (PNG/JPEG), `scene.html`, and the plan and review JSON. Nothing is written to the `webtoon/` folder. `<revision>` goes up with each redesign or retry,
 and `<workflowId>` is different for each job.
 

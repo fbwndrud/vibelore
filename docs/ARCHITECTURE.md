@@ -101,9 +101,18 @@ flowchart LR
 세계·인물 자료와 해당 화의 상태를 고정해 각색에 사용합니다.
 현재 설정 문서와 과거 장면의 상태가 다를 수 있으므로 AI가 해당 시점의 원고와 함께 판단합니다.
 
-### 기본 경로: 장면 통합 (`lore_webtoon_scene`)
+### 기본 경로: 에피소드 쪽 (`lore_webtoon_episode`)
 
-새 웹툰 작업은 러프나 컷별 작화 없이 장면 전체를 대사까지 한 장으로 생성합니다.
+새 웹툰 작업은 러프나 컷별 작화 없이 한 화를 여러 쪽(쪽당 3~6칸)으로 각색해 쪽마다 대사까지 생성합니다.
+원작 고정 → 쪽·칸 단위 각색 대본 → 각색 검토(`webtoonAdaptationReviewModel`, 미설정은 `same-host`) → 사용자 승인 →
+쪽마다 (브리프 → 쪽 이미지 → 고정 2×4 타일 → 시각 검토) → 완료 순서이며, 승인 전에는 이미지를 요청하지 않습니다.
+production 위임은 검토가 통과한 뒤에만 승인을 위임 기록으로 대신합니다. 상태는 `.vibelore/webtoon/`에 저장하고 완료 때
+`.vibelore/productions/`에 제작 기록을 남깁니다. 세부 계약은 [웹툰 실행 규약](reference/WEBTOON_WORKFLOW.md#기본-경로-에피소드-쪽-제작)입니다.
+
+### 옵션 경로: 장면 통합 (`lore_webtoon_scene`, 명시 요청 전용)
+
+사용자가 직접 요청한 경우에만 쓰며, 러프나 컷별 작화 없이 장면 전체를 대사까지 한 장으로 생성합니다.
+`start`에는 사용자의 실제 답변 `sceneDirect.userAnswer`(또는 작품 설정 `webtoonSceneDirect`)가 필요합니다.
 
 ```mermaid
 flowchart TD
@@ -177,7 +186,7 @@ flowchart TD
 
 ### 그림과 문자 합성 (컷별 경로 · deprecated)
 
-기본 경로는 대사·글자를 이미지 생성 자체에 포함하고 시각 검토에서 문구·화자·읽기 순서를
+에피소드와 장면 경로는 대사·글자를 이미지 생성 자체에 포함하고 시각 검토에서 문구·화자·읽기 순서를
 확인합니다. 아래 별도 조판(레터링) 합성은 컷별 경로에만 있습니다.
 
 대사·속생각·설명·효과음은 그림과 분리해 관리합니다. 호스트 AI가 실제 그림에서 화자 위치,
@@ -246,7 +255,8 @@ sequenceDiagram
 | MCP 도구와 입력·응답 경계 | [서버](../src/server.js) |
 | 소설 집필 단계·검토·승인 | [집필 워크플로](../src/tools/workflow.js) |
 | 소설 정본 조회와 저장 | [정본 읽기](../src/core/canon-repository.js), [출판 단위](../src/core/publication-unit.js), [파일 저장소](../src/store/markdown-store.js) |
-| 웹툰 기본 경로(장면 통합) | [웹툰 장면 도구](../src/tools/webtoon-scene.js), [장면 코어](../src/core/webtoon-scene.js), [웹툰 저장소](../src/store/webtoon-store.js) |
+| 웹툰 기본 경로(에피소드 쪽) | [웹툰 에피소드 도구](../src/tools/webtoon-episode.js), [에피소드 코어](../src/core/webtoon-episode.js), [웹툰 저장소](../src/store/webtoon-store.js) |
+| 웹툰 옵션 경로(장면 통합) | [웹툰 장면 도구](../src/tools/webtoon-scene.js), [장면 코어](../src/core/webtoon-scene.js), [웹툰 저장소](../src/store/webtoon-store.js) |
 | 웹툰 컷별 경로(deprecated) 단계·승인과 별도 기록 | [웹툰 도구](../src/tools/webtoon.js), [웹툰 저장소](../src/store/webtoon-store.js) |
 | 컷별 경로의 장면 분할·구도·선행 이미지 의존성 | [장면 분할](../src/core/webtoon-segments.js), [러프 승인](../src/core/webtoon-storyboard.js), [연속성](../src/core/webtoon-continuity.js) |
 | 컷별 경로의 생성 요청과 문자 합성 | [이미지 요청](../src/core/webtoon-images.js), [문자 역할](../src/core/webtoon-text.js), [조판](../src/core/webtoon-lettering.js), [최종 화면](../src/core/webtoon-board.js) |

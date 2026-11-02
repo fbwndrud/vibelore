@@ -1121,7 +1121,7 @@ async function handle(msg) {
           '집필 요청은 먼저 lore_arc_status로 활성 아크를 확인합니다. 활성 아크를 임의 교체하지 않습니다. 사용자가 연재가 아닌 짧은 장면 하나를 원하고 활성·대기 아크가 없으면 프로필과 기반을 만든 뒤 lore_write(form=scene, instruction=장면 요청)을 씁니다. 그 장면을 위해 StorySpine·WriterSkill·아크를 만들지 않습니다. lore_status나 lore_write가 working-tree drift를 보고하면 lore_sync의 inspect → validate → apply로 반영한 뒤 진행합니다. ' +
           '기본 집필은 lore_write 하나로 회차 계획, 초고, 검사(최대 3회·수정 최대 2회), critic, 검사 영수증, 승인·커밋을 순서대로 실행합니다. guided는 원고와 advisory를 보여준 뒤 lore_decide로 결정합니다. auto는 불변식 통과와 활성 critic 완료가 필요하며 critic 실패 시 guided로 강등합니다. 꺼 둔 검토는 요청하지 않습니다. soft와 advisory는 임의 수정 이유가 아닙니다. ' +
           'needs_model은 사용자 질문이 아닙니다. requests의 실제 원고와 근거를 읽고 모든 id의 답을 한 번의 lore_resume에 넘깁니다. jsonMode는 코드 펜스 없는 JSON입니다. 새 프로세스·API로 병렬 답변할 때 promptCache.warmFirst=true 요청의 첫 출력 뒤 나머지를 보냅니다. 같은 호스트 검토를 독립 독자 평가로 보고하지 않습니다. ' +
-          '웹툰은 webtoon-discovery-interview로 lore_webtoon_style 예시를 사용자와 채택한 뒤 lore_webtoon_episode로 각색하고, 사용자가 각색 대본을 승인하기 전에는 이미지를 그리지 않으며 소설 정본과 분리합니다. lore_webtoon_scene은 사용자가 명시적으로 요청할 때만 씁니다. needs_interview는 사용자 질문이며 조회는 lane=webtoon입니다. 기존 컷별 작업 마무리만 VIBELORE_MCP_SURFACE=compat로 deprecated 도구를 노출합니다.',
+          '웹툰은 webtoon-discovery-interview로 lore_webtoon_style 예시를 사용자와 채택한 뒤 lore_webtoon_episode로 각색하고, 사용자가 각색 대본을 승인하기 전에는 이미지를 그리지 않으며(production 위임은 검토 통과 뒤에만 위임 기록으로 자동 진행) 소설 정본과 분리합니다. lore_webtoon_scene은 사용자가 명시적으로 요청할 때만 씁니다. needs_interview는 사용자 질문이며 조회는 lane=webtoon입니다. 기존 컷별 작업 마무리만 VIBELORE_MCP_SURFACE=compat로 deprecated 도구를 노출합니다.',
       });
     }
     case 'notifications/initialized':
