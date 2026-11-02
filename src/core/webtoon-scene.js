@@ -69,6 +69,8 @@ export const letteringText = value => stripQuotes(stripEmphasis(String(value)));
 const tanweenFath = s => s.replace(/\u0627\u064B/gu, '\u064B\u0627').normalize('NFC');
 const lettered = s => tanweenFath(nfc(letteringText(s)));
 export const containsLettering = (source, text) => typeof text === 'string' && Boolean(letteringText(text)) && lettered(source).includes(lettered(text));
+/** Shared verbatim rule for scene and episode texts: `text` is a lettered substring of `sourceText`. */
+export const isVerbatimText = (text, sourceText) => containsLettering(sourceText, text);
 const compact = s => tanweenFath(nfc(s)).replace(/\s/gu, '');
 /**
  * Same visible lettering. The expected side is what the image prompt asked for (letteringText of the plan). The observed
@@ -101,7 +103,7 @@ export function validateScenePlan(plan, units, { resolvePanelCount = false } = {
   }
   for (const t of plan.texts) {
     need(SCENE_TEXT_KINDS.includes(t.kind) && nonempty(t.speaker), 'INVALID_SCENE_TEXT_ROLE');
-    need(nonempty(t.text) && nonempty(letteringText(t.text)) && containsLettering(source.get(t.sourceId) ?? '', t.text), 'SCENE_TEXT_NOT_VERBATIM');
+    need(nonempty(t.text) && nonempty(letteringText(t.text)) && isVerbatimText(t.text, source.get(t.sourceId) ?? ''), 'SCENE_TEXT_NOT_VERBATIM');
   }
   needTextCoverage(plan.beats.flatMap(b => { need(Array.isArray(b.textIds), 'INVALID_SCENE_TEXT_ASSIGNMENT'); return b.textIds; }), plan.texts);
   need(Array.isArray(plan.uncertainties) && plan.uncertainties.every(isEnglish), 'INVALID_SCENE_UNCERTAINTIES');
