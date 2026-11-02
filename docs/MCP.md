@@ -87,7 +87,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 ## 공통 입력과 응답
 
 화풍은 `lore_webtoon_style`로 사용자 말과 실제 예시를 채택하고 다음 장면에 재사용합니다.
-웹툰은 `lore_webtoon_scene`으로 러프 없이 장면 전체를 대사까지 한 장으로 생성합니다.
+웹툰은 `lore_webtoon_episode`로 한 화를 여러 쪽으로 각색해 사용자 승인 뒤 쪽마다 대사까지 생성합니다. 장면 한 장 옵션 `lore_webtoon_scene`은 사용자가 명시적으로 요청할 때만 씁니다.
 `lore_webtoon_plan`(인터뷰·각색), `lore_webtoon_render`(이미지 job·러프·조판),
 `lore_webtoon_decide`(현재 ID에 결합된 승인)는 [deprecated]이며 이미 시작된 컷별 작업을
 이어갈 때만 씁니다. `needs_interview`는 사용자 답, `needs_model`은 호스트 모델 답을 뜻하며
@@ -95,7 +95,7 @@ grok mcp add vibelore -- node /absolute/path/to/vibelore/src/server.js
 
 조회에는 `lore_workflow_status/history(lane="webtoon", workflowId="wt-...")`를 사용합니다.
 lane 생략은 소설 조회입니다. 재개 계약은 [웹툰 상태표](reference/WEBTOON_WORKFLOW.md#상태에-따라-이어가기)를
-따릅니다. 기본 경로의 `needs_scene_image`(작업 1개)와 컷별 경로의 `needs_images`는 생성 완료가 아닌
+따릅니다. 에피소드 경로의 `needs_page_image`·`needs_page_tiles`, 장면 옵션의 `needs_scene_image`(작업 1개)와 컷별 경로의 `needs_images`는 생성 완료가 아닌
 요청서이며 이미지 실행은 호스트가 담당합니다. 웹툰도 공통 입력 검증·작품 단위 잠금·중단된 소설 복구
 처리를 거친 뒤 실행합니다. 컷별 경로의 독립 이미지 작업은 병렬 실행할 수 있으나 저장 변경은 직렬화됩니다.
 

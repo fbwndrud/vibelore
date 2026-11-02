@@ -87,7 +87,7 @@ without low-level prose tools. Starting new panel-based work remains blocked on 
 ## Common inputs and responses
 
 Use `lore_webtoon_style` to adopt an actual style sample from the user's words and reuse it for future scenes.
-Webtoons are generated with `lore_webtoon_scene`, one whole scene per image with dialogue, without roughs.
+Webtoons are made with `lore_webtoon_episode`: a chapter is adapted into several pages and, once the user approves the script, each page is generated with its dialogue. The scene-in-one-image option `lore_webtoon_scene` is used only when the user explicitly asks for it.
 `lore_webtoon_plan` (interview and adaptation), `lore_webtoon_render` (image jobs, roughs, lettering) and
 `lore_webtoon_decide` (approval bound to the current ID) are [deprecated] and are used only to continue per-panel work
 already started. `needs_interview` means a user answer and `needs_model` a host model answer;
@@ -95,7 +95,7 @@ the latter shares the existing `lore_resume`.
 
 For lookups, use `lore_workflow_status/history(lane="webtoon", workflowId="wt-...")`.
 Omitting lane looks up the novel. The resume contract follows the [webtoon state table](reference/WEBTOON_WORKFLOW.en.md#continue-by-state).
-`needs_scene_image` on the default path (one job) and `needs_images` on the per-panel path are requests, not finished generation;
+`needs_page_image` and `needs_page_tiles` on the episode path, `needs_scene_image` on the scene option (one job) and `needs_images` on the per-panel path are requests, not finished generation;
 the host is responsible for running images. Webtoons also run after the common input validation, the per-work lock and recovery of an
 interrupted novel run. Independent image jobs on the per-panel path can run in parallel, but stored changes are serialized.
 

@@ -117,3 +117,14 @@ test('webtoon distribution includes linked skill docs and the unmodified license
   assert.match(await readFile('src/assets/fonts/OFL.txt', 'utf8'), /SIL OPEN FONT LICENSE Version 1.1/);
   assert.match(await readFile('NOTICE', 'utf8'), /SIL Open Font License/);
 });
+
+test('webtoon docs route new work to lore_webtoon_episode and gate the scene option', async () => {
+  for (const file of ['docs/reference/WEBTOON_WORKFLOW.md', 'docs/reference/WEBTOON_WORKFLOW.en.md', 'skills/webtoon-discovery-interview/SKILL.md', 'AGENTS.md']) {
+    const text = await readFile(file, 'utf8');
+    assert.match(text, /lore_webtoon_episode/, file);
+    assert.match(text, /sceneDirect|explicit|명시/, file);
+  }
+  for (const key of ['webtoonAdaptationReviewModel', 'webtoonPageCap', 'webtoonImageQuality', 'webtoonSceneDirect'])
+    for (const file of ['docs/TOOLS.md', 'docs/TOOLS.en.md']) assert.match(await readFile(file, 'utf8'), new RegExp(key), `${file}: ${key}`);
+  for (const file of ['docs/MODELS.md', 'docs/MODELS.en.md']) assert.match(await readFile(file, 'utf8'), /webtoonAdaptationReviewModel/, file);
+});

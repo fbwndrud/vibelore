@@ -17,8 +17,8 @@
 ## 웹툰 작업 재개·수정
 
 웹툰은 `lore_workflow_status(lane="webtoon",workflowId="wt-...")`로 현재 단계를 읽습니다.
-기본 경로(`lore_webtoon_scene`)에서 미완료 모델 요청은 실제 요청 ID로 `lore_resume`,
-검증·검토 불합격은 관측 결함을 `feedback`으로 담아 `action="revise"`로 재개합니다.
+기본 경로(`lore_webtoon_episode`)와 장면 옵션(`lore_webtoon_scene`)에서 미완료 모델 요청은 실제 요청 ID로 `lore_resume`,
+검증·검토 불합격은 관측 결함을 `feedback`으로 담아 `action="revise"`로 재개합니다(에피소드는 `target="adaptation"|"page"`).
 
 컷별 경로(`lore_webtoon_plan`/`render`/`decide`, deprecated)는 이미 시작된 작업만 다음처럼
 이어갑니다. 사용자 질문은 같은 workflow의 `lore_webtoon_plan(responses=...)`, 승인은 현재

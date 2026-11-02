@@ -734,7 +734,7 @@ const TOOLS = [
   {
     name: 'lore_webtoon_scene',
     annotations: writes(),
-    description: '기본 웹툰 제작 경로. 소설 정본의 한 장면을 대사가 작품 언어 원문으로 들어간 이미지 한 장으로 만든다. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토 순서이며 컷 배치와 카메라는 이미지 모델에 맡긴다. 호출 전에 webtoon-discovery-interview로 원작 범위·화풍·참조·칸 수·이미지 모델을 사용자와 정한다. '
+    description: '장면을 이미지 한 장으로 만드는 옵션 경로로, 사용자가 명시적으로 요청할 때만 쓴다(start에 sceneDirect.userAnswer 또는 작품 설정 webtoonSceneDirect가 필요하며 위임으로 대신할 수 없다). 새 웹툰의 기본 경로는 lore_webtoon_episode다. 소설 정본의 한 장면을 대사가 작품 언어 원문으로 들어간 이미지 한 장으로 만든다. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토 순서이며 컷 배치와 카메라는 이미지 모델에 맡긴다. 호출 전에 webtoon-discovery-interview로 원작 범위·화풍·참조·칸 수·이미지 모델을 사용자와 정한다. '
       + '서버는 이미지를 직접 생성하지 않는다: needs_scene_image일 때 jobs의 요청을 호스트가 사용자가 고른 경로(hostRequest=호스트 내장 도구, apiRequest=API·별도 과금)로 실행하고 결과 파일을 asset으로 넘긴다. 선택이 없는 작품은 start가 needs_image_runtime으로 호스트의 실제 이미지 경로 보고(imageRuntime)를 받고, needs_image_choice로 선택지 전체를 사용자에게 보여 확정한다(내장 경로를 먼저 제안). 확정한 선택은 changeImageChoice로 바꾸기 전까지 재사용한다. 모델 단계(연출·검증·시각 검토)는 needs_model→lore_resume, 칸 수가 없으면 needs_interview. '
       + 'lore_webtoon_style로 채택한 예시 이미지와 짧은 설명을 시작 때 고정해 모든 생성·검토에 함께 전달한다. 화풍 차이는 advisory이고 기존 장면 변경은 명시적 revise(styleRevisionId, feedback)로 한다. '
       + '상태는 .vibelore/webtoon/에 저장하고 소설 정본과 프로젝트 webtoon/ 폴더는 건드리지 않는다. 진행 중 워크플로가 있으면 start는 WEBTOON_WORKFLOW_ACTIVE로 거부되므로 revise나 retry로 끝낸다. 시각 검토를 통과하면 status=completed. 기존 컷별 workflow는 변경하지 않는다.',
@@ -1121,7 +1121,7 @@ async function handle(msg) {
           '집필 요청은 먼저 lore_arc_status로 활성 아크를 확인합니다. 활성 아크를 임의 교체하지 않습니다. 사용자가 연재가 아닌 짧은 장면 하나를 원하고 활성·대기 아크가 없으면 프로필과 기반을 만든 뒤 lore_write(form=scene, instruction=장면 요청)을 씁니다. 그 장면을 위해 StorySpine·WriterSkill·아크를 만들지 않습니다. lore_status나 lore_write가 working-tree drift를 보고하면 lore_sync의 inspect → validate → apply로 반영한 뒤 진행합니다. ' +
           '기본 집필은 lore_write 하나로 회차 계획, 초고, 검사(최대 3회·수정 최대 2회), critic, 검사 영수증, 승인·커밋을 순서대로 실행합니다. guided는 원고와 advisory를 보여준 뒤 lore_decide로 결정합니다. auto는 불변식 통과와 활성 critic 완료가 필요하며 critic 실패 시 guided로 강등합니다. 꺼 둔 검토는 요청하지 않습니다. soft와 advisory는 임의 수정 이유가 아닙니다. ' +
           'needs_model은 사용자 질문이 아닙니다. requests의 실제 원고와 근거를 읽고 모든 id의 답을 한 번의 lore_resume에 넘깁니다. jsonMode는 코드 펜스 없는 JSON입니다. 새 프로세스·API로 병렬 답변할 때 promptCache.warmFirst=true 요청의 첫 출력 뒤 나머지를 보냅니다. 같은 호스트 검토를 독립 독자 평가로 보고하지 않습니다. ' +
-          '웹툰은 webtoon-discovery-interview로 lore_webtoon_style 예시를 사용자와 채택한 뒤 lore_webtoon_scene을 사용하고 소설 정본과 분리합니다. needs_interview는 사용자 질문이며 조회는 lane=webtoon입니다. 기존 컷별 작업 마무리만 VIBELORE_MCP_SURFACE=compat로 deprecated 도구를 노출합니다.',
+          '웹툰은 webtoon-discovery-interview로 lore_webtoon_style 예시를 사용자와 채택한 뒤 lore_webtoon_episode로 각색하고, 사용자가 각색 대본을 승인하기 전에는 이미지를 그리지 않으며 소설 정본과 분리합니다. lore_webtoon_scene은 사용자가 명시적으로 요청할 때만 씁니다. needs_interview는 사용자 질문이며 조회는 lane=webtoon입니다. 기존 컷별 작업 마무리만 VIBELORE_MCP_SURFACE=compat로 deprecated 도구를 노출합니다.',
       });
     }
     case 'notifications/initialized':

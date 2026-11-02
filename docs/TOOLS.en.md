@@ -185,6 +185,13 @@ It does not change old stored data. With the optional arguments it stores the wr
 
 - `webtoonReviewModel`: model ID or `{provider:"host"|"local",modelId,reasoningEffort?}` for visual scene review only.
   Omission preserves it; `null` restores the default. It is a hint the host must execute, not execution evidence.
+  When set, page visual reviews must carry `reviewerEvidence:{modelId,responseId}`.
+- `webtoonAdaptationReviewModel`: model for the adaptation-script check of `lore_webtoon_episode` only (same format and rules as `webtoonReviewModel`).
+  Omission preserves it; `null` restores the host model. When set, the review answer must carry `reviewerEvidence`; without it the result is labelled `same-host`.
+- `webtoonPageCap`: the page-count cap for episode adaptation, an integer 1-20 (default 6). Omission preserves it; `null` restores the default. `pages` and `maxPages` on start take precedence.
+- `webtoonImageQuality`: the quality `low|medium|high` carried in page image requests. Omission preserves it; `null` clears it. An image drawn at another quality is not refused; it is recorded as `qualityMismatch`.
+- `webtoonSceneDirect`: `{enabled, userAnswer?}`. `enabled=true` needs the user's actual answer in `userAnswer` (`WEBTOON_SCENE_DIRECT_USER_ANSWER_REQUIRED`),
+  and once on, `lore_webtoon_scene` start may omit `sceneDirect`. Omission preserves it; `null` restores the default (`{enabled:false}`).
 
 - `disabledReviews`: the full list of per-chapter reviews to turn off (`story-profile-check`, `coherence-judge`,
   `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`). A review that is off is not
@@ -721,7 +728,8 @@ State is stored in `.vibelore/webtoon/`; the novel canon and the project `webtoo
 The path that makes one scene as a single image. Use it only when the user explicitly asks for it (the default path is `lore_webtoon_episode`). It generates a whole scene together with its dialogue, without roughs. For a new scene the user must choose `panelCount` as an integer (1-12) or `"auto"`; if it is missing, `needs_interview` suggests `[4, 6, 8, 9, "auto"]`. With `auto` the AI picks a suitable number of 3-12 panels anew for each adaptation, and the check, image and review after that are fixed to that number. Integers under 3 are allowed, but a continuity-loss warning is put in the response `warnings`. For a work with no image choice, start first returns `needs_image_runtime`. Once the host reports the image paths it really has (built-in tools, APIs) as `imageRuntime`, `needs_image_choice` returns every option and a proposal (the built-in path first); put the user's own answer in `feedback` and confirm with `confirmImageChoice`. The choice is kept per work and changes only through `changeImageChoice`. With `previousWorkflowId` it inherits the previous scene's actual image and review results and checks the continuity of characters, background and action. If the actual panel count differs from the choice, it doesn't complete. A new scene sends an image request only after the pre-generation check has settled a short `renderBrief` and a `drawability` judgment. The drawing model is not sent review reports or duplicate direction text. If the pre-generation check or the image review fails, it redesigns automatically `autoRevisions` times (start only, 0-3, default 2), using the observed defects as feedback, and issues a new image request. Failed attempts remain in the response `attempts`; with 0 it stops at `scene_needs_revision` as before.
 This separate path goes: pin the source range → unified English direction → pre-generation check → scene image → visual review of the actual image.
 It takes `action=start|revise|retry|review|verify|reject`, `workflowId`, `revision`, `sourceChapters` or `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
-`previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback` and `asset`.
+`previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `sceneDirect` (start only, the user's actual answer `{userAnswer}`), `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback` and `asset`.
+`start` is refused with `SCENE_DIRECT_OPT_IN_REQUIRED` unless `sceneDirect.userAnswer` or the work setting `webtoonSceneDirect` is present; delegation ("you choose") cannot stand in for it.
 Without an image choice, start returns `needs_image_runtime`, then `needs_image_choice`; `needs_model` uses `lore_resume` and lookups use `lane=webtoon`.
 `needs_scene_image` appears only after the pre-generation check passes, and only then is the image drawn on the chosen path (`hostRequest` or `apiRequest`).
 Imports whose source, reference or plan hash changed, and visual reviews that didn't open the image, are refused.
@@ -736,11 +744,11 @@ References given only as paths are reported as `unpreserved`; no reproducibility
 A catalog reference that applies to none of the selected source scenes is rejected with `SCENE_ASSET_STATE_MISMATCH`.
 References retain their `entityId`, `stateIds` and applicable `sceneIds`; image requests name the applicable moments when multiple states are depicted.
 Resume uses the verified source. Completed-production verification checks the recorded excerpt and catalog reference identities/scopes against the preserved lock, even when the original world directory is gone.
-For the detailed contract, see [Default path](reference/WEBTOON_WORKFLOW.en.md#default-path-whole-scene-production).
+For the detailed contract, see the [scene option](reference/WEBTOON_WORKFLOW.en.md#option-scene-in-one-image-explicit-request-only). The default path's contract is [Episode pages](reference/WEBTOON_WORKFLOW.en.md#default-path-episode-pages).
 
 ### `lore_webtoon_plan` (deprecated)
 
-The per-panel path; not used for new work. `lore_webtoon_scene` is the default. Starting new work is
+The per-panel path; not used for new work. The default path is `lore_webtoon_episode`. Starting new work is
 refused with `WEBTOON_PANEL_PATH_DEPRECATED`; it is used only to continue and look up per-panel work already started.
 
 | Required | Optional |
@@ -923,7 +931,7 @@ is kept in `.vibelore/rollback-archives/`.
 | Write the next chapter | `lore_write` |
 | Approve a finished manuscript | `lore_decide` |
 | Record a lasting preference for a character or the work | `lore_preferences` |
-| Adapt an existing novel into a webtoon | `lore_webtoon_style → lore_webtoon_scene` (the per-panel path `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide` is deprecated) |
+| Adapt an existing novel into a webtoon | `lore_webtoon_style → lore_webtoon_episode` (`lore_webtoon_scene` on explicit request; the per-panel path `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide` is deprecated) |
 | Webtoon progress and review history | `lore_workflow_status/history(lane="webtoon")` |
 | A stopped model task | `lore_resume` |
 | Check current progress | `lore_workflow_status` |

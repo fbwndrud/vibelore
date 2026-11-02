@@ -64,6 +64,18 @@ Claude Code처럼 내장 이미지 도구가 없는 호스트에서는 API 경�
 적용하려면 `lore_webtoon_scene(action="review",workflowId="...",feedback="...")`를 사용합니다.
 이 호출은 이전 검수 기록을 보존하고 같은 이미지만 재검수하며, 추가 그림 생성이나 자동 재생성을 하지 않습니다.
 
+`webtoonReviewModel`은 에피소드 경로에서는 쪽 시각 검수에 쓰입니다. 설정했다면 쪽 검수 응답에 실제 실행 근거
+`reviewerEvidence:{modelId,responseId}`가 있어야 통과합니다.
+
+### 각색 검토 모델
+
+`lore_configure(webtoonAdaptationReviewModel={provider:"host",modelId:"...",reasoningEffort:"medium"})`는 `lore_webtoon_episode`의
+각색 대본 검토에만 쓸 모델을 저장합니다. 형식과 규칙은 시각 검수 모델과 같습니다(생략은 유지, `null`은 호스트 모델 복귀).
+설정하면 호스트가 실제 그 모델로 검토 요청을 실행하고 응답에 `reviewerEvidence:{modelId,responseId}`를 담아야 하며,
+다른 `modelId`이거나 `responseId`가 비면 거절됩니다. 설정이 없으면 호스트 모델이 답하고 결과의 `independence`는
+`same-host`(자기 검토)로 남습니다. 같은 호스트의 검토를 독립 독자 평가로 보고하지 않습니다. 소설 모델과 그림 모델은 바뀌지 않으며,
+이 검토는 소설의 선택 검토(`disabledReviews`)와 별개입니다.
+
 ## 선택 기능: 로컬 텍스트 모델
 
 로컬 모델을 직접 운영하는 사용자는 OpenAI 호환 `/chat/completions` 엔드포인트를 연결할 수
