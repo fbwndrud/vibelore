@@ -214,3 +214,115 @@ describe('MarkdownStateStore -- chapters, summaries, state', () => {
     assert.deepEqual(await store.loadCheckReceipt('my-novel', 'check-abc'), receipt);
   });
 });
+
+describe('MarkdownStateStore -- canon gate markers', () => {
+  const GATED_DESC = '기본.\n\n### 12화부터\n왼팔을 잃었다.\n\n### 30화부터\n후계자다.';
+
+  async function savedWithGatedDescription() {
+    const store = await newStore();
+    const f = sampleFoundation();
+    f.characters = f.characters.map((c) => (c.id === 'riel' ? { ...c, description: GATED_DESC } : c));
+    await store.saveFoundation(f);
+    return store;
+  }
+
+  it('writes a Korean tag only for facts registered after chapter 1', async () => {
+    const store = await newStore();
+    await store.saveFoundation(sampleFoundation());
+    const setting = await readFile(store.settingPath, 'utf8');
+    assert.match(setting, /^- \(w2\) \[2화부터\] 마력은 피를 통해서만 유전된다\.$/m);
+    assert.match(setting, /^- \(w1\) 검은 탑은 백 년째 아무도 오르지 못했다\.$/m);
+  });
+
+  it('writes an English tag for a multilingual work', async () => {
+    const store = await newStore();
+    await store.saveFoundation({ ...sampleFoundation(), language: 'en', canonicalFormatVersion: 2 });
+    const setting = await readFile(store.settingPath, 'utf8');
+    assert.match(setting, /^- \(w2\) \[from chapter 2\] 마력은/m);
+  });
+
+  it('takes registeredAtChapter from the tag, not the sidecar', async () => {
+    const store = await newStore();
+    await store.saveFoundation(sampleFoundation());
+    const setting = await readFile(store.settingPath, 'utf8');
+    await writeFile(store.settingPath, setting.replace('[2화부터] ', ''));
+    const back = await store.loadFoundation('my-novel');
+    assert.equal(back.worldFacts.find((w) => w.id === 'w2').registeredAtChapter, 1);
+    assert.equal(back.worldFacts.find((w) => w.id === 'w2').statement, '마력은 피를 통해서만 유전된다.');
+  });
+
+  it('parses hand-written fact tags', async () => {
+    const store = await newStore();
+    await store.saveFoundation(sampleFoundation());
+    const setting = await readFile(store.settingPath, 'utf8');
+    const edited = setting.replace(/(## 세계 사실\n)/, '$1- (w3) [12 화부터] X\n- [from chapter 7] Y\n- [Prologue] Z\n');
+    await writeFile(store.settingPath, edited);
+    const { worldFacts } = await store.loadFoundation('my-novel');
+    assert.deepEqual(worldFacts.slice(0, 3), [
+      { id: 'w3', statement: 'X', registeredAtChapter: 12 },
+      { id: 'w2', statement: 'Y', registeredAtChapter: 7 },
+      { id: 'w3', statement: '[Prologue] Z', registeredAtChapter: 1 },
+    ]);
+  });
+
+  it('keeps the gated character description raw and round-trips byte-identically', async () => {
+    const store = await savedWithGatedDescription();
+    const rielBefore = await readFile(store.characterPath('riel'), 'utf8');
+    const settingBefore = await readFile(store.settingPath, 'utf8');
+    const loaded = await store.loadFoundation('my-novel');
+    assert.equal(loaded.characters.find((c) => c.id === 'riel').description, GATED_DESC);
+    await store.saveFoundation(loaded);
+    assert.equal(await readFile(store.characterPath('riel'), 'utf8'), rielBefore);
+    assert.equal(await readFile(store.settingPath, 'utf8'), settingBefore);
+  });
+
+  it('writes no tags when every fact is at chapter 1 and stays stable', async () => {
+    const store = await newStore();
+    const f = sampleFoundation();
+    f.worldFacts = f.worldFacts.map((w) => ({ ...w, registeredAtChapter: 1 }));
+    await store.saveFoundation(f);
+    const first = await readFile(store.settingPath, 'utf8');
+    assert.doesNotMatch(first, /화부터|from chapter/);
+    await store.saveFoundation(await store.loadFoundation('my-novel'));
+    assert.equal(await readFile(store.settingPath, 'utf8'), first);
+  });
+
+  it('rejects an invalid character gate heading with the file and line', async () => {
+    const store = await savedWithGatedDescription();
+    const text = await readFile(store.characterPath('riel'), 'utf8');
+    const edited = text.replace('### 12화부터', '### 0화부터');
+    await writeFile(store.characterPath('riel'), edited);
+    const line = edited.split('\n').findIndex((l) => l === '### 0화부터') + 1;
+    await assert.rejects(() => store.loadFoundation('my-novel'), (error) => {
+      assert.match(error.message, /CANON_GATE_INVALID: characters\/riel\.md \d+/);
+      assert.equal(error.code, 'CANON_GATE_INVALID');
+      assert.ok(error.message.endsWith(` ${line}`));
+      return true;
+    });
+  });
+
+  it('rejects an invalid fact tag with the file and line', async () => {
+    const store = await newStore();
+    await store.saveFoundation(sampleFoundation());
+    const text = await readFile(store.settingPath, 'utf8');
+    const edited = text.replace(/(## 세계 사실\n)/, '$1- (w2) [from chapter x] Q\n');
+    await writeFile(store.settingPath, edited);
+    const line = edited.split('\n').findIndex((l) => l.includes('[from chapter x]')) + 1;
+    await assert.rejects(() => store.loadFoundation('my-novel'), (error) => {
+      assert.match(error.message, /CANON_GATE_INVALID: world\/setting\.md \d+/);
+      assert.equal(error.code, 'CANON_GATE_INVALID');
+      assert.ok(error.message.endsWith(` ${line}`));
+      return true;
+    });
+  });
+
+  it('scans markers that sit outside the description section', async () => {
+    const store = await savedWithGatedDescription();
+    assert.deepEqual(await store.scanIgnoredGateMarkers(), []);
+    const text = await readFile(store.characterPath('riel'), 'utf8');
+    const edited = text.replace('## 모순\n', '## 모순\n### 5화부터\n');
+    await writeFile(store.characterPath('riel'), edited);
+    const line = edited.split('\n').findIndex((l) => l === '### 5화부터') + 1;
+    assert.deepEqual(await store.scanIgnoredGateMarkers(), [{ path: 'characters/riel.md', line }]);
+  });
+});
