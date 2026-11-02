@@ -233,8 +233,8 @@ that `validate` issued after checking it. Changes to earlier chapters and design
 File byte changes, including whitespace, word boundaries and paragraph breaks, count as drift. Older fingerprints use their stored raw byte hashes.
 `validate` for a design change also returns advisory fields; none of them blocks `apply`. When the `[from chapter N]` marker of a world fact changes,
 `designDiff.worldFacts.changed[].beforeFromChapter/afterFromChapter` reports it. `canonGates.retroactive: [{ target, fromChapter }]` lists gates that reach
-chapters already published (those chapters were written without the gate and are not re-checked), and `canonGates.ignoredMarkers: [{ path, line }]` lists markers
-outside character descriptions and world facts, which are not gated. A marker without a valid N stops with `FOUNDATION_PARSE_FAILED`, whose reason is
+chapters already published (including a lowered gate or a removed tag; chapters from N up to the latest published chapter were written without the gate and are not re-checked), and `canonGates.ignoredMarkers: [{ path, line }]` lists `###` marker headings
+outside a Description, which are not gated (a bracket marker outside world-fact bullets is not gated either and is not reported). A marker without a valid N (including a `###` heading that ends in `화부터` or starts with `from chapter`) stops with `FOUNDATION_PARSE_FAILED`, whose reason is
 `CANON_GATE_INVALID: <file> <line>`. Syntax and rules are in [After editing the canon by hand](OPERATIONS.en.md#after-editing-the-canon-by-hand).
 Edits to `world/story-spine.md` or `world/writer-skill.md` are classified as `plan_review_required`;
 `validate`/`apply` block with `PLAN_DOCUMENT_SYNC_UNSUPPORTED`. Preserve the edited text separately, restore the document

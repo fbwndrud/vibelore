@@ -224,11 +224,12 @@ Lost the left arm.
 - Inside a character's `## Description` (`## 설명` in Korean documents), a `### from chapter N` sub-heading (Korean `### N화부터`) opens a block. The block ends at the next `###` heading, the next `## ` heading or the end of the section, and adds to the base description.
 - For a world fact, put `[from chapter N]` (Korean `[N화부터]`) after the optional `(id)` of the bullet. The fact takes effect from that chapter.
 - Case and spaces are not significant, and N is a whole number of 1 or more. Both phrases are read in every document; when vibelore saves facts it writes the phrase of the document's language.
-- Only descriptions and world-fact bullets are gated. Markers elsewhere are not gated and are reported by `lore_sync` as `canonGates.ignoredMarkers`. Markers inside fenced code are not treated specially.
+- Only descriptions and world-fact bullets are gated. A `###` marker heading outside a Description is not gated and is reported by `lore_sync` as `canonGates.ignoredMarkers`. A bracket marker outside world-fact bullets is neither gated nor reported. Markers inside fenced code are not treated specially.
 - Markdown sets when design text takes effect; tracked story state records what happened. Put traits that must stay pinned in frontmatter or structured fields.
-- Published chapters before N are not re-checked.
+- Already-published chapters from N up to the latest published chapter were written without the newly opened design and are not re-checked (`canonGates.retroactive`).
+- Arc planning sees design that takes effect up to the last chapter of the arc's range, labelled with its `from chapter N` marker. Episode planning, drafting and checks see only the design in effect at their own chapter.
 - A rollback restores the canon files as they were. To re-apply gates, go through `lore_sync`.
-- A marker without a valid N stops `lore_sync validate` with `FOUNDATION_PARSE_FAILED`, whose reason is `CANON_GATE_INVALID: <file> <line>` (for example `### 0화부터` or `[from chapter x]`). Any `###` heading in a Description that ends in `화부터` counts as a marker attempt. Files are not touched; fix the marker and run `validate` again.
+- A marker without a valid N stops `lore_sync validate` with `FOUNDATION_PARSE_FAILED`, whose reason is `CANON_GATE_INVALID: <file> <line>` (for example `### 0화부터` or `[from chapter x]`). Any `###` heading in a Description that ends in `화부터` or starts with `from chapter` counts as a marker attempt, so one without a valid N fails the same way. Files are not touched; fix the marker and run `validate` again.
 
 ## Story ledger and tracking settings
 

@@ -227,8 +227,8 @@ Published HEAD 이후 사람이 수정한 `world/`, `characters/`, `chapters/` M
 공백·단어 경계·문단 경계를 포함한 파일 바이트 변경을 감지합니다. 구형 fingerprint도 저장된 원본 바이트 hash로 비교합니다.
 설계 변경 `validate`는 참고용 필드를 함께 돌려주며 어느 것도 `apply`를 막지 않습니다. 세계 사실의 `[N화부터]` 표지가 바뀌면
 `designDiff.worldFacts.changed[].beforeFromChapter/afterFromChapter`로 알립니다. `canonGates.retroactive: [{ target, fromChapter }]`는 이미 발행된
-화에 걸치는 게이트(그 화들은 게이트 없이 쓰였고 다시 검사하지 않음), `canonGates.ignoredMarkers: [{ path, line }]`는 인물 설명·세계 사실 밖에 있어
-게이트로 쓰이지 않는 표지입니다. 유효한 N이 없는 표지는 `FOUNDATION_PARSE_FAILED`로 멈추며 reason은 `CANON_GATE_INVALID: <파일> <줄>`입니다.
+화에 걸치는 게이트(앞당긴 게이트와 지운 표지 포함. N화부터 마지막 발행 화까지는 게이트 없이 쓰였고 다시 검사하지 않음), `canonGates.ignoredMarkers: [{ path, line }]`는 설명 밖에 있어
+게이트로 쓰이지 않는 `###` 표지 소제목입니다(세계 사실 항목 밖의 대괄호 표지는 알림 없이 쓰이지 않습니다). 유효한 N이 없는 표지(`화부터`로 끝나거나 `from chapter`로 시작하는 `###` 소제목 포함)는 `FOUNDATION_PARSE_FAILED`로 멈추며 reason은 `CANON_GATE_INVALID: <파일> <줄>`입니다.
 표기와 규칙은 [정본을 손으로 고친 뒤](OPERATIONS.md#정본을-손으로-고친-뒤)를 따릅니다.
 `world/story-spine.md`, `world/writer-skill.md` 손수정은 `plan_review_required`로 분류하며,
 `validate`/`apply`는 `PLAN_DOCUMENT_SYNC_UNSUPPORTED`로 차단합니다. 편집 원문을 별도 보존하고 파일을
