@@ -1,4 +1,4 @@
-// 정본 시간 게이트: "N화부터" 표식을 읽고 화 기준 horizon으로 기반(foundation)을 잘라 낸다. 의존성 없는 순수 모듈.
+// Canon time gates: parse "N화부터" markers and cut the foundation at a chapter horizon. Pure module, no imports.
 
 export const GATE_SUMMARY_LIMIT = 30;
 
@@ -9,7 +9,7 @@ const SECTION_HEADING = /^##(?!#)\s*(.*)$/;
 
 const gateError = (code, message, extra = {}) => Object.assign(new Error(`${code}: ${message}`), { code, ...extra });
 
-/** 표식 모양이면 { fromChapter }, 표식이 아니면 null, 표식 모양인데 값이 틀리면 CANON_GATE_INVALID. */
+/** Returns { fromChapter } for a marker, null for non-marker text, throws CANON_GATE_INVALID for a marker-shaped near-miss. */
 export function parseGateMarker(text) {
   const trimmed = String(text ?? '').trim();
   const match = EN_MARKER.exec(trimmed) ?? KO_MARKER.exec(trimmed);
@@ -22,7 +22,7 @@ export function parseGateMarker(text) {
   return { fromChapter };
 }
 
-/** 던지지 않는 근접 판정: 표식 모양이면(값이 틀려도) true. */
+/** Non-throwing check: true when the text is marker-shaped, even if its value is invalid. */
 export function looksLikeGateMarker(text) {
   try {
     return parseGateMarker(text) !== null;
@@ -32,12 +32,12 @@ export function looksLikeGateMarker(text) {
   }
 }
 
-/** 표식 문구를 만든다. style은 'ko'(12화부터) 또는 'en'(from chapter 12). */
+/** Builds marker text; style is 'ko' (12화부터) or 'en' (from chapter 12). */
 export function formatGateMarker(fromChapter, style = 'ko') {
   return style === 'en' ? `from chapter ${fromChapter}` : `${fromChapter}화부터`;
 }
 
-/** 사실 문장 맨 앞의 "[표식] 본문"을 분리한다. 표식 모양이 아닌 대괄호는 null. */
+/** Splits a leading "[marker] statement" off a fact; a bracket that is not marker-shaped gives null. */
 export function parseFactTag(statement) {
   const match = /^\s*\[([^\]]*)\]([\s\S]*)$/.exec(String(statement ?? ''));
   if (!match || !looksLikeGateMarker(match[1])) return null;
@@ -49,7 +49,7 @@ export function parseFactTag(statement) {
 
 const trimBlankEdges = (lines) => lines.join('\n').replace(/^(?:[ \t\r]*\n)+/, '').trimEnd();
 
-/** 설명 본문을 base와 "### N화부터" 블록으로 나눈다. 게이트 제목이 없으면 입력을 그대로 base로 돌려준다. */
+/** Splits description text into base and "### N화부터" blocks; with no gate heading the input is returned unchanged as base. */
 export function splitGatedSection(text) {
   const source = String(text ?? '');
   const lines = source.split('\n');
@@ -81,7 +81,7 @@ export function splitGatedSection(text) {
   };
 }
 
-/** Description 섹션 밖에서 표식 모양인 "###" 줄의 1-based 줄 번호(조용히 무시될 표식). */
+/** 1-based line numbers of marker-shaped "###" lines outside the Description section (markers that would be silently ignored). */
 export function findIgnoredMarkers(fileText, descriptionHeadings) {
   const names = new Set((descriptionHeadings ?? []).map((name) => String(name).trim().toLowerCase()));
   const found = [];
@@ -106,7 +106,7 @@ function assertHorizon(horizon) {
 
 const factChapter = (fact) => fact?.registeredAtChapter ?? 1;
 
-/** horizon 화 시점에 열려 있는 기반만 남긴 복사본. 입력은 바꾸지 않는다. */
+/** Copy of the foundation holding only what is open at the horizon chapter; the input is not mutated. */
 export function gateFoundation(foundation, horizon) {
   assertHorizon(horizon);
   if (foundation == null) return foundation;
@@ -115,7 +115,7 @@ export function gateFoundation(foundation, horizon) {
   for (const character of Array.isArray(out.characters) ? out.characters : []) {
     if (!character || typeof character !== 'object') continue;
     const { base, blocks } = typeof character.description === 'string' ? splitGatedSection(character.description) : { base: '', blocks: [] };
-    // 이미 투영된 기반(progressions)도 더 낮은 horizon으로 다시 거른다.
+    // Already-projected progressions are re-filtered too, so a lower horizon never leaks.
     const progressions = blocks.length ? blocks : character.progressions;
     if (blocks.length) {
       if (base) character.description = base;
@@ -129,7 +129,7 @@ export function gateFoundation(foundation, horizon) {
   return out;
 }
 
-/** horizon에서 가려진 항목의 참조 목록(본문 없음). 게이트가 하나도 없으면 null. */
+/** References of entries hidden at the horizon (no text); null when the foundation has no gates. */
 export function gateSummary(foundation, horizon) {
   assertHorizon(horizon);
   if (foundation == null) return null;
