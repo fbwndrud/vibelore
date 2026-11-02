@@ -3,7 +3,7 @@ import { contractResponse } from './fixtures/contract-response.js';
 import { planningResponse } from './fixtures/planning-response.js';
 import { approvalResponse, approvalFixtureProvider } from './fixtures/approval-response.js';
 import assert from 'node:assert/strict';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
@@ -57,6 +57,20 @@ function provider(outputs) {
     if (req.step === 'arc-quality' && outputs[req.step] === undefined) return { text: JSON.stringify({ score: 90, dimensions: { premisePressure: 90, causalEscalation: 90, expectationRenewal: 90, characterCollision: 90, oppositionAdaptation: 90, payoffSurprise: 90, serialMomentum: 90 }, verdict: 'pass', findings: [] }) };
     return outputs[req.step] !== undefined ? { text: outputs[req.step] } : planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
   } };
+}
+
+/** Gates one world fact and one character progression at chapter 12 inside the Markdown canon files. */
+async function addGatedCanon(store) {
+  const heroPath = join(store.rootDir, 'characters', 'hero.md');
+  const hero = await readFile(heroPath, 'utf8');
+  const sentence = '빈정대지 않고 모든 부조리를 진지하게 받아들인다.';
+  assert.ok(hero.includes(sentence));
+  await writeFile(heroPath, hero.replace(sentence, `${sentence}\n\n### 12화부터\nGATED_PROGRESSION_TOKEN`));
+  const settingPath = join(store.rootDir, 'world', 'setting.md');
+  const setting = await readFile(settingPath, 'utf8');
+  const anchor = /^- \(w1\).*$/m;
+  assert.match(setting, anchor);
+  await writeFile(settingPath, setting.replace(anchor, (line) => `${line}\n- (w9) [12화부터] GATED_FACT_TOKEN`));
 }
 
 async function createdStore({ legacy = false } = {}) {
@@ -443,6 +457,28 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(input, /은빛열쇠 주인은 ACTIVE_HOOK_TOKEN/);
     assert.match(input, /윤재 \(hero\)/);
     assert.match(input, /- 탑의 시스템은 모든 보상에 세금을 매긴다/);
+  });
+
+  it('keeps canon gated above the chapter out of an unbound rewrite request', async () => {
+    const store = await createdStore({ legacy: true });
+    await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '윤재는 탑 앞에 섰다.', summary: '윤재가 탑 앞에 섰다.', providers: createHostRelay({}), delta: emptyDelta(1) });
+    await addGatedCanon(store);
+    const relay = createPreflightRelay({});
+    await runRewriteTool({ store, workId: 'tax-tower', chapter: 1, intent: '더 절박하게', providers: relay });
+    const request = relay.pending.find((r) => r.step === 'rewrite');
+    assert.ok(request);
+    const text = `${request.system}\n${request.user}`;
+    assert.doesNotMatch(text, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('lore_context shows gated canon only from its opening chapter', async () => {
+    const store = await createdStore({ legacy: true });
+    await addGatedCanon(store);
+    const early = (await buildContext({ store, workId: 'tax-tower', chapter: 5 })).context;
+    assert.doesNotMatch(early, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+    const open = (await buildContext({ store, workId: 'tax-tower', chapter: 12 })).context;
+    assert.match(open, /- \(w9\) \[12화부터\] GATED_FACT_TOKEN/);
+    assert.match(open, /GATED_PROGRESSION_TOKEN/);
   });
 
   it('gives a whole-chapter rewrite the same continuity window and older memory as a draft', async () => {

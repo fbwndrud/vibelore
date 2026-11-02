@@ -1,4 +1,5 @@
 import { validateGeneratedFoundation } from '../core/foundation-language-repair.js';
+import { chapterFoundation } from '../core/chapter-foundation.js';
 /** Phase 2 generation tools: keep host-facing interfaces small and reuse engine steps. */
 import { createHash } from 'node:crypto';
 import { prepareBookFoundationCandidate } from '../../engine/src/generators/text/steps/worldbuild.js';
@@ -525,10 +526,10 @@ async function runSceneDraft({ store, workId, chapter, plan, tension, providers,
   };
 }
 
-/** Bound works read the same SharedLore view as drafting and checking; unbound works keep their working-tree sheet. */
+/** Bound works read the same SharedLore view as drafting and checking; unbound works keep their working-tree sheet, gated at the chapter. */
 async function sharedFoundation(store, workId, chapter, foundation) {
   const canonicalStore = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
-  if (!canonicalStore.publishedRevision?.tree?.sharedLore?.binding) return foundation;
+  if (!canonicalStore.publishedRevision?.tree?.sharedLore?.binding) return chapterFoundation({ raw: foundation, chapter });
   return (await loadLoreRuntime({ canonicalStore, foundation: await canonicalStore.loadFoundation(workId), chapter })).foundation;
 }
 
