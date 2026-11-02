@@ -111,6 +111,9 @@ test('gateFoundation projects facts and progressions by horizon', () => {
 test('gateFoundation is idempotent, copies gate-less input and validates the horizon', () => {
   const f = fixture();
   assert.deepEqual(gateFoundation(gateFoundation(f, 12), 12), gateFoundation(f, 12));
+  // 이미 투영된 기반을 더 낮은 horizon으로 다시 적용해도 새지 않는다.
+  assert.deepEqual(gateFoundation(gateFoundation(f, 30), 11), gateFoundation(f, 11));
+  assert.deepEqual(gateFoundation(gateFoundation(f, 30), 12), gateFoundation(f, 12));
 
   const plain = { worldFacts: [{ id: 'a', statement: 's' }], characters: [{ id: 'c', canonicalName: 'C', description: 'd' }] };
   const copy = gateFoundation(plain, 3);

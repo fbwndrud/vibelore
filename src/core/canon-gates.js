@@ -113,12 +113,16 @@ export function gateFoundation(foundation, horizon) {
   const out = structuredClone(foundation);
   if (Array.isArray(out.worldFacts)) out.worldFacts = out.worldFacts.filter((fact) => factChapter(fact) <= horizon);
   for (const character of Array.isArray(out.characters) ? out.characters : []) {
-    if (typeof character?.description !== 'string') continue;
-    const { base, blocks } = splitGatedSection(character.description);
-    if (!blocks.length) continue;
-    if (base) character.description = base;
-    else delete character.description;
-    const open = blocks.filter((block) => block.fromChapter <= horizon);
+    if (!character || typeof character !== 'object') continue;
+    const { base, blocks } = typeof character.description === 'string' ? splitGatedSection(character.description) : { base: '', blocks: [] };
+    // 이미 투영된 기반(progressions)도 더 낮은 horizon으로 다시 거른다.
+    const progressions = blocks.length ? blocks : character.progressions;
+    if (blocks.length) {
+      if (base) character.description = base;
+      else delete character.description;
+    }
+    if (!Array.isArray(progressions)) continue;
+    const open = progressions.filter((block) => block.fromChapter <= horizon);
     if (open.length) character.progressions = open;
     else delete character.progressions;
   }

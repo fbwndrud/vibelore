@@ -30,6 +30,8 @@ test('chapterFoundation passes null through and validates the chapter', () => {
 test('chapterFoundation is idempotent and copies gate-less input', () => {
   const once = chapterFoundation({ raw: raw(), chapter: 12 });
   assert.deepEqual(chapterFoundation({ raw: once, chapter: 12 }), once);
+  const wide = chapterFoundation({ raw: raw(), chapter: 30 });
+  assert.deepEqual(chapterFoundation({ raw: wide, chapter: 11 }), chapterFoundation({ raw: raw(), chapter: 11 }));
 
   const plain = { worldFacts: [{ id: 'a', statement: 's' }], characters: [{ id: 'c', canonicalName: 'C' }] };
   const copy = chapterFoundation({ raw: plain, chapter: 5 });
