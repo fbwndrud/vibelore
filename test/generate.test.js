@@ -73,6 +73,26 @@ async function addGatedCanon(store) {
   await writeFile(settingPath, setting.replace(anchor, (line) => `${line}\n- (w9) [12화부터] GATED_FACT_TOKEN`));
 }
 
+/** Gates one world fact and one character progression at each of chapters 3 and 4. */
+async function addNearGatedCanon(store) {
+  const heroPath = join(store.rootDir, 'characters', 'hero.md');
+  const hero = await readFile(heroPath, 'utf8');
+  const sentence = '빈정대지 않고 모든 부조리를 진지하게 받아들인다.';
+  assert.ok(hero.includes(sentence));
+  await writeFile(heroPath, hero.replace(sentence, `${sentence}\n\n### 3화부터\nTOKEN_THREE\n\n### 4화부터\nTOKEN_FOUR`));
+  const settingPath = join(store.rootDir, 'world', 'setting.md');
+  const setting = await readFile(settingPath, 'utf8');
+  const anchor = /^- \(w1\).*$/m;
+  assert.match(setting, anchor);
+  await writeFile(settingPath, setting.replace(anchor, (line) => `${line}\n- (w9) [3화부터] FACT_THREE\n- (w10) [4화부터] FACT_FOUR`));
+}
+
+async function captureStep(run, args) {
+  let request;
+  await assert.rejects(run({ ...args, providers: { pending: [], async complete(r) { request = r; throw new Error('captured'); } } }), /captured/);
+  return request;
+}
+
 async function createdStore({ legacy = false } = {}) {
   const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-generate-')));
   if (legacy) await legacyWorkFixture({ store, workId: 'tax-tower', genre: 'litrpg', title: '세금탑', brief: '탑이 보상보다 많은 세금을 걷는다.', worldFacts: JSON.parse(WORLD).worldFacts.map(f => f.statement), characters: JSON.parse(CAST).characters });
@@ -469,6 +489,39 @@ describe('Phase 2 generation pipeline', () => {
     assert.ok(request);
     const text = `${request.system}\n${request.user}`;
     assert.doesNotMatch(text, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('shows in-range gated canon labelled in the arc-plan request and keeps later canon out', async () => {
+    const store = await createdStore({ legacy: true });
+    await addNearGatedCanon(store);
+    const arc = await captureStep(runArcPlan, { store, workId: 'tax-tower', episodes: 3, replaceActive: true });
+    assert.equal(arc.step, 'arc-plan');
+    const arcText = JSON.stringify(arc.messages);
+    assert.match(arcText, /\[3화부터\] FACT_THREE/);
+    assert.match(arcText, /3화부터: TOKEN_THREE/);
+    assert.doesNotMatch(arcText, /FOUR/);
+    const episode = await captureStep(runEpisodePlan, { store, workId: 'tax-tower', chapter: 1, mode: 'review' });
+    assert.equal(episode.step, 'episode-plan');
+    assert.doesNotMatch(JSON.stringify(episode.messages), /FACT_THREE|FACT_FOUR|TOKEN_THREE|TOKEN_FOUR/);
+  });
+
+  it('leaves the arc-plan fact and character lines unchanged for a work without gates', async () => {
+    const store = await createdStore({ legacy: true });
+    const arc = await captureStep(runArcPlan, { store, workId: 'tax-tower', episodes: 3, replaceActive: true });
+    const user = arc.messages.find((m) => m.role === 'user').content;
+    assert.ok(user.includes('세계 사실:\n- 탑의 시스템은 모든 보상에 세금을 매긴다.\n\n주요 인물:\n- hero/윤재: 살려고 강해질수록 생존세 때문에 죽음에 가까워진다.\n'));
+  });
+
+  it('adds progressions to the arc-quality foundation only when a character has them', async () => {
+    let request;
+    const providers = { pending: [], async complete(r) { request = r; throw new Error('captured'); } };
+    const base = { id: 'hero', canonicalName: '윤재', contradiction: 'C', description: 'D' };
+    const foundation = (character) => ({ title: 't', genre: 'litrpg', worldFacts: [], characters: [character] });
+    await assert.rejects(runArcQuality({ foundation: foundation(base), plan: { episodes: [] }, providers }), /captured/);
+    assert.ok(request.messages.map((m) => m.content).join('\n').includes('{"id":"hero","name":"윤재","contradiction":"C","description":"D"}'));
+    assert.doesNotMatch(request.messages.map((m) => m.content).join('\n'), /progressions/);
+    await assert.rejects(runArcQuality({ foundation: foundation({ ...base, progressions: [{ fromChapter: 3, text: 'TOKEN_THREE' }] }), plan: { episodes: [] }, providers }), /captured/);
+    assert.match(request.messages.map((m) => m.content).join('\n'), /"progressions":\[\{"fromChapter":3,"text":"TOKEN_THREE"\}\]/);
   });
 
   it('lore_context shows gated canon only from its opening chapter', async () => {
