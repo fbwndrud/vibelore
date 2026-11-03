@@ -706,7 +706,7 @@ editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실
 - `start`는 각색(`webtoon-adaptation`)과 검토(`webtoon-adaptation-review`) 모델 요청을 거쳐 `awaiting_adaptation_approval`에서 멈춥니다. `delegation.scope="production"`이면 사용자 승인 대신 위임 기록으로 진행합니다.
 - `approve`는 승인 뒤 첫 쪽 브리프를 요청합니다. 대본이나 검토가 바뀌면 `ADAPTATION_APPROVAL_STALE`로 거절합니다.
 - 쪽마다 `needs_page_image`(`jobs`의 요청을 고른 경로로 실행하고 `asset: {pageId, path, inputHash, provenance}`로 반입, `provenance.requestedQuality`는 선택) → `needs_page_tiles`(쪽 이미지를 격자로 잘라 `tiles: {pageId, imageHash, items:[{id,path}]}`로 반입) → 시각 검토 순서이며, 모든 쪽이 통과하면 `completed`와 `episode.html`·제작 기록이 남습니다.
-- `revise`는 `target="adaptation"`(그린 쪽은 바뀌지 않은 앞쪽만 유지) 또는 `target="page"`(`pageIds`의 쪽과 그 뒤 쪽)이며 `feedback`이 필수입니다. `verify`는 쪽 이미지·타일·제작 기록 해시를 읽기 전용으로 대조해 불일치를 보고합니다.
+- `revise`는 `target="adaptation"`(그린 쪽은 바뀌지 않은 앞쪽만 유지) 또는 `target="page"`(`pageIds`의 쪽과 그 뒤 쪽)이며 `feedback`이 필수입니다. `verify`는 쪽 이미지·타일·제작 기록 해시를 읽기 전용으로 대조해 불일치를 `mismatch` 상태로 보고하며, 원작·참조·채택 화풍이 바뀌면 보고 대신 오류(`EPISODE_SOURCE_CHANGED`, `EPISODE_REFERENCE_CHANGED`, `STYLE_*`)를 던집니다.
 상태는 `.vibelore/webtoon/`에 저장하며 소설 정본과 프로젝트 `webtoon/` 폴더는 건드리지 않습니다.
 
 ### `lore_webtoon_scene`

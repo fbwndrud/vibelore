@@ -39,6 +39,10 @@ test('pngSize reads IHDR and rejects non-PNG', () => {
   assert.throws(() => pngSize(Buffer.from('nope')), /INVALID_PNG_CONTAINER/);
   const noIhdr = pngHeader(1, 1); noIhdr.write('IDAT', 12, 'latin1');
   assert.throws(() => pngSize(noIhdr), /INVALID_PNG_CONTAINER/);
+  assert.throws(() => pngSize(pngHeader(0, 5)), /INVALID_PNG_CONTAINER/);
+  assert.throws(() => pngSize(pngHeader(5, 0)), /INVALID_PNG_CONTAINER/);
+  const shortIhdr = pngHeader(1, 1); shortIhdr.writeUInt32BE(12, 8);
+  assert.throws(() => pngSize(shortIhdr), /INVALID_PNG_CONTAINER/);
 });
 
 test('tileRects gives 8 overlapping rects inside the page', () => {
@@ -165,6 +169,19 @@ test('foreign text observations move to an advisory with the fixed prefix', () =
   assert.equal(validatePageReview(moved, w, page), true);
   assert.equal(moveForeignTextObservations(review, page), review);
   assert.equal(withForeign.textObservations.length, review.textObservations.length + 1);
+});
+
+test('a malformed findings field is not repaired when foreign observations are present', () => {
+  const review = fill(w, page), foreign = { id: 'ghost-text', observedText: 'x', readable: true, speakerCorrect: true, evidence: '모서리' };
+  for (const findings of ['nope', null, { severity: 'advisory' }]) {
+    const broken = { ...review, textObservations: [...review.textObservations, foreign], findings };
+    const out = moveForeignTextObservations(broken, page);
+    assert.equal(out, broken); assert.equal(out.findings, findings);
+    assert.throws(() => validatePageReview(out, w, page));
+  }
+  const onlyBadFindings = { ...review, findings: 'nope' };
+  assert.equal(moveForeignTextObservations(onlyBadFindings, page), onlyBadFindings);
+  assert.throws(() => validatePageReview(onlyBadFindings, w, page), /INVALID_PAGE_FINDING/);
 });
 
 test('a configured reviewer model asks for evidence and the review fails without it', () => {

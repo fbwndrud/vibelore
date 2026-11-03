@@ -158,6 +158,23 @@ test('a failed page is never a reference and stops after its budget', async () =
   const calls = p.requests.length; assert.equal((await tool(store, {}, p)).status, 'page_needs_revision'); assert.equal(p.requests.length, calls);
 });
 
+test('a redraw job has a fresh input hash even when its render brief is unchanged, so the failed image is refused', async () => {
+  const { store, args } = await episodeSetup(), p = drawing({ pages: 1, pageReview: (d, calls) => calls === 1 ? { wrongText: '엉뚱한 글자' } : undefined });
+  const complete = p.complete.bind(p);
+  p.complete = async request => { // the brief model leaves corrections out, so the redraw brief equals the first one
+    const out = await complete(request);
+    if (request.step !== 'webtoon-page-brief') return out;
+    const answer = JSON.parse(out.text); delete answer.renderBrief.corrections; return { text: JSON.stringify(answer) };
+  };
+  const { jobs: [first] } = await driveToImage(store, args, p);
+  const { jobs: [redraw] } = await importPageAndPass(store, first, p);
+  assert.equal(redraw.pageId, 'page-1'); assert.notEqual(redraw.inputHash, first.inputHash);
+  assert.equal((await saved(store)).pages[0].brief.renderBrief.corrections, undefined);
+  await assert.rejects(importPage(store, redraw, p, { inputHash: first.inputHash }), /PAGE_IMAGE_INPUT_STALE/);
+  assert.equal((await saved(store)).pages[0].image, null);
+  assert.equal((await importPage(store, redraw, p)).status, 'needs_page_tiles');
+});
+
 test('the redraw feedback lists failed panel delivery, failed visual checks and blocking findings as corrections', async () => {
   const { store, args } = await episodeSetup(), p = drawing({ pageReview: (d, calls) => calls === 1 ? { wrongText: '다른 글자' } : undefined });
   const base = p.complete.bind(p);

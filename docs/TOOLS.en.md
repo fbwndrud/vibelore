@@ -720,7 +720,7 @@ It takes `action=start|approve|revise|retry|reject|verify`, `workflowId`, `revis
 - `start` goes through the adaptation (`webtoon-adaptation`) and review (`webtoon-adaptation-review`) model requests and stops at `awaiting_adaptation_approval`. With `delegation.scope="production"` it proceeds on the delegation record instead of a user approval.
 - `approve` then requests the first page brief. A changed script or review is refused with `ADAPTATION_APPROVAL_STALE`.
 - Each page goes `needs_page_image` (run the `jobs` request on the chosen path and import it as `asset: {pageId, path, inputHash, provenance}`, `provenance.requestedQuality` optional) → `needs_page_tiles` (cut the page image along the grid and import `tiles: {pageId, imageHash, items:[{id,path}]}`) → visual review; once every page passes it is `completed` with `episode.html` and a production record.
-- `revise` takes `target="adaptation"` (drawn pages are kept only while they stay unchanged at the front) or `target="page"` (the named pages and every later page) and requires `feedback`. `verify` is read-only: it re-checks page image, tile and production record hashes and reports mismatches.
+- `revise` takes `target="adaptation"` (drawn pages are kept only while they stay unchanged at the front) or `target="page"` (the named pages and every later page) and requires `feedback`. `verify` is read-only: it re-checks page image, tile and production record hashes and reports mismatches with status `mismatch`; a changed source, reference or adopted style throws instead (`EPISODE_SOURCE_CHANGED`, `EPISODE_REFERENCE_CHANGED`, `STYLE_*`).
 State is stored in `.vibelore/webtoon/`; the novel canon and the project `webtoon/` folder are not touched.
 
 ### `lore_webtoon_scene`

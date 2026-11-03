@@ -39,6 +39,15 @@ export function omitDrawnBeat(a) {
   return next;
 }
 
+/** Last unit becomes an omitted beat no panel draws, and the first panel's text is lettered from it. */
+export function omittedUnitText(a) {
+  const next = clone(a), [beat] = next.editorial.beats, last = beat.sourceIds.pop();
+  next.editorial.beats.push({ ...beat, id: 'beat-2', sourceIds: [last], decision: 'omit', visualProof: '' });
+  for (const panel of next.pages[0].panels) panel.sourceIds = panel.sourceIds.filter(id => id !== last);
+  Object.assign(next.pages[0].panels[0].texts[0], { sourceId: last });
+  return next;
+}
+
 export function withText(a, text) { const next = clone(a); next.pages[0].panels[0].texts[0].text = text; return next; }
 export function withSpeaker(a, speaker) { const next = clone(a); next.pages[0].panels[0].texts[0].speaker = speaker; return next; }
 export function withExtraSpeaker(a, id) {

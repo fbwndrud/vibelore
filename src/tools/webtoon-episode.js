@@ -237,8 +237,8 @@ const pageFile = (i, state, suffix) => `page-${pageNumber(i)}.v${state.revision}
 /** Hash of the file on disk, or null when it is gone. */
 const hashOfFile = async path => { try { return digest(await readFile(path)); } catch (e) { if (e.code === 'ENOENT') return null; throw e; } };
 const briefCurrent = (w, state, page) => state.brief?.passed === true && state.brief.subjectHash === pageBriefBinding(w, page);
-/** The image job is bound to the brief binding and the exact render brief the image model will see. */
-const pageImageInput = (w, state, page) => digest({ brief: pageBriefBinding(w, page), renderBrief: state.brief.renderBrief });
+/** The image job is bound to the brief binding, the exact render brief the image model will see and the page's attempt, so a redraw never accepts the failed image. */
+const pageImageInput = (w, state, page) => digest({ brief: pageBriefBinding(w, page), renderBrief: state.brief.renderBrief, attempt: state.attempts.length });
 
 const REDRAW_NOTE = `This is a redraw. Address the feedback with positive emphasis only: renderBrief.focusTextIds lists page text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "The balloon tail in panel 2 points to her mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`;
 

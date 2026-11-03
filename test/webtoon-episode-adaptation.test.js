@@ -3,7 +3,7 @@ import test from 'node:test';
 import { validateAdaptation, episodeCast, pageTexts, adaptationDigest, pageDigest, EPISODE_LIMITS, ADAPTATION_PROMPT } from '../src/core/webtoon-episode.js';
 import { validateScenePlan, isVerbatimText } from '../src/core/webtoon-scene.js';
 import { scenePlan } from './fixtures/webtoon-scene.js';
-import { adaptationFor, dropUnit, omitDrawnBeat, withText, withExtraSpeaker, withSpeaker, withPanels, withTexts, withPages } from './fixtures/webtoon-episode.js';
+import { adaptationFor, dropUnit, omitDrawnBeat, omittedUnitText, withText, withExtraSpeaker, withSpeaker, withPanels, withTexts, withPages } from './fixtures/webtoon-episode.js';
 
 const units = [{ id: 'u1', text: '"문 열어." 그녀가 말했다.' }, { id: 'u2', text: '대답은 없었다.' }, { id: 'u3', text: '손잡이가 차가웠다.' }];
 const ctx = { units, cast: [{ id: 'c1', name: '윤', appearance: '짧은 머리' }, { id: 'c2', name: '해', appearance: '' }], maxPages: 6 };
@@ -14,6 +14,16 @@ test('a valid adaptation passes', () => { assert.equal(validateAdaptation(adapta
 test('an uncovered source unit fails', () => bad(dropUnit(adaptationFor(units)), 'EDITORIAL_SOURCE_UNCOVERED'));
 test('a panel drawing an omitted beat fails', () => bad(omitDrawnBeat(adaptationFor(units)), 'EPISODE_EXCLUDED_BEAT_DRAWN'));
 test('a non-verbatim text fails', () => bad(withText(adaptationFor(units), '바꾼 대사'), 'EPISODE_TEXT_NOT_VERBATIM'));
+
+test('a text sourced from a unit its panel does not draw fails, including an omitted beat', () => {
+  const omitted = omittedUnitText(adaptationFor(units));
+  omitted.pages[0].panels[0].texts[0].text = units[2].text;
+  bad(omitted, 'EPISODE_TEXT_SOURCE_MISMATCH');
+  // A retained unit of another panel is not this panel's source either.
+  bad(mutate(a => { Object.assign(a.pages[0].panels[0].texts[0], { sourceId: 'u2', text: units[1].text }); }), 'EPISODE_TEXT_SOURCE_MISMATCH');
+  assert.ok(validateAdaptation(mutate(a => { a.pages[0].panels[0].sourceIds = ['u1', 'u2']; Object.assign(a.pages[0].panels[0].texts[0], { sourceId: 'u2', text: units[1].text }); }), ctx));
+  assert.match(ADAPTATION_PROMPT, /sourceId/);
+});
 
 test('quote marks and emphasis around a text do not break the verbatim rule', () => {
   assert.ok(validateAdaptation(withText(adaptationFor(units), '"문 열어."'), ctx));

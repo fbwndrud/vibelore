@@ -22,7 +22,7 @@
 
 ### 각색 대본과 각색 검토
 
-`webtoon-adaptation` 요청에 각색 대본을 답한다. 먼저 편집 지도(`editorial`)로 모든 원문 단락을 비트에 한 번씩 배정하고 expand/condense/omit/defer를 정한다. 쪽마다 칸 3~6개이고, 칸은 `shows`(그림이 전하는 것), `readerDelta`, `bridge`(앞 칸에서 이어지는 이유, 쪽의 첫 칸만 `page opener`)를 가진다. 칸당 글자 요소는 최대 2개이고 `physical`은 최대 1개다. 글자는 원문 단락의 정확한 부분 문자열이며 발화자는 인물 id, 선언한 `extras` id 또는 `narrator`(caption·sfx)다. 서버의 결정론 검사는 쪽·칸 수, ID 중복, 제외한 비트가 그려졌는지, 남긴 비트가 빠졌는지, 원문 일치와 화자만 확인한다. 의미 검토를 대신하지 않는다.
+`webtoon-adaptation` 요청에 각색 대본을 답한다. 먼저 편집 지도(`editorial`)로 모든 원문 단락을 비트에 한 번씩 배정하고 expand/condense/omit/defer를 정한다. 쪽마다 칸 3~6개이고, 칸은 `shows`(그림이 전하는 것), `readerDelta`, `bridge`(앞 칸에서 이어지는 이유, 쪽의 첫 칸만 `page opener`)를 가진다. 칸당 글자 요소는 최대 2개이고 `physical`은 최대 1개다. 글자는 같은 칸이 `sourceIds`로 인용한 원문 단락의 정확한 부분 문자열이며(아니면 `EPISODE_TEXT_SOURCE_MISMATCH`, 칸이 그리지 않는 단락, 특히 제외·보류한 비트의 단락은 글자로 쓸 수 없다) 발화자는 인물 id, 선언한 `extras` id 또는 `narrator`(caption·sfx)다. 서버의 결정론 검사는 쪽·칸 수, ID 중복, 제외한 비트가 그려졌는지, 남긴 비트가 빠졌는지, 원문 일치, 글자의 출처 단락과 화자만 확인한다. 의미 검토를 대신하지 않는다.
 
 이어 `webtoon-adaptation-review` 요청이 나간다. 검토자는 대본만 담은 packet(`scriptOnly`)과 원문 대조 packet(`sourceComparison`)을 받는다. `readThrough`는 대본만으로 판단하고, `coreKept`·`fidelity`만 원문을 쓴다.
 
@@ -61,7 +61,7 @@
 - `revise(target="adaptation")` 뒤에는 그린 쪽을 따로 보관하고, 승인 때 쪽의 위치·id·내용이 그대로인 앞쪽부터 상태를 복원한다. 처음 바뀐 쪽과 그 뒤는 새로 만든다.
 - `retry`는 `model_failed`일 때 실패 단계를 다시 요청한다. `reject`는 사용자 중단 원답을 기록하고 대기 요청을 해제하며 파일을 보존한다.
 - 모든 쪽이 통과하면 `completed`다. 결과는 `.vibelore/webtoon/candidates/<workflowId>/r<revision>/`에 `page-01.png`…, 쪽을 세로로 쌓은 `episode.html`, 각색·검토 JSON으로 보존하며 `.vibelore/productions/<workflowId>-r<revision>.json`에 제작 기록(원천, 각색·검토 해시와 검토 모델·`independence`·`reviewerEvidence`, 승인, 쪽별 이미지·타일 해시, 요청 품질과 `qualityMismatch`)을 남긴다. `completed`는 호스트의 쪽 검토 통과이며 소설 정본을 교체하거나 발행한 뜻이 아니다. 글자는 래스터에 포함되며 편집 가능한 조판이 아니다.
-- `verify`는 읽기 전용이다. 쪽 이미지·타일·제작 기록의 해시를 다시 계산해 불일치 목록을 보고한다(오류로 던지지 않는다).
+- `verify`는 읽기 전용이다. 쪽 이미지·타일·제작 기록의 해시를 다시 계산해 불일치 목록을 보고한다. 쪽 이미지·타일·기록이 달라졌으면 상태 `mismatch`로 돌려준다. 원작·참조 이미지·채택 화풍이 바뀐 경우는 불일치 항목이 아니라 장면 경로의 `verify`처럼 오류(`EPISODE_SOURCE_CHANGED`, `EPISODE_REFERENCE_CHANGED`, `STYLE_*`)를 던진다.
 - 조회는 `lane="webtoon"`과 workflow ID를 사용한다. 이미 진행 중인 에피소드가 있으면 새 `start`는 `WEBTOON_WORKFLOW_ACTIVE`로 거절된다.
 
 ## 옵션: 장면 통합 제작 (명시 요청 전용)

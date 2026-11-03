@@ -20,8 +20,10 @@ const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0
 
 /** Width and height from the IHDR chunk; nothing else in the file is trusted. */
 export function pngSize(bytes) {
-  need(Buffer.isBuffer(bytes) && bytes.length >= 24 && bytes.subarray(0, 8).equals(PNG_SIGNATURE) && bytes.toString('latin1', 12, 16) === 'IHDR', 'INVALID_PNG_CONTAINER');
-  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  need(Buffer.isBuffer(bytes) && bytes.length >= 24 && bytes.subarray(0, 8).equals(PNG_SIGNATURE) && bytes.readUInt32BE(8) === 13 && bytes.toString('latin1', 12, 16) === 'IHDR', 'INVALID_PNG_CONTAINER');
+  const width = bytes.readUInt32BE(16), height = bytes.readUInt32BE(20);
+  need(width > 0 && height > 0, 'INVALID_PNG_CONTAINER');
+  return { width, height };
 }
 
 /** Row-major crop rects (ids are one-based). Inner edges grow by overlap × cell size; integer pixels, clamped to the page. */
@@ -69,9 +71,9 @@ export function pageReviewSchema(w, page) {
 export function moveForeignTextObservations(review, page) {
   if (!Array.isArray(review?.textObservations)) return review;
   const ids = new Set(pageTexts(page).map(t => t.id)), foreign = review.textObservations.filter(o => !ids.has(o?.id));
-  if (!foreign.length) return review;
+  if (!foreign.length || !Array.isArray(review.findings)) return review;
   const moved = foreign.map(o => ({ severity: 'advisory', evidence: `${FOREIGN_TEXT_PREFIX}${JSON.stringify(o)}` }));
-  return { ...review, textObservations: review.textObservations.filter(o => ids.has(o?.id)), findings: [...(Array.isArray(review.findings) ? review.findings : []), ...moved] };
+  return { ...review, textObservations: review.textObservations.filter(o => ids.has(o?.id)), findings: [...review.findings, ...moved] };
 }
 
 const sameIds = (items, ids) => Array.isArray(items) && items.length === ids.length && ids.every(id => items.filter(i => i?.id === id).length === 1);

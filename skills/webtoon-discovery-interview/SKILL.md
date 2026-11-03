@@ -258,7 +258,7 @@ Each episode is its own workflow over the source range it pinned; start the next
 references (the confirmed image model and adopted style are reused). While an episode is in progress a new `start` is refused with
 `WEBTOON_WORKFLOW_ACTIVE`, so finish it with `revise`, `retry` or `reject`. `retry` asks a failed model stage again; `reject` records the
 user's stop in their own words and keeps the files. Resume an interrupted run from `lore_workflow_status` and the existing request or job
-rather than starting over. `verify` is read-only and reports any page image, tile or production-record hash mismatch.
+rather than starting over. `verify` is read-only and reports any page image, tile or production-record hash mismatch as `mismatch`; a changed source, reference or adopted style makes it throw, as in the scene path.
 
 Look up with `lore_workflow_status` or `history` using `lane="webtoon"` and the exact `workflowId`.
 Resolve source drift with `lore_sync` first.
