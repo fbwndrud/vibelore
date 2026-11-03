@@ -11,7 +11,12 @@
 
 import { rangeReviewSteps } from './range-review.js';
 import { planningRecoverySteps } from './planning-recovery.js';
+import { ARC_HOOK_OPS, EPISODE_ROLES, EXPECTATION_HANDLING, HOOK_TYPES, TENSION_ROLES, TWIST_LEVELS } from '../core/narrative-codes.js';
 export const family = 'ko';
+
+// 아크 계획 system 문단이 코드 옆에 붙이는 한국어 설명. 코드 목록 자체는 narrative-codes.js 표에서 온다.
+const ROLE_GLOSS = { setup: '도입', escalation: '고조', peak: '정점', breather: '숨 돌리기' };
+const HOOK_OP_GLOSS = { planted: '심기', advanced: '강화', paid: '회수' };
 
 /** 단계별 system/user 템플릿. user 는 작품 데이터를 받아 최종 문자열을 만든다. */
 export const steps = {
@@ -60,10 +65,11 @@ export const steps = {
   },
 
   'arc-plan': {
-    system: '당신은 한국 상업 웹소설의 아크 설계자다. 결말 사건과 교훈을 미리 봉인하지 말고, 독자가 세울 가설·인물의 사적 욕망·해결이 낳는 비용·상대의 독립적 적응을 설계한다. 모든 인물을 매 화 충돌시키지 말고 중심 인물만 전면에 둔다. 각 화는 이전 화의 결과에서 시작하고 작품이 약속한 경험의 준비와 실제 지급을 구분한다. 그 경험을 인물이 실제로 누릴 사건과 시점을 아크에 배치하며, 의도적인 지연이면 이유와 지급 시점을 남긴다. 모든 화에 같은 웃음·손실·보상을 강제하지 않는다. 같은 훅을 반복하지 않는다. 인물 감정 비트는 회차별 체크리스트가 아니다. 실제 압력·선택·상대 반응이 본문에 나타날 회차에만 기록하고, 변화 근거가 없는 회차는 비트를 생략하거나 같은 단계를 유지한다. 단계 순서는 wound → attempt → collapse → companion → self-choice → echo 로 고정이다. 인물의 첫 비트는 wound 이고(상속된 이전 비트가 있으면 그 다음부터), 이후 비트는 같은 단계에 머물거나 바로 다음 한 단계로만 간다. 회차당 비트는 하나만 두며(한 단계가 여러 회차에 걸쳐도 된다), 단계를 건너뛰지 말고, 아크가 짧다는 이유로 wound 에서 self-choice 나 echo 로 점프하지 않는다. 회차가 적으면 wound, attempt 에서 일찍 멈춘다. 다음 단계로 갈 때는 note에 독자가 보게 될 행동 근거를 적는다. 누적 인물 서사 후보는 의무 목록이 아니다. 현재 사건과 자연스럽게 충돌하는 인물만 최대 2명 활성화하고, 활성화할 때는 제시된 과거 근거에서 압력과 선택을 발전시킨다. 과거 아크가 resolved면 같은 질문을 되풀이하지 않고, complicated나 dormant면 남은 압력을 새 사건에서 변형한다. 근거가 없는 과거사나 상처를 새로 발명하지 않는다. 회차 비트는 사건·압력·전환·다음 상태만 얇게 고정하고 득점자·승패·정답 행동처럼 집필 중 선택해야 할 결과는 openOutcomeSpace에 남긴다. readerLoad.phase는 onboarding이면 즉시 목표와 낯선 핵심 개념 하나만, expansion이면 이미 체험한 개념의 조합, focus이면 이전에 소개된 특정 개념 하나를 집중해서 다룬다. focus는 복잡해야 할 장면상 이유가 있을 때만 쓴다. 첫 아크에서 complexityRamp가 onboarding-first면 초반을 쉽게 시작한다. 순수 JSON만 출력한다.',
+    system: `당신은 한국 상업 웹소설의 아크 설계자다. 결말 사건과 교훈을 미리 봉인하지 말고, 독자가 세울 가설·인물의 사적 욕망·해결이 낳는 비용·상대의 독립적 적응을 설계한다. 모든 인물을 매 화 충돌시키지 말고 중심 인물만 전면에 둔다. 각 화는 이전 화의 결과에서 시작하고 작품이 약속한 경험의 준비와 실제 지급을 구분한다. 그 경험을 인물이 실제로 누릴 사건과 시점을 아크에 배치하며, 의도적인 지연이면 이유와 지급 시점을 남긴다. 모든 화에 같은 웃음·손실·보상을 강제하지 않는다. 같은 훅을 반복하지 않는다. 인물 감정 비트는 회차별 체크리스트가 아니다. 실제 압력·선택·상대 반응이 본문에 나타날 회차에만 기록하고, 변화 근거가 없는 회차는 비트를 생략하거나 같은 단계를 유지한다. 단계 순서는 wound → attempt → collapse → companion → self-choice → echo 로 고정이다. 인물의 첫 비트는 wound 이고(상속된 이전 비트가 있으면 그 다음부터), 이후 비트는 같은 단계에 머물거나 바로 다음 한 단계로만 간다. 회차당 비트는 하나만 두며(한 단계가 여러 회차에 걸쳐도 된다), 단계를 건너뛰지 말고, 아크가 짧다는 이유로 wound 에서 self-choice 나 echo 로 점프하지 않는다. 회차가 적으면 wound, attempt 에서 일찍 멈춘다. 다음 단계로 갈 때는 note에 독자가 보게 될 행동 근거를 적는다. 누적 인물 서사 후보는 의무 목록이 아니다. 현재 사건과 자연스럽게 충돌하는 인물만 최대 2명 활성화하고, 활성화할 때는 제시된 과거 근거에서 압력과 선택을 발전시킨다. 과거 아크가 resolved면 같은 질문을 되풀이하지 않고, complicated나 dormant면 남은 압력을 새 사건에서 변형한다. 근거가 없는 과거사나 상처를 새로 발명하지 않는다. 회차 비트는 사건·압력·전환·다음 상태만 얇게 고정하고 득점자·승패·정답 행동처럼 집필 중 선택해야 할 결과는 openOutcomeSpace에 남긴다. readerLoad.phase는 onboarding이면 즉시 목표와 낯선 핵심 개념 하나만, expansion이면 이미 체험한 개념의 조합, focus이면 이전에 소개된 특정 개념 하나를 집중해서 다룬다. focus는 복잡해야 할 장면상 이유가 있을 때만 쓴다. 첫 아크에서 complexityRamp가 onboarding-first면 초반을 쉽게 시작한다. 각 화의 선택 필드는 리듬 의도이며 할당량이 아니다. role은 이 화가 긴장 곡선에서 차지하는 위치(${EPISODE_ROLES.map((role) => `${role} ${ROLE_GLOSS[role]}`).join(', ')})이고 내용이 아니다. 모든 화에 반전을 넣지 않으며, 근거가 없으면 필드를 생략한다. twistLevel은 0 없음, 1 독자의 가설을 비트는 사건, 2 이미 알려진 사실의 재해석, 3 아크 전제를 다시 보게 하는 뒤집기이며 3은 misconceptionStack 항목이 근거를 깔아 둔 경우에만 쓴다. expectationHandling은 독자 예상의 처리다. fulfill은 그대로 지급, delay는 미루되 지급할 화를 밝힌다, twist는 예상 밖의 수단이나 비용으로 지급, invert는 반대가 일어난다. hookType은 화 끝 훅의 종류(${HOOK_TYPES.join(', ')})다. hookOps는 이 화에서 복선 고리를 ${ARC_HOOK_OPS.map((op) => `${op}(${HOOK_OP_GLOSS[op]})`).join(', ')}하는 경우만 label과 함께 적고, 여러 화에서 같은 label은 같은 고리다. 순수 JSON만 출력한다.`,
     user: (c) => [
       `작품: ${c.title}`, `장르: ${c.genre}`, `새 아크 번호: ${c.arcNumber}`,
-      `시작 화: ${c.startChapter}`, `총 화수: ${c.count}`, `사용자 방향과 StoryProfile: ${c.direction}`, '', c.spineRender,
+      `시작 화: ${c.startChapter}`, `총 화수: ${c.count}`, `사용자 방향과 StoryProfile: ${c.direction}`,
+      ...(c.rhythmText ? [c.rhythmText] : []), '', c.spineRender,
       `수정 피드백: ${c.feedback}`, '', '세계 사실:', ...c.worldFacts.map((f) => `- ${f}`),
       '', '주요 인물:', ...c.characters.map((line) => `- ${line}`),
       '', '누적 인물 서사 후보(정사 관찰에서 뽑은 선택적 기획 근거):', c.seedsRender,
@@ -73,7 +79,7 @@ export const steps = {
       c.previousArcReviewJson,
       '리뷰의 낮은 축은 새 아크의 사건 기능·보상·감정 온도·증거·결말 이미지를 달리해 대응하되, 이전 장면의 표면 해법이나 특정 문구를 복제하지 않는다.', '',
       `정확히 ${c.count}개의 episodes를 만들 것. JSON 스키마:`,
-      '{"title":"아크 제목","promise":"끝에서 갚을 변화","type":"small|standard|volume","commercialPromise":{"fantasy":"반복 장르 쾌감","humanComplication":"사람 때문에 해법이 어긋나는 방식","repeatableProof":"훈련/행동이 뒤에서 변주되어 증명되는 방식"},"readerContract":{"openingQuestion":"독자가 붙들 질문","expectedPath":"독자가 예상할 경로","promisedPayoffBy":5,"minimumPayoff":"반드시 지급할 보상"},"characterPressureMatrix":[{"characterId":"아크 전체에서 압력을 받는 핵심 인물만","visibleWant":"","privateNeed":"","protectedSecret":"","lineTheyWillNotCross":"","pressureThatMayBreakIt":""}],"misconceptionStack":[{"id":"실제 반전이 있는 경우만","readerBelief":"","characterBelief":"","hiddenCausality":"","evidenceToPlant":["본문 단서"],"revealPolicy":"단서 의미를 어떻게 바꿀지"}],"escalatingCosts":["해결이 낳는 다음 비용"],"oppositionAgency":{"actor":"","independentGoal":"","knowledge":"","adaptationTrigger":""},"openOutcomeSpace":{"mustResolve":[""],"mayResolve":["승패·득점자 등"],"mustRemainCostly":[""]},"arcVoiceShifts":[{"characterId":"아크에서 실제 말투 변화가 있는 인물만","startingVoice":"","pressureVoice":"","changedVoice":"","sampleBefore":"","sampleAfter":""}],"characterArcs":[{"characterId":"최대 2명, 실제 변화가 있는 경우만","promise":"내적 변화","beats":[{"episodeIndex":1,"beat":"wound|attempt|collapse|companion|self-choice|echo","note":"단계명이 아니라 독자가 보게 될 압력·선택·반응"}]}],"episodes":[{"title":"가제","beat":"핵심 사건","pressure":"선택 압력","readerExpectation":"이번 화 예상","payoff":"작은 지급","turn":"선택이 만든 전환","costCreatedByResolution":"해결 비용 또는 빈 문자열","carry":"다음 상태","exitValue":"다음 화의 구체적 가치","readerLoad":{"phase":"onboarding|expansion|focus","newConcept":"이번 화의 낯선 핵심 개념 하나 또는 빈 문자열","complexityReason":"focus일 때만 복잡해야 하는 이유"}}]}',
+      `{"title":"아크 제목","promise":"끝에서 갚을 변화","type":"small|standard|volume","commercialPromise":{"fantasy":"반복 장르 쾌감","humanComplication":"사람 때문에 해법이 어긋나는 방식","repeatableProof":"훈련/행동이 뒤에서 변주되어 증명되는 방식"},"readerContract":{"openingQuestion":"독자가 붙들 질문","expectedPath":"독자가 예상할 경로","promisedPayoffBy":5,"minimumPayoff":"반드시 지급할 보상"},"characterPressureMatrix":[{"characterId":"아크 전체에서 압력을 받는 핵심 인물만","visibleWant":"","privateNeed":"","protectedSecret":"","lineTheyWillNotCross":"","pressureThatMayBreakIt":""}],"misconceptionStack":[{"id":"실제 반전이 있는 경우만","readerBelief":"","characterBelief":"","hiddenCausality":"","evidenceToPlant":["본문 단서"],"revealPolicy":"단서 의미를 어떻게 바꿀지"}],"escalatingCosts":["해결이 낳는 다음 비용"],"oppositionAgency":{"actor":"","independentGoal":"","knowledge":"","adaptationTrigger":""},"openOutcomeSpace":{"mustResolve":[""],"mayResolve":["승패·득점자 등"],"mustRemainCostly":[""]},"arcVoiceShifts":[{"characterId":"아크에서 실제 말투 변화가 있는 인물만","startingVoice":"","pressureVoice":"","changedVoice":"","sampleBefore":"","sampleAfter":""}],"characterArcs":[{"characterId":"최대 2명, 실제 변화가 있는 경우만","promise":"내적 변화","beats":[{"episodeIndex":1,"beat":"wound|attempt|collapse|companion|self-choice|echo","note":"단계명이 아니라 독자가 보게 될 압력·선택·반응"}]}],"episodes":[{"title":"가제","beat":"핵심 사건","pressure":"선택 압력","readerExpectation":"이번 화 예상","payoff":"작은 지급","turn":"선택이 만든 전환","costCreatedByResolution":"해결 비용 또는 빈 문자열","carry":"다음 상태","exitValue":"다음 화의 구체적 가치","readerLoad":{"phase":"onboarding|expansion|focus","newConcept":"이번 화의 낯선 핵심 개념 하나 또는 빈 문자열","complexityReason":"focus일 때만 복잡해야 하는 이유"},"role":"${EPISODE_ROLES.join('|')}","twistLevel":"${TWIST_LEVELS.join('|')}","expectationHandling":"${EXPECTATION_HANDLING.join('|')}","hookType":"${HOOK_TYPES.join('|')}","hookOps":[{"op":"${ARC_HOOK_OPS.join('|')}","label":""}]}]}`,
     ].join('\n'),
   },
 
@@ -114,22 +120,26 @@ export const steps = {
   },
 
   'episode-plan': {
-    system: '당신은 승인된 아크 비트를 읽기 쉬운 상업 웹소설 회차 계획으로 확장한다. 이번 화의 즉시 목표, 눈앞의 장애물, 주인공의 선택, 달라진 결과만 먼저 고정한다. readerBridge에는 전문 설정 설명이 아니라 사전 지식 없는 독자가 붙잡을 생활적 상황과 결과를 한 문장으로 쓴다. 등장인물 전원을 활약시키거나 충돌시키지 않는다. foregroundCharacters는 실제로 선택 압력을 받는 중심 인물만 고르고, 나머지는 배경에서 반응하거나 침묵할 수 있다. characterAgendas, characterCollisions, revealContracts, episodeVoiceTargets는 해당 기능이 실제로 필요한 회차에서만 선택적으로 작성한다. agenda를 쓰면 모든 항목(goal, nextAction, deadline, resources, knowledge, misbelief, redLine, fallback)을 채우고, 채울 수 없으면 그 인물의 agenda를 생략한다. revealContract도 모든 항목(inducedHypothesis, actualCause, dualUseClues, concealment, recontextualizesSceneIds, triggeredByChoice, changes.actions과 changes.relationships·costs 중 하나 이상)을 채우며, recontextualizesSceneIds에는 앞선 장면을 chapter-<회차>-scene-<순번> 형식(순번은 그 회차 scenes의 1부터 시작하는 위치)으로 적고, 뒤집을 앞선 장면이 없으면 revealContract를 생략한다. 대사의 표면 뜻에 필요한 관찰이나 욕구를 대사보다 먼저 장면에 둔다. readerLoad가 onboarding이면 낯선 핵심 개념은 하나만 전면에 두고, expansion이면 이미 체험한 개념을 조합하며, focus이면 특정 개념 하나가 장면의 중심일 때만 복잡하게 다룬다. 아크의 열린 결과나 다음 화를 미리 소비하지 않는다. 장면은 2~4개의 흐름 단위로 제한하고 문장 연출은 작가에게 남긴다. 순수 JSON만 출력한다.',
+    system: '당신은 승인된 아크 비트를 읽기 쉬운 상업 웹소설 회차 계획으로 확장한다. 이번 화의 즉시 목표, 눈앞의 장애물, 주인공의 선택, 달라진 결과만 먼저 고정한다. readerBridge에는 전문 설정 설명이 아니라 사전 지식 없는 독자가 붙잡을 생활적 상황과 결과를 한 문장으로 쓴다. 등장인물 전원을 활약시키거나 충돌시키지 않는다. foregroundCharacters는 실제로 선택 압력을 받는 중심 인물만 고르고, 나머지는 배경에서 반응하거나 침묵할 수 있다. characterAgendas, characterCollisions, revealContracts, episodeVoiceTargets는 해당 기능이 실제로 필요한 회차에서만 선택적으로 작성한다. agenda를 쓰면 모든 항목(goal, nextAction, deadline, resources, knowledge, misbelief, redLine, fallback)을 채우고, 채울 수 없으면 그 인물의 agenda를 생략한다. revealContract도 모든 항목(inducedHypothesis, actualCause, dualUseClues, concealment, recontextualizesSceneIds, triggeredByChoice, changes.actions과 changes.relationships·costs 중 하나 이상)을 채우며, recontextualizesSceneIds에는 앞선 장면을 chapter-<회차>-scene-<순번> 형식(순번은 그 회차 scenes의 1부터 시작하는 위치)으로 적고, 뒤집을 앞선 장면이 없으면 revealContract를 생략한다. 대사의 표면 뜻에 필요한 관찰이나 욕구를 대사보다 먼저 장면에 둔다. readerLoad가 onboarding이면 낯선 핵심 개념은 하나만 전면에 두고, expansion이면 이미 체험한 개념을 조합하며, focus이면 특정 개념 하나가 장면의 중심일 때만 복잡하게 다룬다. 아크의 열린 결과나 다음 화를 미리 소비하지 않는다. 고정된 아크 비트에 형태(역할·반전 수준·기대 처리·떡밥 유형·떡밥 작업)가 적혀 있으면 구체적인 사건으로 실현한다. 실제 상태 때문에 그 형태가 불가능하면 가능한 한 가까운 형태로 계획하고 그 사실을 planConflict에 적는다. 아크 비트의 형태 코드는 입력이지 선택이 아니므로 바꿔 쓰지 않는다. 장면은 2~4개의 흐름 단위로 제한하고 문장 연출은 작가에게 남긴다. 순수 JSON만 출력한다.',
     user: (c) => [
       c.profileRender, '', c.identityRender, '', c.pilotRender, '', c.ledgerRender, '', `Arc: ${c.arcTitle}`, `Arc promise: ${c.arcPromise}`,
       ...(c.storySpineRender ? ['승인된 전체 이야기의 약속(아크와 별도로 확인하고 이번 화에서 미래 결말을 미리 소비하지 않는다):', c.storySpineRender, ''] : []),
       '이번 화 인물 감정 비트:', c.arcBeatsText,
-      '고정된 현재 화 비트:', c.arcBeatText, `사용자 추가 방향: ${c.direction}`,
+      '고정된 현재 화 비트:', c.arcBeatText,
+      ...(c.arcShapeText ? [c.arcShapeText] : []),
+      `사용자 추가 방향: ${c.direction}`,
       `수정 피드백: ${c.feedback}`, '이전 계획:', c.priorText, '',
       '세계 사실:', c.worldFactsText,
       '등장 가능 인물:', c.castText,
       ...(c.longMemoryText ? [c.longMemoryText, ''] : []),
       '최근 요약 (오래된 화부터):', c.summariesText, '',
       c.stateText, '',
+      c.hookEventsText, '',
+      '계획하기 전에 recap을 쓴다: 직전 화의 실제 결말과 위에 나열된 떡밥 사건에서 출발해 이번 화의 목표를 한두 문장으로 다시 적는다. 고정된 아크 비트가 전제하는 상태를 결말이나 떡밥 사건이 부정하면(예: 이미 회수된 떡밥, 더 이상 없는 인물, 이미 소비된 결과) planConflict를 채운다. 그래도 고정된 비트 안에서 계획하며 아크를 고쳐 쓰지 않는다.', '',
       '필수 JSON 스키마:',
-      '{"title":"가제","premise":"한 문장 상황","readerBridge":"사전 지식 없이도 붙잡을 즉시 상황과 결과","povCharacter":"id|null","cast":["등장 인물 id"],"foregroundCharacters":["실제로 선택 압력을 받는 중심 인물 id"],"locations":[""],"openingState":"","closingState":"","immediateGoal":"","obstacle":"","choice":"","outcome":"","nextQuestion":"","readerLoad":{"phase":"onboarding|expansion|focus","newConcepts":["낯선 핵심 개념"],"complexityReason":"focus일 때만 이유"},"scenes":[{"location":"","characters":["id"],"situation":"","choice":"","change":""}]}',
-      '선택 모듈 JSON 스키마(필요 없으면 키 자체를 생략한다. 쓰기로 했다면 그 모듈의 모든 필드를 채운다. characterAgendas는 항목마다 goal·nextAction·deadline·resources·knowledge·misbelief·redLine·fallback이 전부 필요하고, revealContracts는 dualUseClues·recontextualizesSceneIds·changes.actions과 relationships 또는 costs가 비어 있으면 안 된다):',
-      '{"characterAgendas":[{"characterId":"id","goal":"","hiddenPlan":"","nextAction":"","deadline":"","resources":[""],"knowledge":[""],"misbelief":"","redLine":"","fallback":""}],"characterCollisions":[{"agendaIds":["id","id"],"scarceConstraint":"","consequence":""}],"revealContracts":[{"id":"","inducedHypothesis":"","actualCause":"","dualUseClues":[""],"concealment":"","recontextualizesSceneIds":[""],"triggeredByChoice":"","changes":{"actions":[""],"relationships":[""],"costs":[""]}}],"episodeVoiceTargets":[{"characterId":"id","sceneOrder":1,"speakingPressure":"","surfaceIntent":"","hiddenIntent":"","sampleLine":"","narrationFilter":""}],"readerExpectation":{"likelyOutcome":"","evidenceOnPage":[""],"confidenceTarget":"low|medium|high"},"tension":{"ticking":"","stake":"","escalation":""},"costCreatedByResolution":{"immediate":"","deferred":"","beneficiary":"","payer":""},"reveals":[""],"withheld":[""],"powerChanges":[""],"artifacts":[""],"hooksTouched":[""],"carryForward":[""]}',
+      '{"recap":"","title":"가제","premise":"한 문장 상황","readerBridge":"사전 지식 없이도 붙잡을 즉시 상황과 결과","povCharacter":"id|null","cast":["등장 인물 id"],"foregroundCharacters":["실제로 선택 압력을 받는 중심 인물 id"],"locations":[""],"openingState":"","closingState":"","immediateGoal":"","obstacle":"","choice":"","outcome":"","nextQuestion":"","readerLoad":{"phase":"onboarding|expansion|focus","newConcepts":["낯선 핵심 개념"],"complexityReason":"focus일 때만 이유"},"scenes":[{"location":"","characters":["id"],"situation":"","choice":"","change":""}]}',
+      '선택 모듈 JSON 스키마(필요 없으면 키 자체를 생략한다. planConflict는 충돌이 없으면 생략한다. 쓰기로 했다면 그 모듈의 모든 필드를 채운다. characterAgendas는 항목마다 goal·nextAction·deadline·resources·knowledge·misbelief·redLine·fallback이 전부 필요하고, revealContracts는 dualUseClues·recontextualizesSceneIds·changes.actions과 relationships 또는 costs가 비어 있으면 안 된다):',
+      `{"planConflict":{"beatAssumption":"","actualState":"","evidence":""},"characterAgendas":[{"characterId":"id","goal":"","hiddenPlan":"","nextAction":"","deadline":"","resources":[""],"knowledge":[""],"misbelief":"","redLine":"","fallback":""}],"characterCollisions":[{"agendaIds":["id","id"],"scarceConstraint":"","consequence":""}],"revealContracts":[{"id":"","inducedHypothesis":"","actualCause":"","dualUseClues":[""],"concealment":"","recontextualizesSceneIds":[""],"triggeredByChoice":"","changes":{"actions":[""],"relationships":[""],"costs":[""]}}],"episodeVoiceTargets":[{"characterId":"id","sceneOrder":1,"speakingPressure":"","surfaceIntent":"","hiddenIntent":"","sampleLine":"","narrationFilter":""}],"readerExpectation":{"likelyOutcome":"","evidenceOnPage":[""],"confidenceTarget":"low|medium|high","handling":"${EXPECTATION_HANDLING.join('|')}"},"tension":{"ticking":"","stake":"","escalation":""},"costCreatedByResolution":{"immediate":"","deferred":"","beneficiary":"","payer":""},"reveals":[""],"withheld":[""],"powerChanges":[""],"artifacts":[""],"hooksTouched":[""],"carryForward":[""]}`,
       'hooksTouched에는 위 현재 상태에 보이는 떡밥 id(예: h3)만 쓴다. 새로 심을 떡밥은 적지 않는다.',
     ].join('\n'),
   },
@@ -151,7 +161,7 @@ export const steps = {
 
   'pattern-ledger': {
     system: '회차의 표면 소재가 아니라 독자가 실제로 경험한 서사 패턴을 정규화해 추출한다. 서로 다른 표현이 같은 기능이면 같은 짧은 범주명을 쓴다. 해결 방식·도덕적 선택·대가의 형태·결정적 증거 계열·주 장면 모드·정서 온도·마지막 이미지·코미디 구조·주인공 사고법·판단 오차와 수정·조연의 독립 행동·마지막 훅 유형을 기록한다. 순수 JSON만 출력한다.',
-    user: (c) => `${c.notesText ? `${c.notesText}\n\n` : ''}본문:\n${c.prose}\nJSON: {"solutionPattern":"환경이용|규칙재해석|협상|전투|희생|정보전|관계선택|기타","moralChoice":"사람vs성과처럼 선택의 양쪽을 짧게","costShape":"신체|관계|지위|자원|정보|시간|정체성|없음|기타","evidenceFamily":"문서|수치|물증|증언|행동모순|공간흔적|감각|없음|기타","sceneMode":"전투|협상|조사|훈련|이동|휴식|재판|침투|기타","emotionalTemperature":"경쾌|긴장|공포|분노|슬픔|친밀|수치|해방|기타","endingImage":"문서봉인|검은증거|부상|이별|새인물|공간변화|규칙고지|관계행동|기타","comedyMechanism":"","protagonistMethod":"","mistakeAndCorrection":"","supportingAgency":{"characterId":"독립적으로 한 선택"},"hookType":"result|reinterpretation|relationship|ability|moral|identity|none"}`,
+    user: (c) => `${c.notesText ? `${c.notesText}\n\n` : ''}본문:\n${c.prose}\nJSON: {"solutionPattern":"환경이용|규칙재해석|협상|전투|희생|정보전|관계선택|기타","moralChoice":"사람vs성과처럼 선택의 양쪽을 짧게","costShape":"신체|관계|지위|자원|정보|시간|정체성|없음|기타","evidenceFamily":"문서|수치|물증|증언|행동모순|공간흔적|감각|없음|기타","sceneMode":"전투|협상|조사|훈련|이동|휴식|재판|침투|기타","emotionalTemperature":"경쾌|긴장|공포|분노|슬픔|친밀|수치|해방|기타","endingImage":"문서봉인|검은증거|부상|이별|새인물|공간변화|규칙고지|관계행동|기타","comedyMechanism":"","protagonistMethod":"","mistakeAndCorrection":"","supportingAgency":{"characterId":"독립적으로 한 선택"},"hookType":"${HOOK_TYPES.join('|')}"}`,
   },
 
   // main(4a928e2) src/tools/check.js 의 story-profile-check 와 byte 단위로 같다.
@@ -188,6 +198,7 @@ export const steps = {
       '본문에 실제 등장하거나 이번 장면의 선택 압력으로 직접 작동한 인물만 평가한다. 등록됐지만 이번 화에 나오지 않은 인물은 감점하지 않는다. dimensions는 작품 전체가 아니라 이번 화에 실제 작동한 인물들의 충실도를 각 축별 0~100으로 평가한다. score는 기존 다섯 핵심 dimensions의 산술평균이어야 한다. flexibilityDimensions는 캐릭터가 프로필을 반복 낭독하지 않고 상황에 따라 변주되는지를 별도로 평가한다.',
       'voice는 이름을 가려도 화자를 구분할 수 있는지, speechProfile과 관계별 말투 변형이 살아 있는지, 이번 화 말투 목표의 압력과 숨은 목적이 대사에 반영됐는지를 본다.',
       'dialogueIntent는 대화 전체가 정보 설명만으로 끝나는지 본다. 개별 대사마다 회피·압박·시험·유혹·관계 재정의를 강제하지 않으며, 짧은 대답·일상 반응·말하지 않음이 장면의 사람다운 호흡을 만들면 긍정적으로 평가한다.',
+      'motivation은 전면에 선 인물이 오직 플롯이 필요해서만 움직일 때(그 전에 지면에 드러난 욕구나 압력이 없을 때), 또는 서술이 동기를 직접 밝혀 버리고 선택이 그것을 드러내게 하지 않을 때 낮게 준다.',
       'findings에는 반드시 해당 판단을 독립적으로 확인할 수 있는 짧은 본문 근거와 confidence(0~1)를 붙인다. 장면 하나의 명확한 불일치는 평균 점수를 억지로 낮추지 말고 finding으로 분리한다.',
       'JSON: {"score":0,"dimensions":{"voice":0,"motivation":0,"responseCausality":0,"relationshipContinuity":0,"dialogueIntent":0},"flexibilityDimensions":{"voiceRange":0,"offAxisHumanity":0,"profileRestraint":0},"characters":[{"characterId":"id","verdict":"pass|warn|fail","evidence":"행동/대사 근거"}],"findings":[{"characterId":"id","dimension":"voice|motivation|responseCausality|relationshipContinuity|dialogueIntent|voiceRange|offAxisHumanity|profileRestraint","code":"VOICE_MISMATCH|VOICE_NOT_DISTINCT|VOICE_SAMPLE_COPIED|MOTIVATION_BREAK|UNCAUSED_RESPONSE|RELATIONSHIP_DRIFT|GENERIC_DIALOGUE|DIALOGUE_INFO_ONLY|VOICE_RANGE_NARROW|OFF_AXIS_HUMANITY_MISSING|PROFILE_OVERPERFORMANCE","message":"최소 수정 방향","evidence":"본문의 짧고 구체적인 근거","confidence":0.0}]}',
     ].join('\n'),
@@ -319,6 +330,28 @@ export const phrases = {
     mapResolutionCost: (v) => `해결 비용=${v}`,
     mapCarry: (v) => `전달=${v}`,
     mapExitValue: (v) => `다음 가치=${v}`,
+    rhythm: (depthMode, { unitMin, unitMax, breatherAfterTension }) => {
+      const unit = `${unitMin}-${unitMax}`;
+      const bodies = {
+        'commercial-dramatic': `${unit}화 단위의 묶음으로 나누고, 각 묶음은 작은 보상이 있는 정점으로 끝낸다. 긴장 회차는 연속 ${breatherAfterTension}화까지만 두고 그다음에 숨 돌리는 회차를 놓는다. 충족(fulfill)에 지연(delay)과 반전(twist)을 섞는다. twistLevel 2-3은 한 묶음에 한 번까지만 쓴다.`,
+        'light-webnovel': `회차를 ${unit}화 단위의 긴장 묶음으로 나눈다. 각 묶음은 독자가 체감할 보상이 있는 정점으로 끝나며, 대부분 충족(fulfill)으로 처리한다. 긴장 회차(${TENSION_ROLES.join('/')})가 ${breatherAfterTension}화 연속되면 숨 돌리는 회차나 보상을 둔다. twistLevel은 대체로 0-1로 두고, 3은 아크당 한 번까지만 쓴다.`,
+        'deep-world-driven': `${unit}화 단위의 묶음으로 나눈다. 긴장 회차는 연속 ${breatherAfterTension}화까지만 두고 그다음에 숨 돌리는 회차를 놓되, 그 회차는 휴식 대신 세계의 질감이나 관계의 변화를 담아도 된다. 지연(delay)은 아크가 이유와 보상 회차를 밝혀 둘 때만 허용한다. twistLevel 3은 misconceptionStack 항목이 근거를 깔아 둔 경우에만 쓴다.`,
+      };
+      return `리듬 지침:\n${bodies[Object.hasOwn(bodies, depthMode) ? depthMode : 'commercial-dramatic']} 이는 지침이지 할당량이 아니다. 3화짜리 아크는 한 묶음일 수 있다.`;
+    },
+    shape: {
+      prefix: '형태: ',
+      join: ' · ',
+      role: { setup: '도입', escalation: '고조', peak: '정점', breather: '숨 고르기' },
+      twist: (n) => `반전 ${n}`,
+      expectation: (label) => `기대: ${label}`,
+      handling: { fulfill: '충족', delay: '지연', twist: '반전', invert: '뒤집기' },
+      hook: (label) => `끝 고리: ${label}`,
+      hookType: { result: '결과', reinterpretation: '재해석', relationship: '관계', ability: '능력', moral: '도덕', identity: '정체', none: '없음' },
+      hooks: (items) => `복선: ${items.join(', ')}`,
+      hookOp: { planted: '심기', advanced: '강화', paid: '회수' },
+      hookItem: (opLabel, label) => `${opLabel} "${label}"`,
+    },
     characterCurveHeading: '- 인물 감정 곡선:',
     characterCurve: (id, promise, beats) => `  - ${id}: ${promise} / ${beats}`,
     characterCurveBeat: (index, beat, note) => `${index}화=${beat}(${note})`,
@@ -412,6 +445,7 @@ export const phrases = {
       sceneMode: '주 장면 모드', emotionalTemperature: '정서 온도', endingImage: '결말 이미지',
     },
     readerCheckFailed: (key, evidence) => `독자 견인 점검 ${key} 불충족${evidence ? ` (근거: ${evidence})` : ''}`,
+    planConflict: (assumption, actual, evidence) => `회차 계획 충돌: 아크 비트는 "${assumption}"을(를) 전제하지만 실제 상태는 "${actual}"${evidence ? ` (근거: ${evidence})` : ''}`,
     perfectJudgment: '최근 3화에서 주인공 판단의 오차·반론·수정이 없다.',
     hookRepetition: (hookType) => `최근 3화가 같은 ${hookType} 훅으로 끝난다. 다음 회차 가치의 종류를 바꿔라.`,
   },
@@ -607,6 +641,8 @@ export const phrases = {
     historyItem: (chapter, event, note) => `${chapter}화 ${event}${note ? ` ${note}` : ''}`,
     dormantHooksHeading: '잠복한 떡밥 (다시 꺼낼 수 있음):',
     pendingHeading: '아직 일어나지 않은 예정 사건:',
+    prevHookEventsHeading: '직전 화에서 떡밥에 일어난 사건 (planted=심음, advanced=진전, paid=회수, closed=종결, parked=보류):',
+    prevHookEventsNone: '(직전 화에서 심거나 진전하거나 회수하거나 종결하거나 보류한 떡밥 없음)',
     speakerAlias: (speaker, alias, name) => `- ${speaker}만 쓰는 ${name}의 별칭: "${alias}"`,
     eventWords: { registered: '등록', mentioned: '언급', changed: '변경', status: '상태 변경', restored: '복구', alias: '별칭', merged: '병합', planted: '심음', advanced: '진전', paid: '회수', reopened: '재개', parked: '잠복', closed: '종료', note: '메모' },
     statusWords: { active: '있음', lost: '행방불명', destroyed: '파괴됨', retired: '안 씀', secret: '비밀', partial: '일부 앎', public: '공개', pending: '예정', prevented: '저지됨', happened: '일어남', altered: '바뀜', open: '열림', dormant: '잠복', paid: '회수됨', closed: '종료' },

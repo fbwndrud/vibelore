@@ -426,6 +426,15 @@ Pending plans can be regenerated at the same number; completed arcs allow planni
 While a scene workflow (`lore_write` with `form=scene`) is open and not in `clean_fail`, it owns the next chapter, so planning is refused with `SCENE_IN_PROGRESS`.
 A failed (`clean_fail`) scene does not block; after the arc is approved, `lore_write(form="chapter")` replaces it.
 
+Each chapter may optionally carry shape codes: `role` (`setup|escalation|peak|breather`),
+`twistLevel` (0-3), `expectationHandling` (`fulfill|delay|twist|invert`), `hookType`, and
+`hookOps` (up to 4 `{op, label}` entries, where `op` is one of `planted|advanced|paid`). All are
+optional and never enforced. Invalid values are dropped and the plan stays valid. Rhythm guidance
+(such as a breather after a run of tension) follows the work's `depthMode`, and is
+`commercial-dramatic` when there is no profile. When at least one chapter carries codes, the review
+result includes `rhythmStrip`, one line per chapter that carries codes, in the work language,
+showing the rhythm. Existing arcs without codes are saved and shown as before.
+
 | Required | Optional |
 |---|---|
 | `workId` | `project`, `mode: review\|auto`, `episodes`, `direction`, `feedback`, `replaceActive` |

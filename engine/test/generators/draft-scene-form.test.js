@@ -60,11 +60,11 @@ async function capture(extra = {}) {
 
 describe('draft scene form — chapter prompt bytes are unchanged', () => {
     const BASELINES = {
-        ko: '60a43e97f4c928376fc8137536d8683a87e8a799184bbab78e5d43eb9fe0ec8c',
-        multilingual: '506781e8fca8440bdc56c778a3d17b30cff922dd1a5269ce8208a5b32842ca98',
-        opening: '8abc9e6bfa0d2f32e215190fed30116a38163b7bfbed26686543800cd4e49d66',
-        closing: '156b01dbd38f42d8d9589661fd9b661ed92579b7648a9f182ef8aa880cd48e9d',
-        relaxed: 'd770007a8495d9513768cabc77d833c38deacf932aef26dbc826b7a01bb6c485',
+        ko: 'c96015923bdefba39fa73ba2ad18da5691a07f0780c3c260c4318873ac0fddbe',
+        multilingual: '5ef067dfeb34ca34dc99edd77408ea2c396fc293ad8c1050c5f0c7e860adbcc4',
+        opening: '74aea8fa00fa17b1c15b018ebaf5359f98c1231c1973dee049071cd2705f5502',
+        closing: '6bb6d066f0a8b1d59e4ed893c332642f96a59d423e7a17e361e21f158bc5fcee',
+        relaxed: 'a715e71d461fbf809072993b47183a0ba50148fdf594c1eaded6387d9878c313',
     };
     it('buildDraftSystem() and draftSystemStatic(ko)', () => {
         expect(sha(buildDraftSystem())).toBe(BASELINES.ko);

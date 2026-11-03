@@ -1,6 +1,6 @@
 import { renderLongMemory } from './arc-summary.js';
 import { planningFoundation } from '../core/lore-runtime.js';
-import { planningCast, renderArcBeat, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
+import { planningCast, renderArcBeat, renderArcBeatShape, renderCastBrief, renderCharacterArcBeats, renderCurrentState, renderPreviousChapterHookEvents, renderSummaries, renderWorldFacts } from '../core/prompt-sections.js';
 import { gateApprovalActivation } from '../core/approval-language-gate.js';
 import { characterArcBeatsForEpisode, episodeForChapter } from './arc.js';
 import { renderStoryProfile } from './story-profile.js';
@@ -17,6 +17,7 @@ import { loadLedgerConfig, planningReviewSelection } from '../core/review-policy
 import { renderStorySpine } from './story-spine.js';
 import { ledgerBaseState } from './ledger-log.js';
 import { reviewPlanningStage } from '../core/planning-stage-review.js';
+import { EXPECTATION_HANDLING, HOOK_TYPES } from '../core/narrative-codes.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 const strings = (value, max = 20) => Array.isArray(value)
@@ -24,6 +25,25 @@ const strings = (value, max = 20) => Array.isArray(value)
   : [];
 const text = (value, max = 1000) => String(value ?? '').trim().slice(0, max);
 const scalarText = (value) => typeof value === 'string' || typeof value === 'number' ? value : '';
+
+// The planner's own report keys: later plan-building steps must carry them through unchanged.
+export const PLAN_REPORT_KEYS = Object.freeze(['recap', 'planConflict']);
+
+/**
+ * The planner's own report on its inputs. It is stored with the plan but never
+ * rendered to the writer or the critics. A malformed value is dropped, and a
+ * conflict is kept only when it names both the assumption and the actual state.
+ */
+export function planReport(obj) {
+  const recap = typeof obj.recap === 'string' ? text(obj.recap, 400) : '';
+  const raw = obj.planConflict && typeof obj.planConflict === 'object' && !Array.isArray(obj.planConflict) ? obj.planConflict : null;
+  const field = (value) => (typeof value === 'string' ? text(value, 300) : '');
+  const conflict = raw && { beatAssumption: field(raw.beatAssumption), actualState: field(raw.actualState), evidence: field(raw.evidence) };
+  return {
+    ...(recap ? { recap } : {}),
+    ...(conflict?.beatAssumption && conflict.actualState ? { planConflict: conflict } : {}),
+  };
+}
 
 function parse(raw) {
   try { return JSON.parse(String(raw).replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim()); }
@@ -198,7 +218,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
   if (storyProfile && storyProfile.status !== 'active') throw new Error('StoryProfile 승인 후 에피소드를 계획하세요.');
   const prior = await store.loadEpisodePlan(workId, chapter);
   const summaries = await store.loadRecentChapterSummaries(workId, chapter, 5);
-  const state = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1 }) : null;
+  const ledgerConfig = await loadLedgerConfig(store, workId);
+  const state = chapter > 1 ? await ledgerBaseState({ store, workId, chapter: chapter - 1, config: ledgerConfig }) : null;
   const knownHookIds = new Set((state?.hooks ?? []).map((hook) => hook.id));
   const identity = await store.loadStoryIdentity(workId);
   const pilotContract = chapter === 1 ? await store.loadPilotContract(workId) : null;
@@ -216,6 +237,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       arcTitle: arcPlan.title, arcPromise: arcPlan.promise,
       arcBeatsText: renderCharacterArcBeats(characterArcBeatsForEpisode(arcPlan, arcBeat.index), foundation, kit) || kit.phrases.common.noneParen,
       arcBeatText: renderArcBeat(arcBeat, kit),
+      arcShapeText: renderArcBeatShape(arcBeat, kit),
       direction: direction || kit.phrases.common.noneParen,
       feedback: feedback || kit.phrases.common.noneParen,
       priorText: prior ? renderEpisodePlan(prior, kit) || kit.phrases.common.noneParen : kit.phrases.common.noneParen,
@@ -223,7 +245,8 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       castText: renderCastBrief(foundation, kit, { focusText: planFocus, chapter }),
       summariesText: renderSummaries(summaries, kit) || kit.phrases.common.noneParen,
       longMemoryText: await renderLongMemory({ store, workId, arcPlan, chapter, kit }),
-      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'planner', focusText: planFocus, oldestHooks: 3, config: await loadLedgerConfig(store, workId) }) || kit.phrases.common.noneParen,
+      stateText: renderCurrentState(state, foundation, { cast: planningCast(foundation, { focusText: planFocus, chapter }), kit, mode: 'planner', focusText: planFocus, oldestHooks: 3, config: ledgerConfig }) || kit.phrases.common.noneParen,
+      hookEventsText: renderPreviousChapterHookEvents(state, chapter, kit, ledgerConfig),
   });
   const response = await providers.complete({ model: MODEL, jsonMode: true, step: 'episode-plan', messages: planMessages });
   if ((providers.pending?.length ?? 0) > 0) return { preview: true };
@@ -293,6 +316,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
     const requestedConcepts = Array.isArray(obj.readerLoad?.newConcepts)
       ? obj.readerLoad.newConcepts
       : [arcBeat.readerLoad?.newConcept].filter(Boolean);
+    const handling = [obj.readerExpectation?.handling, arcBeat.expectationHandling].find((code) => EXPECTATION_HANDLING.includes(code));
     const plan = {
       ...(planning ? { worldContext: planning } : {}),
       workId, episodePlanSchemaVersion: 2, contractVersion: MCP_CONTRACT_VERSION,
@@ -312,7 +336,10 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
         complexityReason: text(obj.readerLoad?.complexityReason || arcBeat.readerLoad?.complexityReason, 300),
       },
       entryState: { activeQuestion: text(obj.entryState?.activeQuestion || obj.premise), protagonistImmediateWant: immediateGoal, tickingLoss: text(obj.entryState?.tickingLoss) },
-      readerExpectation: { likelyOutcome: text(obj.readerExpectation?.likelyOutcome), evidenceOnPage: strings(obj.readerExpectation?.evidenceOnPage, 8), confidenceTarget: text(obj.readerExpectation?.confidenceTarget, 20) },
+      readerExpectation: {
+        likelyOutcome: text(obj.readerExpectation?.likelyOutcome), evidenceOnPage: strings(obj.readerExpectation?.evidenceOnPage, 8), confidenceTarget: text(obj.readerExpectation?.confidenceTarget, 20),
+        ...(handling ? { handling } : {}),
+      },
       scenePressure: { choiceOwner: text(obj.scenePressure?.choiceOwner || obj.povCharacter, 120), incompatibleGoods: strings(obj.scenePressure?.incompatibleGoods, 4), withheldByOther: obstacle, decisionDeadline: text(obj.scenePressure?.decisionDeadline) },
       payoff: { promisePaid: text(obj.payoff?.promisePaid || scalarText(obj.payoff) || outcome), proofOnPage: text(obj.payoff?.proofOnPage || outcome), notJustReported: obj.payoff?.notJustReported !== false },
       turn: { brokenBelief: text(obj.turn?.brokenBelief), causedByChoice: choice, priorClueReinterpreted: text(obj.turn?.priorClueReinterpreted) },
@@ -320,7 +347,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       exitValue: {
         closedQuestion: text(obj.exitValue?.closedQuestion),
         nextQuestion,
-        hookType: text(obj.exitValue?.hookType || 'result', 40),
+        hookType: [obj.exitValue?.hookType, arcBeat.hookType].find((code) => HOOK_TYPES.includes(code)) ?? text(obj.exitValue?.hookType || 'result', 40),
         specificFutureValue: text(obj.exitValue?.specificFutureValue || nextQuestion),
       },
       metricDramaturgy: Object.fromEntries(Object.entries(obj.metricDramaturgy && typeof obj.metricDramaturgy === 'object' ? obj.metricDramaturgy : {}).map(([key, value]) => [key, text(value, 500)])),
@@ -332,6 +359,7 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       powerChanges: strings(obj.powerChanges), artifacts: strings(obj.artifacts), absurdity: text(obj.absurdity),
       characterArcBeats: characterArcBeatsForEpisode(arcPlan, arcBeat.index),
       ...(pilotContract ? { pilotContract } : {}),
+      ...planReport(obj),
       // Only hooks that exist: the plan's hook ids pin them into the extraction and writer input.
       hooksTouched: strings(obj.hooksTouched).filter((id) => knownHookIds.has(id)), carryForward: strings(obj.carryForward),
       status: mode === 'review' ? 'pending' : 'active', revision: Number(prior?.revision ?? 0) + 1,
@@ -371,13 +399,16 @@ export async function runEpisodePlan({ store, workId, chapter, mode = 'auto', di
       throw new Error(`EPISODE_PACKET_OVERFLOW: 계획이 Writer Packet 예산을 초과합니다 (${packet.error.requiredTokens}/${packet.error.maxTokens} 토큰).`);
     }
   }
+  // The report describes the planner's inputs, so a revision keeps the first pass's.
+  const candidate = plan;
   const reviewed = await reviewPlanningStage({ stage: 'episode', profile: storyProfile, candidate: plan,
     selection: await planningReviewSelection(store, workId, 'episode', storyProfile),
     context: { foundation, profile: storyProfile, storySpine: storySpine?.status === 'active' ? storySpine : null, arcPlan, arcBeat, summaries, state, direction, feedback }, providers, kit,
     rebuild: value => {
       const accepted = acceptPlan(JSON.stringify(value));
       if (accepted.failure) throw new Error(`${accepted.failure.error.code}: ${accepted.failure.error.message}`);
-      const revised = buildPlan(accepted);
+      const { recap, planConflict, ...built } = buildPlan(accepted);
+      const revised = { ...built, ...planReport(candidate) };
       const packet = packetBudget(revised);
       if (!packet.ok) throw new Error(`${packet.error.code}: ${JSON.stringify(packet.error)}`);
       return revised;

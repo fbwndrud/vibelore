@@ -173,6 +173,7 @@ function draftRulesBase(context) {
         ko: (ctx) => [
             '본문 작성 규칙:',
             '- 본문은 자연스러운 한국어 prose. 부제목/장 번호/메타 주석/내부 메모는 금지.',
+            '- 본문 안에서 \'N화에서\', \'지난 화\', \'앞서 말했듯\' 같은 연재 메타 서술을 쓰지 않는다. 이전 사건은 인물의 현재 기억·감각·대사로만 떠올리고, 줄거리를 요약하는 회상 문단으로 다시 들려주지 않는다.',
             '- 캐릭터 intrinsic(성별, 연령대, 역할) 은 Foundation 기준. 본문이 이와 모순되면 안 된다.',
             '- 호칭은 화자→대상 관계와 캐릭터 성별을 고려해 선택한다.',
             lengthRuleLine(ctx),
@@ -180,6 +181,7 @@ function draftRulesBase(context) {
         multilingual: (ctx) => [
             'Chapter writing rules:',
             '- Write natural prose in the target work language. No subtitles, chapter numbers, meta commentary, or internal notes.',
+            '- Never refer to the serial inside the prose: no chapter numbers or \'last episode\', no \'as mentioned before\', no paragraph that recaps earlier plot as a summary. Earlier events return only through a character\'s present memory, sensation or dialogue.',
             '- Character intrinsics (gender, age band, role) follow the Foundation. The prose must not contradict them.',
             '- Choose forms of address from the speaker-to-listener relationship and the conventions of the target language, not from Korean honorific rules.',
             lengthRuleLine(ctx),

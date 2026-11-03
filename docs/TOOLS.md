@@ -417,6 +417,15 @@ pending 계획은 같은 번호로 다시 만들 수 있고 완료된 아크 뒤
 열린 장면 workflow(`lore_write`의 `form=scene`)가 `clean_fail`이 아니면 그 장면이 다음 회차를 차지하므로 `SCENE_IN_PROGRESS`로 거절합니다.
 실패(`clean_fail`)한 장면은 막지 않으며, 아크를 승인한 뒤 `lore_write(form="chapter")`가 그 장면을 대체합니다.
 
+각 회차는 선택적으로 형태 코드를 가질 수 있습니다: `role`(`setup|escalation|peak|breather`),
+`twistLevel`(0~3), `expectationHandling`(`fulfill|delay|twist|invert`), `hookType`, 그리고
+`hookOps`(`op`가 `planted|advanced|paid`인 `{op, label}` 항목, 최대 4개). 모두 선택이며
+강제하지 않습니다.
+유효하지 않은 값은 버려지고 계획은 그대로 유효합니다. 리듬 안내(긴장이 이어진 뒤의 숨 고르기
+등)는 작품의 `depthMode`를 따르며 프로필이 없으면 `commercial-dramatic`입니다. 코드가 있는
+회차가 하나라도 있으면 검토 결과에 `rhythmStrip`이 포함되어, 코드가 있는 회차마다 한 줄(작품
+언어)로 리듬을 보여 줍니다. 코드가 없는 기존 아크는 저장·표시가 이전과 같습니다.
+
 | 필수 | 선택 |
 |---|---|
 | `workId` | `project`, `mode: review\|auto`, `episodes`, `direction`, `feedback`, `replaceActive` |

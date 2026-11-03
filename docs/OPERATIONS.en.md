@@ -503,6 +503,7 @@ increase `limit`. Requests and answers not stored by earlier versions are not re
 |---|---|
 | Which preferences and examples went into the draft | `draft_context_supplied.draftContract` |
 | Which creative preferences the workflow pinned and where the chapter strayed from them | events `creative_preferences_pinned`, and `creative_preferences_changed` when a change stopped the workflow; `warn`/`fail` verdicts are reported as `CREATIVE_PREFERENCE` advisories (soft, never blocking); `pass` verdicts are not listed |
+| Whether the episode plan reported that the fixed arc beat assumes a state the story no longer has | event `episode_plan_conflict` (logged once per plan revision), the `EPISODE_PLAN_CONFLICT` advisory (soft; never blocks, never triggers a revision, never demotes `auto`), and `planConflict` in the plan file (stored alongside `recap`; not passed to the writer or critics) |
 | What weaknesses were found despite a high score | `reviews_completed.review.records[].findings` |
 | Which manuscript and contract were reviewed, and by whom | The review record's `proseHash`, `contractDigest`, `requestId`, `evaluator` |
 | Whether the review completed normally | `quality.review.status`, each record's `status` and `failure` |

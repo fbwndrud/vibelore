@@ -523,6 +523,7 @@ host relay의 모델 입출력을 보존하며 통과로 계산하지 않습니�
 |---|---|
 | 어떤 취향과 예시가 초고에 들어갔는가 | `draft_context_supplied.draftContract` |
 | 어떤 창작 선호가 workflow에 고정됐고 어디서 어긋났는가 | 이벤트 `creative_preferences_pinned`, 선호가 중간에 바뀌어 멈춘 경우 `creative_preferences_changed`, `warn`/`fail` 판정은 `CREATIVE_PREFERENCE` advisory(soft, 차단 안 함)로 알리고 `pass` 판정은 목록에 넣지 않음 |
+| 회차 계획이 고정된 아크 비트의 전제가 더는 맞지 않는다고 보고했는가 | 이벤트 `episode_plan_conflict`(계획 revision마다 한 번 기록), `EPISODE_PLAN_CONFLICT` advisory(soft, 차단·수정 요청·auto 강등 없음), 계획 파일의 `planConflict`(`recap`과 함께 저장되며 작가·critic에는 전달하지 않음) |
 | 높은 점수에도 어떤 약점이 발견됐는가 | `reviews_completed.review.records[].findings` |
 | 어떤 원고·계약을 누가 검토했는가 | 검토 record의 `proseHash`, `contractDigest`, `requestId`, `evaluator` |
 | 검토가 정상 완료됐는가 | `quality.review.status`, 각 record의 `status`와 `failure` |

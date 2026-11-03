@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- 아크 회차가 선택적 형태 코드(`role`, `twistLevel`, `expectationHandling`, `hookType`,
+  `hookOps`)를 가질 수 있고, 유효하지 않은 값은 버려지며 강제하지 않습니다. 작품의
+  `depthMode`(기본 `commercial-dramatic`)에 따른 리듬 안내가 아크 계획에 들어가고(회차 계획에는
+  형태 한 줄이 들어갑니다), 아크 검토 결과의 `rhythmStrip`이 코드가 있는 회차마다 한 줄로 리듬을
+  보여 줍니다. 회차 계획은 `recap`과 `planConflict`를 저장하며, 고정된 아크 비트와 현재 상태가
+  어긋난다는 보고는 `EPISODE_PLAN_CONFLICT` advisory(soft)와 계획 revision당 한 번의
+  `episode_plan_conflict` 이벤트로만 남고 커밋 차단·수정 요청·auto 강등을 일으키지 않습니다. 인물
+  critic에 동기 축을 정의하고, 초고 규칙은 본문에서 연재 자체를 언급하는 메타 서술을 금지합니다.
+  코드가 없는 기존 아크와 계획은 그대로 동작합니다.
 - 저장소 전용 Lore Studio에 로컬 제작·고정 Edition·공유 자산 Library·명시적 반입/채택과
   제작 사이클 기록을 추가합니다. npm runtime에는 Studio를 포함하지 않습니다.
 - Studio 자격 증명을 명시적 옵션으로만 읽고 MCP의 임의 소유자 연결을 거부합니다.

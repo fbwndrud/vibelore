@@ -35,7 +35,7 @@ import { createReviewAudit, reviewFindingAdvisories, reviewTimeoutMs } from '../
 import { compileDraftContract } from '../core/narrative-contract.js';
 import { assertCurrentChapterReceipt, currentValidationContext, sameIdentity, exceptionOnlyRebind, loadValidationSession, invalidateValidationSession } from '../core/validation-context.js';
 import { buildApprovalBinding, validateApprovalBinding } from '../../engine/src/core/validation-contract.js';
-import { promptKit } from '../prompts/index.js';
+import { asKit, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage, executionFoundationSnapshot } from '../core/work-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { normalizeModelProfile, withModelProfile } from '../core/model-profile.js';
@@ -182,6 +182,19 @@ export function creativePreferenceAdvisories(coherence, chapter) {
     .filter((entry) => entry.verdict === 'warn' || entry.verdict === 'fail')
     .map((entry) => ({ severity: 'soft', advisoryOnly: true, chapterNumber: chapter,
       code: 'CREATIVE_PREFERENCE', decisionId: entry.id, message: `${entry.statement}: ${entry.evidence}` }));
+}
+
+/**
+ * The episode planner's own report that the fixed arc beat assumes a state the
+ * story no longer has. Work-language text passes through unchanged; it is
+ * shown with the draft and never a fix ground.
+ */
+export function planConflictAdvisories(episodePlan, chapter, kitSource) {
+  const report = episodePlan?.planConflict;
+  if (!report?.beatAssumption || !report.actualState) return [];
+  const t = asKit(kitSource).phrases.experience;
+  return [{ severity: 'soft', advisoryOnly: true, chapterNumber: chapter, code: 'EPISODE_PLAN_CONFLICT',
+    message: t.planConflict(report.beatAssumption, report.actualState, report.evidence ?? '') }];
 }
 
 const livePreferencePin = async (store, workId) => creativePreferencePin((await store.loadCreativeDecisions?.(workId)) ?? null, workId);
@@ -809,6 +822,11 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
     if (!scene) violations.push(...dramaticQualityViolations(editorial, chapter));
     const fidelityViolations = characterFidelityViolations(characterFidelity, chapter);
     violations.push(...fidelityViolations);
+    const planConflict = planConflictAdvisories(episodePlan, chapter, kit);
+    if (planConflict.length) {
+      await logOnce(store, workflow, `plan-conflict:${chapter}:${episodePlan.revision}`, { at: now(), event: 'episode_plan_conflict', chapter,
+        arcEpisodeIndex: episodePlan.arcEpisodeIndex ?? null, beatAssumption: episodePlan.planConflict.beatAssumption, actualState: episodePlan.planConflict.actualState });
+    }
     const independentAdvisories = [
       ...editorialQualityAdvisories(editorial, chapter),
       ...characterFidelityAdvisories(characterFidelity, chapter),
@@ -816,6 +834,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
       ...readerHookAdvisories(readerHook, chapter, kit),
       ...authorRuleAdvisories(coherence, chapter),
       ...creativePreferenceAdvisories(coherence, chapter),
+      ...planConflict,
     ];
     violations.push(...independentAdvisories);
     if (readerHook.score !== null && readerHook.score < MIN_READER_HOOK) {

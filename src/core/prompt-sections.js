@@ -2,6 +2,7 @@ import { effectiveIntrinsic } from '../../engine/src/continuity/character.js';
 import { isHookActive, normalizeStoryState } from '../../engine/src/continuity/story-state.js';
 import { customItemFor, findRecord, hookStatusOf, ledgerHistory, ledgerNameKey, recordNames, trackingEnabled } from '../../engine/src/continuity/ledger.js';
 import { searchTerms } from './search-terms.js';
+import { normalizeEpisodeShape } from './narrative-codes.js';
 
 /**
  * Shared text renderers for every model request that carries characters, world
@@ -459,6 +460,46 @@ export function renderArcBeat(beat, kit) {
     lines.push(t.arcBeatField(label, value));
   }
   return lines.join('\n');
+}
+
+/** Shape codes of an arc beat as one localized line; '' when the beat carries none. */
+export function renderArcBeatShape(episode, kit) {
+  const t = kit.phrases.arc.shape;
+  const shape = normalizeEpisodeShape(episode);
+  const oneLine = (v) => v.replace(/\s+/g, ' ');
+  const parts = [];
+  if (shape.role) parts.push(t.role[shape.role]);
+  if (Number.isInteger(shape.twistLevel)) parts.push(t.twist(shape.twistLevel));
+  if (shape.expectationHandling) parts.push(t.expectation(t.handling[shape.expectationHandling]));
+  if (shape.hookType) parts.push(t.hook(t.hookType[shape.hookType]));
+  if (shape.hookOps?.length) parts.push(t.hooks(shape.hookOps.map((op) => t.hookItem(t.hookOp[op.op], oneLine(op.label)))));
+  return parts.length ? `${t.prefix}${parts.join(t.join)}` : '';
+}
+
+const PREVIOUS_HOOK_EVENTS_MAX = 8;
+
+/** Ledger event name for a hook that moved in the previous chapter; unlisted statuses mean it advanced. */
+const HOOK_STATUS_EVENT = Object.freeze({ paid: 'paid', closed: 'closed', dormant: 'parked' });
+
+/**
+ * What the previous chapter did to the hooks: planted, advanced, paid, closed or
+ * parked, one line each (ledger event names, not translated), sorted by id. A
+ * heading plus a fixed none line when there is nothing to show.
+ */
+export function renderPreviousChapterHookEvents(state, chapter, kit, config = {}) {
+  const t = kit.phrases.sections;
+  const previous = chapter - 1;
+  const events = previous < 1 || !state || !trackingEnabled(config, 'hooks') ? [] : asArray(state.hooks)
+    .map((hook) => {
+      if (hook.plantedAtChapter === previous) return { hook, event: 'planted' };
+      if (hook.lastMovedChapter !== previous) return null;
+      return { hook, event: HOOK_STATUS_EVENT[hookStatusOf(hook)] ?? 'advanced' };
+    })
+    .filter(Boolean)
+    .sort((a, b) => String(a.hook.id).localeCompare(String(b.hook.id), 'en', { numeric: true }))
+    .slice(0, PREVIOUS_HOOK_EVENTS_MAX);
+  const oneLine = (value) => clean(value).replace(/\s+/g, ' ');
+  return [t.prevHookEventsHeading, ...(events.length ? events.map(({ hook, event }) => `${hook.id}: ${oneLine(hook.text) || hook.id} (${event})`) : [t.prevHookEventsNone])].join('\n');
 }
 
 /**
