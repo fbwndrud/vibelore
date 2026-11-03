@@ -291,7 +291,7 @@ describe('MCP surface', () => {
     const tools = out.get(2).result.tools;
     assert.deepEqual(
       tools.map((t) => t.name).sort(),
-      ['lore_arc_decide', 'lore_arc_plan', 'lore_arc_review', 'lore_arc_status', 'lore_assets', 'lore_bind', 'lore_configure', 'lore_create', 'lore_decide', 'lore_init', 'lore_preferences', 'lore_profile', 'lore_profile_decide', 'lore_profile_status', 'lore_registry', 'lore_resume', 'lore_rollback', 'lore_scene_script', 'lore_snapshot_status', 'lore_status', 'lore_story_decide', 'lore_story_plan', 'lore_story_status', 'lore_style_anchor', 'lore_sync', 'lore_universe', 'lore_webtoon_scene', 'lore_webtoon_style', 'lore_workflow_history', 'lore_workflow_status', 'lore_write', 'lore_writer_decide', 'lore_writer_skill', 'lore_writer_status'],
+      ['lore_arc_decide', 'lore_arc_plan', 'lore_arc_review', 'lore_arc_status', 'lore_assets', 'lore_bind', 'lore_configure', 'lore_create', 'lore_decide', 'lore_init', 'lore_preferences', 'lore_profile', 'lore_profile_decide', 'lore_profile_status', 'lore_registry', 'lore_resume', 'lore_rollback', 'lore_scene_script', 'lore_snapshot_status', 'lore_status', 'lore_story_decide', 'lore_story_plan', 'lore_story_status', 'lore_style_anchor', 'lore_sync', 'lore_universe', 'lore_webtoon_episode', 'lore_webtoon_scene', 'lore_webtoon_style', 'lore_workflow_history', 'lore_workflow_status', 'lore_write', 'lore_writer_decide', 'lore_writer_skill', 'lore_writer_status'],
     );
     for (const t of tools) {
       assert.ok(t.description.length > 20, `${t.name} needs a real description`);
@@ -312,7 +312,7 @@ describe('MCP surface', () => {
   it('exposes only legacy panel tools additionally on the compatibility surface', async () => {
     const listed = await session([init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }], { surface: 'compat' });
     const tools = listed.get(2).result.tools;
-    assert.equal(tools.length, 37);
+    assert.equal(tools.length, 38);
     for (const name of ['lore_webtoon_plan', 'lore_webtoon_render', 'lore_webtoon_decide']) {
       assert.ok(tools.some(tool => tool.name === name));
       const hidden = await session([init, call(2, name, { workId: 'hidden' })], { surface: 'public' });
@@ -398,7 +398,7 @@ describe('MCP surface', () => {
       [init, { jsonrpc: '2.0', id: 2, method: 'tools/list' }],
       { surface: 'advanced' },
     );
-    assert.equal(listed.get(2).result.tools.length, 50);
+    assert.equal(listed.get(2).result.tools.length, 51);
     assert.ok(listed.get(2).result.tools.some((tool) => tool.name === 'lore_commit'));
 
     const hidden = await session(

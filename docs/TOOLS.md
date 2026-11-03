@@ -5,7 +5,7 @@
 호스트 AI와 직접 연동하는 사용자를 위한 호출 참조입니다. 일반 사용자는 인자를 직접 작성할
 필요 없이 [시작 안내](GETTING_STARTED.md)와 [웹툰 만들기](WEBTOON.md)를 따라 요청하세요.
 
-기본 서버가 노출하는 34개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
+기본 서버가 노출하는 35개 사용자 도구와 고급 표면의 13개 저수준 도구 사용 계약입니다.
 새 작품은 승인된 프로필·전체 스토리·작가 스킬·아크를 준비합니다. 이후 집필은
 `lore_arc_status`로 활성 아크를 확인하고 `lore_write`로 시작하며, 승인 대기일 때 `lore_decide`를 사용합니다.
 저수준 도구는 호환과 엔진 디버깅을 위해 유지하지만 기본 `tools/list`에는 나타나지 않습니다.
@@ -17,7 +17,7 @@
 집필에서는 이 도구들을 직접 조합하지 않습니다.
 
 기존 컷별 웹툰 마무리에는 `VIBELORE_MCP_SURFACE=compat`로 deprecated 3개 도구를
-추가 노출합니다(총 37개). 새 웹툰은 기본 표면의 `lore_webtoon_scene`을 사용합니다.
+추가 노출합니다(총 38개). 새 웹툰은 기본 표면의 `lore_webtoon_episode`를 사용합니다. 장면 한 장 생성은 사용자가 명시적으로 요청할 때만 `lore_webtoon_scene`을 사용합니다.
 
 ## 읽는 법
 
@@ -178,6 +178,16 @@ base language가 `ko`면 한국어 특화 계열, 그 밖의 언어(영어 포�
 기존 StoryProfile, StoryIdentity, WriterSkill을 중복 없는 v2 NarrativeContract로 컴파일하고
 StorySpine, ArcIntent, 다음 EpisodeIntent 및 현재 품질 파이프라인 모드를 한 번에 보여줍니다.
 구형 저장 데이터는 수정하지 않습니다. 선택 인자를 넘기면 작가 지원 설정만 저장합니다.
+
+- `webtoonReviewModel`: 웹툰 시각 검수에만 쓸 모델 ID 또는 `{provider:"host"|"local",modelId,reasoningEffort?}`.
+  생략은 유지, `null`은 기본 모델 복귀입니다. 호스트가 실제 해당 모델로 실행해야 하는 힌트이며 실행 증거와 구분합니다.
+  설정하면 쪽 시각 검수 응답에 `reviewerEvidence:{modelId,responseId}`가 필요합니다.
+- `webtoonAdaptationReviewModel`: `lore_webtoon_episode`의 각색 대본 검토에만 쓸 모델(형식·규칙은 `webtoonReviewModel`과 같음).
+  생략은 유지, `null`은 호스트 모델 복귀입니다. 설정하면 검토 응답에 `reviewerEvidence`가 필요하고, 설정이 없으면 결과가 `same-host`로 표시됩니다.
+- `webtoonPageCap`: 에피소드 각색의 쪽 수 상한, 1~20 정수(기본 6). 생략은 유지, `null`은 기본값 복귀입니다. start의 `pages`·`maxPages`가 우선합니다.
+- `webtoonImageQuality`: 쪽 이미지 요청에 실을 품질 `low|medium|high`. 생략은 유지, `null`은 지정 해제입니다. 다른 품질로 그린 이미지는 거절하지 않고 `qualityMismatch`로 기록합니다.
+- `webtoonSceneDirect`: `{enabled, userAnswer?}`. `enabled=true`는 사용자의 실제 답변 `userAnswer`가 필요하며(`WEBTOON_SCENE_DIRECT_USER_ANSWER_REQUIRED`),
+  켜면 `lore_webtoon_scene`의 start에서 `sceneDirect`를 생략할 수 있습니다. 생략은 유지, `null`은 기본값(`{enabled:false}`) 복귀입니다.
 
 - `disabledReviews`: 끌 매 화 검토 목록 전체(`story-profile-check`, `coherence-judge`,
   `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`). 꺼진 검토는
@@ -687,15 +697,32 @@ editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실
 사용자가 지정한 `explicitTargets`만 포함합니다. 위임 채택은 위임 범위와 호스트 선택 근거를 사용자 원답과 구분해 표시합니다.
 `styleRevisionId`로 과거 판본을 볼 때도 `decisions`는 현재 채택된 기준을 보여 줍니다.
 
+### `lore_webtoon_episode`
+
+새 웹툰 작업의 기본 경로입니다. 소설 화(또는 `lore_scene_script`로 채택한 대본)를 여러 쪽의 에피소드로 각색합니다. 순서는 원작 고정 → 쪽·칸 단위 각색 대본 → 대본 검토 → 사용자 승인 → 쪽마다 브리프·이미지·타일·시각 검토입니다. 각색 대본(`approvalView.pages`)과 검토 결과·예상 이미지 호출 수를 사용자에게 보여 `action=approve`(`approvalId`와 사용자 원답 `feedback`)를 받기 전에는 이미지를 한 장도 요청하지 않습니다. 각색 검토는 `lore_configure`의 `webtoonAdaptationReviewModel`로 설정한 모델이 실행하며(미설정은 호스트 모델) 응답의 `independence`에 기록됩니다. 한 장면을 이미지 한 장으로 만드는 `lore_webtoon_scene`은 사용자가 명시적으로 요청할 때만 씁니다.
+`action=start|approve|revise|retry|reject|verify`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `maxPages`(1~20), `pages`(정확한 쪽 수, 1~20), `references`(start마다 필수),
+`styleRevisionId`, `direction`, `adaptationRevisions`·`pageRevisions`(0~2), `delegation`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`,
+`approvalId`, `feedback`, `target`(`adaptation`|`page`), `pageIds`, `asset`, `tiles`를 받습니다. `needs_interview`·`needs_image_runtime`·`needs_image_choice`는 장면 경로와 같고, `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`입니다.
+- `start`는 각색(`webtoon-adaptation`)과 검토(`webtoon-adaptation-review`) 모델 요청을 거쳐 `awaiting_adaptation_approval`에서 멈춥니다. `delegation.scope="production"`이면 사용자 승인 대신 위임 기록으로 진행합니다.
+- `approve`는 승인 뒤 첫 쪽 브리프를 요청합니다. 대본이나 검토가 바뀌면 `ADAPTATION_APPROVAL_STALE`로 거절합니다.
+- 쪽마다 `needs_page_image`(`jobs`의 요청을 고른 경로로 실행하고 `asset: {pageId, path, inputHash, provenance}`로 반입, `provenance.requestedQuality`는 선택) → `needs_page_tiles`(쪽 이미지를 격자로 잘라 `tiles: {pageId, imageHash, items:[{id,path}]}`로 반입) → 시각 검토 순서이며, 모든 쪽이 통과하면 `completed`와 `episode.html`·제작 기록이 남습니다.
+- `revise`는 `target="adaptation"`(그린 쪽은 바뀌지 않은 앞쪽만 유지) 또는 `target="page"`(`pageIds`의 쪽과 그 뒤 쪽)이며 `feedback`이 필수입니다. `verify`는 쪽 이미지·타일·제작 기록 해시를 읽기 전용으로 대조해 불일치를 `mismatch` 상태로 보고하며, 원작·참조·채택 화풍이 바뀌면 보고 대신 오류(`EPISODE_SOURCE_CHANGED`, `EPISODE_REFERENCE_CHANGED`, `STYLE_*`)를 던집니다.
+상태는 `.vibelore/webtoon/`에 저장하며 소설 정본과 프로젝트 `webtoon/` 폴더는 건드리지 않습니다.
+
 ### `lore_webtoon_scene`
 
-새 웹툰 작업의 기본 경로입니다. 러프 없이 장면 전체와 대사를 함께 생성합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 이미지 선택이 없는 작품은 start가 먼저 `needs_image_runtime`을 반환합니다. 호스트가 실제로 가진 이미지 경로(내장 도구, API)를 `imageRuntime`으로 보고하면 `needs_image_choice`가 선택지 전체와 제안(내장 경로 우선)을 돌려주고, 사용자의 원답을 `feedback`에 넣어 `confirmImageChoice`로 확정합니다. 확정한 선택은 작품별로 유지되며 `changeImageChoice`로만 바꿉니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
+한 장면을 이미지 한 장으로 만드는 경로입니다. 사용자가 명시적으로 요청할 때만 씁니다(기본 경로는 `lore_webtoon_episode`). 러프 없이 장면 전체와 대사를 함께 생성합니다. 새 장면은 사용자가 `panelCount`를 정수(1~12) 또는 `"auto"`로 선택해야 하며, 누락 시 `needs_interview`로 `[4, 6, 8, 9, "auto"]`를 제안합니다. `auto`는 각색할 때마다 AI가 3~12칸 중 적정 수를 새로 고르고, 그 뒤 검증·이미지·검토는 그 수로 고정됩니다. 정수 3 미만은 허용하되 응답 `warnings`에 연속성 저하 경고를 실습니다. 이미지 선택이 없는 작품은 start가 먼저 `needs_image_runtime`을 반환합니다. 호스트가 실제로 가진 이미지 경로(내장 도구, API)를 `imageRuntime`으로 보고하면 `needs_image_choice`가 선택지 전체와 제안(내장 경로 우선)을 돌려주고, 사용자의 원답을 `feedback`에 넣어 `confirmImageChoice`로 확정합니다. 확정한 선택은 작품별로 유지되며 `changeImageChoice`로만 바꿉니다. `previousWorkflowId`로 직전 장면의 실제 이미지와 검토 결과를 이어 받아 인물·배경·동작 연속성을 검증합니다. 실제 칸 수가 선택과 다르면 완료되지 않습니다. 새 장면은 생성 전 검증에서 짧은 `renderBrief`와 `drawability` 판정을 확정해야 이미지 요청이 나갑니다. 그림 모델에는 검토 보고서나 중복 연출 설명을 보내지 않습니다. 생성 전 검증이나 이미지 검토가 불합격이면 `autoRevisions`(start 전용, 0~3, 기본 2) 횟수만큼 관측 결함을 feedback으로 자동 재설계하고 새 이미지 요청을 냅니다. 실패한 시도는 응답 `attempts`에 남고, 0이면 예전처럼 `scene_needs_revision`에서 멈춥니다.
 이 별도 경로는 원작 범위 고정 → 통합 영어 연출 → 생성 전 검증 → 장면 이미지 → 실제 시각 검토로 진행합니다.
-`action=start|revise|retry|verify|reject`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
-`previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback`, `asset`을 받습니다.
+`action=start|revise|retry|review|verify|reject`, `workflowId`, `revision`, `sourceChapters` 또는 `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references`(start마다 필수),
+`previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `sceneDirect`(start 전용, 사용자의 실제 답변 `{userAnswer}`), `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback`, `asset`을 받습니다.
+`start`는 `sceneDirect.userAnswer` 또는 작품 설정 `webtoonSceneDirect`가 없으면 `SCENE_DIRECT_OPT_IN_REQUIRED`로 거절하며 위임("알아서")은 이를 대신하지 못합니다.
 이미지 선택이 없으면 start가 `needs_image_runtime` → `needs_image_choice`를 반환하며, `needs_model`은 `lore_resume`, 조회는 `lane=webtoon`을 사용합니다.
 생성 전 검증이 통과해야 `needs_scene_image`가 나오며 이때만 고른 경로(`hostRequest` 또는 `apiRequest`)로 그림을 그립니다.
 원작·참조·계획 해시가 바뀐 반입과 미열람 시각 검토는 거절합니다.
+`action=review`는 보존 이미지의 검수만 새 모델 설정·프롬프트로 다시 실행합니다. 이미지와 revision·재생성 예산을 유지하고
+이전 검수·대기 요청은 `reviewHistory`에 보존합니다. 기존 대기 run은 닫히며 새 실제 request ID/runId로 답합니다.
+재검수 실패는 추가 이미지 호출 없이 `scene_needs_revision`으로 남습니다. 새 시각 검수는 `visualChecks` 다섯 항목의
+칸 번호·관측 근거를 요구하고 필수 관계의 `failed`·`uncertain`을 전체 true 값으로 통과시킬 수 없습니다.
 `scriptId`로 시작하면 `lore_scene_script`로 채택한 대본과 봉인 입력만 원천으로 쓰고, 참조는 `{id,assetId,description}`으로
 대본이 고정한 카탈로그 이미지를 지정합니다. 새로 시작한 장면은 완료 때 `.vibelore/productions/`에 원천 판본·잠금·참조와
 이미지 해시를 기록하며, `action=verify`가 세계 디렉터리 없이 그 기록과 봉인 바이트를 다시 검증합니다. 경로로만 받은 참조는
@@ -703,11 +730,11 @@ editorial, 인물 충실도, 프로필 검사와 승인·커밋은 그대로 실
 카탈로그 참조가 선택한 원문 장면 어디에도 적용되지 않으면 `SCENE_ASSET_STATE_MISMATCH`로 거절합니다.
 참조의 `entityId`, `stateIds`, 적용 `sceneIds`를 보존하고, 여러 시점을 함께 그릴 때 이미지 요청에 적용 순간을 명시합니다.
 재개는 검증된 원천을 사용합니다. 완료본 검증은 원본 세계 폴더가 없어도 보존 원장의 발췌 범위와 카탈로그 참조 ID·범위를 대조합니다.
-세부 계약은 [기본 경로](reference/WEBTOON_WORKFLOW.md#기본-경로-장면-통합-제작)를 참고하세요.
+세부 계약은 [장면 옵션](reference/WEBTOON_WORKFLOW.md#옵션-장면-통합-제작-명시-요청-전용)을 참고하세요. 기본 경로의 계약은 [에피소드 쪽 제작](reference/WEBTOON_WORKFLOW.md#기본-경로-에피소드-쪽-제작)입니다.
 
 ### `lore_webtoon_plan` (deprecated)
 
-컷별 경로이며 새 작업에는 쓰지 않습니다. `lore_webtoon_scene`이 기본입니다. 새 작업 시작은
+컷별 경로이며 새 작업에는 쓰지 않습니다. 기본 경로는 `lore_webtoon_episode`입니다. 새 작업 시작은
 `WEBTOON_PANEL_PATH_DEPRECATED`로 거절되며, 이미 시작된 컷별 작업의 이어가기·조회에만 씁니다.
 
 | 필수 | 선택 |
@@ -890,7 +917,7 @@ status는 기본 `detail="summary"`, 필요하면 `full`을 지정합니다. 고
 | 다음 화 작성 | `lore_write` |
 | 완성 원고 승인 | `lore_decide` |
 | 인물·작품에 계속 적용할 창작 선호 기록 | `lore_preferences` |
-| 기존 소설 웹툰화 | `lore_webtoon_style → lore_webtoon_scene` (컷별 경로 `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide`는 deprecated) |
+| 기존 소설 웹툰화 | `lore_webtoon_style → lore_webtoon_episode` (명시 요청 시 `lore_webtoon_scene`, 컷별 경로 `lore_webtoon_plan → lore_webtoon_render`, `lore_webtoon_decide`는 deprecated) |
 | 웹툰 진행·검토 이력 | `lore_workflow_status/history(lane="webtoon")` |
 | 멈춘 모델 작업 | `lore_resume` |
 | 현재 진행 확인 | `lore_workflow_status` |

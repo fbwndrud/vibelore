@@ -8,8 +8,8 @@ Detailed procedures for host AIs and integration developers. Regular users shoul
 ## Resuming and revising webtoon work
 
 For webtoons, read the current stage with `lore_workflow_status(lane="webtoon",workflowId="wt-...")`.
-On the default path (`lore_webtoon_scene`), resume an unfinished model request with `lore_resume` using the actual request ID,
-and a failed check or review with `action="revise"`, putting the observed defects in `feedback`.
+On the default path (`lore_webtoon_episode`) and the scene option (`lore_webtoon_scene`), resume an unfinished model request with `lore_resume` using the actual request ID,
+and a failed check or review with `action="revise"`, putting the observed defects in `feedback` (for an episode, with `target="adaptation"|"page"`).
 
 The per-panel path (`lore_webtoon_plan`/`render`/`decide`, deprecated) continues only work already started, as follows.
 User questions are answered with `lore_webtoon_plan(responses=...)` in the same workflow, and approvals with the current

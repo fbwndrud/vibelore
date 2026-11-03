@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { sharedSaga, SAGA_PROJECTIONS } from './fixtures/shared-lore.js';
-import { scenePlan, scenePreflight } from './fixtures/webtoon-scene.js';
+import { scenePlan, scenePreflight, sceneVisualChecks } from './fixtures/webtoon-scene.js';
 import { AssetCatalogStore } from '../src/store/asset-catalog-store.js';
 import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { WebtoonStore, atomicWrite } from '../src/store/webtoon-store.js';
@@ -144,7 +144,7 @@ describe('standalone scene script', () => {
     assert.equal(adopted.status, 'adopted');
     const policy = imagePolicyFor('gpt-image-2.5-sunburst', 'openai-api'), repo = new WebtoonStore(new MarkdownStateStore(root));
     await atomicWrite(repo.path('image-selection.json'), JSON.stringify({ workId, policy, selection: { id: 'selected-api', workId, policyHash: digest(policy) } }));
-    const start = { workId, action: 'start', scriptId: 'tower-night', panelCount: 4, direction: 'Full color comic. Original Korean lettering. AI chooses layout.',
+    const start = { workId, action: 'start', sceneDirect: { userAnswer: 'scene fixture' }, scriptId: 'tower-night', panelCount: 4, direction: 'Full color comic. Original Korean lettering. AI chooses layout.',
       references: [{ id: 'adult', assetId: 'adult-portrait', description: 'Adult identity only.' }, { id: 'child', assetId: 'child-portrait', description: 'Childhood flashback identity only.' }] };
     const ambiguous = await rpc(root, 'lore_webtoon_scene', { ...start, sourceChapters: [1] });
     assert.equal(ambiguous.structuredContent.code, 'SCENE_SOURCE_AMBIGUOUS');
@@ -166,7 +166,7 @@ describe('standalone scene script', () => {
         review.renderBrief.moments.forEach((moment, i) => { moment.sourceIds = [d.source[i % d.source.length].id]; });
         return review;
       }
-      return { ...d.schema, observedPanelCount: 4, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspected the imported image.',
+      return { ...d.schema, visualChecks: sceneVisualChecks(), observedPanelCount: 4, inspectedImages: true, spatialCoherence: true, readingOrder: true, evidence: 'Fixture inspected the imported image.',
         textObservations: d.plan.texts.map(x => ({ id: x.id, observedText: x.text, readable: true, speakerCorrect: true, evidence: 'Visible.' })) }; };
     const drive = async result => {
       for (let pass = 0; result.status === 'needs_model' && pass < 10; pass++)

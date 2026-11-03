@@ -1,16 +1,18 @@
-import { OPTIONAL_DRAFT_SECTIONS, OPTIONAL_REVIEWS, loadArcReviewSchedule, loadPlanningReviews, loadDisabledDraftSections, loadDisabledReviews, loadLedgerConfig, saveWriterSupportPolicy } from '../core/review-policy.js';
+import { OPTIONAL_DRAFT_SECTIONS, OPTIONAL_REVIEWS, loadArcReviewSchedule, loadPlanningReviews, loadDisabledDraftSections, loadDisabledReviews, loadLedgerConfig, loadWebtoonReviewModel, loadWebtoonAdaptationReviewModel, loadWebtoonPageCap, loadWebtoonImageQuality, loadWebtoonSceneDirect, saveWriterSupportPolicy } from '../core/review-policy.js';
 import { TRACKING_FEATURES } from '../../engine/src/continuity/ledger.js';
 import { compileArcIntent, compileEpisodeIntent, compileNarrativeContract } from '../core/narrative-contract.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { episodeForChapter } from './arc.js';
 import { openMergeCandidates } from './ledger-migration.js';
 
-export async function runConfigureStatus({ store, workId, disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords }) {
-  if (Array.isArray(disabledReviews) || Array.isArray(disabledDraftSections) || planningReviews !== undefined || arcReview !== undefined || tracking !== undefined || customTracking !== undefined || mergeRecords !== undefined) {
+export async function runConfigureStatus({ store, workId, disabledReviews, disabledDraftSections, planningReviews, arcReview, tracking, customTracking, mergeRecords, webtoonReviewModel, webtoonAdaptationReviewModel, webtoonPageCap, webtoonImageQuality, webtoonSceneDirect }) {
+  if (Array.isArray(disabledReviews) || Array.isArray(disabledDraftSections) || planningReviews !== undefined || arcReview !== undefined || tracking !== undefined || customTracking !== undefined || mergeRecords !== undefined || webtoonReviewModel !== undefined
+    || webtoonAdaptationReviewModel !== undefined || webtoonPageCap !== undefined || webtoonImageQuality !== undefined || webtoonSceneDirect !== undefined) {
     await saveWriterSupportPolicy(store, workId, {
       disabledReviews: Array.isArray(disabledReviews) ? disabledReviews : undefined,
       disabledDraftSections: Array.isArray(disabledDraftSections) ? disabledDraftSections : undefined,
-      planningReviews, arcReview, tracking, customTracking, mergeRecords,
+      planningReviews, arcReview, tracking, customTracking, mergeRecords, webtoonReviewModel,
+      webtoonAdaptationReviewModel, webtoonPageCap, webtoonImageQuality, webtoonSceneDirect,
     });
   }
   const disabled = await loadDisabledReviews(store, workId);
@@ -49,6 +51,11 @@ export async function runConfigureStatus({ store, workId, disabledReviews, disab
       source: workLanguage.length.source,
     },
     narrativeContract: contract,
+    webtoonReviewModel: await loadWebtoonReviewModel(store, workId),
+    webtoonAdaptationReviewModel: await loadWebtoonAdaptationReviewModel(store, workId),
+    webtoonPageCap: await loadWebtoonPageCap(store, workId),
+    webtoonImageQuality: await loadWebtoonImageQuality(store, workId),
+    webtoonSceneDirect: await loadWebtoonSceneDirect(store, workId),
     reviewPolicy: {
       disabled, available: OPTIONAL_REVIEWS,
       revision: (await store.loadReviewPolicy?.(workId))?.reviewRevision ?? 0,

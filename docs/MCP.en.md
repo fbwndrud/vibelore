@@ -72,22 +72,22 @@ For verified versions and caveats, see [HOSTS.en.md](../HOSTS.en.md).
 
 ## Tool surface
 
-The default server exposes 34 user flows including design, integrated writing, webtoon production, approval, recovery and shared world management.
+The default server exposes 35 user flows including design, integrated writing, webtoon production, approval, recovery and shared world management.
 Per-stage primitive tools such as `lore_context`, `lore_draft`, `lore_check` and `lore_commit` can bypass the normal
 writing order, so they are left out of the default list.
 
 Only in development environments that need engine debugging or compatibility checks, setting
-`VIBELORE_MCP_SURFACE=advanced` on the server process exposes all 50 tools. Don't put this value in a
+`VIBELORE_MCP_SURFACE=advanced` on the server process exposes all 51 tools. Don't put this value in a
 configuration used for writing works.
 
 Use `VIBELORE_MCP_SURFACE=compat` only to finish existing panel-based webtoon workflows.
-It exposes the 34 default tools plus the three deprecated `lore_webtoon_plan/render/decide` tools,
+It exposes the 35 default tools plus the three deprecated `lore_webtoon_plan/render/decide` tools,
 without low-level prose tools. Starting new panel-based work remains blocked on this surface.
 
 ## Common inputs and responses
 
 Use `lore_webtoon_style` to adopt an actual style sample from the user's words and reuse it for future scenes.
-Webtoons are generated with `lore_webtoon_scene`, one whole scene per image with dialogue, without roughs.
+Webtoons are made with `lore_webtoon_episode`: a chapter is adapted into several pages and, once the user approves the script, each page is generated with its dialogue. The scene-in-one-image option `lore_webtoon_scene` is used only when the user explicitly asks for it.
 `lore_webtoon_plan` (interview and adaptation), `lore_webtoon_render` (image jobs, roughs, lettering) and
 `lore_webtoon_decide` (approval bound to the current ID) are [deprecated] and are used only to continue per-panel work
 already started. `needs_interview` means a user answer and `needs_model` a host model answer;
@@ -95,7 +95,7 @@ the latter shares the existing `lore_resume`.
 
 For lookups, use `lore_workflow_status/history(lane="webtoon", workflowId="wt-...")`.
 Omitting lane looks up the novel. The resume contract follows the [webtoon state table](reference/WEBTOON_WORKFLOW.en.md#continue-by-state).
-`needs_scene_image` on the default path (one job) and `needs_images` on the per-panel path are requests, not finished generation;
+`needs_page_image` and `needs_page_tiles` on the episode path, `needs_scene_image` on the scene option (one job) and `needs_images` on the per-panel path are requests, not finished generation;
 the host is responsible for running images. Webtoons also run after the common input validation, the per-work lock and recovery of an
 interrupted novel run. Independent image jobs on the per-panel path can run in parallel, but stored changes are serialized.
 
@@ -125,7 +125,7 @@ design, prose or webtoon tool's shape.
 
 Initialize instructions cover setup order, checking the active arc, syncing drift, model handoffs and
 approval rules. If Glama shows old information, reinspect after deploying the updated server and verify
-Instructions, output schemas and the default 34-tool catalog.
+Instructions, output schemas and the default 35-tool catalog.
 
 ## Resuming model work
 

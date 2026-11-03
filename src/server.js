@@ -45,9 +45,11 @@ import { dropRun, loadRun, sweepRuns } from './runs.js';
 import { runRelayedTool } from './relay-runner.js';
 import { runWebtoonTool, readWebtoonWorkflow } from './tools/webtoon.js';
 import { runWebtoonSceneTool } from './tools/webtoon-scene.js';
+import { runWebtoonEpisodeTool } from './tools/webtoon-episode.js';
 import { runWebtoonStyleTool } from './tools/webtoon-style.js';
 import { WEBTOON_DELEGATION_SCHEMA } from './core/webtoon-delegation.js';
 import { SCENE_PANEL_LIMITS, SCENE_AUTO_REVISIONS } from './core/webtoon-scene.js';
+import { EPISODE_LIMITS } from './core/webtoon-episode.js';
 import { runLoreRegistry } from './tools/lore-registry.js';
 import { LORE_DEFINITION_SCHEMA } from '../engine/src/lore/schemas.js';
 import { runUniverse, runBinding } from './tools/universe.js';
@@ -263,8 +265,28 @@ const TOOLS = [
     name: 'lore_configure',
     annotations: writes({ idempotent: true }),
     description: '작품 설정을 조회하거나 바꾼다. 인자 없이 호출하면 읽기 전용으로 StoryProfile·StorySpine·WriterSkill을 하나의 NarrativeContract로 묶어 status(ready|incomplete), 누락 단계(missing), 언어·분량 계약, 검토·추적 설정을 돌려준다. '
-      + 'disabledReviews·disabledDraftSections·planningReviews·arcReview·tracking·customTracking·mergeRecords를 저장한다. 목록과 tracking 객체는 통째로 교체되고(빈 배열=모두 켬), planningReviews·arcReview는 지정한 필드만 갱신, mergeRecords는 누적된다. 검토 변경은 이후 실행에, 추적 변경은 다음 커밋부터 적용된다. 기존 원고는 바뀌지 않는다. 준비 질문 깊이와 검토 선택은 별개다. 모델 호출 없음.',
+      + 'disabledReviews·disabledDraftSections·planningReviews·arcReview·tracking·customTracking·mergeRecords·webtoonReviewModel·webtoonAdaptationReviewModel·webtoonPageCap·webtoonImageQuality·webtoonSceneDirect를 저장한다. 목록과 tracking 객체는 통째로 교체되고(빈 배열=모두 켬), planningReviews·arcReview는 지정한 필드만 갱신, mergeRecords는 누적된다. webtoonReviewModel은 웹툰 시각 검수만의 모델 힌트이며 호스트가 실제 실행해야 한다(null=기본 모델 복귀). webtoonAdaptationReviewModel·webtoonPageCap·webtoonImageQuality·webtoonSceneDirect도 웹툰 전용 호스트 힌트이며 null은 기본값 복귀다. 대기 중인 요청은 유지되며 기존 이미지 재검수는 lore_webtoon_scene action=review다. 검토 변경은 이후 실행에, 추적 변경은 다음 커밋부터 적용된다. 기존 원고는 바뀌지 않는다. 준비 질문 깊이와 검토 선택은 별개다. 모델 호출 없음.',
     inputSchema: { type: 'object', properties: { ...projectArg,
+      webtoonReviewModel: { description: '작품별 웹툰 시각 검수 모델. 모델 ID 또는 {provider:host|local,modelId,reasoningEffort?}; null은 지정 해제. 이미지 모델·소설 모델은 바꾸지 않는다. 호스트는 힌트대로 실제 별도 실행하고 실행 근거를 보존한다.', anyOf: [
+        { type: 'null' }, { type: 'string', minLength: 1, maxLength: 120 },
+        { type: 'object', additionalProperties: false, required: ['modelId'], properties: {
+          provider: { type: 'string', enum: ['host', 'local'] }, modelId: { type: 'string', minLength: 1, maxLength: 120 },
+          reasoningEffort: { type: 'string', enum: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] },
+        } },
+      ] },
+      webtoonAdaptationReviewModel: { description: '작품별 웹툰 회차 각색 검토 모델(웹툰 전용 호스트 힌트). 형식·규칙은 webtoonReviewModel과 같다; null은 지정 해제. 소설·이미지 모델은 바꾸지 않는다.', anyOf: [
+        { type: 'null' }, { type: 'string', minLength: 1, maxLength: 120 },
+        { type: 'object', additionalProperties: false, required: ['modelId'], properties: {
+          provider: { type: 'string', enum: ['host', 'local'] }, modelId: { type: 'string', minLength: 1, maxLength: 120 },
+          reasoningEffort: { type: 'string', enum: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] },
+        } },
+      ] },
+      webtoonPageCap: { description: '웹툰 회차 각색의 페이지 상한(웹툰 전용 호스트 힌트). 1~20 정수, 기본 6; null은 기본값 복귀.', anyOf: [{ type: 'null' }, { type: 'integer', minimum: 1, maximum: 20 }] },
+      webtoonImageQuality: { description: '웹툰 이미지 생성 품질(웹툰 전용 호스트 힌트). null은 지정 해제.', anyOf: [{ type: 'null' }, { type: 'string', enum: ['low', 'medium', 'high'] }] },
+      webtoonSceneDirect: { description: '웹툰 장면 통째 직접 생성 사용 여부(웹툰 전용 호스트 힌트). enabled=true는 사용자의 실제 답변 userAnswer가 필요하다; null은 기본값({enabled:false}) 복귀.', anyOf: [
+        { type: 'null' },
+        { type: 'object', additionalProperties: false, required: ['enabled'], properties: { enabled: { type: 'boolean' }, userAnswer: { type: 'string', maxLength: 500 } } },
+      ] },
       disabledReviews: { type: 'array', items: { type: 'string', enum: ['story-profile-check', 'coherence-judge', 'editorial-quality', 'character-fidelity', 'reader-hook', 'pattern-ledger', 'arc-review'] },
         description: '끌 검토 목록 전체(빈 배열이면 모두 켬). 꺼진 검토는 요청하지 않고 실패로 보지 않는다. 연속성 추출·검사는 끌 수 없다.' },
       planningReviews: { type: 'object', properties: { story: { type: 'boolean' }, arc: { type: 'boolean' }, episode: { type: 'boolean' } }, additionalProperties: false,
@@ -712,16 +734,17 @@ const TOOLS = [
   {
     name: 'lore_webtoon_scene',
     annotations: writes(),
-    description: '기본 웹툰 제작 경로. 소설 정본의 한 장면을 대사가 작품 언어 원문으로 들어간 이미지 한 장으로 만든다. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토 순서이며 컷 배치와 카메라는 이미지 모델에 맡긴다. 호출 전에 webtoon-discovery-interview로 원작 범위·화풍·참조·칸 수·이미지 모델을 사용자와 정한다. '
+    description: '장면을 이미지 한 장으로 만드는 옵션 경로로, 사용자가 명시적으로 요청할 때만 쓴다(start에 sceneDirect.userAnswer 또는 작품 설정 webtoonSceneDirect가 필요하며 위임으로 대신할 수 없다). 새 웹툰의 기본 경로는 lore_webtoon_episode다. 소설 정본의 한 장면을 대사가 작품 언어 원문으로 들어간 이미지 한 장으로 만든다. 원작→영어 장면 연출→생성 전 검증→문자 포함 장면 이미지→실제 시각 검토 순서이며 컷 배치와 카메라는 이미지 모델에 맡긴다. 호출 전에 webtoon-discovery-interview로 원작 범위·화풍·참조·칸 수·이미지 모델을 사용자와 정한다. '
       + '서버는 이미지를 직접 생성하지 않는다: needs_scene_image일 때 jobs의 요청을 호스트가 사용자가 고른 경로(hostRequest=호스트 내장 도구, apiRequest=API·별도 과금)로 실행하고 결과 파일을 asset으로 넘긴다. 선택이 없는 작품은 start가 needs_image_runtime으로 호스트의 실제 이미지 경로 보고(imageRuntime)를 받고, needs_image_choice로 선택지 전체를 사용자에게 보여 확정한다(내장 경로를 먼저 제안). 확정한 선택은 changeImageChoice로 바꾸기 전까지 재사용한다. 모델 단계(연출·검증·시각 검토)는 needs_model→lore_resume, 칸 수가 없으면 needs_interview. '
       + 'lore_webtoon_style로 채택한 예시 이미지와 짧은 설명을 시작 때 고정해 모든 생성·검토에 함께 전달한다. 화풍 차이는 advisory이고 기존 장면 변경은 명시적 revise(styleRevisionId, feedback)로 한다. '
       + '상태는 .vibelore/webtoon/에 저장하고 소설 정본과 프로젝트 webtoon/ 폴더는 건드리지 않는다. 진행 중 워크플로가 있으면 start는 WEBTOON_WORKFLOW_ACTIVE로 거부되므로 revise나 retry로 끝낸다. 시각 검토를 통과하면 status=completed. 기존 컷별 workflow는 변경하지 않는다.',
     inputSchema: { type: 'object', properties: { ...projectArg,
       workflowId: { type: 'string', description: '대상 장면 워크플로 id. 생략하면 현재 워크플로.' }, revision: webtoonRevisionArg,
-      action: { type: 'string', enum: ['start', 'revise', 'retry', 'verify', 'reject'], description: 'start=새 장면 시작, revise=feedback으로 연출부터 다시(완료된 장면도 다시 연다), retry=모델 실패 단계 재시도, verify=완료 제작 기록·봉인 바이트 읽기 전용 검증, reject=사용자 중단 원답 feedback을 기록하고 대기 모델 요청을 해제하며 기존 파일 보존. 생략하면 현재 단계를 이어간다.' },
+      action: { type: 'string', enum: ['start', 'revise', 'retry', 'review', 'verify', 'reject'], description: 'start=새 장면 시작, revise=feedback으로 연출부터 다시(완료된 장면도 다시 연다), retry=모델 실패 단계 재시도, review=보존한 이미지의 시각 검수만 새 모델 설정·프롬프트로 다시 실행(이미지 호출·자동 재생성 없음), verify=완료 제작 기록·봉인 바이트 읽기 전용 검증, reject=사용자 중단 원답 feedback을 기록하고 대기 모델 요청을 해제하며 기존 파일 보존. 생략하면 현재 단계를 이어간다.' },
       sourceChapters: { type: 'array', items: { type: 'integer' }, description: 'start 전용. 각색할 소설 화 번호(1~20개). 생략하면 첫 화만. scriptId와 함께 쓰면 SCENE_SOURCE_AMBIGUOUS.' },
       scriptId: { type: 'string', description: 'start 전용. 소설 화 대신 lore_scene_script로 채택한 독립 장면 대본을 원천으로 쓴다. 대본·장면별 상태·asset은 채택 때 봉인한 판본만 사용한다.' },
       panelCount: { anyOf: [{ type: 'integer', minimum: SCENE_PANEL_LIMITS.min, maximum: SCENE_PANEL_LIMITS.max }, { type: 'string', enum: ['auto'] }], description: `사용자가 선택한 정확한 칸 수(${SCENE_PANEL_LIMITS.min}~${SCENE_PANEL_LIMITS.max}) 또는 "auto". auto는 각색할 때마다 AI가 ${SCENE_PANEL_LIMITS.autoMin}~${SCENE_PANEL_LIMITS.max}칸 중 적정 수를 다시 고른다. ${SCENE_PANEL_LIMITS.continuityMin}칸 미만은 연속성 경고가 warnings에 실린다. start에서 누락하면 needs_interview. 칸 크기와 배치는 AI가 선택.` },
+      sceneDirect: { type: 'object', additionalProperties: false, properties: { userAnswer: { type: 'string', minLength: 1, maxLength: 500 } }, description: 'start 전용. 장면 통째 이미지 선택에 대한 사용자의 실제 답변. 사용자가 직접 요청한 말이 필요하며 delegation(알아서)으로는 대신할 수 없다. 작품 설정 webtoonSceneDirect가 켜져 있으면 생략 가능. 기본 경로는 lore_webtoon_episode.' },
       previousWorkflowId: { type: 'string', description: '이어지는 직전 장면 workflow. 실제 이미지·설계·검토 결과를 상속해 연속성을 검증하며 이전 검토 판정은 그대로 보존.' },
       sourceUnitIds: { type: 'array', items: { type: 'string' }, description: '고정된 원작 문단 ID. 생략 시 선택 회차 전체. 한 이미지에 담을 장면 범위로 지정한다.' },
       styleRevisionId: { type: 'string', description: 'start에서 미지정하면 이 작품이 채택한 최신 화풍을 고정한다. 이미 진행 중인 장면은 기준을 유지한다. 새 기준을 적용하려면 사용자 피드백과 함께 revise에 명시한다.' },
@@ -730,6 +753,37 @@ const TOOLS = [
       autoRevisions: { type: 'integer', minimum: 0, maximum: SCENE_AUTO_REVISIONS.max, description: `start 전용. 생성 전 검증 또는 이미지 검토가 불합격이면 관측 결함을 feedback으로 자동 재설계하는 횟수(기본 ${SCENE_AUTO_REVISIONS.default}). 재설계마다 새 이미지 요청이 나가며 실패한 시도는 attempts에 남는다. 0이면 기존처럼 scene_needs_revision에서 멈춘다.` },
       feedback: { type: 'string', description: 'revise에 필수인 수정 요청. confirmImageChoice와 함께 start할 때는 과금 선택에 대한 사용자 원답을 넣는다.' },
       asset: { type: 'object', description: 'needs_scene_image 단계에서 호스트가 생성한 장면 이미지. path는 프로젝트 안의 PNG/JPEG, inputHash는 job의 inputHash, provenance는 선택한 경로대로 내장이면 {kind:"host-built-in", provider, tool, selectionId, observedModel?}, API면 {kind:"api", provider, requestedModel, selectionId, observedModel?}(기존 OpenAI 선택 작품은 {kind:"openai-api", requestedModel, selectionId}). observedModel은 호스트가 실제로 본 것만 적는다.', properties: { path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object' } }, required: ['path', 'inputHash', 'provenance'] },
+      ...webtoonImageChoiceArgs,
+    }, required: ['workId'] },
+  },
+  {
+    name: 'lore_webtoon_episode',
+    annotations: writes(),
+    description: '기본 웹툰 제작 경로. 소설 정본의 화(또는 채택한 장면 대본)를 여러 쪽의 세로 웹툰 에피소드로 각색한다. 원작→쪽별 각색 대본→대본 검토→사용자 승인→쪽별 이미지·타일 검수 순서이며, 각색 대본(쪽·칸·대사·검토 결과)을 사용자에게 보여 승인받기 전에는 이미지를 한 장도 그리지 않는다. 각색 검토는 lore_configure의 webtoonAdaptationReviewModel로 설정한 모델이 실행하며(미설정은 호스트 모델) 응답의 independence에 어느 쪽이었는지 남는다. '
+      + '호출 전에 webtoon-discovery-interview로 원작 범위·화풍·참조·쪽 수·이미지 모델을 사용자와 정한다. 서버는 이미지를 직접 생성하지 않는다: needs_page_image일 때 jobs의 요청을 호스트가 사용자가 고른 경로로 실행해 PNG를 asset으로 넘기고, needs_page_tiles에서는 그 쪽 이미지를 격자 타일로 잘라 tiles로 넘긴다. 모델 단계는 needs_model→lore_resume이다. '
+      + '진행: start→(각색·검토 needs_model)→awaiting_adaptation_approval→approve(사용자 원답 feedback·approvalId)→쪽마다 브리프→이미지→타일→검토→completed. 수정은 revise(target=adaptation 또는 page). 대본 승인 없이 이미지를 그리지 않는다. 위임(delegation.scope=production)이면 사용자 승인 대신 위임 기록으로 진행한다. '
+      + '한 장면을 이미지 한 장으로 만드는 경로는 lore_webtoon_scene이며 사용자가 명시적으로 요청할 때만 쓴다. 상태는 .vibelore/webtoon/에 저장하고 소설 정본과 프로젝트 webtoon/ 폴더는 건드리지 않는다. 진행 중 워크플로가 있으면 start는 WEBTOON_WORKFLOW_ACTIVE로 거부된다.',
+    inputSchema: { type: 'object', properties: { ...projectArg,
+      workflowId: { type: 'string', description: '대상 에피소드 워크플로 id. 생략하면 현재 워크플로.' }, revision: webtoonRevisionArg,
+      action: { type: 'string', enum: ['start', 'approve', 'revise', 'retry', 'reject', 'verify'], description: 'start=새 에피소드 시작, approve=각색 대본 승인(approvalId와 사용자 원답 feedback 필수), revise=feedback으로 다시(target 필수), retry=모델 실패 단계 재시도, reject=사용자 중단 원답 feedback을 기록하고 대기 요청을 해제, verify=쪽 이미지·타일·제작 기록 해시 읽기 전용 검증. 생략하면 현재 단계를 이어가며 asset·tiles 반입에 쓴다.' },
+      sourceChapters: { type: 'array', items: { type: 'integer' }, description: 'start 전용. 각색할 소설 화 번호(1~20개). 생략하면 첫 화만. scriptId와 함께 쓰면 EPISODE_SOURCE_AMBIGUOUS.' },
+      scriptId: { type: 'string', description: 'start 전용. 소설 화 대신 lore_scene_script로 채택한 독립 장면 대본을 원천으로 쓴다. 채택 때 봉인한 판본만 사용한다.' },
+      sourceUnitIds: { type: 'array', items: { type: 'string' }, description: 'start 전용. 고정된 원작 문단 ID. 생략 시 선택 회차 전체.' },
+      maxPages: { type: 'integer', minimum: 1, maximum: EPISODE_LIMITS.pageCapMax, description: `start·revise(adaptation). 쪽 수 상한(1~${EPISODE_LIMITS.pageCapMax}). 생략하면 lore_configure의 webtoonPageCap, 없으면 기본 상한. 각색이 이 안에서 쪽 수를 정한다.` },
+      pages: { type: 'integer', minimum: 1, maximum: EPISODE_LIMITS.pageCapMax, description: `start·revise(adaptation). 사용자가 고른 정확한 쪽 수(1~${EPISODE_LIMITS.pageCapMax}). 지정하면 각색이 정확히 이 수여야 한다.` },
+      references: { type: 'array', description: 'start 필수. 사용자가 지정한 인물·배경 참조 이미지 1개 이상(직전 쪽·화풍 슬롯 제외 최대 14개). 파일은 {id,path,hash,description}, 대본 원천은 카탈로그 이미지를 {id,assetId,description}으로 지정한다. description은 영어, id에 previous-page·adopted-style은 쓸 수 없다.', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' }, hash: { type: 'string' }, assetId: { type: 'string' }, description: { type: 'string' } }, required: ['id', 'description'] } },
+      styleRevisionId: { type: 'string', description: 'start에서 미지정하면 이 작품이 채택한 최신 화풍을 고정한다. 진행 중에는 시작 때 고정한 기준만 허용한다.' },
+      direction: { type: 'string', description: 'start/revise(adaptation)에서 사용자가 확정한 연출 재량을 영어로 전달. 채택 화풍이 있으면 생략 시 그 설명을 사용한다.' },
+      adaptationRevisions: { type: 'integer', minimum: 0, maximum: EPISODE_LIMITS.adaptationRevisions.max, description: `start 전용. 각색 검토 불합격 때 관측 결함을 feedback으로 자동 재각색하는 횟수(0~${EPISODE_LIMITS.adaptationRevisions.max}, 기본 ${EPISODE_LIMITS.adaptationRevisions.default}). 위임의 maxAutoRevisions를 넘을 수 없다.` },
+      pageRevisions: { type: 'integer', minimum: 0, maximum: EPISODE_LIMITS.pageRevisions.max, description: `start 전용. 쪽마다 검토 불합격 때 자동 재그리기하는 횟수(0~${EPISODE_LIMITS.pageRevisions.max}, 기본 ${EPISODE_LIMITS.pageRevisions.default}). 재그리기마다 새 이미지 요청과 비용이 생긴다. 위임의 maxAutoRevisions를 넘을 수 없다.` },
+      target: { type: 'string', enum: ['adaptation', 'page'], description: 'revise 필수. adaptation=각색부터 다시(그린 쪽은 바뀌지 않은 앞쪽만 유지), page=pageIds의 쪽과 그 뒤 쪽을 다시.' },
+      pageIds: { type: 'array', items: { type: 'string' }, description: 'revise(target=page) 전용. 다시 만들 쪽 id. 이후 쪽도 함께 초기화된다.' },
+      approvalId: { type: 'string', description: 'approve 필수. awaiting_adaptation_approval 응답의 approvalId. 대본·검토가 바뀌었으면 ADAPTATION_APPROVAL_STALE.' },
+      feedback: { type: 'string', description: 'approve·reject·revise 필수인 사용자 원답. confirmImageChoice와 함께 start할 때는 과금 선택에 대한 사용자 원답.' },
+      asset: { type: 'object', description: 'needs_page_image 단계에서 호스트가 생성한 쪽 이미지. path는 프로젝트 안의 PNG, inputHash는 job의 inputHash, provenance는 선택한 경로대로 내장이면 {kind:"host-built-in", provider, tool, selectionId, observedModel?}, API면 {kind:"api", provider, requestedModel, selectionId, observedModel?}. requestedQuality(low|medium|high)를 보고하면 작품 품질 설정과 비교해 불일치를 기록한다.',
+        properties: { pageId: { type: 'string' }, path: { type: 'string' }, inputHash: { type: 'string' }, provenance: { type: 'object', properties: { requestedQuality: { type: 'string', enum: ['low', 'medium', 'high'] } } } }, required: ['pageId', 'path', 'inputHash', 'provenance'] },
+      tiles: { type: 'object', description: 'needs_page_tiles 단계에서 쪽 이미지를 job이 정한 격자로 자른 타일. imageHash는 현재 쪽 이미지의 해시(다른 이미지의 타일은 PAGE_TILES_STALE). 크기·해시는 서버가 파일에서 읽는다.',
+        properties: { pageId: { type: 'string' }, imageHash: { type: 'string' }, items: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, path: { type: 'string' } }, required: ['id', 'path'] } } }, required: ['pageId', 'imageHash', 'items'] },
       ...webtoonImageChoiceArgs,
     }, required: ['workId'] },
   },
@@ -760,7 +814,7 @@ const TOOLS = [
     description: '[deprecated] 진행 중인 컷별 작업 마무리 전용. 새 작업은 lore_webtoon_scene을 사용한다. 승인 계획의 이미지 요청과 조판을 관리한다. 새 계획은 대사·독백·설명·효과음과 사물 글자를 구분한다. 사물 글자는 이미지에 포함하고 실제 읽힘·표면 검토 후 중복 조판하지 않는다. needs_image_choice에서 모델·내장/API·비용을 확인하고 사용자 선택을 작품별로 계속 사용한다. API는 호스트가 실행하고 서버는 모델·참조·반입·승인을 관리한다. 실행 불가는 needs_image_runtime, revisionTarget.kind=lettering은 조판만 수정한다. '
       + '후보 파일은 .vibelore/webtoon/에 쓰며 프로젝트 webtoon/에는 lore_webtoon_decide 승인 때만 반영된다. 조판 분석·렌더 검토는 needs_model→lore_resume.',
     inputSchema: { type: 'object', properties: { ...projectArg,
-      workflowId: { type: 'string', description: '대상 컷별 워크플로 id(필수). 장면 워크플로는 USE_WEBTOON_SCENE_TOOL로 거부된다.' }, revision: webtoonRevisionArg,
+      workflowId: { type: 'string', description: '대상 컷별 워크플로 id(필수). 장면·에피소드 워크플로는 USE_WEBTOON_SCENE_TOOL·USE_WEBTOON_EPISODE_TOOL로 거부된다.' }, revision: webtoonRevisionArg,
       detail: { type: 'string', enum: ['summary', 'full'], description: 'summary는 반복되는 계획·참조 상세를 생략한다. jobs·승인 ID·검토 실패는 유지한다.' },
       reviewAccess: { type: 'object', properties: { available: { type: 'boolean' }, reason: { type: 'string' } }, required: ['available', 'reason'], description: '호스트가 확인한 합성본 열람 가능 여부. false이면 불가능한 검토 호출을 생략하고 미완료 승인 대기로 내린다. true는 검토 완료나 보안 제한 우회 허가가 아니다. 대기 요청/승인 중에는 변경하지 않는다.' },
       quality: { type: 'string', enum: ['references', 'preview', 'final'], description: 'references=인물·배경 참조 이미지 생성·승인(참조가 없으면 강제), preview(기본)=일부 컷과 조판으로 룩 승인, final=룩 승인 뒤 전체 컷.' },
@@ -826,6 +880,7 @@ const PUBLIC_TOOL_NAMES = new Set([
   'lore_preferences',
   'lore_workflow_status',
   'lore_workflow_history',
+  'lore_webtoon_episode',
   'lore_webtoon_scene',
   'lore_webtoon_style',
 ]);
@@ -938,7 +993,7 @@ async function callTool(name, args = {}) {
     // Read-only tools (and binding status) stay usable while an interrupted binding waits for its sources to be restored.
     if (!definition.annotations?.readOnlyHint && !(name === 'lore_bind' && args.action === 'status')) await resumePendingWorkBinding({ store });
     // A scene-script adoption only affects script and webtoon production, so its recovery never blocks novel tools or status reads.
-    if (name === 'lore_webtoon_scene' || (name === 'lore_scene_script' && args.action !== 'status')) await resumePendingSceneScript({ store });
+    if (['lore_webtoon_scene', 'lore_webtoon_episode'].includes(name) || (name === 'lore_scene_script' && args.action !== 'status')) await resumePendingSceneScript({ store });
     await resumePendingRollback({ store });
     return dispatchTool(store, name, args);
   });
@@ -949,6 +1004,7 @@ async function dispatchTool(store, name, args) {
   if (name === 'lore_scene_script') return runSceneScript({ store, args });
   if (name === 'lore_webtoon_style') return runWebtoonStyleTool({ store, args });
   if (name === 'lore_webtoon_scene') return runWebtoonSceneTool({ store, args, providers: providerFor(name) });
+  if (name === 'lore_webtoon_episode') return runWebtoonEpisodeTool({ store, args, providers: providerFor(name) });
   if (name.startsWith('lore_webtoon_')) return runWebtoonTool({ store, toolName: name, args, providers: providerFor(name), blockNewPanelWorkflows: true });
   if (args.lane !== undefined && !['prose', 'webtoon'].includes(args.lane)) throw new Error('INVALID_WORKFLOW_LANE');
   if (args.lane === 'webtoon' && ['lore_workflow_status', 'lore_workflow_inspect', 'lore_workflow_history'].includes(name)) {
@@ -960,7 +1016,8 @@ async function dispatchTool(store, name, args) {
     case 'lore_status':
       return runStatus({ store, workId: args.workId });
     case 'lore_configure':
-      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords });
+      return runConfigureStatus({ store, workId: args.workId, disabledReviews: args.disabledReviews, disabledDraftSections: args.disabledDraftSections, planningReviews: args.planningReviews, arcReview: args.arcReview, tracking: args.tracking, customTracking: args.customTracking, mergeRecords: args.mergeRecords, webtoonReviewModel: args.webtoonReviewModel,
+        webtoonAdaptationReviewModel: args.webtoonAdaptationReviewModel, webtoonPageCap: args.webtoonPageCap, webtoonImageQuality: args.webtoonImageQuality, webtoonSceneDirect: args.webtoonSceneDirect });
     case 'lore_style_anchor':
       return runStyleAnchor({ store, workId: args.workId, action: args.action, chapters: args.chapters, reason: args.reason });
     case 'lore_preferences':
@@ -1024,6 +1081,7 @@ async function dispatchTool(store, name, args) {
       if (!run) throw new Error(`RUN_NOT_FOUND: runId "${args.runId}" 를 찾을 수 없습니다 (만료됐거나 이미 완료됨).`);
       const merged = { ...run.answers, ...(args.answers ?? {}) };
       if (run.tool === 'lore_webtoon_scene') return runWebtoonSceneTool({ store, args: run.args, run, providers: providerFor(run.tool, merged) });
+      if (run.tool === 'lore_webtoon_episode') return runWebtoonEpisodeTool({ store, args: run.args, run, providers: providerFor(run.tool, merged) });
       if (run.tool.startsWith('lore_webtoon_')) {
         return runWebtoonTool({ store, toolName: run.tool, args: run.args, run, providers: providerFor(run.tool, merged), blockNewPanelWorkflows: true });
       }
@@ -1063,7 +1121,7 @@ async function handle(msg) {
           '집필 요청은 먼저 lore_arc_status로 활성 아크를 확인합니다. 활성 아크를 임의 교체하지 않습니다. 사용자가 연재가 아닌 짧은 장면 하나를 원하고 활성·대기 아크가 없으면 프로필과 기반을 만든 뒤 lore_write(form=scene, instruction=장면 요청)을 씁니다. 그 장면을 위해 StorySpine·WriterSkill·아크를 만들지 않습니다. lore_status나 lore_write가 working-tree drift를 보고하면 lore_sync의 inspect → validate → apply로 반영한 뒤 진행합니다. ' +
           '기본 집필은 lore_write 하나로 회차 계획, 초고, 검사(최대 3회·수정 최대 2회), critic, 검사 영수증, 승인·커밋을 순서대로 실행합니다. guided는 원고와 advisory를 보여준 뒤 lore_decide로 결정합니다. auto는 불변식 통과와 활성 critic 완료가 필요하며 critic 실패 시 guided로 강등합니다. 꺼 둔 검토는 요청하지 않습니다. soft와 advisory는 임의 수정 이유가 아닙니다. ' +
           'needs_model은 사용자 질문이 아닙니다. requests의 실제 원고와 근거를 읽고 모든 id의 답을 한 번의 lore_resume에 넘깁니다. jsonMode는 코드 펜스 없는 JSON입니다. 새 프로세스·API로 병렬 답변할 때 promptCache.warmFirst=true 요청의 첫 출력 뒤 나머지를 보냅니다. 같은 호스트 검토를 독립 독자 평가로 보고하지 않습니다. ' +
-          '웹툰은 webtoon-discovery-interview로 lore_webtoon_style 예시를 사용자와 채택한 뒤 lore_webtoon_scene을 사용하고 소설 정본과 분리합니다. needs_interview는 사용자 질문이며 조회는 lane=webtoon입니다. 기존 컷별 작업 마무리만 VIBELORE_MCP_SURFACE=compat로 deprecated 도구를 노출합니다.',
+          '웹툰은 webtoon-discovery-interview로 lore_webtoon_style 예시를 사용자와 채택한 뒤 lore_webtoon_episode로 각색하고, 사용자가 각색 대본을 승인하기 전에는 이미지를 그리지 않으며(production 위임은 검토 통과 뒤에만 위임 기록으로 자동 진행) 소설 정본과 분리합니다. lore_webtoon_scene은 사용자가 명시적으로 요청할 때만 씁니다. needs_interview는 사용자 질문이며 조회는 lane=webtoon입니다. 기존 컷별 작업 마무리만 VIBELORE_MCP_SURFACE=compat로 deprecated 도구를 노출합니다.',
       });
     }
     case 'notifications/initialized':

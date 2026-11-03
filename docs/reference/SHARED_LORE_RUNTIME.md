@@ -167,7 +167,7 @@ schemaVersion 1 binding과 기존 lock은 resolver v1로 그대로 검증한다.
 
 ProductionSource는 두 종류다. `novel-chapters`는 기존 웹툰 원천(sourceVersion 1)을 그대로 쓰므로 진행 중인 장면 작업이 같은 hash로 계속 검증된다. `scene-script`(sourceVersion 2)는 `lore_scene_script`로 채택한 작품 소유 대본이다. 대본은 정확한 원문, 장면 순서, 장면별 세계 시점과 frame, cast와 승인 상태, 작품 언어, 표현 프로필, 승인 asset을 고정한다. apply는 resolver v2 lock(`sourceKind: scene-script`)과 asset 바이트를 작품의 `.vibelore/input-objects/{locks,blobs}`에 먼저 봉인한 뒤 대본 HEAD를 바꾸고 `scenes/<scriptId>.md`를 쓴다. 소설 Foundation·chapter·story state를 만들지 않는다. 읽기용 대본 파일을 손으로 고치면 `SCENE_SCRIPT_DRIFT`로 막고 inspect/apply로 채택해야 한다.
 
-웹툰은 `lore_webtoon_scene(start, scriptId)`로 이 원천을 쓴다. 참조는 `{id, assetId, description}`이며 봉인된 바이트 경로로 바뀐다. 새 장면 작업은 완료 때 `.vibelore/productions/<workflowId>-r<revision>.json`에 원천 판본·lock·참조 asset revision과 hash·이미지 hash·검토 digest를 기록한다. `action=verify`는 이 기록, 봉인 lock, 참조와 이미지 바이트를 작품 안에서만 다시 검증하므로 세계 파일이 바뀌거나 이동·삭제돼도 동작한다. 경로로만 받은 참조와 소설 원천은 `unpreserved`로 보고하며 재현을 주장하지 않는다(소설 원천은 현재 원고와 일치 여부만 `source-current`로 알린다). 기록은 워크플로 상태·봉인 lock과 교차 확인한다. 웹툰 완료는 공유 세계와 소설 정본을 바꾸지 않는다.
+웹툰은 `lore_webtoon_episode(start, scriptId)`로(사용자가 명시적으로 요청한 장면 한 장 경로는 `lore_webtoon_scene`으로) 이 원천을 쓴다. 참조는 `{id, assetId, description}`이며 봉인된 바이트 경로로 바뀐다. 새 장면 작업은 완료 때 `.vibelore/productions/<workflowId>-r<revision>.json`에 원천 판본·lock·참조 asset revision과 hash·이미지 hash·검토 digest를 기록한다. `action=verify`는 이 기록, 봉인 lock, 참조와 이미지 바이트를 작품 안에서만 다시 검증하므로 세계 파일이 바뀌거나 이동·삭제돼도 동작한다. 경로로만 받은 참조와 소설 원천은 `unpreserved`로 보고하며 재현을 주장하지 않는다(소설 원천은 현재 원고와 일치 여부만 `source-current`로 알린다). 기록은 워크플로 상태·봉인 lock과 교차 확인한다. 웹툰 완료는 공유 세계와 소설 정본을 바꾸지 않는다.
 
 ## 공통 입력 계약과 지원 상태
 

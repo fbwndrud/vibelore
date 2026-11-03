@@ -2,9 +2,73 @@
 
 [한국어](WEBTOON_WORKFLOW.md) | English
 
-## Default path: whole-scene production
+## Default path: episode pages
 
-New webtoon work uses `lore_webtoon_scene` by default. It generates a whole scene together with its lettering, without roughs.
+New webtoon work uses `lore_webtoon_episode` by default. It adapts one novel chapter (or a script adopted through `lore_scene_script`) into several pages of 3-6 panels each. The server never draws; the confirmed built-in image tool or API and the adopted style basis are reused. Existing scene and per-panel work is not changed automatically.
+The order is **pin the source → page- and panel-level adaptation script → adaptation check → user approval → for each page (brief → page image → tiles → visual review) → completed**. No image is requested before the user has seen and approved the adaptation script. Dialogue is the original text in the work language, and direction fields allow only Latin-script English.
+Before opening an interview, the host applies the skill's [Authorization and defaults](../../skills/webtoon-discovery-interview/SKILL.md#authorization-and-defaults). The server's choice IDs, original-answer records, and input and visual verification stay as they are.
+
+### Start
+
+Pass the following to `action="start"`.
+
+- Source: `sourceChapters` (novel chapter numbers) or `scriptId` (an adopted scene script). Both together fail with `EPISODE_SOURCE_AMBIGUOUS`. Optional `sourceUnitIds` narrows the paragraph range.
+- Page count: `pages` (1-20) when the user chose an exact number; otherwise omit it or pass only the cap `maxPages` (1-20). Without a cap the work's `webtoonPageCap` applies, and without that, 6. The page count is a result of the adaptation, with its reason in `pageCountReason`; with `pages` the adaptation must have exactly that many. Out-of-range values fail with `INVALID_EPISODE_PAGE_COUNT`.
+- `references:[{id,path,hash,description}]`: character and background references (PNG/JPEG inside the project, English description). At least one; there are 16 image slots in total, which include the previous-page slot and, when a style is adopted, the style-sample slot. The ids `adopted-style` and `previous-page` are reserved. Missing references fail with `EPISODE_REFERENCES_REQUIRED`. With a script source, catalog images are given as `{id,assetId,description}`.
+- `direction` (English; optional when a style is adopted) and `styleRevisionId` (omitted: the latest adopted style is pinned at start).
+- `adaptationRevisions` and `pageRevisions` (0-2 each, default 1): how many times a failed adaptation check or page review is redone automatically. Every redraw is a new image call. Exceeding the delegation's `maxAutoRevisions` fails with `WEBTOON_DELEGATION_RETRY_LIMIT`.
+- Image path and model: the same `needs_image_runtime → needs_image_choice → confirmImageChoice` confirmation as the scene path. A work's `webtoonImageQuality` (`low|medium|high`), when set, is carried in the image job as `quality`.
+- `delegation` accepts only `scope="production"` (other scopes fail with `EPISODE_DELEGATION_SCOPE`). All input validation finishes before any model or image call.
+
+### Adaptation script and adaptation check
+
+Answer the `webtoon-adaptation` request with the adaptation script. First an editorial map (`editorial`) assigns every source paragraph to a beat once and decides expand, condense, omit or defer. Each page has 3-6 panels; a panel carries `shows` (what the drawing conveys), `readerDelta` and `bridge` (why it follows the previous panel; only a page's first panel may say `page opener`). A panel has at most 2 text elements and at most 1 `physical`. Text is an exact substring of a source paragraph that the same panel cites in its `sourceIds` (`EPISODE_TEXT_SOURCE_MISMATCH` otherwise, so a panel cannot letter a unit it does not draw, and never one from an omitted or deferred beat), and the speaker is a cast id, a declared `extras` id, or `narrator` (caption, sfx). The server's deterministic check covers only panel and page counts, duplicate IDs, whether omitted beats were drawn or retained beats dropped, verbatim text, each text's source and speakers. It does not replace the semantic review.
+
+Then a `webtoon-adaptation-review` request is issued. The reviewer gets a script-only packet (`scriptOnly`) and a source-comparison packet (`sourceComparison`). `readThrough` is judged from the script alone; only `coreKept` and `fidelity` may use the source.
+
+- Five checks: `readThrough`, `coreKept`, `showNotTell`, `pageFlow`, `fidelity`. Each records `passed|failed|uncertain`, the panel ids involved and evidence. `uncertain` does not pass, and a check that did not pass must name at least one panel.
+- Any failed check or any `blocking` finding fails the review. An `advisory` finding never forces a revision.
+- Reviewer model: if the work has `lore_configure(webtoonAdaptationReviewModel=...)`, that model must run the request and the answer carries `reviewerEvidence:{modelId,responseId}`. A `modelId` that differs from the setting, or an empty `responseId`, fails with `ADAPTATION_REVIEWER_EVIDENCE_REQUIRED`. Without the setting the host model answers and the result's `independence` is `same-host` (`configured-model` when the setting exists). A same-host review is never reported as an independent reader evaluation.
+- This check is not affected by `disabledReviews`.
+- On failure, the observed defects (the evidence and panels of each check that did not pass, and blocking findings) become feedback and the adaptation is redone within `adaptationRevisions`. When the budget is spent the state is `adaptation_needs_revision`; continue with `revise(target="adaptation")` and the user's feedback.
+
+### Adaptation approval
+
+When the check passes, the workflow stops at `awaiting_adaptation_approval` and returns `approvalView`. The host shows the user:
+
+- The main experience (`focus`) and how each source beat was handled (`adaptation.editorial` in the response: expand, condense, omit, defer).
+- The page table (`approvalView.pages`): each page's purpose and page turn, and for each panel its `shows`, texts (with speakers) and `bridge`.
+- The check results: the five statuses and their evidence, advisories, and `independence`.
+- The estimated image calls, `estimatedImageCalls` = pages × (1 + `pageRevisions`) (the maximum).
+
+Approve with `action="approve"`, passing `approvalId` and the user's own words as `feedback`. The `approvalId` is bound to the adaptation, the review and the revision; if any changed it fails with `ADAPTATION_APPROVAL_STALE`. Outside the gate it is `EPISODE_APPROVAL_NOT_AVAILABLE`, and without the user's words `ADAPTATION_USER_ANSWER_REQUIRED`. To change the script call `revise(target="adaptation", feedback)`, optionally with new `pages`, `maxPages` and `direction`; revising an adaptation creates no image call.
+With `delegation.scope="production"`, the workflow advances on a delegation record (`approval.by="delegated"`) in place of the user's approval, right after the adaptation check passes. A failed check never advances, even under delegation.
+
+### Page brief, image, tiles and review
+
+After approval, pages are processed in order; a page starts only once the one before it has passed.
+
+1. `webtoon-page-brief`: judges only whether the page can be drawn. Answer the checks `shows`, `bridge` and `visibleRelations`, a `renderBrief` with one moment per panel, and a `drawability` verdict. If it cannot be drawn the state is `page_brief_blocked` and no image is requested. The brief of a redraw carries positive corrections only (`focusTextIds`, `corrections`).
+2. `needs_page_image`: run the chosen path with the exact `prompt`, `referenceImages` and `inputHash` of `jobs[0]` (`kind:"page"`). References are attached in this order: the user's references, the adopted style sample, the previous page once it passed. Import with `asset:{pageId,path,inputHash,provenance}`. A page image must be a PNG (`PAGE_IMAGE_PNG_REQUIRED`); the provenance contract is the same as the scene path. If the work has `webtoonImageQuality` and `provenance.requestedQuality` is missing or different, the already-drawn image is not refused; it is recorded with `provenance.qualityMismatch=true`.
+3. `needs_page_tiles`: `jobs[0]` (`kind:"page-tiles"`) gives `image`, `imageHash`, `rects` and `scale`. The host crops each rectangle of `rects` from the page image, upscales it 2×, saves it as a PNG and imports `tiles:{pageId,imageHash,items:[{id,path}]}`. The grid is fixed at 2 columns × 4 rows (8 tiles); tile ids are `t-r<row>c<col>` and inner edges overlap by 10%. The server reads sizes and hashes from the files. Missing tiles or sizes outside ±2% of expected fail with `PAGE_TILES_INCOMPLETE` or `PAGE_TILE_SIZE`; a hash that is not the current page image fails with `PAGE_TILES_STALE`.
+4. `webtoon-page-review`: open the page image, all 8 tiles, the previous page once it passed, the adopted style sample and the user references. Transcribe each text from the tiles character by character, exactly as drawn (never corrected toward the expected text); judge `panelDelivery` (delivered|partial|missing) per panel; compare identity, clothing, props and transition with the previous page; and record the five `visualChecks` and the observed panel count. A page passes when the panel count matches, every panel is delivered, every text is readable with the right speaker and matches the source, continuity passes, and there is no blocking finding.
+   - Reviewer model: if `webtoonReviewModel` is set, that model runs it and the answer must carry `reviewerEvidence:{modelId,responseId}` (`PAGE_REVIEWER_EVIDENCE_REQUIRED`). Without the setting the review is `same-host`.
+   - On failure, within `pageRevisions`, the observed defects become feedback and the page restarts from the brief with a new image request. When the budget is spent the page stops at `page_needs_revision` and later pages are untouched.
+
+### Revision, completion and verification
+
+- `revise(target="page", pageIds, feedback)` resets the named page and every page after it (later pages' previous-page references change). Earlier pages keep their image, tiles and review. The redraw budget is renewed.
+- After `revise(target="adaptation")` the drawn pages are set aside, and at approval state is restored for the leading pages whose position, id and content are unchanged. The first changed page and everything after it is made fresh.
+- `retry` asks the failed stage again from `model_failed`. `reject` records the user's stop in their own words, releases pending requests and keeps files.
+- When every page has passed, the state is `completed`. The result is kept under `.vibelore/webtoon/candidates/<workflowId>/r<revision>/` as `page-01.png` and so on, `episode.html` (the pages stacked vertically) and the adaptation and review JSON. A production record goes to `.vibelore/productions/<workflowId>-r<revision>.json` (source, adaptation and review hashes with the reviewer model, `independence` and `reviewerEvidence`, the approval, each page's image and tile hashes, requested quality and `qualityMismatch`). `completed` means the host's page reviews passed; it does not mean the novel canon was replaced or anything published. The lettering is part of the raster, not editable lettering.
+- `verify` is read-only. It recomputes the hashes of page images, tiles and the production record and reports a list of mismatches: a page image, tile or record that no longer matches is returned with status `mismatch`. A changed source, reference image or adopted style is not a mismatch entry; as in the scene path's `verify`, it throws (`EPISODE_SOURCE_CHANGED`, `EPISODE_REFERENCE_CHANGED`, `STYLE_*`).
+- Lookups use `lane="webtoon"` and the workflow ID. While an episode is in progress, a new `start` is refused with `WEBTOON_WORKFLOW_ACTIVE`.
+
+## Option: scene in one image (explicit request only)
+
+`lore_webtoon_scene` is the optional path that makes one scene, lettering included, as a single image. Use it only when the user asks for it directly. `start` needs the user's actual answer to that request (`sceneDirect:{userAnswer}`), or a work saved with `lore_configure(webtoonSceneDirect={enabled:true,userAnswer})`. With neither, it fails with `SCENE_DIRECT_OPT_IN_REQUIRED`, and delegation ("you choose") cannot stand in for it. `revise`, `retry` and `review` of a scene already started do not pass the gate again. The sections `Style samples and adoption`, `Delegation and edge cases` and `Standalone scene-script source` below are shared with the episode path.
+
+This path generates a whole scene together with its lettering, without roughs.
 Existing per-panel work is not changed automatically. The confirmed built-in image tool or API and the adopted style basis are reused. The server never draws; character and background references (`references`) are supplied on every start.
 The new path pins the source paragraph range and proceeds as **scene adaptation and English direction → pre-generation check → scene image with lettering → visual review of the actual image**.
 Pass the panel count selected or delegated by the user as `panelCount`, an integer (1-12) or `"auto"`. If omitted from the tool call, the result is `needs_interview` (options `4, 6, 8, 9, auto`) and no model or image calls are issued. `auto` is decided anew for each adaptation from the `panelCount` (integer 3-12) in the `webtoon-scene-plan` answer; if it is missing or out of range, it fails with `SCENE_PANEL_COUNT_UNRESOLVED`. The decided number is recorded in the `scene_panel_count_resolved` event and then used as is for the renderBrief length, the image request and the check of the observed panel count. `revise` resets the auto value so that the new adaptation chooses again. Integers under 3 are allowed, but a continuity-loss warning is put in the response `warnings` without blocking. Changing `panelCount` after the start is `SCENE_PANEL_COUNT_PINNED` (an auto job allows only `"auto"`). Panel size, layout and camera are left to the image model. The unit of events is not the panel.
@@ -27,14 +91,34 @@ The user production guide is [Making a webtoon](../WEBTOON.en.md). This document
 and integration developers who answer MCP requests. Error and compatibility descriptions
 do not mean available production options.
 
-It adapts an existing Vibelore novel, world and characters into webtoon scenes. It pins the source version and manages
-direction interview → scene adaptation and English direction → pre-generation check → scene image with lettering → visual review of the actual image
+It adapts an existing Vibelore novel, world and characters into a webtoon. It pins the source version and manages
+direction interview → page adaptation script → adaptation check and user approval → per-page image and tile review
 as a separate workflow. It starts with the `webtoon-discovery-interview` skill or
-`lore_webtoon_scene`. The output is a scene raster image (PNG/JPEG) with the lettering drawn in, plus `scene.html`, and the actual image generation is done by the host. SVG/HTML masters exist only on the per-panel path (deprecated).
+`lore_webtoon_episode`. The output is page raster images (PNG) with the lettering drawn in, plus `episode.html`, and the actual image generation is done by the host. The scene-in-one-image path (`lore_webtoon_scene`) produces a scene raster image (PNG/JPEG) plus `scene.html`. SVG/HTML masters exist only on the per-panel path (deprecated).
+
+### Visual reviewer and observed evidence
+
+Save a per-work reviewer with `lore_configure(webtoonReviewModel={provider:"host",modelId,reasoningEffort})`; `null` restores
+the default. The host must actually send the request and all images to that model. A model hint is not execution evidence.
+Novel/image models and already pending requests are unaffected.
+
+Version 2 attaches the actual scene, adopted style and identity/prop references with `imageIndex` and role descriptions.
+Each `visualChecks` entry (reflectionGeometry, propStructure, handsAndContact, withinSceneContinuity, layoutAndTiming)
+requires a status, actual one-based panel numbers and observed evidence. Describe the pixels before comparing them with the
+requirement. An unobservable required relationship is `uncertain` and cannot pass. Legitimate absent/offscreen details not
+required by the scene may be `not_applicable` with a reason. Aggregate true booleans cannot override failed/uncertain checks.
+The meaning of the observations still depends on model review; structural validation does not guarantee image quality.
+Style taste remains advisory.
+
+Call `lore_webtoon_scene(action="review",workflowId,feedback)` to apply a new reviewer/prompt to a preserved image. It archives
+the earlier review and complete pending request in `reviewHistory`, issues a new actual request ID/runId, and preserves the
+image, revision and redraw allowance. Failed re-review stops at `scene_needs_revision` without another image request.
 
 ### Standalone scene-script source
 
 When the source is a standalone scene script rather than novel chapters, first adopt it with `lore_scene_script` inspect/apply ([SharedLore contract, Korean](SHARED_LORE_RUNTIME.md)). Then pass `scriptId` instead of `sourceChapters` on `action="start"`; passing both is `SCENE_SOURCE_AMBIGUOUS`. Source paragraph IDs are `<sceneId>-p-<n>`, and plan and preflight requests also carry the per-scene world point and state documents (`sharedLore`), cast and expression profile. Future states and author documents are excluded. References pick catalog images pinned by the script as `references:[{id, assetId, description}]`, using the bytes sealed inside the work; an unpinned assetId is `SCENE_ASSET_NOT_PINNED`. Interview, panel count, image path choice, preflight, visual review and revise/retry work as with a novel source. If the script file or sealed inputs change mid-workflow, it stops with `SCENE_SCRIPT_DRIFT`/`SCENE_SOURCE_CHANGED`.
+
+The episode path (`lore_webtoon_episode`) uses the same source through `scriptId`; its equivalent errors are `EPISODE_SOURCE_AMBIGUOUS` (both given) and `EPISODE_ASSET_NOT_PINNED` (an `assetId` that is not pinned).
 
 A newly started scene workflow writes a record to `.vibelore/productions/` on completion: source revision, lock, reference asset revisions and hashes, image hash and plan/preflight/review digests. `action="verify"` re-checks that record with the sealed inputs, references and image bytes read-only, and works without the shared world directory. References given by path are reported as `unpreserved`. Workflows started before this feature complete without a record (`SCENE_PRODUCTION_NOT_RECORDED`). Webtoon results never change the shared world or novel canon.
 
@@ -111,13 +195,15 @@ Changing the mode alone does not redraw or lift existing cost/retry restrictions
 when it was billed; the host reports actual execution. A newly forbidden API sample issues no further jobs; preserve it and
 propose another candidate on an allowed path. An already returned file can be retained/imported without rerunning the call.
 
+On the episode path, production delegation (`scope=production`) is the only scope accepted, and when no page count was given the adaptation chooses it within the cap. Delegation stands in for adaptation approval only after the check has passed; a failed check, or progress beyond the cost and retry limits, is never opened by delegation.
+
 Delegation never disables source, lettering or visual checks or authorizes publication. Style taste remains advisory; actual
 source, text and continuity defects retain their checks and bounded redesign budget.
 
 
 ## Appendix: per-panel path (deprecated)
 
-Below is the execution contract of the per-panel rough-approval path. Starting new work with `lore_webtoon_plan` is refused with `WEBTOON_PANEL_PATH_DEPRECATED`. A `workflowId` that doesn't exist is `WEBTOON_WORKFLOW_NOT_FOUND`. Per-panel jobs already started still support continuing the plan, `lore_webtoon_render`, `lore_webtoon_decide`, `lore_resume`, and `lane="webtoon"` status and history lookups. New work uses the [default path](#default-path-whole-scene-production).
+Below is the execution contract of the per-panel rough-approval path. Starting new work with `lore_webtoon_plan` is refused with `WEBTOON_PANEL_PATH_DEPRECATED`. A `workflowId` that doesn't exist is `WEBTOON_WORKFLOW_NOT_FOUND`. Per-panel jobs already started still support continuing the plan, `lore_webtoon_render`, `lore_webtoon_decide`, `lore_resume`, and `lane="webtoon"` status and history lookups. New work uses the [default path](#default-path-episode-pages).
 
 - Required choices: [art, lettering, page format](#required-choices-before-production--art-lettering-page-format), [start and interview](#start-and-interview), [production order](#production-order).
 - Execution and resumption: [state table](#continue-by-state), [rough approval and parallel drawing](#composition-rough-approval-and-parallel-drawing), [revision and resumption](#revision-and-resumption).
@@ -352,7 +438,7 @@ lore_webtoon_plan({
 | `needs_image_runtime` | Scene: report the host's real image paths as imageRuntime. Per-panel: check a host path that can select the requested model. Separate billing is connected only after the user's choice, and the current jobs are not run |
 | `needs_images` | Generate and review images with a runnable approved model and import PNG/JPEG files inside the project as assets |
 | `look_accepted` | After importing every shot image, generate and review the final with `quality="final"` |
-| `completed` | Use the local approved version and the SVG/HTML master. Start the next episode with `lore_webtoon_scene` |
+| `completed` | Use the local approved version and the SVG/HTML master. Start the next episode with `lore_webtoon_episode` |
 
 ```js
 lore_webtoon_decide({

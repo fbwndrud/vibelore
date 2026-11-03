@@ -67,8 +67,8 @@ compatibility mode also discovers `.claude/skills/novel/SKILL.md`.
 
 ## Host capabilities needed for webtoon production
 
-For webtoons, the same MCP connection adds the default path `lore_webtoon_scene` (generating a whole scene as one image, dialogue included,
-without roughs). `lore_webtoon_plan`, `lore_webtoon_render` and `lore_webtoon_decide` are
+For webtoons, the same MCP connection adds the default path `lore_webtoon_episode` (adapting a chapter into several pages, then drawing each page with
+its dialogue once the user approves the script). The scene-in-one-image option `lore_webtoon_scene` is used only when the user explicitly asks for it. `lore_webtoon_plan`, `lore_webtoon_render` and `lore_webtoon_decide` are
 [deprecated] and are used only to continue per-panel work already started. Plugin installation includes the webtoon interview skill too.
 Registering only MCP doesn't install the skills automatically, so tell the host to read
 `skills/webtoon-discovery-interview/SKILL.md` in the vibelore install path. If you copy only the skill,

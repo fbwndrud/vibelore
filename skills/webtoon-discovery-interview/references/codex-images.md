@@ -2,9 +2,34 @@
 
 Vibelore handles the plan, state and review, and the host draws with the path the user chose: its built-in image tool or an API. The `jobs` a tool returns are execution requests, not records of finished generation.
 
+## Episode page path (`needs_page_image`, `needs_page_tiles`)
+
+This is the default path (`lore_webtoon_episode`). Runtime reporting (`needs_image_runtime`) and the choice confirmation
+(`needs_image_choice`) are the same as steps 1-2 of the [scene path](#scene-path-needs_scene_image) below and are asked once per work.
+No job exists before the user has approved the adaptation script, and a page is drawn only after the previous page passed its review.
+
+1. **Draw the page (`needs_page_image`).** `jobs[0]` has `kind: "page"`, the page's `prompt`, `referenceImages` and `inputHash`. Attach every file in
+   `referenceImages` in the listed order (the user's references, the adopted style sample, then the previous page once it passed).
+   Run `hostRequest` or `apiRequest` exactly as in step 3 of the scene path. When `jobs[0].quality` is set, request that quality if the
+   path takes one. Copy the returned image into the work folder as a PNG; any other format is refused (`PAGE_IMAGE_PNG_REQUIRED`).
+2. **Import the page.** Call `lore_webtoon_episode` with `asset: { pageId, path, inputHash: jobs[0].inputHash, provenance }`. The provenance shapes are
+   the scene path's (`host-built-in` or `api`, plus `observedModel` only if you saw it). Add `requestedQuality` with the quality you actually requested:
+   if the work has a quality setting and it is missing or different, the image is kept and recorded with `qualityMismatch`.
+3. **Cut the tiles (`needs_page_tiles`).** `jobs[0]` has `kind: "page-tiles"`, the page `image`, its `imageHash`, `rects` and `scale: 2`. The grid is fixed:
+   2 columns × 4 rows, 8 tiles with ids `t-r1c1` … `t-r4c2`, inner edges overlapping by 10%. For each rect, crop `{x, y, w, h}` from the page image,
+   upscale the crop 2× and save it as a PNG inside the project (the folder of the page image is fine). Do not alter the page image itself. Then import
+   `tiles: { pageId, imageHash: jobs[0].imageHash, items: [{ id, path }] }` for all 8 tiles. The server reads each tile's size and hash from the file;
+   do not report them. Tiles of another image fail with `PAGE_TILES_STALE`, missing tiles with `PAGE_TILES_INCOMPLETE`, and sizes more than 2% off with `PAGE_TILE_SIZE`.
+4. **Review (`needs_model`, `webtoon-page-review`).** Open the page image, all 8 tiles, the previous page (when attached), the adopted style sample and the references before
+   answering. Transcribe each text from the tiles exactly as drawn; do not correct it toward the expected text. If `webtoonReviewModel` is set, run the request on that
+   model and include `reviewerEvidence: { modelId, responseId }` from its actual response; otherwise the review is the host's own (`same-host`).
+
+A failed page review within the page's redraw budget starts the page over from the brief and issues a new job with a new `inputHash`: another host-usage call on the
+built-in path, another paid call on the API path. Do not resend a request on your own, and never switch paths without the user's choice.
+
 ## Scene path (`needs_scene_image`)
 
-This is the default path (`lore_webtoon_scene`). The user picks how images are drawn: a built-in image tool of the host, or an API.
+This is the option used only when the user explicitly asks for a whole scene in one image (`lore_webtoon_scene`). The user picks how images are drawn: a built-in image tool of the host, or an API.
 The server never generates images and holds no per-host model list; you report what this host really has.
 For delegated requests, follow the skill's [decision path](../SKILL.md#direct-choice-or-delegation): runtime reporting is host work,
 and an authorized built-in choice is recorded without another user confirmation. Steps below describe the direct-choice branch.

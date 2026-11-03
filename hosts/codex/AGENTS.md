@@ -1,6 +1,6 @@
 # 소설 집필 — vibelore
 
-웹툰화 요청은 설치된 `webtoon-discovery-interview` 스킬을 읽고 `lore_webtoon_scene`으로 시작한다. 스킬이 자동 로드되지 않는 MCP 단독 연결이면 vibelore 설치 경로의 `skills/webtoon-discovery-interview/SKILL.md`를 읽는다. 대화 맥락에서 해석한 제작·진행 의사와 미지정 설정의 기본값은 그 스킬의 `Authorization and defaults`를 적용해 원작 범위·화풍·참조·칸 수·이미지 모델을 정한다. 웹툰 조회에는 `lane="webtoon"`을 지정한다. `lore_webtoon_plan`은 deprecated이며 이미 시작된 컷별 작업을 마무리할 때만 쓴다. 소설 정본과 웹툰 산출물을 분리한다.
+웹툰화 요청은 설치된 `webtoon-discovery-interview` 스킬을 읽고 `lore_webtoon_episode`로 시작한다. 장면 한 장 이미지(`lore_webtoon_scene`)는 사용자가 명시적으로 요청할 때만 쓴다. 스킬이 자동 로드되지 않는 MCP 단독 연결이면 vibelore 설치 경로의 `skills/webtoon-discovery-interview/SKILL.md`를 읽는다. 대화 맥락에서 해석한 제작·진행 의사와 미지정 설정의 기본값은 그 스킬의 `Authorization and defaults`를 적용해 원작 범위·화풍·참조·쪽 수·이미지 모델을 정하고, 각색 대본은 사용자 승인을 받은 뒤에만 이미지로 그린다. 웹툰 조회에는 `lane="webtoon"`을 지정한다. `lore_webtoon_plan`은 deprecated이며 이미 시작된 컷별 작업을 마무리할 때만 쓴다. 소설 정본과 웹툰 산출물을 분리한다.
 
 “알아서”는 이번 요청의 선택 위임으로 기록한다. 스킬의 위임 분기에 따라 예시만·화풍 선택·제작 범위를 구분하고, 위임받은 결정을 다시 묻지 않는다. 최신 비용·재시도 제한과 기존 장면 수정 범위를 지킨다.
 

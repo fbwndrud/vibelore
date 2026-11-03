@@ -53,6 +53,29 @@ the chosen path and model, plus the model information the host actually saw, as 
 
 For the actual production steps, see [Making a webtoon](WEBTOON.en.md).
 
+## Webtoon visual reviewer
+
+Use `lore_configure(webtoonReviewModel={provider:"host",modelId:"gpt-6.1-terra",reasoningEffort:"medium"})`
+to save a per-work visual reviewer. Omission preserves the setting; `null` restores the host default.
+This is an **execution hint**: the host must actually send the request and images to a session or agent running that model.
+The setting alone is not evidence that the selected model inspected anything. Novel and image models are unaffected.
+
+New review requests use the setting; an already pending request remains pinned. To apply a new reviewer or prompt to an existing
+image, call `lore_webtoon_scene(action="review",workflowId="...",feedback="...")`. It archives the earlier review/request and
+reviews the preserved image without generating another image or triggering automatic redraws.
+
+On the episode path, `webtoonReviewModel` is used for the page visual reviews. When it is set, a page review passes only if the
+answer carries the real execution evidence `reviewerEvidence:{modelId,responseId}`.
+
+### Adaptation reviewer
+
+`lore_configure(webtoonAdaptationReviewModel={provider:"host",modelId:"...",reasoningEffort:"medium"})` saves the model used only for the adaptation-script
+check of `lore_webtoon_episode`. The format and rules are those of the visual reviewer (omission preserves it; `null` restores the host model).
+When it is set, the host must actually run the review request on that model and put `reviewerEvidence:{modelId,responseId}` in the answer; a different
+`modelId` or an empty `responseId` is refused. Without it the host model answers and the result's `independence` stays `same-host` (a self-review).
+A same-host review is never reported as an independent reader evaluation. Novel and image models are unaffected, and this check is separate from the
+novel's optional reviews (`disabledReviews`).
+
 ## Optional: local text model
 
 If you run a local model yourself, you can connect an OpenAI-compatible `/chat/completions` endpoint.
