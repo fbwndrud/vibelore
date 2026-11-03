@@ -126,8 +126,14 @@ export function validatePageBrief(review, w, page) {
  * Episode units carry no scene ids, so the user references lose their scene binding and render as plain roles.
  */
 export function pageReferences(w, page) {
-  const previous = previousPageState(w, page);
-  return [...w.references.map(({ sceneIds, ...reference }) => reference), ...(w.styleSnapshot ? [styleReference(w.styleSnapshot)] : []),
+  const previous = previousPageState(w, page), style = w.styleSnapshot ? styleReference(w.styleSnapshot) : null, users = [];
+  // One attachment per image: a reference with the same bytes as the style sample (or an earlier reference) folds its role into that slot.
+  for (const { sceneIds, ...reference } of w.references) {
+    const same = reference.hash === style?.hash ? style : users.find(u => u.hash === reference.hash);
+    if (same) same.description = `${same.description} The same image is also the reference for: ${reference.description}`;
+    else users.push(reference);
+  }
+  return [...users, ...(style ? [style] : []),
     ...(previous ? [{ id: PREVIOUS_PAGE_ID, path: previous.image.path, hash: previous.image.hash, description: w.styleSnapshot
       ? 'Previous page of this episode: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
       : 'Previous finished page of this episode: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])];

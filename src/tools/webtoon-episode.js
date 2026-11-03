@@ -266,8 +266,10 @@ function pageReviewInputs(w, page, state) {
   for (const tile of state.tiles) add(tile, tile.id, `Upscaled crop ${tile.id} of the page; transcribe lettering from it.`);
   const previous = previousPageState(w, page);
   if (previous) add(previous.image, 'previous-page', 'The previous page of this episode, for identity, clothing, props and transition comparison.');
-  if (w.styleSnapshot) add(w.styleSnapshot.image, 'adopted-style', 'User-adopted visual treatment; not a source of new story facts.');
-  for (const reference of w.references) add(reference, reference.id, reference.description);
+  // Same attachment set as the image job: duplicate bytes are attached once.
+  const references = pageReferences(w, page), folded = w.references.filter(r => r.hash === w.styleSnapshot?.image.hash).map(r => r.description);
+  if (w.styleSnapshot) add(w.styleSnapshot.image, 'adopted-style', `User-adopted visual treatment; not a source of new story facts.${folded.length ? ` The same image is also the reference for: ${folded.join(' ')}` : ''}`);
+  for (const reference of references) if (![STYLE_REFERENCE_ID, PREVIOUS_PAGE_ID].includes(reference.id)) add(reference, reference.id, reference.description);
   return { images, referenceImages };
 }
 

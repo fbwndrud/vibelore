@@ -107,6 +107,19 @@ test('page prompt attaches the previous page only after it passed', () => {
   assert.equal(pageImagePrompt(failed, page2, 2, 3).includes('previous page'), false);
 });
 
+test('an image with the same bytes as the style sample or another reference is attached once', () => {
+  const styleHash = second.styleSnapshot.image.hash, ref = second.references[0];
+  const doubled = withBrief({ ...second, references: [ref, { ...ref, id: 'cast-copy', description: 'Cast sheet copy.' },
+    { id: 'cast-style', path: second.styleSnapshot.image.path, hash: styleHash, description: 'Cast sheet in the adopted style.' }] }, page2);
+  const refs = pageReferences(doubled, page2);
+  assert.deepEqual(refs.map(r => r.id), ['ref', 'adopted-style', 'previous-page']);
+  assert.equal(new Set(refs.map(r => r.hash)).size, refs.length);
+  assert.match(refs[0].description, /The same image is also the reference for: Cast sheet copy\.$/);
+  assert.match(refs[1].description, /^User-adopted art style only.*The same image is also the reference for: Cast sheet in the adopted style\.$/);
+  const prompt = pageImagePrompt(doubled, page2, 2, 3);
+  assert.equal(prompt.match(/^Image \d+:/gm).length, 3);
+});
+
 test('page prompt needs the approved brief', () => {
   assert.throws(() => pageImagePrompt(first, page1, 1, 3), code(/SCENE_RENDER_BRIEF_REQUIRED/));
 });
