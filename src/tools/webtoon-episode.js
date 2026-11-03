@@ -33,7 +33,7 @@ function approvalView(w) {
   return { approvalId: w.approvalId, focus: editorial.focus,
     pages: pages.map(({ id, purpose, pageTurn, panels }) => ({ id, purpose, pageTurn,
       panels: panels.map(({ id, shows, texts, bridge }) => ({ id, shows, texts: texts.map(({ id, kind, speaker, text }) => ({ id, kind, speaker, text })), bridge })) })),
-    checks: ADAPTATION_REVIEW_CHECKS.map(name => ({ name, status: review.checks[name].status, evidence: review.checks[name].evidence })),
+    checks: ADAPTATION_REVIEW_CHECKS.map(name => { const { status, evidence, demotedFrom } = review.checks[name]; return { name, status, evidence, ...(demotedFrom ? { demotedFrom } : {}) }; }),
     advisories: review.findings.filter(f => f.severity === 'advisory'), independence: review.independence,
     estimatedImageCalls: pages.length * (1 + w.budgets.page.limit) };
 }
@@ -118,13 +118,13 @@ async function verifyEpisode(repo, w) {
   return { status: mismatches.length ? 'mismatch' : 'verified', lane: 'webtoon', workflowId: w.workflowId, stage: w.stage, approval: w.approval ?? null, ...(w.productionRecordHash ? { recordHash: w.productionRecordHash } : {}), checks, mismatches };
 }
 
-/** Failed review feedback as positive revision instructions: every failed check and blocking finding, with its panels. */
+/** Failed review feedback as positive revision instructions: every failed check and every blocking finding, with its check, panels and texts. */
 function adaptationFeedback(review) {
-  const where = panels => panels?.length ? ` [panels: ${panels.join(', ')}]` : '';
-  return ['Revise the adaptation so that a reader who has not read the novel follows it:',
+  const where = panels => panels?.length ? ` [panels: ${panels.join(', ')}]` : '', texts = ids => ids?.length ? ` [texts: ${ids.join(', ')}]` : '';
+  return ['Revise the adaptation so that a reader who has not read the novel follows it. Fix every item below in this revision, and keep the panels no item names as they are unless a fix needs them:',
     ...ADAPTATION_REVIEW_CHECKS.filter(key => review.checks[key].status !== 'passed')
       .map(key => `- ${key} (${review.checks[key].status}): ${review.checks[key].evidence}${where(review.checks[key].panels)}`),
-    ...review.findings.filter(f => f.severity === 'blocking').map(f => `- ${f.evidence}${where(f.panels)}`)].join('\n');
+    ...review.findings.filter(f => f.severity === 'blocking').map(f => `- ${f.check ? `${f.check}${f.kind ? `/${f.kind}` : ''}: ` : ''}${f.evidence}${where(f.panels)}${texts(f.textIds)}`)].join('\n');
 }
 
 /** Start a new adaptation round; the earlier candidates stay on disk under their own revision directory. */
@@ -213,8 +213,8 @@ async function drive(repo, w, providers) {
     const r = await modelTask(repo, w, 'webtoon-adaptation-review', ADAPTATION_REVIEW_PROMPT,
       { ...adaptationReviewPackets(w), schema: adaptationReviewSchema(w) }, providers);
     if (r.waiting) return r.result;
-    const { passed, independence } = validateAdaptationReview(r.value, w);
-    w.adaptationReview = { ...r.value, passed, independence, reviewedAt: new Date().toISOString() };
+    const { passed, independence, review } = validateAdaptationReview(r.value, w);
+    w.adaptationReview = { ...review, passed, independence, reviewedAt: new Date().toISOString() };
     await repo.writeCandidate(w, 'adaptation-review.json', JSON.stringify(w.adaptationReview, null, 2));
     record(w, 'adaptation_reviewed', { passed, independence });
     if (!passed) {

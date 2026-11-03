@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `lore_webtoon_episode`의 각색 검토(`webtoon-adaptation-review`)가 결함을 한 번에 모두 내고 바뀌지 않은 대본에 같은 판정을 냅니다.
+  검토자는 검사마다 대본 전체를 감사해 사례마다 `check`를 붙인 finding을 내고, `showNotTell`은 모든 글자를 `textAudit`에
+  `carries`·`replacesDrawing`·`redundant`로 판정합니다. 핵심 행동·동기·결과를 글이 대신하거나 그릴 수 없는 칸만 `blocking`이고
+  단순 중복은 `advisory`로 낮춥니다(`demoted`, `demotedFrom`). 재검토 요청에는 이전 검토와 칸 비교(`previousReview`·`panelDiff`)가
+  붙으며, 바뀌지 않았고 이전에 문제가 없던 칸에만 걸린 새 `blocking` finding은 `newOnUnchanged` 이유가 없으면 `advisory`로 기록합니다.
+  재각색 feedback은 모든 blocking finding을 검사·칸·글자 id와 함께 넘깁니다. 이전 스키마로 발급된 대기 중 검토 응답은 다시 요청해야 합니다.
+
 - 저장소 전용 Lore Studio에 로컬 제작·고정 Edition·공유 자산 Library·명시적 반입/채택과
   제작 사이클 기록을 추가합니다. npm runtime에는 Studio를 포함하지 않습니다.
 - Studio 자격 증명을 명시적 옵션으로만 읽고 MCP의 임의 소유자 연결을 거부합니다.

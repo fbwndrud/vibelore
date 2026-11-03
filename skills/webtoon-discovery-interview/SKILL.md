@@ -146,6 +146,19 @@ After the adaptation script passes the server's structural checks, a `webtoon-ad
 quoted evidence; `uncertain` does not pass. Judge `readThrough` from the script-only packet, as a reader who has not read the novel; only
 `coreKept` and `fidelity` use the source comparison. A failed check or a `blocking` finding fails the review; an `advisory` finding does not.
 
+Answer it as a full audit, not a first-defect report. Read every page, panel and text for every check and list each instance as its own
+finding tagged with its `check`; a `failed` check needs at least one such finding. For `showNotTell`, give every text id pre-filled in
+`checks.showNotTell.textAudit` a verdict: `carries`, `replacesDrawing` (the text states a key action, motive or result the drawing must
+carry and the shows do not) or `redundant` (it only repeats the drawing). Each `replacesDrawing` or `redundant` text is listed in `textIds`
+by a `showNotTell` finding of that `kind`, and a panel one image cannot deliver is `kind="undrawable"`. The server sets the severity from the
+kind: `replacesDrawing` and `undrawable` block, `redundant` is advisory, and a `showNotTell` failure made only of redundancy passes with
+`demotedFrom:"failed"`. The other four checks keep their criteria.
+
+On a re-review the request also carries `previousReview` and `panelDiff`. Re-check the changed and added panels and every earlier finding
+first, then audit the rest. A `blocking` finding that names only unchanged panels the previous review found clean must explain in
+`newOnUnchanged` what the earlier review missed or what changed around them; without it the server records it as advisory
+(`demoted:"unexplainedOnUnchanged"`).
+
 The reviewer is the work's `lore_configure(webtoonAdaptationReviewModel=...)` model. It is a host execution hint: actually run the
 request on that model (a separate model session or agent when the host supports it) and return `reviewerEvidence: {modelId, responseId}`
 from its real response; a different `modelId` or an empty `responseId` is rejected. Without the setting the host's own model answers, the

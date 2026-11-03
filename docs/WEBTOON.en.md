@@ -92,6 +92,8 @@ text character by character. If a check fails, the script is redone or the page 
 if it still fails you are shown the result and the evidence and asked how to fix it. The adaptation reviewer model can be set separately with
 `lore_configure`; without it the result is labelled a same-host self-review (`same-host`). If you delegate ("you choose"), approval is
 replaced only after the adaptation check passes.
+The adaptation check reads the whole script at once and lists every defect it finds. Text that only repeats what the drawing already shows is
+kept as advice (advisory); a re-check starts from the changed panels and the earlier findings, and a new blocking finding on an unchanged panel needs a stated reason.
 
 > Make chapter 1 into a webtoon. Choose the number of pages yourself, and show me the adaptation script first.
 
