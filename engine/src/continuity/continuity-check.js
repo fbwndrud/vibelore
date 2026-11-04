@@ -1229,6 +1229,7 @@ function buildContinuityCheckSections(input) {
             aliases: c.aliases,
             intrinsic: c.intrinsic,
             mutable: c.mutable,
+            ...(c.progressions?.length ? { progressions: c.progressions } : {}),
         })),
         intrinsicChanges: foundation.intrinsicChanges,
         worldFacts: foundation.worldFacts,

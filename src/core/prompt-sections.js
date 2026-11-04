@@ -512,10 +512,13 @@ export function renderCheckSections({ foundation, prevState: loadedState, delta,
     t.checkPathNote,
     ...(pov.length ? [t.checkPov(pov.join(' · '))] : []),
     // Only characters this chapter shows; the path keeps the Foundation index for evidence.
-    ...asArray(foundation?.characters).map((c, i) => (onPage.has(c.id)
-      ? t.checkCharacter(`foundation.characters[${i}]`, c.canonicalName, c.id,
-        [intrinsicFields(c.intrinsic), asArray(c.aliases).length ? c.aliases.join(', ') : ''].filter(Boolean).join(' · '))
-      : '')).filter(Boolean),
+    ...asArray(foundation?.characters).flatMap((c, i) => (onPage.has(c.id)
+      ? [t.checkCharacter(`foundation.characters[${i}]`, c.canonicalName, c.id,
+        [intrinsicFields(c.intrinsic), asArray(c.aliases).length ? c.aliases.join(', ') : ''].filter(Boolean).join(' · ')),
+        // Keep the original block text and its projected index so quoted evidence resolves verbatim.
+        ...asArray(c.progressions).map((block, j) => t.checkWorldFact(`foundation.characters[${i}].progressions[${j}].text`,
+          `${kit.phrases.common.fromChapter(block.fromChapter)}: ${block.text}`))]
+      : [])),
     ...asArray(foundation?.intrinsicChanges).map((e, i) => t.checkWorldFact(`foundation.intrinsicChanges[${i}]`, `${name(e.characterId)} ${e.field}: ${e.from} → ${e.to} (${e.atChapter})`)),
     ...asArray(foundation?.worldFacts).map((f, i) => t.checkWorldFact(`foundation.worldFacts[${i}]`, factText(f, kit))),
     ...(foundation?.sharedLore?.contextText ? [foundation.sharedLore.contextText] : []),
