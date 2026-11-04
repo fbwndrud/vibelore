@@ -35,6 +35,7 @@ import { CANONICAL_FORMAT_VERSION_LEGACY_KO, CANONICAL_FORMAT_VERSION_MULTILINGU
 import { requireLore } from '../../engine/src/lore/schemas.js';
 import { saveManagedPlanDocument } from '../core/working-tree-sync.js';
 import { renderStorySpineDocument, renderWriterSkillDocument } from './plan-documents.js';
+import { findIgnoredMarkers, formatGateMarker, parseFactTag, splitGatedSection } from '../core/canon-gates.js';
 
 /** 비교 전용 정규화. 태그가 깨졌으면 원문 그대로 비교해 오류를 숨기지 않는다. */
 function comparableLanguage(value) {
@@ -43,6 +44,39 @@ function comparableLanguage(value) {
 }
 
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
+
+/** True when the line is the "###" gate heading carrying exactly this marker text. */
+function isGateHeadingLine(line, text) {
+  const match = /^###(?!#)\s*(.*)$/.exec(line.trim());
+  return match !== null && match[1].trim() === text;
+}
+
+/** True when the line is a world-fact bullet whose statement is, or starts with a bracket holding, exactly this text. */
+function isFactLine(line, text) {
+  const bullet = /^\s*[-*+]\s+(?:\([^)]*\)\s*)?(.*)$/.exec(line);
+  if (!bullet) return false;
+  const statement = bullet[1].trim();
+  const tag = /^\[([^\]]*)\]/.exec(statement);
+  return statement === text || (tag !== null && tag[1].trim() === text);
+}
+
+/** Turns a gate parse error into CANON_GATE_INVALID naming the document and, when found, the 1-based line of the offending heading or fact. */
+function canonGateError(doc, fileText, lineText) {
+  const needle = String(lineText ?? '').trim();
+  const index = needle ? String(fileText).split('\n').findIndex((line) => isGateHeadingLine(line, needle) || isFactLine(line, needle)) : -1;
+  const error = new Error(`CANON_GATE_INVALID: ${doc}${index >= 0 ? ` ${index + 1}` : ''}`);
+  error.code = 'CANON_GATE_INVALID';
+  return error;
+}
+
+/** Runs a gate parser and rethrows its CANON_GATE_INVALID errors with the document and line attached. */
+function withGateLocation(doc, fileText, fn) {
+  try { return fn(); }
+  catch (error) {
+    if (error?.code === 'CANON_GATE_INVALID') throw canonGateError(doc, fileText, error.lineText);
+    throw error;
+  }
+}
 
 function assertSafeId(kind, value) {
   if (typeof value !== 'string' || value.length === 0 || !SAFE_ID.test(value)) {
@@ -639,12 +673,13 @@ export class MarkdownStateStore {
     });
     const extra = (await readJsonOrNull(this.sidecar('foundation.json'))) ?? {};
 
-    const worldFactMeta = new Map(Object.entries(extra.worldFactMeta ?? {}));
+    // The chapter a fact opens at lives in the Markdown tag; the sidecar copy is write-only.
     const worldFacts = readBullets(body, heading.worldFacts).map((line, i) => {
       const m = FACT_LINE.exec(line);
       const id = m?.groups?.id?.trim() ?? `w${i + 1}`;
-      const statement = (m?.groups?.statement ?? line).trim();
-      return { id, statement, registeredAtChapter: Number(worldFactMeta.get(id) ?? 1) };
+      const raw = (m?.groups?.statement ?? line).trim();
+      const tag = withGateLocation('world/setting.md', settingText, () => parseFactTag(raw));
+      return { id, statement: tag ? tag.statement : raw, registeredAtChapter: tag ? tag.fromChapter : 1 };
     });
 
     const characterExtras = extra.characterExtras ?? {};
@@ -662,6 +697,8 @@ export class MarkdownStateStore {
       assertCanonicalSections({
         body: parsed.body, version: charFormat.canonicalFormatVersion, keys: CHARACTER_SECTION_KEYS, doc,
       });
+      // Validation only: the loaded description keeps its gate headings verbatim.
+      withGateLocation(doc, text, () => splitGatedSection(readSection(parsed.body, headingsFor(charFormat.canonicalFormatVersion).description) ?? ''));
       characters.push(docToCharacter(text, characterExtras[id], { version: charFormat.canonicalFormatVersion }));
     }
 
@@ -717,6 +754,7 @@ export class MarkdownStateStore {
       ? resolveDocumentFormat({ data: priorDoc.data, contract: record, doc: 'world/setting.md' })
       : { canonicalFormatVersion: newDocContract?.canonicalFormatVersion ?? 1 };
     const settingHeading = headingsFor(settingFormat.canonicalFormatVersion);
+    const tagStyle = settingFormat.canonicalFormatVersion === CANONICAL_FORMAT_VERSION_MULTILINGUAL ? 'en' : 'ko';
     // 뒤쪽 인물 문서에서 충돌이 나 앞 문서만 바뀌는 일이 없도록, 쓰기 전에 문서
     // 집합 전체를 먼저 검증한다.
     assertCanonicalSections({
@@ -750,7 +788,10 @@ export class MarkdownStateStore {
     );
 
     const body = [
-      bulletSection(settingHeading.worldFacts, (foundation.worldFacts ?? []).map((f) => `(${f.id}) ${f.statement}`)),
+      bulletSection(settingHeading.worldFacts, (foundation.worldFacts ?? []).map((f) => {
+        const gated = Number.isSafeInteger(f.registeredAtChapter) && f.registeredAtChapter > 1;
+        return `(${f.id}) ${gated ? `[${formatGateMarker(f.registeredAtChapter, tagStyle)}] ` : ''}${f.statement}`;
+      })),
       preserveForeignSections(priorDoc.body, allOwnedHeadings(SETTING_SECTION_KEYS)),
     ].filter((s) => s.trim() !== '').join('\n');
 
@@ -791,6 +832,25 @@ export class MarkdownStateStore {
       characterExtras,
       ...(Object.keys(rest).length > 0 ? { rest } : {}),
     });
+  }
+
+  /** Gate markers sitting outside a Description section (silently ignored by projection), sorted by path then line. */
+  async scanIgnoredGateMarkers() {
+    const descriptionHeadings = [headingsFor(1).description, headingsFor(2).description];
+    const found = [];
+    const scan = (path, text) => {
+      for (const line of findIgnoredMarkers(text, descriptionHeadings)) found.push({ path, line });
+    };
+    const settingText = await readTextOrNull(this.settingPath);
+    if (settingText !== null) scan('world/setting.md', settingText);
+    let files = [];
+    try { files = await readdir(this.charactersDir); }
+    catch (err) { if (err.code !== 'ENOENT') throw err; }
+    for (const name of files.filter((f) => f.endsWith('.md'))) {
+      const text = await readTextOrNull(join(this.charactersDir, name));
+      if (text !== null) scan(`characters/${name}`, text);
+    }
+    return found.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : a.line - b.line));
   }
 
   // -- StoryState -----------------------------------------------------------

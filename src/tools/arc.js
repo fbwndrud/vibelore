@@ -10,6 +10,7 @@ import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { compileCharacterArcSeeds, renderCharacterArcSeeds } from '../core/character-arc-seeds.js';
 import { asKit, promptKit } from '../prompts/index.js';
+import { factText, progressionParts } from '../core/prompt-sections.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { reviewPlanningStage } from '../core/planning-stage-review.js';
 import { planningReviewSelection } from '../core/review-policy.js';
@@ -221,8 +222,8 @@ export async function runArcPlan({ store, workId, mode = 'review', episodes = 8,
       direction: profileDirection || kit.phrases.common.autonomous,
       spineRender: renderStorySpine(storySpine, kit),
       feedback: feedback || kit.phrases.common.noneParen,
-      worldFacts: [...foundation.worldFacts.map((f) => f.statement), ...(foundation.sharedLore?.contextText ? [foundation.sharedLore.contextText] : [])],
-      characters: foundation.characters.map((c) => `${c.id}/${c.canonicalName}: ${c.contradiction ?? ''}`),
+      worldFacts: [...foundation.worldFacts.map((f) => factText(f, kit)), ...(foundation.sharedLore?.contextText ? [foundation.sharedLore.contextText] : [])],
+      characters: foundation.characters.map((c) => [`${c.id}/${c.canonicalName}: ${c.contradiction ?? ''}`, ...progressionParts(c, kit)].join(' · ')),
       seedsRender: renderCharacterArcSeeds(characterArcSeeds, kit),
       summaries: summaries.reverse().map((s) => s.summary),
       previousArcReviewJson: previousArcReview ? JSON.stringify({

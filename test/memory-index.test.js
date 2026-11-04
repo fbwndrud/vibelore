@@ -8,6 +8,8 @@ import { MarkdownStateStore } from '../src/store/markdown-store.js';
 import { rebuildLedgerLog } from '../src/tools/ledger-log.js';
 import { rebuildMemoryIndex, retrieveMemory } from '../src/tools/memory-index.js';
 import { saveWriterSupportPolicy } from '../src/core/review-policy.js';
+import { createFoundation, registerCharacter } from '../engine/src/continuity/foundation.js';
+import { createGenreProfileRegistry } from '../engine/src/continuity/genre-profile.js';
 import { emptyStoryState, reduceStoryState } from '../engine/src/continuity/story-state.js';
 
 const workId = 'memory-work';
@@ -50,4 +52,29 @@ test('records and notes of a feature the author turned off are not indexed', asy
   await saveWriterSupportPolicy(store, workId, { tracking: { objects: false } });
   const memory = await retrieveMemory({ store, workId, query: '재서명 쪽지', currentChapter: 2 });
   assert.deepEqual(memory.candidates.filter((item) => item.scope === 'record' || item.scope === 'event'), []);
+});
+
+async function workWithCharacter(description) {
+  const store = new MarkdownStateStore(await mkdtemp(join(tmpdir(), 'vibelore-memory-')));
+  let foundation = createFoundation({ workId, genre: 'action', genreProfile: createGenreProfileRegistry().get('action'), povMode: '3인칭제한' });
+  foundation = registerCharacter(foundation, { id: 'kai', canonicalName: '카이', registeredAtChapter: 1, description });
+  await store.saveFoundation(foundation);
+  return store;
+}
+
+test('a gated description block is not indexed; the base text still is', async () => {
+  const store = await workWithCharacter('BASEWORD 견습생.\n\n### 12화부터\nSECRETBLOCKWORD 팔을 잃었다.');
+  const secret = await retrieveMemory({ store, workId, query: 'SECRETBLOCKWORD', currentChapter: 30 });
+  assert.deepEqual(secret.candidates.filter((item) => item.scope === 'character'), []);
+  const base = await retrieveMemory({ store, workId, query: 'BASEWORD', currentChapter: 30 });
+  const row = base.selected.find((item) => item.scope === 'character' && item.ref === 'kai');
+  assert.ok(row);
+  assert.doesNotMatch(row.text, /SECRETBLOCKWORD|12화부터/);
+});
+
+test('a description without gate headings is indexed unchanged', async () => {
+  const store = await workWithCharacter('BASEWORD 견습생.\n\n### 소제목\n일반 문단.');
+  const memory = await retrieveMemory({ store, workId, query: 'BASEWORD', currentChapter: 3 });
+  const row = memory.selected.find((item) => item.scope === 'character' && item.ref === 'kai');
+  assert.equal(row.text, '카이 BASEWORD 견습생.\n\n### 소제목\n일반 문단.');
 });

@@ -67,6 +67,19 @@ test('range reads every code unit of long prose, saves actual quotes and never c
   assert.equal(stale.review.reviewId, result.review.reviewId);
 });
 
+test('an unpublished work shows a range read only the canon open at the reviewed chapter', async () => {
+  const store = memoryStore(['문을 열고 함께 놀았다.']), requests = [];
+  store.loadFoundation = async () => ({ workId, characters: [], worldFacts: [
+    { id: 'w1', statement: 'OPEN_FACT_TOKEN', registeredAtChapter: 1 },
+    { id: 'w2', statement: 'GATED_FACT_TOKEN', registeredAtChapter: 12 },
+  ] });
+  await runRangeReview({ store, workId, providers: provider(requests) });
+  const read = requests.find(req => req.step === 'range-review-read');
+  const text = read.messages.map(message => message.content).join('\n');
+  assert.match(text, /OPEN_FACT_TOKEN/);
+  assert.doesNotMatch(text, /GATED_FACT_TOKEN/);
+});
+
 test('large ranges read all chapters before bounded hierarchical synthesis', async () => {
   const store = memoryStore(Array.from({ length: 60 }, (_, i) => `${i + 1}화: 문을 열고 다음 선택을 했다.`));
   const requests = [];

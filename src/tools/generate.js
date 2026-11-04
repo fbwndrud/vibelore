@@ -1,4 +1,6 @@
 import { validateGeneratedFoundation } from '../core/foundation-language-repair.js';
+import { chapterFoundation } from '../core/chapter-foundation.js';
+import { gateSummary } from '../core/canon-gates.js';
 /** Phase 2 generation tools: keep host-facing interfaces small and reuse engine steps. */
 import { createHash } from 'node:crypto';
 import { prepareBookFoundationCandidate } from '../../engine/src/generators/text/steps/worldbuild.js';
@@ -180,7 +182,7 @@ function draftExecutionError({ code, reason, ...detail }) {
 }
 
 /** The trailing contextAudit keys every draft form reports, in their persisted order. */
-function draftAuditTail({ result, exchangeId, workLanguage }) {
+function draftAuditTail({ result, exchangeId, workLanguage, canonGates }) {
   return {
     draftInputTrace: result.compiled.trace,
     draftInputUsage: result.compiled.usage,
@@ -191,6 +193,7 @@ function draftAuditTail({ result, exchangeId, workLanguage }) {
     lengthTarget: workLanguage.length.target,
     languageContractHash: workLanguage.contractHash,
     mcpContractVersion: MCP_CONTRACT_VERSION,
+    ...(canonGates ? { canonGates } : {}),
   };
 }
 
@@ -201,6 +204,8 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const baseFoundation = await draftStore.loadFoundation(workId);
   const runtime = await loadLoreRuntime({ canonicalStore: draftStore, foundation: baseFoundation, chapter });
   const foundation = runtime.foundation;
+  // Ids and chapters of the canon gated out at this chapter, read from the raw foundation.
+  const canonGates = gateSummary(baseFoundation, chapter);
   if (!foundation) throw new Error('작품이 없습니다. 먼저 lore_init 또는 lore_create를 실행하세요.');
   // 발행된 정본이 있으면 그 foundation 이 실행 원천이다. 명시 language 는 일치
   // 확인용이며 일회성 출력 override 가 아니다.
@@ -212,7 +217,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
   const executionSnapshot = executionFoundation(foundation, workLanguage);
   if (form === 'scene') {
     return runSceneDraft({ store, workId, chapter, plan, tension, providers, workflowId, pin,
-      publicationUnit, draftStore, pinnedCanonHead, runtime, foundation, workLanguage, executionSnapshot });
+      publicationUnit, draftStore, pinnedCanonHead, runtime, foundation, workLanguage, executionSnapshot, canonGates });
   }
   const arcPlan = await store.loadArcPlan(workId);
   const arcEpisode = episodeForChapter(arcPlan, chapter);
@@ -380,7 +385,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
       narrativeContractDigest: narrativeContract.digest,
       arcIntentDigest: arcIntent?.digest ?? null,
       episodeIntentDigest: episodeIntent?.digest ?? null,
-      ...draftAuditTail({ result, exchangeId, workLanguage }),
+      ...draftAuditTail({ result, exchangeId, workLanguage, canonGates }),
     },
   };
 }
@@ -392,7 +397,7 @@ export async function runDraftTool({ store, workId, chapter, plan = '', tension,
  * instead of the plans. Continuity reaches the writer as it does for a chapter.
  */
 async function runSceneDraft({ store, workId, chapter, plan, tension, providers, workflowId, pin = null,
-  publicationUnit, draftStore, pinnedCanonHead, runtime, foundation, workLanguage, executionSnapshot }) {
+  publicationUnit, draftStore, pinnedCanonHead, runtime, foundation, workLanguage, executionSnapshot, canonGates }) {
   const kit = promptKit({ contract: workLanguage.contract });
   const scenePacketResult = compileScenePacket({ brief: plan, kit });
   if (!scenePacketResult.ok) throw new Error(`${scenePacketResult.error.code}: scene ${scenePacketResult.error.reason}`);
@@ -520,20 +525,27 @@ async function runSceneDraft({ store, workId, chapter, plan, tension, providers,
       narrativeContractDigest: narrativeContract.digest,
       arcIntentDigest: null,
       episodeIntentDigest: null,
-      ...draftAuditTail({ result, exchangeId, workLanguage }),
+      ...draftAuditTail({ result, exchangeId, workLanguage, canonGates }),
     },
   };
 }
 
-/** Bound works read the same SharedLore view as drafting and checking; unbound works keep their working-tree sheet. */
-async function sharedFoundation(store, workId, chapter, foundation) {
+/**
+ * Bound works read the same SharedLore view as drafting and checking; unbound works keep their working-tree sheet, gated at the chapter.
+ * Returns the projected foundation and the raw one it was projected from.
+ */
+async function sharedFoundation(store, workId, chapter) {
   const canonicalStore = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
-  if (!canonicalStore.publishedRevision?.tree?.sharedLore?.binding) return foundation;
-  return (await loadLoreRuntime({ canonicalStore, foundation: await canonicalStore.loadFoundation(workId), chapter })).foundation;
+  if (!canonicalStore.publishedRevision?.tree?.sharedLore?.binding) {
+    const raw = await store.loadFoundation(workId);
+    return { raw, foundation: chapterFoundation({ raw, chapter }) };
+  }
+  const raw = await canonicalStore.loadFoundation(workId);
+  return { raw, foundation: (await loadLoreRuntime({ canonicalStore, foundation: raw, chapter })).foundation };
 }
 
 export async function runReviseTool({ store, workId, chapter, prose, castManifestRaw, violations, language = null, providers, creativePreferences }) {
-  const foundation = await sharedFoundation(store, workId, chapter, await store.loadFoundation(workId));
+  const { raw, foundation } = await sharedFoundation(store, workId, chapter);
   if (!foundation) throw new Error('작품이 없습니다.');
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });
   const sanitizer = new DefaultOutputSanitizer();
@@ -564,7 +576,8 @@ export async function runReviseTool({ store, workId, chapter, prose, castManifes
     },
     ...engineLanguageArgs(workLanguage), model: MODEL, providers,
   });
-  return { chapter, prose: result.revisedProse, next: '수정본을 lore_check로 다시 검사하세요.' };
+  const canonGates = gateSummary(raw, chapter);
+  return { chapter, prose: result.revisedProse, ...(canonGates ? { canonGates } : {}), next: '수정본을 lore_check로 다시 검사하세요.' };
 }
 
 // World facts, characters already in the prompt's Foundation and active hooks
@@ -575,7 +588,7 @@ function writerOlderMemory(items, characterInFoundation) {
 }
 
 export async function runRewriteTool({ store, workId, chapter, intent, language = null, providers }) {
-  const foundation = await sharedFoundation(store, workId, chapter, await store.loadFoundation(workId));
+  const { raw, foundation } = await sharedFoundation(store, workId, chapter);
   const artifact = await store.loadArtifact(workId, chapter);
   if (!foundation || !artifact) throw new Error(`${chapter}화 원본 또는 작품 설정을 찾을 수 없습니다.`);
   const workLanguage = await resolveWorkLanguage({ store, workId, requested: language, foundation });
@@ -610,7 +623,8 @@ export async function runRewriteTool({ store, workId, chapter, intent, language 
     continuityRender: continuity?.text ?? '',
     ...engineLanguageArgs(workLanguage), model: MODEL, providers,
   });
-  return { chapter, prose: result.prose, next: '다시 쓴 본문을 lore_check → lore_commit → lore_refold 순서로 반영하세요.' };
+  const canonGates = gateSummary(raw, chapter);
+  return { chapter, prose: result.prose, ...(canonGates ? { canonGates } : {}), next: '다시 쓴 본문을 lore_check → lore_commit → lore_refold 순서로 반영하세요.' };
 }
 
 export async function runNextArc({ store, workId, currentArc, providers }) {

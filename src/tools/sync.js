@@ -11,6 +11,7 @@ import { runCheck } from './check.js';
 import { runCommit } from './commit.js';
 import { loadLedgerConfig } from '../core/review-policy.js';
 import { ledgerLogStatus, rebuildLedgerLog } from './ledger-log.js';
+import { splitGatedSection } from '../core/canon-gates.js';
 import { renderStorySpineDocument, renderWriterSkillDocument } from '../store/plan-documents.js';
 
 const CHAPTER_PATH = /^chapters\/(\d+)\.md$/;
@@ -125,14 +126,25 @@ const byId = (items) => new Map((items ?? []).map((item) => [item.id, item]));
 const same = (left, right) => JSON.stringify(stable(left)) === JSON.stringify(stable(right));
 const foundationHash = (foundation) => `sha256:${createHash('sha256').update(JSON.stringify(stable(foundation))).digest('hex')}`;
 
+const factChapter = (fact) => fact?.registeredAtChapter ?? 1;
+
 /** What changed between the published Foundation and the edited Markdown. */
 function diffFoundation(before, after) {
   const facts = { added: [], removed: [], changed: [] };
   const oldFacts = byId(before?.worldFacts);
   const newFacts = byId(after?.worldFacts);
   for (const [id, fact] of newFacts) {
-    if (!oldFacts.has(id)) facts.added.push({ id, after: fact.statement });
-    else if (oldFacts.get(id).statement !== fact.statement) facts.changed.push({ id, before: oldFacts.get(id).statement, after: fact.statement });
+    if (!oldFacts.has(id)) { facts.added.push({ id, after: fact.statement }); continue; }
+    const previous = oldFacts.get(id);
+    const beforeFromChapter = factChapter(previous);
+    const afterFromChapter = factChapter(fact);
+    const statementChanged = previous.statement !== fact.statement;
+    if (!statementChanged && beforeFromChapter === afterFromChapter) continue;
+    facts.changed.push({
+      id,
+      ...(statementChanged ? { before: previous.statement, after: fact.statement } : {}),
+      ...(beforeFromChapter !== afterFromChapter ? { beforeFromChapter, afterFromChapter } : {}),
+    });
   }
   for (const [id, fact] of oldFacts) if (!newFacts.has(id)) facts.removed.push({ id, before: fact.statement });
   const characters = { added: [], removed: [], changed: [] };
@@ -147,6 +159,38 @@ function diffFoundation(before, after) {
   for (const [id, character] of oldCast) if (!newCast.has(id)) characters.removed.push({ id, name: character.canonicalName });
   return { worldFacts: facts, characters };
 }
+
+/** Gates added or changed by the edit that open at or before the last published chapter; those chapters were written without them. */
+function retroactiveGates(before, after, last) {
+  const found = [];
+  const seen = new Set();
+  const add = (target, fromChapter) => {
+    const key = `${target}@${fromChapter}`;
+    if (fromChapter > last || seen.has(key)) return;
+    seen.add(key);
+    found.push({ target, fromChapter });
+  };
+  const oldFacts = byId(before?.worldFacts);
+  for (const fact of after?.worldFacts ?? []) {
+    const chapter = factChapter(fact);
+    const previous = oldFacts.has(fact.id) ? factChapter(oldFacts.get(fact.id)) : null;
+    // A gate lowered to an already published chapter (down to 1 when the tag is removed) opens earlier text there.
+    if (previous === null ? chapter > 1 : (chapter !== previous && (chapter > 1 || chapter < previous))) add(`fact:${fact.id}`, chapter);
+  }
+  const oldCast = byId(before?.characters);
+  const blocksOf = (character) => (typeof character?.description === 'string' ? splitGatedSection(character.description).blocks : []);
+  for (const character of after?.characters ?? []) {
+    const known = blocksOf(oldCast.get(character.id));
+    for (const block of blocksOf(character)) {
+      if (!known.some((old) => old.fromChapter === block.fromChapter && old.text === block.text)) add(`character:${character.id}`, block.fromChapter);
+    }
+  }
+  return found;
+}
+
+const retroactiveSentence = (retroactive, last) =>
+  ` 소급 게이트: ${retroactive.map(({ target, fromChapter }) => `${target}(${fromChapter === last ? `${last}화` : `${fromChapter}~${last}화`})`).join(', ')} `
+  + '구간의 발행된 화는 이 게이트 없이 쓰였고 다시 검사하지 않습니다.';
 
 /** Published plans that mention a changed or removed fact or character. */
 function designImpact(tree, diff) {
@@ -182,6 +226,14 @@ async function validateDesign({ store, workId, inspected }) {
   catch (error) { return { status: 'blocked', code: 'FOUNDATION_PARSE_FAILED', reason: error.message, changed: inspected.designChanges }; }
   const designDiff = diffFoundation(publication.value.tree?.foundation, working);
   const impact = designImpact(publication.value.tree, designDiff);
+  const last = Math.max(0, ...Object.keys(publication.value.tree?.chapters ?? {}).map(Number).filter(Number.isFinite));
+  const retroactive = retroactiveGates(publication.value.tree?.foundation, working, last);
+  const ignoredMarkers = (await store.scanIgnoredGateMarkers?.()) ?? [];
+  // Advisory only: these notes are returned to the caller, are not stored in the candidate and do not block apply.
+  const canonGates = {
+    ...(retroactive.length ? { retroactive } : {}),
+    ...(ignoredMarkers.length ? { ignoredMarkers } : {}),
+  };
   const fingerprint = await fingerprintWorkingTree(store.rootDir);
   const candidate = {
     schemaVersion: 2, kind: 'design', approvalId: `sync-${randomUUID().replace(/-/g, '').slice(0, 16)}`,
@@ -192,9 +244,11 @@ async function validateDesign({ store, workId, inspected }) {
   await store.saveSyncCandidate(workId, candidate);
   return {
     status: 'awaiting_approval', approvalId: candidate.approvalId, changed: inspected.designChanges, designDiff, impact,
-    nextAction: impact.plans.length
+    ...(Object.keys(canonGates).length ? { canonGates } : {}),
+    nextAction: (impact.plans.length
       ? '영향을 받는 계획을 확인하세요. 같은 approvalId로 lore_sync action=apply 하면 세계·인물 변경을 정본에 반영합니다. 계획은 자동으로 고치지 않습니다.'
-      : '같은 approvalId로 lore_sync action=apply 하면 세계·인물 변경을 정본에 반영합니다.',
+      : '같은 approvalId로 lore_sync action=apply 하면 세계·인물 변경을 정본에 반영합니다.')
+      + (retroactive.length ? retroactiveSentence(retroactive, last) : ''),
   };
 }
 

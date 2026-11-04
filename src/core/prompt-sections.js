@@ -18,6 +18,24 @@ import { searchTerms } from './search-terms.js';
 const asArray = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => typeof value === 'string' ? value.trim() : '';
 
+const flatLines = (text) => String(text ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean).join(' ');
+
+/** A world fact as the prompt shows it: tagged with its opening chapter when it opens after chapter one. */
+export function factText(fact, kit) {
+  const from = fact?.registeredAtChapter;
+  return typeof from === 'number' && from > 1 ? `[${kit.phrases.common.fromChapter(from)}] ${fact.statement}` : fact?.statement;
+}
+
+/** The label and flattened text of each open progression block of a character (empty when none). */
+function progressionEntries(character, kit) {
+  return asArray(character?.progressions).map((block) => ({ label: kit.phrases.common.fromChapter(block.fromChapter), text: flatLines(block.text) }));
+}
+
+/** `label: text` parts for each open progression block of a character (empty when none). */
+export function progressionParts(character, kit) {
+  return progressionEntries(character, kit).map(({ label, text }) => `${label}: ${text}`);
+}
+
 export function renderCharacter(foundation, character, chapter, kit, { appearance = true, initialPlacement = false, description = false } = {}) {
   const t = kit.phrases.context;
   const labels = t.intrinsicLabels;
@@ -31,6 +49,7 @@ export function renderCharacter(foundation, character, chapter, kit, { appearanc
   if (asArray(character.aliases).length) lines.push(t.characterAliases(character.aliases.join(', ')));
   if (description && clean(character.description)) lines.push(t.characterDescription(clean(character.description)));
   if (character.contradiction) lines.push(t.characterContradiction(character.contradiction));
+  for (const { label, text } of progressionEntries(character, kit)) lines.push(t.characterProgression(label, text));
   const model = character.dramaticModel;
   if (model?.valueOrder?.length) lines.push(t.valueOrder(model.valueOrder.join(' > ')));
   for (const trait of (model?.behaviorTraits ?? []).slice(0, 3)) {
@@ -104,7 +123,7 @@ export function renderWriterFoundation(foundation, cast, chapter, kit) {
 }
 
 export function renderWorldFacts(foundation, kit) {
-  return asArray(foundation?.worldFacts).map((fact) => `- ${fact.statement}`).join('\n');
+  return asArray(foundation?.worldFacts).map((fact) => `- ${factText(fact, kit)}`).join('\n');
 }
 
 function flatBody(data, name) {
@@ -421,7 +440,10 @@ export function renderCastBrief(foundation, kit, { focusText = '', chapter = 0 }
   const all = asArray(foundation?.characters).filter((c) => c.disabled !== true && (!chapter || (c.registeredAtChapter ?? 0) <= chapter));
   const selected = new Set(planningCast(foundation, { focusText, chapter }));
   const others = all.filter((c) => !selected.has(c.id));
-  const lines = all.filter((c) => selected.has(c.id)).map((c) => t.castBrief(c.canonicalName, c.id, c.intrinsic?.role, c.contradiction));
+  const lines = all.filter((c) => selected.has(c.id)).map((c) => {
+    const parts = progressionParts(c, kit);
+    return t.castBrief(c.canonicalName, c.id, c.intrinsic?.role, c.contradiction) + (parts.length ? ` · ${parts.join(' · ')}` : '');
+  });
   if (others.length) {
     lines.push(t.castOthers(others.slice(-CAST_NAME_LIMIT).map((c) => `${c.canonicalName}(${c.id})`).join(', ')));
     if (others.length > CAST_NAME_LIMIT) lines.push(t.omitted(others.length - CAST_NAME_LIMIT));
@@ -490,12 +512,15 @@ export function renderCheckSections({ foundation, prevState: loadedState, delta,
     t.checkPathNote,
     ...(pov.length ? [t.checkPov(pov.join(' · '))] : []),
     // Only characters this chapter shows; the path keeps the Foundation index for evidence.
-    ...asArray(foundation?.characters).map((c, i) => (onPage.has(c.id)
-      ? t.checkCharacter(`foundation.characters[${i}]`, c.canonicalName, c.id,
-        [intrinsicFields(c.intrinsic), asArray(c.aliases).length ? c.aliases.join(', ') : ''].filter(Boolean).join(' · '))
-      : '')).filter(Boolean),
+    ...asArray(foundation?.characters).flatMap((c, i) => (onPage.has(c.id)
+      ? [t.checkCharacter(`foundation.characters[${i}]`, c.canonicalName, c.id,
+        [intrinsicFields(c.intrinsic), asArray(c.aliases).length ? c.aliases.join(', ') : ''].filter(Boolean).join(' · ')),
+        // Keep the original block text and its projected index so quoted evidence resolves verbatim.
+        ...asArray(c.progressions).map((block, j) => t.checkWorldFact(`foundation.characters[${i}].progressions[${j}].text`,
+          `${kit.phrases.common.fromChapter(block.fromChapter)}: ${block.text}`))]
+      : [])),
     ...asArray(foundation?.intrinsicChanges).map((e, i) => t.checkWorldFact(`foundation.intrinsicChanges[${i}]`, `${name(e.characterId)} ${e.field}: ${e.from} → ${e.to} (${e.atChapter})`)),
-    ...asArray(foundation?.worldFacts).map((f, i) => t.checkWorldFact(`foundation.worldFacts[${i}]`, f.statement)),
+    ...asArray(foundation?.worldFacts).map((f, i) => t.checkWorldFact(`foundation.worldFacts[${i}]`, factText(f, kit))),
     ...(foundation?.sharedLore?.contextText ? [foundation.sharedLore.contextText] : []),
   ].join('\n');
   const appeared = asArray(delta?.appearedCharacterIds);

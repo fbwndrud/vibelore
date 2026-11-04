@@ -3,7 +3,7 @@ import { contractResponse } from './fixtures/contract-response.js';
 import { planningResponse } from './fixtures/planning-response.js';
 import { approvalResponse, approvalFixtureProvider } from './fixtures/approval-response.js';
 import assert from 'node:assert/strict';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
@@ -18,12 +18,12 @@ import { runEraResearchTool } from '../src/tools/era-research.js';
 import { runArcPlan, runArcDecide } from '../src/tools/arc.js';
 import { runArcQuality } from '../src/tools/arc-quality.js';
 import { runStoryProfile, runStoryProfileDecide } from '../src/tools/story-profile.js';
-import { buildContext } from '../src/tools/context.js';
+import { buildContext, selectWriterContinuity } from '../src/tools/context.js';
 import { episodePlanningContractViolations, runEpisodePlan, runEpisodeDecide } from '../src/tools/episode-plan.js';
 import { createHostRelay } from '../src/provider/host-relay.js';
 import { repairMissingInfluenceObservation, runWriteWorkflow, runWorkflowDecide, runWorkflowHistory, proseHash } from '../src/tools/workflow.js';
 import { patternViolations } from '../src/tools/story-experience.js';
-import { compileAuthorCraftPacket, compileWriterPacket, createDifferenceContract, writerSkillViolations } from '../src/tools/writer-skill.js';
+import { compileAuthorCraftPacket, compileWriterPacket, createDifferenceContract, runWriterSkill, writerSkillViolations } from '../src/tools/writer-skill.js';
 import { createPublicationUnit } from '../src/core/publication-unit.js';
 import { saveExperienceLedgerForHead } from '../src/core/experience-ledger.js';
 import { REVIEW_RESPONSES } from './fixtures/review-responses.js';
@@ -57,6 +57,40 @@ function provider(outputs) {
     if (req.step === 'arc-quality' && outputs[req.step] === undefined) return { text: JSON.stringify({ score: 90, dimensions: { premisePressure: 90, causalEscalation: 90, expectationRenewal: 90, characterCollision: 90, oppositionAdaptation: 90, payoffSurprise: 90, serialMomentum: 90 }, verdict: 'pass', findings: [] }) };
     return outputs[req.step] !== undefined ? { text: outputs[req.step] } : planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
   } };
+}
+
+/** Gates one world fact and one character progression at chapter 12 inside the Markdown canon files. */
+async function addGatedCanon(store) {
+  const heroPath = join(store.rootDir, 'characters', 'hero.md');
+  const hero = await readFile(heroPath, 'utf8');
+  const sentence = '빈정대지 않고 모든 부조리를 진지하게 받아들인다.';
+  assert.ok(hero.includes(sentence));
+  await writeFile(heroPath, hero.replace(sentence, `${sentence}\n\n### 12화부터\nGATED_PROGRESSION_TOKEN`));
+  const settingPath = join(store.rootDir, 'world', 'setting.md');
+  const setting = await readFile(settingPath, 'utf8');
+  const anchor = /^- \(w1\).*$/m;
+  assert.match(setting, anchor);
+  await writeFile(settingPath, setting.replace(anchor, (line) => `${line}\n- (w9) [12화부터] GATED_FACT_TOKEN`));
+}
+
+/** Gates one world fact and one character progression at each of chapters 3 and 4. */
+async function addNearGatedCanon(store) {
+  const heroPath = join(store.rootDir, 'characters', 'hero.md');
+  const hero = await readFile(heroPath, 'utf8');
+  const sentence = '빈정대지 않고 모든 부조리를 진지하게 받아들인다.';
+  assert.ok(hero.includes(sentence));
+  await writeFile(heroPath, hero.replace(sentence, `${sentence}\n\n### 3화부터\nTOKEN_THREE\n\n### 4화부터\nTOKEN_FOUR`));
+  const settingPath = join(store.rootDir, 'world', 'setting.md');
+  const setting = await readFile(settingPath, 'utf8');
+  const anchor = /^- \(w1\).*$/m;
+  assert.match(setting, anchor);
+  await writeFile(settingPath, setting.replace(anchor, (line) => `${line}\n- (w9) [3화부터] FACT_THREE\n- (w10) [4화부터] FACT_FOUR`));
+}
+
+async function captureStep(run, args) {
+  let request;
+  await assert.rejects(run({ ...args, providers: { pending: [], async complete(r) { request = r; throw new Error('captured'); } } }), /captured/);
+  return request;
 }
 
 async function createdStore({ legacy = false } = {}) {
@@ -353,8 +387,9 @@ describe('Phase 2 generation pipeline', () => {
     assert.equal(result.contextAudit.draftInputTrace.identity.invocation, 'direct');
   });
 
-  async function sevenChapterStore() {
+  async function sevenChapterStore({ beforeCommit } = {}) {
     const store = await createdStore({ legacy: true });
+    if (beforeCommit) await beforeCommit(store);
     const arc = activePlan();
     arc.estimatedEpisodes = 9;
     arc.episodes = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => ({ ...arc.episodes[0], index, chapter: index, title: `${index}화`, beat: '윤재가 은빛열쇠 를 되찾는다. 보상에 붙는 세금' }));
@@ -443,6 +478,142 @@ describe('Phase 2 generation pipeline', () => {
     assert.match(input, /은빛열쇠 주인은 ACTIVE_HOOK_TOKEN/);
     assert.match(input, /윤재 \(hero\)/);
     assert.match(input, /- 탑의 시스템은 모든 보상에 세금을 매긴다/);
+  });
+
+  it('keeps canon gated above the chapter out of an unbound rewrite request', async () => {
+    const store = await createdStore({ legacy: true });
+    await runCommit({ store, workId: 'tax-tower', chapter: 1, prose: '윤재는 탑 앞에 섰다.', summary: '윤재가 탑 앞에 섰다.', providers: createHostRelay({}), delta: emptyDelta(1) });
+    await addGatedCanon(store);
+    const relay = createPreflightRelay({});
+    await runRewriteTool({ store, workId: 'tax-tower', chapter: 1, intent: '더 절박하게', providers: relay });
+    const request = relay.pending.find((r) => r.step === 'rewrite');
+    assert.ok(request);
+    const text = `${request.system}\n${request.user}`;
+    assert.doesNotMatch(text, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  const EXPECTED_GATES = { hidden: [
+    { ref: 'fact:w9', kind: 'world-fact', fromChapter: 12, reason: 'canon_gate' },
+    { ref: 'character:hero', kind: 'progression', fromChapter: 12, reason: 'canon_gate' },
+  ], total: 2 };
+
+  it('records the gated-out canon as ids and chapters in the draft audit, never as text', async () => {
+    const { result, prompt } = await draftPrompt(await sevenChapterStore({ beforeCommit: addGatedCanon }), 8);
+    assert.deepEqual(result.contextAudit.canonGates, EXPECTED_GATES);
+    assert.doesNotMatch(JSON.stringify(result.contextAudit), /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+    assert.doesNotMatch(prompt, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('records the gated-out canon in the scene draft audit', async () => {
+    const store = await sevenChapterStore({ beforeCommit: addGatedCanon });
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      if (req.step === 'draft') return { text: '윤재가 창구 앞에 섰다.\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    const result = await runDraftTool({ store, workId: 'tax-tower', chapter: 8, plan: '윤재가 창구 앞에 선다.', form: 'scene', providers: p });
+    assert.deepEqual(result.contextAudit.canonGates, EXPECTED_GATES);
+    assert.doesNotMatch(JSON.stringify(result.contextAudit), /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('records the gated-out canon on a rewrite and keeps the parked request stable and free of it', async () => {
+    const store = await sevenChapterStore({ beforeCommit: addGatedCanon });
+    const run = async () => {
+      const relay = createPreflightRelay({});
+      const result = await runRewriteTool({ store, workId: 'tax-tower', chapter: 5, intent: '더 절박하게', providers: relay });
+      return { result, request: relay.pending.find((r) => r.step === 'rewrite') };
+    };
+    const first = await run();
+    assert.deepEqual(first.result.canonGates, EXPECTED_GATES);
+    assert.ok(first.request);
+    assert.doesNotMatch(`${first.request.system}\n${first.request.user}`, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+    assert.equal((await run()).request.id, first.request.id);
+  });
+
+  it('records the gated-out canon on a revise', async () => {
+    const store = await sevenChapterStore({ beforeCommit: addGatedCanon });
+    const relay = createPreflightRelay({});
+    const result = await runReviseTool({ store, workId: 'tax-tower', chapter: 5, prose: '윤재가 섰다.', providers: relay });
+    assert.deepEqual(result.canonGates, EXPECTED_GATES);
+    assert.doesNotMatch(JSON.stringify(result), /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('adds no canonGates key for a work without gates', async () => {
+    const store = await sevenChapterStore();
+    const { result } = await draftPrompt(store, 8);
+    assert.equal('canonGates' in result.contextAudit, false);
+    const rewrite = await runRewriteTool({ store, workId: 'tax-tower', chapter: 5, intent: '더 절박하게', providers: createPreflightRelay({}) });
+    assert.equal('canonGates' in rewrite, false);
+    const revise = await runReviseTool({ store, workId: 'tax-tower', chapter: 5, prose: '윤재가 섰다.', providers: createPreflightRelay({}) });
+    assert.equal('canonGates' in revise, false);
+  });
+
+  it('shows in-range gated canon labelled in the arc-plan request and keeps later canon out', async () => {
+    const store = await createdStore({ legacy: true });
+    await addNearGatedCanon(store);
+    const arc = await captureStep(runArcPlan, { store, workId: 'tax-tower', episodes: 3, replaceActive: true });
+    assert.equal(arc.step, 'arc-plan');
+    const arcText = JSON.stringify(arc.messages);
+    assert.match(arcText, /\[3화부터\] FACT_THREE/);
+    assert.match(arcText, /3화부터: TOKEN_THREE/);
+    assert.doesNotMatch(arcText, /FOUR/);
+    const episode = await captureStep(runEpisodePlan, { store, workId: 'tax-tower', chapter: 1, mode: 'review' });
+    assert.equal(episode.step, 'episode-plan');
+    assert.doesNotMatch(JSON.stringify(episode.messages), /FACT_THREE|FACT_FOUR|TOKEN_THREE|TOKEN_FOUR/);
+  });
+
+  it('labels every gated world fact in the writer-skill request and leaves a work without gates unchanged', async () => {
+    const store = await createdStore({ legacy: true });
+    const plain = await captureStep(runWriterSkill, { store, workId: 'tax-tower' });
+    const plainText = plain.messages.map((m) => m.content).join('\n');
+    assert.match(plainText, /"worldFacts":\["탑의 시스템은 모든 보상에 세금을 매긴다\."\]/);
+    assert.doesNotMatch(plainText, /화부터/);
+    await addGatedCanon(store);
+    const gated = await captureStep(runWriterSkill, { store, workId: 'tax-tower' });
+    const gatedText = gated.messages.map((m) => m.content).join('\n');
+    assert.match(gatedText, /\[12화부터\] GATED_FACT_TOKEN/);
+    assert.doesNotMatch(gatedText, /(?<!\] )GATED_FACT_TOKEN/);
+  });
+
+  it('leaves the arc-plan fact and character lines unchanged for a work without gates', async () => {
+    const store = await createdStore({ legacy: true });
+    const arc = await captureStep(runArcPlan, { store, workId: 'tax-tower', episodes: 3, replaceActive: true });
+    const user = arc.messages.find((m) => m.role === 'user').content;
+    assert.ok(user.includes('세계 사실:\n- 탑의 시스템은 모든 보상에 세금을 매긴다.\n\n주요 인물:\n- hero/윤재: 살려고 강해질수록 생존세 때문에 죽음에 가까워진다.\n'));
+  });
+
+  it('adds progressions to the arc-quality foundation only when a character has them', async () => {
+    let request;
+    const providers = { pending: [], async complete(r) { request = r; throw new Error('captured'); } };
+    const base = { id: 'hero', canonicalName: '윤재', contradiction: 'C', description: 'D' };
+    const foundation = (character) => ({ title: 't', genre: 'litrpg', worldFacts: [], characters: [character] });
+    await assert.rejects(runArcQuality({ foundation: foundation(base), plan: { episodes: [] }, providers }), /captured/);
+    assert.ok(request.messages.map((m) => m.content).join('\n').includes('{"id":"hero","name":"윤재","contradiction":"C","description":"D"}'));
+    assert.doesNotMatch(request.messages.map((m) => m.content).join('\n'), /progressions/);
+    await assert.rejects(runArcQuality({ foundation: foundation({ ...base, progressions: [{ fromChapter: 3, text: 'TOKEN_THREE' }] }), plan: { episodes: [] }, providers }), /captured/);
+    assert.match(request.messages.map((m) => m.content).join('\n'), /"progressions":\[\{"fromChapter":3,"text":"TOKEN_THREE"\}\]/);
+  });
+
+  it('lore_context shows gated canon only from its opening chapter', async () => {
+    const store = await createdStore({ legacy: true });
+    await addGatedCanon(store);
+    const early = (await buildContext({ store, workId: 'tax-tower', chapter: 5 })).context;
+    assert.doesNotMatch(early, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+    const open = (await buildContext({ store, workId: 'tax-tower', chapter: 12 })).context;
+    assert.match(open, /- \(w9\) \[12화부터\] GATED_FACT_TOKEN/);
+    assert.match(open, /GATED_PROGRESSION_TOKEN/);
+  });
+
+  it('keeps gated description blocks out of retrieved memory before their chapter', async () => {
+    const store = await createdStore({ legacy: true });
+    await addGatedCanon(store);
+    // The plan premise is the retrieval query; its words match the gated block but spell neither token.
+    await store.saveEpisodePlan('tax-tower', { ...activeEpisodePlan(), chapter: 5, arcEpisodeIndex: 5, title: '열쇠', premise: 'GATED PROGRESSION 윤재' });
+    const context = (await buildContext({ store, workId: 'tax-tower', chapter: 5 })).context;
+    assert.doesNotMatch(context, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
+    const continuity = await selectWriterContinuity({ store, workId: 'tax-tower', chapter: 5 });
+    assert.doesNotMatch(JSON.stringify(continuity), /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN/);
   });
 
   it('gives a whole-chapter rewrite the same continuity window and older memory as a draft', async () => {
@@ -955,6 +1126,38 @@ describe('Phase 2 generation pipeline', () => {
     assert.ok(workflow.contextAudit.episodePacketTrace.includedFields.includes('payoff.promisePaid'));
     assert.ok(workflow.contextAudit.episodePacketTrace.derivedFields.some((item) => item.field === 'payoff.promisePaid'));
     assert.ok(workflow.contextAudit.episodePacketTrace.omittedFields.includes('createdAt'));
+  });
+
+  it('lore_write keeps gated canon out of the character-fidelity review before its chapter', async () => {
+    const store = await createdStore({ legacy: true });
+    await store.saveStoryProfile('tax-tower', {
+      workId: 'tax-tower', status: 'active', genreLabel: '관료제 성장물', engineGenre: 'litrpg',
+      subgenres: [], tones: [], storyEngines: ['성장'], themes: [],
+      format: { pov: '3인칭제한', chapterChars: 3300, serialization: '웹소설', dialogueBreakMode: 'relaxed' },
+      tracking: { engineBacked: [], semantic: [] },
+      promptGuidance: { worldbuild: [], cast: [], arc: [], draft: [], avoid: [] },
+    });
+    await store.saveArcPlan('tax-tower', activePlan());
+    await addGatedCanon(store);
+    await store.saveEpisodePlan('tax-tower', { ...activeEpisodePlan(), chapter: 1, arcEpisodeIndex: 1 });
+    const requests = [];
+    const p = { register() {}, has() { return true; }, get pending() { return []; }, async complete(req) {
+      const proof = contractResponse(req) ?? approvalResponse(req);
+      if (proof) return proof;
+      requests.push(req);
+      if (req.step === 'draft') return { text: `${SYNTHETIC_LONG_PROSE}\n\n⟦vle:cast-manifest {"cast":[{"characterId":"hero","addressTermsUsed":[]}]}⟧` };
+      if (req.step === 'revise') return { text: revisionPatch() };
+      if (req.step === 'coherence-judge') return { text: '{"score":90,"reason":"연결됨"}' };
+      if (req.step === 'chapter-summary') return { text: '{"summary":"윤재가 문을 열었다.","plotBeat":"rising","sceneTags":[],"povCharacter":"hero"}' };
+      if (req.step === 'story-profile-check') return { text: '{"findings":[]}' };
+      return planningResponse(req) ?? { text: REVIEW_RESPONSES[req.step] ?? '{}' };
+    } };
+    await runWriteWorkflow({ store, workId: 'tax-tower', autonomy: 'guided', providers: p });
+    const fidelity = requests.find((req) => req.step === 'character-fidelity');
+    assert.ok(fidelity, 'the character-fidelity review is requested');
+    const text = fidelity.messages.map((m) => m.content).join('\n');
+    assert.match(text, /빈정대지 않고 모든 부조리를 진지하게 받아들인다/, 'the review reads the open description');
+    assert.doesNotMatch(text, /GATED_FACT_TOKEN|GATED_PROGRESSION_TOKEN|12화부터/);
   });
 
   it('preflight starts with StoryIdentity and does not leak placeholders into later stages', async () => {

@@ -29,7 +29,8 @@ import { loadLedgerConfig } from '../core/review-policy.js';
 import { PROMPT_FAMILY_KO, promptKit } from '../prompts/index.js';
 import { resolveWorkLanguage } from '../core/work-language.js';
 import { tokenUnits } from '../core/token-units.js';
-import { renderCharacter } from '../core/prompt-sections.js';
+import { factText, renderCharacter } from '../core/prompt-sections.js';
+import { chapterFoundation } from '../core/chapter-foundation.js';
 
 export const MAX_CONTEXT_TOKENS = 18000;
 
@@ -53,7 +54,7 @@ function renderAddressMap(state, foundation, kit) {
 export async function buildContext({ store, workId, chapter, scene, targetChapters }) {
   const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
   store = await openCanonRepository({ store, publicationUnit });
-  const foundation = await store.loadFoundation(workId);
+  const foundation = chapterFoundation({ raw: await store.loadFoundation(workId), chapter });
   if (!foundation) {
     throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
   }
@@ -129,7 +130,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
     '',
     t.worldFactsHeading,
     foundation.worldFacts.length
-      ? foundation.worldFacts.map((f) => `- (${f.id}) ${f.statement}`).join('\n')
+      ? foundation.worldFacts.map((f) => `- (${f.id}) ${factText(f, kit)}`).join('\n')
       : t.worldFactsEmpty,
     '',
     t.charactersHeading,
@@ -250,7 +251,7 @@ export async function buildContext({ store, workId, chapter, scene, targetChapte
 export async function selectWriterContinuity({ store, workId, chapter }) {
   const publicationUnit = createPublicationUnit({ rootDir: store.rootDir });
   store = await openCanonRepository({ store, publicationUnit });
-  const foundation = await store.loadFoundation(workId);
+  const foundation = chapterFoundation({ raw: await store.loadFoundation(workId), chapter });
   if (!foundation) throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
   const workLanguage = await resolveWorkLanguage({ store, workId, foundation });
   const kit = promptKit({ contract: workLanguage.contract });

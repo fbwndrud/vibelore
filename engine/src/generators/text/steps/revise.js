@@ -128,6 +128,7 @@ function buildFoundationContext(foundation, chapterNumber, violations) {
                     role: c.intrinsic.role,
                     coreAppearance: [...c.intrinsic.coreAppearance],
                 },
+                ...(c.progressions?.length ? { progressions: c.progressions } : {}),
             };
         }
         catch {
@@ -144,6 +145,7 @@ function buildFoundationContext(foundation, chapterNumber, violations) {
                     role: raw.intrinsic.role,
                     coreAppearance: [...raw.intrinsic.coreAppearance],
                 },
+                ...(raw.progressions?.length ? { progressions: raw.progressions } : {}),
             };
         }
     })

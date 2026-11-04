@@ -19,6 +19,7 @@ import { characterFidelityAdvisories, characterFidelityViolations, runCharacterF
 import { arcReviewAdvisories, arcReviewViolations, runArcReview } from './arc-review.js';
 import { assessContractLength, assessChapterLength, chapterDensityViolations } from './chapter-density.js';
 import { autoCommitDecision, dedupeQualityViolations, qualityDecision } from '../core/quality-policy.js';
+import { chapterFoundation } from '../core/chapter-foundation.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { loadLoreRuntime } from '../core/lore-runtime.js';
@@ -382,6 +383,7 @@ export async function runWriteWorkflow({ store, workId, instruction = '', autono
   let foundation = await store.loadFoundation(workId);
   const sharedCanon = await openCanonRepository({ store, publicationUnit: createPublicationUnit({ rootDir: store.rootDir }) });
   if (sharedCanon.publishedRevision?.tree.sharedLore?.binding) foundation = (await loadLoreRuntime({ canonicalStore: sharedCanon, foundation: await sharedCanon.loadFoundation(workId), chapter })).foundation;
+  else foundation = chapterFoundation({ raw: foundation, chapter });
   const profile = await store.loadStoryProfile(workId);
   const storySpine = await store.loadStorySpine(workId);
   const writerSkill = await store.loadWriterSkill(workId);

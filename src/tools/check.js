@@ -31,6 +31,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { runContractCheck, shouldUseContractCheck } from './check-contract.js';
 import { ledgerBaseState } from './ledger-log.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
+import { chapterFoundation } from '../core/chapter-foundation.js';
 
 const MODEL = { provider: 'host', modelId: 'host-agent' };
 
@@ -55,7 +56,7 @@ export async function runCheck({ store, workId, chapter, prose, title, summary, 
     });
   }
 
-  const foundation = await store.loadFoundation(workId);
+  const foundation = chapterFoundation({ raw: await store.loadFoundation(workId), chapter });
   if (!foundation) throw new Error('이 디렉터리에 작품이 없습니다. 먼저 lore_init 을 실행하세요.');
 
   const lex = lexicons();

@@ -222,6 +222,7 @@ export const phrases = {
     autonomousShort: '(자율)',
     unknown: 'unknown',
     chapterSuffix: (n) => `${n}화`,
+    fromChapter: (n) => `${n}화부터`,
     chapterProseLabel: (n) => `${n}화 본문`,
   },
 
@@ -669,6 +670,7 @@ export const phrases = {
     characterDescription: (v) => `  - 설명: ${v}`,
     characterAliases: (v) => `  - 별칭: ${v}`,
     characterContradiction: (v) => `  - 모순: ${v}`,
+    characterProgression: (label, text) => `  - ${label}: ${text}`,
     valueOrder: (v) => `  - 가치 우선순위: ${v}`,
     behaviorTrait: (trigger, bias, benefit, cost) => `  - 행동 편향: ${trigger} → ${bias} (효용: ${benefit}; 비용: ${cost})`,
     perception: (first, late) => `  - 인식: 먼저 ${first} / 늦게 ${late}`,

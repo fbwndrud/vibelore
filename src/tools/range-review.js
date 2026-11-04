@@ -4,6 +4,7 @@ import { requireLore } from '../../engine/src/lore/schemas.js';
 import { openCanonRepository } from '../core/canon-repository.js';
 import { createPublicationUnit } from '../core/publication-unit.js';
 import { loadLoreRuntime } from '../core/lore-runtime.js';
+import { chapterFoundation } from '../core/chapter-foundation.js';
 import { tokenUnits } from '../core/token-units.js';
 import { resolveWorkKit } from '../prompts/index.js';
 
@@ -102,7 +103,7 @@ export async function runRangeReview({ store, workId, action = 'review', reviewI
   for (const chapter of selected) {
     const artifact = await canon.loadArtifact(workId, chapter);
     requireLore(nonempty(artifact?.prose, Number.MAX_SAFE_INTEGER), 'RANGE_REVIEW_MISSING_PROSE', `${chapter}`);
-    const runtime = published ? await loadLoreRuntime({ canonicalStore: canon, foundation, chapter, preferSealed: true }) : { foundation, productionLock: null };
+    const runtime = published ? await loadLoreRuntime({ canonicalStore: canon, foundation, chapter, preferSealed: true }) : { foundation: chapterFoundation({ raw: foundation, chapter }), productionLock: null };
     const arc = arcs.find(arc => arc.episodes.some(episode => episode.chapter === chapter)) ?? null;
     const chapterPlan = published?.tree?.plans?.episodePlans?.[chapter] ?? await store.loadEpisodePlan?.(workId, chapter);
     const context = { design, foundation: runtime.foundation, arcPlan: arc, episodePlan: planContent(active(chapterPlan)),

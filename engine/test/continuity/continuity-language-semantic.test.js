@@ -209,6 +209,22 @@ function completeEmptyExtraction(hash, extra = {}) {
     });
 }
 
+it('JSON continuity summaries retain projected progression canon as citable evidence', async () => {
+    const foundation = makeFoundation({ ...languageMetaFrom({ workContract: EN_CONTRACT }) });
+    foundation.characters[0].progressions = [{ fromChapter: 12, text: 'His left arm is gone.\nHe uses a prosthesis.' }];
+    const input = checkInput({ foundation, chapterNumber: 12, workContract: EN_CONTRACT, checkerPlan: planFor(['INTRINSIC']) });
+    const cap = capturing(semanticReply(computeContinuityContextHash(input), { INTRINSIC: 'fail' }, [
+        { invariantId: 'INTRINSIC', fieldPath: 'foundation.characters[0].progressions[0].text',
+            quote: 'His left arm is gone.\nHe uses a prosthesis.', reason: 'The action contradicts his established physical condition.' },
+    ]));
+    const result = await continuityCheck({ ...input, providers: cap.providers });
+    const { user } = partsOf(cap.requests[0]);
+    const summary = JSON.parse(user.split('## Foundation summary\n')[1].split('\n\n## Delta for this chapter')[0]);
+    expect(summary.characters[0].progressions).toEqual([{ fromChapter: 12, text: 'His left arm is gone.\nHe uses a prosthesis.' }]);
+    expect(result.semanticValidation.status).toBe('completed');
+    expect(result.semanticValidation.evidence[0].fieldPath).toBe('foundation.characters[0].progressions[0].text');
+});
+
 // ─── extractDelta 계열 ─────────────────────────────────────────────────────
 describe('extractDelta prompt families', () => {
     it('legacy call (no language) keeps the ko prompt byte-identical', async () => {
