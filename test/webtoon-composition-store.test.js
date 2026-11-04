@@ -11,6 +11,8 @@ import { sceneSetup, scenePlan, scenePreflight, sceneCompositionCheck } from './
 import { workId, pixel, otherPixel } from './fixtures/webtoon.js';
 import { runWebtoonStyleTool } from '../src/tools/webtoon-style.js';
 import { join } from 'node:path';
+import { sharedSaga, SAGA_PROJECTIONS, sagaScene } from './fixtures/shared-lore.js';
+import { inspectSceneScript, applySceneScript } from '../src/core/scene-script.js';
 
 const checkNames = ['reflectionGeometry', 'propStructure', 'handsAndContact', 'withinSceneContinuity', 'layoutAndTiming'];
 const checks = () => Object.fromEntries(checkNames.map(key => [key, { status: 'not_applicable', panels: [], evidence: 'Synthetic protocol fixture.' }]));
@@ -142,6 +144,74 @@ test('episode keys: zero-padded minimum chapter, or script- plus the script id',
   assert.equal(sceneEpisodeKey(fake('x', { sceneUnits: [{ id: 'a', chapter: 12 }, { id: 'b', chapter: 3 }] })), 'ep-0003');
   assert.equal(sceneEpisodeKey(fake('x', { source: { kind: 'scene-script', scriptId: 'script_1' }, sceneUnits: [{ id: 's-p-1', sceneId: 's' }] })), 'script-script_1');
   assert.equal(sceneKey(fake('x')), sceneKey(fake('y', { sceneUnits: [{ id: 'ch-1-p-1' }, { id: 'ch-1-p-2' }] })));
+});
+
+// These regressions catch unsupported raw script IDs escaping into shard paths or aggregate delimiters.
+for (const scriptId of ['tower.night', 'tower:night', 'x'.repeat(120)]) {
+  test(`composition storage and rebuild retain scene-script ID ${scriptId}`, async () => {
+    const { repo } = await sceneSetup();
+    const store = new CompositionStore(repo, { now: () => '2026-11-01T00:00:00.000Z' });
+    const w = fake('wt-script', { source: { kind: 'scene-script', scriptId }, sceneUnits: [{ id: 's1-p-1', sceneId: 's1' }] });
+    const { episodeKey, rows } = await store.adoptScene(w, { adopted: true });
+    assert.match(episodeKey, /^[A-Za-z0-9_-]{1,100}$/);
+    assert.equal(sceneEpisodeKey(structuredClone(w)), episodeKey, 'the mapping is stable');
+    assert.deepEqual(await store.readShard(episodeKey), rows);
+    assert.deepEqual([...((await store.readSources()).texts.keys())], [episodeKey]);
+    await store.adoptScene(fake('wt-chapter'), { adopted: true });
+    assert.deepEqual((await store.listEpisodes()).map(e => e.episodeKey), ['ep-0001', episodeKey]);
+    // Updating an existing script uses the incremental aggregate path (which splits on ':').
+    await store.adoptScene({ ...w, revision: 2 }, { adopted: true });
+    const index = await store.peekIndex();
+    assert.ok(index);
+    assert.deepEqual(index.order, ['ep-0001', episodeKey]);
+    assert.equal(Object.keys(index.scenes).length, 2);
+    assert.ok(index.episodes[episodeKey]);
+    assert.deepEqual(await store.rebuildIndex(), index);
+  });
+
+  test(`a supported scene-script ID completes production: ${scriptId}`, async () => {
+    const world = await sharedSaga(), { store, repo, args } = await sceneSetup();
+    const script = { schemaVersion: 1, workId, scriptId, title: 'A tower', language: 'ko', universeId: 'u1',
+      loreRevisionId: world.head, registryRevisionId: world.registry.revisionId, continuityId: 'main',
+      assetCatalogRevisionId: null, expressionProfileId: null,
+      cast: [{ localCharacterId: 'hero', entityId: 'character-a', projections: SAGA_PROJECTIONS, assetIds: [] }],
+      scenes: [{ ...sagaScene('s1', 'adulthood'), text: '윤재가 문 앞에서 멈췄다.' }] };
+    const proposal = await inspectSceneScript({ store, workId, worldRoot: world.root, script });
+    await applySceneScript({ store, workId, proposalId: proposal.proposalId, expectedHead: null });
+    const { sourceChapters, ...start } = args;
+    const drawn = await runWebtoonSceneTool({ store, args: { ...start, scriptId }, providers: planner });
+    assert.equal(drawn.status, 'needs_scene_image');
+    const done = await review(store, args, drawn);
+    assert.equal(done.status, 'completed');
+    const w = await repo.load(), composition = new CompositionStore(repo);
+    assert.equal(w.stage, 'completed');
+    assert.equal('compositionRecordError' in done, false);
+    assert.equal((await composition.readShard(sceneEpisodeKey(w))).filter(r => r.type === 'panel').length, 6);
+    const index = await composition.peekIndex();
+    assert.ok(index);
+    assert.equal(Object.keys(index.scenes).length, 1);
+    assert.deepEqual(await composition.rebuildIndex(), index);
+  });
+}
+
+test('script storage keeps encoded IDs distinct from each other and legacy safe IDs', async () => {
+  const { repo } = await sceneSetup();
+  const store = new CompositionStore(repo);
+  const keys = [];
+  for (const scriptId of ['tower.night', 'tower:night', 'x'.repeat(120), 'x'.repeat(93)]) {
+    const w = fake(`wt-${keys.length}`, { source: { kind: 'scene-script', scriptId } });
+    keys.push((await store.recordScene(w, { adopted: true })).episodeKey);
+  }
+  assert.equal(new Set(keys).size, 4, 'different script IDs own different shards');
+  assert.equal(keys[3], `script-${'x'.repeat(93)}`, 'a 100-character legacy key is preserved');
+  // A safe ID that resembles the encoded payload still keeps its legacy namespace.
+  const scriptId = keys[0].slice(7);
+  const legacy = await store.recordScene(fake('wt-legacy', { source: { kind: 'scene-script', scriptId } }), { adopted: true });
+  assert.equal(legacy.episodeKey, `script-${scriptId}`);
+  assert.notEqual(legacy.episodeKey, keys[0]);
+  assert.equal((await store.listEpisodes()).length, 5);
+  for (const [i, key] of keys.entries()) assert.equal((await store.readShard(key))[0].workflowId, `wt-${i}`);
+  assert.equal(Object.keys((await store.rebuildIndex()).episodes).length, 5);
 });
 
 test('episodes list chapters numerically, then scripts by first adoption time', async () => {

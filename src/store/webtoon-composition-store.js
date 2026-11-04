@@ -9,11 +9,16 @@ import { atomicWrite } from './webtoon-store.js';
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 export const CORRUPT_SHARD = 'CORRUPT_COMPOSITION_SHARD';
 const SCRIPT_PREFIX = 'script-';
+// Disjoint from legacy script- keys, including user IDs that resemble a digest.
+const HASHED_SCRIPT_PREFIX = 'script_';
 const chapterOf = key => /^ep-(\d{4,})$/.exec(key)?.[1];
 
-/** `ep-0001` from the lowest source chapter, or `script-<scriptId>` for a scene script. */
+/** Lowest chapter key, or a bounded script key; preserve legacy safe script keys. */
 export function sceneEpisodeKey(w) {
-  if (w.source?.kind === 'scene-script') return `${SCRIPT_PREFIX}${w.source.scriptId}`;
+  if (w.source?.kind === 'scene-script') {
+    const legacy = `${SCRIPT_PREFIX}${w.source.scriptId}`;
+    return safeId(legacy) ? legacy : `${HASHED_SCRIPT_PREFIX}${digest(w.source.scriptId).slice('sha256:'.length)}`;
+  }
   const chapters = w.sceneUnits.map(u => u.chapter).filter(Number.isSafeInteger);
   return `ep-${String(Math.min(...chapters)).padStart(4, '0')}`;
 }
@@ -90,7 +95,7 @@ export class CompositionStore {
     catch (error) { if (error.code === 'ENOENT') return []; throw error; }
     const keys = names.filter(n => n.endsWith('.jsonl')).map(n => n.slice(0, -'.jsonl'.length)).filter(safeId);
     const chapters = keys.filter(k => chapterOf(k)).sort((a, b) => Number(chapterOf(a)) - Number(chapterOf(b)));
-    const scripts = await Promise.all(keys.filter(k => k.startsWith(SCRIPT_PREFIX)).map(async episodeKey => {
+    const scripts = await Promise.all(keys.filter(k => k.startsWith(SCRIPT_PREFIX) || k.startsWith(HASHED_SCRIPT_PREFIX)).map(async episodeKey => {
       const times = (await this.readShard(episodeKey)).filter(r => r.type === 'page' && r.adoptedAt).map(r => r.adoptedAt);
       return { episodeKey, first: times.sort()[0] ?? '' };
     }));
