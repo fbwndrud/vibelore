@@ -79,14 +79,15 @@ function normalizeReview(review, w) {
   const flagged = new Set(basis ? [...Object.values(basis.previousReview.checks).filter(c => c.status !== 'passed').flatMap(c => c.panels ?? []),
     ...basis.previousReview.findings.filter(f => f.severity === 'blocking').flatMap(f => f.panels ?? [])] : []);
   const cleanBefore = panels => basis && panels.length > 0 && panels.every(id => unchanged.has(id) && !flagged.has(id));
-  const findings = review.findings.map(f => {
+  // Demotion metadata belongs to this normalization, never to the incoming reviewer response.
+  const findings = review.findings.map(({ demoted, ...f }) => {
     let next = f.check === 'showNotTell' ? { ...f, severity: SHOW_NOT_TELL_KINDS[f.kind] } : f;
     if (f.severity === 'blocking' && next.severity === 'advisory') next = { ...next, demoted: 'redundant' };
     if (next.severity === 'blocking' && cleanBefore(next.panels) && !nonempty(next.newOnUnchanged)) next = { ...next, severity: 'advisory', demoted: 'unexplainedOnUnchanged' };
     return next;
   });
   const checks = Object.fromEntries(ADAPTATION_REVIEW_CHECKS.map(key => {
-    const c = review.checks[key], own = findings.filter(f => f.check === key);
+    const { demotedFrom, ...c } = review.checks[key], own = findings.filter(f => f.check === key);
     if (c.status === 'failed' && !own.length) throw new Error(`INCOMPLETE_ADAPTATION_REVIEW: ${key}`);
     const serverAdvisory = f => f.demoted || (key === 'showNotTell' && f.kind === 'redundant');
     return [key, c.status === 'failed' && own.every(serverAdvisory) ? { ...c, status: 'passed', demotedFrom: 'failed' } : c];

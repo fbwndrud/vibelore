@@ -141,6 +141,58 @@ test('the prompt asks for an exhaustive audit, redundancy as advisory and a diff
   assert.match(ADAPTATION_REVIEW_PROMPT, /newOnUnchanged/);
 });
 
+test('incoming demotion cannot turn a first-review fidelity failure with an advisory finding into a pass', () => {
+  const finding = { check: 'fidelity', severity: 'advisory', panels: ['p1-1'], evidence: '원문과 공개 시점이 다르다', demoted: 'unexplainedOnUnchanged' };
+  const result = validateAdaptationReview(reviewWith({ fidelity: 'failed' }, { findings: [finding] }), w);
+  assert.equal(result.passed, false);
+  assert.equal(result.review.checks.fidelity.status, 'failed');
+  assert.equal(Object.hasOwn(result.review.findings[0], 'demoted'), false);
+});
+
+test('echoed demotion cannot excuse a fidelity failure after its panel changes', () => {
+  const clean = { ...w, previousAdaptation: w.adaptation, previousFindings: reviewWith({}) };
+  const prior = validateAdaptationReview(reviewWith({ fidelity: 'failed' }, {}, clean), clean);
+  assert.equal(prior.passed, true);
+  assert.equal(prior.review.findings[0].demoted, 'unexplainedOnUnchanged');
+  const adaptation = structuredClone(w.adaptation);
+  adaptation.pages[0].panels[0].shows = '문이 열린 뒤의 빈 복도';
+  const changed = { ...w, adaptation, previousAdaptation: w.adaptation, previousFindings: prior.review };
+  const echoed = reviewWith({ fidelity: 'failed' }, { findings: prior.review.findings }, changed);
+  echoed.checks.fidelity.demotedFrom = 'failed';
+  const result = validateAdaptationReview(echoed, changed);
+  assert.equal(result.passed, false);
+  assert.equal(result.review.checks.fidelity.status, 'failed');
+  assert.equal(Object.hasOwn(result.review.checks.fidelity, 'demotedFrom'), false);
+  assert.equal(Object.hasOwn(result.review.findings[0], 'demoted'), false);
+});
+
+for (const kind of ['replacesDrawing', 'undrawable']) {
+  test(`incoming demotion cannot clear the failed check for a blocking ${kind} finding`, () => {
+    const finding = { check: 'showNotTell', kind, severity: 'advisory', panels: ['p1-1'],
+      textIds: kind === 'replacesDrawing' ? ['t1-1'] : [], evidence: '그림으로 전달되지 않는 행동', demoted: 'redundant' };
+    const verdicts = kind === 'replacesDrawing' ? { 't1-1': 'replacesDrawing' } : {};
+    const result = validateAdaptationReview(reviewWith({ showNotTell: 'failed' }, { findings: [finding] }, w, verdicts), w);
+    assert.equal(result.passed, false);
+    assert.equal(result.review.findings[0].severity, 'blocking');
+    assert.equal(result.review.checks.showNotTell.status, 'failed');
+    assert.equal(Object.hasOwn(result.review.findings[0], 'demoted'), false);
+    assert.equal(Object.hasOwn(result.review.checks.showNotTell, 'demotedFrom'), false);
+  });
+}
+
+test('incoming check demotion is discarded while uncertainty and reviewer evidence survive', () => {
+  const reviewerEvidence = { modelId: 'gpt-6.1-terra', responseId: 'resp_current' };
+  const incoming = reviewWith({ readThrough: 'uncertain' }, { reviewerEvidence }, withModel);
+  for (const check of Object.values(incoming.checks)) check.demotedFrom = 'failed';
+  const result = validateAdaptationReview(incoming, withModel);
+  assert.equal(result.passed, false);
+  assert.equal(result.independence, 'configured-model');
+  assert.deepEqual(result.review.reviewerEvidence, reviewerEvidence);
+  assert.equal(result.review.checks.readThrough.status, 'uncertain');
+  assert.equal(result.review.checks.readThrough.evidence, 'readThrough 근거');
+  for (const check of Object.values(result.review.checks)) assert.equal(Object.hasOwn(check, 'demotedFrom'), false);
+});
+
 test('panel diff compares panel content and page framing by panel id', () => {
   const before = withPages(w.adaptation, 2), after = structuredClone(before);
   after.pages[0].panels[0].texts[0].text = '"열어."';
