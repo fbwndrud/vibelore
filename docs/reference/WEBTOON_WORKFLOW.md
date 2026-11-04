@@ -27,10 +27,14 @@
 이어 `webtoon-adaptation-review` 요청이 나간다. 검토자는 대본만 담은 packet(`scriptOnly`)과 원문 대조 packet(`sourceComparison`)을 받는다. `readThrough`는 대본만으로 판단하고, `coreKept`·`fidelity`만 원문을 쓴다.
 
 - 다섯 검사: `readThrough`, `coreKept`, `showNotTell`, `pageFlow`, `fidelity`. 각각 `passed|failed|uncertain`, 관련 칸 id, 근거를 기록한다. `uncertain`은 통과가 아니며 통과하지 못한 검사는 칸 id가 하나 이상 있어야 한다.
-- 검사가 하나라도 실패했거나 `blocking` finding이 있으면 불합격이다. `advisory`는 수정을 강제하지 않는다.
+- 전수 감사: 검토자는 검사마다 대본 전체를 한 번에 읽고 찾은 사례를 모두 각각 finding으로 낸다. finding은 `check`(다섯 검사 중 하나)를 반드시 적고, `failed` 검사는 그 검사로 태그한 finding이 하나 이상 있어야 한다(없으면 `INCOMPLETE_ADAPTATION_REVIEW`).
+- `showNotTell`: `checks.showNotTell.textAudit`에 대본의 모든 글자 id가 미리 채워져 있고, 각각 `carries`(그림이 실을 수 없는 목소리·생각·이름·숫자·시각을 더함), `replacesDrawing`(그림이 실어야 할 핵심 행동·동기·결과를 글이 대신하고 칸의 shows에는 없음), `redundant`(그림이 이미 보여 주는 것을 되풀이함) 중 하나로 판정한다. `replacesDrawing`·`redundant` 글자는 같은 `kind`의 `showNotTell` finding이 `textIds`로 빠짐없이 가리켜야 하고, 한 그림으로 그릴 수 없는 칸은 `kind="undrawable"` finding이다. 감사가 빠지거나 겹치거나 finding과 어긋나면 `INCOMPLETE_ADAPTATION_REVIEW: showNotTell`이다.
+- `showNotTell` finding의 심각도는 `kind`로 정해진다. `replacesDrawing`·`undrawable`은 `blocking`, `redundant`는 `advisory`다. 단순 중복만으로 실패한 `showNotTell`은 통과로 읽고 검사에 `demotedFrom:"failed"`, 낮춘 finding에 `demoted:"redundant"`를 남긴다. 나머지 네 검사의 판정 기준은 그대로다.
+- 재검토: 재각색 뒤 검토 요청에는 이전 검토(`previousReview`: 검사 판정과 finding)와 칸 비교(`panelDiff`: `changed`·`added`·`unchanged`·`removed`, 칸 id 기준. shows·bridge·글자 내용이나 그 쪽의 purpose·pageTurn이 바뀌면 changed)가 붙는다. 검토자는 바뀐 칸과 이전 finding부터 다시 본다. 바뀌지 않았고 이전 검토에서 문제가 없던 칸만 가리키는 `blocking` finding은 `newOnUnchanged`에 이전 검토가 놓친 점이나 주변 변화를 적어야 하며, 없으면 `advisory`로 기록하고 `demoted:"unexplainedOnUnchanged"`를 남긴다.
+- 검사가 하나라도 실패했거나 `blocking` finding이 있으면 불합격이다. `advisory`는 수정을 강제하지 않는다. 판정은 위 규칙으로 읽은 결과이며 저장된 `adaptationReview`도 그 결과다.
 - 검토 모델: 작품에 `lore_configure(webtoonAdaptationReviewModel=...)`이 있으면 그 모델이 실행해야 하고 응답에 `reviewerEvidence:{modelId,responseId}`를 담는다. `modelId`가 설정과 다르거나 `responseId`가 비면 `ADAPTATION_REVIEWER_EVIDENCE_REQUIRED`다. 설정이 없으면 호스트 모델이 답하며 결과의 `independence`는 `same-host`(설정이 있으면 `configured-model`)다. 같은 호스트의 검토를 독립 독자 평가로 보고하지 않는다.
 - 이 검토는 `disabledReviews`의 영향을 받지 않는다.
-- 불합격이면 관측 결함(통과하지 못한 검사의 근거와 칸, blocking finding)을 feedback으로 삼아 `adaptationRevisions` 안에서 다시 각색한다. 예산을 다 쓰면 `adaptation_needs_revision`이며 사용자 피드백으로 `revise(target="adaptation")`를 호출한다.
+- 불합격이면 관측 결함(통과하지 못한 검사의 근거와 칸, 검사·칸·글자 id를 붙인 모든 blocking finding)을 feedback으로 삼아 `adaptationRevisions` 안에서 다시 각색한다. 예산을 다 쓰면 `adaptation_needs_revision`이며 사용자 피드백으로 `revise(target="adaptation")`를 호출한다.
 
 ### 각색 승인
 

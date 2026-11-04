@@ -116,14 +116,17 @@ export async function episodeSetup(options) {
 export const adaptationAnswer = d => withSpeaker(adaptationFor(d.source,
   { pageCountReason: d.feedback ? `피드백 반영: ${d.feedback.slice(0, 40)}` : '한 장면이라 한 쪽이면 충분하다' }), d.cast?.[0]?.id ?? 'narrator');
 
-/** Host answer for `webtoon-adaptation-review` shaped from the request schema; `fail` fails readThrough and adds a blocking and an advisory finding. */
+/**
+ * Host answer for `webtoon-adaptation-review` shaped from the request schema: every text carries; `fail` fails readThrough and adds a
+ * blocking and an advisory finding.
+ */
 export function adaptationReviewAnswer(d, request, { fail = false } = {}) {
-  const [panel] = d.scriptOnly.pages[0].panels;
-  return { ...d.schema, findingItem: undefined, checks: Object.fromEntries(ADAPTATION_REVIEW_CHECKS.map(key => [key,
-    key === 'readThrough' && fail ? { status: 'failed', panels: [panel.id], evidence: `Panel ${panel.id} has an action with no visible cause.` }
-      : { status: 'passed', panels: [panel.id], evidence: `Panel ${panel.id} reads as intended.` }])),
-    findings: [...(fail ? [{ severity: 'blocking', panels: [panel.id], evidence: `Panel ${panel.id}: show what makes her stop.` }] : []),
-      { severity: 'advisory', panels: [panel.id], evidence: 'Minor polish: tighten the last bridge.' }],
+  const [panel] = d.scriptOnly.pages[0].panels, audit = d.schema.checks.showNotTell.textAudit.map(a => ({ ...a, verdict: 'carries' }));
+  return { ...d.schema, findingItem: undefined, checks: Object.fromEntries(ADAPTATION_REVIEW_CHECKS.map(key => [key, {
+    ...(key === 'readThrough' && fail ? { status: 'failed', panels: [panel.id], evidence: `Panel ${panel.id} has an action with no visible cause.` }
+      : { status: 'passed', panels: [panel.id], evidence: `Panel ${panel.id} reads as intended.` }), ...(key === 'showNotTell' ? { textAudit: audit } : {}) }])),
+    findings: [...(fail ? [{ check: 'readThrough', severity: 'blocking', panels: [panel.id], evidence: `Panel ${panel.id}: show what makes her stop.` }] : []),
+      { check: 'pageFlow', severity: 'advisory', panels: [panel.id], evidence: 'Minor polish: tighten the last bridge.' }],
     ...(d.schema.reviewerEvidence ? { reviewerEvidence: { modelId: request.model.modelId, responseId: 'fixture-response-1' } } : {}) };
 }
 

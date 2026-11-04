@@ -110,7 +110,14 @@ test('a failing adaptation review re-adapts once, then stops', async () => {
   const feedback = JSON.parse(p.requests[2].messages.at(-1).content).feedback;
   assert.equal(feedback, attempt.feedback);
   assert.match(feedback, /readThrough \(failed\): Panel p1-1 has an action with no visible cause\. \[panels: p1-1\]/);
-  assert.match(feedback, /Panel p1-1: show what makes her stop\./); assert.doesNotMatch(feedback, /Minor polish/);
+  assert.match(feedback, /- readThrough: Panel p1-1: show what makes her stop\. \[panels: p1-1\]/); assert.doesNotMatch(feedback, /Minor polish/);
+  assert.match(feedback, /Fix every item below in this revision/);
+  // The re-review sees the previous review and which panels changed; the first review sees neither.
+  const firstReview = JSON.parse(p.requests[1].messages.at(-1).content), reReview = JSON.parse(p.requests[3].messages.at(-1).content);
+  assert.equal(firstReview.previousReview, undefined); assert.equal(firstReview.panelDiff, undefined);
+  assert.deepEqual(reReview.previousReview.findings.map(f => f.severity), ['blocking', 'advisory']);
+  assert.deepEqual(reReview.panelDiff, { changed: [], added: [], unchanged: ['p1-1', 'p1-2', 'p1-3'], removed: [] });
+  assert.match(p.requests[3].messages[0].content, /first re-check the changed and added panels/);
   assert.doesNotMatch(feedback, /coreKept/);
   assert.match(r.nextAction, /action="revise"/);
 });
