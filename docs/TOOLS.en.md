@@ -186,9 +186,13 @@ It does not change old stored data. With the optional arguments it stores the wr
 - `webtoonReviewModel`: model ID or `{provider:"host"|"local",modelId,reasoningEffort?}` for visual scene review only.
   Omission preserves it; `null` restores the default. It is a hint the host must execute, not execution evidence.
 
+- `webtoonComposition`: thresholds for the webtoon composition digest and advisory, `{shortWindowEpisodes?, shortWindowScenes?, overuseDelta?, overuseMinCount?, streakLength?, observedBasisRate?, protagonistIds?}`.
+  Only supplied fields are patched; `null` restores the defaults. It records and suggests only, and never blocks image generation, adoption or the review verdict.
+  See [Composition records and the repetition digest](reference/WEBTOON_WORKFLOW.en.md#composition-records-and-the-repetition-digest).
+
 - `disabledReviews`: the full list of per-chapter reviews to turn off (`story-profile-check`, `coherence-judge`,
-  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`). A review that is off is not
-  requested, is recorded as `disabled_by_user` and does not block auto commits.
+  `editorial-quality`, `character-fidelity`, `reader-hook`, `pattern-ledger`, `arc-review`, `composition-ledger`). A review that is off is not
+  requested, is recorded as `disabled_by_user` and does not block auto commits. `composition-ledger` turns off only the webtoon composition-repetition advisory.
 - `planningReviews`: `{story?, arc?, episode?}`. false skips both semantic and quality model reviews for
   that stage; true enables them. Only supplied fields are patched. Structure, references, canon and language
   checks remain. Explicit true also opts a legacy work into semantic stage review.
@@ -213,7 +217,7 @@ Unknown names are rejected.
 
 | Required | Optional |
 |---|---|
-| `workId` | `project`, `disabledReviews`, `planningReviews`, `arcReview`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords` |
+| `workId` | `project`, `disabledReviews`, `planningReviews`, `arcReview`, `disabledDraftSections`, `tracking`, `customTracking`, `mergeRecords`, `webtoonComposition` |
 
 ### `lore_style_anchor`
 
@@ -708,8 +712,8 @@ the user's answer. `decisions` always describe the adopted head, even when `styl
 
 The default path for new webtoon work. It generates a whole scene together with its dialogue, without roughs. For a new scene the user must choose `panelCount` as an integer (1-12) or `"auto"`; if it is missing, `needs_interview` suggests `[4, 6, 8, 9, "auto"]`. With `auto` the AI picks a suitable number of 3-12 panels anew for each adaptation, and the check, image and review after that are fixed to that number. Integers under 3 are allowed, but a continuity-loss warning is put in the response `warnings`. For a work with no image choice, start first returns `needs_image_runtime`. Once the host reports the image paths it really has (built-in tools, APIs) as `imageRuntime`, `needs_image_choice` returns every option and a proposal (the built-in path first); put the user's own answer in `feedback` and confirm with `confirmImageChoice`. The choice is kept per work and changes only through `changeImageChoice`. With `previousWorkflowId` it inherits the previous scene's actual image and review results and checks the continuity of characters, background and action. If the actual panel count differs from the choice, it doesn't complete. A new scene sends an image request only after the pre-generation check has settled a short `renderBrief` and a `drawability` judgment. The drawing model is not sent review reports or duplicate direction text. If the pre-generation check or the image review fails, it redesigns automatically `autoRevisions` times (start only, 0-3, default 2), using the observed defects as feedback, and issues a new image request. Failed attempts remain in the response `attempts`; with 0 it stops at `scene_needs_revision` as before.
 This separate path goes: pin the source range → unified English direction → pre-generation check → scene image → visual review of the actual image.
-It takes `action=start|revise|retry|review|verify|reject`, `workflowId`, `revision`, `sourceChapters` or `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
-`previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback` and `asset`.
+It takes `action=start|revise|retry|review|verify|reject|composition_rebuild`, `workflowId`, `revision`, `sourceChapters` or `scriptId`, `sourceUnitIds`, `panelCount`, `direction`, `references` (required on every start),
+`previousWorkflowId`, `styleRevisionId`, `autoRevisions`, `imageRuntime`, `imageOption`, `imageModel`, `changeImageChoice`, `confirmImageChoice`, `feedback`, `compositionBackfill`, `setAsideCorrupt` and `asset`.
 Without an image choice, start returns `needs_image_runtime`, then `needs_image_choice`; `needs_model` uses `lore_resume` and lookups use `lane=webtoon`.
 `needs_scene_image` appears only after the pre-generation check passes, and only then is the image drawn on the chosen path (`hostRequest` or `apiRequest`).
 Imports whose source, reference or plan hash changed, and visual reviews that didn't open the image, are refused.
@@ -724,7 +728,13 @@ References given only as paths are reported as `unpreserved`; no reproducibility
 A catalog reference that applies to none of the selected source scenes is rejected with `SCENE_ASSET_STATE_MISMATCH`.
 References retain their `entityId`, `stateIds` and applicable `sceneIds`; image requests name the applicable moments when multiple states are depicted.
 Resume uses the verified source. Completed-production verification checks the recorded excerpt and catalog reference identities/scopes against the preserved lock, even when the original world directory is gone.
-For the detailed contract, see [Default path](reference/WEBTOON_WORKFLOW.en.md#default-path-whole-scene-production).
+A newly started scene gets composition labels in the pre-generation check and leaves per-episode composition records when adopted. The repetition digest (`compositionDigest`) built from those
+records is sent once each to the plan and pre-generation requests, and never to the image prompt or the visual review request. A streak or over-use is recorded only as a `COMPOSITION_REPETITION` advisory
+on the review and never changes the verdict. `action=composition_rebuild` recomputes the composition aggregates from the stored records (no model or image call) and returns
+`{status:"composition_rebuilt", episodes, panels, sourceHead}`; a work with no records gets zero counts and an empty index. A damaged episode record file stops it with `CORRUPT_COMPOSITION_SHARD: <episode>`.
+With `setAsideCorrupt=true` each damaged file is first renamed to a sibling name that listing and reading ignore (`<episode>.jsonl.corrupt-<time>`, bytes kept), the aggregates are rebuilt from the rest, and the set-aside keys come back as `setAside`; that episode's scenes stay out of the aggregates until they are adopted again or recorded with `compositionBackfill`. If a record file is damaged while a scene is being adopted, adoption is not blocked and the scene state carries `compositionRecordError`.
+A completed earlier scene with no composition records can be backfilled by passing `compositionBackfill=true` to `action=review`: the review only observes what was drawn (no new image, no redesign, the stage stays `completed`; if the review fails other checks the rows are still recorded as adopted, since the scene was already adopted, and the findings stay visible). A scene that already records composition is refused with `SCENE_BACKFILL_NOT_NEEDED`, a scene that is not completed with `SCENE_BACKFILL_REQUIRES_COMPLETED`, and any action other than `review` with `SCENE_BACKFILL_REVIEW_ONLY`. Run `composition_rebuild` afterwards to fold the new records into the aggregates.
+For the detailed contract, see [Default path](reference/WEBTOON_WORKFLOW.en.md#default-path-whole-scene-production) and [Composition records and the repetition digest](reference/WEBTOON_WORKFLOW.en.md#composition-records-and-the-repetition-digest).
 
 ### `lore_webtoon_plan` (deprecated)
 

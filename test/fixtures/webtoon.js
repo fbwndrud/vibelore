@@ -10,6 +10,8 @@ import { WEBTOON_AREAS } from '../../src/core/webtoon-contract.js';
 export const workId = 'webtoon-test';
 export const answers = { ...Object.fromEntries(WEBTOON_AREAS.map(({ id }) => [id, `사용자 지정 방향 ${id}`])), W15: 'standard', W16: 'scroll' };
 export const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aAccAAAAASUVORK5CYII=', 'base64');
+/** A second valid PNG whose bytes (and hash) differ from `pixel`, for tests that need distinct attachments. */
+export const otherPixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGM4IScHAAK2AQU0pnWqAAAAAElFTkSuQmCC', 'base64');
 const testRoots = new Set();
 after(async () => { for (const root of testRoots) await rm(root, { recursive: true, force: true }); });
 

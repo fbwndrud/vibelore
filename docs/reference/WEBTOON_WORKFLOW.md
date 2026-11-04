@@ -38,6 +38,47 @@
 이전 검수와 대기 요청 전체를 `reviewHistory`에 보존하고 실제 request ID/runId를 새로 발급한다. 이미지와 revision,
 재생성 예산은 유지하며, 실패해도 추가 이미지 요청 없이 `scene_needs_revision`에서 멈춘다.
 
+### 구도 기록과 반복 다이제스트
+
+새로 시작한 장면은 생성 전 검증(`webtoon-scene-preflight`)에서 모든 순간에 구도 라벨을 붙인다. 라벨은 스키마에 나온 고정 어휘만 쓴다.
+`shot`(ECU·CU·MCU·MS·FS·WS·EST·INSERT), `angle`(eye·high·low·top·worm·dutch·ots·pov), `focal`(face·hands·prop·space·text·two-face),
+`background`(detailed·bokeh·flat·white·fx·silhouette), 인물별 `visibility`·`side`·`facing`·`expression`, 페이지 `layout`이다.
+어휘 밖의 값은 `INVALID_SCENE_COMPOSITION`으로 거절한다. 페이지당 최대 두 순간만 `directed`로 표시할 수 있고 그 프레이밍만 그림 모델에 전달된다.
+나머지 라벨은 기록 전용이며 원문이 요구하는 요소는 `required`에 근거 ID와 함께 적는다. 채택한 화풍 설명 중 구도 문장은 `seriesComposition`으로 분리되어
+계획 요청에만 실리고 다른 요청과 이미지 프롬프트에는 화풍 방향만 남는다. 시각 검수 요청도 화풍을 `styleBasis`에 한 번만 싣고, 같은 요청의 `renderBrief`에서는 `style`을 뺀다. 시작할 때 명시한 `direction`은 나누지 않고 그대로 쓴다. 이전부터 진행 중이던 작업은 이 동작을 바꾸지 않고 기존 요청을 그대로 유지한다.
+
+계획 요청은 `sceneType`(dialogue·action·reveal·quiet)을 정하게 하고, `seriesComposition`과 `compositionDigest`는 원문이 허락하는 범위에서 연출을 달리하는 데만 쓰라고 안내한다. 칸 구도는 이어지는 생성 전 검증에 맡긴다. 순간 설명(`action`)에는 카메라·프레이밍 말(close-up, wide shot, camera angle, low angle 등 영어 표기)을 쓰지 않는다. 구도는 라벨이 담으며, 이런 말이 있으면 `SCENE_MOMENT_FRAMING: moment N`으로 거절한다. 대사 한 줄만으로 화자의 얼굴이 `required`가 되지는 않는다.
+
+인물은 로컬 id·일반 id·공유 개체 id 중 무엇으로 라벨해도 된다. 저장되는 브리프와 시각 검수의 관찰 라벨, 모든 기록은 인물당 하나의 정규 id
+(로컬 id, 없으면 일반 id, 없으면 개체 id)를 쓰고 설정의 `protagonistIds`도 같은 id로 해석한다. 생성 전 검증 요청은 `cast`로 인물 목록을 싣고,
+구도 확인을 요구하는 시각 검수 요청에도 같은 목록을 실어 관찰 라벨이 같은 인물을 가리키게 한다. 공유 인물 목록이 없는 소설 원작은 기반(foundation)의 인물(id와 정식 이름)을 그 목록으로 쓰므로, 이 경우에도 목록이 요청에 실리고 목록 밖의 인물 id는 거절한다. 예약 id `extra`는 어느 원작에서나 목록 밖 인물(행인·군중)에 쓸 수 있으며, 인물별 집계·주인공 추정·다이제스트 메뉴에는 들어가지 않고 연출 문구에서는 "a bystander"로 쓰인다.
+
+같은 바이트의 참조 이미지는 이미지 요청에 한 번만 첨부한다. 먼저 나온 참조가 남고, 합쳐진 쪽의 역할은 설명 전체를 되풀이하지 않고 고정된 짧은 문구로 알린다(채택한 화풍 견본이면 "This same image is also the adopted art style sample: take the visual treatment from it.", 이전 장면이면 "This same image is also the preceding scene: continue its identities and setting after its ending.", 그 밖의 참조면 "This same image also serves as <id> reference."). 합쳐진 id는 `mergedIds`에 남고, 채택된 장면의 L0 페이지 행은 참조마다 `role`과 함께 합쳐진 역할을 `mergedRoles`로 기록한다. 이 방식은 새로 시작한 작업에만 적용되며 이전 작업의 저장된 참조는 바꾸지 않는다.
+
+장면이 채택되면 에피소드별 기록(L0)이 `.vibelore/webtoon/composition/l0/`에 쌓인다. 실제 그림 검수의 `compositionCheck`가 라벨과 다르게
+관찰한 칸은 관찰값으로 고쳐 기록한다. 여기서 결정론적으로 장면·에피소드·누적·인물별 집계(L1~L3)를 만들며 모델 호출은 없다.
+
+`scene_generate` 직전에 이 집계에서 반복 다이제스트를 한 번 계산해 워크플로에 저장한다. 최근 구간(기본 2개 에피소드, 한 에피소드뿐이면 최근 6개 장면)을
+그 앞의 기준선(최근 구간 앞에 에피소드가 3개 미만이면 내장 기본 분포)과 비교해 과하게 쓰인 값(최대 3개를 한 줄로 묶음), 같은 닫는 프레임·두 인물 배치·프레이밍의 연속,
+덜 쓰인 값 중 고른 선택지 메뉴를 영어 줄로 만든다. `lines`가 비어 있지 않을 때만 같은 배열을 `scene_generate`와 `scene_preflight` 요청에
+`compositionDigest`로 한 번씩 보낸다(프리플라이트에서 다시 계산하지 않는다). 이미지 프롬프트와 시각 검수 요청에는 싣지 않으며
+계산이 실패해도 이유만 남기고 생성은 계속한다. 수정으로 `scene_generate`부터 다시 시작하면 그때 새로 계산한다. 다이제스트는 제안일 뿐 원문과 사용자 연출이 우선한다.
+
+채택 뒤 최신 페이지에 연속이나 과다 사용이 걸리면 검수 결과에 `COMPOSITION_REPETITION` advisory(`category: "composition"`)를 붙인다.
+기록 전용이라 검수 판정·채택·재생성을 바꾸지 않고, 이후 모델 요청의 `previousScene`에도 넘기지 않는다.
+설정은 `lore_configure(webtoonComposition={shortWindowEpisodes,shortWindowScenes,overuseDelta,overuseMinCount,streakLength,observedBasisRate,protagonistIds})`로 필드별 갱신(`null`은 기본값)하며,
+`shortWindowEpisodes`·`shortWindowScenes`는 최근 구간 크기, `overuseDelta`는 기준선 대비 점유율 증가 하한, `overuseMinCount`는 과다 판정에 필요한 최소 칸 수,
+`streakLength`는 연속 판정 길이, `observedBasisRate`는 검수 보정 비율이 이를 넘으면 다이제스트가 그 사실을 알리는 기준, `protagonistIds`는 주인공 지정(생략하면 가장 자주 나온 인물)이다.
+경고만 끄려면 `disabledReviews`에 `composition-ledger`를 넣는다. 다이제스트 자체는 이 설정으로 끄지 않는다.
+
+`lore_webtoon_scene(action="composition_rebuild")`는 저장된 L0에서 집계 파일 네 개를 다시 쓴다. 모델·이미지 호출과 `needs_model`이 없으며
+`{status:"composition_rebuilt", episodes, panels, sourceHead}`를 돌려준다(`panels`는 채택된 칸 수). 같은 기록이면 항상 같은 바이트이고,
+구도 기록이 없는 작품에서는 에피소드·칸 0과 빈 집계를 쓴다. 집계가 손상됐거나 오래됐을 때, 또는 `protagonistIds`를 바꾼 뒤에 쓴다.
+손상된 에피소드 파일이 있으면 `CORRUPT_COMPOSITION_SHARD: <에피소드>`로 멈춘다. `setAsideCorrupt=true`는 손상된 파일마다 이름을 더는 목록·읽기에 쓰이지 않는 형제 이름(`<에피소드>.jsonl.corrupt-<시각>`, 바이트 보존)으로 바꾸고 나머지로 다시 만들며 키를 `setAside`로 돌려준다.
+에피소드 파일이 손상된 상태에서 장면을 채택해도 채택·검수 결과·제작 기록은 그대로이고, 장면 상태에 `compositionRecordError`가 나타나며 `composition_record_failed` 이벤트가 남는다. 파일은 건드리지 않는다.
+
+구도 기록이 없는 완료된 이전 장면은 `lore_webtoon_scene(action="review", compositionBackfill=true)`로 새 이미지 없이 그려진 구도만 관측해 채운다. 검수 요청은 칸마다 `observed` 또는 `unclear`를 묻고, 기록 행은 출처 `observed-backfill`로 남는다(`unclear`는 라벨 없이 신뢰도만 기록). 장면의 단계는 `completed`를 유지하고, 다른 검수 항목이 불합격이어도 이미 채택된 장면이므로 기록하며 지적은 그대로 남긴다. 기록이 이미 있으면 `SCENE_BACKFILL_NOT_NEEDED`, 완료되지 않은 장면이면 `SCENE_BACKFILL_REQUIRES_COMPLETED`, `review`가 아닌 action에 주면 `SCENE_BACKFILL_REVIEW_ONLY`다. 끝나면 `composition_rebuild`로 집계에 반영한다. 계획 단계에서 `sceneType`을 정하지 않은 장면은 장면 유형별 집계에서 `unknown`으로 묶인다.
+
 ### 화풍 예시와 채택
 
 사용자는 자기 말이나 참조 그림으로 원하는 느낌을 설명하고 실제 예시 한 장으로 직접 선택하거나 선택을 위임한다. 호스트 LLM이 그 말을 해석해 짧은 영어 설명을 쓰고, 이미지 모델이 그린다. Vibelore는 후보·원답·채택 판본·이미지 바이트·변경 범위를 보존한다. 세부 기법 메뉴나 여러 화풍 비교 실험을 사용자에게 필수로 요구하지 않는다.

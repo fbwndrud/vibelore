@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { WebtoonStore, resolveWebtoonSource, readJson, atomicWrite } from '../store/webtoon-store.js';
+import { CompositionStore, CORRUPT_SHARD, sceneEpisodeKey } from '../store/webtoon-composition-store.js';
 import { WebtoonStyleStore, STYLE_REFERENCE_ID, styleReference, verifyStyleSnapshot } from '../store/webtoon-style-store.js';
 import { resolveProductionSource, scriptSourceUnits, verifyProductionSource } from '../core/production-source.js';
 import { readSealedProductionInput } from '../core/input-objects.js';
@@ -9,19 +10,26 @@ import { digest, nonempty, safeId, escapeHtml } from '../core/webtoon-contract.j
 import { importWebtoonImages } from '../core/webtoon-board.js';
 import { sceneImageRequest, validateSceneImageProvenance } from '../core/webtoon-images.js';
 import { confirmedWebtoonSelection } from '../core/webtoon-image-selection.js';
+import { COMPOSITION_VOCAB, COMPOSITION_VOCAB_VERSION, REQUIRED_KINDS, splitCompositionDirection } from '../core/webtoon-composition.js';
 import { webtoonDelegation } from '../core/webtoon-delegation.js';
 import { webtoonMessage } from '../core/webtoon-language.js';
 import { getRuntimeIdentity } from '../core/runtime-identity.js';
 import { newRunId, saveRun, dropRun } from '../runs.js';
 import { deriveRequestFingerprint } from '../../engine/src/core/request-fingerprint.js';
-import { loadWebtoonReviewModel } from '../core/review-policy.js';
-import { SCENE_IMAGE_REVIEW_VERSION, SCENE_IMAGE_REVIEW_PROMPT, sceneVisualCheckSchema, sceneReviewInputs } from '../core/webtoon-scene-review.js';
-import { SCENE_SCHEMA, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, CONTINUITY_CHECKS,
-  isEnglish, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
+import { loadWebtoonReviewModel, loadWebtoonCompositionConfig, loadDisabledReviews } from '../core/review-policy.js';
+import { compositionDigest, compositionAdvisory } from '../core/webtoon-composition-digest.js';
+import { SCENE_IMAGE_REVIEW_VERSION, sceneVisualCheckSchema, sceneReviewInputs, sceneImageReviewPrompt, compositionCheckSchema, compositionCheckActive, compositionReviewCast, canonicalCompositionCheck } from '../core/webtoon-scene-review.js';
+import { SCENE_SCHEMA, SCENE_SCHEMA_V1, COMPOSITION_PREFLIGHT_INSTRUCTION, COMPOSITION_PLAN_INSTRUCTION, sceneCastList, SCENE_TEXT_KIND_INSTRUCTION, SCENE_CHECKS, SCENE_AUTO_REVISIONS, sceneRevisionFeedback, SCENE_PANEL_LIMITS, SCENE_PANEL_OPTIONS, SCENE_LIMITS, SCENE_PRODUCTION_MODE, PREVIOUS_SCENE_ID, mergeDuplicateReferences, CONTINUITY_CHECKS,
+  isEnglish, canonicalRenderBrief, castCanonicalizer, compositionCastIds, sceneStyleBasis, scenePanelCountMode, sceneWarnings, validateScenePlan, sceneBinding, sceneImageBinding, validateScenePreflight, sceneImagePrompt, validateSceneImageReview } from '../core/webtoon-scene.js';
 
 const TOOL = 'lore_webtoon_scene';
 /** Shape of each findings[] item; findings may be empty. */
 const SCENE_FINDING_SHAPE = { severity: 'blocking | advisory', evidence: 'concrete evidence (required)' };
+const menu = field => COMPOSITION_VOCAB[field].join('|');
+/** Label shape shown to the preflight model; each value lists the allowed vocabulary. */
+const COMPOSITION_EXAMPLE = { shot: menu('shot'), angle: menu('angle'), focal: menu('focal'), background: menu('background'),
+  subjects: [{ id: 'character-id', visibility: menu('visibility'), side: menu('side'), facing: menu('facing'), expression: menu('expression') }],
+  directed: false, required: [{ kind: REQUIRED_KINDS.join('|'), id: 'element-id', sourceIds: ['source-unit-id'] }] };
 const terminal = w => ['completed', 'rejected'].includes(w.stage);
 const record = (w, event, data = {}) => w.events.push({ at: new Date().toISOString(), revision: w.revision, event, ...data });
 const isScene = w => w?.productionMode === SCENE_PRODUCTION_MODE;
@@ -38,6 +46,8 @@ export function scenePublicState(w) {
     autoRevision: w.autoRevision ?? { limit: 0, used: 0 }, attempts: w.attempts ?? [],
     style: w.styleSnapshot ?? null,
     delegation: w.delegation ?? null,
+    ...(w.compositionVersion ? { compositionDefaults: w.compositionDefaults ?? [], ...(w.compositionDigestError ? { compositionDigestError: w.compositionDigestError } : {}) } : {}),
+    ...(w.compositionRecordError ? { compositionRecordError: w.compositionRecordError } : {}),
     apiRestriction: w.apiRestriction ?? w.delegation?.apiPolicy ?? 'existing-only',
     limitations: ['Whole-scene raster with generated lettering; not editable vector lettering.', 'Host review is self-reported, not independent reader evaluation.'] };
 }
@@ -102,7 +112,7 @@ function needCurrentPreflight(w) {
 /** Start a new plan revision; earlier candidates stay on disk under their own revision directory. */
 function beginRevision(w, feedback) {
   delete w.reviewOnly;
-  w.previousFindings = w.visualReview ?? w.preflight; w.feedback = feedback;
+  w.previousFindings = forModels(w.visualReview ?? w.preflight); w.feedback = feedback;
   w.imagePromptVersion = 2;
   w.revision++; w.pending = null; w.preflight = null; w.visualReview = null; w.scenePlan = null; w.sceneImage = null; w.artifacts = {}; w.stage = 'scene_generate';
   if (scenePanelCountMode(w) === 'auto') w.panelCount = undefined;
@@ -147,19 +157,76 @@ async function modelTask(repo, w, step, system, data, providers, images) {
   w.consumedRunIds.push(task.runId); w.pending = null; return { value };
 }
 
+/** A review as later model requests may see it: the record-only composition advisory stays out. Reviews without one are returned unchanged. */
+const forModels = review => review?.findings?.some(f => f.category === 'composition') ? { ...review, findings: review.findings.filter(f => f.category !== 'composition') } : review;
+
+/** Short reason kept on the workflow when composition data could not be used; never the full message, which may carry paths. */
+const compositionReason = error => /^[A-Z][A-Z_]+(: [\w-]+)?/.exec(String(error?.message ?? error))?.[0] ?? error?.code ?? error?.name ?? 'ERROR';
+
+/** Composition thresholds, with the configured lead characters named by the canonical cast ids this workflow uses. */
+async function compositionSettings(store, workId, w) {
+  const config = await loadWebtoonCompositionConfig(store, workId);
+  if (!w) return config;
+  const canonical = castCanonicalizer(w);
+  return { ...config, protagonistIds: [...new Set(config.protagonistIds.map(canonical))] };
+}
+
+/** Digest of the work's framing history for this scene's planner. Record-only: a failure leaves a reason and never blocks generation. */
+async function prepareCompositionDigest(repo, w) {
+  delete w.compositionDigest; delete w.compositionDigestError;
+  try {
+    const config = await compositionSettings(repo.store, w.workId, w);
+    const composition = new CompositionStore(repo);
+    const index = await composition.readIndex({ protagonistIds: config.protagonistIds });
+    w.compositionDigest = compositionDigest(index, { episodeKey: sceneEpisodeKey(w), castIds: compositionCastIds(w), requiredLocks: [],
+      seed: `${w.workflowId}:${w.revision}`, config, basisStats: await composition.basisStats() });
+  } catch (error) { delete w.compositionDigest; w.compositionDigestError = compositionReason(error); }
+}
+
+/** The digest lines computed at scene_generate, for both planning requests; absent for workflows without composition or without lines. */
+const compositionDigestInput = w => w.compositionVersion && w.compositionDigest?.lines?.length ? { compositionDigest: w.compositionDigest.lines } : {};
+
+/**
+ * The render brief as the image reviewer sees it. With composition on and an adopted style, the style sentence reaches the
+ * reviewer once, in styleBasis, so the brief copy leaves its own `style` out. Other workflows send the brief unchanged.
+ */
+function reviewRenderBrief(w) {
+  const brief = w.preflight?.renderBrief;
+  if (!brief || !w.styleSnapshot || !compositionCheckActive(w)) return brief;
+  const { style, ...rest } = brief;
+  return rest;
+}
+
+/** Soft repetition note on an adopted scene's review. It never changes the verdict and skips silently if anything fails. */
+async function attachCompositionAdvisory(repo, w) {
+  try {
+    if ((await loadDisabledReviews(repo.store, w.workId)).includes('composition-ledger')) return;
+    const config = await compositionSettings(repo.store, w.workId, w);
+    const index = await new CompositionStore(repo).readIndex({ protagonistIds: config.protagonistIds });
+    const advisory = compositionAdvisory(index, { episodeKey: sceneEpisodeKey(w), config });
+    if (!advisory) return;
+    w.visualReview.findings = [...w.visualReview.findings, advisory];
+    await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
+  } catch (error) { record(w, 'composition_advisory_skipped', { reason: compositionReason(error) }); }
+}
+
 async function drive(repo, w, providers) {
   if (w.stage === 'scene_generate') {
+    if (w.compositionVersion && !w.pending) await prepareCompositionDigest(repo, w);
     const auto = scenePanelCountMode(w) === 'auto';
+    const planSchema = w.compositionVersion ? SCENE_SCHEMA_V1 : SCENE_SCHEMA;
     const r = await modelTask(repo, w, 'webtoon-scene-plan',
       'Adapt this source excerpt as ONE coherent comic scene. Combine editorial selection and staging in one brief. Write intent, facts, actions, staging and uncertainties in English; copy visible text verbatim in the source language. ' + SCENE_TEXT_KIND_INSTRUCTION
       + (auto ? `panelCount is "auto": choose the panel count (integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max}) that this adaptation needs and return it as panelCount; choose again from scratch on every revision. `
         : 'Honor the user-selected panelCount ')
-      + 'without making one beat equal one panel. Do not prescribe panel rectangles, coordinates or a camera per sentence. Identify only necessary spatial facts. Separate ambiguity from facts, never invent physics to fill a gap. Let the image artist choose composition. Preserve causality, character motivation and exact speaker identities. A beat is an event, not a panel. Do not reuse prior shot lists.',
+      + 'without making one beat equal one panel. Do not prescribe panel rectangles, coordinates or a camera per sentence. Identify only necessary spatial facts. Separate ambiguity from facts, never invent physics to fill a gap. ' + (w.compositionVersion ? COMPOSITION_PLAN_INSTRUCTION : 'Let the image artist choose composition.') + ' Preserve causality, character motivation and exact speaker identities. A beat is an event, not a panel. Do not reuse prior shot lists.',
       { source: w.sceneUnits, foundation: w.source.foundation, documents: w.source.documents, ...referenceContext(w),
-        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'This is the user-adopted visual treatment. Preserve it; source facts and identities remain authoritative. Any source expression profile is subordinate for presentation only.' } : {}),
+        ...(w.styleSnapshot ? { styleBasis: sceneStyleBasis(w), styleInstruction: 'This is the user-adopted visual treatment. Preserve it; source facts and identities remain authoritative. Any source expression profile is subordinate for presentation only.' } : {}),
         ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText, cast: w.source.cast, expression: w.source.expression } : {}), direction: w.direction,
+        ...(w.compositionDefaults?.length ? { seriesComposition: w.compositionDefaults } : {}),
+        ...compositionDigestInput(w),
         panelCount: auto ? 'auto' : w.panelCount, previousScene: w.previousScene,
-        feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...SCENE_SCHEMA, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : SCENE_SCHEMA }, providers,
+        feedback: w.feedback, previousFindings: w.previousFindings, schema: auto ? { ...planSchema, panelCount: `integer ${SCENE_PANEL_LIMITS.autoMin}-${SCENE_PANEL_LIMITS.max} chosen for this adaptation` } : planSchema }, providers,
       w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
     if (r.waiting) return r.result;
     w.scenePlan = validateScenePlan(r.value, w.sceneUnits, { resolvePanelCount: auto });
@@ -169,15 +236,20 @@ async function drive(repo, w, providers) {
   if (w.stage === 'scene_preflight') {
     const hash = sceneBinding(w);
     const r = await modelTask(repo, w, 'webtoon-scene-preflight',
-      `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. Keep camera and layout free. Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
+      `Before any paid image call, compare the actual source and scene brief. Check source fidelity (including speaker and disclosure), spatial/physical feasibility, temporal causality, and visual/text load. Cite source and beat evidence. Fail contradictions and invented necessary mechanics; mark ambiguity explicitly. Review every beat. Use blocking or advisory findings. Return four distinct checks, each with boolean passed and concrete evidence. Then edit the drawing request down to renderBrief: one short style line (at most ${SCENE_LIMITS.styleWords} words), exactly panelCount moments, each at most ${SCENE_LIMITS.momentWords} English words describing ONE visible instant. Preserve selected exact texts via textIds and cite sourceIds. ${w.compositionVersion ? COMPOSITION_PREFLIGHT_INSTRUCTION : 'Keep camera and layout free.'} Choose the essential instant; omit inferable transit and setup, not the payoff. Do not pack reaching, cutting and leading into one moment. Reduce demands instead of adding prohibitions or physics explanations. Keep audit findings and uncertainty out of the drawing brief. drawability must judge this FINAL brief against the source, user direction, visual continuity and moment budget. If overload remains, fail before image generation; do not defer it to the image model as advisory. Briefness alone is not evidence of drawability. On a revision, address feedback/previousFindings with positive emphasis only: renderBrief.focusTextIds lists plan text ids whose exact lettering needs extra care (the server quotes the exact lines), and renderBrief.corrections may hold up to ${SCENE_LIMITS.corrections} English lines (at most ${SCENE_LIMITS.correctionWords} words each) that describe only the wanted result, e.g. "Jaeyun's balloon tail points to his mouth." Never mention an earlier attempt, the wrong output or what to avoid; negations and retry words are rejected. Omit both otherwise.`,
       { source: w.sceneUnits, ...referenceContext(w), ...(w.source.sharedLore ? { sharedLore: w.source.sharedLore.contextText } : {}), plan: w.scenePlan, direction: w.direction, panelCount: w.panelCount, previousScene: w.previousScene,
-        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Copy styleBasis.profile.style exactly into renderBrief.style. The sample is for visual treatment only; preserve source identities and facts.' } : {}),
+        ...(w.compositionVersion && sceneCastList(w).length ? { cast: sceneCastList(w) } : {}),
+        ...compositionDigestInput(w),
+        ...(w.styleSnapshot ? { styleBasis: sceneStyleBasis(w), styleInstruction: 'Copy styleBasis.profile.style exactly into renderBrief.style. The sample is for visual treatment only; preserve source identities and facts.' } : {}),
         ...(w.feedback ? { feedback: w.feedback, previousFindings: w.previousFindings } : {}), schema: { subjectHash: hash,
         coveredBeatIds: w.scenePlan.beats.map(b => b.id), checks: SCENE_CHECKS.map(name => ({ name, passed: false, evidence: '' })), findings: [], findingItem: SCENE_FINDING_SHAPE,
-        renderBrief: { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers,
+        renderBrief: w.compositionVersion ? { style: '', pageComposition: { layout: COMPOSITION_VOCAB.layout.join('|') }, moments: [{ sourceIds: [], action: '', textIds: [], composition: COMPOSITION_EXAMPLE }] }
+          : { style: '', moments: [{ sourceIds: [], action: '', textIds: [] }] }, drawability: { passed: false, evidence: '' } } }, providers,
       w.styleSnapshot ? [w.styleSnapshot.image] : undefined);
     if (r.waiting) return r.result;
     const passed = validateScenePreflight(r.value, w);
+    // The cast may be labelled by any of its ids; the stored brief, its hash and every record use the canonical one.
+    if (passed && w.compositionVersion) r.value.renderBrief = canonicalRenderBrief(r.value.renderBrief, w);
     w.preflight = { ...r.value, passed, reviewedAt: new Date().toISOString(), ...(passed ? { renderBriefHash: digest(r.value.renderBrief) } : {}) };
     await repo.writeCandidate(w, 'preflight.json', JSON.stringify(w.preflight, null, 2));
     if (passed) await repo.writeCandidate(w, 'render-brief.json', JSON.stringify(w.preflight.renderBrief, null, 2));
@@ -199,31 +271,53 @@ async function drive(repo, w, providers) {
     if (!w.pending) w.imageReviewVersion = SCENE_IMAGE_REVIEW_VERSION;
     const reviewInputs = sceneReviewInputs(w);
     const r = await modelTask(repo, w, 'webtoon-scene-image-review',
-      SCENE_IMAGE_REVIEW_PROMPT,
+      sceneImageReviewPrompt(w),
       { reviewVersion: w.imageReviewVersion, referenceImages: reviewInputs.referenceImages,
         feedback: [w.feedback, w.reviewFeedback].filter(Boolean).join('\n'),
-        source: w.sceneUnits, plan: w.scenePlan, renderBrief: w.preflight?.renderBrief, previousScene: w.previousScene, requestedPanelCount: w.panelCount, image: { path: w.sceneImage.path, hash: w.sceneImage.hash },
-        ...(w.styleSnapshot ? { styleBasis: w.styleSnapshot, styleInstruction: 'Open the adopted sample too. Compare actual visual treatment to the user preference and sample, not its cast or composition. Report matches, differs or uncertain with visible evidence. Style taste is advisory, never a blocking finding or automatic regeneration reason.' } : {}),
+        source: w.sceneUnits, plan: w.scenePlan, renderBrief: reviewRenderBrief(w), previousScene: w.previousScene, requestedPanelCount: w.panelCount, image: { path: w.sceneImage.path, hash: w.sceneImage.hash },
+        ...(compositionReviewCast(w).length ? { cast: compositionReviewCast(w) } : {}),
+        ...(w.styleSnapshot ? { styleBasis: compositionCheckActive(w) ? sceneStyleBasis(w) : w.styleSnapshot, styleInstruction: 'Open the adopted sample too. Compare actual visual treatment to the user preference and sample, not its cast or composition. Report matches, differs or uncertain with visible evidence. Style taste is advisory, never a blocking finding or automatic regeneration reason.' } : {}),
         schema: { subjectHash: digest({ binding: sceneImageBinding(w), imageHash: w.sceneImage.hash }), inspectedImages: false, observedPanelCount: null,
           visualChecks: sceneVisualCheckSchema(),
+          ...(compositionCheckActive(w) ? { compositionCheck: compositionCheckSchema(w) } : {}),
           ...(w.previousScene ? { continuity: { inspectedPreviousImage: false, ...Object.fromEntries(CONTINUITY_CHECKS.map(k => [k, { passed: false, evidence: '' }])) } } : {}),
           ...(w.styleSnapshot ? { styleReview: { inspectedReference: false, verdict: 'matches|differs|uncertain', evidence: '' } } : {}),
           coveredBeatIds: w.scenePlan.beats.map(b => b.id), textObservations: w.scenePlan.texts.map(t => ({ id: t.id, observedText: '', readable: false, speakerCorrect: false, evidence: '' })),
           spatialCoherence: false, readingOrder: false, evidence: '', findings: [], findingItem: SCENE_FINDING_SHAPE } }, providers,
       reviewInputs.images);
     if (r.waiting) return r.result;
-    const passed = validateSceneImageReview(r.value, w); w.visualReview = { ...r.value, passed };
+    const passed = validateSceneImageReview(r.value, w);
+    if (compositionCheckActive(w)) r.value.compositionCheck = canonicalCompositionCheck(r.value.compositionCheck, w);
+    w.visualReview = { ...r.value, passed };
     if (w.styleSnapshot && r.value.styleReview.verdict !== 'matches') {
       w.visualReview.findings = [...w.visualReview.findings, { severity: 'advisory', category: 'style', evidence: r.value.styleReview.evidence }];
     }
     await repo.writeCandidate(w, 'image-review.json', JSON.stringify(w.visualReview, null, 2));
     const html = `<!doctype html><html lang="${escapeHtml(w.source.languageContract?.language ?? 'ko')}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w.scenePlan.title)}</title><style>body{margin:24px auto;max-width:1000px;padding:0 16px;background:#eee;font-family:system-ui}img{width:100%;height:auto}p{line-height:1.6}</style><h1>${escapeHtml(w.scenePlan.title)}</h1><p>${SCENE_PRODUCTION_MODE} · ${passed ? webtoonMessage(w.source, '검토 완료', 'Review passed') : webtoonMessage(w.source, '검토에서 우려 발견', 'Review found concerns')} · ${webtoonMessage(w.source, '원본 이미지 안에 문자 포함', 'Lettering is part of the original image')}</p><img src="data:${w.sceneImage.mime};base64,${bytes.toString('base64')}" alt="${webtoonMessage(w.source, '생성된 장면 전체', 'Generated scene image')}"><p>${escapeHtml(r.value.evidence)}</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(w.visualReview.findings, null, 2))}</pre></html>`;
     await repo.writeCandidate(w, 'scene.html', html);
+    // Composition rows are stored first for the same reason: a failed write must leave the stage retryable, never silently skipped.
+    // A backfill re-review only records what an already adopted scene shows: it never revises, redraws or reopens the scene.
+    const backfill = w.backfillReview === true;
+    delete w.compositionRecordError;
+    if (w.compositionVersion || w.compositionBackfill === true) {
+      const protagonistIds = (await compositionSettings(repo.store, w.workId, w).catch(() => null))?.protagonistIds ?? [];
+      try {
+        const recorded = await new CompositionStore(repo).adoptScene(w, { adopted: passed || backfill, protagonistIds });
+        if (recorded.indexError) record(w, 'composition_index_skipped', { reason: recorded.indexError });
+      } catch (error) {
+        // A damaged shard cannot take the page with it: say so, keep the review and carry on. Any other failure retries.
+        if (error?.code !== CORRUPT_SHARD) throw error;
+        w.compositionRecordError = compositionReason(error);
+        record(w, 'composition_record_failed', { reason: w.compositionRecordError });
+      }
+      if (passed && w.compositionVersion && !w.compositionRecordError) await attachCompositionAdvisory(repo, w);
+    }
     // The record is written before the stage says completed, so a failed write retries instead of leaving an unverifiable scene.
-    if (passed && w.productionRecord) await writeProductionRecord(repo, w);
-    w.stage = passed ? 'completed' : 'scene_needs_revision';
-    record(w, 'scene_reviewed', { passed, imageHash: w.sceneImage.hash });
-    if (!passed && !w.reviewOnly && autoRevise(w)) return drive(repo, w, providers);
+    if ((passed || backfill) && w.productionRecord) await writeProductionRecord(repo, w);
+    w.stage = passed || backfill ? 'completed' : 'scene_needs_revision';
+    delete w.backfillReview;
+    record(w, 'scene_reviewed', { passed, imageHash: w.sceneImage.hash, ...(backfill ? { backfill: true } : {}) });
+    if (!passed && !backfill && !w.reviewOnly && autoRevise(w)) return drive(repo, w, providers);
   }
   return scenePublicState(w);
 }
@@ -256,8 +350,12 @@ async function startScene(store, repo, args, current) {
   const previous = args.previousWorkflowId ? await loadPreviousScene(repo, args) : undefined;
   if (current && !terminal(current) && !(previous?.workflowId === current.workflowId && current.stage === 'scene_needs_revision')) throw new Error('WEBTOON_WORKFLOW_ACTIVE');
   const styleSnapshot = await new WebtoonStyleStore(repo, args.workId).adopted(args.styleRevisionId);
-  const direction = args.direction ?? styleSnapshot?.profile.style;
-  if (!isEnglish(direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
+  // Series-level framing sentences of the adopted style go to planning only; the image prompt keeps the style direction.
+  // A direction the user gave explicitly is kept whole, as revise keeps it.
+  const styleSplit = styleSnapshot ? splitCompositionDirection(styleSnapshot.profile.style) : null;
+  const direction = args.direction ?? styleSplit?.direction;
+  const compositionDefaults = styleSplit?.compositionDefaults ?? [];
+  if (!isEnglish(direction) || (args.direction === undefined && !isEnglish(styleSnapshot.profile.style))) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
   const autoLimit = args.autoRevisions ?? delegation?.maxAutoRevisions ?? SCENE_AUTO_REVISIONS.default;
   if (!Number.isInteger(autoLimit) || autoLimit < 0 || autoLimit > SCENE_AUTO_REVISIONS.max) throw new Error('INVALID_SCENE_AUTO_REVISIONS');
   if (delegation?.maxAutoRevisions !== undefined && autoLimit > delegation.maxAutoRevisions) throw new Error('WEBTOON_DELEGATION_RETRY_LIMIT');
@@ -285,17 +383,21 @@ async function startScene(store, repo, args, current) {
   if (!Array.isArray(references) || !references.length || references.length > SCENE_LIMITS.referenceImages - (drawFromPrevious ? 1 : 0) - (styleSnapshot ? 1 : 0)
     || references.some(r => [PREVIOUS_SCENE_ID, STYLE_REFERENCE_ID].includes(r.id)) || new Set(references.map(r => r.id)).size !== references.length
     || references.some(r => !safeId(r.id) || !isEnglish(r.description) || !nonempty(r.hash))) throw new Error('SCENE_REFERENCES_REQUIRED');
+  // Kept as chosen so a later restyle can merge again from the originals instead of patching merged entries.
+  const unmerged = [...references, ...(styleSnapshot ? [styleReference(styleSnapshot)] : []),
+      ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: styleSnapshot
+        ? 'Previous scene: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
+        : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])];
   const w = { workflowId: `wt-${randomUUID()}`, productionMode: SCENE_PRODUCTION_MODE, imagePromptVersion: 2, workId: args.workId, revision: 1,
     stage: 'scene_generate', source, sceneUnits, direction,
+    compositionVersion: COMPOSITION_VOCAB_VERSION, compositionDefaults,
     ...(styleSnapshot ? { styleSnapshot } : {}),
     ...(delegation ? { delegation, apiRestriction: delegation.apiPolicy } : {}),
     panelCountMode: auto ? 'auto' : 'user', ...(auto ? {} : { panelCount }),
-    ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: previous.visualReview.findings, reviewPassed: previous.visualReview.passed } } : {}),
+    ...(previous ? { previousScene: { workflowId: previous.workflowId, image: previous.sceneImage, sourceUnitIds: previous.sceneUnits.map(u => u.id), plan: previous.scenePlan, findings: forModels(previous.visualReview).findings, reviewPassed: previous.visualReview.passed } } : {}),
     imagePolicy: policy, imageSelection: saved.selection, autoRevision: { limit: autoLimit, used: 0 }, attempts: [],
-    sceneReferences: [...references, ...(styleSnapshot ? [styleReference(styleSnapshot)] : []),
-      ...(drawFromPrevious ? [{ id: PREVIOUS_SCENE_ID, path: previous.sceneImage.path, hash: previous.sceneImage.hash, description: styleSnapshot
-        ? 'Previous scene: identities, clothing, current setting and temporal continuity. Visual treatment comes from the adopted style sample. Continue after its ending; leave its layout and lettering behind.'
-        : 'Previous finished scene: identity, clothing, style and temporal continuity only. Continue after its ending; do not copy its layout, text or unclear geometry.' }] : [])],
+    unmergedSceneReferences: unmerged,
+    sceneReferences: mergeDuplicateReferences(unmerged),
     acceptedInventory: await repo.inventory(), artifacts: {}, events: [], timings: [], failures: [], consumedRunIds: [], runtime: await getRuntimeIdentity(), productionRecord: true };
   record(w, 'scene_started', { sourceHash: source.hash, ...(delegation ? { delegation } : {}) });
   return w;
@@ -371,11 +473,31 @@ async function verifyProduction(repo, w) {
   return { status: 'verified', lane: 'webtoon', workflowId: w.workflowId, recordHash: w.productionRecordHash, record: recordFile, checks, unpreserved };
 }
 
+/**
+ * Rewrite the stored composition index from the per-episode rows. No model or image call; safe on a work with no composition data (writes an empty index).
+ * A damaged shard stops the rebuild and is named; with `setAsideCorrupt` it is first renamed out of the way (its bytes are kept) and reported in `setAside`.
+ */
+async function rebuildComposition(store, repo, workId, w, { setAsideCorrupt = false } = {}) {
+  const config = await compositionSettings(store, workId, w);
+  const composition = new CompositionStore(repo);
+  const setAside = setAsideCorrupt ? await composition.setAsideCorrupt() : null;
+  const index = await composition.rebuildIndex({ protagonistIds: config.protagonistIds });
+  const shards = await Promise.all((await composition.listEpisodes()).map(({ episodeKey }) => composition.readShard(episodeKey)));
+  const panels = shards.flat().filter(row => row.type === 'panel' && row.status === 'adopted').length;
+  return { status: 'composition_rebuilt', lane: 'webtoon', workId, episodes: index.order.length, panels, sourceHead: index.sourceHead, ...(setAside ? { setAside } : {}) };
+}
+
 /** Opt-in scene workflow: never migrates or republishes an existing panel workflow. */
 export async function runWebtoonSceneTool({ store, args, providers, run = null }) {
   if (!safeId(args.workId)) throw new Error('INVALID_WORK_ID');
+  if (!run && args.compositionBackfill !== undefined && args.action !== 'review') throw new Error('SCENE_BACKFILL_REVIEW_ONLY');
   const repo = new WebtoonStore(store);
   return repo.locked(async () => {
+    if (!run && args.action === 'composition_rebuild') {
+      // The workflow in hand tells which cast ids the configured lead characters stand for; without one they are used as given.
+      const current = await repo.load(args.workflowId);
+      return rebuildComposition(store, repo, args.workId, isScene(current) && current.workId === args.workId ? current : null, { setAsideCorrupt: args.setAsideCorrupt === true });
+    }
     let w = await repo.load(args.workflowId);
     if (w && w.workId !== args.workId) throw new Error('WORKFLOW_WORK_MISMATCH');
     if (!run && args.action === 'verify') {
@@ -403,6 +525,10 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
     await verifyInputs(repo, w);
     if (!run && args.action === 'review') {
       if (!w.sceneImage || w.stage === 'rejected') throw new Error('SCENE_REVIEW_IMAGE_REQUIRED');
+      if (args.compositionBackfill === true) {
+        if (w.compositionVersion) throw new Error('SCENE_BACKFILL_NOT_NEEDED');
+        if (w.stage !== 'completed') throw new Error('SCENE_BACKFILL_REQUIRES_COMPLETED');
+      }
       if (w.visualReview || w.pending) {
         const previousReview = { visualReview: w.visualReview, pending: w.pending ?? null,
           reviewModel: w.reviewModel ?? null, imageReviewVersion: w.imageReviewVersion ?? 1,
@@ -412,6 +538,7 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       }
       if (w.pending) await dropRun(store.rootDir, w.pending.runId);
       w.visualReview = null; delete w.productionRecordHash;
+      if (args.compositionBackfill === true) { w.compositionBackfill = true; w.backfillReview = true; } else delete w.backfillReview;
       w.pending = null; w.stage = 'scene_image_review'; w.reviewOnly = true;
       w.reviewFeedback = args.feedback;
       record(w, 'scene_rereview_requested', { feedback: args.feedback, imageHash: w.sceneImage.hash });
@@ -436,16 +563,25 @@ export async function runWebtoonSceneTool({ store, args, providers, run = null }
       if (args.direction !== undefined && !isEnglish(args.direction)) throw new Error('SCENE_ENGLISH_DIRECTION_REQUIRED');
       if (args.styleRevisionId !== undefined) {
         const adopted = await new WebtoonStyleStore(repo, w.workId).adopted(args.styleRevisionId);
-        if (w.direction === w.styleSnapshot?.profile.style) w.direction = adopted.profile.style;
-        const refs = w.sceneReferences.filter(r => r.id !== STYLE_REFERENCE_ID);
+        if (w.compositionVersion) {
+          // The series framing sentences always come from the adopted style; the stored direction follows it only while it still equals the pinned style direction.
+          const split = splitCompositionDirection(adopted.profile.style);
+          if (w.direction === splitCompositionDirection(w.styleSnapshot?.profile.style ?? '').direction) w.direction = split.direction;
+          w.compositionDefaults = split.compositionDefaults;
+        } else if (w.direction === w.styleSnapshot?.profile.style) w.direction = adopted.profile.style;
+        // Workflows started after reference merging rebuild from the unmerged originals; older ones keep the original rebuild.
+        const refs = (w.unmergedSceneReferences ?? w.sceneReferences).filter(r => r.id !== STYLE_REFERENCE_ID);
         if (refs.length >= SCENE_LIMITS.referenceImages) throw new Error('SCENE_REFERENCES_REQUIRED');
         const last = refs.at(-1)?.id === PREVIOUS_SCENE_ID ? refs.pop() : null;
-        w.styleSnapshot = adopted; w.sceneReferences = [...refs, styleReference(adopted), ...(last ? [{ ...last,
+        const rebuilt = [...refs, styleReference(adopted), ...(last ? [{ ...last,
           description: 'Previous scene: identities, clothing, setting and temporal continuity. Visual treatment comes from the adopted style sample.' }] : [])];
+        w.styleSnapshot = adopted;
+        if (w.unmergedSceneReferences) { w.unmergedSceneReferences = rebuilt; w.sceneReferences = mergeDuplicateReferences(rebuilt, { legacy: !w.compositionVersion }); } else w.sceneReferences = rebuilt;
         record(w, 'scene_style_changed', { styleRevisionId: adopted.revisionId });
       }
       if (args.direction !== undefined) w.direction = args.direction;
       if (w.pending) await dropRun(store.rootDir, w.pending.runId);
+      delete w.backfillReview;
       beginRevision(w, args.feedback);
       record(w, 'scene_revision_requested', { feedback: args.feedback });
     }

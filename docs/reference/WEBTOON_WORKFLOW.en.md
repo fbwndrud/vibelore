@@ -50,6 +50,47 @@ Call `lore_webtoon_scene(action="review",workflowId,feedback)` to apply a new re
 the earlier review and complete pending request in `reviewHistory`, issues a new actual request ID/runId, and preserves the
 image, revision and redraw allowance. Failed re-review stops at `scene_needs_revision` without another image request.
 
+### Composition records and the repetition digest
+
+For a newly started scene, the pre-generation check (`webtoon-scene-preflight`) labels the composition of every moment with a fixed vocabulary from the schema:
+`shot` (ECU, CU, MCU, MS, FS, WS, EST, INSERT), `angle` (eye, high, low, top, worm, dutch, ots, pov), `focal` (face, hands, prop, space, text, two-face),
+`background` (detailed, bokeh, flat, white, fx, silhouette), per-character `visibility`, `side`, `facing` and `expression`, and a page `layout`.
+Values outside the vocabulary are refused with `INVALID_SCENE_COMPOSITION`. At most two moments per page may be marked `directed`, and only that framing reaches the image model.
+The other labels are records only; elements the source requires go in `required` with their source IDs. Composition sentences in the adopted style description are split off as
+`seriesComposition` and sent with the plan request only; the other requests and the image prompt carry just the style direction. The visual review request names the style once, in `styleBasis`, and leaves `style` out of the `renderBrief` in the same request. A `direction` given explicitly at start is kept whole. Work that started earlier keeps its existing requests unchanged.
+
+The plan request asks for a `sceneType` (dialogue, action, reveal or quiet) and says that `seriesComposition` and `compositionDigest` are only for varying the staging where the source allows; panel framing is left to the pre-generation check that follows. Moment actions (`action`) carry no camera or framing words (close-up, wide shot, camera angle, low angle and the like): the label carries the framing, and such words are refused with `SCENE_MOMENT_FRAMING: moment N`. A line of dialogue alone does not make the speaker's face a `required` element.
+
+A cast member may be labelled by its local id, plain id or shared entity id. The stored brief, the observed labels from the visual review and every record use one canonical id per member
+(the local id, else the plain id, else the entity id), and `protagonistIds` in the settings resolve to the same ids. The pre-generation request lists the cast as `cast`;
+the visual review request lists it too when it asks for the composition check, so observed labels can name the same members. A novel source with no shared cast uses the characters of its foundation (id and canonical name) as that list, so the list is sent in this case too and a character id outside it is refused. The reserved id `extra` is accepted for any source for figures outside the cast (walk-ons, crowds); it is left out of the per-character aggregates, lead inference and digest menu, and the framing phrase calls it "a bystander".
+
+Reference images with identical bytes are attached to an image request once. The first reference stays; the role of the one merged into it is stated with a short fixed phrase instead of repeating its whole description ("This same image is also the adopted art style sample: take the visual treatment from it." for the adopted style sample, "This same image is also the preceding scene: continue its identities and setting after its ending." for the previous scene, and "This same image also serves as <id> reference." for any other reference). The merged ids stay in `mergedIds`, and the L0 page row of an adopted scene records, for each reference, its `role` and the merged roles as `mergedRoles`. This applies to newly started work only; references stored by earlier work are not changed.
+
+When a scene is adopted, per-episode records (L0) accumulate under `.vibelore/webtoon/composition/l0/`. Where the visual review's `compositionCheck` observed a panel
+differently from its label, the observed value is what gets recorded. From these, scene, episode, cumulative and per-character aggregates (L1-L3) are derived deterministically, with no model call.
+
+Just before `scene_generate`, one repetition digest is computed from the aggregates and stored on the workflow. It compares the recent window (by default the last 2 episodes, or the last 6 scenes
+when there is one episode) with the baseline before it (a built-in default distribution when fewer than 3 episodes precede the recent window). It writes English lines: one for all the over-used values together (up to 3, joined as "A, B and C"), then one each for runs of the same closing frame,
+two-character arrangement or framing, and a small menu of under-used options. Only when `lines` is not empty, the same array is sent once as `compositionDigest` in the `scene_generate` and `scene_preflight`
+requests (it is not recomputed for preflight). It is never put in the image prompt or the visual review request, and if the computation fails only a reason is kept and generation continues.
+A revision that restarts at `scene_generate` computes a fresh digest. The digest is a suggestion: the source and the user's direction come first.
+
+After adoption, if a run or over-use reaches the latest page, the review result gets a `COMPOSITION_REPETITION` advisory (`category: "composition"`).
+It is record-only: it never changes the review verdict, adoption or redrawing, and it is not passed on in `previousScene` of later model requests.
+Configure it with `lore_configure(webtoonComposition={shortWindowEpisodes,shortWindowScenes,overuseDelta,overuseMinCount,streakLength,observedBasisRate,protagonistIds})`, updated field by field (`null` restores the default).
+`shortWindowEpisodes` and `shortWindowScenes` size the recent window, `overuseDelta` is the minimum share increase over the baseline, `overuseMinCount` the minimum number of panels for an over-use,
+`streakLength` the run length that counts as a streak, `observedBasisRate` the review-corrected share above which the digest says so, and `protagonistIds` names the lead characters (the most frequent ones when omitted).
+To silence only the advisory, put `composition-ledger` in `disabledReviews`; that setting does not turn the digest off.
+
+`lore_webtoon_scene(action="composition_rebuild")` rewrites the four aggregate files from the stored L0. It makes no model or image call and issues no `needs_model`, and it returns
+`{status:"composition_rebuilt", episodes, panels, sourceHead}` (`panels` counts adopted panels). The same records always produce the same bytes. A work with no composition records gets zero episodes and panels
+and an empty index written. Use it when the aggregates are damaged or stale, or after changing `protagonistIds`.
+A damaged episode file stops the rebuild with `CORRUPT_COMPOSITION_SHARD: <episode>`. `setAsideCorrupt=true` renames each damaged file to a sibling name that is no longer listed or read (`<episode>.jsonl.corrupt-<time>`, bytes kept), rebuilds from the rest and returns the keys as `setAside`.
+When a scene is adopted while its episode file is damaged, the adoption, the review result and the production record are unaffected: the scene state shows `compositionRecordError` and a `composition_record_failed` event is logged, and the file is left as it was.
+
+A completed earlier scene with no composition records can be filled in with `lore_webtoon_scene(action="review", compositionBackfill=true)`, which observes only the composition that was drawn and makes no new image. The review request asks for `observed` or `unclear` per panel and the rows are recorded with the source `observed-backfill` (`unclear` records the confidence without a label). The scene's stage stays `completed`, and since it was already adopted the record is made even when another review item fails; those findings are kept as they are. A scene that already has records is `SCENE_BACKFILL_NOT_NEEDED`, one that is not completed is `SCENE_BACKFILL_REQUIRES_COMPLETED`, and passing it to an action other than `review` is `SCENE_BACKFILL_REVIEW_ONLY`. Run `composition_rebuild` afterwards to bring the aggregates up to date. A scene whose plan named no `sceneType` is grouped under `unknown` in the per-type aggregates.
+
 ### Standalone scene-script source
 
 When the source is a standalone scene script rather than novel chapters, first adopt it with `lore_scene_script` inspect/apply ([SharedLore contract, Korean](SHARED_LORE_RUNTIME.md)). Then pass `scriptId` instead of `sourceChapters` on `action="start"`; passing both is `SCENE_SOURCE_AMBIGUOUS`. Source paragraph IDs are `<sceneId>-p-<n>`, and plan and preflight requests also carry the per-scene world point and state documents (`sharedLore`), cast and expression profile. Future states and author documents are excluded. References pick catalog images pinned by the script as `references:[{id, assetId, description}]`, using the bytes sealed inside the work; an unpinned assetId is `SCENE_ASSET_NOT_PINNED`. Interview, panel count, image path choice, preflight, visual review and revise/retry work as with a novel source. If the script file or sealed inputs change mid-workflow, it stops with `SCENE_SCRIPT_DRIFT`/`SCENE_SOURCE_CHANGED`.

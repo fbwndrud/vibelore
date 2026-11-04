@@ -25,8 +25,16 @@ export function scenePlan(source, panelCount) {
 export function scenePreflight(d, blocking = false) {
   return { ...d.schema, checks: SCENE_CHECKS.map(name => ({ name, passed: !blocking, evidence: 'Grounded in source units and the door boundary.' })),
     drawability: { passed: true, evidence: 'Synthetic fixture moments; no real image quality claim.' },
-    renderBrief: { style: 'Colored ink.', moments: Array.from({ length: d.panelCount }, (_, i) => ({ sourceIds: [d.source[0].id], action: 'She waits at the door.', textIds: i === 0 ? d.plan.texts.map(t => t.id) : [] })) } };
+    renderBrief: { style: 'Colored ink.', ...(d.schema.renderBrief?.pageComposition ? { pageComposition: { layout: 'strip-stack' } } : {}),
+      moments: Array.from({ length: d.panelCount }, (_, i) => ({ sourceIds: [d.source[0].id], action: 'She waits at the door.', textIds: i === 0 ? d.plan.texts.map(t => t.id) : [],
+        ...(d.schema.renderBrief?.moments?.[0]?.composition ? { composition: sceneComposition() } : {}) })) } };
 }
+
+/** Valid label with no directed moment and no cast subject, for requests whose schema asks for composition. */
+export const sceneComposition = () => ({ shot: 'MS', angle: 'eye', focal: 'space', background: 'detailed', subjects: [], directed: false });
+
+/** Review answer fields for a composition check: every panel matches its plan. Empty when the request carries no composition check. */
+export const sceneCompositionCheck = schema => Array.isArray(schema) ? { compositionCheck: schema.map(e => ({ panel: e.panel, result: 'match', observed: null, evidence: 'Synthetic protocol fixture; framing matches the plan.' })) } : {};
 
 /** Webtoon store with a confirmed API selection and one reference image, plus valid start args. */
 export async function sceneSetup({ language, prose } = {}) {
