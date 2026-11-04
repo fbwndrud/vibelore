@@ -62,6 +62,41 @@ test('signTestP is a two-sided exact binomial test', () => {
   assert.equal(signTestP(4, 1), 0.375);
 });
 
+test('signTestP stays one for balanced samples beyond the exponent overflow boundary', () => {
+  for (const [onWins, offWins] of [[512, 512], [5000, 5000], [5000, 5001], [5001, 5000]]) {
+    assert.equal(signTestP(onWins, offWins), 1, `${onWins},${offWins}`);
+  }
+});
+
+test('signTestP retains finite large-sample tails in either input order', () => {
+  // Independent reference: Python integer math.comb summed with Decimal precision 90.
+  const expected = 9.661495136430292e-168;
+  for (const [onWins, offWins] of [[100, 924], [924, 100]]) {
+    const actual = signTestP(onWins, offWins);
+    assert.ok(Number.isFinite(actual) && actual > 0 && actual <= 1);
+    assert.ok(Math.abs(actual / expected - 1) < 1e-11, `${onWins},${offWins}: ${actual}`);
+  }
+});
+
+test('signTestP avoids intermediate coefficient overflow below 1024 observations', () => {
+  // Independent integer-binomial / Decimal reference, precision 90.
+  const expected = 0.49157474433276375;
+  for (const [onWins, offWins] of [[500, 523], [523, 500]]) {
+    const actual = signTestP(onWins, offWins);
+    assert.ok(Math.abs(actual / expected - 1) < 1e-11, `${onWins},${offWins}: ${actual}`);
+  }
+});
+
+test('signTestP retains representable extreme tails beyond exponent overflow', () => {
+  // Exact two-sided probability is 2^-1023, still representable as a double.
+  const expected = 1.1125369292536007e-308;
+  for (const [onWins, offWins] of [[0, 1024], [1024, 0]]) {
+    const actual = signTestP(onWins, offWins);
+    assert.ok(actual > 0);
+    assert.ok(Math.abs(actual / expected - 1) < 1e-11, `${onWins},${offWins}: ${actual}`);
+  }
+});
+
 test('aggregate counts outcomes and position bias per dimension', () => {
   const pairs = [
     { plot: { outcome: 'on', score: 1, letters: ['A', 'B'] } },

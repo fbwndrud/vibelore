@@ -53,13 +53,25 @@ export function signTestP(onWins, offWins) {
   const n = onWins + offWins;
   if (n === 0) return 1;
   const tail = Math.min(onWins, offWins);
-  let term = 1;
-  let sum = 0;
-  for (let i = 0; i <= tail; i += 1) {
-    sum += term;
-    term = term * (n - i) / (i + 1);
+  if (tail === Math.floor(n / 2)) return 1;
+  if (n < 1024) {
+    let term = 1;
+    let sum = 0;
+    for (let i = 0; i <= tail; i += 1) {
+      sum += term;
+      term = term * (n - i) / (i + 1);
+    }
+    if (Number.isFinite(2 * sum)) return Math.min(1, 2 * sum / 2 ** n);
   }
-  return Math.min(1, 2 * sum / 2 ** n);
+  // Include the two-sided factor in log space so representable subnormal
+  // tails survive even when 2 ** n or binomial coefficients overflow.
+  let logTerm = (1 - n) * Math.LN2;
+  let logSum = logTerm;
+  for (let i = 1; i <= tail; i += 1) {
+    logTerm += Math.log(n - i + 1) - Math.log(i);
+    logSum = logTerm + Math.log1p(Math.exp(logSum - logTerm));
+  }
+  return Math.min(1, Math.exp(logSum));
 }
 
 export function aggregate(pairs) {
